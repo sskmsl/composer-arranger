@@ -76,7 +76,12 @@ export function seedContinue(
   return [...seed, ...continuation]
 }
 
-/** Expand: 2小節を4/8小節などへ発展させる(Continueのターゲット長指定版) */
+/**
+ * Expand: 2小節を4/8小節などへ発展させる(Continueのターゲット長指定版)。
+ * targetTotalBeatsはSeed自体の長さ(モチーフの拍数)を指す。セクション先頭からの
+ * 絶対位置ではないため、Seedの開始位置(seedStart)を差し引かずに使うと、セクション
+ * 途中にあるSeedほど短くしか展開できない不具合になる。
+ */
 export function seedExpand(
   seed: MelodyNote[],
   targetTotalBeats: number,
@@ -85,8 +90,10 @@ export function seedExpand(
   params: GenerationParams,
   seedValue: number,
 ): MelodyNote[] {
+  const seedStart = Math.min(...seed.map((n) => n.startBeat))
   const seedEnd = Math.max(...seed.map((n) => n.startBeat + n.durationBeats))
-  return seedContinue(seed, Math.max(0, targetTotalBeats - seedEnd), harmonicMap, range, params, seedValue)
+  const seedLength = seedEnd - seedStart
+  return seedContinue(seed, Math.max(0, targetTotalBeats - seedLength), harmonicMap, range, params, seedValue)
 }
 
 /** Answer Phrase: 応答フレーズをモチーフの直後に生成する */

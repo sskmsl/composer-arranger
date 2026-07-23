@@ -67,17 +67,18 @@ export interface SmfTrack {
 export interface SmfSong {
   name: string
   tempoBpm: number
-  timeSignature: { beatsPerBar: number; beatUnit: number }
+  /** MIDIの拍子メタイベントに書き出す表記上の分子・分母(例: 6/8ならnumerator:6, denominator:8) */
+  timeSignature: { numerator: number; denominator: number }
   markers: MidiMarker[]
   tracks: SmfTrack[]
 }
 
 export function buildSmf(song: SmfSong): Uint8Array {
   const microsecPerQuarter = Math.round(60_000_000 / song.tempoBpm)
-  const denomPow2 = Math.round(Math.log2(song.timeSignature.beatUnit))
+  const denomPow2 = Math.round(Math.log2(song.timeSignature.denominator))
   const conductor: AbsEvent[] = [
     { tick: 0, order: 0, data: metaEvent(0x03, textBytes(song.name)) },
-    { tick: 0, order: 0, data: metaEvent(0x58, [song.timeSignature.beatsPerBar, denomPow2, 0x18, 0x08]) },
+    { tick: 0, order: 0, data: metaEvent(0x58, [song.timeSignature.numerator, denomPow2, 0x18, 0x08]) },
     {
       tick: 0,
       order: 0,

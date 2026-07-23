@@ -76,7 +76,8 @@ export function applyDevelopmentOp(
       return { events: source.events, pitches: scaleIntervals(source.pitches, arg ?? 0.6), op }
 
     case "truncation": {
-      const keep = Math.max(1, arg ?? Math.ceil(source.pitches.length / 2))
+      // arg===0(0音まで切り詰める)を意図的に指定できるよう、Math.maxで1音を強制しない
+      const keep = arg ?? Math.ceil(source.pitches.length / 2)
       let pitchCount = 0
       const events: MotifEvent[] = []
       for (const e of source.events) {
