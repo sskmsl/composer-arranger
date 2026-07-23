@@ -5,7 +5,7 @@ import { chordEventsToText } from "@/core/chordInput"
 import { parseTimeSignature } from "@/core/section"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
-import { Plus, Copy, Trash2, Download, Upload, FilePlus2 } from "lucide-react"
+import { Plus, Copy, Trash2, Download, Upload, FilePlus2, Repeat } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 
@@ -18,13 +18,18 @@ export function LeftPanel() {
   const removeSection = useProjectStore((s) => s.removeSection)
   const duplicateSection = useProjectStore((s) => s.duplicateSection)
   const setChordText = useProjectStore((s) => s.setChordText)
+  const repeatSectionChords = useProjectStore((s) => s.repeatSectionChords)
   const newProject = useProjectStore((s) => s.newProject)
   const loadProject = useProjectStore((s) => s.loadProject)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const ts = parseTimeSignature(project.song.timeSignature)
-  const chordText = section ? chordEventsToText(project.chords.filter((c) => c.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat), ts.beatsPerBar) : ""
+  const sectionChords = section ? project.chords.filter((c) => c.sectionId === section.id) : []
+  const chordText = section ? chordEventsToText([...sectionChords].sort((a, b) => a.startBeat - b.startBeat), ts.beatsPerBar) : ""
+  const coveredBars = sectionChords.length
+    ? Math.max(...sectionChords.map((c) => c.startBeat + c.durationBeats)) / ts.beatsPerBar
+    : 0
 
   return (
     <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-hairline bg-surface-tile-3 p-3">
@@ -121,18 +126,27 @@ export function LeftPanel() {
                 type="number"
                 min={1}
                 defaultValue={section.lengthBars}
-                key={`len-${section.id}`}
+                key={`len-${section.id}-${section.lengthBars}`}
                 onBlur={(e) => updateSection(section.id, { lengthBars: Math.max(1, Number(e.currentTarget.value) || 1) })}
               />
             </FieldGroup>
             <FieldGroup label='コード進行 ("|" "-" "–" いずれかの区切り。例: "F#m(add9) | E | D | Dsus2")'>
               <textarea
                 defaultValue={chordText}
-                key={`chords-${section.id}`}
+                key={`chords-${section.id}-${sectionChords.length}`}
                 onBlur={(e) => setChordText(section.id, e.currentTarget.value)}
                 rows={4}
                 className="rounded-sm border border-hairline bg-surface-tile-2 px-2.5 py-1.5 text-[13px] text-body-on-dark outline-none focus:border-primary-focus"
               />
+              <Button
+                variant="dark"
+                className="mt-1.5 w-full justify-center"
+                disabled={coveredBars === 0}
+                onClick={() => repeatSectionChords(section.id)}
+              >
+                <Repeat size={13} />
+                {coveredBars > 0 ? `繰り返して2倍(${coveredBars}→${coveredBars * 2}小節)` : "繰り返して2倍"}
+              </Button>
             </FieldGroup>
           </div>
         </SectionCard>

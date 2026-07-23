@@ -62,6 +62,8 @@ interface ProjectState {
   selectSection: (sectionId: string | null) => void
 
   setChordText: (sectionId: string, text: string) => void
+  /** 現在のコード進行をそのまま複製して後ろへ繋げ、小節数を2倍にする */
+  repeatSectionChords: (sectionId: string) => void
   setGenerationSettings: (patch: Partial<GenerationSettings>) => void
 
   generateForSection: (sectionId: string) => void
@@ -223,6 +225,29 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       history: [...get().history, snapshot(prev)],
       future: [],
       project: { ...prev, chords: [...prev.chords.filter((c) => c.sectionId !== sectionId), ...events] },
+    })
+    get().persist()
+  },
+
+  repeatSectionChords: (sectionId) => {
+    const prev = get().project
+    const section = prev.sections.find((s) => s.id === sectionId)
+    const existing = prev.chords.filter((c) => c.sectionId === sectionId).sort((a, b) => a.startBeat - b.startBeat)
+    if (!section || existing.length === 0) return
+
+    const ts = parseTimeSignature(prev.song.timeSignature)
+    const coveredBeats = Math.max(...existing.map((c) => c.startBeat + c.durationBeats))
+    const copies = existing.map((c) => ({ ...c, id: crypto.randomUUID(), startBeat: c.startBeat + coveredBeats }))
+    const newLengthBars = Math.max(section.lengthBars, Math.ceil((coveredBeats * 2) / ts.beatsPerBar))
+
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        chords: [...prev.chords, ...copies],
+        sections: prev.sections.map((s) => (s.id === sectionId ? { ...s, lengthBars: newLengthBars } : s)),
+      },
     })
     get().persist()
   },
