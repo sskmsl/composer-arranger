@@ -15,13 +15,31 @@ export function eventsLength(events: MotifEvent[]): number {
   return last.offsetBeats + last.durationBeats
 }
 
-function countEventsFittingNotes(events: MotifEvent[], maxLengthBeats: number): number {
-  let noteCount = 0
+/**
+ * イベント列をmaxLengthBeatsに収まるよう切り詰める(拍単位で正確にクリップする)。
+ * 休符・ノートを問わず、区間を越える最初のイベントで打ち切る。1音も収まらなければ空を返す
+ * (以前はcountEventsFittingNotesがMath.max(1,...)で最低1音を強制していたため、
+ * その1音がフレーズ/セクション終端をはみ出す不具合があった)。
+ */
+function clipEventsToLength(
+  events: MotifEvent[],
+  pitches: number[],
+  maxLengthBeats: number,
+): { events: MotifEvent[]; pitches: number[] } {
+  const outEvents: MotifEvent[] = []
+  const outPitches: number[] = []
+  let pitchIdx = 0
   for (const e of events) {
-    if (e.offsetBeats + e.durationBeats > maxLengthBeats) break
-    if (!e.isRest) noteCount++
+    if (e.offsetBeats >= maxLengthBeats - 1e-6) break
+    const clippedDuration = Math.min(e.durationBeats, maxLengthBeats - e.offsetBeats)
+    if (clippedDuration <= 0.01) break
+    outEvents.push({ ...e, durationBeats: clippedDuration })
+    if (!e.isRest) {
+      outPitches.push(pitches[pitchIdx])
+      pitchIdx++
+    }
   }
-  return Math.max(1, noteCount)
+  return { events: outEvents, pitches: outPitches }
 }
 
 /** 生成済みピッチを、配置先の和声コンテキストへ再スナップする(輪郭は保ったまま) */
@@ -95,24 +113,30 @@ export function growSegments(
 ): Segment[] {
   const segments: Segment[] = []
   let cursor = startCursor
+
+  // 区間(endBeat)を越える分は必ずここでクリップしてから積む。
+  // 最初のモチーフ核自体がendBeatをはみ出す場合もここで防ぐ(9.5展開後の追加区間だけでなく
+  // 最初の1区間もはみ出し得るため、区別せず同じ経路でクリップする)。
+  const pushClipped = (events: MotifEvent[], pitches: number[]): boolean => {
+    const remaining = endBeat - cursor
+    if (remaining <= 0.01) return false
+    const clipped = eventsLength(events) > remaining ? clipEventsToLength(events, pitches, remaining) : { events, pitches }
+    if (clipped.events.length === 0) return false
+    segments.push({ events: clipped.events, pitches: clipped.pitches, startBeat: cursor })
+    cursor += eventsLength(clipped.events)
+    return true
+  }
+
   if (includeFirst) {
-    segments.push({ events: firstEvents, pitches: firstPitches, startBeat: cursor })
-    cursor += eventsLength(firstEvents)
+    pushClipped(firstEvents, firstPitches)
   }
 
   let guard = 0
   while (cursor < endBeat - 0.25 && guard < 12) {
     guard++
-    const remaining = endBeat - cursor
     const op = weightedDevelopmentOp(rng, params.motifRepeatTarget, params.noveltyWeight, isAnswerPhrase && segments.length === 0)
-    let dev = applyDevelopmentOp(op, { events: firstEvents, pitches: firstPitches }, rng)
-    if (eventsLength(dev.events) > remaining) {
-      const keep = countEventsFittingNotes(dev.events, remaining)
-      dev = applyDevelopmentOp("truncation", dev, rng, keep)
-    }
-    if (dev.events.length === 0) break
-    segments.push({ events: dev.events, pitches: dev.pitches, startBeat: cursor })
-    cursor += eventsLength(dev.events)
+    const dev = applyDevelopmentOp(op, { events: firstEvents, pitches: firstPitches }, rng)
+    if (!pushClipped(dev.events, dev.pitches)) break
   }
   return segments
 }

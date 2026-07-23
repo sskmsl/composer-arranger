@@ -69,6 +69,8 @@ interface ProjectState {
   generateForSection: (sectionId: string) => void
   setActiveCandidateIndex: (index: number) => void
   setActiveMelody: (variantId: string) => void
+  /** 生成履歴からVariantを選ぶ: Active Melodyにするだけでなく、現在の候補バッチ表示も解除する */
+  selectVariantFromHistory: (variantId: string) => void
   renameVariant: (variantId: string, name: string) => void
   deleteVariant: (variantId: string) => void
 
@@ -110,7 +112,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   hydrate: async () => {
     const last = await loadLastOpenedProject()
     if (last) {
-      set({ project: last, selectedSectionId: last.sections[0]?.id ?? null, hydrated: true })
+      // JSON Import/loadProjectByIdと同じくnormalizeProjectを必ず通す。
+      // 旧schemaVersion(1.0)のデータがIndexedDBに残っていても、
+      // songProfile等が欠落したままUIへ渡ってクラッシュしないようにする(16章)
+      const normalized = normalizeProject(last)
+      set({ project: normalized, selectedSectionId: normalized.sections[0]?.id ?? null, hydrated: true })
     } else {
       set({ hydrated: true })
     }
@@ -304,6 +310,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setActiveMelody: (variantId) => {
     const prev = get().project
     set({ project: { ...prev, activeMelodyId: variantId } })
+    get().persist()
+  },
+
+  selectVariantFromHistory: (variantId) => {
+    const prev = get().project
+    set({ project: { ...prev, activeMelodyId: variantId }, activeBatchId: null, activeCandidateIndex: 0 })
     get().persist()
   },
 

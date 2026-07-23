@@ -104,9 +104,14 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
   let hasSixth = false
   let stackedExtension: 9 | 11 | 13 | null = null
 
-  if (/^maj7|^M7|^Δ7?/i.test(rest)) {
+  if (/^maj7/i.test(rest)) {
     hasExplicitMajorSeventh = true
-    rest = rest.replace(/^(maj7|M7|Δ7?)/i, "")
+    rest = rest.replace(/^maj7/i, "")
+  } else if (/^M7/.test(rest) || /^Δ7?/.test(rest)) {
+    // "M7"は大文字Mのみ、"Δ"はそもそも小文字と衝突しないため大文字小文字を区別する。
+    // (iフラグ付きで"M7"を判定すると小文字の"m7"/"m7b5"まで一致してしまうバグがあった)
+    hasExplicitMajorSeventh = true
+    rest = rest.replace(/^(M7|Δ7?)/, "")
   } else if (/^dim7/i.test(rest)) {
     isDim = true
     hasDominantSeventh = false

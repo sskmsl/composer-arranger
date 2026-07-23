@@ -13,9 +13,8 @@ export function BottomBar() {
   const redo = useProjectStore((s) => s.redo)
   const history = useProjectStore((s) => s.history)
   const future = useProjectStore((s) => s.future)
-  const renameVariant = useProjectStore((s) => s.renameVariant)
   const deleteVariant = useProjectStore((s) => s.deleteVariant)
-  const setActiveMelody = useProjectStore((s) => s.setActiveMelody)
+  const selectVariantFromHistory = useProjectStore((s) => s.selectVariantFromHistory)
 
   const variant = useActiveVariant()
   const [mode, setMode] = useState<PreviewMode>("chords-melody")
@@ -90,13 +89,7 @@ export function BottomBar() {
           {sectionVariants.length === 0 && <p className="p-2 text-[12px] text-ink-muted-48">まだ候補がありません</p>}
           {sectionVariants.map((v) => (
             <div key={v.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] hover:bg-white/5">
-              <button
-                className="flex-1 truncate text-left"
-                onClick={() => {
-                  renameVariant(v.id, v.name)
-                  setActiveMelody(v.id)
-                }}
-              >
+              <button className="flex-1 truncate text-left" onClick={() => selectVariantFromHistory(v.id)}>
                 {v.name} {project.activeMelodyId === v.id && "★"}
               </button>
               <span className="text-ink-muted-48">{v.sourceMode}</span>

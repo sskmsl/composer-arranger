@@ -13,9 +13,15 @@ export function useCandidateBatch(): MelodyVariant[] {
 
 export function useActiveVariant(): MelodyVariant | undefined {
   const project = useProjectStore((s) => s.project)
+  const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const activeCandidateIndex = useProjectStore((s) => s.activeCandidateIndex)
   const batch = useCandidateBatch()
   if (batch.length > 0) return batch[Math.min(activeCandidateIndex, batch.length - 1)]
-  if (project.activeMelodyId) return project.melodyVariants.find((v) => v.id === project.activeMelodyId)
+  if (project.activeMelodyId) {
+    const variant = project.melodyVariants.find((v) => v.id === project.activeMelodyId)
+    // Active Melodyが別セクションのVariantを指している場合、現在のセクションのコードと
+    // 組み合わせて表示・再生・書き出ししてしまわないよう除外する
+    if (variant && variant.sectionId === selectedSectionId) return variant
+  }
   return undefined
 }
