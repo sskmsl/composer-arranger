@@ -65,29 +65,11 @@ export function PianoRoll({
   const bars = Math.ceil(totalBeats / beatsPerBar)
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
-      {/* 小節ヘッダー: クリックでBar Lock */}
-      <div className="flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[10px] text-ink-muted-48" style={{ width }}>
-        {Array.from({ length: bars }).map((_, i) => (
-          <button
-            key={i}
-            onClick={() => onToggleBarLock(i + 1)}
-            className={`flex items-center justify-center gap-1 border-r border-hairline/60 ${
-              lockedBars.includes(i + 1) ? "bg-primary/25 text-primary-on-dark" : "hover:bg-white/5"
-            }`}
-            style={{ width: beatsPerBar * PX_PER_BEAT }}
-            title="クリックでこの小節をLock"
-          >
-            {lockedBars.includes(i + 1) && <Lock size={9} />}
-            {i + 1}
-          </button>
-        ))}
-      </div>
-
+    <div className="flex w-full min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-auto no-scrollbar"
-        style={{ maxHeight: 360 }}
+        className="relative w-full min-w-0 overflow-auto no-scrollbar"
+        style={{ maxHeight: 400 }}
         onMouseDown={(e) => {
           const target = e.target as SVGElement
           if (target.closest("[data-note]")) return
@@ -102,6 +84,27 @@ export function PianoRoll({
         }}
         onMouseUp={() => setDragStart(null)}
       >
+        {/* 小節ヘッダー: クリックでBar Lock。水平スクロールは本体と連動し、縦スクロール時は上部に固定する */}
+        <div
+          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[10px] text-ink-muted-48"
+          style={{ width }}
+        >
+          {Array.from({ length: bars }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => onToggleBarLock(i + 1)}
+              className={`flex items-center justify-center gap-1 border-r border-hairline/60 ${
+                lockedBars.includes(i + 1) ? "bg-primary/25 text-primary-on-dark" : "hover:bg-white/5"
+              }`}
+              style={{ width: beatsPerBar * PX_PER_BEAT }}
+              title="クリックでこの小節をLock"
+            >
+              {lockedBars.includes(i + 1) && <Lock size={9} />}
+              {i + 1}
+            </button>
+          ))}
+        </div>
+
         <svg width={width} height={height} className="block">
           {/* コード背景 */}
           {chords.map((c, i) => (

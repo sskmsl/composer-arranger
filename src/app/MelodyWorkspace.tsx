@@ -55,7 +55,7 @@ export function MelodyWorkspace() {
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0}>
           <Sparkles size={14} /> Generate from Chords
         </Button>
@@ -108,7 +108,7 @@ export function MelodyWorkspace() {
       </p>
 
       {variant && selection && selection.end - selection.start >= 0.25 && (
-        <div className="flex items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <span className="text-[12px] text-ink-muted-48">
             選択範囲: {selection.start.toFixed(1)}拍 – {selection.end.toFixed(1)}拍
           </span>
@@ -120,7 +120,7 @@ export function MelodyWorkspace() {
 
       {variant && selectedNoteIds.size > 0 && (
         <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-          <div className="flex items-center gap-2 text-[12px] text-ink-muted-48">
+          <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-muted-48">
             <span>Develop a Seed — 選択中 {selectedNoteIds.size} 音</span>
             <label className="flex items-center gap-1">
               Continue拍数

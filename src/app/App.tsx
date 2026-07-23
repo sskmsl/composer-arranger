@@ -13,6 +13,8 @@ export function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
   const hydrated = useProjectStore((s) => s.hydrated)
   const [tab, setTab] = useState<MainTab>("melody")
+  const [leftOpen, setLeftOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
 
   useEffect(() => {
     void hydrate()
@@ -27,14 +29,28 @@ export function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-surface-black text-body-on-dark">
-      <TopBar tab={tab} onTabChange={setTab} />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+    <div className="flex h-dvh flex-col overflow-hidden bg-surface-black text-body-on-dark">
+      <TopBar
+        tab={tab}
+        onTabChange={setTab}
+        onToggleLeft={() => setLeftOpen((v) => !v)}
+        onToggleRight={() => setRightOpen((v) => !v)}
+      />
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {tab === "melody" && (
           <>
-            <LeftPanel />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <MelodyWorkspace />
-            <RightPanel />
+            <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} />
+            {(leftOpen || rightOpen) && (
+              <div
+                className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                onClick={() => {
+                  setLeftOpen(false)
+                  setRightOpen(false)
+                }}
+              />
+            )}
           </>
         )}
         {tab === "arrangement" && <ComingSoonTab name="Arrangement" phase="Phase 4以降" />}

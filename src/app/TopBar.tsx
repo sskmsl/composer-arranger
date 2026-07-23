@@ -1,5 +1,6 @@
 import { useProjectStore } from "@/store/useProjectStore"
-import { Pill, TextInput } from "@/ui/primitives"
+import { IconButton, Pill, TextInput } from "@/ui/primitives"
+import { PanelLeft, PanelRight } from "lucide-react"
 import type { MainTab } from "./App"
 
 const TABS: { id: MainTab; label: string }[] = [
@@ -8,26 +9,56 @@ const TABS: { id: MainTab; label: string }[] = [
   { id: "audition", label: "Audition" },
 ]
 
-export function TopBar({ tab, onTabChange }: { tab: MainTab; onTabChange: (t: MainTab) => void }) {
+export function TopBar({
+  tab,
+  onTabChange,
+  onToggleLeft,
+  onToggleRight,
+}: {
+  tab: MainTab
+  onTabChange: (t: MainTab) => void
+  onToggleLeft: () => void
+  onToggleRight: () => void
+}) {
   const project = useProjectStore((s) => s.project)
   const updateSongField = useProjectStore((s) => s.updateSongField)
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-4 border-b border-hairline bg-surface-black px-4">
-      <span className="font-display text-[15px] font-semibold tracking-tight text-body-on-dark">Composer Arranger</span>
+    <header className="flex shrink-0 flex-col gap-2 border-b border-hairline bg-surface-black px-3 py-2 lg:h-11 lg:flex-row lg:items-center lg:gap-4 lg:px-4 lg:py-0">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <IconButton onClick={onToggleLeft} className="lg:hidden" title="左パネルを開閉">
+          <PanelLeft size={16} />
+        </IconButton>
 
-      <TextInput
-        onBlur={(e) => {
-          const title = e.currentTarget.value
-          useProjectStore.setState((s) => ({ project: { ...s.project, title } }))
-          useProjectStore.getState().persist()
-        }}
-        defaultValue={project.title}
-        key={project.projectId}
-        className="w-40 !bg-transparent !border-transparent text-[13px] hover:!border-hairline"
-      />
+        <span className="hidden font-display text-[15px] font-semibold tracking-tight text-body-on-dark sm:inline">
+          Composer Arranger
+        </span>
 
-      <div className="flex items-center gap-3 text-[12px] text-ink-muted-48">
+        <TextInput
+          onBlur={(e) => {
+            const title = e.currentTarget.value
+            useProjectStore.setState((s) => ({ project: { ...s.project, title } }))
+            useProjectStore.getState().persist()
+          }}
+          defaultValue={project.title}
+          key={project.projectId}
+          className="w-28 min-w-0 flex-1 !bg-transparent !border-transparent text-[13px] hover:!border-hairline sm:w-40 sm:flex-none"
+        />
+
+        <nav className="ml-auto flex items-center gap-1.5 lg:hidden">
+          {TABS.map((t) => (
+            <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)} className="!px-2.5 !py-1 !text-[12px]">
+              {t.label}
+            </Pill>
+          ))}
+        </nav>
+
+        <IconButton onClick={onToggleRight} className="lg:hidden" title="右パネルを開閉">
+          <PanelRight size={16} />
+        </IconButton>
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
         <label className="flex items-center gap-1">
           Key
           <TextInput
@@ -58,7 +89,7 @@ export function TopBar({ tab, onTabChange }: { tab: MainTab; onTabChange: (t: Ma
         </label>
       </div>
 
-      <nav className="ml-auto flex items-center gap-1.5">
+      <nav className="hidden shrink-0 items-center gap-1.5 lg:ml-auto lg:flex">
         {TABS.map((t) => (
           <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)}>
             {t.label}

@@ -1,9 +1,11 @@
+import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
-import { Select, FieldGroup, SectionCard } from "@/ui/primitives"
+import { Select, FieldGroup, SectionCard, IconButton } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
+import { X } from "lucide-react"
 
 const PROFILE_OPTIONS = Object.keys(SONG_PROFILE_LABELS) as SongProfileId[]
 
@@ -21,7 +23,7 @@ const FEATURE_LABELS: [key: string, label: string, fmt: (v: number) => string][]
   ["peakPosition", "最高音の位置", (v) => `${Math.round(v * 100)}%`],
 ]
 
-export function RightPanel() {
+export function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const updateSongField = useProjectStore((s) => s.updateSongField)
@@ -33,7 +35,17 @@ export function RightPanel() {
   const override = project.song.sectionProfileOverrides.find((o) => o.sectionId === selectedSectionId)
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-l border-hairline bg-surface-tile-3 p-3">
+    <aside
+      className={clsx(
+        "z-40 flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-l border-hairline bg-surface-tile-3 p-3 transition-transform duration-200",
+        "absolute inset-y-0 right-0 lg:static lg:translate-x-0",
+        open ? "translate-x-0" : "translate-x-full",
+      )}
+    >
+      <IconButton onClick={onClose} className="self-start lg:hidden" title="閉じる">
+        <X size={16} />
+      </IconButton>
+
       <SectionCard title="Song Profile">
         <div className="flex flex-col gap-2.5">
           <FieldGroup label="曲全体のProfile">

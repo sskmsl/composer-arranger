@@ -1,15 +1,16 @@
 import { useRef } from "react"
+import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
 import { chordEventsToText } from "@/core/chordInput"
 import { parseTimeSignature } from "@/core/section"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
-import { Plus, Copy, Trash2, Download, Upload, FilePlus2, Repeat } from "lucide-react"
+import { Plus, Copy, Trash2, Download, Upload, FilePlus2, Repeat, X } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 
-export function LeftPanel() {
+export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const selectSection = useProjectStore((s) => s.selectSection)
@@ -32,7 +33,17 @@ export function LeftPanel() {
     : 0
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-hairline bg-surface-tile-3 p-3">
+    <aside
+      className={clsx(
+        "z-40 flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-hairline bg-surface-tile-3 p-3 transition-transform duration-200",
+        "absolute inset-y-0 left-0 lg:static lg:translate-x-0",
+        open ? "translate-x-0" : "-translate-x-full",
+      )}
+    >
+      <IconButton onClick={onClose} className="self-end lg:hidden" title="閉じる">
+        <X size={16} />
+      </IconButton>
+
       <SectionCard title="Composer Project">
         <div className="flex flex-wrap gap-1.5">
           <Button variant="dark" onClick={() => newProject()}>
