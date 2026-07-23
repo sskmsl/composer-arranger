@@ -79,6 +79,8 @@ const SECTION_TENDENCY: Record<SectionRole, Partial<GenerationParams>> = {
   verse: { restRatioTarget: 0.3, leapWidthBias: 0.25, climaxBias: "early", peakHeadroomSemitones: 6 },
   "pre-chorus": { restRatioTarget: 0.2, endTensionBias: 0.75, climaxBias: "late", peakHeadroomSemitones: 3 },
   chorus: { restRatioTarget: 0.15, motifRepeatTarget: 0.6, endTensionBias: 0.2, climaxBias: "end", peakHeadroomSemitones: 0 },
+  // 大サビ: 曲全体の感情的な頂点。サビより息を継がず、モチーフを強く回収し、完全解決へ向かう
+  "grand-chorus": { restRatioTarget: 0.1, motifRepeatTarget: 0.75, endTensionBias: 0.1, climaxBias: "end", peakHeadroomSemitones: 0 },
   bridge: { leapWidthBias: 0.6, noveltyWeight: 0.7, climaxBias: "late", peakHeadroomSemitones: 2 },
   outro: { restRatioTarget: 0.4, densityNoteMultiplier: 0.6, endTensionBias: 0.6, peakHeadroomSemitones: 7 },
   instrumental: { restRatioTarget: 0.35, peakHeadroomSemitones: 4 },

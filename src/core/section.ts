@@ -3,6 +3,7 @@ export type SectionRole =
   | "verse"
   | "pre-chorus"
   | "chorus"
+  | "grand-chorus"
   | "bridge"
   | "outro"
   | "instrumental"
@@ -12,6 +13,7 @@ export const SECTION_ROLE_LABELS: Record<SectionRole, string> = {
   verse: "Aメロ",
   "pre-chorus": "Bメロ",
   chorus: "サビ",
+  "grand-chorus": "大サビ",
   bridge: "ブリッジ",
   outro: "アウトロ",
   instrumental: "間奏",
