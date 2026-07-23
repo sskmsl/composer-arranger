@@ -2,7 +2,9 @@ import type { ChordEvent } from "./project"
 
 /**
  * 手動コード入力のテキスト形式(6.3)をパースする。
- * "F#m(add9) | E | D | Dsus2" のように "|" 区切り。
+ * "F#m(add9) | E | D | Dsus2" のように "|" 区切り、または
+ * "F#m(add9) - E - D - Dsus2" のように "-" 区切り(空白で挟まれた"-"のみを区切りとみなす。
+ * "C-7" のような前後に空白のないマイナーコード表記の"-"とは区別するため)。
  * 長さを変えたい場合は ":拍数" を付ける(例: "F#m(add9):2 | E:6")。省略時は1小節分。
  */
 export function parseChordInputText(
@@ -12,7 +14,7 @@ export function parseChordInputText(
   idPrefix: string,
 ): ChordEvent[] {
   const parts = text
-    .split("|")
+    .split(/\s*\|\s*|\s+-\s+/)
     .map((s) => s.trim())
     .filter(Boolean)
 
