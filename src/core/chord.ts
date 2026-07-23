@@ -97,6 +97,8 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
   let isDim = false
   let isAug = false
   let isSus = false
+  /** susで置き換わる音程(2度=sus2, 完全4度=sus4。単に"sus"の場合はsus4扱い) */
+  let susInterval = 5
   let hasExplicitMajorSeventh = false
   let hasDominantSeventh = false
   let hasSixth = false
@@ -133,9 +135,11 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
 
   if (/^sus2/i.test(rest)) {
     isSus = true
+    susInterval = 2
     rest = rest.replace(/^sus2/i, "")
   } else if (/^sus4?/i.test(rest)) {
     isSus = true
+    susInterval = 5
     rest = rest.replace(/^sus4?/i, "")
   }
 
@@ -160,16 +164,30 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
     rest = rest.replace(/^6\/?9?/, "")
   }
 
-  // 残ったadd/altトークンを走査 (例: "add9", "add#11")
+  // "B7sus4" のように拡張数字の後にsusが来る表記(susがルート直後でない場合)
+  if (!isSus) {
+    if (/^sus2/i.test(rest)) {
+      isSus = true
+      susInterval = 2
+      rest = rest.replace(/^sus2/i, "")
+    } else if (/^sus4?/i.test(rest)) {
+      isSus = true
+      susInterval = 5
+      rest = rest.replace(/^sus4?/i, "")
+    }
+  }
+
+  // 残ったadd/altトークンを走査 (例: "add9", "add#11")。
+  // 括弧内トークンも"add"接頭辞を統一的に取り除き、ALTER_TOKENのキー("9"等)へ合わせる
   const addMatches = rest.match(/add[#b]?\d+/gi) ?? []
-  const allTokens = [...bracketTokens, ...addMatches.map((t) => t.replace(/^add/i, ""))]
+  const allTokens = [...bracketTokens, ...addMatches].map((t) => t.replace(/^add/i, ""))
 
   const tones: ChordToneInfo[] = [{ interval: 0, pitchClass: rootPc, role: "root" }]
   if (!isSus) {
     tones.push({ interval: isMinor ? 3 : 4, pitchClass: (rootPc + (isMinor ? 3 : 4)) % 12, role: "third" })
   } else {
-    // susは3度の代わりに2度/4度を主要トーンとして保持する
-    tones.push({ interval: 2, pitchClass: (rootPc + 2) % 12, role: "third" })
+    // susは3度の代わりに2度(sus2)または完全4度(sus4)を主要トーンとして保持する
+    tones.push({ interval: susInterval, pitchClass: (rootPc + susInterval) % 12, role: "third" })
   }
   const fifthInterval = isDim ? 6 : isAug ? 8 : 7
   tones.push({ interval: fifthInterval, pitchClass: (rootPc + fifthInterval) % 12, role: "fifth" })

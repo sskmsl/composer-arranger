@@ -125,7 +125,7 @@ export function LeftPanel() {
                 onBlur={(e) => updateSection(section.id, { lengthBars: Math.max(1, Number(e.currentTarget.value) || 1) })}
               />
             </FieldGroup>
-            <FieldGroup label='コード進行 ("|" または " - " 区切り。例: "F#m(add9) | E | D | Dsus2")'>
+            <FieldGroup label='コード進行 ("|" "-" "–" いずれかの区切り。例: "F#m(add9) | E | D | Dsus2")'>
               <textarea
                 defaultValue={chordText}
                 key={`chords-${section.id}`}
