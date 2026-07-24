@@ -147,18 +147,21 @@ function toNotes(rng: SeededRandom, points: { beat: number; pitch: number }[], p
   const notes: MelodyNote[] = []
   for (let i = 0; i < points.length; i++) {
     const cur = points[i]
+    if (cur.beat >= phraseEnd) continue
     const next = points[i + 1]
-    let end = next ? next.beat : phraseEnd
+    let end = next ? Math.min(next.beat, phraseEnd) : phraseEnd
     // ブレス位置: 1箇所だけ、次アンカーとの間に短い間を空ける
     if (next && Math.abs(cur.beat - breathStart) < 1 && end - cur.beat > 1.5) {
       end -= 0.5
     }
-    const duration = Math.max(0.25, Math.min(end, phraseEnd) - cur.beat)
-    if (cur.beat >= phraseEnd) continue
+    // 収まる長さ(available)を上限としてクリップする。無理に最低音価を確保すると
+    // 次の音やフレーズ終端と重なるため、収まらないほど短い点は結合/除外する
+    const available = end - cur.beat
+    if (available < 0.15) continue
     notes.push({
       id: crypto.randomUUID(),
       startBeat: cur.beat,
-      durationBeats: duration,
+      durationBeats: available,
       pitch: Math.round(cur.pitch),
       velocity: 72 + rng.intBetween(0, 6),
       locks: [],

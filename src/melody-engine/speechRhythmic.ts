@@ -51,15 +51,17 @@ function buildRhythmSkeleton(
   }
 
   while (cursor < unitStart + unitLength - 0.2) {
+    // シンコペーション: オフビート開始を許容する(0.5拍だけ「遅らせる」方向のみ。
+    // 前の音より手前へずらすと単旋律なのに重なってしまうため、正方向のみ許容する)
+    const startsOffbeat = rng.chance(syncopationAmount * 0.4)
+    const beat = startsOffbeat ? cursor + 0.5 : cursor
+
     let duration = rng.pick(SHORT_DURATIONS)
-    if (cursor + duration > unitStart + unitLength) duration = unitStart + unitLength - cursor
+    if (beat + duration > unitStart + unitLength) duration = unitStart + unitLength - beat
     if (duration < 0.2) break
 
-    // シンコペーション: オフビート開始を許容する(0.5拍ずらす)
-    const startsOffbeat = rng.chance(syncopationAmount * 0.4)
-    const beat = startsOffbeat ? cursor + 0.5 * (rng.chance(0.5) ? 1 : -1) : cursor
-    events.push({ beat: Math.max(unitStart, beat), duration })
-    cursor += duration
+    events.push({ beat, duration })
+    cursor = beat + duration
 
     // 発話の間: 短い休符でまとまりを作る
     if (rng.chance(0.18)) cursor += rng.pick([0.25, 0.5])

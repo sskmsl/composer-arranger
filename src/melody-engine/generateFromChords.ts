@@ -14,7 +14,7 @@ import { generateElegiacCantabile } from "./elegiacCantabile"
 import { generateSpeechRhythmicPattern } from "./speechRhythmic"
 import { generateIncantatoryPattern } from "./incantatory"
 import { computeAdvancedMelodyMetrics } from "./advancedMetrics"
-import { applyMotifDNA } from "./motifDNA"
+import { applyMotifDNA, nudgeTowardDNA } from "./motifDNA"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -173,6 +173,11 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const baseSeed = input.seed + profileIdx * 500009
 
     if (kind === "bespoke") {
+      // Song Motif DNA(任意)をbespoke Profileへも軽く反映する。パイプラインの生成順序自体は変えず、
+      // 渡すスカラーパラメータをDNA側へわずかに寄せるだけに留める(セクション間の完全分断を避ける)
+      const dna = input.motifDNA
+      const impliedDensity = dna ? 1 - dna.repeatedNoteTendency : undefined
+
       const patterns: { notes: MelodyNote[]; advancedMetrics?: AdvancedMelodyMetrics; prosodyPlan?: ProsodyPlan; seed: number }[] = []
       for (let p = 0; p < 3; p++) {
         const patternSeed = baseSeed + p * 7919
@@ -180,11 +185,13 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
 
         if (profile === "elegiac-cantabile") {
           // 初期パラメータ(3.5): noteDensity 0.34
-          const notes = generateElegiacCantabile(rng, harmonicMap, input.totalBeats, input.range, intensity, 0.34)
+          const noteDensity = nudgeTowardDNA(0.34, impliedDensity)
+          const notes = generateElegiacCantabile(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity)
           patterns.push({ notes, advancedMetrics: computeAdvancedMelodyMetrics(notes, harmonicMap), seed: patternSeed })
         } else if (profile === "speech-rhythmic") {
           // 初期パラメータ(4.5): repeatedNoteAmount 0.82, syncopationAmount 0.76, pickupAmount 0.68, phraseAsymmetry 0.72
-          const r = generateSpeechRhythmicPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, 0.82, 0.76, 0.68, 0.72)
+          const repeatedNoteAmount = nudgeTowardDNA(0.82, dna?.repeatedNoteTendency)
+          const r = generateSpeechRhythmicPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, repeatedNoteAmount, 0.76, 0.68, 0.72)
           patterns.push({
             notes: r.notes,
             advancedMetrics: computeAdvancedMelodyMetrics(r.notes, harmonicMap),
@@ -193,7 +200,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           })
         } else {
           // incantatory 初期パラメータ(5.5): noteDensity 0.58
-          const r = generateIncantatoryPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, 0.58)
+          const noteDensity = nudgeTowardDNA(0.58, impliedDensity)
+          const r = generateIncantatoryPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity)
           const generic = computeAdvancedMelodyMetrics(r.notes, harmonicMap)
           const motifMutationRatio = 1 / r.plan.mutationPeriod
           patterns.push({

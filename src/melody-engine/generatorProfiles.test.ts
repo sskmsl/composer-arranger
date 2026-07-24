@@ -164,3 +164,112 @@ describe("Incantatory (§5, §12.3)", () => {
     }
   })
 })
+
+function generateAtLength(profile: MelodyGeneratorProfile, seed: number, length: number) {
+  const shortChords: ChordEvent[] = [{ id: "sc1", sectionId: "s1", startBeat: 0, durationBeats: length, symbol: "Am", bass: null }]
+  const { candidates } = generateFromChordsWithProfiles({
+    chords: shortChords,
+    sectionId: "s1",
+    sectionRole: "verse",
+    songProfile: "original-custom",
+    density: "balanced",
+    range,
+    drama: "growing",
+    totalBeats: length,
+    seed,
+    profiles: [profile],
+  })
+  return candidates
+}
+
+/** レビュー指摘の再現条件(短いセクション・seed横断)に沿った回帰テスト */
+describe("単旋律性・セクション境界(レビュー指摘の再現条件)", () => {
+  const lengths = [1.5, 2, 4, 8, 16, 32]
+  const bespokeProfiles: MelodyGeneratorProfile[] = ["elegiac-cantabile", "speech-rhythmic", "incantatory"]
+
+  it.each(bespokeProfiles)("%sは短いセクションでもノートが重なったり終端を超えたりしない", (profile) => {
+    const overlaps: string[] = []
+    const overflows: string[] = []
+    for (const length of lengths) {
+      for (let seed = 1; seed <= 100; seed++) {
+        for (const c of generateAtLength(profile, seed, length)) {
+          const sorted = [...c.notes].sort((a, b) => a.startBeat - b.startBeat)
+          for (let i = 0; i < sorted.length; i++) {
+            const n = sorted[i]
+            if (n.startBeat + n.durationBeats > length + 1e-6) {
+              overflows.push(`length=${length} seed=${seed} note#${i} end=${n.startBeat + n.durationBeats}`)
+            }
+            const next = sorted[i + 1]
+            if (next && next.startBeat < n.startBeat + n.durationBeats - 1e-6) {
+              overlaps.push(`length=${length} seed=${seed} note#${i}->${i + 1} gap=${next.startBeat - (n.startBeat + n.durationBeats)}`)
+            }
+          }
+        }
+      }
+    }
+    expect(overflows.slice(0, 5)).toEqual([])
+    expect(overlaps.slice(0, 5)).toEqual([])
+  })
+})
+
+describe("Song Motif DNA: bespoke Profileへの反映", () => {
+  const dna = {
+    intervalCells: [0, 1, -1],
+    rhythmCells: [0.5, 1],
+    repeatedNoteTendency: 0.95,
+    approachNoteTendency: 0.5,
+    contourTendency: 0.3,
+    phraseEndingTendency: 0.5,
+    characteristicRests: [0.5],
+    climaxDirection: "ascending" as const,
+  }
+
+  it("同一seedでもDNAの有無でElegiac Cantabileの出力が変化する", () => {
+    const { candidates: withoutDna } = generateFromChordsWithProfiles({
+      chords,
+      sectionId: "s1",
+      sectionRole: "verse",
+      songProfile: "original-custom",
+      density: "balanced",
+      range,
+      drama: "growing",
+      totalBeats,
+      seed: 77,
+      profiles: ["elegiac-cantabile"],
+    })
+    const { candidates: withDna } = generateFromChordsWithProfiles({
+      chords,
+      sectionId: "s1",
+      sectionRole: "verse",
+      songProfile: "original-custom",
+      density: "balanced",
+      range,
+      drama: "growing",
+      totalBeats,
+      seed: 77,
+      profiles: ["elegiac-cantabile"],
+      motifDNA: dna,
+    })
+    expect(withDna[0].notes).not.toEqual(withoutDna[0].notes)
+  })
+
+  it("同一seedでもDNAの有無でSpeech-Rhythmicの出力が変化する", () => {
+    const build = (motifDNA?: typeof dna) =>
+      generateFromChordsWithProfiles({
+        chords,
+        sectionId: "s1",
+        sectionRole: "verse",
+        songProfile: "original-custom",
+        density: "balanced",
+        range,
+        drama: "growing",
+        totalBeats,
+        seed: 88,
+        profiles: ["speech-rhythmic"],
+        motifDNA,
+      })
+    const without = build().candidates[0].notes
+    const withD = build(dna).candidates[0].notes
+    expect(withD).not.toEqual(without)
+  })
+})

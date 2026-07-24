@@ -74,10 +74,13 @@ function topByFrequency(values: number[], count: number): number[] {
     .map(([v]) => v)
 }
 
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t
+}
+
 /** DNAを、他セクション生成時のGenerationParamsへ軽く反映する(強く上書きはしない) */
 export function applyMotifDNA(params: GenerationParams, dna: SongMotifDNA | undefined, weight = 0.15): GenerationParams {
   if (!dna) return params
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t
   const contourNudge = dna.contourTendency > 0 ? "ascending" : "descending"
   return {
     ...params,
@@ -88,4 +91,14 @@ export function applyMotifDNA(params: GenerationParams, dna: SongMotifDNA | unde
       [contourNudge]: params.contourWeights[contourNudge] * (1 + weight),
     },
   }
+}
+
+/**
+ * bespoke Profile(Elegiac Cantabile / Speech-Rhythmic / Incantatory)は
+ * GenerationParamsを介さないため、各パイプラインへ渡す単一パラメータを
+ * DNAへ軽く寄せるための汎用ヘルパー。専用パイプラインの生成順序自体は変更しない。
+ */
+export function nudgeTowardDNA(base: number, target: number | undefined, weight = 0.15): number {
+  if (target === undefined) return base
+  return Math.max(0, Math.min(1, lerp(base, target, weight)))
 }
