@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react"
 import type { MelodyVariant } from "@/core/melody"
 import type { ChordEvent } from "@/core/project"
 import { noteName } from "@/core/note"
+import { keyPrefersFlatSpelling } from "@/core/scale"
 import { parseTimeSignature } from "@/core/section"
 import { Lock } from "lucide-react"
 
@@ -18,6 +19,7 @@ export function PianoRoll({
   chords,
   totalBeats,
   timeSignature,
+  songKey,
   selectedNoteIds,
   onToggleNoteSelect,
   onToggleNoteLock,
@@ -30,6 +32,7 @@ export function PianoRoll({
   chords: ChordEvent[]
   totalBeats: number
   timeSignature: string
+  songKey?: string
   selectedNoteIds: Set<string>
   onToggleNoteSelect: (noteId: string) => void
   onToggleNoteLock: (noteId: string) => void
@@ -39,6 +42,7 @@ export function PianoRoll({
   onSelectionChange: (range: BeatRange | null) => void
 }) {
   const { beatsPerBar } = parseTimeSignature(timeSignature)
+  const preferFlat = songKey ? keyPrefersFlatSpelling(songKey) : false
   const notes = variant?.notes ?? []
 
   const { low, high } = useMemo(() => {
@@ -187,7 +191,7 @@ export function PianoRoll({
                     onToggleNoteLock(n.id)
                   }}
                 >
-                  <title>{`${noteName(n.pitch)} — ダブルクリックでLock`}</title>
+                  <title>{`${noteName(n.pitch, preferFlat)} — ダブルクリックでLock`}</title>
                 </rect>
               </g>
             )

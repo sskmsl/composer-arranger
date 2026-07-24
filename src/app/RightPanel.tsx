@@ -2,12 +2,14 @@ import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
 import type { MelodyGeneratorProfile } from "@/core/melody"
-import { Select, FieldGroup, SectionCard, IconButton, Button } from "@/ui/primitives"
+import { noteName, parseNoteName } from "@/core/note"
+import { Select, FieldGroup, SectionCard, IconButton, Button, TextInput, Label } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
 import { GENERATOR_PROFILES, GENERATOR_PROFILE_LABELS, GENERATOR_PROFILE_DESCRIPTIONS } from "@/melody-engine/generatorProfile"
+import { GENERATION_SETTING_LABELS, profilesIgnoring, type GenerationSettingKey } from "@/melody-engine/settingsApplicability"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
-import { X, Dna } from "lucide-react"
+import { X, Dna, AlertCircle } from "lucide-react"
 
 const PROFILE_OPTIONS = Object.keys(SONG_PROFILE_LABELS) as SongProfileId[]
 
@@ -41,6 +43,18 @@ const FEATURE_LABELS: [key: string, label: string, fmt: (v: number) => string][]
   ["peakPosition", "最高音の位置", (v) => `${Math.round(v * 100)}%`],
 ]
 
+/** ある設定が、選択中のProfileのうち一部で効かない場合に注意書きを出す */
+function IgnoredNote({ setting, selected }: { setting: GenerationSettingKey; selected: MelodyGeneratorProfile[] }) {
+  const ignoring = profilesIgnoring(setting, selected)
+  if (ignoring.length === 0) return null
+  return (
+    <p className="flex items-start gap-1 text-[10px] text-amber-400/90">
+      <AlertCircle size={11} className="mt-0.5 shrink-0" />
+      <span>{ignoring.map((p) => GENERATOR_PROFILE_LABELS[p]).join("・")} では{GENERATION_SETTING_LABELS[setting]}は生成へ反映されません</span>
+    </p>
+  )
+}
+
 export function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
@@ -53,6 +67,17 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
   const variant = useActiveVariant()
 
   const override = project.song.sectionProfileOverrides.find((o) => o.sectionId === selectedSectionId)
+  const selected = generationSettings.selectedGeneratorProfiles
+  const custom = generationSettings.customRange
+
+  const setCustomBound = (which: "low" | "high", raw: string) => {
+    const midi = parseNoteName(raw)
+    if (midi === null || midi < 0 || midi > 127) return
+    const next = { ...custom, [which]: midi }
+    // High<Lowの逆転を防ぐ。逆転する入力は無視して現状維持する
+    if (next.low >= next.high) return
+    setGenerationSettings({ customRange: next })
+  }
 
   return (
     <aside
@@ -119,35 +144,76 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
             )
           })}
         </div>
+        <div className="mt-2">
+          <IgnoredNote setting="key" selected={selected} />
+        </div>
       </SectionCard>
 
       <SectionCard title="生成パラメータ">
         <div className="flex flex-col gap-2.5">
-          <FieldGroup label="Density">
-            <Select value={generationSettings.density} onChange={(e) => setGenerationSettings({ density: e.target.value as Density })}>
-              <option value="sparse">Sparse</option>
-              <option value="balanced">Balanced</option>
-              <option value="active">Active</option>
-            </Select>
-          </FieldGroup>
-          <FieldGroup label="Range">
-            <Select
-              value={generationSettings.rangePreset}
-              onChange={(e) => setGenerationSettings({ rangePreset: e.target.value as RangePreset })}
-            >
-              <option value="low">Low</option>
-              <option value="middle">Middle</option>
-              <option value="high">High</option>
-              <option value="custom">Custom</option>
-            </Select>
-          </FieldGroup>
-          <FieldGroup label="Drama">
-            <Select value={generationSettings.drama} onChange={(e) => setGenerationSettings({ drama: e.target.value as Drama })}>
-              <option value="restrained">Restrained</option>
-              <option value="growing">Growing</option>
-              <option value="open">Open</option>
-            </Select>
-          </FieldGroup>
+          <div className="flex flex-col gap-1">
+            <FieldGroup label="Density">
+              <Select value={generationSettings.density} onChange={(e) => setGenerationSettings({ density: e.target.value as Density })}>
+                <option value="sparse">Sparse</option>
+                <option value="balanced">Balanced</option>
+                <option value="active">Active</option>
+              </Select>
+            </FieldGroup>
+            <IgnoredNote setting="density" selected={selected} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <FieldGroup label="Range">
+              <Select
+                value={generationSettings.rangePreset}
+                onChange={(e) => setGenerationSettings({ rangePreset: e.target.value as RangePreset })}
+              >
+                <option value="low">Low (G3–C5)</option>
+                <option value="middle">Middle (C4–F5)</option>
+                <option value="high">High (E4–A5)</option>
+                <option value="custom">Custom</option>
+              </Select>
+            </FieldGroup>
+            {generationSettings.rangePreset === "custom" && (
+              <div className="mt-1 flex items-end gap-2">
+                <div className="flex flex-1 flex-col gap-1">
+                  <Label>最低音</Label>
+                  <TextInput
+                    key={`low-${custom.low}`}
+                    defaultValue={noteName(custom.low)}
+                    onBlur={(e) => setCustomBound("low", e.target.value)}
+                    placeholder="C4"
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-1">
+                  <Label>最高音</Label>
+                  <TextInput
+                    key={`high-${custom.high}`}
+                    defaultValue={noteName(custom.high)}
+                    onBlur={(e) => setCustomBound("high", e.target.value)}
+                    placeholder="F5"
+                  />
+                </div>
+              </div>
+            )}
+            {generationSettings.rangePreset === "custom" && (
+              <p className="text-[10px] text-ink-muted-48">
+                音名(例: C4, F#5, Bb3)で入力。最高音が最低音以下になる入力・音域外は無視されます。
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
+            <FieldGroup label="Drama">
+              <Select value={generationSettings.drama} onChange={(e) => setGenerationSettings({ drama: e.target.value as Drama })}>
+                <option value="restrained">Restrained</option>
+                <option value="growing">Growing</option>
+                <option value="open">Open</option>
+              </Select>
+            </FieldGroup>
+            <IgnoredNote setting="drama" selected={selected} />
+          </div>
+          <p className="mt-1 border-t border-hairline pt-2 text-[10px] text-ink-muted-48">
+            生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。
+          </p>
         </div>
       </SectionCard>
 

@@ -22,6 +22,17 @@ export function nearestAllowedPitch(
   return c
 }
 
+/**
+ * Issue #13: テンション/経過音候補をKeyのScaleへ軽く寄せる。Scaleとの共通部分が
+ * 存在する場合だけそちらへ絞り、共通部分が無ければ元の候補集合(コードのUsable Tone)
+ * をそのまま使う(和声的な妥当性を壊さない範囲でのみKeyを反映する)。
+ */
+export function withKeyBias(usable: readonly number[], keyScalePitchClasses?: number[]): readonly number[] {
+  if (!keyScalePitchClasses || keyScalePitchClasses.length === 0) return usable
+  const inScale = usable.filter((pc) => keyScalePitchClasses.includes(pc))
+  return inScale.length > 0 ? inScale : usable
+}
+
 export function nearestPitchClassAbove(pc: number, from: Midi): Midi {
   let m = from
   while (pitchClass(m) !== ((pc % 12) + 12) % 12) m++

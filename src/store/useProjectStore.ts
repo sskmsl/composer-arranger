@@ -2,7 +2,6 @@ import { create } from "zustand"
 import {
   createEmptyProject,
   effectiveSongProfile,
-  normalizeProject,
   type ComposerProject,
   type SongProfileId,
 } from "@/core/project"
@@ -26,9 +25,15 @@ import {
   type SeedOperation,
 } from "@/melody-engine/developSeed"
 import { createSeed } from "@/core/rng"
-import { saveProject, loadLastOpenedProject, loadProject as loadProjectById } from "@/storage/projectRepository"
+import { saveProject, loadLastOpenedProject, loadProject as loadProjectById, backupProjectTimingSnapshot } from "@/storage/projectRepository"
+import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
+
+/** Issue #16: 時間単位移行の状態をUIへ伝えるための通知 */
+export type TimingNotice =
+  | { kind: "auto-converted"; factor: number; timeSignature: string }
+  | { kind: "ambiguous"; timeSignature: string; reason: string }
 
 interface GenerationSettings {
   density: Density
@@ -48,12 +53,17 @@ interface ProjectState {
   history: ComposerProject[]
   future: ComposerProject[]
   hydrated: boolean
+  /** Issue #16: 時間単位の自動変換通知/確認待ち(判定できなかった場合) */
+  timingNotice: TimingNotice | null
 
   hydrate: () => Promise<void>
   newProject: () => void
-  loadProject: (project: ComposerProject) => void
+  loadProject: (project: unknown) => void
   loadProjectById: (id: string) => Promise<void>
   persist: () => void
+  /** timingNoticeがambiguousの場合にユーザーの選択を適用する。auto-convertedの通知は単に閉じる */
+  confirmTimingConversion: (convert: boolean) => void
+  dismissTimingNotice: () => void
 
   updateSongField: <K extends keyof ComposerProject["song"]>(key: K, value: ComposerProject["song"][K]) => void
   setSectionProfileOverride: (sectionId: string, profile: SongProfileId | null) => void
@@ -105,6 +115,16 @@ function snapshot(project: ComposerProject): ComposerProject {
   return JSON.parse(JSON.stringify(project))
 }
 
+function timingNoticeFrom(result: ReturnType<typeof resolveProjectTiming>): TimingNotice | null {
+  if (result.status === "auto-converted") {
+    return { kind: "auto-converted", factor: result.factor ?? 1, timeSignature: result.project.song.timeSignature }
+  }
+  if (result.status === "ambiguous" && result.ambiguity) {
+    return { kind: "ambiguous", timeSignature: result.ambiguity.timeSignature, reason: result.ambiguity.reason }
+  }
+  return null
+}
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   project: createEmptyProject("New Song"),
   selectedSectionId: null,
@@ -120,15 +140,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   history: [],
   future: [],
   hydrated: false,
+  timingNotice: null,
 
   hydrate: async () => {
     const last = await loadLastOpenedProject()
     if (last) {
-      // JSON Import/loadProjectByIdと同じくnormalizeProjectを必ず通す。
-      // 旧schemaVersion(1.0)のデータがIndexedDBに残っていても、
-      // songProfile等が欠落したままUIへ渡ってクラッシュしないようにする(16章)
-      const normalized = normalizeProject(last)
-      set({ project: normalized, selectedSectionId: normalized.sections[0]?.id ?? null, hydrated: true })
+      // JSON Import/loadProjectByIdと同じ唯一の移行経路(resolveProjectTiming)を通す。
+      // normalizeProjectも内部で必ず通るため、旧schemaVersion(1.0)のデータが
+      // songProfile等を欠いたままUIへ渡ってクラッシュすることもない(16章/Issue #16)
+      const result = resolveProjectTiming(last)
+      if (result.status !== "no-op") void backupProjectTimingSnapshot(last)
+      set({
+        project: result.project,
+        selectedSectionId: result.project.sections[0]?.id ?? null,
+        hydrated: true,
+        timingNotice: timingNoticeFrom(result),
+      })
+      if (result.status === "auto-converted") get().persist()
     } else {
       set({ hydrated: true })
     }
@@ -136,15 +164,32 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   newProject: () => {
     const project = createEmptyProject("New Song")
-    set({ project, selectedSectionId: null, activeBatchId: null, history: [], future: [] })
+    set({ project, selectedSectionId: null, activeBatchId: null, history: [], future: [], timingNotice: null })
     get().persist()
   },
 
-  loadProject: (project) => {
-    const normalized = normalizeProject(project)
-    set({ project: normalized, selectedSectionId: normalized.sections[0]?.id ?? null, activeBatchId: null, history: [], future: [] })
+  loadProject: (raw) => {
+    const result = resolveProjectTiming(raw)
+    if (result.status !== "no-op") void backupProjectTimingSnapshot(raw)
+    set({
+      project: result.project,
+      selectedSectionId: result.project.sections[0]?.id ?? null,
+      activeBatchId: null,
+      history: [],
+      future: [],
+      timingNotice: timingNoticeFrom(result),
+    })
     get().persist()
   },
+
+  confirmTimingConversion: (convert) => {
+    const prev = get().project
+    const resolved = resolveAmbiguousTiming(prev, convert)
+    set({ project: resolved, timingNotice: null })
+    get().persist()
+  },
+
+  dismissTimingNotice: () => set({ timingNotice: null }),
 
   loadProjectById: async (id) => {
     const p = await loadProjectById(id)
@@ -318,6 +363,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       seed: createSeed(),
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
+      key: prev.song.key,
     })
 
     const harmonicMap = buildHarmonicMap(chords)
@@ -442,7 +488,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, variant.sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
-    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama)
+    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama, prev.song.key)
 
     const notes = regenerateSelection(
       variant.notes,
@@ -483,7 +529,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, source.sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
-    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama)
+    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama, prev.song.key)
     const seedValue = createSeed()
 
     let notes: MelodyNote[]

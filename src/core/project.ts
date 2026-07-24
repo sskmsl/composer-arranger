@@ -51,6 +51,15 @@ export const DEFAULT_ARRANGEMENT_SETTINGS: ArrangementSettings = {
   asymmetryIntent: 0.5,
 }
 
+/**
+ * startBeat/durationBeats等の時間値が「四分音符=1拍」で保存されていることを示すマーカー。
+ * schemaVersion 1.1のまま拍子分母4以外のデータ(6/8等)の時間単位が新旧2種類存在するように
+ * なってしまった問題(Issue #16)への対応として、この値が"quarter"であるプロジェクトだけが
+ * 現行の時間単位で保存済みだと判定できる。
+ */
+export type TimeBase = "quarter"
+export const TIME_BASE: TimeBase = "quarter"
+
 export interface ComposerProject {
   schemaVersion: string
   projectId: string
@@ -75,9 +84,11 @@ export interface ComposerProject {
   generatorProfileRoles?: Partial<Record<MelodyGeneratorProfile, GeneratorProfileRole>>
   /** セクションをまたいだ旋律の同一性を保つための共有データ(将来拡張の土台) */
   songMotifDNA?: SongMotifDNA
+  /** Issue #16: 時間値の単位マーカー。付与済みプロジェクトは再変換の判定対象から除外する */
+  timeBase?: TimeBase
 }
 
-export const CURRENT_SCHEMA_VERSION = "1.1"
+export const CURRENT_SCHEMA_VERSION = "1.2"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -100,6 +111,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     activeMelodyId: null,
     activeArrangementId: null,
     notes: "",
+    timeBase: TIME_BASE,
   }
 }
 
@@ -132,6 +144,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     notes: r.notes ?? "",
     generatorProfileRoles: r.generatorProfileRoles,
     songMotifDNA: r.songMotifDNA,
+    timeBase: r.timeBase,
   }
 }
 
