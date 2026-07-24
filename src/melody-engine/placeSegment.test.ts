@@ -87,6 +87,11 @@ describe("placeSegment: planned tone roleを保持する選択的補正", () => 
     const notes = placeSegment(events([0.5, 1]), [62, 67], 3.5, buildHarmonicMap(chords), range, params, new SeededRandom(5))
     expect(notes[0].pitch).toBe(62)
     expect(notes[0].plannedToneRole).toBe("anticipation")
+    expect(notes[0].plannedResolution).toEqual({
+      targetPitchClass: 2,
+      targetBeat: 4,
+      maximumDelayBeats: 1,
+    })
   })
 
   it("解決も和声的役割もない強拍衝突だけを補正する", () => {
