@@ -217,59 +217,46 @@ describe("Song Motif DNA: bespoke Profileへの反映", () => {
     intervalCells: [0, 1, -1],
     rhythmCells: [0.5, 1],
     repeatedNoteTendency: 0.95,
-    approachNoteTendency: 0.5,
+    approachNoteTendency: 0.85,
     contourTendency: 0.3,
-    phraseEndingTendency: 0.5,
+    phraseEndingTendency: 0.9,
     characteristicRests: [0.5],
     climaxDirection: "ascending" as const,
   }
 
-  it("同一seedでもDNAの有無でElegiac Cantabileの出力が変化する", () => {
-    const { candidates: withoutDna } = generateFromChordsWithProfiles({
-      chords,
-      sectionId: "s1",
-      sectionRole: "verse",
-      songProfile: "original-custom",
-      density: "balanced",
-      range,
-      drama: "growing",
-      totalBeats,
-      seed: 77,
-      profiles: ["elegiac-cantabile"],
-    })
-    const { candidates: withDna } = generateFromChordsWithProfiles({
-      chords,
-      sectionId: "s1",
-      sectionRole: "verse",
-      songProfile: "original-custom",
-      density: "balanced",
-      range,
-      drama: "growing",
-      totalBeats,
-      seed: 77,
-      profiles: ["elegiac-cantabile"],
-      motifDNA: dna,
-    })
-    expect(withDna[0].notes).not.toEqual(withoutDna[0].notes)
-  })
+  // id は生成のたびにcrypto.randomUUID()で変わるため、これを含めたまま比較すると
+  // DNAの有無に関わらず常にnot.toEqualが成立してしまう(実際に指摘された欠陥)。
+  // 音楽的に意味のあるフィールドだけを取り出して比較する。
+  function stripIds(notes: { startBeat: number; durationBeats: number; pitch: number; velocity: number; locks: string[] }[]) {
+    return notes.map(({ startBeat, durationBeats, pitch, velocity, locks }) => ({ startBeat, durationBeats, pitch, velocity, locks }))
+  }
 
-  it("同一seedでもDNAの有無でSpeech-Rhythmicの出力が変化する", () => {
-    const build = (motifDNA?: typeof dna) =>
-      generateFromChordsWithProfiles({
-        chords,
-        sectionId: "s1",
-        sectionRole: "verse",
-        songProfile: "original-custom",
-        density: "balanced",
-        range,
-        drama: "growing",
-        totalBeats,
-        seed: 88,
-        profiles: ["speech-rhythmic"],
-        motifDNA,
-      })
-    const without = build().candidates[0].notes
-    const withD = build(dna).candidates[0].notes
-    expect(withD).not.toEqual(without)
-  })
+  function buildFor(profile: MelodyGeneratorProfile, seed: number, motifDNA?: typeof dna) {
+    return generateFromChordsWithProfiles({
+      chords,
+      sectionId: "s1",
+      sectionRole: "verse",
+      songProfile: "original-custom",
+      density: "balanced",
+      range,
+      drama: "growing",
+      totalBeats,
+      seed,
+      profiles: [profile],
+      motifDNA,
+    }).candidates[0].notes
+  }
+
+  it.each<MelodyGeneratorProfile>(["elegiac-cantabile", "speech-rhythmic", "incantatory"])(
+    "%sはDNAの有無でseedの半数以上、音楽的な内容(id以外)が変化する",
+    (profile) => {
+      let changed = 0
+      for (let seed = 1; seed <= 100; seed++) {
+        const without = stripIds(buildFor(profile, seed))
+        const withD = stripIds(buildFor(profile, seed, dna))
+        if (JSON.stringify(withD) !== JSON.stringify(without)) changed++
+      }
+      expect(changed).toBeGreaterThan(50)
+    },
+  )
 })

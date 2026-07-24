@@ -13,6 +13,7 @@ import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses, allUsablePitchClasses, type ParsedChord } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
+import type { SongMotifDNA } from "@/core/melody"
 
 const PHRASE_UNIT_BEATS = 16
 
@@ -178,12 +179,21 @@ export function generateElegiacPattern(
   range: RangeSetting,
   intensity: number,
   noteDensity: number,
+  dna?: SongMotifDNA,
 ): { notes: MelodyNote[]; plan: ElegiacPatternPlan } {
+  // Song Motif DNA(任意): 倚音の出やすさとカデンツの色合いを、確率的に軽く寄せる。
+  // noteDensityのように丸め/閾値の内側で消えてしまわない、連続的な効き方をする箇所へ反映する。
+  const appoggiaturaBase = dna ? 0.35 * 0.65 + Math.min(0.9, dna.approachNoteTendency) * 0.35 : 0.35
+  const cadenceOptions: CadenceDegree[] = ["third", "fifth", "majorSeventh", "ninth"]
+  const cadenceWeights = dna
+    ? cadenceOptions.map((d) => (d === "third" || d === "fifth" ? 1 - dna.phraseEndingTendency * 0.7 : 1 + dna.phraseEndingTendency * 0.7))
+    : [1, 1, 1, 1]
+
   const plan: ElegiacPatternPlan = {
     climaxFraction: 0.55 + rng.next() * 0.3,
     contourOrder: rng.chance(0.5) ? "rise-first" : "fall-first",
-    cadenceDegree: rng.pick<CadenceDegree>(["third", "fifth", "majorSeventh", "ninth"]),
-    appoggiaturaBias: 0.35 + rng.next() * 0.35 * intensity,
+    cadenceDegree: rng.weightedPick(cadenceOptions, cadenceWeights),
+    appoggiaturaBias: appoggiaturaBase + rng.next() * 0.35 * intensity,
     breathFraction: 0.3 + rng.next() * 0.4,
     anchorCount: anchorCountFor(phraseLength, noteDensity, intensity),
   }
@@ -205,12 +215,13 @@ export function generateElegiacCantabile(
   range: RangeSetting,
   intensity: number,
   noteDensity: number,
+  dna?: SongMotifDNA,
 ): MelodyNote[] {
   const notes: MelodyNote[] = []
   let cursor = 0
   while (cursor < totalBeats - 0.5) {
     const unitLength = Math.min(PHRASE_UNIT_BEATS, totalBeats - cursor)
-    const { notes: unitNotes } = generateElegiacPattern(rng, harmonicMap, cursor, unitLength, range, intensity, noteDensity)
+    const { notes: unitNotes } = generateElegiacPattern(rng, harmonicMap, cursor, unitLength, range, intensity, noteDensity, dna)
     notes.push(...unitNotes)
     cursor += unitLength
   }

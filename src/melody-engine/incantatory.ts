@@ -13,6 +13,7 @@ import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses, hasSemitoneRisk } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
+import type { SongMotifDNA } from "@/core/melody"
 
 const STEP_CHOICES = [0, 0, 1, -1, 1, -1, 3, -3] // 同音反復・半音・短3度を優先した重み付け
 
@@ -136,10 +137,17 @@ export function generateIncantatoryPattern(
   range: RangeSetting,
   intensity: number,
   noteDensity: number,
+  dna?: SongMotifDNA,
 ): { notes: MelodyNote[]; plan: IncantatoryPatternPlan } {
   const durationPalette = noteDensity > 0.6 ? [0.25, 0.5, 0.5, 0.75] : [0.5, 0.5, 0.75, 1]
   const coreMotif = generateCoreMotif(rng, durationPalette)
-  const mutationPeriod = rng.pick([4, 8])
+  // Song Motif DNA(任意): 反復傾向が高いほど変異周期を長く(=反復をより長く保つ)、
+  // 変異そのものも起きにくくする。noteDensityの閾値のように丸めで消えない、
+  // 連続的な効き方をする箇所へ反映する。
+  const repeatedTendency = dna?.repeatedNoteTendency
+  const mutationPeriod =
+    repeatedTendency !== undefined ? rng.weightedPick([4, 8], [1 - repeatedTendency * 0.7, 1 + repeatedTendency * 0.7]) : rng.pick([4, 8])
+  const mutationChanceBase = repeatedTendency !== undefined ? 0.6 * (1 - repeatedTendency * 0.5) : 0.6
 
   const firstChord = chordAtBeat(harmonicMap, 0)
   const startMid = Math.round((range.low + range.high) / 2)
@@ -152,7 +160,7 @@ export function generateIncantatoryPattern(
 
   while (cursor < totalBeats - 0.2) {
     const isMutationPoint = repeatIndex > 0 && repeatIndex % mutationPeriod === 0
-    if (isMutationPoint && rng.chance(0.6 * intensity + 0.2)) {
+    if (isMutationPoint && rng.chance(mutationChanceBase * intensity + 0.2)) {
       currentCopy = applyMutation(rng, coreMotif, rng.pick(MUTATION_KINDS))
     } else if (repeatIndex > 0) {
       // 変異周期外は同一性を保つ(輪郭retentionを高く保つ)
