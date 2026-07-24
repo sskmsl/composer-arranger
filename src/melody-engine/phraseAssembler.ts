@@ -142,7 +142,12 @@ function classifyTone(
       const resolution = resolutionTo(next.rawPitch, next.beat, boundaryBeat, 2)
       if (resolution && Math.abs(next.rawPitch - current.rawPitch) <= 2) return { role: "suspension", resolution }
     }
-    if (!currentIsChordTone && isChordTone(nextEntry.parsed, pc)) return { role: "anticipation" }
+    if (!currentIsChordTone && isChordTone(nextEntry.parsed, pc)) {
+      return {
+        role: "anticipation",
+        resolution: resolutionTo(current.rawPitch, boundaryBeat, current.beat, Math.max(2, boundaryBeat - current.beat)),
+      }
+    }
   }
 
   if (
@@ -163,7 +168,10 @@ function classifyTone(
     boundaryBeat - current.beat <= 1 &&
     isChordTone(nextEntry.parsed, pc)
   ) {
-    return { role: "anticipation" }
+    return {
+      role: "anticipation",
+      resolution: resolutionTo(current.rawPitch, boundaryBeat, current.beat, 1),
+    }
   }
 
   if (isTensionTone(entry.parsed, pc)) return { role: "tension-hold" }

@@ -12,6 +12,7 @@ import type {
   MelodyOpeningPlan,
   MelodyVariant,
   PhrasePlan,
+  ProfileExpressionPlan,
   ProsodyPlan,
   SongMotifDNA,
 } from "@/core/melody"
@@ -52,6 +53,7 @@ import {
   planCandidateMelodyDNA,
   rangeForPhrase,
 } from "./candidateMelodyDNA"
+import { applyProfileExpression, planProfileExpression } from "./profileExpression"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -76,6 +78,7 @@ interface Candidate {
   seed: number
   placementDiagnostics: PlacementDiagnostics
   candidateMelodyDNA?: CandidateMelodyDNA
+  profileExpressionPlan?: ProfileExpressionPlan
 }
 
 const GENERATOR_VERSION = "2.0"
@@ -152,15 +155,32 @@ function buildCandidate(
     phraseStart += phraseLen
   }
 
-  const finalNotes = candidateMelodyDNA
+  const narrativeNotes = candidateMelodyDNA
     ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
     : notes
+  const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
+  const finalNotes = applyProfileExpression(
+    narrativeNotes,
+    profileExpressionPlan,
+    harmonicMap,
+    input.range,
+    input.totalBeats,
+  )
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
   const score = scoreCandidate(features, params)
   const signature = buildSignature(finalNotes, finalPlans[0]?.contour ?? "wave")
 
-  return { notes: finalNotes, plans: finalPlans, score, signature, seed, placementDiagnostics, candidateMelodyDNA }
+  return {
+    notes: finalNotes,
+    plans: finalPlans,
+    score,
+    signature,
+    seed,
+    placementDiagnostics,
+    candidateMelodyDNA,
+    profileExpressionPlan,
+  }
 }
 
 function refreshPhrasePlans(plans: PhrasePlan[], notes: MelodyNote[]): PhrasePlan[] {
@@ -356,6 +376,7 @@ export interface ProfileCandidate {
   openingPlan?: MelodyOpeningPlan
   candidateMelodyDNA?: CandidateMelodyDNA
   elegiacPlan?: ElegiacGenerationPlan
+  profileExpressionPlan?: ProfileExpressionPlan
   generationDiagnostics?: CandidateGenerationDiagnostics
 }
 
@@ -377,6 +398,7 @@ interface BuiltPattern {
   finalNotesHash: string
   candidateMelodyDNA: CandidateMelodyDNA
   elegiacPlan?: ElegiacGenerationPlan
+  profileExpressionPlan?: ProfileExpressionPlan
 }
 
 /**
@@ -538,6 +560,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           finalNotesHash: finalHash,
           candidateMelodyDNA,
           elegiacPlan,
+          profileExpressionPlan: undefined,
         }
       }
 
@@ -560,6 +583,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         placedNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.placedPitch, t.role, t.resolution])),
         finalNotesHash: noteHash(c.notes),
         candidateMelodyDNA,
+        profileExpressionPlan: c.profileExpressionPlan,
       }
     }
 
@@ -707,6 +731,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         openingPlan: pattern.opening,
         candidateMelodyDNA: pattern.candidateMelodyDNA,
         elegiacPlan: pattern.elegiacPlan,
+        profileExpressionPlan: pattern.profileExpressionPlan,
         generationDiagnostics,
       })
     })
@@ -745,6 +770,7 @@ export function toMelodyVariantFromProfile(
     openingIntent: candidate.openingIntent,
     candidateMelodyDNA: candidate.candidateMelodyDNA,
     elegiacPlan: candidate.elegiacPlan,
+    profileExpressionPlan: candidate.profileExpressionPlan,
     generationDiagnostics: candidate.generationDiagnostics,
   }
 }

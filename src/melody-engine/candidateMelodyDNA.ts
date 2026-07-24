@@ -380,7 +380,15 @@ export function applyCandidateNarrative(
     if (note === climax || note.pitch < peakPitch) continue
     let lowered = note.pitch
     while (lowered >= peakPitch && lowered - 12 >= range.low) lowered -= 12
-    if (lowered >= peakPitch) lowered = Math.max(range.low, peakPitch - 1)
+    if (lowered >= peakPitch) {
+      const noteEntry = chordAtBeat(harmonicMap, note.startBeat)
+      const allowed = noteEntry ? allUsablePitchClasses(noteEntry.parsed) : [pitchClass(note.pitch)]
+      const candidates: number[] = []
+      for (let pitch = range.low; pitch < peakPitch; pitch++) {
+        if (allowed.includes(pitchClass(pitch))) candidates.push(pitch)
+      }
+      lowered = candidates.length > 0 ? candidates[candidates.length - 1] : Math.max(range.low, peakPitch - 1)
+    }
     note.pitch = lowered
   }
   return notes

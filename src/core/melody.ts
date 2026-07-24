@@ -266,6 +266,27 @@ export interface ElegiacGenerationPlan {
   development: ElegiacDevelopmentOperation[]
 }
 
+export type ProfileExpressionArc =
+  | "chromatic-neighbor"
+  | "chromatic-suspension"
+  | "chromatic-anticipation"
+  | "chromatic-tension-pedal"
+  | "cinematic-slow-bloom"
+  | "cinematic-midpoint-surge"
+  | "cinematic-breath-before-peak"
+  | "cinematic-low-reprise"
+  | "leaping-early-call"
+  | "leaping-delayed-call"
+  | "leaping-downward-release"
+  | "leaping-echo"
+
+/** Chromatic / Cinematic / Leaping専用の候補別表現計画。 */
+export interface ProfileExpressionPlan {
+  profile: "chromatic" | "cinematic" | "leaping"
+  arc: ProfileExpressionArc
+  focusBeat: number
+}
+
 /**
  * Song Motif DNA(将来拡張のための土台。今回は完全実装ではなく、
  * セクション間でモチーフ情報を共有できる構造だけを用意する)
@@ -314,6 +335,8 @@ export interface MelodyVariant {
   candidateMelodyDNA?: CandidateMelodyDNA
   /** Elegiac Cantabile専用のMotif/Phrase/Climax/Ending設計。 */
   elegiacPlan?: ElegiacGenerationPlan
+  /** Profile固有の緊張・展開・回収曲線。 */
+  profileExpressionPlan?: ProfileExpressionPlan
   /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
   generationDiagnostics?: CandidateGenerationDiagnostics
 }
