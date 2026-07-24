@@ -13,7 +13,7 @@ import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses, hasSemitoneRisk } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
-import type { MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
+import type { CandidateMelodyDNA, MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
 import { openingDirectionSign, openingStartMidi } from "./openingIntent"
 
 const STEP_CHOICES = [0, 0, 1, -1, 1, -1, 3, -3] // 同音反復・半音・短3度を優先した重み付け
@@ -35,7 +35,12 @@ export interface IncantatoryPatternPlan {
 }
 
 /** core motif: 2〜5音、同音反復・半音・短3度中心の短い核を作る。openingで核の輪郭を計画へ寄せる */
-function generateCoreMotif(rng: SeededRandom, durationPalette: number[], opening?: MelodyOpeningPlan): CoreMotif {
+function generateCoreMotif(
+  rng: SeededRandom,
+  durationPalette: number[],
+  opening?: MelodyOpeningPlan,
+  candidateMelodyDNA?: CandidateMelodyDNA,
+): CoreMotif {
   const noteCount = rng.intBetween(2, 5)
   const intervals = [0]
 
@@ -57,6 +62,21 @@ function generateCoreMotif(rng: SeededRandom, durationPalette: number[], opening
           step = sign * rng.pick([1, 1, 2, 0])
       }
       intervals.push(intervals[i - 1] + step)
+    }
+  } else if (candidateMelodyDNA) {
+    for (let i = 1; i < noteCount; i++) {
+      const previous = intervals[i - 1]
+      const step =
+        candidateMelodyDNA.motifIdentity === "repeated-cell"
+          ? rng.pick([0, 0, 0, 1, -1])
+          : candidateMelodyDNA.motifIdentity === "chromatic-cell"
+            ? rng.pick([1, -1, 1, -1])
+            : candidateMelodyDNA.motifIdentity === "leap-recovery"
+              ? i === 1
+                ? rng.pick([3, -3, 4, -4])
+                : rng.pick([1, -1])
+              : rng.pick(STEP_CHOICES)
+      intervals.push(previous + step)
     }
   } else {
     for (let i = 1; i < noteCount; i++) {
@@ -165,15 +185,22 @@ export function generateIncantatoryPattern(
   noteDensity: number,
   dna?: SongMotifDNA,
   opening?: MelodyOpeningPlan,
+  candidateMelodyDNA?: CandidateMelodyDNA,
 ): { notes: MelodyNote[]; plan: IncantatoryPatternPlan } {
   const durationPalette = noteDensity > 0.6 ? [0.25, 0.5, 0.5, 0.75] : [0.5, 0.5, 0.75, 1]
-  const coreMotif = generateCoreMotif(rng, durationPalette, opening)
+  const coreMotif = generateCoreMotif(rng, durationPalette, opening, candidateMelodyDNA)
   // Song Motif DNA(任意): 反復傾向が高いほど変異周期を長く(=反復をより長く保つ)、
   // 変異そのものも起きにくくする。noteDensityの閾値のように丸めで消えない、
   // 連続的な効き方をする箇所へ反映する。
   const repeatedTendency = dna?.repeatedNoteTendency
   const mutationPeriod =
-    repeatedTendency !== undefined ? rng.weightedPick([4, 8], [1 - repeatedTendency * 0.7, 1 + repeatedTendency * 0.7]) : rng.pick([4, 8])
+    candidateMelodyDNA?.developmentStrategy === "literal-return"
+      ? 8
+      : candidateMelodyDNA?.developmentStrategy === "fragmentation"
+        ? 4
+        : repeatedTendency !== undefined
+          ? rng.weightedPick([4, 8], [1 - repeatedTendency * 0.7, 1 + repeatedTendency * 0.7])
+          : rng.pick([4, 8])
   const mutationChanceBase = repeatedTendency !== undefined ? 0.6 * (1 - repeatedTendency * 0.5) : 0.6
 
   const firstChord = chordAtBeat(harmonicMap, 0)

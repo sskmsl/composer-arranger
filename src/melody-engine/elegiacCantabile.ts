@@ -13,8 +13,9 @@ import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses, allUsablePitchClasses, type ParsedChord } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
-import type { MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
+import type { CandidateMelodyDNA, MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
 import { openingBand, openingDirectionSign, openingStartMidi } from "./openingIntent"
+import { phraseLengthsForDNA } from "./candidateMelodyDNA"
 
 const PHRASE_UNIT_BEATS = 16
 
@@ -182,6 +183,7 @@ export function generateElegiacPattern(
   noteDensity: number,
   dna?: SongMotifDNA,
   opening?: MelodyOpeningPlan,
+  candidateMelodyDNA?: CandidateMelodyDNA,
 ): { notes: MelodyNote[]; plan: ElegiacPatternPlan } {
   // Song Motif DNA(任意): 倚音の出やすさとカデンツの色合いを、確率的に軽く寄せる。
   // noteDensityのように丸め/閾値の内側で消えてしまわない、連続的な効き方をする箇所へ反映する。
@@ -201,12 +203,26 @@ export function generateElegiacPattern(
       : "fall-first"
 
   const plan: ElegiacPatternPlan = {
-    climaxFraction: 0.55 + rng.next() * 0.3,
+    climaxFraction: candidateMelodyDNA
+      ? Math.max(0.3, Math.min(0.88, candidateMelodyDNA.climaxPlan.targetFraction + (rng.next() - 0.5) * 0.08))
+      : 0.55 + rng.next() * 0.3,
     contourOrder,
-    cadenceDegree: rng.weightedPick(cadenceOptions, cadenceWeights),
+    cadenceDegree:
+      candidateMelodyDNA?.endingStrategy === "resolved"
+        ? rng.pick(["third", "fifth"] as CadenceDegree[])
+        : candidateMelodyDNA?.endingStrategy === "open" || candidateMelodyDNA?.endingStrategy === "suspended"
+          ? rng.pick(["majorSeventh", "ninth"] as CadenceDegree[])
+          : rng.weightedPick(cadenceOptions, cadenceWeights),
     appoggiaturaBias:
-      (opening?.openingContour === "suspension-entry" ? Math.max(appoggiaturaBase, 0.6) : appoggiaturaBase) + rng.next() * 0.35 * intensity,
-    breathFraction: 0.3 + rng.next() * 0.4,
+      (opening?.openingContour === "suspension-entry" ? Math.max(appoggiaturaBase, 0.6) : appoggiaturaBase) +
+      rng.next() * 0.35 * intensity +
+      (candidateMelodyDNA?.harmonicResponse === "delayed-resolution" ? 0.12 : 0),
+    breathFraction:
+      candidateMelodyDNA?.phraseArchitecture === "asymmetric"
+        ? 0.36 + rng.next() * 0.16
+        : candidateMelodyDNA?.phraseArchitecture === "long-arc"
+          ? 0.62 + rng.next() * 0.15
+          : 0.3 + rng.next() * 0.4,
     anchorCount: anchorCountFor(phraseLength, noteDensity, intensity),
   }
 
@@ -258,20 +274,34 @@ export function generateElegiacCantabile(
   noteDensity: number,
   dna?: SongMotifDNA,
   opening?: MelodyOpeningPlan,
+  candidateMelodyDNA?: CandidateMelodyDNA,
 ): MelodyNote[] {
   const notes: MelodyNote[] = []
+  const phraseLengths = phraseLengthsForDNA(
+    totalBeats,
+    opening,
+    PHRASE_UNIT_BEATS,
+    candidateMelodyDNA,
+  )
   let cursor = 0
-  let first = true
-  while (cursor < totalBeats - 0.5) {
-    const unitLength = Math.min(
-      first && opening ? Math.max(1, opening.openingPhraseLengthBeats) : PHRASE_UNIT_BEATS,
-      totalBeats - cursor,
-    )
+  for (let phraseIndex = 0; phraseIndex < phraseLengths.length; phraseIndex++) {
+    const unitLength = phraseLengths[phraseIndex]
+    const first = phraseIndex === 0
     // 冒頭設計は最初の旋律文にのみ適用する
-    const { notes: unitNotes } = generateElegiacPattern(rng, harmonicMap, cursor, unitLength, range, intensity, noteDensity, dna, first ? opening : undefined)
+    const { notes: unitNotes } = generateElegiacPattern(
+      rng,
+      harmonicMap,
+      cursor,
+      unitLength,
+      range,
+      intensity,
+      noteDensity,
+      dna,
+      first ? opening : undefined,
+      candidateMelodyDNA,
+    )
     notes.push(...unitNotes)
     cursor += unitLength
-    first = false
   }
   return notes
 }

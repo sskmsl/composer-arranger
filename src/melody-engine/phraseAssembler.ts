@@ -1,5 +1,6 @@
 import type { SeededRandom } from "@/core/rng"
 import type {
+  CandidateMelodyDNA,
   MelodyNote,
   MelodyOpeningPlan,
   PhrasePlan,
@@ -328,6 +329,7 @@ export function growSegments(
   params: GenerationParams,
   isAnswerPhrase = false,
   includeFirst = true,
+  developmentStrategy?: CandidateMelodyDNA["developmentStrategy"],
 ): Segment[] {
   const segments: Segment[] = []
   let cursor = startCursor
@@ -352,7 +354,14 @@ export function growSegments(
   let guard = 0
   while (cursor < endBeat - 0.25 && guard < 12) {
     guard++
-    const op = weightedDevelopmentOp(rng, params.motifRepeatTarget, params.noveltyWeight, isAnswerPhrase && segments.length === 0)
+    const op = weightedDevelopmentOp(
+      rng,
+      params.motifRepeatTarget,
+      params.noveltyWeight,
+      isAnswerPhrase && segments.length === 0,
+      developmentStrategy,
+      segments.length,
+    )
     const dev = applyDevelopmentOp(op, { events: firstEvents, pitches: firstPitches }, rng)
     if (!pushClipped(dev.events, dev.pitches)) break
   }
@@ -375,6 +384,7 @@ export function assemblePhrase(
   isAnswerPhrase = false,
   opening?: MelodyOpeningPlan,
   placementDiagnostics?: PlacementDiagnostics,
+  candidateDNA?: CandidateMelodyDNA,
 ): PhraseResult {
   const contour = contourFromParams(rng, params)
 
@@ -390,7 +400,17 @@ export function assemblePhrase(
   const firstMotifCore: MotifCore = { events: firstEvents, pitches: firstPitches, lengthBeats: eventsLength(firstEvents) }
 
   const phraseEnd = phraseStartBeat + phraseLengthBeats
-  const segments = growSegments(rng, firstEvents, firstPitches, phraseStartBeat, phraseEnd, params, isAnswerPhrase)
+  const segments = growSegments(
+    rng,
+    firstEvents,
+    firstPitches,
+    phraseStartBeat,
+    phraseEnd,
+    params,
+    isAnswerPhrase,
+    true,
+    candidateDNA?.developmentStrategy,
+  )
 
   const notes: MelodyNote[] = []
   for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
@@ -405,8 +425,15 @@ export function assemblePhrase(
 
   // クライマックス配置(9.2): climaxBiasに応じた対象区間の最高音を、フレーズ全体の頂点にする
   if (notes.length > 0) {
-    const targetIdx =
-      params.climaxBias === "early" ? 0 : params.climaxBias === "end" ? notes.length - 1 : Math.floor(notes.length * 0.7)
+    const targetFraction =
+      candidateDNA?.climaxPlan.targetFraction ??
+      (params.climaxBias === "early" ? 0 : params.climaxBias === "end" ? 1 : 0.7)
+    const targetBeat = phraseStartBeat + phraseLengthBeats * targetFraction
+    const targetIdx = notes.reduce(
+      (best, note, index) =>
+        Math.abs(note.startBeat - targetBeat) < Math.abs(notes[best].startBeat - targetBeat) ? index : best,
+      0,
+    )
     const overallMax = Math.max(...notes.map((n) => n.pitch))
     const nearTarget = notes[Math.min(targetIdx, notes.length - 1)]
     if (nearTarget.pitch < overallMax) {

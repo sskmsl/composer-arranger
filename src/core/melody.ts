@@ -92,6 +92,7 @@ export interface CandidateGenerationDiagnostics {
   rawNotesHash: string
   placedNotesHash: string
   finalNotesHash: string
+  candidateMelodyDNA?: CandidateMelodyDNA
 }
 
 export type PhraseContour = "ascending" | "descending" | "arch" | "inverted-arch" | "wave"
@@ -204,6 +205,43 @@ export interface MelodyOpeningPlan {
   openingPhraseLengthBeats: number
 }
 
+/** 候補全体の物語を、ノート生成前に分岐させるためのPattern固有DNA。 */
+export type MotifIdentity =
+  | "stepwise-cell"
+  | "leap-recovery"
+  | "repeated-cell"
+  | "turn-cell"
+  | "chromatic-cell"
+export type RhythmGrammar = "sustained" | "balanced" | "syncopated" | "speech-like" | "cyclic"
+export type PhraseArchitecture = "balanced" | "call-response" | "long-arc" | "asymmetric" | "cyclic"
+export type HarmonicResponse = "chord-following" | "common-tone" | "anticipatory" | "delayed-resolution" | "tension-hold"
+export type RegisterTrajectory = "rising" | "falling" | "arch" | "terraced" | "contained"
+export type MotifDevelopmentStrategy =
+  | "literal-return"
+  | "sequence"
+  | "fragmentation"
+  | "augmentation"
+  | "delayed-return"
+export type ClimaxType = "pitch-peak" | "rhythmic-peak" | "tension-peak"
+export type ClimaxPosition = "early" | "middle" | "late"
+export type MelodyEndingStrategy = "resolved" | "open" | "suspended" | "carry-forward"
+
+export interface CandidateMelodyDNA {
+  motifIdentity: MotifIdentity
+  rhythmGrammar: RhythmGrammar
+  phraseArchitecture: PhraseArchitecture
+  harmonicResponse: HarmonicResponse
+  registerTrajectory: RegisterTrajectory
+  developmentStrategy: MotifDevelopmentStrategy
+  climaxPlan: {
+    type: ClimaxType
+    position: ClimaxPosition
+    /** セクション全長に対する頂点位置(0..1)。 */
+    targetFraction: number
+  }
+  endingStrategy: MelodyEndingStrategy
+}
+
 /**
  * Song Motif DNA(将来拡張のための土台。今回は完全実装ではなく、
  * セクション間でモチーフ情報を共有できる構造だけを用意する)
@@ -248,6 +286,8 @@ export interface MelodyVariant {
   prosodyPlan?: ProsodyPlan
   /** この候補の冒頭設計(3案を冒頭数秒で別案として区別するための入口意図) */
   openingIntent?: MelodyOpeningIntent
+  /** 冒頭以降を含む候補全体のPattern固有設計。 */
+  candidateMelodyDNA?: CandidateMelodyDNA
   /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
   generationDiagnostics?: CandidateGenerationDiagnostics
 }

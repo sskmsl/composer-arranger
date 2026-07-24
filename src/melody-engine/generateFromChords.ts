@@ -3,6 +3,7 @@ import type { ChordEvent, SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
 import type {
   AdvancedMelodyMetrics,
+  CandidateMelodyDNA,
   CandidateGenerationDiagnostics,
   MelodyGeneratorProfile,
   MelodyNote,
@@ -43,6 +44,13 @@ import { melodySimilarity } from "./melodySimilarity"
 import { isChordTone, isTensionTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
 import { SETTINGS_APPLICABILITY } from "./settingsApplicability"
+import {
+  applyCandidateMelodyDNA,
+  applyCandidateNarrative,
+  phraseLengthsForDNA,
+  planCandidateMelodyDNA,
+  rangeForPhrase,
+} from "./candidateMelodyDNA"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -66,9 +74,10 @@ interface Candidate {
   signature: DiversitySignature
   seed: number
   placementDiagnostics: PlacementDiagnostics
+  candidateMelodyDNA?: CandidateMelodyDNA
 }
 
-const GENERATOR_VERSION = "1.0"
+const GENERATOR_VERSION = "2.0"
 
 /**
  * Issue #13: UIのDensity設定を、bespoke ProfileのnoteDensity(0..1)へ寄せるための目標値。
@@ -86,11 +95,14 @@ function buildCandidate(
   forcedContourWeight?: number,
   paramsHook?: (params: GenerationParams) => GenerationParams,
   opening?: MelodyOpeningPlan,
+  candidateMelodyDNA?: CandidateMelodyDNA,
+  generatorProfile?: MelodyGeneratorProfile,
 ): Candidate {
   const rng = new SeededRandom(seed)
   const harmonicMap = buildHarmonicMap(input.chords)
   let params = resolveGenerationParams(input.songProfile, input.sectionRole, input.density, input.drama, input.key)
   if (paramsHook) params = paramsHook(params)
+  if (candidateMelodyDNA) params = applyCandidateMelodyDNA(params, candidateMelodyDNA, generatorProfile)
   if (forcedContourWeight !== undefined) {
     for (const key of Object.keys(params.contourWeights) as (keyof typeof params.contourWeights)[]) {
       params.contourWeights[key] = key === "arch" ? forcedContourWeight : params.contourWeights[key] * 0.6
@@ -98,29 +110,32 @@ function buildCandidate(
   }
 
   const defaultPhraseLengthBeats = input.density === "active" ? 4 : 8
+  const phraseLengths = phraseLengthsForDNA(
+    input.totalBeats,
+    opening,
+    defaultPhraseLengthBeats,
+    candidateMelodyDNA,
+  )
 
   let firstMotifCore: MotifCore | undefined
   const notes: MelodyNote[] = []
   const plans: PhrasePlan[] = []
   const placementDiagnostics = createPlacementDiagnostics()
 
-  let phraseIdx = 0
   let phraseStart = 0
-  while (phraseStart < input.totalBeats - 0.01) {
-    // 冒頭フレーズ長を実生成へ反映し、類似度だけを下げる死にメタデータにしない。
-    const plannedLength =
-      phraseIdx === 0 && opening ? Math.max(1, opening.openingPhraseLengthBeats) : defaultPhraseLengthBeats
-    const phraseLen = Math.min(plannedLength, input.totalBeats - phraseStart)
+  for (let phraseIdx = 0; phraseIdx < phraseLengths.length; phraseIdx++) {
+    const phraseLen = Math.min(phraseLengths[phraseIdx], input.totalBeats - phraseStart)
     if (phraseLen <= 0) break
     const isAnswer = phraseIdx === 1
     const reuseMotif = phraseIdx > 0 && firstMotifCore && rng.chance(params.motifRepeatTarget)
 
+    const phraseRange = rangeForPhrase(input.range, candidateMelodyDNA, phraseIdx, phraseLengths.length)
     const result = assemblePhrase(
       rng,
       harmonicMap,
       phraseStart,
       phraseLen,
-      input.range,
+      phraseRange,
       params,
       input.density,
       reuseMotif ? firstMotifCore : undefined,
@@ -128,19 +143,36 @@ function buildCandidate(
       // 冒頭設計は最初のフレーズにのみ適用する(それ以降は通常の展開に任せる)
       phraseIdx === 0 ? opening : undefined,
       placementDiagnostics,
+      candidateMelodyDNA,
     )
     if (phraseIdx === 0) firstMotifCore = result.firstMotifCore
     notes.push(...result.notes)
     plans.push(result.plan)
     phraseStart += phraseLen
-    phraseIdx++
   }
 
-  const features = computeMelodyFeatures(notes, harmonicMap, 0, input.totalBeats)
+  const finalNotes = candidateMelodyDNA
+    ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
+    : notes
+  const finalPlans = refreshPhrasePlans(plans, finalNotes)
+  const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
   const score = scoreCandidate(features, params)
-  const signature = buildSignature(notes, plans[0]?.contour ?? "wave")
+  const signature = buildSignature(finalNotes, finalPlans[0]?.contour ?? "wave")
 
-  return { notes, plans, score, signature, seed, placementDiagnostics }
+  return { notes: finalNotes, plans: finalPlans, score, signature, seed, placementDiagnostics, candidateMelodyDNA }
+}
+
+function refreshPhrasePlans(plans: PhrasePlan[], notes: MelodyNote[]): PhrasePlan[] {
+  return plans.map((plan) => {
+    const phraseNotes = notes.filter(
+      (note) =>
+        note.startBeat >= plan.phraseStartBeat &&
+        note.startBeat < plan.phraseStartBeat + plan.phraseLengthBeats,
+    )
+    if (phraseNotes.length === 0) return plan
+    const climax = phraseNotes.reduce((highest, note) => (note.pitch > highest.pitch ? note : highest), phraseNotes[0])
+    return { ...plan, climaxBeat: climax.startBeat }
+  })
 }
 
 /** 5.1 Generate from Chords: 6候補を生成する(標準)。9.7 Diversity Filterで多様性を担保する */
@@ -170,22 +202,51 @@ export function generateFromChords(input: GenerateFromChordsInput): {
   return { candidates: candidates.map((c) => ({ notes: c.notes, plans: c.plans, seed: c.seed })) }
 }
 
-/** bespoke Profileの出力にも、ピアノロール表示用の簡易PhrasePlanを合成する */
-function synthesizePhrasePlan(notes: MelodyNote[], totalBeats: number): PhrasePlan[] {
+/** bespoke Profileの出力にも、Pattern DNAと実音に一致するPhrasePlanを合成する */
+function synthesizePhrasePlan(
+  notes: MelodyNote[],
+  totalBeats: number,
+  opening: MelodyOpeningPlan,
+  candidateMelodyDNA: CandidateMelodyDNA,
+): PhrasePlan[] {
   if (notes.length === 0) {
     return [{ phraseStartBeat: 0, phraseLengthBeats: totalBeats, climaxBeat: 0, contour: "wave", restBeats: [], endTension: 0.5 }]
   }
-  const climaxNote = notes.reduce((a, b) => (b.pitch > a.pitch ? b : a), notes[0])
-  return [
-    {
-      phraseStartBeat: 0,
-      phraseLengthBeats: totalBeats,
-      climaxBeat: climaxNote.startBeat,
-      contour: "arch",
-      restBeats: [],
-      endTension: 0.5,
-    },
-  ]
+  const lengths = phraseLengthsForDNA(totalBeats, opening, 8, candidateMelodyDNA)
+  const plans: PhrasePlan[] = []
+  let phraseStartBeat = 0
+  for (const phraseLengthBeats of lengths) {
+    const phraseNotes = notes.filter(
+      (note) => note.startBeat >= phraseStartBeat && note.startBeat < phraseStartBeat + phraseLengthBeats,
+    )
+    const climaxNote =
+      phraseNotes.length > 0
+        ? phraseNotes.reduce((a, b) => (b.pitch > a.pitch ? b : a), phraseNotes[0])
+        : undefined
+    const restBeats: number[] = []
+    let expected = phraseStartBeat
+    for (const note of phraseNotes) {
+      if (note.startBeat > expected + 0.05) restBeats.push(expected)
+      expected = note.startBeat + note.durationBeats
+    }
+    plans.push({
+      phraseStartBeat,
+      phraseLengthBeats,
+      climaxBeat: climaxNote?.startBeat ?? phraseStartBeat,
+      contour:
+        candidateMelodyDNA.registerTrajectory === "rising"
+          ? "ascending"
+          : candidateMelodyDNA.registerTrajectory === "falling"
+            ? "descending"
+            : candidateMelodyDNA.registerTrajectory === "arch"
+              ? "arch"
+              : "wave",
+      restBeats,
+      endTension: candidateMelodyDNA.endingStrategy === "resolved" ? 0.1 : candidateMelodyDNA.endingStrategy === "open" ? 0.5 : 0.8,
+    })
+    phraseStartBeat += phraseLengthBeats
+  }
+  return plans
 }
 
 function stableHash(value: unknown): string {
@@ -291,6 +352,7 @@ export interface ProfileCandidate {
   prosodyPlan?: ProsodyPlan
   openingIntent?: MelodyOpeningIntent
   openingPlan?: MelodyOpeningPlan
+  candidateMelodyDNA?: CandidateMelodyDNA
   generationDiagnostics?: CandidateGenerationDiagnostics
 }
 
@@ -310,6 +372,7 @@ interface BuiltPattern {
   rawNotesHash: string
   placedNotesHash: string
   finalNotesHash: string
+  candidateMelodyDNA: CandidateMelodyDNA
 }
 
 /**
@@ -368,6 +431,11 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     ): BuiltPattern => {
       const planRng = new SeededRandom(patternSeed ^ 0x5f3759df)
       const opening = openingIntentToPlan(planRng, intent, harmonicMap, input.range)
+      const candidateMelodyDNA = planCandidateMelodyDNA(
+        new SeededRandom(baseSeed ^ 0x6a09e667),
+        profile,
+        candidatePoolIndex,
+      )
 
       if (kind === "bespoke") {
         const rng = new SeededRandom(patternSeed)
@@ -375,29 +443,65 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         let plans: PhrasePlan[]
         let advancedMetrics: AdvancedMelodyMetrics
         let prosodyPlan: ProsodyPlan | undefined
+        let rawNotesHash: string
         if (profile === "elegiac-cantabile") {
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.34, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
-          notes = generateElegiacCantabile(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity, dna, opening)
-          plans = synthesizePhrasePlan(notes, input.totalBeats)
+          notes = generateElegiacCantabile(
+            rng,
+            harmonicMap,
+            input.totalBeats,
+            input.range,
+            intensity,
+            noteDensity,
+            dna,
+            opening,
+            candidateMelodyDNA,
+          )
+          rawNotesHash = noteHash(notes)
+          notes = applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
+          plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
         } else if (profile === "speech-rhythmic") {
           const repeatedNoteAmount = nudgeTowardDNA(0.82, dna?.repeatedNoteTendency, 0.4)
           const syncopationAmount = nudgeTowardDNA(0.76, baseParams.syncopationAmount, 0.5)
-          const r = generateSpeechRhythmicPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, repeatedNoteAmount, syncopationAmount, 0.68, 0.72, opening)
-          notes = r.notes
-          plans = synthesizePhrasePlan(notes, input.totalBeats)
+          const r = generateSpeechRhythmicPattern(
+            rng,
+            harmonicMap,
+            input.totalBeats,
+            input.range,
+            intensity,
+            repeatedNoteAmount,
+            syncopationAmount,
+            0.68,
+            0.72,
+            opening,
+            candidateMelodyDNA,
+          )
+          rawNotesHash = noteHash(r.notes)
+          notes = applyCandidateNarrative(r.notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
+          plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
           prosodyPlan = r.prosodyPlan
         } else {
           // incantatory
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.58, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
-          const r = generateIncantatoryPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity, dna, opening)
-          const generic = computeAdvancedMelodyMetrics(r.notes, harmonicMap)
+          const r = generateIncantatoryPattern(
+            rng,
+            harmonicMap,
+            input.totalBeats,
+            input.range,
+            intensity,
+            noteDensity,
+            dna,
+            opening,
+            candidateMelodyDNA,
+          )
+          rawNotesHash = noteHash(r.notes)
           const motifMutationRatio = 1 / r.plan.mutationPeriod
-          notes = r.notes
-          plans = synthesizePhrasePlan(notes, input.totalBeats)
+          notes = applyCandidateNarrative(r.notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
+          plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = {
-            ...generic,
+            ...computeAdvancedMelodyMetrics(notes, harmonicMap),
             motifMutationRatio,
             cyclicPhraseAmount: 0.8 + intensity * 0.15,
             mutationPeriodicity: r.plan.mutationPeriod / 8,
@@ -407,7 +511,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
 
         const features = computeMelodyFeatures(notes, harmonicMap, 0, input.totalBeats)
         const placementDiagnostics = directPlacementDiagnostics(notes, harmonicMap)
-        const hash = noteHash(notes)
+        const finalHash = noteHash(notes)
         const fitScore = profileFitScore(profile, features, advancedMetrics)
         return {
           notes,
@@ -421,14 +525,15 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           candidatePoolIndex,
           openingRegenerationAttempts,
           placementDiagnostics,
-          rawNotesHash: hash,
-          placedNotesHash: hash,
-          finalNotesHash: hash,
+          rawNotesHash,
+          placedNotesHash: rawNotesHash,
+          finalNotesHash: finalHash,
+          candidateMelodyDNA,
         }
       }
 
       // parametric: 既存フレーズ生成エンジンをProfile専用パラメータ + Opening Planで駆動する
-      const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening)
+      const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening, candidateMelodyDNA, profile)
       const advancedMetrics = computeAdvancedMelodyMetrics(c.notes, harmonicMap)
       const fitScore = profileFitScore(profile, computeMelodyFeatures(c.notes, harmonicMap, 0, input.totalBeats), advancedMetrics)
       return {
@@ -445,6 +550,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         rawNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.rawPitch, t.role, t.resolution])),
         placedNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.placedPitch, t.role, t.resolution])),
         finalNotesHash: noteHash(c.notes),
+        candidateMelodyDNA,
       }
     }
 
@@ -516,6 +622,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           maximumOpeningSimilarity: OPENING_SIMILARITY_MAX - 0.001,
           requireOpeningCategoryDiversity: true,
           requireActualStartBeatDiversity: true,
+          requireCandidateDNADiversity: true,
         },
       )
 
@@ -565,11 +672,16 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         rawNotesHash: pattern.rawNotesHash,
         placedNotesHash: pattern.placedNotesHash,
         finalNotesHash: pattern.finalNotesHash,
+        candidateMelodyDNA: pattern.candidateMelodyDNA,
       })
     }
 
-    // 3) 選抜順を最終Pattern 1〜3へ割り当てる。元候補は互いに独立生成されている。
-    selection.selected.forEach((selected, i) => {
+    // 3) Pattern番号が品質順位を意味しないよう、選抜スコア順ではなく生成プール順で1〜3を割り当てる。
+    // 元候補は互いに独立生成され、3案は同格の採用候補として扱う。
+    const finalPatterns = [...selection.selected].sort(
+      (a, b) => a.candidate.candidatePoolIndex - b.candidate.candidatePoolIndex,
+    )
+    finalPatterns.forEach((selected, i) => {
       const pattern = selected.candidate
       const generationDiagnostics = allDiagnostics.find(
         (d) => d.batchBaseSeed === baseSeed && d.candidatePoolIndex === pattern.candidatePoolIndex,
@@ -584,6 +696,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         prosodyPlan: pattern.prosodyPlan,
         openingIntent: pattern.opening.intent,
         openingPlan: pattern.opening,
+        candidateMelodyDNA: pattern.candidateMelodyDNA,
         generationDiagnostics,
       })
     })
@@ -620,6 +733,7 @@ export function toMelodyVariantFromProfile(
     advancedMetrics: candidate.advancedMetrics,
     prosodyPlan: candidate.prosodyPlan,
     openingIntent: candidate.openingIntent,
+    candidateMelodyDNA: candidate.candidateMelodyDNA,
     generationDiagnostics: candidate.generationDiagnostics,
   }
 }
