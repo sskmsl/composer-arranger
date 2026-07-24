@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { ChordEvent } from "@/core/project"
 import type { MelodyNote } from "@/core/melody"
+import { allUsablePitchClasses } from "@/core/chord"
+import { pitchClass } from "@/core/note"
+import { buildHarmonicMap, chordAtBeat } from "./harmonicMap"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 
 const chords: ChordEvent[] = [
@@ -9,6 +12,7 @@ const chords: ChordEvent[] = [
   { id: "c3", sectionId: "s1", startBeat: 16, durationBeats: 8, symbol: "Fmaj7", bass: null },
   { id: "c4", sectionId: "s1", startBeat: 24, durationBeats: 8, symbol: "E7", bass: null },
 ]
+const harmonicMap = buildHarmonicMap(chords)
 
 function generate(seed: number) {
   return generateFromChordsWithProfiles({
@@ -99,5 +103,44 @@ describe("Elegiac Cantabile dedicated generator", () => {
     expect(a.map((candidate) => candidate.notes.map(stripId))).toEqual(
       b.map((candidate) => candidate.notes.map(stripId)),
     )
+  })
+
+  it("コード外音は短い経過音または解決計画を持つ意図的な非和声音に限定する", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      for (const candidate of generate(seed)) {
+        for (const note of candidate.notes) {
+          const entry = chordAtBeat(harmonicMap, note.startBeat)
+          if (!entry) continue
+          const usable = allUsablePitchClasses(entry.parsed)
+          if (usable.includes(pitchClass(note.pitch))) continue
+          const resolution = note.plannedResolution
+          expect(
+            resolution,
+            `seed=${seed} pattern=${candidate.patternIndex} climax=${candidate.elegiacPlan?.climaxType} beat=${note.startBeat} pitch=${note.pitch} role=${note.plannedToneRole}`,
+          ).toBeDefined()
+          expect(resolution!.targetBeat).toBeGreaterThan(note.startBeat)
+          expect(resolution!.targetBeat - note.startBeat).toBeLessThanOrEqual(resolution!.maximumDelayBeats + 1e-6)
+        }
+      }
+    }
+  })
+
+  it("強拍・ロングトーンは、解決計画なしでコード外へ外れない", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      for (const candidate of generate(seed)) {
+        const exposed = candidate.notes.filter(
+          (note) => Math.abs(note.startBeat - Math.round(note.startBeat)) < 0.06 || note.durationBeats >= 1.25,
+        )
+        for (const note of exposed) {
+          const entry = chordAtBeat(harmonicMap, note.startBeat)
+          if (!entry) continue
+          const usable = allUsablePitchClasses(entry.parsed)
+          expect(
+            usable.includes(pitchClass(note.pitch)) || note.plannedResolution !== undefined,
+            `seed=${seed} pattern=${candidate.patternIndex} climax=${candidate.elegiacPlan?.climaxType} beat=${note.startBeat} pitch=${note.pitch} role=${note.plannedToneRole}`,
+          ).toBe(true)
+        }
+      }
+    }
   })
 })

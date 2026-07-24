@@ -268,10 +268,111 @@ function fitMelodicPitch(
   const usable = allUsablePitchClasses(entry.parsed)
   const pc = pitchClass(pitch)
   if (chordTones.includes(pc)) return { pitch, role: "chord-tone" }
-  if (usable.includes(pc)) return { pitch, role: "tension-hold" }
+  if (usable.includes(pc)) return { pitch, role: "passing-tone" }
   // Weak-beat steps are meaningful passing/neighbor tones. Only a hard,
   // sustained strong-beat conflict is corrected later by the resolution step.
   return { pitch, role: "passing-tone" }
+}
+
+function isStrongBeat(beat: number): boolean {
+  return Math.abs(beat - Math.round(beat)) < 0.06
+}
+
+function nearestPitchWithContour(
+  desired: number,
+  allowedPitchClasses: number[],
+  range: RangeSetting,
+  previous: MelodyNote | undefined,
+  next: MelodyNote | undefined,
+): number {
+  const candidates: number[] = []
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
+    if (allowedPitchClasses.includes(pitchClass(pitch))) candidates.push(pitch)
+  }
+  if (candidates.length === 0) return clamp(Math.round(desired), range.low, range.high)
+  const incomingDirection = previous ? Math.sign(desired - previous.pitch) : 0
+  const outgoingDirection = next ? Math.sign(next.pitch - desired) : 0
+  return candidates.reduce((best, candidate) => {
+    const bestIncoming = previous ? Math.sign(best - previous.pitch) : 0
+    const candidateIncoming = previous ? Math.sign(candidate - previous.pitch) : 0
+    const bestOutgoing = next ? Math.sign(next.pitch - best) : 0
+    const candidateOutgoing = next ? Math.sign(next.pitch - candidate) : 0
+    const bestPenalty =
+      Math.abs(best - desired) +
+      (incomingDirection !== 0 && bestIncoming !== incomingDirection ? 3 : 0) +
+      (outgoingDirection !== 0 && bestOutgoing !== outgoingDirection ? 2 : 0)
+    const candidatePenalty =
+      Math.abs(candidate - desired) +
+      (incomingDirection !== 0 && candidateIncoming !== incomingDirection ? 3 : 0) +
+      (outgoingDirection !== 0 && candidateOutgoing !== outgoingDirection ? 2 : 0)
+    return candidatePenalty < bestPenalty ? candidate : best
+  })
+}
+
+/**
+ * Profileの歌唱線を残しながら、聴感上露出する音だけを和声検証する。
+ * 弱拍の短い非和声音は、直後に順次解決する場合だけ保持する。
+ */
+function harmonizeExposedNotes(
+  notes: MelodyNote[],
+  harmonicMap: HarmonicMapEntry[],
+  range: RangeSetting,
+): void {
+  notes.sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch)
+  for (let index = 0; index < notes.length; index++) {
+    const note = notes[index]
+    const previous = notes[index - 1]
+    const next = notes[index + 1]
+    const entry = chordAtBeat(harmonicMap, note.startBeat)
+    if (!entry) continue
+    const chordTones = chordTonePitchClasses(entry.parsed)
+    const usable = allUsablePitchClasses(entry.parsed)
+    const pc = pitchClass(note.pitch)
+    if (chordTones.includes(pc)) {
+      note.plannedToneRole = "chord-tone"
+      continue
+    }
+
+    const nextEntry = next ? chordAtBeat(harmonicMap, next.startBeat) : undefined
+    const nextUsable = nextEntry ? allUsablePitchClasses(nextEntry.parsed) : []
+    const resolvesByStep =
+      Boolean(next) &&
+      next!.startBeat - (note.startBeat + note.durationBeats) <= 0.8 &&
+      Math.abs(next!.pitch - note.pitch) <= 2 &&
+      nextUsable.includes(pitchClass(next!.pitch))
+    const intentionalDissonance =
+      note.plannedResolution !== undefined &&
+      (note.plannedToneRole === "suspension" || note.plannedToneRole === "appoggiatura")
+    const exposed = isStrongBeat(note.startBeat) || note.durationBeats >= 1.25
+
+    if (!exposed && note.durationBeats <= 1 && resolvesByStep) {
+      note.plannedToneRole = usable.includes(pc) ? "approach-tone" : "passing-tone"
+      note.plannedResolution = {
+        targetPitchClass: pitchClass(next!.pitch),
+        targetBeat: next!.startBeat,
+        maximumDelayBeats: Math.max(0.5, next!.startBeat - note.startBeat),
+      }
+      continue
+    }
+    if (intentionalDissonance && resolvesByStep) {
+      note.plannedResolution = {
+        targetPitchClass: pitchClass(next!.pitch),
+        targetBeat: next!.startBeat,
+        maximumDelayBeats: Math.max(0.5, next!.startBeat - note.startBeat),
+      }
+      continue
+    }
+    if (usable.includes(pc) && !exposed) {
+      note.plannedToneRole = "approach-tone"
+      continue
+    }
+
+    // 強拍・長音では曖昧なテンションより歌唱的なコードトーンを優先する。
+    // contour penaltyを含む局所探索により、Motifの進行方向は可能な限り維持する。
+    note.pitch = nearestPitchWithContour(note.pitch, chordTones, range, previous, next)
+    note.plannedToneRole = "chord-tone"
+    note.plannedResolution = undefined
+  }
 }
 
 function makeNote(
@@ -515,10 +616,9 @@ function ensureRareHighest(
   notes: MelodyNote[],
   plan: ElegiacGenerationPlan,
   range: RangeSetting,
+  harmonicMap: HarmonicMapEntry[],
 ): void {
   if (notes.length < 2) return
-  const highest = Math.max(...notes.map((note) => note.pitch))
-  const highIndexes = notes.flatMap((note, index) => (note.pitch === highest ? [index] : []))
   const totalBeats = Math.max(...notes.map((note) => note.startBeat + note.durationBeats))
   const earlyIndexes = notes.flatMap((note, index) => (note.startBeat <= totalBeats * 0.45 ? [index] : []))
   const keep =
@@ -535,10 +635,30 @@ function ensureRareHighest(
                 : best,
             0,
           )
-  notes[keep].pitch = highest
-  for (const index of highIndexes) {
+  const keepEntry = chordAtBeat(harmonicMap, notes[keep].startBeat)
+  const keepAllowed = keepEntry ? allUsablePitchClasses(keepEntry.parsed) : [pitchClass(notes[keep].pitch)]
+  notes[keep].pitch = nearestAllowedPitch(range.high, keepAllowed, range)
+  if (keepEntry) {
+    notes[keep].plannedToneRole = chordTonePitchClasses(keepEntry.parsed).includes(pitchClass(notes[keep].pitch))
+      ? "chord-tone"
+      : "tension-hold"
+    notes[keep].plannedResolution = undefined
+  }
+  const safeHighest = notes[keep].pitch
+  for (let index = 0; index < notes.length; index++) {
     if (index === keep) continue
-    notes[index].pitch = Math.max(range.low, highest - 2)
+    if (notes[index].pitch < safeHighest) continue
+    const entry = chordAtBeat(harmonicMap, notes[index].startBeat)
+    const allowed = entry ? allUsablePitchClasses(entry.parsed) : [pitchClass(notes[index].pitch)]
+    let lowered = nearestAllowedPitch(safeHighest - 3, allowed, range)
+    if (lowered >= safeHighest && lowered - 12 >= range.low) lowered -= 12
+    notes[index].pitch = lowered
+    if (entry) {
+      notes[index].plannedToneRole = chordTonePitchClasses(entry.parsed).includes(pitchClass(lowered))
+        ? "chord-tone"
+        : "tension-hold"
+      notes[index].plannedResolution = undefined
+    }
   }
 }
 
@@ -630,9 +750,11 @@ export function generateElegiacCantabile(
 
   applyOpeningResolution(notes, opening)
   applyClimax(notes, plan, harmonicMap, range, totalBeats)
+  // Climaxのleap/recoveryで変更された後続音も含め、最終的な旋律表面を検証する。
+  harmonizeExposedNotes(notes, harmonicMap, range)
   applyEnding(notes, plan, harmonicMap, range, totalBeats)
   const normalized = normalizeNotes(notes, range, totalBeats)
-  ensureRareHighest(normalized, plan, range)
+  ensureRareHighest(normalized, plan, range, harmonicMap)
   return {
     notes: normalized,
     phrasePlans: phrasePlans(normalized, phraseLengths, plan),
