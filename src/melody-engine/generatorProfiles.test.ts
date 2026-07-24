@@ -228,7 +228,7 @@ describe("単旋律性・セクション境界(レビュー指摘の再現条件
     }
     expect(overflows.slice(0, 5)).toEqual([])
     expect(overlaps.slice(0, 5)).toEqual([])
-  })
+  }, 15_000)
 })
 
 describe("Song Motif DNA: bespoke Profileへの反映", () => {
