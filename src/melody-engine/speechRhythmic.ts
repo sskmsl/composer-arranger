@@ -182,7 +182,10 @@ export function generateSpeechRhythmicPattern(
   let cursor = 0
   let firstUnit = true
   while (cursor < totalBeats - 1) {
-    const unitLength = pickUnitLength(rng, totalBeats - cursor, phraseAsymmetry)
+    const unitLength =
+      firstUnit && opening
+        ? Math.min(Math.max(1, opening.openingPhraseLengthBeats), totalBeats - cursor)
+        : pickUnitLength(rng, totalBeats - cursor, phraseAsymmetry)
     unitLengths.push(unitLength)
     // 冒頭設計は最初のフレーズ単位にのみ適用する
     const events = buildRhythmSkeleton(rng, cursor, unitLength, syncopationAmount, pickupAmount, firstUnit ? opening : undefined)

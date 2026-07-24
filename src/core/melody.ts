@@ -8,6 +8,90 @@ export interface MelodyNote {
   pitch: number
   velocity: number
   locks: LockKind[]
+  /** 第1段階多様性改修: 配置前にこの音へ与えられた音楽的役割。再生/MIDIには影響しない内部情報。 */
+  plannedToneRole?: PlannedToneRole
+  /** 非和声音を保持できる根拠となる解決計画。 */
+  plannedResolution?: PlannedResolution
+}
+
+export type PlannedToneRole =
+  | "chord-tone"
+  | "common-tone"
+  | "approach-tone"
+  | "passing-tone"
+  | "neighbor-tone"
+  | "appoggiatura"
+  | "suspension"
+  | "anticipation"
+  | "tension-hold"
+  | "unresolved-conflict"
+
+export interface PlannedResolution {
+  targetPitchClass: number
+  targetBeat: number
+  maximumDelayBeats: number
+}
+
+export type PitchCorrectionReason =
+  | "range-octave-adjustment"
+  | "midi-range-clamp"
+  | "unresolved-strong-beat-conflict"
+  | "unresolved-harmonic-conflict"
+
+export interface PitchCorrectionDiagnostic {
+  beat: number
+  rawPitch: number
+  placedPitch: number
+  role: PlannedToneRole
+  reason: PitchCorrectionReason
+}
+
+export interface PlannedToneDiagnostic {
+  beat: number
+  durationBeats: number
+  rawPitch: number
+  placedPitch: number
+  role: PlannedToneRole
+  resolution?: PlannedResolution
+}
+
+export interface MelodySimilarityBreakdown {
+  openingSimilarity: number
+  intervalSimilarity: number
+  rhythmSimilarity: number
+  contourSimilarity: number
+  phraseSimilarity: number
+  climaxSimilarity: number
+  cadenceSimilarity: number
+  harmonicResponseSimilarity: number
+  overallSimilarity: number
+}
+
+export type CandidateSelectionReason =
+  | "highest-quality"
+  | "quality-diversity-balance"
+  | "diversity-threshold-relaxed"
+  | "insufficient-diversity-fallback"
+  | "below-quality-floor"
+  | "not-selected"
+
+export interface CandidateGenerationDiagnostics {
+  batchBaseSeed: number
+  candidateSeed: number
+  candidatePoolIndex: number
+  openingRegenerationAttempts: number
+  qualityScore: number
+  profileFitScore: number
+  selectionScore: number | null
+  selected: boolean
+  reason: CandidateSelectionReason
+  similarityToSelected: MelodySimilarityBreakdown[]
+  plannedTones: PlannedToneDiagnostic[]
+  changedPitchCount: number
+  corrections: PitchCorrectionDiagnostic[]
+  rawNotesHash: string
+  placedNotesHash: string
+  finalNotesHash: string
 }
 
 export type PhraseContour = "ascending" | "descending" | "arch" | "inverted-arch" | "wave"
@@ -164,4 +248,6 @@ export interface MelodyVariant {
   prosodyPlan?: ProsodyPlan
   /** この候補の冒頭設計(3案を冒頭数秒で別案として区別するための入口意図) */
   openingIntent?: MelodyOpeningIntent
+  /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
+  generationDiagnostics?: CandidateGenerationDiagnostics
 }

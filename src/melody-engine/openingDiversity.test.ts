@@ -42,23 +42,14 @@ function pairs<T>(arr: T[]): [T, T][] {
   return out
 }
 
-// Speech-Rhythmic / Incantatory は「狭い音域・同音反復・核モチーフの反復」を美学とするため、
-// 開始音・音域・輪郭が近くなりやすく、差は主にリズム骨格で作られる(仕様がそれを許容している)。
-// これらは構造上、冒頭類似度の下限が高いため、専用の上限を設ける。
-const OPENING_CEILING: Partial<Record<MelodyGeneratorProfile, number>> = {
-  "speech-rhythmic": 0.82,
-  incantatory: 0.82,
-}
-
 describe("冒頭設計: 同一Profile内3案の冒頭が別案として成立する", () => {
   it.each(GENERATOR_PROFILES)("%s: 3案すべての冒頭類似度が閾値以内(seed横断)", (profile) => {
-    const ceiling = OPENING_CEILING[profile] ?? OPENING_SIMILARITY_MAX
     for (let seed = 1; seed <= 30; seed++) {
       const cs = threeCandidates(profile, seed)
       expect(cs.length).toBe(3)
       for (const [a, b] of pairs(cs)) {
         const sim = openingSimilarity({ notes: a.notes, plan: a.openingPlan }, { notes: b.notes, plan: b.openingPlan })
-        expect(sim).toBeLessThanOrEqual(ceiling)
+        expect(sim).toBeLessThan(OPENING_SIMILARITY_MAX)
       }
     }
   })
@@ -75,6 +66,24 @@ describe("冒頭設計: 同一Profile内3案の冒頭が別案として成立す
       expect(countDistinctOpeningContours(plans)).toBeGreaterThanOrEqual(2)
     }
   })
+
+  it.each(GENERATOR_PROFILES)("%s: 実際の開始拍が3案中2種類以上ある(seed横断)", (profile) => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const starts = threeCandidates(profile, seed).map(
+        (candidate) => Math.min(...candidate.notes.map((note) => note.startBeat)),
+      )
+      expect(new Set(starts.map((start) => start.toFixed(3))).size).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it.each(["standard", "minimal", "leaping", "rhythmic", "chromatic", "cinematic"] as MelodyGeneratorProfile[])(
+    "%s: openingPhraseLengthBeatsが実際の先頭PhrasePlanへ反映される",
+    (profile) => {
+      for (const candidate of threeCandidates(profile, 19)) {
+        expect(candidate.plans[0]?.phraseLengthBeats).toBe(candidate.openingPlan?.openingPhraseLengthBeats)
+      }
+    },
+  )
 
   it.each(GENERATOR_PROFILES)("%s: 冒頭が単なる移高(トランスポーズ)関係の案が無い(seed横断)", (profile) => {
     for (let seed = 1; seed <= 30; seed++) {
@@ -98,6 +107,28 @@ describe("冒頭設計: 決定論とバッチ独立性", () => {
     const cs = threeCandidates("standard", 3)
     const self = openingSimilarity({ notes: cs[0].notes, plan: cs[0].openingPlan }, { notes: cs[0].notes, plan: cs[0].openingPlan })
     expect(self).toBeGreaterThan(0.9)
+  })
+
+  it("類似または同開始拍の候補だけを新しいseed・Opening Planで再生成する", () => {
+    const result = generateFromChordsWithProfiles({
+      chords,
+      sectionId: "s1",
+      sectionRole: "verse",
+      songProfile: "original-custom",
+      density: "balanced",
+      range: { low: 60, high: 79 },
+      drama: "growing",
+      totalBeats,
+      seed: 1,
+      profiles: ["standard"],
+    })
+    const regenerated = result.diagnostics.filter((diagnostic) => diagnostic.openingRegenerationAttempts > 0)
+    expect(regenerated).toHaveLength(1)
+    expect(regenerated[0].candidatePoolIndex).toBe(2)
+    expect(regenerated[0].candidateSeed).not.toBe(1 + 2 * 7919)
+    expect(result.diagnostics.filter((diagnostic) => diagnostic.candidatePoolIndex !== 2).every(
+      (diagnostic) => diagnostic.openingRegenerationAttempts === 0,
+    )).toBe(true)
   })
 })
 

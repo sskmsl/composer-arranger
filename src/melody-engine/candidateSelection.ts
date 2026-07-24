@@ -1,0 +1,302 @@
+import type {
+  CandidateSelectionReason,
+  MelodyGeneratorProfile,
+  MelodySimilarityBreakdown,
+} from "@/core/melody"
+import type { HarmonicMapEntry } from "./harmonicMap"
+import {
+  melodySimilarity,
+  type MelodySimilarityCandidate,
+} from "./melodySimilarity"
+
+export const CANDIDATE_SELECTION_CONFIG = {
+  candidatePoolSize: 9,
+  finalCandidateCount: 3,
+  maximumPoolSize: 15,
+  qualityWeight: 0.65,
+  diversityWeight: 0.35,
+  maximumOverallSimilarity: 0.72,
+  similarityRelaxationStep: 0.05,
+  maximumRelaxedSimilarity: 0.9,
+} as const
+
+/** 現行score(0..100)に対する保守的なProfile別最低品質。試聴後に個別調整できる設定値。 */
+export const PROFILE_MINIMUM_QUALITY: Record<MelodyGeneratorProfile, number> = {
+  standard: 45,
+  minimal: 40,
+  leaping: 42,
+  rhythmic: 42,
+  chromatic: 40,
+  cinematic: 42,
+  "elegiac-cantabile": 38,
+  "speech-rhythmic": 38,
+  incantatory: 38,
+}
+
+export interface SelectableCandidate extends MelodySimilarityCandidate {
+  candidatePoolIndex: number
+  qualityScore: number
+  profileFitScore: number
+}
+
+export interface SelectedCandidate<T extends SelectableCandidate> {
+  candidate: T
+  selectionScore: number
+  reason: CandidateSelectionReason
+  similarityToSelected: MelodySimilarityBreakdown[]
+}
+
+export interface CandidateSelectionResult<T extends SelectableCandidate> {
+  selected: SelectedCandidate<T>[]
+  belowQualityFloor: T[]
+  unselected: T[]
+  finalSimilarityThreshold: number
+}
+
+export interface CandidateSelectionOptions {
+  maximumOpeningSimilarity?: number
+  requireOpeningCategoryDiversity?: boolean
+  requireActualStartBeatDiversity?: boolean
+}
+
+function normalizedQuality(candidate: SelectableCandidate): number {
+  return Math.max(0, Math.min(1, candidate.qualityScore / 100))
+}
+
+function similaritiesToSelected<T extends SelectableCandidate>(
+  candidate: T,
+  selected: SelectedCandidate<T>[],
+  harmonicMap: HarmonicMapEntry[],
+): MelodySimilarityBreakdown[] {
+  return selected.map((item) => melodySimilarity(candidate, item.candidate, harmonicMap))
+}
+
+export function selectDiverseCandidates<T extends SelectableCandidate>(
+  pool: T[],
+  harmonicMap: HarmonicMapEntry[],
+  qualityFloor: number,
+  finalCount = CANDIDATE_SELECTION_CONFIG.finalCandidateCount,
+  options: CandidateSelectionOptions = {},
+): CandidateSelectionResult<T> {
+  const eligible = pool.filter((candidate) => candidate.qualityScore >= qualityFloor)
+  const belowQualityFloor = pool.filter((candidate) => candidate.qualityScore < qualityFloor)
+
+  // Opening制約を同時に満たす必要があるProfile生成では、最高品質1件を先に固定すると
+  // 残り2件を選べなくなることがある。最大15件なので全3組を評価し、実音上成立する組から選ぶ。
+  if (
+    finalCount === 3 &&
+    options.maximumOpeningSimilarity !== undefined &&
+    options.requireOpeningCategoryDiversity
+  ) {
+    const pairCache = new Map<string, MelodySimilarityBreakdown>()
+    const pairSimilarity = (a: T, b: T): MelodySimilarityBreakdown => {
+      const low = Math.min(a.candidatePoolIndex, b.candidatePoolIndex)
+      const high = Math.max(a.candidatePoolIndex, b.candidatePoolIndex)
+      const key = `${low}:${high}`
+      const cached = pairCache.get(key)
+      if (cached) return cached
+      const value = melodySimilarity(a, b, harmonicMap)
+      pairCache.set(key, value)
+      return value
+    }
+    const starts = (set: T[]): number =>
+      new Set(
+        set.map((candidate) =>
+          Math.min(...candidate.notes.map((note) => note.startBeat), Number.POSITIVE_INFINITY).toFixed(3),
+        ),
+      ).size
+    const openingCategoriesValid = (set: T[]): boolean => {
+      const plans = set.map((candidate) => candidate.openingPlan)
+      if (plans.some((plan) => !plan)) return false
+      return (
+        new Set(plans.map((plan) => plan!.intent.entryType)).size >= 2 &&
+        new Set(plans.map((plan) => plan!.intent.initialDirection)).size >= 2 &&
+        new Set(plans.map((plan) => plan!.openingContour)).size >= 2 &&
+        (!options.requireActualStartBeatDiversity || starts(set) >= 2)
+      )
+    }
+
+    type RankedSet = { set: T[]; similarities: MelodySimilarityBreakdown[]; maxOverall: number; score: number }
+    const rankedSets: RankedSet[] = []
+    for (let i = 0; i < eligible.length; i++) {
+      for (let j = i + 1; j < eligible.length; j++) {
+        for (let k = j + 1; k < eligible.length; k++) {
+          const set = [eligible[i], eligible[j], eligible[k]]
+          if (!openingCategoriesValid(set)) continue
+          const similarities = [
+            pairSimilarity(set[0], set[1]),
+            pairSimilarity(set[0], set[2]),
+            pairSimilarity(set[1], set[2]),
+          ]
+          if (similarities.some((similarity) => similarity.openingSimilarity > options.maximumOpeningSimilarity! + 1e-9)) {
+            continue
+          }
+          const maxOverall = Math.max(...similarities.map((similarity) => similarity.overallSimilarity))
+          const averageQuality = set.reduce((sum, candidate) => sum + normalizedQuality(candidate), 0) / set.length
+          const minimumDiversity = 1 - maxOverall
+          rankedSets.push({
+            set,
+            similarities,
+            maxOverall,
+            score:
+              averageQuality * CANDIDATE_SELECTION_CONFIG.qualityWeight +
+              minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight,
+          })
+        }
+      }
+    }
+
+    let setThreshold: number = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
+    let bestSet: RankedSet | undefined
+    while (!bestSet && setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity + 1e-9) {
+      bestSet = rankedSets
+        .filter((candidateSet) => candidateSet.maxOverall <= setThreshold)
+        .sort((a, b) => b.score - a.score)[0]
+      if (!bestSet) setThreshold += CANDIDATE_SELECTION_CONFIG.similarityRelaxationStep
+    }
+
+    if (bestSet) {
+      const ordered = [...bestSet.set].sort(
+        (a, b) => b.qualityScore - a.qualityScore || a.candidatePoolIndex - b.candidatePoolIndex,
+      )
+      const selected: SelectedCandidate<T>[] = []
+      for (const candidate of ordered) {
+        const similarities = similaritiesToSelected(candidate, selected, harmonicMap)
+        const diversity = 1 - Math.max(...similarities.map((similarity) => similarity.overallSimilarity), 0)
+        selected.push({
+          candidate,
+          selectionScore:
+            selected.length === 0
+              ? normalizedQuality(candidate)
+              : normalizedQuality(candidate) * CANDIDATE_SELECTION_CONFIG.qualityWeight +
+                diversity * CANDIDATE_SELECTION_CONFIG.diversityWeight,
+          reason:
+            selected.length === 0
+              ? "highest-quality"
+              : setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
+                ? "quality-diversity-balance"
+                : "diversity-threshold-relaxed",
+          similarityToSelected: similarities,
+        })
+      }
+      return {
+        selected,
+        belowQualityFloor,
+        unselected: eligible.filter((candidate) => !bestSet.set.includes(candidate)),
+        finalSimilarityThreshold: Math.min(setThreshold, CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity),
+      }
+    }
+
+    return {
+      selected: [],
+      belowQualityFloor,
+      unselected: eligible,
+      finalSimilarityThreshold: CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity,
+    }
+  }
+
+  const selected: SelectedCandidate<T>[] = []
+  const remaining = [...eligible]
+
+  if (remaining.length > 0) {
+    remaining.sort((a, b) => b.qualityScore - a.qualityScore || b.profileFitScore - a.profileFitScore || a.candidatePoolIndex - b.candidatePoolIndex)
+    const first = remaining.shift()!
+    selected.push({
+      candidate: first,
+      selectionScore: normalizedQuality(first),
+      reason: "highest-quality",
+      similarityToSelected: [],
+    })
+  }
+
+  let threshold: number = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
+  while (selected.length < finalCount && remaining.length > 0) {
+    const ranked = remaining
+      .map((candidate) => {
+        const similarities = similaritiesToSelected(candidate, selected, harmonicMap)
+        const maximumSimilarity = Math.max(...similarities.map((s) => s.overallSimilarity), 0)
+        const minimumDiversity = 1 - maximumSimilarity
+        const selectionScore =
+          normalizedQuality(candidate) * CANDIDATE_SELECTION_CONFIG.qualityWeight +
+          minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight
+        return { candidate, similarities, maximumSimilarity, selectionScore }
+      })
+      .sort(
+        (a, b) =>
+          b.selectionScore - a.selectionScore ||
+          b.candidate.qualityScore - a.candidate.qualityScore ||
+          a.candidate.candidatePoolIndex - b.candidate.candidatePoolIndex,
+      )
+
+    const keepsOpeningCategoriesDistinct = (candidate: T): boolean => {
+      const next = candidate.openingPlan
+      if (!options.requireOpeningCategoryDiversity || !next) return true
+      const duplicateIntent = selected.some((item) => {
+        const existing = item.candidate.openingPlan?.intent
+        return (
+          existing?.entryType === next.intent.entryType &&
+          existing.emotionalFunction === next.intent.emotionalFunction &&
+          existing.register === next.intent.register &&
+          existing.initialDirection === next.intent.initialDirection
+        )
+      })
+      if (duplicateIntent) return false
+      if (selected.length !== 1) return true
+      const first = selected[0].candidate.openingPlan
+      if (!first) return true
+      return (
+        first.intent.entryType !== next.intent.entryType &&
+        first.intent.initialDirection !== next.intent.initialDirection &&
+        first.openingContour !== next.openingContour
+      )
+    }
+    const respectsOpeningCeiling = (item: (typeof ranked)[number]): boolean =>
+      options.maximumOpeningSimilarity === undefined ||
+      item.similarities.every((similarity) => similarity.openingSimilarity <= options.maximumOpeningSimilarity! + 1e-9)
+
+    const keepsActualStartBeatDiverse = (candidate: T): boolean => {
+      if (!options.requireActualStartBeatDiversity || selected.length !== 1) return true
+      const firstStart = Math.min(...selected[0].candidate.notes.map((note) => note.startBeat), Number.POSITIVE_INFINITY)
+      const candidateStart = Math.min(...candidate.notes.map((note) => note.startBeat), Number.POSITIVE_INFINITY)
+      return Math.abs(firstStart - candidateStart) >= 0.25
+    }
+    const hardConstraintsSatisfied = (item: (typeof ranked)[number]): boolean =>
+      respectsOpeningCeiling(item) &&
+      keepsOpeningCategoriesDistinct(item.candidate) &&
+      keepsActualStartBeatDiverse(item.candidate)
+
+    const hardEligible = ranked.filter(hardConstraintsSatisfied)
+    let picked = hardEligible.find((item) => item.maximumSimilarity <= threshold)
+    let reason: CandidateSelectionReason = threshold === CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
+      ? "quality-diversity-balance"
+      : "diversity-threshold-relaxed"
+
+    if (!picked) {
+      if (threshold < CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity) {
+        threshold = Math.min(
+          CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity,
+          threshold + CANDIDATE_SELECTION_CONFIG.similarityRelaxationStep,
+        )
+        continue
+      }
+      picked = hardEligible[0]
+      if (!picked) break
+      reason = "insufficient-diversity-fallback"
+    }
+
+    selected.push({
+      candidate: picked.candidate,
+      selectionScore: picked.selectionScore,
+      reason,
+      similarityToSelected: picked.similarities,
+    })
+    remaining.splice(remaining.indexOf(picked.candidate), 1)
+  }
+
+  return {
+    selected,
+    belowQualityFloor,
+    unselected: remaining,
+    finalSimilarityThreshold: threshold,
+  }
+}

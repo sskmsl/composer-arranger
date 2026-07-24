@@ -188,11 +188,17 @@ export function generateIncantatoryPattern(
   const notes: MelodyNote[] = []
   // 冒頭設計: 詠唱の入りを計画したオフセットだけ遅らせる(休符後の開始)
   let cursor = opening ? opening.startBeatOffset : 0
+  const openingVariationGate = cursor + (opening?.openingPhraseLengthBeats ?? 0)
   let repeatIndex = 0
+  let openingGateReached = !opening
   let currentCopy: MutatedCopy = { intervals: coreMotif.intervals, durations: coreMotif.durations, nonHarmonicIndex: null, velocityBoostIndex: null }
 
   while (cursor < totalBeats - 0.2) {
-    const isMutationPoint = repeatIndex > 0 && repeatIndex % mutationPeriod === 0
+    const firstCycleAfterOpeningGate = !openingGateReached && cursor >= openingVariationGate - 1e-6
+    if (firstCycleAfterOpeningGate) openingGateReached = true
+    const isMutationPoint =
+      repeatIndex > 0 &&
+      (firstCycleAfterOpeningGate || (openingGateReached && repeatIndex % mutationPeriod === 0))
     if (isMutationPoint && rng.chance(mutationChanceBase * intensity + 0.2)) {
       currentCopy = applyMutation(rng, coreMotif, rng.pick(MUTATION_KINDS))
     } else if (repeatIndex > 0) {

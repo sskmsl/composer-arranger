@@ -263,7 +263,10 @@ export function generateElegiacCantabile(
   let cursor = 0
   let first = true
   while (cursor < totalBeats - 0.5) {
-    const unitLength = Math.min(PHRASE_UNIT_BEATS, totalBeats - cursor)
+    const unitLength = Math.min(
+      first && opening ? Math.max(1, opening.openingPhraseLengthBeats) : PHRASE_UNIT_BEATS,
+      totalBeats - cursor,
+    )
     // 冒頭設計は最初の旋律文にのみ適用する
     const { notes: unitNotes } = generateElegiacPattern(rng, harmonicMap, cursor, unitLength, range, intensity, noteDensity, dna, first ? opening : undefined)
     notes.push(...unitNotes)
