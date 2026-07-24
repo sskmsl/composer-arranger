@@ -8,12 +8,13 @@ import {
 } from "@/core/project"
 import type { Section, SectionRole } from "@/core/section"
 import { parseTimeSignature } from "@/core/section"
-import type { LockKind, MelodyNote, MelodyVariant } from "@/core/melody"
+import type { LockKind, MelodyGeneratorProfile, MelodyNote, MelodyVariant } from "@/core/melody"
 import { parseChordInputText } from "@/core/chordInput"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
-import { generateFromChords, toMelodyVariant } from "@/melody-engine/generateFromChords"
+import { generateFromChordsWithProfiles, toMelodyVariantFromProfile } from "@/melody-engine/generateFromChords"
 import { resolveGenerationParams, RANGE_PRESETS, type Density, type Drama, type RangeSetting } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
+import { extractMotifDNA } from "@/melody-engine/motifDNA"
 import { regenerateSelection } from "@/melody-engine/regenerateSelection"
 import {
   seedContinue,
@@ -34,6 +35,8 @@ interface GenerationSettings {
   rangePreset: RangePreset
   customRange: RangeSetting
   drama: Drama
+  /** Melody Candidate Diversity v1.2: 有効化するGenerator Profile(未選択時はStandardのみ) */
+  selectedGeneratorProfiles: MelodyGeneratorProfile[]
 }
 
 interface ProjectState {
@@ -65,6 +68,9 @@ interface ProjectState {
   /** 現在のコード進行をそのまま複製して後ろへ繋げ、小節数を2倍にする */
   repeatSectionChords: (sectionId: string) => void
   setGenerationSettings: (patch: Partial<GenerationSettings>) => void
+  toggleGeneratorProfile: (profile: MelodyGeneratorProfile) => void
+  /** Song Motif DNA(将来のセクション間一貫性チェックの土台): 指定Variantから抽出して保存する */
+  extractMotifDNAFromVariant: (variantId: string) => void
 
   generateForSection: (sectionId: string) => void
   setActiveCandidateIndex: (index: number) => void
@@ -104,7 +110,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedSectionId: null,
   activeBatchId: null,
   activeCandidateIndex: 0,
-  generationSettings: { density: "balanced", rangePreset: "middle", customRange: RANGE_PRESETS.middle, drama: "growing" },
+  generationSettings: {
+    density: "balanced",
+    rangePreset: "middle",
+    customRange: RANGE_PRESETS.middle,
+    drama: "growing",
+    selectedGeneratorProfiles: ["standard"],
+  },
   history: [],
   future: [],
   hydrated: false,
@@ -260,6 +272,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setGenerationSettings: (patch) => set({ generationSettings: { ...get().generationSettings, ...patch } }),
 
+  toggleGeneratorProfile: (profile) => {
+    const current = get().generationSettings.selectedGeneratorProfiles
+    const has = current.includes(profile)
+    const next = has ? current.filter((p) => p !== profile) : [...current, profile]
+    set({ generationSettings: { ...get().generationSettings, selectedGeneratorProfiles: next.length > 0 ? next : ["standard"] } })
+  },
+
+  extractMotifDNAFromVariant: (variantId) => {
+    const prev = get().project
+    const variant = prev.melodyVariants.find((v) => v.id === variantId)
+    if (!variant) return
+    const chords = prev.chords.filter((c) => c.sectionId === variant.sectionId)
+    const harmonicMap = buildHarmonicMap(chords)
+    const dna = extractMotifDNA(variant.notes, harmonicMap)
+    if (!dna) return
+    set({ project: { ...prev, songMotifDNA: dna } })
+    get().persist()
+  },
+
   generateForSection: (sectionId) => {
     const prev = get().project
     const section = prev.sections.find((s) => s.id === sectionId)
@@ -272,8 +303,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
+    const selectedProfiles: MelodyGeneratorProfile[] =
+      settings.selectedGeneratorProfiles.length > 0 ? settings.selectedGeneratorProfiles : ["standard"]
 
-    const { candidates } = generateFromChords({
+    const { candidates } = generateFromChordsWithProfiles({
       chords,
       sectionId,
       sectionRole: section.role,
@@ -283,17 +316,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       drama: settings.drama,
       totalBeats,
       seed: createSeed(),
+      profiles: selectedProfiles,
+      motifDNA: prev.songMotifDNA,
     })
 
     const harmonicMap = buildHarmonicMap(chords)
     const batchId = crypto.randomUUID()
-    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama)
-    const variants: MelodyVariant[] = candidates.map((c, i) => {
-      const v = toMelodyVariant(sectionId, profile, c, i, batchId)
+    const variants: MelodyVariant[] = candidates.map((c) => {
+      const v = toMelodyVariantFromProfile(sectionId, profile, c, batchId)
       v.features = computeMelodyFeatures(v.notes, harmonicMap, 0, totalBeats)
       return v
     })
-    void params
 
     set({
       history: [...get().history, snapshot(prev)],

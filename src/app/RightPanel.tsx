@@ -1,13 +1,31 @@
 import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
-import { Select, FieldGroup, SectionCard, IconButton } from "@/ui/primitives"
+import type { MelodyGeneratorProfile } from "@/core/melody"
+import { Select, FieldGroup, SectionCard, IconButton, Button } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
+import { GENERATOR_PROFILES, GENERATOR_PROFILE_LABELS, GENERATOR_PROFILE_DESCRIPTIONS } from "@/melody-engine/generatorProfile"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
-import { X } from "lucide-react"
+import { X, Dna } from "lucide-react"
 
 const PROFILE_OPTIONS = Object.keys(SONG_PROFILE_LABELS) as SongProfileId[]
+
+const ADVANCED_FEATURE_LABELS: [key: string, label: string][] = [
+  ["stepwiseMotionRatio", "順次進行率"],
+  ["appoggiaturaRatio", "倚音率"],
+  ["delayedResolutionRatio", "遅延解決率"],
+  ["climaxUniqueness", "クライマックスの希少性"],
+  ["phraseArcLength", "旋律弧の長さ"],
+  ["pickupRatio", "弱起率"],
+  ["phraseAsymmetry", "フレーズ非対称性"],
+  ["speechContourAmount", "発話的輪郭度"],
+  ["finalMelodicLift", "終端の旋律的上昇"],
+  ["motifMutationRatio", "モチーフ変異率"],
+  ["cyclicPhraseAmount", "循環度"],
+  ["mutationPeriodicity", "変異周期性"],
+  ["contourRetention", "輪郭保持度"],
+]
 
 const FEATURE_LABELS: [key: string, label: string, fmt: (v: number) => string][] = [
   ["rangeLow", "音域(下)", (v) => String(Math.round(v))],
@@ -30,6 +48,8 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
   const setSectionProfileOverride = useProjectStore((s) => s.setSectionProfileOverride)
   const generationSettings = useProjectStore((s) => s.generationSettings)
   const setGenerationSettings = useProjectStore((s) => s.setGenerationSettings)
+  const toggleGeneratorProfile = useProjectStore((s) => s.toggleGeneratorProfile)
+  const extractMotifDNAFromVariant = useProjectStore((s) => s.extractMotifDNAFromVariant)
   const variant = useActiveVariant()
 
   const override = project.song.sectionProfileOverrides.find((o) => o.sectionId === selectedSectionId)
@@ -75,6 +95,32 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
       </SectionCard>
 
+      <SectionCard title="Generator Profile">
+        <p className="mb-2 text-[11px] text-ink-muted-48">
+          選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
+        </p>
+        <div className="flex flex-col gap-1.5">
+          {GENERATOR_PROFILES.map((p) => {
+            const checked = generationSettings.selectedGeneratorProfiles.includes(p)
+            return (
+              <label
+                key={p}
+                className={clsx(
+                  "flex cursor-pointer items-start gap-2 rounded-sm border px-2 py-1.5 text-[12px]",
+                  checked ? "border-primary-focus bg-primary/10" : "border-transparent bg-white/5 hover:bg-white/10",
+                )}
+              >
+                <input type="checkbox" className="mt-0.5 accent-primary" checked={checked} onChange={() => toggleGeneratorProfile(p)} />
+                <span className="flex flex-col">
+                  <span className="font-medium text-body-on-dark">{GENERATOR_PROFILE_LABELS[p]}</span>
+                  <span className="text-ink-muted-48">{GENERATOR_PROFILE_DESCRIPTIONS[p]}</span>
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      </SectionCard>
+
       <SectionCard title="生成パラメータ">
         <div className="flex flex-col gap-2.5">
           <FieldGroup label="Density">
@@ -106,6 +152,12 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
       </SectionCard>
 
       <SectionCard title="特徴量">
+        {variant?.generatorProfile && (
+          <p className="mb-2 text-[12px] text-primary-on-dark">
+            {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
+            {variant.patternIndex && ` · Pattern ${variant.patternIndex}`}
+          </p>
+        )}
         {variant?.features ? (
           <dl className="grid grid-cols-2 gap-x-2 gap-y-2 text-[12px]">
             {FEATURE_LABELS.map(([key, label, fmt]) => (
@@ -118,6 +170,24 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
         ) : (
           <p className="text-[12px] text-ink-muted-48">候補を生成すると表示されます</p>
         )}
+        {variant?.advancedMetrics && Object.keys(variant.advancedMetrics).length > 0 && (
+          <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-2 border-t border-hairline pt-3 text-[12px]">
+            {ADVANCED_FEATURE_LABELS.filter(([key]) => (variant.advancedMetrics as Record<string, number>)[key] !== undefined).map(
+              ([key, label]) => (
+                <div key={key} className="flex flex-col">
+                  <dt className="text-ink-muted-48">{label}</dt>
+                  <dd className="text-body-on-dark">{`${Math.round((variant.advancedMetrics as Record<string, number>)[key] * 100)}%`}</dd>
+                </div>
+              ),
+            )}
+          </dl>
+        )}
+        {variant && (
+          <Button variant="dark" className="mt-3 w-full justify-center" onClick={() => extractMotifDNAFromVariant(variant.id)}>
+            <Dna size={13} /> このメロディからMotif DNAを抽出
+          </Button>
+        )}
+        {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">Song Motif DNA保存済み(他セクション生成へ軽く反映されます)</p>}
       </SectionCard>
     </aside>
   )

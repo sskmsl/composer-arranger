@@ -1,5 +1,5 @@
 import type { Section } from "./section"
-import type { MelodyVariant } from "./melody"
+import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -71,6 +71,10 @@ export interface ComposerProject {
   activeMelodyId: string | null
   activeArrangementId: string | null
   notes: string
+  /** Melody Candidate Diversity v1.2: Profileごとの役割づけ(任意・強制なし) */
+  generatorProfileRoles?: Partial<Record<MelodyGeneratorProfile, GeneratorProfileRole>>
+  /** セクションをまたいだ旋律の同一性を保つための共有データ(将来拡張の土台) */
+  songMotifDNA?: SongMotifDNA
 }
 
 export const CURRENT_SCHEMA_VERSION = "1.1"
@@ -126,6 +130,8 @@ export function normalizeProject(raw: unknown): ComposerProject {
     activeMelodyId: r.activeMelodyId ?? null,
     activeArrangementId: r.activeArrangementId ?? null,
     notes: r.notes ?? "",
+    generatorProfileRoles: r.generatorProfileRoles,
+    songMotifDNA: r.songMotifDNA,
   }
 }
 
