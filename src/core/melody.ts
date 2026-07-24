@@ -90,6 +90,37 @@ export interface ProsodyPlan {
 }
 
 /**
+ * Melody Opening Intent(冒頭設計): 各候補に異なる「曲の始まり方・感情的入口」を与えるための計画。
+ * ノートを生成する前にこれを先に決め、Opening Plan → 本体生成へと展開する。
+ * (最初に音符を作ってから開始音だけ差し替えるのではなく、入口の意図から生成を分岐させる)
+ */
+export type OpeningEntryType = "direct" | "pickup" | "delayed" | "suspension" | "repeated-note" | "leap-entry"
+export type OpeningEmotionalFunction = "statement" | "question" | "hesitation" | "invocation" | "warning" | "release"
+export type OpeningRegister = "low" | "middle" | "high"
+export type OpeningInitialDirection = "ascending" | "descending" | "static"
+export type OpeningContour = "stepwise" | "leap-then-recover" | "repeated-note" | "pickup-resolution" | "suspension-entry"
+
+export interface MelodyOpeningIntent {
+  entryType: OpeningEntryType
+  emotionalFunction: OpeningEmotionalFunction
+  register: OpeningRegister
+  initialDirection: OpeningInitialDirection
+}
+
+/** Opening Intentを具体的な音楽情報へ落とし込んだ計画。冒頭フレーズの生成を駆動する */
+export interface MelodyOpeningPlan {
+  intent: MelodyOpeningIntent
+  startPitchClass: number
+  startScaleDegree: number
+  startBeatOffset: number
+  firstNoteDuration: number
+  initialDirection: OpeningInitialDirection
+  openingContour: OpeningContour
+  openingRegister: { lowestMidiNote: number; highestMidiNote: number }
+  openingPhraseLengthBeats: number
+}
+
+/**
  * Song Motif DNA(将来拡張のための土台。今回は完全実装ではなく、
  * セクション間でモチーフ情報を共有できる構造だけを用意する)
  */
@@ -131,4 +162,6 @@ export interface MelodyVariant {
   patternIndex?: 1 | 2 | 3
   advancedMetrics?: AdvancedMelodyMetrics
   prosodyPlan?: ProsodyPlan
+  /** この候補の冒頭設計(3案を冒頭数秒で別案として区別するための入口意図) */
+  openingIntent?: MelodyOpeningIntent
 }

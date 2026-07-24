@@ -1,7 +1,17 @@
 import { SeededRandom } from "@/core/rng"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
-import type { AdvancedMelodyMetrics, MelodyGeneratorProfile, MelodyNote, MelodyVariant, PhrasePlan, ProsodyPlan, SongMotifDNA } from "@/core/melody"
+import type {
+  AdvancedMelodyMetrics,
+  MelodyGeneratorProfile,
+  MelodyNote,
+  MelodyOpeningIntent,
+  MelodyOpeningPlan,
+  MelodyVariant,
+  PhrasePlan,
+  ProsodyPlan,
+  SongMotifDNA,
+} from "@/core/melody"
 import { buildHarmonicMap } from "./harmonicMap"
 import { resolveGenerationParams, type Density, type Drama, type GenerationParams, type RangeSetting } from "./generationParams"
 import { assemblePhrase } from "./phraseAssembler"
@@ -15,6 +25,14 @@ import { generateSpeechRhythmicPattern } from "./speechRhythmic"
 import { generateIncantatoryPattern } from "./incantatory"
 import { computeAdvancedMelodyMetrics } from "./advancedMetrics"
 import { applyMotifDNA, nudgeTowardDNA } from "./motifDNA"
+import {
+  MAX_OPENING_REGEN_ATTEMPTS,
+  OPENING_SIMILARITY_MAX,
+  openingIntentToPlan,
+  openingSimilarity,
+  pickDistinctIntent,
+  planOpeningIntents,
+} from "./openingIntent"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -56,6 +74,7 @@ function buildCandidate(
   input: GenerateFromChordsInput,
   forcedContourWeight?: number,
   paramsHook?: (params: GenerationParams) => GenerationParams,
+  opening?: MelodyOpeningPlan,
 ): Candidate {
   const rng = new SeededRandom(seed)
   const harmonicMap = buildHarmonicMap(input.chords)
@@ -91,6 +110,8 @@ function buildCandidate(
       input.density,
       reuseMotif ? firstMotifCore : undefined,
       isAnswer,
+      // 冒頭設計は最初のフレーズにのみ適用する(それ以降は通常の展開に任せる)
+      phraseIdx === 0 ? opening : undefined,
     )
     if (phraseIdx === 0) firstMotifCore = result.firstMotifCore
     notes.push(...result.notes)
@@ -174,126 +195,135 @@ export interface ProfileCandidate {
   patternIndex: 1 | 2 | 3
   advancedMetrics?: AdvancedMelodyMetrics
   prosodyPlan?: ProsodyPlan
+  openingIntent?: MelodyOpeningIntent
+  openingPlan?: MelodyOpeningPlan
 }
 
-/** Melody Candidate Diversity v1.2: 選択したGenerator Profileごとに3つの独立Patternを生成する */
+/** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
+interface BuiltPattern {
+  notes: MelodyNote[]
+  plans: PhrasePlan[]
+  advancedMetrics?: AdvancedMelodyMetrics
+  prosodyPlan?: ProsodyPlan
+  seed: number
+  opening: MelodyOpeningPlan
+}
+
+/**
+ * Melody Candidate Diversity v1.2 + 冒頭設計: 選択したGenerator Profileごとに3つの独立Patternを生成する。
+ * 各Patternはノート生成前にOpening Intent→Opening Planを持ち、冒頭数秒の聴感を明確に分ける。
+ * 3案のOpening Intentは最初にまとめて計画し(Pattern番号への固定割り当てはしない)、
+ * 生成後に冒頭類似度を測って閾値超過のPatternだけを別のIntent/seedで再生成する。
+ */
 export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput): { candidates: ProfileCandidate[] } {
   const harmonicMap = buildHarmonicMap(input.chords)
   const results: ProfileCandidate[] = []
-  // Density/Drama/Keyの効きをbespoke Profileへも一貫させるための基準値(3.5/4.5/5.5の初期値を
-  // このbaseParamsへ軽く寄せる。パイプラインの生成順序自体は変えない)
+  // Density/Drama/Keyの効きをbespoke Profileへも一貫させるための基準値
   const baseParams = resolveGenerationParams(input.songProfile, input.sectionRole, input.density, input.drama, input.key)
+  const dna = input.motifDNA
+  const dnaImpliedDensity = dna ? 1 - dna.repeatedNoteTendency : undefined
+  const uiDensityTarget = DENSITY_UI_TARGET[input.density]
 
   input.profiles.forEach((profile, profileIdx) => {
     const kind = GENERATOR_PROFILE_KIND[profile]
     const intensity = generatorProfileIntensity(profile, input.sectionRole)
     const baseSeed = input.seed + profileIdx * 500009
 
-    if (kind === "bespoke") {
-      // Song Motif DNA(任意)をbespoke Profileへも軽く反映する。パイプラインの生成順序自体は変えず、
-      // 渡すスカラーパラメータをDNA側へわずかに寄せるだけに留める(セクション間の完全分断を避ける)
-      const dna = input.motifDNA
-      const dnaImpliedDensity = dna ? 1 - dna.repeatedNoteTendency : undefined
-      // 以前はUIのDensity設定がbespoke Profileへ一切反映されず、DNA(任意)がある場合のみ
-      // わずかに動く程度だった。noteDensityのベースライン自体をUI Densityへ寄せたうえで、
-      // DNAがあればさらに軽く寄せる(Issue #13)
-      const uiDensityTarget = DENSITY_UI_TARGET[input.density]
+    const baseInput: GenerateFromChordsInput = {
+      chords: input.chords,
+      sectionId: input.sectionId,
+      sectionRole: input.sectionRole,
+      songProfile: input.songProfile,
+      density: input.density,
+      range: input.range,
+      drama: input.drama,
+      totalBeats: input.totalBeats,
+      seed: baseSeed,
+      key: input.key,
+    }
+    const hook = (params: GenerationParams) => applyMotifDNA(applyProfileOverride(params, profile, intensity), input.motifDNA)
 
-      const patterns: { notes: MelodyNote[]; advancedMetrics?: AdvancedMelodyMetrics; prosodyPlan?: ProsodyPlan; seed: number }[] = []
-      for (let p = 0; p < 3; p++) {
-        const patternSeed = baseSeed + p * 7919
+    // 指定のseedとOpening Intentから、そのProfileの1パターンを生成する(生成順序: Intent→Plan→本体)
+    const buildOne = (patternSeed: number, intent: MelodyOpeningIntent): BuiltPattern => {
+      const planRng = new SeededRandom(patternSeed ^ 0x5f3759df)
+      const opening = openingIntentToPlan(planRng, intent, harmonicMap, input.range)
+
+      if (kind === "bespoke") {
         const rng = new SeededRandom(patternSeed)
-
         if (profile === "elegiac-cantabile") {
-          // 初期パラメータ(3.5): noteDensity 0.34
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.34, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
-          const notes = generateElegiacCantabile(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity, dna)
-          patterns.push({ notes, advancedMetrics: computeAdvancedMelodyMetrics(notes, harmonicMap), seed: patternSeed })
-        } else if (profile === "speech-rhythmic") {
-          // 初期パラメータ(4.5): repeatedNoteAmount 0.82, syncopationAmount 0.76, pickupAmount 0.68, phraseAsymmetry 0.72
-          // syncopationAmountはDensity/Drama由来のbaseParams.syncopationAmountへ軽く寄せる
-          // (以前は固定値のみで、UIのDensity/Dramaを変えても一切反映されなかった)
+          const notes = generateElegiacCantabile(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity, dna, opening)
+          return { notes, plans: synthesizePhrasePlan(notes, input.totalBeats), advancedMetrics: computeAdvancedMelodyMetrics(notes, harmonicMap), seed: patternSeed, opening }
+        }
+        if (profile === "speech-rhythmic") {
           const repeatedNoteAmount = nudgeTowardDNA(0.82, dna?.repeatedNoteTendency, 0.4)
           const syncopationAmount = nudgeTowardDNA(0.76, baseParams.syncopationAmount, 0.5)
-          const r = generateSpeechRhythmicPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, repeatedNoteAmount, syncopationAmount, 0.68, 0.72)
-          patterns.push({
-            notes: r.notes,
-            advancedMetrics: computeAdvancedMelodyMetrics(r.notes, harmonicMap),
-            prosodyPlan: r.prosodyPlan,
-            seed: patternSeed,
-          })
-        } else {
-          // incantatory 初期パラメータ(5.5): noteDensity 0.58
-          const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.58, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
-          const r = generateIncantatoryPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity, dna)
-          const generic = computeAdvancedMelodyMetrics(r.notes, harmonicMap)
-          const motifMutationRatio = 1 / r.plan.mutationPeriod
-          patterns.push({
-            notes: r.notes,
-            advancedMetrics: {
-              ...generic,
-              motifMutationRatio,
-              cyclicPhraseAmount: 0.8 + intensity * 0.15,
-              mutationPeriodicity: r.plan.mutationPeriod / 8,
-              contourRetention: 1 - motifMutationRatio,
-            },
-            seed: patternSeed,
-          })
+          const r = generateSpeechRhythmicPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, repeatedNoteAmount, syncopationAmount, 0.68, 0.72, opening)
+          return { notes: r.notes, plans: synthesizePhrasePlan(r.notes, input.totalBeats), advancedMetrics: computeAdvancedMelodyMetrics(r.notes, harmonicMap), prosodyPlan: r.prosodyPlan, seed: patternSeed, opening }
+        }
+        // incantatory
+        const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.58, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
+        const r = generateIncantatoryPattern(rng, harmonicMap, input.totalBeats, input.range, intensity, noteDensity, dna, opening)
+        const generic = computeAdvancedMelodyMetrics(r.notes, harmonicMap)
+        const motifMutationRatio = 1 / r.plan.mutationPeriod
+        return {
+          notes: r.notes,
+          plans: synthesizePhrasePlan(r.notes, input.totalBeats),
+          advancedMetrics: { ...generic, motifMutationRatio, cyclicPhraseAmount: 0.8 + intensity * 0.15, mutationPeriodicity: r.plan.mutationPeriod / 8, contourRetention: 1 - motifMutationRatio },
+          seed: patternSeed,
+          opening,
         }
       }
-      patterns.forEach((pattern, i) =>
-        results.push({
-          notes: pattern.notes,
-          plans: synthesizePhrasePlan(pattern.notes, input.totalBeats),
-          seed: pattern.seed,
-          generatorProfile: profile,
-          patternIndex: (i + 1) as 1 | 2 | 3,
-          advancedMetrics: pattern.advancedMetrics,
-          prosodyPlan: pattern.prosodyPlan,
-        }),
-      )
-    } else {
-      // parametric: 既存フレーズ生成エンジンをProfile専用パラメータで駆動する
-      const baseInput: GenerateFromChordsInput = {
-        chords: input.chords,
-        sectionId: input.sectionId,
-        sectionRole: input.sectionRole,
-        songProfile: input.songProfile,
-        density: input.density,
-        range: input.range,
-        drama: input.drama,
-        totalBeats: input.totalBeats,
-        seed: baseSeed,
-        key: input.key,
-      }
-      const hook = (params: GenerationParams) => applyMotifDNA(applyProfileOverride(params, profile, intensity), input.motifDNA)
-      let candidates: Candidate[] = []
-      for (let p = 0; p < 3; p++) {
-        candidates.push(buildCandidate(baseSeed + p * 7919, baseInput, undefined, hook))
-      }
-      // 3案が潰れないよう、軽い多様性チェック(9.7と同じ仕組みを3案規模で適用)
-      for (let pass = 0; pass < 2; pass++) {
-        const signatures = candidates.map((c) => c.signature)
-        if (countDistinctCandidates(signatures) >= 2) break
-        for (let i = 0; i < candidates.length; i++) {
-          const tooSimilar = candidates.some((other, j) => j !== i && differenceCount(candidates[i].signature, other.signature) < 2)
-          if (tooSimilar) {
-            const contourWeight = [0.5, 2.0][pass % 2] + i * 0.4
-            candidates[i] = buildCandidate(baseSeed + i * 7919 + (pass + 1) * 104729, baseInput, contourWeight, hook)
+
+      // parametric: 既存フレーズ生成エンジンをProfile専用パラメータ + Opening Planで駆動する
+      const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening)
+      return { notes: c.notes, plans: c.plans, advancedMetrics: computeAdvancedMelodyMetrics(c.notes, harmonicMap), seed: c.seed, opening }
+    }
+
+    // 1) Profileに適した3つの異なるOpening Intentをまとめて計画する
+    const intentRng = new SeededRandom(baseSeed ^ 0x9e3779b1)
+    const intents = planOpeningIntents(intentRng, profile, 3)
+
+    // 2) 各Intentで3パターン生成する
+    const built: BuiltPattern[] = intents.map((intent, p) => buildOne(baseSeed + p * 7919, intent))
+
+    // 3) 冒頭類似度が閾値を超えるPatternだけを、別のIntent/seedで再生成する(最大試行あり)
+    for (let attempt = 1; attempt <= MAX_OPENING_REGEN_ATTEMPTS; attempt++) {
+      let worstPair: [number, number] | null = null
+      // 閾値ちょうど(0.70)に張り付く境界ケースも確実に閾値未満へ押し下げるため、
+      // 実際の再生成トリガーは閾値より少し手前に置いてマージンを取る。
+      let worstSim = OPENING_SIMILARITY_MAX - 0.03
+      for (let a = 0; a < built.length; a++) {
+        for (let b = a + 1; b < built.length; b++) {
+          const sim = openingSimilarity({ notes: built[a].notes, plan: built[a].opening }, { notes: built[b].notes, plan: built[b].opening })
+          if (sim > worstSim) {
+            worstSim = sim
+            worstPair = [a, b]
           }
         }
       }
-      candidates.forEach((c, i) =>
-        results.push({
-          notes: c.notes,
-          plans: c.plans,
-          seed: c.seed,
-          generatorProfile: profile,
-          patternIndex: (i + 1) as 1 | 2 | 3,
-          advancedMetrics: computeAdvancedMelodyMetrics(c.notes, harmonicMap),
-        }),
-      )
+      if (!worstPair) break
+      // 重複ペアの後ろ側を、他2案と重複しない新しいIntent + 別seedで作り直す
+      const target = worstPair[1]
+      const others = built.filter((_, i) => i !== target).map((x) => x.opening.intent)
+      const regenRng = new SeededRandom((built[target].seed ^ 0x85ebca6b) + attempt * 2654435761)
+      const freshIntent = pickDistinctIntent(regenRng, profile, others)
+      built[target] = buildOne(built[target].seed + attempt * 15485863, freshIntent)
     }
+
+    built.forEach((pattern, i) =>
+      results.push({
+        notes: pattern.notes,
+        plans: pattern.plans,
+        seed: pattern.seed,
+        generatorProfile: profile,
+        patternIndex: (i + 1) as 1 | 2 | 3,
+        advancedMetrics: pattern.advancedMetrics,
+        prosodyPlan: pattern.prosodyPlan,
+        openingIntent: pattern.opening.intent,
+        openingPlan: pattern.opening,
+      }),
+    )
   })
 
   return { candidates: results }
@@ -326,6 +356,7 @@ export function toMelodyVariantFromProfile(
     patternIndex: candidate.patternIndex,
     advancedMetrics: candidate.advancedMetrics,
     prosodyPlan: candidate.prosodyPlan,
+    openingIntent: candidate.openingIntent,
   }
 }
 

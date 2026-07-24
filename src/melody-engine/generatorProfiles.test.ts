@@ -67,10 +67,15 @@ describe("Generator Profile: 既存6 Profileの回帰確認", () => {
     expect(leaping.avgLeap).toBeGreaterThan(standard.avgLeap)
   })
 
-  it("Minimalはstandardより休符率が高い", () => {
-    const minimal = metricsFor(generateOne("minimal", 5)[0].notes)
-    const standard = metricsFor(generateOne("standard", 5)[0].notes)
-    expect(minimal.restRatio).toBeGreaterThan(standard.restRatio)
+  it("Minimalはstandardより休符率が高い(seed平均)", () => {
+    // 冒頭設計で候補ごとの入口が変わるため、統計的性質としてseed平均で比較する
+    let minimal = 0
+    let standard = 0
+    for (let seed = 1; seed <= 20; seed++) {
+      minimal += metricsFor(generateOne("minimal", seed)[0].notes).restRatio
+      standard += metricsFor(generateOne("standard", seed)[0].notes).restRatio
+    }
+    expect(minimal).toBeGreaterThan(standard)
   })
 })
 
@@ -81,10 +86,14 @@ describe("Elegiac Cantabile (§3, §12.1)", () => {
     expect(elegiac.advancedMetrics?.stepwiseMotionRatio ?? 0).toBeGreaterThan(leaping.advancedMetrics?.stepwiseMotionRatio ?? 0)
   })
 
-  it("standardよりクライマックスの希少性(1回だけ最高音を取る度合い)が高い", () => {
-    const elegiac = generateOne("elegiac-cantabile", 12)[0]
-    const standard = generateOne("standard", 12)[0]
-    expect(elegiac.advancedMetrics?.climaxUniqueness ?? 0).toBeGreaterThanOrEqual(standard.advancedMetrics?.climaxUniqueness ?? 0)
+  it("standardよりクライマックスの希少性(1回だけ最高音を取る度合い)が高い(seed平均)", () => {
+    let elegiac = 0
+    let standard = 0
+    for (let seed = 1; seed <= 20; seed++) {
+      elegiac += generateOne("elegiac-cantabile", seed)[0].advancedMetrics?.climaxUniqueness ?? 0
+      standard += generateOne("standard", seed)[0].advancedMetrics?.climaxUniqueness ?? 0
+    }
+    expect(elegiac).toBeGreaterThanOrEqual(standard)
   })
 
   it("少なくとも一つの倚音・掛留音・遅延解決を含む(倚音率または遅延解決率が0より大きい)", () => {
@@ -118,10 +127,14 @@ describe("Speech-Rhythmic (§4, §12.2)", () => {
     expect(speech.repeatedNoteRatio).toBeGreaterThan(rhythmic.repeatedNoteRatio)
   })
 
-  it("standardよりフレーズ非対称性が高い", () => {
-    const speech = generateOne("speech-rhythmic", 23)[0]
-    const standard = generateOne("standard", 23)[0]
-    expect(speech.advancedMetrics?.phraseAsymmetry ?? 0).toBeGreaterThanOrEqual(standard.advancedMetrics?.phraseAsymmetry ?? 0)
+  it("standardよりフレーズ非対称性が高い(seed平均)", () => {
+    let speech = 0
+    let standard = 0
+    for (let seed = 1; seed <= 20; seed++) {
+      speech += generateOne("speech-rhythmic", seed)[0].advancedMetrics?.phraseAsymmetry ?? 0
+      standard += generateOne("standard", seed)[0].advancedMetrics?.phraseAsymmetry ?? 0
+    }
+    expect(speech).toBeGreaterThanOrEqual(standard)
   })
 
   it("全ノートがセクション範囲内に収まる(seed横断)", () => {
@@ -136,10 +149,15 @@ describe("Speech-Rhythmic (§4, §12.2)", () => {
 })
 
 describe("Incantatory (§5, §12.3)", () => {
-  it("Rhythmicよりモチーフ反復率が高い", () => {
-    const incantatory = metricsFor(generateOne("incantatory", 31)[0].notes)
-    const rhythmic = metricsFor(generateOne("rhythmic", 31)[0].notes)
-    expect(incantatory.motifRepeatRatio).toBeGreaterThan(rhythmic.motifRepeatRatio)
+  it("Rhythmicよりモチーフ反復率が高い(seed平均)", () => {
+    // 冒頭設計により候補ごとの入口が変わるため、単一seedではなくseed平均で統計的性質を確認する
+    let inc = 0
+    let rhy = 0
+    for (let seed = 31; seed <= 45; seed++) {
+      inc += metricsFor(generateOne("incantatory", seed)[0].notes).motifRepeatRatio
+      rhy += metricsFor(generateOne("rhythmic", seed)[0].notes).motifRepeatRatio
+    }
+    expect(inc).toBeGreaterThan(rhy)
   })
 
   it("輪郭保持度(contourRetention)が高く保たれる", () => {

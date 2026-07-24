@@ -6,6 +6,12 @@ import { noteName, parseNoteName } from "@/core/note"
 import { Select, FieldGroup, SectionCard, IconButton, Button, TextInput, Label } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
 import { GENERATOR_PROFILES, GENERATOR_PROFILE_LABELS, GENERATOR_PROFILE_DESCRIPTIONS } from "@/melody-engine/generatorProfile"
+import {
+  OPENING_ENTRY_LABELS,
+  OPENING_EMOTION_LABELS,
+  OPENING_REGISTER_LABELS,
+  OPENING_DIRECTION_LABELS,
+} from "@/melody-engine/openingIntent"
 import { GENERATION_SETTING_LABELS, profilesIgnoring, type GenerationSettingKey } from "@/melody-engine/settingsApplicability"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
@@ -219,9 +225,15 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
 
       <SectionCard title="特徴量">
         {variant?.generatorProfile && (
-          <p className="mb-2 text-[12px] text-primary-on-dark">
+          <p className="mb-1 text-[12px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
             {variant.patternIndex && ` · Pattern ${variant.patternIndex}`}
+          </p>
+        )}
+        {variant?.openingIntent && (
+          <p className="mb-2 text-[11px] text-ink-muted-48">
+            入口: {OPENING_ENTRY_LABELS[variant.openingIntent.entryType]} · {OPENING_EMOTION_LABELS[variant.openingIntent.emotionalFunction]} ·{" "}
+            {OPENING_REGISTER_LABELS[variant.openingIntent.register]} · {OPENING_DIRECTION_LABELS[variant.openingIntent.initialDirection]}
           </p>
         )}
         {variant?.features ? (

@@ -13,7 +13,8 @@ import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses, allUsablePitchClasses, type ParsedChord } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
-import type { SongMotifDNA } from "@/core/melody"
+import type { MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
+import { openingBand, openingDirectionSign, openingStartMidi } from "./openingIntent"
 
 const PHRASE_UNIT_BEATS = 16
 
@@ -180,6 +181,7 @@ export function generateElegiacPattern(
   intensity: number,
   noteDensity: number,
   dna?: SongMotifDNA,
+  opening?: MelodyOpeningPlan,
 ): { notes: MelodyNote[]; plan: ElegiacPatternPlan } {
   // Song Motif DNA(任意): 倚音の出やすさとカデンツの色合いを、確率的に軽く寄せる。
   // noteDensityのように丸め/閾値の内側で消えてしまわない、連続的な効き方をする箇所へ反映する。
@@ -189,22 +191,61 @@ export function generateElegiacPattern(
     ? cadenceOptions.map((d) => (d === "third" || d === "fifth" ? 1 - dna.phraseEndingTendency * 0.7 : 1 + dna.phraseEndingTendency * 0.7))
     : [1, 1, 1, 1]
 
+  // 冒頭設計(任意): 進行方向から弧の向き(rise/fall-first)を決め、倚音入口(suspension)なら倚音を出やすくする
+  const contourOrder = opening
+    ? openingDirectionSign(opening) >= 0
+      ? "rise-first"
+      : "fall-first"
+    : rng.chance(0.5)
+      ? "rise-first"
+      : "fall-first"
+
   const plan: ElegiacPatternPlan = {
     climaxFraction: 0.55 + rng.next() * 0.3,
-    contourOrder: rng.chance(0.5) ? "rise-first" : "fall-first",
+    contourOrder,
     cadenceDegree: rng.weightedPick(cadenceOptions, cadenceWeights),
-    appoggiaturaBias: appoggiaturaBase + rng.next() * 0.35 * intensity,
+    appoggiaturaBias:
+      (opening?.openingContour === "suspension-entry" ? Math.max(appoggiaturaBase, 0.6) : appoggiaturaBase) + rng.next() * 0.35 * intensity,
     breathFraction: 0.3 + rng.next() * 0.4,
     anchorCount: anchorCountFor(phraseLength, noteDensity, intensity),
   }
 
   const beats = buildAnchorBeats(rng, phraseStart, phraseLength, plan)
   const anchors = assignAnchorPitches(rng, beats, harmonicMap, range, plan)
+  // 冒頭設計を最初のアンカー(start)へ適用する: 入りのタイミング・音域・開始音を計画で分ける
+  if (opening) applyElegiacOpening(anchors, opening, range, phraseStart)
   const withOrnaments = withAppoggiaturas(rng, anchors, plan)
   const breathBeat = phraseStart + phraseLength * plan.breathFraction
   const notes = toNotes(rng, withOrnaments, phraseStart + phraseLength, breathBeat)
 
   return { notes, plan }
+}
+
+/**
+ * 最初のアンカー(start)へOpening Planを適用する。開始音だけでなく、入りのタイミング(弱起/導入の間)、
+ * 開始音域、次アンカーへの進行方向を計画で分ける。これにより「内側へ沈む案」「静かに開く案」
+ * 「遠くから近づく案」などの入口差が、生成段階で作られる。
+ */
+function applyElegiacOpening(anchors: Anchor[], opening: MelodyOpeningPlan, range: RangeSetting, phraseStart: number): void {
+  if (anchors.length === 0) return
+  const startIdx = anchors.findIndex((a) => a.role === "start")
+  const idx = startIdx >= 0 ? startIdx : 0
+  const start = anchors[idx]
+  // 入りのタイミング(弱起/休符後の導入)
+  start.beat = phraseStart + opening.startBeatOffset
+  // 開始音域と開始音
+  start.pitch = openingStartMidi(opening, range)
+  // 次アンカーの向きを初期進行方向へ寄せる(順次で。跳躍は後続の構造点へ残す)
+  const next = anchors[idx + 1]
+  if (next && next.role === "passing") {
+    const sign = openingDirectionSign(opening)
+    if (sign !== 0) {
+      // 冒頭の2音目は計画音域帯の内側に収め、後半へ温存したクライマックスを侵さない
+      const band = openingBand(opening, range)
+      next.pitch = nearestAllowedPitch(start.pitch + sign * 2, [next.pitch % 12, (next.pitch + 1) % 12, (next.pitch - 1 + 12) % 12], band)
+    }
+  }
+  anchors.sort((a, b) => a.beat - b.beat)
 }
 
 /** セクション全体をPHRASE_UNIT_BEATSごとの旋律文(それぞれ独自のクライマックスを持つ)に分割して生成する */
@@ -216,14 +257,18 @@ export function generateElegiacCantabile(
   intensity: number,
   noteDensity: number,
   dna?: SongMotifDNA,
+  opening?: MelodyOpeningPlan,
 ): MelodyNote[] {
   const notes: MelodyNote[] = []
   let cursor = 0
+  let first = true
   while (cursor < totalBeats - 0.5) {
     const unitLength = Math.min(PHRASE_UNIT_BEATS, totalBeats - cursor)
-    const { notes: unitNotes } = generateElegiacPattern(rng, harmonicMap, cursor, unitLength, range, intensity, noteDensity, dna)
+    // 冒頭設計は最初の旋律文にのみ適用する
+    const { notes: unitNotes } = generateElegiacPattern(rng, harmonicMap, cursor, unitLength, range, intensity, noteDensity, dna, first ? opening : undefined)
     notes.push(...unitNotes)
     cursor += unitLength
+    first = false
   }
   return notes
 }

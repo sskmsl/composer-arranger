@@ -6,11 +6,12 @@
  * アクセントを確定し、その後にピッチを割り当てる専用パイプライン)
  */
 import type { SeededRandom } from "@/core/rng"
-import type { MelodyNote, ProsodyPlan, ProsodySlot } from "@/core/melody"
+import type { MelodyNote, MelodyOpeningPlan, ProsodyPlan, ProsodySlot } from "@/core/melody"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
+import { openingStartMidi } from "./openingIntent"
 import type { RangeSetting } from "./generationParams"
 
 /** 非対称フレーズ長の候補(小節を均等に割らない。1.5/2.5小節相当を含む) */
@@ -41,12 +42,27 @@ function buildRhythmSkeleton(
   unitLength: number,
   syncopationAmount: number,
   pickupAmount: number,
+  opening?: MelodyOpeningPlan,
 ): { beat: number; duration: number }[] {
   const events: { beat: number; duration: number }[] = []
   let cursor = unitStart
 
-  // 弱起: フレーズ先頭を半拍/1拍遅らせ、食い込みを作る
-  if (rng.chance(pickupAmount * 0.5)) {
+  if (opening) {
+    // 冒頭設計: 入りのタイミングと最初の音価を計画で固定する
+    cursor = unitStart + opening.startBeatOffset
+    let firstDur = opening.firstNoteDuration
+    if (cursor + firstDur > unitStart + unitLength) firstDur = unitStart + unitLength - cursor
+    if (firstDur >= 0.2) {
+      events.push({ beat: cursor, duration: firstDur })
+      cursor += firstDur
+      // repeated-note入口は2音目も同じ音価で刻む
+      if (opening.openingContour === "repeated-note" && cursor + firstDur <= unitStart + unitLength) {
+        events.push({ beat: cursor, duration: firstDur })
+        cursor += firstDur
+      }
+    }
+  } else if (rng.chance(pickupAmount * 0.5)) {
+    // 弱起: フレーズ先頭を半拍/1拍遅らせ、食い込みを作る
     cursor += rng.pick([0.5, 1])
   }
 
@@ -96,13 +112,28 @@ function assignPitches(
   range: RangeSetting,
   repeatedNoteAmount: number,
   finalMelodicLift: number,
+  opening?: MelodyOpeningPlan,
 ): number[] {
-  const narrowRange = { low: Math.round((range.low + range.high) / 2) - 4, high: Math.round((range.low + range.high) / 2) + 4 }
+  // 冒頭設計がある場合は狭い音域帯を開始音の周辺に置く(Speech-Rhythmicの狭音域性を保ちつつ、
+  // 計画したregisterで始められるようにする)。無い場合は従来どおりレンジ中央に置く。
+  const narrowCenter = opening ? openingStartMidi(opening, range) : Math.round((range.low + range.high) / 2)
+  const narrowRange = {
+    low: Math.max(range.low, narrowCenter - 4),
+    high: Math.min(range.high, narrowCenter + 4),
+  }
   const pitches: number[] = []
   let prevPitch = Math.round((narrowRange.low + narrowRange.high) / 2)
   let prevChordIdx = -1
 
   events.forEach((e, i) => {
+    // 冒頭設計: 最初の1音は計画した音域・開始音へ固定する(発話的な同音反復の起点になる)
+    if (i === 0 && opening) {
+      const startPitch = openingStartMidi(opening, range)
+      pitches.push(startPitch)
+      prevPitch = startPitch
+      prevChordIdx = harmonicMap.indexOf(chordAtBeat(harmonicMap, e.beat) as HarmonicMapEntry)
+      return
+    }
     const entry = chordAtBeat(harmonicMap, e.beat)
     const chordIdx = harmonicMap.indexOf(entry as HarmonicMapEntry)
     const chordChanged = chordIdx !== prevChordIdx
@@ -141,6 +172,7 @@ export function generateSpeechRhythmicPattern(
   syncopationAmount: number,
   pickupAmount: number,
   phraseAsymmetry: number,
+  opening?: MelodyOpeningPlan,
 ): { notes: MelodyNote[]; prosodyPlan: ProsodyPlan; plan: SpeechRhythmicPatternPlan } {
   const finalMelodicLift = 0.4 + rng.next() * 0.3 * intensity
   const unitLengths: number[] = []
@@ -148,17 +180,20 @@ export function generateSpeechRhythmicPattern(
   const allAccents: ("primary" | "secondary" | "none")[] = []
 
   let cursor = 0
+  let firstUnit = true
   while (cursor < totalBeats - 1) {
     const unitLength = pickUnitLength(rng, totalBeats - cursor, phraseAsymmetry)
     unitLengths.push(unitLength)
-    const events = buildRhythmSkeleton(rng, cursor, unitLength, syncopationAmount, pickupAmount)
+    // 冒頭設計は最初のフレーズ単位にのみ適用する
+    const events = buildRhythmSkeleton(rng, cursor, unitLength, syncopationAmount, pickupAmount, firstUnit ? opening : undefined)
     const accents = buildAccentMap(events, cursor)
     allEvents.push(...events)
     allAccents.push(...accents)
     cursor += unitLength
+    firstUnit = false
   }
 
-  const pitches = assignPitches(rng, allEvents, allAccents, harmonicMap, range, repeatedNoteAmount, finalMelodicLift)
+  const pitches = assignPitches(rng, allEvents, allAccents, harmonicMap, range, repeatedNoteAmount, finalMelodicLift, opening)
 
   const notes: MelodyNote[] = allEvents
     .filter((e) => e.beat < totalBeats)
