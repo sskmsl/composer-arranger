@@ -49,7 +49,7 @@ describe("Elegiac Cantabile dedicated generator", () => {
     }
   })
 
-  it("最終3案は最低2種類のClimax・Ending・Phrase・breathを持つ", () => {
+  it("最終3案は最低2種類のClimax・Ending・Phrase・breath・Tension Arcを持つ", () => {
     for (let seed = 1; seed <= 20; seed++) {
       const candidates = generate(seed)
       const plans = candidates.map((candidate) => candidate.elegiacPlan!)
@@ -57,6 +57,26 @@ describe("Elegiac Cantabile dedicated generator", () => {
       expect(new Set(plans.map((plan) => plan.endingStrategy)).size).toBeGreaterThanOrEqual(2)
       expect(new Set(plans.map((plan) => plan.phraseLengths.join("/"))).size).toBeGreaterThanOrEqual(2)
       expect(new Set(plans.map((plan) => plan.breathBeats.join("/"))).size).toBeGreaterThanOrEqual(2)
+      expect(new Set(plans.map((plan) => plan.tensionArc)).size).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it("各Tension Arcを意図した音楽的役割として実音化する", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      for (const candidate of generate(seed)) {
+        const arc = candidate.elegiacPlan!.tensionArc
+        const roles = new Set(candidate.notes.map((note) => note.plannedToneRole))
+        const context = `${seed}:pattern=${candidate.patternIndex}:${arc}:${candidate.notes
+          .map((note) => `${note.startBeat}:${note.plannedToneRole}:${note.plannedResolution ? "R" : "-"}`)
+          .join("|")}`
+        if (arc === "inward-resolution" || arc === "yearning-delay") {
+          expect(roles.has("appoggiatura") || roles.has("suspension"), context).toBe(true)
+        } else if (arc === "suspended-ache") {
+          expect(roles.has("tension-hold"), context).toBe(true)
+        } else {
+          expect(roles.has("anticipation"), context).toBe(true)
+        }
+      }
     }
   })
 

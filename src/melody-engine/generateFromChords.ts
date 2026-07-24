@@ -307,20 +307,21 @@ function directPlacementDiagnostics(notes: MelodyNote[], harmonicMap: ReturnType
       (e) => note.startBeat >= e.chord.startBeat && note.startBeat < e.chord.startBeat + e.chord.durationBeats,
     )
     const pc = pitchClass(note.pitch)
-    const role = !entry
+    const classifiedRole = !entry
       ? "unresolved-conflict"
       : isChordTone(entry.parsed, pc)
         ? "chord-tone"
         : isTensionTone(entry.parsed, pc)
           ? "tension-hold"
           : "passing-tone"
-    note.plannedToneRole = role
+    const role = note.plannedToneRole ?? classifiedRole
     diagnostics.plannedTones.push({
       beat: note.startBeat,
       durationBeats: note.durationBeats,
       rawPitch: note.pitch,
       placedPitch: note.pitch,
       role,
+      resolution: note.plannedResolution,
     })
   }
   return diagnostics
