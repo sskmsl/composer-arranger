@@ -13,7 +13,8 @@ import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses, hasSemitoneRisk } from "@/core/chord"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
-import type { SongMotifDNA } from "@/core/melody"
+import type { MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
+import { openingDirectionSign, openingStartMidi } from "./openingIntent"
 
 const STEP_CHOICES = [0, 0, 1, -1, 1, -1, 3, -3] // 同音反復・半音・短3度を優先した重み付け
 
@@ -33,14 +34,39 @@ export interface IncantatoryPatternPlan {
   coreMotif: CoreMotif
 }
 
-/** core motif: 2〜5音、同音反復・半音・短3度中心の短い核を作る */
-function generateCoreMotif(rng: SeededRandom, durationPalette: number[]): CoreMotif {
+/** core motif: 2〜5音、同音反復・半音・短3度中心の短い核を作る。openingで核の輪郭を計画へ寄せる */
+function generateCoreMotif(rng: SeededRandom, durationPalette: number[], opening?: MelodyOpeningPlan): CoreMotif {
   const noteCount = rng.intBetween(2, 5)
   const intervals = [0]
-  for (let i = 1; i < noteCount; i++) {
-    intervals.push(intervals[i - 1] + rng.pick(STEP_CHOICES))
+
+  if (opening) {
+    const sign = openingDirectionSign(opening) || 1
+    for (let i = 1; i < noteCount; i++) {
+      let step: number
+      switch (opening.openingContour) {
+        case "repeated-note":
+          step = i === 1 ? 0 : rng.pick([0, 0, 1, -1])
+          break
+        case "leap-then-recover":
+          step = i === 1 ? sign * rng.pick([3, 4]) : -sign * rng.pick([1, 1, 2])
+          break
+        case "suspension-entry":
+          step = i === 1 ? -1 : rng.pick([0, 1, -1])
+          break
+        default: // stepwise / pickup-resolution
+          step = sign * rng.pick([1, 1, 2, 0])
+      }
+      intervals.push(intervals[i - 1] + step)
+    }
+  } else {
+    for (let i = 1; i < noteCount; i++) {
+      intervals.push(intervals[i - 1] + rng.pick(STEP_CHOICES))
+    }
   }
-  const durations = Array.from({ length: noteCount }, () => rng.pick(durationPalette))
+
+  const durations = Array.from({ length: noteCount }, (_, i) =>
+    opening && i === 0 ? opening.firstNoteDuration : rng.pick(durationPalette),
+  )
   return { intervals, durations, lengthBeats: durations.reduce((a, b) => a + b, 0) }
 }
 
@@ -138,9 +164,10 @@ export function generateIncantatoryPattern(
   intensity: number,
   noteDensity: number,
   dna?: SongMotifDNA,
+  opening?: MelodyOpeningPlan,
 ): { notes: MelodyNote[]; plan: IncantatoryPatternPlan } {
   const durationPalette = noteDensity > 0.6 ? [0.25, 0.5, 0.5, 0.75] : [0.5, 0.5, 0.75, 1]
-  const coreMotif = generateCoreMotif(rng, durationPalette)
+  const coreMotif = generateCoreMotif(rng, durationPalette, opening)
   // Song Motif DNA(任意): 反復傾向が高いほど変異周期を長く(=反復をより長く保つ)、
   // 変異そのものも起きにくくする。noteDensityの閾値のように丸めで消えない、
   // 連続的な効き方をする箇所へ反映する。
@@ -151,10 +178,16 @@ export function generateIncantatoryPattern(
 
   const firstChord = chordAtBeat(harmonicMap, 0)
   const startMid = Math.round((range.low + range.high) / 2)
-  let anchorPitch = firstChord ? nearestAllowedPitch(startMid, chordTonePitchClasses(firstChord.parsed), range) : startMid
+  // 冒頭設計: アンカー(核モチーフの起点)の音域・開始音を計画で分ける
+  let anchorPitch = opening
+    ? openingStartMidi(opening, range)
+    : firstChord
+      ? nearestAllowedPitch(startMid, chordTonePitchClasses(firstChord.parsed), range)
+      : startMid
 
   const notes: MelodyNote[] = []
-  let cursor = 0
+  // 冒頭設計: 詠唱の入りを計画したオフセットだけ遅らせる(休符後の開始)
+  let cursor = opening ? opening.startBeatOffset : 0
   let repeatIndex = 0
   let currentCopy: MutatedCopy = { intervals: coreMotif.intervals, durations: coreMotif.durations, nonHarmonicIndex: null, velocityBoostIndex: null }
 

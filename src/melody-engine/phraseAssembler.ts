@@ -1,5 +1,5 @@
 import type { SeededRandom } from "@/core/rng"
-import type { MelodyNote, PhrasePlan, PhraseContour } from "@/core/melody"
+import type { MelodyNote, MelodyOpeningPlan, PhrasePlan, PhraseContour } from "@/core/melody"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import type { GenerationParams, RangeSetting, Density } from "./generationParams"
 import type { MotifCore, MotifEvent } from "./motifCore"
@@ -155,6 +155,7 @@ export function assemblePhrase(
   density: Density,
   motifCoreOverride?: MotifCore,
   isAnswerPhrase = false,
+  opening?: MelodyOpeningPlan,
 ): PhraseResult {
   const contour = contourFromParams(rng, params)
 
@@ -164,8 +165,8 @@ export function assemblePhrase(
     firstEvents = motifCoreOverride.events
     firstPitches = motifCoreOverride.pitches
   } else {
-    firstEvents = generateRhythmMotif(rng, density, params)
-    firstPitches = generatePitchMotif(rng, firstEvents, phraseStartBeat, harmonicMap, range, params)
+    firstEvents = generateRhythmMotif(rng, density, params, opening)
+    firstPitches = generatePitchMotif(rng, firstEvents, phraseStartBeat, harmonicMap, range, params, opening)
   }
   const firstMotifCore: MotifCore = { events: firstEvents, pitches: firstPitches, lengthBeats: eventsLength(firstEvents) }
 

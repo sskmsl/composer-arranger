@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { generateFromChordsWithProfiles, type GenerateProfileBatchInput } from "./generateFromChords"
-import { buildHarmonicMap } from "./harmonicMap"
-import { computeMelodyFeatures } from "./features"
+import { generateRhythmMotif } from "./motifCore"
+import { resolveGenerationParams } from "./generationParams"
+import { SeededRandom } from "@/core/rng"
 import { GENERATOR_PROFILES } from "./generatorProfile"
 import { SETTINGS_APPLICABILITY, profilesIgnoring } from "./settingsApplicability"
 import type { ChordEvent } from "@/core/project"
@@ -15,7 +16,6 @@ const chords: ChordEvent[] = [
   { id: "c4", sectionId: "s1", startBeat: 24, durationBeats: 8, symbol: "G", bass: null },
 ]
 const totalBeats = 32
-const harmonicMap = buildHarmonicMap(chords)
 
 function gen(overrides: Partial<GenerateProfileBatchInput>): ReturnType<typeof generateFromChordsWithProfiles> {
   return generateFromChordsWithProfiles({
@@ -33,9 +33,6 @@ function gen(overrides: Partial<GenerateProfileBatchInput>): ReturnType<typeof g
   })
 }
 
-function metricsFor(notes: MelodyNote[]) {
-  return computeMelodyFeatures(notes, harmonicMap, 0, totalBeats)
-}
 
 function stripIds(notes: MelodyNote[]) {
   return notes.map(({ startBeat, durationBeats, pitch, velocity, locks }) => ({ startBeat, durationBeats, pitch, velocity, locks }))
@@ -76,17 +73,30 @@ describe("Density: 高いほどノート数が増える傾向(parametric/bespoke
   })
 })
 
-describe("Syncopation: Density活性化でシンコペーション率が上がる(parametric)", () => {
-  it("standard は active の平均syncopationRatio > sparse", () => {
-    let sparseSum = 0
-    let activeSum = 0
-    let n = 0
-    for (let seed = 1; seed <= 40; seed++) {
-      sparseSum += metricsFor(gen({ density: "sparse", seed }).candidates[0].notes).syncopationRatio
-      activeSum += metricsFor(gen({ density: "active", seed }).candidates[0].notes).syncopationRatio
-      n++
+describe("Syncopation: syncopationAmountが高いほどオフビート開始が増える(parametric)", () => {
+  // syncopationRatio(全体)はDensityがNote Durationを変えるため交絡する(Sparseの長い不規則音価が
+  // 自然なオフビートを生む)。ここではDensityを固定し、syncopationAmountだけを変えて
+  // Rhythm Motifのオフビート開始率が単調に増えることを直接検証する(Issue #13の配線の本質)。
+  function offbeatRate(sync: number): number {
+    const params = { ...resolveGenerationParams("original-custom", "verse", "balanced", "growing"), syncopationAmount: sync }
+    let off = 0
+    let total = 0
+    for (let seed = 1; seed <= 400; seed++) {
+      for (const e of generateRhythmMotif(new SeededRandom(seed * 101 + 7), "balanced", params)) {
+        if (e.isRest) continue
+        total++
+        if (Math.abs((e.offsetBeats % 1) - 0.5) < 0.01) off++
+      }
     }
-    expect(activeSum / n).toBeGreaterThan(sparseSum / n)
+    return off / total
+  }
+
+  it("syncopationAmount 0.15 < 0.45 < 0.80 の順にオフビート開始率が上がる", () => {
+    const low = offbeatRate(0.15)
+    const mid = offbeatRate(0.45)
+    const high = offbeatRate(0.8)
+    expect(mid).toBeGreaterThan(low)
+    expect(high).toBeGreaterThan(mid)
   })
 })
 
