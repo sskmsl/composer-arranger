@@ -5,6 +5,7 @@ import type {
   AdvancedMelodyMetrics,
   CandidateMelodyDNA,
   CandidateGenerationDiagnostics,
+  ElegiacGenerationPlan,
   MelodyGeneratorProfile,
   MelodyNote,
   MelodyOpeningIntent,
@@ -353,6 +354,7 @@ export interface ProfileCandidate {
   openingIntent?: MelodyOpeningIntent
   openingPlan?: MelodyOpeningPlan
   candidateMelodyDNA?: CandidateMelodyDNA
+  elegiacPlan?: ElegiacGenerationPlan
   generationDiagnostics?: CandidateGenerationDiagnostics
 }
 
@@ -373,6 +375,7 @@ interface BuiltPattern {
   placedNotesHash: string
   finalNotesHash: string
   candidateMelodyDNA: CandidateMelodyDNA
+  elegiacPlan?: ElegiacGenerationPlan
 }
 
 /**
@@ -443,10 +446,11 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         let plans: PhrasePlan[]
         let advancedMetrics: AdvancedMelodyMetrics
         let prosodyPlan: ProsodyPlan | undefined
+        let elegiacPlan: ElegiacGenerationPlan | undefined
         let rawNotesHash: string
         if (profile === "elegiac-cantabile") {
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.34, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
-          notes = generateElegiacCantabile(
+          const r = generateElegiacCantabile(
             rng,
             harmonicMap,
             input.totalBeats,
@@ -457,9 +461,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             opening,
             candidateMelodyDNA,
           )
+          notes = r.notes
+          plans = r.phrasePlans
+          elegiacPlan = r.plan
           rawNotesHash = noteHash(notes)
-          notes = applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
-          plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
+          // Elegiacは専用生成器内でClimax/Endingを実音化する。共通の「最高音を一度だけ作る」
+          // 後処理へ通すと、silence/longest-note/low-returnが再び後半高音型へ収束するため適用しない。
           advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
         } else if (profile === "speech-rhythmic") {
           const repeatedNoteAmount = nudgeTowardDNA(0.82, dna?.repeatedNoteTendency, 0.4)
@@ -529,6 +536,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           placedNotesHash: rawNotesHash,
           finalNotesHash: finalHash,
           candidateMelodyDNA,
+          elegiacPlan,
         }
       }
 
@@ -697,6 +705,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         openingIntent: pattern.opening.intent,
         openingPlan: pattern.opening,
         candidateMelodyDNA: pattern.candidateMelodyDNA,
+        elegiacPlan: pattern.elegiacPlan,
         generationDiagnostics,
       })
     })
@@ -734,6 +743,7 @@ export function toMelodyVariantFromProfile(
     prosodyPlan: candidate.prosodyPlan,
     openingIntent: candidate.openingIntent,
     candidateMelodyDNA: candidate.candidateMelodyDNA,
+    elegiacPlan: candidate.elegiacPlan,
     generationDiagnostics: candidate.generationDiagnostics,
   }
 }

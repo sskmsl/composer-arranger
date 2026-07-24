@@ -242,6 +242,28 @@ export interface CandidateMelodyDNA {
   endingStrategy: MelodyEndingStrategy
 }
 
+export type ElegiacClimaxType = "longest-note" | "leap" | "tension" | "silence" | "low-return"
+export type ElegiacEndingStrategy = "resolved" | "suspended" | "open" | "carry-over"
+export type ElegiacDevelopmentOperation = "repeat" | "fragmentation" | "expansion" | "delayed-return"
+
+/** Elegiac Cantabile専用生成器が、実音を作る前に確定する旋律設計。 */
+export interface ElegiacGenerationPlan {
+  motifSeed: {
+    intervals: number[]
+    durations: number[]
+  }
+  phraseLengths: number[]
+  breathBeats: number[]
+  climaxType: ElegiacClimaxType
+  climaxBeat: number
+  endingStrategy: ElegiacEndingStrategy
+  targetTones: {
+    beat: number
+    pitchClass: number
+  }[]
+  development: ElegiacDevelopmentOperation[]
+}
+
 /**
  * Song Motif DNA(将来拡張のための土台。今回は完全実装ではなく、
  * セクション間でモチーフ情報を共有できる構造だけを用意する)
@@ -288,6 +310,8 @@ export interface MelodyVariant {
   openingIntent?: MelodyOpeningIntent
   /** 冒頭以降を含む候補全体のPattern固有設計。 */
   candidateMelodyDNA?: CandidateMelodyDNA
+  /** Elegiac Cantabile専用のMotif/Phrase/Climax/Ending設計。 */
+  elegiacPlan?: ElegiacGenerationPlan
   /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
   generationDiagnostics?: CandidateGenerationDiagnostics
 }
