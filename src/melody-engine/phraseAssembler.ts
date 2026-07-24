@@ -7,7 +7,7 @@ import { generateRhythmMotif, generatePitchMotif } from "./motifCore"
 import { applyDevelopmentOp, weightedDevelopmentOp } from "./motifDevelopment"
 import { chordAtBeat } from "./harmonicMap"
 import { allUsablePitchClasses, chordTonePitchClasses } from "@/core/chord"
-import { nearestAllowedPitch } from "./pitchUtils"
+import { nearestAllowedPitch, withKeyBias } from "./pitchUtils"
 
 export function eventsLength(events: MotifEvent[]): number {
   if (events.length === 0) return 0
@@ -63,7 +63,7 @@ export function placeSegment(
     const chordTones = entry ? chordTonePitchClasses(entry.parsed) : [0, 4, 7]
     const usable = entry ? allUsablePitchClasses(entry.parsed) : chordTones
     const useTension = rng.chance(params.tensionUsageTarget * 0.6)
-    const allowed = useTension ? usable : chordTones
+    const allowed = useTension ? withKeyBias(usable, params.keyScalePitchClasses) : chordTones
     const raw = pitches[pitchIdx] ?? effectiveRange.low
     const snapped = nearestAllowedPitch(raw, allowed, effectiveRange)
     notes.push({

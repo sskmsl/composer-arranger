@@ -32,3 +32,14 @@ export async function deleteProject(projectId: string): Promise<void> {
   const db = await getDb()
   await db.delete(PROJECT_STORE, projectId)
 }
+
+/**
+ * Issue #16: 時間単位の自動変換/確認待ちが発生する直前の生データをそのまま退避する。
+ * 変換の判定を誤っていた場合でも、ユーザーが元のデータへ戻れるようにするための安全網。
+ */
+export async function backupProjectTimingSnapshot(raw: unknown): Promise<void> {
+  const projectId = (raw as { projectId?: string })?.projectId ?? "unknown"
+  const db = await getDb()
+  const key = `timingBackup:${projectId}:${Date.now()}`
+  await db.put(META_STORE, JSON.stringify(raw), key)
+}

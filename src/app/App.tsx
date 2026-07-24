@@ -6,6 +6,7 @@ import { RightPanel } from "./RightPanel"
 import { BottomBar } from "./BottomBar"
 import { MelodyWorkspace } from "./MelodyWorkspace"
 import { ComingSoonTab } from "./ComingSoonTab"
+import { TimingMigrationBanner } from "./TimingMigrationBanner"
 
 export type MainTab = "melody" | "arrangement" | "audition"
 
@@ -36,6 +37,7 @@ export function App() {
         onToggleLeft={() => setLeftOpen((v) => !v)}
         onToggleRight={() => setRightOpen((v) => !v)}
       />
+      <TimingMigrationBanner />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {tab === "melody" && (
           <>

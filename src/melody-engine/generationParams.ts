@@ -1,6 +1,7 @@
 import type { SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
 import type { PhraseContour } from "@/core/melody"
+import { keyScalePitchClasses } from "@/core/scale"
 
 export type Density = "sparse" | "balanced" | "active"
 export type Drama = "restrained" | "growing" | "open"
@@ -29,6 +30,12 @@ export interface GenerationParams {
   densityNoteMultiplier: number
   /** レンジ上限からどれだけ音域を控えるか(8.2 Verseは最高音を温存、8.4 Chorusは全開放) */
   peakHeadroomSemitones: number
+  /**
+   * Issue #13: Song KeyのダイアトニックScale(ピッチクラス7つ)。テンション/経過音候補を
+   * このScaleへ軽く寄せるために使う。未指定または空配列の場合は従来通りコードのUsable Tone
+   * (allUsablePitchClasses)をそのまま使う。
+   */
+  keyScalePitchClasses?: number[]
 }
 
 const BASE_PARAMS: GenerationParams = {
@@ -112,12 +119,14 @@ export function resolveGenerationParams(
   role: SectionRole,
   density: Density,
   drama: Drama,
+  key?: string,
 ): GenerationParams {
   const merged = merge(BASE_PARAMS, PROFILE_TENDENCY[profile], SECTION_TENDENCY[role], DENSITY_TENDENCY[density], DRAMA_TENDENCY[drama])
   merged.restRatioTarget = clamp01(merged.restRatioTarget)
   merged.tensionUsageTarget = clamp01(merged.tensionUsageTarget)
   merged.leapWidthBias = clamp01(merged.leapWidthBias)
   merged.endTensionBias = clamp01(merged.endTensionBias)
+  if (key) merged.keyScalePitchClasses = keyScalePitchClasses(key)
   return merged
 }
 
