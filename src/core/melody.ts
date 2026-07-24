@@ -245,6 +245,7 @@ export interface CandidateMelodyDNA {
 export type ElegiacClimaxType = "longest-note" | "leap" | "tension" | "silence" | "low-return"
 export type ElegiacEndingStrategy = "resolved" | "suspended" | "open" | "carry-over"
 export type ElegiacDevelopmentOperation = "repeat" | "fragmentation" | "expansion" | "delayed-return"
+export type ElegiacTensionArc = "inward-resolution" | "yearning-delay" | "suspended-ache" | "anticipatory-pull"
 
 /** Elegiac Cantabile専用生成器が、実音を作る前に確定する旋律設計。 */
 export interface ElegiacGenerationPlan {
@@ -257,6 +258,7 @@ export interface ElegiacGenerationPlan {
   climaxType: ElegiacClimaxType
   climaxBeat: number
   endingStrategy: ElegiacEndingStrategy
+  tensionArc: ElegiacTensionArc
   targetTones: {
     beat: number
     pitchClass: number

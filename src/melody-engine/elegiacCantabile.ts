@@ -66,6 +66,17 @@ const ENDING_BY_MOTIF: Record<CandidateMelodyDNA["motifIdentity"], ElegiacEnding
   "repeated-cell": "open",
 }
 
+const TENSION_ARC_BY_RESPONSE: Record<
+  CandidateMelodyDNA["harmonicResponse"],
+  ElegiacGenerationPlan["tensionArc"]
+> = {
+  "chord-following": "inward-resolution",
+  "common-tone": "inward-resolution",
+  "delayed-resolution": "yearning-delay",
+  "tension-hold": "suspended-ache",
+  anticipatory: "anticipatory-pull",
+}
+
 export interface ElegiacGenerationResult {
   notes: MelodyNote[]
   phrasePlans: PhrasePlan[]
@@ -328,8 +339,13 @@ function harmonizeExposedNotes(
     const chordTones = chordTonePitchClasses(entry.parsed)
     const usable = allUsablePitchClasses(entry.parsed)
     const pc = pitchClass(note.pitch)
+    const intentionalDissonance =
+      note.plannedResolution !== undefined &&
+      (note.plannedToneRole === "suspension" ||
+        note.plannedToneRole === "appoggiatura" ||
+        note.plannedToneRole === "anticipation")
     if (chordTones.includes(pc)) {
-      note.plannedToneRole = "chord-tone"
+      if (!intentionalDissonance) note.plannedToneRole = "chord-tone"
       continue
     }
 
@@ -340,11 +356,20 @@ function harmonizeExposedNotes(
       next!.startBeat - (note.startBeat + note.durationBeats) <= 0.8 &&
       Math.abs(next!.pitch - note.pitch) <= 2 &&
       nextUsable.includes(pitchClass(next!.pitch))
-    const intentionalDissonance =
-      note.plannedResolution !== undefined &&
-      (note.plannedToneRole === "suspension" || note.plannedToneRole === "appoggiatura")
+    const resolvesAsPlanned =
+      Boolean(next && note.plannedResolution) &&
+      note.plannedResolution!.targetPitchClass === pitchClass(next!.pitch) &&
+      next!.startBeat - note.startBeat <= note.plannedResolution!.maximumDelayBeats + 1e-6
     const exposed = isStrongBeat(note.startBeat) || note.durationBeats >= 1.25
 
+    if (intentionalDissonance && (resolvesByStep || resolvesAsPlanned)) {
+      note.plannedResolution = {
+        targetPitchClass: pitchClass(next!.pitch),
+        targetBeat: next!.startBeat,
+        maximumDelayBeats: Math.max(0.5, next!.startBeat - note.startBeat),
+      }
+      continue
+    }
     if (!exposed && note.durationBeats <= 1 && resolvesByStep) {
       note.plannedToneRole = usable.includes(pc) ? "approach-tone" : "passing-tone"
       note.plannedResolution = {
@@ -354,14 +379,7 @@ function harmonizeExposedNotes(
       }
       continue
     }
-    if (intentionalDissonance && resolvesByStep) {
-      note.plannedResolution = {
-        targetPitchClass: pitchClass(next!.pitch),
-        targetBeat: next!.startBeat,
-        maximumDelayBeats: Math.max(0.5, next!.startBeat - note.startBeat),
-      }
-      continue
-    }
+    if (note.plannedToneRole === "tension-hold" && usable.includes(pc)) continue
     if (usable.includes(pc) && !exposed) {
       note.plannedToneRole = "approach-tone"
       continue
@@ -373,6 +391,165 @@ function harmonizeExposedNotes(
     note.plannedToneRole = "chord-tone"
     note.plannedResolution = undefined
   }
+}
+
+function pitchClassDistance(a: number, b: number): number {
+  const difference = Math.abs(a - b) % 12
+  return Math.min(difference, 12 - difference)
+}
+
+function resolvedTensionPair(
+  note: MelodyNote,
+  next: MelodyNote,
+  harmonicMap: HarmonicMapEntry[],
+): { tensionPitchClass: number; resolutionPitchClass: number } | undefined {
+  const entry = chordAtBeat(harmonicMap, note.startBeat)
+  const nextEntry = chordAtBeat(harmonicMap, next.startBeat)
+  if (!entry || !nextEntry) return undefined
+  const chordTones = chordTonePitchClasses(entry.parsed)
+  const tensions = allUsablePitchClasses(entry.parsed).filter((pc) => !chordTones.includes(pc))
+  const resolutionTones = chordTonePitchClasses(nextEntry.parsed)
+  const pairs = tensions.flatMap((tensionPitchClass) =>
+    resolutionTones
+      .filter((resolutionPitchClass) => pitchClassDistance(tensionPitchClass, resolutionPitchClass) <= 2)
+      .map((resolutionPitchClass) => ({ tensionPitchClass, resolutionPitchClass })),
+  )
+  if (pairs.length === 0) {
+    if (resolutionTones.length === 0) return undefined
+    const resolutionPitchClass = resolutionTones.reduce((best, candidate) =>
+      pitchClassDistance(pitchClass(note.pitch), candidate) <
+      pitchClassDistance(pitchClass(note.pitch), best)
+        ? candidate
+        : best,
+    )
+    const lowerNeighbor = (resolutionPitchClass + 11) % 12
+    const upperNeighbor = (resolutionPitchClass + 1) % 12
+    return {
+      tensionPitchClass:
+        pitchClassDistance(pitchClass(note.pitch), lowerNeighbor) <=
+        pitchClassDistance(pitchClass(note.pitch), upperNeighbor)
+          ? lowerNeighbor
+          : upperNeighbor,
+      resolutionPitchClass,
+    }
+  }
+  return pairs.reduce((best, pair) =>
+    pitchClassDistance(pitchClass(note.pitch), pair.tensionPitchClass) <
+    pitchClassDistance(pitchClass(note.pitch), best.tensionPitchClass)
+      ? pair
+      : best,
+  )
+}
+
+function applyResolvedTension(
+  notes: MelodyNote[],
+  targetBeat: number,
+  duration: number,
+  role: "appoggiatura" | "suspension",
+  harmonicMap: HarmonicMapEntry[],
+  range: RangeSetting,
+): void {
+  if (notes.length < 3) return
+  const candidateIndexes = Array.from({ length: notes.length - 2 }, (_value, index) => index + 1).sort(
+    (a, b) => Math.abs(notes[a].startBeat - targetBeat) - Math.abs(notes[b].startBeat - targetBeat),
+  )
+  for (const index of candidateIndexes) {
+    const note = notes[index]
+    const next = notes[index + 1]
+    const pair = resolvedTensionPair(note, next, harmonicMap)
+    if (!pair) continue
+    note.pitch = nearestAllowedPitch(note.pitch, [pair.tensionPitchClass], range)
+    next.pitch = nearestAllowedPitch(note.pitch, [pair.resolutionPitchClass], range)
+    note.durationBeats = Math.min(
+      duration,
+      Math.max(0.25, next.startBeat - note.startBeat),
+    )
+    note.plannedToneRole = role
+    note.plannedResolution = {
+      targetPitchClass: pair.resolutionPitchClass,
+      targetBeat: next.startBeat,
+      maximumDelayBeats: Math.max(0.5, next.startBeat - note.startBeat),
+    }
+    next.plannedToneRole = "chord-tone"
+    next.plannedResolution = undefined
+    return
+  }
+}
+
+function applyTensionArc(
+  notes: MelodyNote[],
+  plan: ElegiacGenerationPlan,
+  harmonicMap: HarmonicMapEntry[],
+  range: RangeSetting,
+  totalBeats: number,
+): void {
+  if (plan.tensionArc === "inward-resolution") {
+    const target = plan.breathBeats[0] ? Math.max(1, plan.breathBeats[0] - 1) : totalBeats * 0.28
+    applyResolvedTension(notes, target, 0.5, "appoggiatura", harmonicMap, range)
+    return
+  }
+  if (plan.tensionArc === "yearning-delay") {
+    applyResolvedTension(
+      notes,
+      Math.max(totalBeats * 0.36, plan.climaxBeat - 2),
+      1.5,
+      "appoggiatura",
+      harmonicMap,
+      range,
+    )
+    return
+  }
+  if (plan.tensionArc === "suspended-ache") {
+    if (notes.length < 3) return
+    const index = clamp(nearestNoteIndex(notes.slice(1, -1), plan.climaxBeat) + 1, 1, notes.length - 2)
+    const note = notes[index]
+    const entry = chordAtBeat(harmonicMap, note.startBeat)
+    if (!entry) return
+    const chordTones = chordTonePitchClasses(entry.parsed)
+    const tensions = allUsablePitchClasses(entry.parsed).filter((pc) => !chordTones.includes(pc))
+    if (tensions.length === 0) return
+    note.pitch = nearestAllowedPitch(note.pitch, tensions, range)
+    note.durationBeats = Math.min(
+      1.75,
+      Math.max(0.5, notes[index + 1].startBeat - note.startBeat),
+    )
+    note.plannedToneRole = "tension-hold"
+    note.plannedResolution = undefined
+    return
+  }
+
+  const boundaries = harmonicMap
+    .map((entry) => entry.chord.startBeat)
+    .filter((beat) => beat > 1 && beat < totalBeats - 0.5)
+  if (boundaries.length === 0 || notes.length < 3) return
+  const boundary = boundaries.reduce((best, beat) =>
+    Math.abs(beat - plan.climaxBeat) < Math.abs(best - plan.climaxBeat) ? beat : best,
+  )
+  const afterIndex = notes.findIndex((note) => note.startBeat >= boundary)
+  if (afterIndex <= 0) return
+  const before = notes[afterIndex - 1]
+  const after = notes[afterIndex]
+  const nextEntry = chordAtBeat(harmonicMap, after.startBeat)
+  if (!nextEntry) return
+  const nextChordTones = chordTonePitchClasses(nextEntry.parsed)
+  const targetPitch = nearestAllowedPitch(before.pitch, nextChordTones, range)
+  const previous = notes[afterIndex - 2]
+  const anticipationStart = Math.min(
+    boundary - 0.25,
+    Math.max(previous ? previous.startBeat + previous.durationBeats : 0, boundary - 0.75),
+  )
+  before.startBeat = anticipationStart
+  before.durationBeats = Math.max(0.25, boundary - anticipationStart)
+  before.pitch = targetPitch
+  before.plannedToneRole = "anticipation"
+  before.plannedResolution = {
+    targetPitchClass: pitchClass(targetPitch),
+    targetBeat: after.startBeat,
+    maximumDelayBeats: Math.max(0.75, after.startBeat - anticipationStart),
+  }
+  after.pitch = nearestAllowedPitch(targetPitch, [pitchClass(targetPitch)], range)
+  after.plannedToneRole = "chord-tone"
+  after.plannedResolution = undefined
 }
 
 function makeNote(
@@ -620,20 +797,27 @@ function ensureRareHighest(
 ): void {
   if (notes.length < 2) return
   const totalBeats = Math.max(...notes.map((note) => note.startBeat + note.durationBeats))
-  const earlyIndexes = notes.flatMap((note, index) => (note.startBeat <= totalBeats * 0.45 ? [index] : []))
+  const isExpressive = (note: MelodyNote): boolean =>
+    note.plannedResolution !== undefined ||
+    note.plannedToneRole === "tension-hold" ||
+    note.plannedToneRole === "anticipation"
+  const stableIndexes = notes.flatMap((note, index) => (!isExpressive(note) ? [index] : []))
+  const eligibleIndexes = stableIndexes.length > 0 ? stableIndexes : notes.map((_note, index) => index)
+  const earlyIndexes = eligibleIndexes.filter((index) => notes[index].startBeat <= totalBeats * 0.45)
   const keep =
     plan.climaxType === "longest-note"
-      ? notes.reduce((best, note, index) => (note.durationBeats > notes[best].durationBeats ? index : best), 0)
+      ? eligibleIndexes.reduce((best, index) =>
+          notes[index].durationBeats > notes[best].durationBeats ? index : best,
+        )
       : plan.climaxType === "silence" || plan.climaxType === "low-return"
-        ? (earlyIndexes.length > 0 ? earlyIndexes : [0]).reduce((best, index) =>
+        ? (earlyIndexes.length > 0 ? earlyIndexes : eligibleIndexes).reduce((best, index) =>
             notes[index].pitch > notes[best].pitch ? index : best,
           )
-        : notes.reduce(
-            (best, _note, index) =>
+        : eligibleIndexes.reduce(
+            (best, index) =>
               Math.abs(notes[index].startBeat - plan.climaxBeat) < Math.abs(notes[best].startBeat - plan.climaxBeat)
                 ? index
                 : best,
-            0,
           )
   const keepEntry = chordAtBeat(harmonicMap, notes[keep].startBeat)
   const keepAllowed = keepEntry ? allUsablePitchClasses(keepEntry.parsed) : [pitchClass(notes[keep].pitch)]
@@ -647,6 +831,7 @@ function ensureRareHighest(
   const safeHighest = notes[keep].pitch
   for (let index = 0; index < notes.length; index++) {
     if (index === keep) continue
+    if (isExpressive(notes[index])) continue
     if (notes[index].pitch < safeHighest) continue
     const entry = chordAtBeat(harmonicMap, notes[index].startBeat)
     const allowed = entry ? allUsablePitchClasses(entry.parsed) : [pitchClass(notes[index].pitch)]
@@ -659,6 +844,30 @@ function ensureRareHighest(
         : "tension-hold"
       notes[index].plannedResolution = undefined
     }
+  }
+
+  // Tension Arcの役割を消さずに、最高音だけは一度きりにする。
+  // 解決音との関係を持つ音は同じpitch classのオクターブ移動を最優先する。
+  const highest = Math.max(...notes.map((note) => note.pitch))
+  const highestIndexes = notes.flatMap((note, index) => (note.pitch === highest ? [index] : []))
+  if (highestIndexes.length <= 1) return
+  const peakIndex = highestIndexes.includes(keep) ? keep : highestIndexes[0]
+  for (const index of highestIndexes) {
+    if (index === peakIndex) continue
+    const note = notes[index]
+    const entry = chordAtBeat(harmonicMap, note.startBeat)
+    const resolutionPitchClass = note.plannedResolution?.targetPitchClass
+    const allowed =
+      resolutionPitchClass !== undefined
+        ? unique([pitchClass(note.pitch), (resolutionPitchClass + 11) % 12, (resolutionPitchClass + 1) % 12])
+        : entry
+          ? allUsablePitchClasses(entry.parsed)
+          : [pitchClass(note.pitch)]
+    const candidates: number[] = []
+    for (let pitch = range.low; pitch < highest; pitch++) {
+      if (allowed.includes(pitchClass(pitch))) candidates.push(pitch)
+    }
+    if (candidates.length > 0) note.pitch = candidates[candidates.length - 1]
   }
 }
 
@@ -725,6 +934,7 @@ export function generateElegiacCantabile(
     climaxType,
     climaxBeat,
     endingStrategy,
+    tensionArc: TENSION_ARC_BY_RESPONSE[candidateDNA.harmonicResponse],
     targetTones: buildTargetTones(harmonicMap, totalBeats, range, candidateDNA),
     development: DEVELOPMENT_BY_DNA[candidateDNA.developmentStrategy],
   }
@@ -750,6 +960,7 @@ export function generateElegiacCantabile(
 
   applyOpeningResolution(notes, opening)
   applyClimax(notes, plan, harmonicMap, range, totalBeats)
+  applyTensionArc(notes, plan, harmonicMap, range, totalBeats)
   // Climaxのleap/recoveryで変更された後続音も含め、最終的な旋律表面を検証する。
   harmonizeExposedNotes(notes, harmonicMap, range)
   applyEnding(notes, plan, harmonicMap, range, totalBeats)
