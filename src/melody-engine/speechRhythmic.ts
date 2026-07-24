@@ -6,7 +6,7 @@
  * アクセントを確定し、その後にピッチを割り当てる専用パイプライン)
  */
 import type { SeededRandom } from "@/core/rng"
-import type { MelodyNote, MelodyOpeningPlan, ProsodyPlan, ProsodySlot } from "@/core/melody"
+import type { CandidateMelodyDNA, MelodyNote, MelodyOpeningPlan, ProsodyPlan, ProsodySlot } from "@/core/melody"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses } from "@/core/chord"
@@ -26,11 +26,19 @@ export interface SpeechRhythmicPatternPlan {
   finalMelodicLift: number
 }
 
-function pickUnitLength(rng: SeededRandom, remaining: number, phraseAsymmetry: number): number {
+function pickUnitLength(
+  rng: SeededRandom,
+  remaining: number,
+  phraseAsymmetry: number,
+  candidateMelodyDNA?: CandidateMelodyDNA,
+): number {
   const candidates = PHRASE_UNIT_CANDIDATES.filter((c) => c <= remaining + 2)
   if (candidates.length === 0) return Math.min(remaining, 6)
   const asymmetric = candidates.filter((c) => c % 4 !== 0)
   const symmetric = candidates.filter((c) => c % 4 === 0)
+  if (candidateMelodyDNA?.phraseArchitecture === "asymmetric" && asymmetric.length > 0) return rng.pick(asymmetric)
+  if (candidateMelodyDNA?.phraseArchitecture === "long-arc") return Math.max(...candidates)
+  if (candidateMelodyDNA?.phraseArchitecture === "cyclic") return Math.min(...candidates)
   if (asymmetric.length > 0 && rng.chance(phraseAsymmetry)) return rng.pick(asymmetric)
   return rng.pick(symmetric.length > 0 ? symmetric : candidates)
 }
@@ -173,8 +181,26 @@ export function generateSpeechRhythmicPattern(
   pickupAmount: number,
   phraseAsymmetry: number,
   opening?: MelodyOpeningPlan,
+  candidateMelodyDNA?: CandidateMelodyDNA,
 ): { notes: MelodyNote[]; prosodyPlan: ProsodyPlan; plan: SpeechRhythmicPatternPlan } {
-  const finalMelodicLift = 0.4 + rng.next() * 0.3 * intensity
+  const effectiveRepeated =
+    candidateMelodyDNA?.motifIdentity === "repeated-cell"
+      ? Math.min(0.96, repeatedNoteAmount + 0.1)
+      : candidateMelodyDNA?.motifIdentity === "leap-recovery"
+        ? Math.max(0.45, repeatedNoteAmount - 0.18)
+        : repeatedNoteAmount
+  const effectiveSyncopation =
+    candidateMelodyDNA?.rhythmGrammar === "syncopated" || candidateMelodyDNA?.rhythmGrammar === "speech-like"
+      ? Math.min(0.96, syncopationAmount + 0.14)
+      : candidateMelodyDNA?.rhythmGrammar === "sustained"
+        ? Math.max(0.25, syncopationAmount - 0.2)
+        : syncopationAmount
+  const finalMelodicLift =
+    candidateMelodyDNA?.endingStrategy === "carry-forward"
+      ? 0.9
+      : candidateMelodyDNA?.endingStrategy === "resolved"
+        ? 0.25
+        : 0.4 + rng.next() * 0.3 * intensity
   const unitLengths: number[] = []
   const allEvents: { beat: number; duration: number }[] = []
   const allAccents: ("primary" | "secondary" | "none")[] = []
@@ -185,10 +211,10 @@ export function generateSpeechRhythmicPattern(
     const unitLength =
       firstUnit && opening
         ? Math.min(Math.max(1, opening.openingPhraseLengthBeats), totalBeats - cursor)
-        : pickUnitLength(rng, totalBeats - cursor, phraseAsymmetry)
+        : pickUnitLength(rng, totalBeats - cursor, phraseAsymmetry, candidateMelodyDNA)
     unitLengths.push(unitLength)
     // 冒頭設計は最初のフレーズ単位にのみ適用する
-    const events = buildRhythmSkeleton(rng, cursor, unitLength, syncopationAmount, pickupAmount, firstUnit ? opening : undefined)
+    const events = buildRhythmSkeleton(rng, cursor, unitLength, effectiveSyncopation, pickupAmount, firstUnit ? opening : undefined)
     const accents = buildAccentMap(events, cursor)
     allEvents.push(...events)
     allAccents.push(...accents)
@@ -196,7 +222,7 @@ export function generateSpeechRhythmicPattern(
     firstUnit = false
   }
 
-  const pitches = assignPitches(rng, allEvents, allAccents, harmonicMap, range, repeatedNoteAmount, finalMelodicLift, opening)
+  const pitches = assignPitches(rng, allEvents, allAccents, harmonicMap, range, effectiveRepeated, finalMelodicLift, opening)
 
   const notes: MelodyNote[] = allEvents
     .filter((e) => e.beat < totalBeats)
@@ -223,5 +249,9 @@ export function generateSpeechRhythmicPattern(
     accent: allAccents[i] ?? "none",
   }))
 
-  return { notes, prosodyPlan: { syllableSlots, breathPositions }, plan: { unitLengths, pickupAmount, syncopationAmount, finalMelodicLift } }
+  return {
+    notes,
+    prosodyPlan: { syllableSlots, breathPositions },
+    plan: { unitLengths, pickupAmount, syncopationAmount: effectiveSyncopation, finalMelodicLift },
+  }
 }

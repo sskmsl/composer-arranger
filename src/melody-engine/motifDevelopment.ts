@@ -1,4 +1,5 @@
 import type { SeededRandom } from "@/core/rng"
+import type { MotifDevelopmentStrategy } from "@/core/melody"
 import type { MotifEvent } from "./motifCore"
 
 export type DevelopmentOp =
@@ -111,10 +112,13 @@ export function weightedDevelopmentOp(
   motifRepeatTarget: number,
   noveltyWeight: number,
   isAnswerSlot: boolean,
+  strategy?: MotifDevelopmentStrategy,
+  segmentIndex = 0,
 ): DevelopmentOp {
   if (isAnswerSlot && rng.chance(0.6)) return "answerPhrase"
+  if (strategy === "delayed-return" && segmentIndex >= 2 && rng.chance(0.65)) return "repeat"
   const ops: DevelopmentOp[] = ["repeat", "sequence", "rhythmicVariation", "intervalExpansion", "intervalCompression", "inversion"]
-  const weights = [
+  const weights: number[] = [
     motifRepeatTarget * 2,
     motifRepeatTarget * 1.4,
     0.6 + noveltyWeight,
@@ -122,5 +126,16 @@ export function weightedDevelopmentOp(
     0.3 + noveltyWeight * 0.4,
     0.3 + noveltyWeight * 0.6,
   ]
+  const preferred: Partial<Record<MotifDevelopmentStrategy, DevelopmentOp[]>> = {
+    "literal-return": ["repeat"],
+    sequence: ["sequence", "inversion"],
+    fragmentation: ["rhythmicVariation", "intervalCompression"],
+    augmentation: ["rhythmicVariation", "intervalExpansion"],
+    "delayed-return": segmentIndex < 2 ? ["sequence", "inversion"] : ["repeat"],
+  }
+  for (const op of preferred[strategy ?? "sequence"] ?? []) {
+    const index = ops.indexOf(op)
+    if (index >= 0) weights[index] *= 2.4
+  }
   return rng.weightedPick(ops, weights)
 }

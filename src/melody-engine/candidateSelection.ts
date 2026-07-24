@@ -1,4 +1,5 @@
 import type {
+  CandidateMelodyDNA,
   CandidateSelectionReason,
   MelodyGeneratorProfile,
   MelodySimilarityBreakdown,
@@ -37,6 +38,7 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   candidatePoolIndex: number
   qualityScore: number
   profileFitScore: number
+  candidateMelodyDNA?: CandidateMelodyDNA
 }
 
 export interface SelectedCandidate<T extends SelectableCandidate> {
@@ -57,6 +59,7 @@ export interface CandidateSelectionOptions {
   maximumOpeningSimilarity?: number
   requireOpeningCategoryDiversity?: boolean
   requireActualStartBeatDiversity?: boolean
+  requireCandidateDNADiversity?: boolean
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
@@ -115,6 +118,24 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
         (!options.requireActualStartBeatDiversity || starts(set) >= 2)
       )
     }
+    const candidateDNAValid = (set: T[]): boolean => {
+      if (!options.requireCandidateDNADiversity) return true
+      const candidates = set.map((candidate) => candidate.candidateMelodyDNA)
+      if (candidates.some((candidate) => !candidate)) return false
+      const dnaSet = candidates as CandidateMelodyDNA[]
+      const signatures = dnaSet.map((candidate) => JSON.stringify(candidate))
+      const dimensions = [
+        dnaSet.map((candidate) => candidate.motifIdentity),
+        dnaSet.map((candidate) => candidate.rhythmGrammar),
+        dnaSet.map((candidate) => candidate.phraseArchitecture),
+        dnaSet.map((candidate) => candidate.harmonicResponse),
+        dnaSet.map((candidate) => candidate.registerTrajectory),
+        dnaSet.map((candidate) => candidate.developmentStrategy),
+        dnaSet.map((candidate) => candidate.climaxPlan.position),
+        dnaSet.map((candidate) => candidate.endingStrategy),
+      ]
+      return new Set(signatures).size === set.length && dimensions.filter((values) => new Set(values).size >= 2).length >= 3
+    }
 
     type RankedSet = { set: T[]; similarities: MelodySimilarityBreakdown[]; maxOverall: number; score: number }
     const rankedSets: RankedSet[] = []
@@ -123,6 +144,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
         for (let k = j + 1; k < eligible.length; k++) {
           const set = [eligible[i], eligible[j], eligible[k]]
           if (!openingCategoriesValid(set)) continue
+          if (!candidateDNAValid(set)) continue
           const similarities = [
             pairSimilarity(set[0], set[1]),
             pairSimilarity(set[0], set[2]),

@@ -110,25 +110,33 @@ describe("冒頭設計: 決定論とバッチ独立性", () => {
   })
 
   it("類似または同開始拍の候補だけを新しいseed・Opening Planで再生成する", () => {
-    const result = generateFromChordsWithProfiles({
-      chords,
-      sectionId: "s1",
-      sectionRole: "verse",
-      songProfile: "original-custom",
-      density: "balanced",
-      range: { low: 60, high: 79 },
-      drama: "growing",
-      totalBeats,
-      seed: 1,
-      profiles: ["standard"],
-    })
-    const regenerated = result.diagnostics.filter((diagnostic) => diagnostic.openingRegenerationAttempts > 0)
-    expect(regenerated).toHaveLength(1)
-    expect(regenerated[0].candidatePoolIndex).toBe(2)
-    expect(regenerated[0].candidateSeed).not.toBe(1 + 2 * 7919)
-    expect(result.diagnostics.filter((diagnostic) => diagnostic.candidatePoolIndex !== 2).every(
-      (diagnostic) => diagnostic.openingRegenerationAttempts === 0,
-    )).toBe(true)
+    // Pattern DNA追加後はseed=1の初期3案が既に十分異なるため、再生成が実際に必要になる
+    // seedを探索し、「該当候補だけ」が置換される性質を確認する。
+    let verified = false
+    for (let seed = 1; seed <= 100 && !verified; seed++) {
+      const result = generateFromChordsWithProfiles({
+        chords,
+        sectionId: "s1",
+        sectionRole: "verse",
+        songProfile: "original-custom",
+        density: "balanced",
+        range: { low: 60, high: 79 },
+        drama: "growing",
+        totalBeats,
+        seed,
+        profiles: ["standard"],
+      })
+      const regenerated = result.diagnostics.filter((diagnostic) => diagnostic.openingRegenerationAttempts > 0)
+      if (regenerated.length === 0) continue
+      expect(regenerated).toHaveLength(1)
+      const target = regenerated[0]
+      expect(target.candidateSeed).not.toBe(seed + target.candidatePoolIndex * 7919)
+      expect(result.diagnostics.filter((diagnostic) => diagnostic.candidatePoolIndex !== target.candidatePoolIndex).every(
+        (diagnostic) => diagnostic.openingRegenerationAttempts === 0,
+      )).toBe(true)
+      verified = true
+    }
+    expect(verified).toBe(true)
   })
 })
 

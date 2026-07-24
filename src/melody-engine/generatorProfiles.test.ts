@@ -62,9 +62,10 @@ describe("Generator Profile: 既存6 Profileの回帰確認", () => {
   })
 
   it("Leapingはstandardより平均跳躍が大きい", () => {
-    const leaping = metricsFor(generateOne("leaping", 5)[0].notes)
-    const standard = metricsFor(generateOne("standard", 5)[0].notes)
-    expect(leaping.avgLeap).toBeGreaterThan(standard.avgLeap)
+    // Pattern 1は品質順であり固定サブタイプではないため、同一Profileの3案平均で比較する。
+    const leaping = generateOne("leaping", 5).reduce((sum, candidate) => sum + metricsFor(candidate.notes).avgLeap, 0) / 3
+    const standard = generateOne("standard", 5).reduce((sum, candidate) => sum + metricsFor(candidate.notes).avgLeap, 0) / 3
+    expect(leaping).toBeGreaterThan(standard)
   })
 
   it("Minimalはstandardより休符率が高い(seed平均)", () => {
