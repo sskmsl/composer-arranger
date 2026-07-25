@@ -8,8 +8,9 @@ import { MelodyWorkspace } from "./MelodyWorkspace"
 import { TimingMigrationBanner } from "./TimingMigrationBanner"
 import { ArrangementWorkspace } from "./ArrangementWorkspace"
 import { AuditionWorkspace } from "./AuditionWorkspace"
+import { PhraseWorkspace } from "./PhraseWorkspace"
 
-export type MainTab = "melody" | "arrangement" | "audition"
+export type MainTab = "melody" | "phrase" | "arrangement" | "audition"
 
 export function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
@@ -56,10 +57,26 @@ export function App() {
             )}
           </>
         )}
+        {tab === "phrase" && (
+          <>
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <PhraseWorkspace />
+            <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="phrase" />
+            {(leftOpen || rightOpen) && (
+              <div
+                className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                onClick={() => {
+                  setLeftOpen(false)
+                  setRightOpen(false)
+                }}
+              />
+            )}
+          </>
+        )}
         {tab === "arrangement" && <ArrangementWorkspace />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
-      <BottomBar />
+      {tab !== "phrase" && <BottomBar />}
     </div>
   )
 }

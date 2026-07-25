@@ -1,5 +1,6 @@
 import type { Section } from "./section"
 import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
+import type { PhraseCandidate } from "./phrase"
 import { normalizeSectionTimeline } from "./sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, partRoleFor, type SectionContentSettings } from "./sectionContent"
 import { fallbackPlanFor, replaceVariantNotes } from "./sectionLayers"
@@ -82,6 +83,8 @@ export interface ComposerProject {
   sections: Section[]
   chords: ChordEvent[]
   melodyVariants: MelodyVariant[]
+  /** 短い着想素材。完成Melodyとは独立して保存し、Active Melody割り当てには使わない。 */
+  phraseCandidates: PhraseCandidate[]
   arrangementVariants: unknown[]
   audioReferences: unknown[]
   activeMelodyId: string | null
@@ -101,8 +104,8 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-/** 1.5: Issue #45 で独立Accompaniment Pattern Templateとセクション割り当てを追加 */
-export const CURRENT_SCHEMA_VERSION = "1.5"
+/** 1.6: Melodyとは独立した2〜4小節のPhrase Candidateを追加 */
+export const CURRENT_SCHEMA_VERSION = "1.6"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -120,6 +123,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     sections: [],
     chords: [],
     melodyVariants: [],
+    phraseCandidates: [],
     arrangementVariants: [],
     audioReferences: [],
     activeMelodyId: null,
@@ -196,6 +200,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     sections: normalizeSectionTimeline(r.sections ?? []).map(normalizeSectionContent),
     chords: r.chords ?? [],
     melodyVariants: (r.melodyVariants ?? []).map(normalizeVariantLayers),
+    phraseCandidates: r.phraseCandidates ?? [],
     arrangementVariants: r.arrangementVariants ?? [],
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
