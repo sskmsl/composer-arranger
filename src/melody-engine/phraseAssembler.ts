@@ -237,7 +237,15 @@ export function placeSegment(
   context: PlaceSegmentContext = {},
 ): MelodyNote[] {
   const effectiveHigh = range.high - params.peakHeadroomSemitones
-  const effectiveRange = { low: range.low, high: Math.max(range.low + 4, effectiveHigh) }
+  // planned pitchのピッチクラスを保ったままオクターブ調整できるよう、
+  // 元のフレーズ音域に余裕がある場合は最低11半音幅を残す。
+  // これより狭めると、例えばVerse後半の上方trajectoryでD4が範囲外になった際、
+  // 同じDが範囲内に存在せず境界のD#へhard clampされ、和声機能が失われる。
+  const minimumFunctionalHigh = Math.min(range.high, range.low + 11)
+  const effectiveRange = {
+    low: range.low,
+    high: Math.max(minimumFunctionalHigh, effectiveHigh),
+  }
   const notes: MelodyNote[] = []
   const sounding: SoundingEvent[] = []
   let rawIndex = 0
@@ -254,10 +262,33 @@ export function placeSegment(
     const classified = classifyTone(sounding, index, harmonicMap, context.opening)
     const fitted = fitPlannedPitchToRange(item.rawPitch, effectiveRange)
     let placedPitch = fitted.pitch
+    let placedRole = classified.role
+    let placedResolution = classified.resolution
     let correctionReason: PitchCorrectionDiagnostic["reason"] | undefined = fitted.reason
 
-    if (classified.role === "unresolved-conflict") {
-      const usable = entry ? withKeyBias(allUsablePitchClasses(entry.parsed), params.keyScalePitchClasses) : chordTones
+    const usable = entry ? withKeyBias(allUsablePitchClasses(entry.parsed), params.keyScalePitchClasses) : chordTones
+    if (fitted.reason === "midi-range-clamp") {
+      // 1オクターブ未満の狭いphrase rangeでは、同じpitch classを保つ候補が
+      // 物理的に存在しない場合がある。境界の半音へclampせず、元のroleに応じた
+      // 和声音へ最小移動し、role metadataも実音へ同期する。
+      const roleAllowed =
+        classified.role === "chord-tone" || classified.role === "common-tone"
+          ? chordTones
+          : usable
+      if (!roleAllowed.includes(pitchClass(placedPitch))) {
+        placedPitch = contourPreservingCorrection(
+          fitted.pitch,
+          roleAllowed,
+          effectiveRange,
+          notes[notes.length - 1]?.pitch,
+          sounding[index + 1]?.rawPitch,
+        )
+        placedRole = chordTones.includes(pitchClass(placedPitch)) ? "chord-tone" : "tension-hold"
+        placedResolution = undefined
+      }
+    }
+
+    if (placedRole === "unresolved-conflict") {
       const allowed = isStrongBeat(beat, entry) ? chordTones : usable
       placedPitch = contourPreservingCorrection(
         fitted.pitch,
@@ -266,6 +297,8 @@ export function placeSegment(
         notes[notes.length - 1]?.pitch,
         sounding[index + 1]?.rawPitch,
       )
+      placedRole = chordTones.includes(pitchClass(placedPitch)) ? "chord-tone" : "tension-hold"
+      placedResolution = undefined
       correctionReason = isStrongBeat(beat, entry) ? "unresolved-strong-beat-conflict" : "unresolved-harmonic-conflict"
     }
 
@@ -276,7 +309,7 @@ export function placeSegment(
         beat,
         rawPitch: item.rawPitch,
         placedPitch,
-        role: classified.role,
+        role: placedRole,
         reason: correctionReason,
       })
     }
@@ -285,8 +318,8 @@ export function placeSegment(
       durationBeats: item.event.durationBeats,
       rawPitch: item.rawPitch,
       placedPitch,
-      role: classified.role,
-      resolution: classified.resolution,
+      role: placedRole,
+      resolution: placedResolution,
     })
 
     // 旧実装のuseTension抽選と同じ1回分を消費し、配置方式の変更が後続フレーズの乱数列まで
@@ -299,8 +332,8 @@ export function placeSegment(
       pitch: placedPitch,
       velocity: 76 + rng.intBetween(-4, 6),
       locks: [],
-      plannedToneRole: classified.role,
-      plannedResolution: classified.resolution,
+      plannedToneRole: placedRole,
+      plannedResolution: placedResolution,
     })
   })
   return notes

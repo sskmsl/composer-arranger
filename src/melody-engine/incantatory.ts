@@ -10,7 +10,8 @@ import type { SeededRandom } from "@/core/rng"
 import type { MelodyNote } from "@/core/melody"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
-import { chordTonePitchClasses, hasSemitoneRisk } from "@/core/chord"
+import { allUsablePitchClasses, chordTonePitchClasses, hasSemitoneRisk } from "@/core/chord"
+import { pitchClass } from "@/core/note"
 import { nearestAllowedPitch } from "./pitchUtils"
 import type { RangeSetting } from "./generationParams"
 import type { CandidateMelodyDNA, MelodyOpeningPlan, SongMotifDNA } from "@/core/melody"
@@ -176,6 +177,59 @@ function realizeCopy(
   return notes
 }
 
+/**
+ * 核モチーフの輪郭を優先しつつ、和声的に説明できない音だけを整える。
+ * 短い順次非和声音は直後の解決計画を付けて保持し、それ以外は
+ * コードのusable toneへ最小移動する。
+ */
+function harmonizeIncantatoryNotes(
+  notes: MelodyNote[],
+  harmonicMap: HarmonicMapEntry[],
+  range: RangeSetting,
+): void {
+  notes.sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch)
+  for (let index = 0; index < notes.length; index++) {
+    const note = notes[index]
+    const next = notes[index + 1]
+    const entry = chordAtBeat(harmonicMap, note.startBeat)
+    if (!entry) continue
+    const chordTones = chordTonePitchClasses(entry.parsed)
+    const usable = allUsablePitchClasses(entry.parsed)
+    const pc = pitchClass(note.pitch)
+    if (chordTones.includes(pc)) {
+      note.plannedToneRole = "chord-tone"
+      note.plannedResolution = undefined
+      continue
+    }
+    if (usable.includes(pc)) {
+      note.plannedToneRole = "tension-hold"
+      note.plannedResolution = undefined
+      continue
+    }
+
+    const nextEntry = next ? chordAtBeat(harmonicMap, next.startBeat) : undefined
+    const nextUsable = nextEntry ? allUsablePitchClasses(nextEntry.parsed) : []
+    const resolvesByStep =
+      Boolean(next) &&
+      next!.startBeat - (note.startBeat + note.durationBeats) <= 0.8 &&
+      Math.abs(next!.pitch - note.pitch) <= 2 &&
+      nextUsable.includes(pitchClass(next!.pitch))
+    if (note.durationBeats <= 1 && resolvesByStep) {
+      note.plannedToneRole = "passing-tone"
+      note.plannedResolution = {
+        targetPitchClass: pitchClass(next!.pitch),
+        targetBeat: next!.startBeat,
+        maximumDelayBeats: Math.max(0.5, next!.startBeat - note.startBeat),
+      }
+      continue
+    }
+
+    note.pitch = nearestAllowedPitch(note.pitch, usable, range)
+    note.plannedToneRole = chordTones.includes(pitchClass(note.pitch)) ? "chord-tone" : "tension-hold"
+    note.plannedResolution = undefined
+  }
+}
+
 export function generateIncantatoryPattern(
   rng: SeededRandom,
   harmonicMap: HarmonicMapEntry[],
@@ -261,5 +315,6 @@ export function generateIncantatoryPattern(
     repeatIndex++
   }
 
+  harmonizeIncantatoryNotes(notes, harmonicMap, range)
   return { notes, plan: { motifNoteCount: coreMotif.intervals.length, mutationPeriod, coreMotif } }
 }

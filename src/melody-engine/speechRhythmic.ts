@@ -10,6 +10,7 @@ import type { CandidateMelodyDNA, MelodyNote, MelodyOpeningPlan, ProsodyPlan, Pr
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import { chordTonePitchClasses } from "@/core/chord"
+import { pitchClass } from "@/core/note"
 import { nearestAllowedPitch } from "./pitchUtils"
 import { openingStartMidi } from "./openingIntent"
 import type { RangeSetting } from "./generationParams"
@@ -170,6 +171,28 @@ function assignPitches(
   return pitches
 }
 
+/**
+ * Speech-Rhythmicは同音反復を優先するが、コード変更後も旧コードの核音を
+ * 無条件に引き継ぐと、役割も解決先もない露出したコード外音になる。
+ * Rhythm/Accent Mapは変えず、各コード内で最寄りコードトーンへ局所適応する。
+ */
+function harmonizeSpeechPitches(
+  notes: MelodyNote[],
+  harmonicMap: HarmonicMapEntry[],
+  range: RangeSetting,
+): void {
+  for (const note of notes) {
+    const entry = chordAtBeat(harmonicMap, note.startBeat)
+    if (!entry) continue
+    const chordTones = chordTonePitchClasses(entry.parsed)
+    if (!chordTones.includes(pitchClass(note.pitch))) {
+      note.pitch = nearestAllowedPitch(note.pitch, chordTones, range)
+    }
+    note.plannedToneRole = "chord-tone"
+    note.plannedResolution = undefined
+  }
+}
+
 export function generateSpeechRhythmicPattern(
   rng: SeededRandom,
   harmonicMap: HarmonicMapEntry[],
@@ -235,6 +258,7 @@ export function generateSpeechRhythmicPattern(
       locks: [],
     }))
     .filter((n) => n.durationBeats > 0.05)
+  harmonizeSpeechPitches(notes, harmonicMap, range)
 
   const breathPositions: number[] = []
   let expected = 0

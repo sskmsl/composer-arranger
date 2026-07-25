@@ -159,12 +159,15 @@ function buildCandidate(
     ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
     : notes
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
-  const finalNotes = applyProfileExpression(
-    narrativeNotes,
-    profileExpressionPlan,
+  const finalNotes = reconcileFinalToneRoles(
+    applyProfileExpression(
+      narrativeNotes,
+      profileExpressionPlan,
+      harmonicMap,
+      input.range,
+      input.totalBeats,
+    ),
     harmonicMap,
-    input.range,
-    input.totalBeats,
   )
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
@@ -194,6 +197,32 @@ function refreshPhrasePlans(plans: PhrasePlan[], notes: MelodyNote[]): PhrasePla
     const climax = phraseNotes.reduce((highest, note) => (note.pitch > highest.pitch ? note : highest), phraseNotes[0])
     return { ...plan, climaxBeat: climax.startBeat }
   })
+}
+
+/** 後処理でpitch classが変わった場合に、配置時のrole表示を最終実音へ同期する。 */
+function reconcileFinalToneRoles(
+  notes: MelodyNote[],
+  harmonicMap: ReturnType<typeof buildHarmonicMap>,
+): MelodyNote[] {
+  for (const note of notes) {
+    if (note.plannedResolution) continue
+    const entry = harmonicMap.find(
+      (candidate) =>
+        note.startBeat >= candidate.chord.startBeat &&
+        note.startBeat < candidate.chord.startBeat + candidate.chord.durationBeats,
+    )
+    if (!entry) continue
+    const pc = pitchClass(note.pitch)
+    if (
+      (note.plannedToneRole === "chord-tone" || note.plannedToneRole === "common-tone") &&
+      !isChordTone(entry.parsed, pc)
+    ) {
+      note.plannedToneRole = isTensionTone(entry.parsed, pc) ? "tension-hold" : "unresolved-conflict"
+    } else if (note.plannedToneRole === "tension-hold" && !isTensionTone(entry.parsed, pc)) {
+      note.plannedToneRole = isChordTone(entry.parsed, pc) ? "chord-tone" : "unresolved-conflict"
+    }
+  }
+  return notes
 }
 
 /** 5.1 Generate from Chords: 6候補を生成する(標準)。9.7 Diversity Filterで多様性を担保する */
