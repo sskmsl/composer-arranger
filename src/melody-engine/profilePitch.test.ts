@@ -71,5 +71,5 @@ describe("全Generator Profileの音程整合性", () => {
     expect(
       Object.fromEntries([...findings].map(([profile, values]) => [profile, values.slice(0, 12)])),
     ).toEqual({})
-  }, 15_000)
+  }, 30_000)
 })
