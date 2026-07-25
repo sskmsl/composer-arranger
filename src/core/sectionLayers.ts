@@ -76,6 +76,31 @@ export function hasNoLeadNotes(variant: MelodyVariant): boolean {
   return notesByPartRole(variant, "lead").length === 0
 }
 
+/**
+ * Issue #41: 生成済みのサビ系メロディの最高音。
+ * 1つも生成されていなければ undefined を返す(呼び出し側は予約値へフォールバックする)。
+ */
+export function chorusPeakMidi(project: {
+  sections: { id: string; role: string }[]
+  melodyVariants: MelodyVariant[]
+  sectionMelodyAssignments: Record<string, string>
+}): number | undefined {
+  const chorusSectionIds = new Set(
+    project.sections.filter((s) => s.role === "chorus" || s.role === "grand-chorus").map((s) => s.id),
+  )
+  if (chorusSectionIds.size === 0) return undefined
+
+  // 採用済みVariantを優先し、無ければそのセクションの全候補から見る
+  const relevant = project.melodyVariants.filter((variant) => {
+    if (!chorusSectionIds.has(variant.sectionId)) return false
+    const assigned = project.sectionMelodyAssignments[variant.sectionId]
+    return assigned ? assigned === variant.id : true
+  })
+
+  const pitches = relevant.flatMap((variant) => notesByPartRole(variant, "lead").map((note) => note.pitch))
+  return pitches.length > 0 ? Math.max(...pitches) : undefined
+}
+
 /** セクション設定からリード内容を読む(未設定は既定のmelody) */
 export function sectionLeadSetting(section: { content?: { lead: string } }): string {
   return section.content?.lead ?? DEFAULT_SECTION_CONTENT.lead

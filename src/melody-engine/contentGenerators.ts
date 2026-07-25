@@ -224,12 +224,17 @@ function pitchOfClassNear(pc: number, window: { low: Midi; high: Midi }, fullRan
   for (let pitch = target; pitch <= 127; pitch += 12) octaves.push(pitch)
   const byDistance = octaves.sort((a, b) => Math.abs(a - center) - Math.abs(b - center))
 
-  // まずregister区画、収まらなければ全体音域、それでも無ければcenterに最も近いオクターブ
+  // まずregister区画、収まらなければ全体音域を試す
   for (const bounds of [window, fullRange]) {
     const hit = byDistance.find((pitch) => pitch >= bounds.low && pitch <= bounds.high)
     if (hit !== undefined) return hit
   }
-  return byDistance[0]
+  // どちらにも該当オクターブが無い場合(クライマックス予約で音域が12半音未満に
+  // 狭まったときに起こる)。上限を超えるのはクライマックス予約を破ることになるため、
+  // ピッチクラスを保ったまま上限以下で最も中心に近いオクターブへ落とす。
+  const belowCeiling = byDistance.filter((pitch) => pitch <= fullRange.high && pitch >= 0)
+  if (belowCeiling.length > 0) return belowCeiling[0]
+  return Math.max(0, byDistance[byDistance.length - 1])
 }
 
 /**

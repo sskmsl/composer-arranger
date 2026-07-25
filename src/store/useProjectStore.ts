@@ -44,7 +44,7 @@ import {
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
 import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, type SectionContentSettings } from "@/core/sectionContent"
-import { resolvedLeadContent } from "@/core/sectionLayers"
+import { chorusPeakMidi, resolvedLeadContent } from "@/core/sectionLayers"
 import {
   generateSectionContent,
   toMelodyVariantFromContent,
@@ -530,6 +530,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         beatsPerBar: ts.beatsPerBar,
         seed: createSeed(),
         key: prev.song.key,
+        // Issue #41: サビが未生成ならundefinedのまま渡し、生成側で予約値へフォールバックさせる
+        chorusPeakMidi: chorusPeakMidi(prev),
       })
       const contentBatchId = crypto.randomUUID()
       const contentVariants = contentCandidates.map((candidate) =>

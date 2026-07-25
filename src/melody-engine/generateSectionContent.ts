@@ -14,6 +14,7 @@ import { LEAD_CONTENT_LABELS } from "@/core/sectionContent"
 import { flattenLayerNotes } from "@/core/sectionLayers"
 import { keyScalePitchClasses } from "@/core/scale"
 import { buildHarmonicMap } from "./harmonicMap"
+import { rangeWithClimaxReservation, resolveClimaxCeiling } from "./climaxReservation"
 import type { RangeSetting } from "./generationParams"
 import { buildContentLayers } from "./contentGenerators"
 import {
@@ -44,6 +45,11 @@ export interface GenerateSectionContentInput {
   seed: number
   key?: string
   candidateCount?: number
+  /**
+   * Issue #41: 生成済みのサビ系メロディの最高音。
+   * 未生成(undefined)ならSong Profileの予約幅へフォールバックする。
+   */
+  chorusPeakMidi?: number
 }
 
 export interface SectionContentCandidate {
@@ -63,13 +69,22 @@ export interface SectionContentCandidate {
 const MAX_CONTENT_REGEN_ATTEMPTS = 4
 
 function buildContext(input: GenerateSectionContentInput): ContentPlanContext {
+  // Issue #41: 主旋律のクライマックス音高を予約し、その下だけを使って生成する。
+  // サビ未生成でも例外にせず、Song Profileの予約幅へフォールバックする。
+  const ceiling = resolveClimaxCeiling({
+    sectionRole: input.sectionRole,
+    songProfile: input.songProfile,
+    range: input.range,
+    chorusPeakMidi: input.chorusPeakMidi,
+  })
+
   return {
     totalBeats: input.totalBeats,
     beatsPerBar: input.beatsPerBar,
     sectionRole: input.sectionRole,
     songProfile: input.songProfile,
     harmonicMap: buildHarmonicMap(input.chords),
-    range: input.range,
+    range: rangeWithClimaxReservation(input.range, ceiling),
     keyScale: input.key ? keyScalePitchClasses(input.key) : [],
     requestedEntryOffsetBeats: input.content.entryOffsetBeats,
     requestedPickup: input.content.pickup,

@@ -21,6 +21,7 @@ import {
   type ContentPlanContext,
 } from "./sectionContentPlan"
 import { buildHarmonicMap } from "./harmonicMap"
+import { rangeWithClimaxReservation, resolveClimaxCeiling } from "./climaxReservation"
 import { SeededRandom } from "@/core/rng"
 
 const TOTAL_BEATS = 16
@@ -306,6 +307,101 @@ describe("Issue #41 / Auto", () => {
       sequences.add(generate(content({ lead: "auto" }), seed).map((c) => c.content).join(">"))
     }
     expect(sequences.size).toBeGreaterThan(1)
+  })
+})
+
+describe("Issue #41 / クライマックス音高の予約とフォールバック", () => {
+  const range = { low: 60, high: 79 }
+
+  it("サビ未生成でも例外を投げず、Song Profileの予約幅へフォールバックする", () => {
+    for (const songProfile of [
+      "dark-romantic",
+      "cinematic-french-pop",
+      "minimal-tension",
+      "dramatic-synth-pop",
+      "original-custom",
+    ] as const) {
+      const ceiling = resolveClimaxCeiling({
+        sectionRole: "intro",
+        songProfile,
+        range,
+        chorusPeakMidi: undefined,
+      })
+      expect(ceiling.source).toBe("profile-reservation")
+      expect(ceiling.ceilingMidi).toBeLessThan(range.high)
+      expect(ceiling.ceilingMidi).toBeGreaterThanOrEqual(range.low)
+    }
+  })
+
+  it("サビが生成済みならその最高音より下に収める", () => {
+    const ceiling = resolveClimaxCeiling({
+      sectionRole: "intro",
+      songProfile: "dark-romantic",
+      range,
+      chorusPeakMidi: 72,
+    })
+    expect(ceiling.source).toBe("chorus-melody")
+    expect(ceiling.ceilingMidi).toBe(71)
+  })
+
+  it("サビ自身は音域を予約しない", () => {
+    for (const sectionRole of ["chorus", "grand-chorus"] as const) {
+      const ceiling = resolveClimaxCeiling({ sectionRole, songProfile: "dark-romantic", range })
+      expect(ceiling.source).toBe("no-reservation")
+      expect(ceiling.ceilingMidi).toBe(range.high)
+    }
+  })
+
+  it("音域が極端に狭くてもrange下限を割らない", () => {
+    const narrow = { low: 60, high: 61 }
+    const ceiling = resolveClimaxCeiling({
+      sectionRole: "intro",
+      songProfile: "dramatic-synth-pop",
+      range: narrow,
+      chorusPeakMidi: 60,
+    })
+    expect(ceiling.ceilingMidi).toBeGreaterThanOrEqual(narrow.low)
+    expect(rangeWithClimaxReservation(narrow, ceiling).high).toBeGreaterThanOrEqual(narrow.low)
+  })
+
+  it("サビ未生成でも、予約された上限を超える音を生成しない", () => {
+    // サビ未生成(chorusPeakMidi省略)= profile-reservationのフォールバック経路
+    const ceiling = resolveClimaxCeiling({ sectionRole: "intro", songProfile: "dark-romantic", range })
+    for (const lead of ["motif", "ostinato", "drone", "none"] as const) {
+      for (let seed = 1; seed <= 20; seed++) {
+        for (const candidate of generate(content({ lead, pickup: true }), seed)) {
+          for (const note of candidate.notes) {
+            expect(note.pitch).toBeLessThanOrEqual(ceiling.ceilingMidi)
+          }
+        }
+      }
+    }
+  })
+
+  it("イントロのcontent生成が、生成済みサビの最高音を超えない", () => {
+    const chorusPeak = 70
+    for (const lead of ["motif", "ostinato", "drone"] as const) {
+      for (let seed = 1; seed <= 20; seed++) {
+        const { candidates } = generateSectionContent({
+          chords: CHORDS,
+          sectionId: "s1",
+          sectionRole: "intro",
+          songProfile: "dark-romantic",
+          content: content({ lead }),
+          range,
+          totalBeats: TOTAL_BEATS,
+          beatsPerBar: BEATS_PER_BAR,
+          seed,
+          key: "Am",
+          chorusPeakMidi: chorusPeak,
+        })
+        for (const candidate of candidates) {
+          for (const note of candidate.notes) {
+            expect(note.pitch).toBeLessThan(chorusPeak)
+          }
+        }
+      }
+    }
   })
 })
 
