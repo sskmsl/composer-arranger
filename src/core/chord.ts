@@ -29,6 +29,11 @@ export interface ParsedChord {
   isSus: boolean
   isDominant: boolean
   isDiminished: boolean
+  /**
+   * 解析後に解釈できず残った末尾文字(Issue #12)。空文字なら完全に解釈済み。
+   * 例: "Cmaj7xyz" → "xyz"。診断表示で「未対応記法を無視した」ことを可視化するために使う。
+   */
+  unrecognized: string
 }
 
 function noteNameToPc(letter: string, accidental: string): number {
@@ -245,6 +250,8 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
     isSus,
     isDominant: hasDominantSeventh && !hasExplicitMajorSeventh,
     isDiminished: isDim,
+    // add/altトークン以外に解釈できず残った末尾文字。addトークンはrestに残るため除いて評価する。
+    unrecognized: rest.replace(/add[#b]?\d+/gi, "").replace(/[(),\s]/g, "").trim(),
   }
 }
 

@@ -4,11 +4,46 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
 import { chordEventsToText } from "@/core/chordInput"
 import { parseTimeSignature } from "@/core/section"
+import { diagnoseChordInput, type ChordDiagnosis } from "@/core/chordDiagnostics"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
-import { Plus, Copy, Trash2, Download, Upload, FilePlus2, Repeat, X } from "lucide-react"
+import { Plus, Copy, Trash2, Download, Upload, FilePlus2, Repeat, X, CheckCircle2, AlertTriangle, XCircle, MoveRight } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
+
+/** Issue #12: 1コードの診断行 */
+function ChordDiagnosisRow({ d }: { d: ChordDiagnosis }) {
+  const icon =
+    d.status === "error" ? (
+      <XCircle size={12} className="mt-0.5 shrink-0 text-red-400" />
+    ) : d.status === "warning" ? (
+      <AlertTriangle size={12} className="mt-0.5 shrink-0 text-amber-400" />
+    ) : (
+      <CheckCircle2 size={12} className="mt-0.5 shrink-0 text-emerald-400" />
+    )
+  const preview =
+    d.status !== "error" && d.rootName
+      ? [
+          d.bassName ? `${d.rootName}/${d.bassName}` : d.rootName,
+          d.toneNames?.length ? `構成音 ${d.toneNames.join(" ")}` : null,
+          d.tensionNames?.length ? `テンション ${d.tensionNames.join(" ")}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : null
+  return (
+    <li className="flex items-start gap-1.5 py-0.5">
+      {icon}
+      <span className="flex flex-col">
+        <span className="text-[11px] text-body-on-dark">
+          <span className="font-medium">{d.symbol || "(空)"}</span>
+          {d.status !== "ok" && d.reason && <span className={clsx("ml-1", d.status === "error" ? "text-red-400" : "text-amber-400")}>— {d.reason}</span>}
+        </span>
+        {preview && <span className="text-[10px] text-ink-muted-48">{preview}</span>}
+      </span>
+    </li>
+  )
+}
 
 export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const project = useProjectStore((s) => s.project)
@@ -20,6 +55,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const duplicateSection = useProjectStore((s) => s.duplicateSection)
   const setChordText = useProjectStore((s) => s.setChordText)
   const repeatSectionChords = useProjectStore((s) => s.repeatSectionChords)
+  const extendLastChordToFill = useProjectStore((s) => s.extendLastChordToFill)
   const newProject = useProjectStore((s) => s.newProject)
   const loadProject = useProjectStore((s) => s.loadProject)
 
@@ -31,6 +67,8 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const coveredBars = sectionChords.length
     ? Math.max(...sectionChords.map((c) => c.startBeat + c.durationBeats)) / ts.beatsPerBar
     : 0
+  const sectionBeats = section ? section.lengthBars * ts.beatsPerBar : 0
+  const diagnostics = section && sectionChords.length > 0 ? diagnoseChordInput(sectionChords, sectionBeats) : null
 
   return (
     <aside
@@ -158,6 +196,43 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
                 <Repeat size={13} />
                 {coveredBars > 0 ? `繰り返して2倍(${coveredBars}→${coveredBars * 2}小節)` : "繰り返して2倍"}
               </Button>
+
+              {diagnostics && (
+                <div className="mt-2 rounded-sm border border-hairline bg-surface-tile-2 p-2">
+                  {/* セクション充足状況 */}
+                  {diagnostics.coverage.status === "under" && (
+                    <div className="mb-1.5 flex flex-col gap-1 text-[11px] text-amber-400">
+                      <span className="flex items-center gap-1">
+                        <AlertTriangle size={12} /> セクション({section.lengthBars}小節)に対しコードが{Math.round((diagnostics.coverage.gapBeats / ts.beatsPerBar) * 100) / 100}小節分不足しています
+                      </span>
+                      <Button variant="dark" className="w-full justify-center" onClick={() => extendLastChordToFill(section.id)}>
+                        <MoveRight size={12} /> 最後のコードを延長して埋める
+                      </Button>
+                    </div>
+                  )}
+                  {diagnostics.coverage.status === "over" && (
+                    <p className="mb-1.5 flex items-center gap-1 text-[11px] text-amber-400">
+                      <AlertTriangle size={12} /> セクション終端を{Math.round((diagnostics.coverage.overflowBeats / ts.beatsPerBar) * 100) / 100}小節分超過しています(超過部分は生成で切り詰められます)
+                    </p>
+                  )}
+                  {diagnostics.coverage.overlaps.length > 0 && (
+                    <p className="mb-1.5 flex items-center gap-1 text-[11px] text-amber-400">
+                      <AlertTriangle size={12} /> コード区間が重複しています
+                    </p>
+                  )}
+                  {diagnostics.hasError && (
+                    <p className="mb-1.5 flex items-center gap-1 text-[11px] text-red-400">
+                      <XCircle size={12} /> 無効なコードがあります。修正しないと C major として生成されます
+                    </p>
+                  )}
+                  {/* コード単位の解析結果 */}
+                  <ul className="flex flex-col">
+                    {diagnostics.chords.map((d) => (
+                      <ChordDiagnosisRow key={d.index} d={d} />
+                    ))}
+                  </ul>
+                </div>
+              )}
             </FieldGroup>
           </div>
         </SectionCard>
