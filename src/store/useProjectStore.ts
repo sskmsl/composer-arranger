@@ -43,6 +43,7 @@ import {
 } from "@/storage/projectRepository"
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
 import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
+import { DEFAULT_SECTION_CONTENT } from "@/core/sectionContent"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
@@ -292,7 +293,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addSection: (name, role, lengthBars) => {
     const prev = get().project
-    const section: Section = { id: crypto.randomUUID(), name, role, startBar: 1, lengthBars }
+    const section: Section = {
+      id: crypto.randomUUID(),
+      name,
+      role,
+      startBar: 1,
+      lengthBars,
+      // Issue #41: 新規セクションも2軸モデルを明示的に持たせる(既定は従来と同じMelody+Chords)
+      content: { ...DEFAULT_SECTION_CONTENT },
+    }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],

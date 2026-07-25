@@ -1,6 +1,8 @@
 import type { Section } from "./section"
 import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
 import { normalizeSectionTimeline } from "./sectionTimeline"
+import { DEFAULT_SECTION_CONTENT, partRoleFor, type SectionContentSettings } from "./sectionContent"
+import { fallbackPlanFor } from "./sectionLayers"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -91,7 +93,8 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-export const CURRENT_SCHEMA_VERSION = "1.3"
+/** 1.4: Issue #41 でセクションに lead/accompaniment/entryOffset、候補に layers を追加 */
+export const CURRENT_SCHEMA_VERSION = "1.4"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -120,6 +123,48 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
 }
 
 /**
+ * Issue #41: 旧セクション(content未保存)へ2軸モデルの既定値を補完する。
+ * 既定は lead="melody" / accompaniment="chords" / entryOffsetBeats=0 なので、
+ * 既存プロジェクトの生成・再生・書き出しの挙動は変わらない。
+ */
+export function normalizeSectionContent(section: Section): Section {
+  const raw = section.content as Partial<SectionContentSettings> | undefined
+  const entryOffsetRaw = Number(raw?.entryOffsetBeats)
+  return {
+    ...section,
+    content: {
+      lead: raw?.lead ?? DEFAULT_SECTION_CONTENT.lead,
+      accompaniment: raw?.accompaniment ?? DEFAULT_SECTION_CONTENT.accompaniment,
+      // 破損値・負値は既定へ落とす(entryOffsetは生成範囲の下限として使うため)
+      entryOffsetBeats: Number.isFinite(entryOffsetRaw) && entryOffsetRaw > 0 ? entryOffsetRaw : 0,
+      pickup: raw?.pickup ?? DEFAULT_SECTION_CONTENT.pickup,
+    },
+  }
+}
+
+/**
+ * Issue #41: 旧候補(layers未保存)へ、notesを単一leadレイヤーとみなしたlayersを補完する。
+ * partRoleの正をLayer側へ寄せたうえで、notesは従来どおり平坦な派生値として残す。
+ */
+export function normalizeVariantLayers(variant: MelodyVariant): MelodyVariant {
+  if (variant.layers && variant.layers.length > 0) return variant
+  const content = variant.leadContent ?? "melody"
+  return {
+    ...variant,
+    leadContent: content,
+    layers: [
+      {
+        id: `${variant.id}:lead`,
+        partRole: partRoleFor(content),
+        content,
+        plan: variant.contentPlan ?? fallbackPlanFor(content, variant.notes),
+        notes: variant.notes,
+      },
+    ],
+  }
+}
+
+/**
  * schemaVersion 1.0 (songProfile/sectionProfileOverrides/arrangementSettingsを
  * 持たない旧形式)を読み込んだ場合のデフォルト値方針(16.0)を適用して正規化する。
  */
@@ -138,9 +183,9 @@ export function normalizeProject(raw: unknown): ComposerProject {
       sectionProfileOverrides: r.song?.sectionProfileOverrides ?? [],
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS, ...r.arrangementSettings },
-    sections: normalizeSectionTimeline(r.sections ?? []),
+    sections: normalizeSectionTimeline(r.sections ?? []).map(normalizeSectionContent),
     chords: r.chords ?? [],
-    melodyVariants: r.melodyVariants ?? [],
+    melodyVariants: (r.melodyVariants ?? []).map(normalizeVariantLayers),
     arrangementVariants: r.arrangementVariants ?? [],
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
