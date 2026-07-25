@@ -196,7 +196,12 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
         : buildContentLayers(new SeededRandom(seed), plan, ctx, `${input.sectionId}:${index}`)
     const notes = flattenLayerNotes(layers)
     const features = computeContentStructureFeatures(notes, plan, input.totalBeats)
-    const validation = validateContentStructure(features, plan, notes, input.totalBeats)
+    // 構造検証は primary Layer の実音で行う。弱起を含めた合計で数えると、
+    // primaryが0音でも pickup の音数で下限を満たし、生成失敗を見逃してしまう。
+    // 同様に Drone のピッチクラス数なども弱起の音で汚れるため、専用の特徴量を使う。
+    const primaryNotes = layers.find((layer) => layer.kind === "primary")?.notes ?? notes
+    const primaryFeatures = computeContentStructureFeatures(primaryNotes, plan, input.totalBeats)
+    const validation = validateContentStructure(primaryFeatures, plan, primaryNotes, input.totalBeats, notes)
     return {
       patternIndex: (index + 1) as 1 | 2 | 3,
       content: plan.content,

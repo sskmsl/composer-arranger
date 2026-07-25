@@ -227,3 +227,49 @@ describe("PR#43 自己レビュー分", () => {
     expect(validateContentStructure(features, plan, [], TOTAL_BEATS).ok).toBe(true)
   })
 })
+
+describe("PR#43 ブラウザ検証で見つかった分 / 構造検証は primary Layer で判定する", () => {
+  it("pickup有効時、Motifのprimaryが0音なら検証で検出する(弱起の音数で下限を満たさない)", () => {
+    // 残り1拍しかないのでMotifの核は置けない。pickupが有効だと合計2音になるため、
+    // 全ノートで数えると「2音未満」を検出できなくなる
+    const { candidates, unresolvedCandidates } = generateSectionContent({
+      chords: CHORDS,
+      sectionId: "s1",
+      sectionRole: "intro",
+      songProfile: "dark-romantic",
+      content: { lead: "motif", accompaniment: "chords", entryOffsetBeats: TOTAL_BEATS - 1, pickup: true },
+      range: { low: 60, high: 79 },
+      totalBeats: TOTAL_BEATS,
+      beatsPerBar: BEATS_PER_BAR,
+      seed: 99,
+      key: "Am",
+    })
+    for (const candidate of candidates) {
+      const primary = candidate.layers.find((l) => l.kind === "primary")!
+      const pickup = candidate.layers.find((l) => l.kind === "pickup")
+      expect(primary.notes).toHaveLength(0)
+      expect(pickup?.notes.length ?? 0).toBeGreaterThan(0)
+    }
+    expect(unresolvedCandidates.length).toBeGreaterThan(0)
+    expect(unresolvedCandidates[0].problems.join()).toContain("Motifの音数が2音未満")
+  })
+
+  it("pickup有効なDroneでも、弱起の音でピッチクラス数が汚れない", () => {
+    for (let seed = 1; seed <= 15; seed++) {
+      const { unresolvedCandidates } = generateSectionContent({
+        chords: CHORDS,
+        sectionId: "s1",
+        sectionRole: "intro",
+        songProfile: "dark-romantic",
+        content: { lead: "drone", accompaniment: "chords", entryOffsetBeats: 0, pickup: true },
+        range: { low: 60, high: 79 },
+        totalBeats: TOTAL_BEATS,
+        beatsPerBar: BEATS_PER_BAR,
+        seed,
+        key: "Am",
+      })
+      // 弱起の音を含めて数えるとpcCardが3以上になり誤検出する
+      expect(unresolvedCandidates.map((c) => c.problems).flat()).toEqual([])
+    }
+  })
+})

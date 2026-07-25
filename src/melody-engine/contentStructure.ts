@@ -210,28 +210,34 @@ export interface StructuralValidation {
  * content別の最低限の構造検証。
  * 第2段階の品質スコアの代わりではなく、「そのcontentとして成立していない」
  * 生成結果(Droneが同音連打になっている等)を弾くための下限チェック。
+ *
+ * content固有の判定は primary Layer の実音だけで行う。
+ * 弱起(pickup)は別Layerの補助的な音なので、これを含めて数えると
+ * 「primaryが0音でも pickup の音数で下限を満たしてしまう」ことになり、
+ * 生成失敗を検出できなくなる。entryOffsetへの侵入だけは全ノートで見る。
  */
 export function validateContentStructure(
   features: ContentStructureFeatures,
   plan: SectionContentPlan,
-  notes: MelodyNote[],
+  primaryNotes: MelodyNote[],
   totalBeats: number,
+  allNotes: MelodyNote[] = primaryNotes,
 ): StructuralValidation {
   const problems: string[] = []
   const content: ResolvedLeadContent = plan.content
 
-  const early = notes.filter((note) => note.startBeat < plan.entryOffsetBeats - EPS)
+  const early = allNotes.filter((note) => note.startBeat < plan.entryOffsetBeats - EPS)
   if (early.length > 0) problems.push("entryOffsetより前にリードノートがある")
 
   if (content === "melody") {
     // melody は歌うべき内容なので、鳴らせる区間があるのに0音なら成立していない。
     // (Autoがmelodyを選んだのに実音が作られなかった場合をここで捕まえる)
     const hasRoom = plan.entryOffsetBeats + plan.pickupBeats < totalBeats - EPS
-    if (hasRoom && notes.length === 0) problems.push("Melodyの実音が生成されていない")
+    if (hasRoom && primaryNotes.length === 0) problems.push("Melodyの実音が生成されていない")
   }
 
   if (content === "motif") {
-    if (notes.length < 2) problems.push("Motifの音数が2音未満")
+    if (primaryNotes.length < 2) problems.push("Motifの音数が2音未満")
     // 2〜5音の核が識別できること。核1回あたりの音数で見る
     if (plan.cellDurations.length < 2 || plan.cellDurations.length > 5) {
       problems.push("Motifの核が2〜5音の範囲外")
