@@ -3,6 +3,10 @@ import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongM
 import { normalizeSectionTimeline } from "./sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, partRoleFor, type SectionContentSettings } from "./sectionContent"
 import { fallbackPlanFor } from "./sectionLayers"
+import {
+  createDefaultAccompanimentPatterns,
+  type AccompanimentPatternTemplate,
+} from "./accompanimentPattern"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -83,6 +87,10 @@ export interface ComposerProject {
   activeMelodyId: string | null
   /** 曲全体を組み立てるための、セクションごとの採用Variant。 */
   sectionMelodyAssignments: Record<string, string>
+  /** Issue #45: コード進行・Melody Variantから独立した度数＋リズムの伴奏テンプレート。 */
+  accompanimentPatterns: AccompanimentPatternTemplate[]
+  /** Issue #45: セクションごとに適用するAccompaniment Pattern Template。 */
+  sectionAccompanimentPatternAssignments: Record<string, string>
   activeArrangementId: string | null
   notes: string
   /** Melody Candidate Diversity v1.2: Profileごとの役割づけ(任意・強制なし) */
@@ -93,8 +101,8 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-/** 1.4: Issue #41 でセクションに lead/accompaniment/entryOffset、候補に layers を追加 */
-export const CURRENT_SCHEMA_VERSION = "1.4"
+/** 1.5: Issue #45 で独立Accompaniment Pattern Templateとセクション割り当てを追加 */
+export const CURRENT_SCHEMA_VERSION = "1.5"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -116,6 +124,8 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     audioReferences: [],
     activeMelodyId: null,
     sectionMelodyAssignments: {},
+    accompanimentPatterns: createDefaultAccompanimentPatterns(),
+    sectionAccompanimentPatternAssignments: {},
     activeArrangementId: null,
     notes: "",
     timeBase: TIME_BASE,
@@ -190,6 +200,11 @@ export function normalizeProject(raw: unknown): ComposerProject {
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
     sectionMelodyAssignments: r.sectionMelodyAssignments ?? {},
+    accompanimentPatterns:
+      r.accompanimentPatterns?.length
+        ? r.accompanimentPatterns
+        : createDefaultAccompanimentPatterns(),
+    sectionAccompanimentPatternAssignments: r.sectionAccompanimentPatternAssignments ?? {},
     activeArrangementId: r.activeArrangementId ?? null,
     notes: r.notes ?? "",
     generatorProfileRoles: r.generatorProfileRoles,

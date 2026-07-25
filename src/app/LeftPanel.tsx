@@ -86,6 +86,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const repeatSectionChords = useProjectStore((s) => s.repeatSectionChords)
   const extendLastChordToFill = useProjectStore((s) => s.extendLastChordToFill)
   const setSectionContent = useProjectStore((s) => s.setSectionContent)
+  const setSectionAccompanimentPattern = useProjectStore((s) => s.setSectionAccompanimentPattern)
   const newProject = useProjectStore((s) => s.newProject)
   const loadProject = useProjectStore((s) => s.loadProject)
 
@@ -246,6 +247,23 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
                 ))}
               </Select>
               <p className="mt-1 text-[10px] text-ink-muted-48">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
+            </FieldGroup>
+
+            <FieldGroup label="Accompaniment Pattern">
+              <Select
+                value={project.sectionAccompanimentPatternAssignments[section.id] ?? ""}
+                onChange={(e) => setSectionAccompanimentPattern(section.id, e.target.value || null)}
+              >
+                <option value="">None</option>
+                {project.accompanimentPatterns.map((pattern) => (
+                  <option key={pattern.id} value={pattern.id}>
+                    {pattern.name}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-[10px] text-ink-muted-48">
+                度数＋リズムのテンプレートを現在のコードへ自動変換し、専用MIDIトラックへ出力します
+              </p>
             </FieldGroup>
 
             <FieldGroup label={`リード開始位置(先頭から${entryOffsetBars}小節を無音にする)`}>

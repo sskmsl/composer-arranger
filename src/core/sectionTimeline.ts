@@ -4,6 +4,7 @@ import type { Section } from "./section"
 import { parseTimeSignature } from "./section"
 import { layersOf } from "./sectionLayers"
 import { accompanimentEnabled } from "./sectionContent"
+import { applyAccompanimentPattern } from "./accompanimentPattern"
 
 /** 配列順を曲順として扱い、startBarを1始まりで隙間なく再計算する。 */
 export function normalizeSectionTimeline(sections: Section[]): Section[] {
@@ -32,6 +33,8 @@ export interface SongPlaybackMaterial {
   /** Issue #41: MIDIのトラック分割用に partRole ごとへ分けたノート */
   lead: MelodyNote[]
   accompaniment: MelodyNote[]
+  /** Issue #45: コードから導出した独立Accompaniment Patternレイヤー。 */
+  accompanimentPattern: MelodyNote[]
   totalBeats: number
 }
 
@@ -41,14 +44,36 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const chords: ChordEvent[] = []
   const lead: MelodyNote[] = []
   const accompaniment: MelodyNote[] = []
+  const accompanimentPattern: MelodyNote[] = []
 
   for (const section of normalizeSectionTimeline(project.sections)) {
     const offset = (section.startBar - 1) * beatsPerBar
+    const sectionChords = project.chords
+      .filter((candidate) => candidate.sectionId === section.id)
+      .sort((a, b) => a.startBeat - b.startBeat)
     // Issue #41: accompaniment="none"(Silence)のセクションは伴奏を鳴らさない。
     // ここで除外しないと Silence と Chords Only が曲全体再生・曲全体MIDIで同じ結果になる。
     if (accompanimentEnabled(section)) {
-      for (const chord of project.chords.filter((candidate) => candidate.sectionId === section.id)) {
+      for (const chord of sectionChords) {
         chords.push({ ...chord, startBeat: offset + chord.startBeat })
+      }
+    }
+    const patternId = project.sectionAccompanimentPatternAssignments?.[section.id]
+    const pattern = patternId
+      ? project.accompanimentPatterns?.find((candidate) => candidate.id === patternId)
+      : undefined
+    if (pattern) {
+      const patternNotes = applyAccompanimentPattern(
+        pattern,
+        sectionChords,
+        section.lengthBars * beatsPerBar,
+      )
+      for (const note of patternNotes) {
+        accompanimentPattern.push({
+          ...note,
+          id: `${section.id}:${note.id}`,
+          startBeat: offset + note.startBeat,
+        })
       }
     }
     const variantId = project.sectionMelodyAssignments[section.id]
@@ -72,6 +97,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
     melody: [...lead, ...accompaniment].sort(byBeat),
     lead: lead.sort(byBeat),
     accompaniment: accompaniment.sort(byBeat),
+    accompanimentPattern: accompanimentPattern.sort(byBeat),
     totalBeats: totalBars * beatsPerBar,
   }
 }

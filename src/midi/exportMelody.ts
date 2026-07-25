@@ -13,7 +13,9 @@ export interface ExportMelodyOptions {
   tempo: number
   timeSignature: string
   chords: ChordEvent[]
-  melody: MelodyVariant
+  melody?: MelodyVariant
+  /** Issue #45: コードから導出した独立Accompaniment Patternノート。 */
+  accompanimentPatternNotes?: MelodyNote[]
   includeChords: boolean
   /** 指定するとその範囲(セクション相対拍)のみ書き出す */
   range?: { startBeat: number; endBeat: number }
@@ -39,12 +41,19 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
 
   // Issue #41: partRoleの正はLayer。lead と accompaniment を別トラックへ分ける
   // (Ostinato/Droneを将来Arrangement Engineへ移すときの移行コストを作らない)。
-  const leadNotes = notesByPartRole(opts.melody, "lead").filter(inRange)
-  const accompanimentNotes = notesByPartRole(opts.melody, "accompaniment").filter(inRange)
+  const leadNotes = opts.melody ? notesByPartRole(opts.melody, "lead").filter(inRange) : []
+  const accompanimentNotes = opts.melody ? notesByPartRole(opts.melody, "accompaniment").filter(inRange) : []
+  const accompanimentPatternNotes = (opts.accompanimentPatternNotes ?? []).filter(inRange)
 
   const tracks: SmfTrack[] = [{ name: "Active Melody", notes: leadNotes.map(toSmfNote(0)) }]
   if (accompanimentNotes.length > 0) {
     tracks.push({ name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote(2)) })
+  }
+  if (accompanimentPatternNotes.length > 0) {
+    tracks.push({
+      name: "Accompaniment Pattern",
+      notes: accompanimentPatternNotes.map(toSmfNote(3)),
+    })
   }
 
   if (opts.includeChords) {
@@ -88,6 +97,12 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
   const tracks: SmfTrack[] = [{ name: "Active Melodies", notes: material.lead.map(toSmfNote(0)) }]
   if (material.accompaniment.length > 0) {
     tracks.push({ name: "Accompaniment", notes: material.accompaniment.map(toSmfNote(2)) })
+  }
+  if (material.accompanimentPattern.length > 0) {
+    tracks.push({
+      name: "Accompaniment Pattern",
+      notes: material.accompanimentPattern.map(toSmfNote(3)),
+    })
   }
 
   if (includeChords) {

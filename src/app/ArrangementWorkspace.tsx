@@ -17,12 +17,17 @@ export function ArrangementWorkspace() {
 
   const playSong = () => {
     const material = buildSongPlaybackMaterial(project)
-    if (material.melody.length === 0 && material.chords.length === 0) return
+    if (
+      material.melody.length === 0 &&
+      material.chords.length === 0 &&
+      material.accompanimentPattern.length === 0
+    ) return
     setPlaying(true)
     previewPlayer.play({
       bpm: project.song.tempo,
       chords: material.chords,
       melody: material.melody,
+      accompaniment: material.accompanimentPattern,
       mode: "chords-melody",
       range: { startBeat: 0, endBeat: material.totalBeats },
       onEnded: () => setPlaying(false),

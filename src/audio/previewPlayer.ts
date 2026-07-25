@@ -10,6 +10,8 @@ export interface PlayOptions {
   bpm: number
   chords: ChordEvent[]
   melody: MelodyNote[]
+  /** Issue #45: コードパッドとは独立したPattern伴奏。melody-only以外で鳴らす。 */
+  accompaniment?: MelodyNote[]
   mode: PreviewMode
   loop?: boolean
   /** 比較試聴用。startBeatは今回の再生開始位置、rangeは共通ループ範囲。 */
@@ -77,6 +79,19 @@ class PreviewPlayer {
 
     if (opts.mode !== "chords-only") {
       for (const n of opts.melody) {
+        const eventEnd = n.startBeat + n.durationBeats
+        if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
+        const clippedStart = Math.max(n.startBeat, playbackStart)
+        const clippedEnd = Math.min(eventEnd, rangeEnd)
+        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
+        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
+        this.scheduleLead(ctx, compressor, n.pitch, n.velocity, t0, dur)
+        totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
+      }
+    }
+
+    if (opts.mode !== "melody-only") {
+      for (const n of opts.accompaniment ?? []) {
         const eventEnd = n.startBeat + n.durationBeats
         if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
         const clippedStart = Math.max(n.startBeat, playbackStart)

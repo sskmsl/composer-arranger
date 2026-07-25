@@ -111,6 +111,8 @@ interface ProjectState {
   updateSection: (sectionId: string, patch: Partial<Section>) => void
   /** Issue #41: セクションのリード内容/伴奏/entryOffset/pickupを更新する */
   setSectionContent: (sectionId: string, patch: Partial<SectionContentSettings>) => void
+  /** Issue #45: セクションへ独立Accompaniment Pattern Templateを割り当てる。 */
+  setSectionAccompanimentPattern: (sectionId: string, patternId: string | null) => void
   removeSection: (sectionId: string) => void
   duplicateSection: (sectionId: string) => void
   moveSection: (sectionId: string, targetIndex: number) => void
@@ -164,6 +166,37 @@ function resolveRange(settings: GenerationSettings): RangeSetting {
 
 function snapshot(project: ComposerProject): ComposerProject {
   return JSON.parse(JSON.stringify(project))
+}
+
+/** 採用済みメロディーを別セクションへ複製し、編集可能な独立Variantにする。 */
+function duplicateVariantForSection(source: MelodyVariant, sectionId: string): MelodyVariant {
+  const copy = structuredClone(source)
+  const noteIds = new Map<string, string>()
+  const duplicateNote = (note: MelodyNote): MelodyNote => {
+    let id = noteIds.get(note.id)
+    if (!id) {
+      id = crypto.randomUUID()
+      noteIds.set(note.id, id)
+    }
+    return { ...note, id }
+  }
+
+  return {
+    ...copy,
+    id: crypto.randomUUID(),
+    name: `${source.name} copy`,
+    sectionId,
+    parentMelodyId: source.id,
+    batchId: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    reviewState: null,
+    notes: copy.notes.map(duplicateNote),
+    layers: copy.layers?.map((layer) => ({
+      ...layer,
+      id: crypto.randomUUID(),
+      notes: layer.notes.map(duplicateNote),
+    })),
+  }
 }
 
 function timingNoticeFrom(result: ReturnType<typeof resolveProjectTiming>): TimingNotice | null {
@@ -355,6 +388,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
+  setSectionAccompanimentPattern: (sectionId, patternId) => {
+    const prev = get().project
+    if (!prev.sections.some((section) => section.id === sectionId)) return
+    if (patternId && !prev.accompanimentPatterns.some((pattern) => pattern.id === patternId)) return
+    const assignments = { ...prev.sectionAccompanimentPatternAssignments }
+    if (patternId) assignments[sectionId] = patternId
+    else delete assignments[sectionId]
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, sectionAccompanimentPatternAssignments: assignments },
+    })
+    get().persist()
+  },
+
   updateSection: (sectionId, patch) => {
     const prev = get().project
     const sections = prev.sections.map((s) =>
@@ -373,7 +421,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   removeSection: (sectionId) => {
     const prev = get().project
     const { [sectionId]: _removedAssignment, ...sectionMelodyAssignments } = prev.sectionMelodyAssignments
+    const {
+      [sectionId]: _removedPatternAssignment,
+      ...sectionAccompanimentPatternAssignments
+    } = prev.sectionAccompanimentPatternAssignments
     void _removedAssignment
+    void _removedPatternAssignment
     const removedVariantIds = new Set(
       prev.melodyVariants.filter((variant) => variant.sectionId === sectionId).map((variant) => variant.id),
     )
@@ -386,6 +439,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         chords: prev.chords.filter((c) => c.sectionId !== sectionId),
         melodyVariants: prev.melodyVariants.filter((v) => v.sectionId !== sectionId),
         sectionMelodyAssignments,
+        sectionAccompanimentPatternAssignments,
         activeMelodyId:
           prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
@@ -401,6 +455,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const newId = crypto.randomUUID()
     const copy: Section = { ...src, id: newId, name: `${src.name} copy`, startBar: 1 }
     const chordCopies = prev.chords.filter((c) => c.sectionId === sectionId).map((c) => ({ ...c, id: crypto.randomUUID(), sectionId: newId }))
+    const assignedVariantId = prev.sectionMelodyAssignments[sectionId]
+    const assignedVariant = assignedVariantId
+      ? prev.melodyVariants.find((variant) => variant.id === assignedVariantId && variant.sectionId === sectionId)
+      : undefined
+    const variantCopy = assignedVariant ? duplicateVariantForSection(assignedVariant, newId) : undefined
+    const sourcePatternId = prev.sectionAccompanimentPatternAssignments[sectionId]
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -408,8 +468,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ...prev,
         sections: normalizeSectionTimeline([...prev.sections, copy]),
         chords: [...prev.chords, ...chordCopies],
+        melodyVariants: variantCopy ? [...prev.melodyVariants, variantCopy] : prev.melodyVariants,
+        sectionMelodyAssignments: variantCopy
+          ? { ...prev.sectionMelodyAssignments, [newId]: variantCopy.id }
+          : prev.sectionMelodyAssignments,
+        sectionAccompanimentPatternAssignments: sourcePatternId
+          ? { ...prev.sectionAccompanimentPatternAssignments, [newId]: sourcePatternId }
+          : prev.sectionAccompanimentPatternAssignments,
+        activeMelodyId: variantCopy?.id ?? prev.activeMelodyId,
       },
       selectedSectionId: newId,
+      activeBatchId: null,
+      activeCandidateIndex: 0,
     })
     get().persist()
   },
