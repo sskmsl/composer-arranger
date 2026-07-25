@@ -37,8 +37,24 @@ function exchange() {
         },
       },
       {
+        sourceId: "c-melody",
+        name: "Cメロ",
+        role: "c-melody",
+        key: "Am",
+        repeatCount: 1,
+        chords: [{ symbol: "D#dim", startBeat: 0, durationBeats: 4 }],
+      },
+      {
+        sourceId: "breakdown-chorus",
+        name: "落ちサビ",
+        role: "breakdown-chorus",
+        key: "Am",
+        repeatCount: 1,
+        chords: [{ symbol: "Fmaj7", startBeat: 0, durationBeats: 4 }],
+      },
+      {
         sourceId: "final-chorus",
-        name: "Final Chorus",
+        name: "大サビ",
         role: "grand-chorus",
         key: "Bm",
         repeatCount: 1,
@@ -73,9 +89,11 @@ describe("Composer Song Exchange v1 import", () => {
     expect(project.notes).toBe("静かな導入から大サビへ")
     expect(project.sections.map((section) => section.role)).toEqual([
       "verse",
+      "c-melody",
+      "breakdown-chorus",
       "grand-chorus",
     ])
-    expect(project.sections.map((section) => section.startBar)).toEqual([1, 5])
+    expect(project.sections.map((section) => section.startBar)).toEqual([1, 5, 6, 7])
   })
 
   it("repeatCount分コードを展開し、分数コードのBassも保持する", () => {

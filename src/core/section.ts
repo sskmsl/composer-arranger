@@ -3,20 +3,24 @@ export type SectionRole =
   | "verse"
   | "pre-chorus"
   | "chorus"
+  | "breakdown-chorus"
   | "grand-chorus"
+  | "c-melody"
   | "bridge"
-  | "outro"
   | "instrumental"
+  | "outro"
 
 export const SECTION_ROLE_LABELS: Record<SectionRole, string> = {
   intro: "イントロ",
   verse: "Aメロ",
   "pre-chorus": "Bメロ",
   chorus: "サビ",
+  "breakdown-chorus": "落ちサビ",
   "grand-chorus": "大サビ",
+  "c-melody": "Cメロ",
   bridge: "ブリッジ",
-  outro: "アウトロ",
   instrumental: "間奏",
+  outro: "アウトロ",
 }
 
 export interface Section {

@@ -614,6 +614,9 @@ UIラベルは日本語表示を基本とし、本仕様書中の英語表記（
 - Verse
 - Pre-Chorus
 - Chorus
+- Breakdown Chorus
+- Grand Chorus
+- C-Melody
 - Bridge
 - Outro
 - Instrumental
@@ -731,7 +734,31 @@ Composer Project単位で1つ設定する。MelodyとArrangementの両エンジ�
 - 音域、リズム、開始拍のいずれかを変える
 - Final Chorusへ戻る理由を作る
 
-### 8.6 Outro
+### 8.6 Breakdown Chorus
+
+- サビのモチーフ同一性を保ちながら音数と音域を抑える
+- 休符と長い音価で静けさを作る
+- Grand Chorusの最高音を先に使わない
+- 完全解決を急がず、次の解放へ余白を残す
+
+### 8.7 Grand Chorus
+
+- サビの主要モチーフを最も強い形で回収する
+- 曲中の最高音候補とクライマックスを許可する
+- 休符を減らし、終止の解放感を高める
+
+### 8.8 C-Melody
+
+- A/B/サビとは異なる新しい旋律視点を作る
+- 跳躍、音域、開始拍のいずれかを明確に変える
+- Grand Chorusへ向かう緊張または問いを残す
+
+### 8.9 Instrumental
+
+- 歌唱性よりモチーフ展開と楽器的な間を優先する
+- 前後の歌セクションをつなぐ機能を持たせる
+
+### 8.10 Outro
 
 - Introまたは主要モチーフを回収する
 - 音数を減らす

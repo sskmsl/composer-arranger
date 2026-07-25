@@ -118,9 +118,9 @@ export const GENERATOR_PROFILE_PARAM_OVERRIDES: Record<MelodyGeneratorProfile, P
 
 /** 8章: セクション別の適用強度(0=Profile固有色を弱める 〜 1=通常適用)。値が無いセクションは1.0扱い */
 export const GENERATOR_PROFILE_SECTION_INTENSITY: Partial<Record<MelodyGeneratorProfile, Partial<Record<SectionRole, number>>>> = {
-  "elegiac-cantabile": { verse: 0.6, "pre-chorus": 0.8, chorus: 1.0, bridge: 0.9 },
-  "speech-rhythmic": { verse: 1.0, "pre-chorus": 0.7, chorus: 0.4, bridge: 0.8 },
-  incantatory: { verse: 0.9, "pre-chorus": 0.8, chorus: 0.7, bridge: 1.0 },
+  "elegiac-cantabile": { verse: 0.6, "pre-chorus": 0.8, chorus: 1.0, "breakdown-chorus": 0.65, "grand-chorus": 1.0, "c-melody": 0.9, bridge: 0.9 },
+  "speech-rhythmic": { verse: 1.0, "pre-chorus": 0.7, chorus: 0.4, "breakdown-chorus": 0.35, "grand-chorus": 0.55, "c-melody": 0.8, bridge: 0.8 },
+  incantatory: { verse: 0.9, "pre-chorus": 0.8, chorus: 0.7, "breakdown-chorus": 0.55, "grand-chorus": 0.85, "c-melody": 1.0, bridge: 1.0 },
 }
 
 export function generatorProfileIntensity(profile: MelodyGeneratorProfile, role: SectionRole): number {
