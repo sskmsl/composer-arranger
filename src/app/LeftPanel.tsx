@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
@@ -6,8 +6,23 @@ import { chordEventsToText } from "@/core/chordInput"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput, type ChordDiagnosis } from "@/core/chordDiagnostics"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
+import { ProjectBrowser } from "./ProjectBrowser"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
-import { Plus, Copy, Trash2, Download, Upload, FilePlus2, Repeat, X, CheckCircle2, AlertTriangle, XCircle, MoveRight } from "lucide-react"
+import {
+  Plus,
+  Copy,
+  Trash2,
+  Download,
+  Upload,
+  FilePlus2,
+  Repeat,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  MoveRight,
+  FolderOpen,
+} from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 
@@ -60,6 +75,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const loadProject = useProjectStore((s) => s.loadProject)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [browserOpen, setBrowserOpen] = useState(false)
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const ts = parseTimeSignature(project.song.timeSignature)
   const sectionChords = section ? project.chords.filter((c) => c.sectionId === section.id) : []
@@ -84,8 +100,19 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
       <SectionCard title="Composer Project">
         <div className="flex flex-wrap gap-1.5">
-          <Button variant="dark" onClick={() => newProject()}>
+          <Button
+            variant="dark"
+            onClick={() => {
+              // 現在のプロジェクトは自動保存済み(プロジェクトブラウザーから再度開ける)。念のため確認する
+              if (window.confirm("新規プロジェクトを作成します。現在のプロジェクトは自動保存済みで、「開く」から再度開けます。よろしいですか?")) {
+                newProject()
+              }
+            }}
+          >
             <FilePlus2 size={13} /> New
+          </Button>
+          <Button variant="dark" onClick={() => setBrowserOpen(true)}>
+            <FolderOpen size={13} /> 開く
           </Button>
           <Button variant="dark" onClick={() => downloadProjectFile(project)}>
             <Download size={13} /> Export
@@ -241,6 +268,8 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
         </SectionCard>
       )}
+
+      {browserOpen && <ProjectBrowser onClose={() => setBrowserOpen(false)} />}
     </aside>
   )
 }

@@ -32,7 +32,15 @@ import {
   type SeedOperation,
 } from "@/melody-engine/developSeed"
 import { createSeed } from "@/core/rng"
-import { saveProject, loadLastOpenedProject, loadProject as loadProjectById, backupProjectTimingSnapshot } from "@/storage/projectRepository"
+import {
+  saveProject,
+  loadLastOpenedProject,
+  loadProject as loadProjectById,
+  backupProjectTimingSnapshot,
+  duplicateProject as duplicateStoredProjectRepo,
+  renameProject as renameStoredProjectRepo,
+  deleteProject as deleteStoredProjectRepo,
+} from "@/storage/projectRepository"
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
 import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
@@ -70,6 +78,12 @@ interface ProjectState {
   newProject: () => void
   loadProject: (project: unknown) => void
   loadProjectById: (id: string) => Promise<void>
+  /** Issue #14: 保存済みプロジェクトを複製する(新しいprojectId・全データ保持)。複製したidを返す */
+  duplicateStoredProject: (projectId: string) => Promise<string | null>
+  /** Issue #14: 保存済みプロジェクトのタイトルを変更する(開いている場合は現在の表示も更新) */
+  renameStoredProject: (projectId: string, title: string) => Promise<void>
+  /** Issue #14: 保存済みプロジェクトを削除する(開いている場合は新規プロジェクトへ切り替え) */
+  deleteStoredProject: (projectId: string) => Promise<void>
   persist: () => void
   /** timingNoticeがambiguousの場合にユーザーの選択を適用する。auto-convertedの通知は単に閉じる */
   confirmTimingConversion: (convert: boolean) => void
@@ -224,6 +238,30 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadProjectById: async (id) => {
     const p = await loadProjectById(id)
     if (p) get().loadProject(p)
+  },
+
+  duplicateStoredProject: async (projectId) => {
+    const copy = await duplicateStoredProjectRepo(projectId)
+    return copy?.projectId ?? null
+  },
+
+  renameStoredProject: async (projectId, title) => {
+    await renameStoredProjectRepo(projectId, title)
+    // 開いているプロジェクトを改名した場合は現在の表示も更新する(自動保存で永続化)
+    if (get().project.projectId === projectId) {
+      set({ project: { ...get().project, title } })
+      get().persist()
+    }
+  },
+
+  deleteStoredProject: async (projectId) => {
+    await deleteStoredProjectRepo(projectId)
+    // 開いているプロジェクトを削除した場合は、直前状態(lastOpened)を復元、無ければ新規へ
+    if (get().project.projectId === projectId) {
+      const last = await loadLastOpenedProject()
+      if (last) get().loadProject(last)
+      else get().newProject()
+    }
   },
 
   persist: () => {
