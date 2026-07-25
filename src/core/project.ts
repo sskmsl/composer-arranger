@@ -200,10 +200,14 @@ export function normalizeProject(raw: unknown): ComposerProject {
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
     sectionMelodyAssignments: r.sectionMelodyAssignments ?? {},
-    accompanimentPatterns:
-      r.accompanimentPatterns?.length
-        ? r.accompanimentPatterns
-        : createDefaultAccompanimentPatterns(),
+    accompanimentPatterns: (() => {
+      const saved = r.accompanimentPatterns ?? []
+      const savedIds = new Set(saved.map((pattern) => pattern.id))
+      return [
+        ...saved,
+        ...createDefaultAccompanimentPatterns().filter((pattern) => !savedIds.has(pattern.id)),
+      ]
+    })(),
     sectionAccompanimentPatternAssignments: r.sectionAccompanimentPatternAssignments ?? {},
     activeArrangementId: r.activeArrangementId ?? null,
     notes: r.notes ?? "",
