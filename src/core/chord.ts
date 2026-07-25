@@ -253,8 +253,9 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
   const unrecognized = [leftoverRest, ...unresolvedBracketTokens, ...unresolvedAddTokens].filter(Boolean).join(" ")
 
   // interpretedSymbol: unrecognizedの各トークンを元のシンボル文字列から取り除いた、実際に使われる表記。
-  // 未解決トークンを含む括弧グループはグループごと取り除く(複数トークン中の一部だけ未解決な場合も
-  // 表示の単純さを優先しグループごと除く)。addMatches・末尾の未対応文字は個別に取り除く。
+  // 括弧グループ内に解決済み・未解決のトークンが混在する場合(例: "(add9,foo)")、
+  // 解決済みトークンだけを残す(例: "(add9)")。全て未解決ならグループごと取り除く。
+  // addMatches・末尾の未対応文字は個別に取り除く。
   let interpretedSymbol = trimmed
   if (unresolvedBracketTokens.length > 0) {
     interpretedSymbol = interpretedSymbol.replace(/\(([^)]*)\)/g, (whole, inner: string) => {
@@ -262,8 +263,10 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
         .split(/[,\s]+/)
         .map((s) => s.trim())
         .filter(Boolean)
-      const hasUnresolved = innerTokens.some((t) => unresolvedBracketTokens.includes(t))
-      return hasUnresolved ? "" : whole
+      const resolvedTokens = innerTokens.filter((t) => !unresolvedBracketTokens.includes(t))
+      if (resolvedTokens.length === innerTokens.length) return whole
+      if (resolvedTokens.length === 0) return ""
+      return `(${resolvedTokens.join(",")})`
     })
   }
   for (const raw of unresolvedAddTokens) {

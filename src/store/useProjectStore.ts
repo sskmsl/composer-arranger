@@ -15,6 +15,7 @@ import type {
   RangeRegenerationLocks,
 } from "@/core/melody"
 import { parseChordInputText } from "@/core/chordInput"
+import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
 import { generateFromChordsWithProfiles, toMelodyVariantFromProfile } from "@/melody-engine/generateFromChords"
 import { resolveGenerationParams, RANGE_PRESETS, type Density, type Drama, type RangeSetting } from "@/melody-engine/generationParams"
@@ -424,6 +425,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (chords.length === 0) return
 
     const totalBeats = section.lengthBars * ts.beatsPerBar
+    // Issue #12: 解析エラーのあるコードは、buildHarmonicMapが黙ってC majorへフォールバックする前に
+    // ここで止める(UIのGenerateボタン無効化と合わせた二重の防御)。
+    if (diagnoseChordInput(chords, totalBeats).hasError) return
     const profile = effectiveSongProfile(prev, sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)

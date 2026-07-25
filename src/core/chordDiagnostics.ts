@@ -159,10 +159,14 @@ export function diagnoseChordInput(events: ChordEvent[], sectionLengthBeats: num
   const sorted = [...events].sort((a, b) => a.startBeat - b.startBeat)
   const chords = sorted.map((e, i) => diagnoseChord(e, i))
 
+  // 直前のイベントとだけ比較すると、間に短いイベントが挟まる入れ子状の重複
+  // (例: A=0〜10拍, B=2〜3拍, C=4〜5拍でCとAの重複)を見逃す(Issue #12 PR#35レビュー対応)。
+  // そこまでの最大終端位置と比較することで、順序が入れ替わっても正しく検出する。
   const overlaps: number[] = []
+  let maxEndSoFar = sorted.length ? sorted[0].startBeat + sorted[0].durationBeats : 0
   for (let i = 1; i < sorted.length; i++) {
-    const prevEnd = sorted[i - 1].startBeat + sorted[i - 1].durationBeats
-    if (sorted[i].startBeat < prevEnd - EPS) overlaps.push(i)
+    if (sorted[i].startBeat < maxEndSoFar - EPS) overlaps.push(i)
+    maxEndSoFar = Math.max(maxEndSoFar, sorted[i].startBeat + sorted[i].durationBeats)
   }
 
   const coveredBeats = sorted.length ? Math.max(...sorted.map((e) => e.startBeat + e.durationBeats)) : 0

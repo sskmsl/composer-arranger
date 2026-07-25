@@ -39,6 +39,16 @@ describe("parseChordSymbol.unrecognized(未対応末尾の露出)", () => {
     expect(p?.unrecognized).toBe("zzz")
     expect(p?.interpretedSymbol).toBe("F#m(add9)")
   })
+
+  // PR #35 Codexレビュー2巡目(P2): 括弧内に解決済み・未解決トークンが混在する場合、
+  // 従来はグループごと削除していたため「add9は採用しているのにC」と表示が実態と食い違っていた。
+  // 解決済みトークンだけを残して "C(add9)" と表示する。
+  it("括弧内に解決済み(add9)と未解決(foo)が混在する場合、解決済みトークンだけを残す", () => {
+    const p = parseChordSymbol("C(add9,foo)")
+    expect(p?.unrecognized).toBe("foo")
+    expect(p?.interpretedSymbol).toBe("C(add9)")
+    expect(p?.tensions.map((t) => t.interval)).toContain(14) // add9はテンションとして採用されている
+  })
 })
 
 describe("interpretedSymbol: 実際に生成へ渡る表記(末尾以外の未解決トークンにも対応)", () => {
@@ -133,6 +143,19 @@ describe("diagnoseChordInput: セクション充足状況", () => {
     const r = diagnoseChordInput(es, 8)
     expect(r.coverage.overlaps).toEqual([1])
     expect(r.hasWarning).toBe(true)
+  })
+
+  // PR #35 Codexレビュー2巡目(P2): 直前のイベントとだけ比較すると、間に短いイベントが
+  // 挟まる入れ子状の重複(A=0〜10拍の中にB=2〜3拍、C=4〜5拍)でCとAの重複を見逃していた。
+  // そこまでの最大終端位置と比較するよう修正し、両方検出されることを確認する。
+  it("入れ子状の重複(A=0〜10, B=2〜3, C=4〜5)をどちらも検出する", () => {
+    const es: ChordEvent[] = [
+      { id: "a", sectionId: "s1", startBeat: 0, durationBeats: 10, symbol: "C", bass: null },
+      { id: "b", sectionId: "s1", startBeat: 2, durationBeats: 1, symbol: "G", bass: null },
+      { id: "c", sectionId: "s1", startBeat: 4, durationBeats: 1, symbol: "Am", bass: null },
+    ]
+    const r = diagnoseChordInput(es, 10)
+    expect(r.coverage.overlaps).toEqual([1, 2])
   })
 
   it("error があれば hasError=true", () => {
