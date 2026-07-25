@@ -16,6 +16,9 @@ Composer Project (JSON) を介して連携する(仕様書2章)。
 - Composer Project の読込・保存・JSON書き出し/読み込み(schemaVersion 1.1, 14章)
 - Chord Generatorの `.composer-song.json` 読み込み
   (曲名・テンポ・セクション順・コード・繰り返しを新規Composer Projectへ変換)
+  - Section ROLEは両アプリ共通の10種類
+    (イントロ / Aメロ / Bメロ / サビ / 落ちサビ / 大サビ / Cメロ /
+    ブリッジ / 間奏 / アウトロ)
 - 手動コード入力("F#m(add9) | E | D | Dsus2" 形式, 6.3章)
 - Generate from Chords: ルールベースのMelody Engineによる6候補生成(9章)
   - Harmonic Map / Phrase Planner / Rhythm & Pitch Motif / Motif Development / Scoring / Diversity Filter

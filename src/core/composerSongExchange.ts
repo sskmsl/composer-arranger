@@ -44,8 +44,11 @@ const SECTION_ROLES = new Set<SectionRole>([
   "verse",
   "pre-chorus",
   "chorus",
+  "breakdown-chorus",
   "grand-chorus",
+  "c-melody",
   "bridge",
+  "instrumental",
   "outro",
 ])
 
