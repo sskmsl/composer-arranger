@@ -10,13 +10,21 @@ import type {
   SectionContentSettings,
   SectionLayer,
 } from "@/core/sectionContent"
-import { LEAD_CONTENT_LABELS } from "@/core/sectionContent"
+import { LEAD_CONTENT_LABELS, partRoleFor } from "@/core/sectionContent"
 import { flattenLayerNotes } from "@/core/sectionLayers"
 import { keyScalePitchClasses } from "@/core/scale"
 import { buildHarmonicMap } from "./harmonicMap"
 import { rangeWithClimaxReservation, resolveClimaxCeiling } from "./climaxReservation"
-import type { RangeSetting } from "./generationParams"
-import { buildContentLayers } from "./contentGenerators"
+import type { Density, Drama, RangeSetting } from "./generationParams"
+import { buildContentLayers, generatePickupNotes } from "./contentGenerators"
+import { generateFromChords } from "./generateFromChords"
+import {
+  chordsForWindow,
+  DEFAULT_PICKUP_BEATS,
+  shiftNotesToSection,
+  windowLengthBeats,
+  type LeadWindow,
+} from "./leadWindow"
 import {
   computeContentStructureFeatures,
   contentSimilarity,
@@ -50,6 +58,9 @@ export interface GenerateSectionContentInput {
    * 未生成(undefined)ならSong Profileの予約幅へフォールバックする。
    */
   chorusPeakMidi?: number
+  /** content="melody" をMelody Engineへ渡す際に使う生成設定 */
+  density?: Density
+  drama?: Drama
 }
 
 export interface SectionContentCandidate {
@@ -92,6 +103,69 @@ function buildContext(input: GenerateSectionContentInput): ContentPlanContext {
 }
 
 /**
+ * content="melody" の計画を、既存Melody Engineへ渡して実音を作る。
+ *
+ * entryOffset/pickup を尊重するため、窓の内側だけを生成対象にして
+ * 生成後にセクション相対へ戻す。弱起は別Layerとして持つ。
+ */
+function buildMelodyLayers(
+  rng: SeededRandom,
+  plan: SectionContentPlan,
+  input: GenerateSectionContentInput,
+  ctx: ContentPlanContext,
+  idPrefix: string,
+): SectionLayer[] {
+  const window: LeadWindow = {
+    startBeat: plan.entryOffsetBeats,
+    endBeat: Math.max(plan.entryOffsetBeats, input.totalBeats - plan.pickupBeats),
+    pickupBeats: plan.pickupBeats,
+  }
+  const span = windowLengthBeats(window)
+  const windowChords = chordsForWindow(input.chords, window)
+
+  let notes: MelodyNote[] = []
+  if (span > 0 && windowChords.length > 0) {
+    const { candidates } = generateFromChords({
+      chords: windowChords,
+      sectionId: input.sectionId,
+      sectionRole: input.sectionRole,
+      songProfile: input.songProfile,
+      density: input.density ?? "balanced",
+      range: ctx.range,
+      drama: input.drama ?? "growing",
+      totalBeats: span,
+      seed: rng.intBetween(1, 0x7fffffff),
+      candidateCount: 1,
+    })
+    notes = shiftNotesToSection(candidates[0]?.notes ?? [], window)
+  }
+
+  const layers: SectionLayer[] = [
+    {
+      id: `${idPrefix}:primary`,
+      partRole: partRoleFor("melody"),
+      content: "melody",
+      plan,
+      notes,
+      kind: "primary",
+    },
+  ]
+
+  const pickupNotes = generatePickupNotes(rng, plan, ctx)
+  if (pickupNotes.length > 0) {
+    layers.push({
+      id: `${idPrefix}:pickup`,
+      partRole: "lead",
+      content: "melody",
+      plan,
+      notes: pickupNotes,
+      kind: "pickup",
+    })
+  }
+  return layers
+}
+
+/**
  * Issue #41: melody以外のリード内容を、計画→専用Generator→構造検証の順で生成する。
  *
  * 3案は「同じPlanのseed違い」にしない。まず候補数ぶんの計画をまとめて決め、
@@ -100,6 +174,7 @@ function buildContext(input: GenerateSectionContentInput): ContentPlanContext {
  */
 export function generateSectionContent(input: GenerateSectionContentInput): {
   candidates: SectionContentCandidate[]
+  unresolvedCandidates: SectionContentCandidate[]
 } {
   const count = input.candidateCount ?? 3
   const ctx = buildContext(input)
@@ -111,7 +186,14 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
       : planSectionContentBatch(planRng, input.content.lead as ResolvedLeadContent, ctx, count)
 
   const build = (plan: SectionContentPlan, index: number, seed: number, attempts: number): SectionContentCandidate => {
-    const layers = buildContentLayers(new SeededRandom(seed), plan, ctx, `${input.sectionId}:${index}`)
+    // Issue #41 / PR#43: contentごとに生成器をdispatchする。
+    // buildContentLayers は motif/ostinato/drone しか実音を作らないため、
+    // Autoがmelodyを選んだ計画をそこへ通すと空候補になってしまう
+    // (chorus/grand-chorusはAutoの候補がmelodyのみなので3案すべて空になる)。
+    const layers =
+      plan.content === "melody"
+        ? buildMelodyLayers(new SeededRandom(seed), plan, input, ctx, `${input.sectionId}:${index}`)
+        : buildContentLayers(new SeededRandom(seed), plan, ctx, `${input.sectionId}:${index}`)
     const notes = flattenLayerNotes(layers)
     const features = computeContentStructureFeatures(notes, plan, input.totalBeats)
     const validation = validateContentStructure(features, plan, notes)
@@ -130,16 +212,23 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
 
   const candidates = plans.map((plan, index) => build(plan, index, input.seed + index * 7919, 0))
 
-  // 類似超過の解消: 後ろ側の候補だけを、別の計画(=別の構造)で作り直す
+  // 構造検証の失敗と類似超過を、どちらも作り直しの対象にする。
+  // (検証結果を problems に置くだけでは、そのcontentとして成立していない候補が
+  //  そのまま採用候補として返ってしまう)
   for (let attempt = 1; attempt <= MAX_CONTENT_REGEN_ATTEMPTS; attempt++) {
-    let target = -1
-    let worst = CONTENT_SIMILARITY_MAX
-    for (let a = 0; a < candidates.length; a++) {
-      for (let b = a + 1; b < candidates.length; b++) {
-        const similarity = contentSimilarity(candidates[a].features, candidates[b].features).overall
-        if (similarity >= worst) {
-          worst = similarity
-          target = b
+    // 1) 構造検証に失敗した候補を優先して作り直す
+    let target = candidates.findIndex((candidate) => candidate.problems.length > 0)
+
+    // 2) 検証は通っているが似すぎている場合は、後ろ側の候補を作り直す
+    if (target < 0) {
+      let worst = CONTENT_SIMILARITY_MAX
+      for (let a = 0; a < candidates.length; a++) {
+        for (let b = a + 1; b < candidates.length; b++) {
+          const similarity = contentSimilarity(candidates[a].features, candidates[b].features).overall
+          if (similarity >= worst) {
+            worst = similarity
+            target = b
+          }
         }
       }
     }
@@ -153,15 +242,44 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
       input.content.lead === "auto"
         ? planAutoReplacement(replacementRng, ctx, keptPlans)
         : planReplacement(replacementRng, input.content.lead as ResolvedLeadContent, ctx, keptPlans)
-    candidates[target] = build(
+    const replacement = build(
       replacementPlan,
       target,
       input.seed + target * 7919 + attempt * 15485863,
       attempt,
     )
+    // 作り直しで悪化させない。検証が通るか、少なくとも問題が減る場合のみ差し替える。
+    // (entryOffsetをセクション末尾に固定した等、どう計画しても成立しない設定では
+    //  何度引き直しても失敗するため、元の候補を保持して打ち切る)
+    const wasInvalid = candidates[target].problems.length
+    if (replacement.problems.length <= wasInvalid) candidates[target] = replacement
+    else if (wasInvalid === 0) candidates[target] = replacement
   }
 
-  return { candidates }
+  // 上限まで作り直しても成立しない場合は、その事実を呼び出し側へ返してUIで知らせる
+  const unresolved = candidates.filter((candidate) => candidate.problems.length > 0)
+  return {
+    candidates,
+    /** 構造検証を満たせなかった候補(空なら全候補が下限を満たしている) */
+    unresolvedCandidates: unresolved,
+  }
+}
+
+/**
+ * Melody経路(Generator Profile)向けの弱起ノート。
+ *
+ * Generator Profileの生成はセクション全長ではなく窓の内側で行うため、
+ * 弱起だけは別途この関数で作って別Layerとして足す。
+ */
+export function generateMelodyPickupNotes(
+  seed: number,
+  input: GenerateSectionContentInput,
+): MelodyNote[] {
+  if (!input.content.pickup) return []
+  const ctx = buildContext(input)
+  const rng = new SeededRandom(seed ^ 0x2545f491)
+  const [plan] = planSectionContentBatch(rng, "melody", ctx, 1)
+  return generatePickupNotes(rng, { ...plan, pickupBeats: DEFAULT_PICKUP_BEATS }, ctx)
 }
 
 /** Issue #41: content候補をMelodyVariantへ変換する(既存の候補経路へ載せるため) */

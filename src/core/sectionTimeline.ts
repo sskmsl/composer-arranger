@@ -3,6 +3,7 @@ import type { MelodyNote, MelodyVariant } from "./melody"
 import type { Section } from "./section"
 import { parseTimeSignature } from "./section"
 import { layersOf } from "./sectionLayers"
+import { accompanimentEnabled } from "./sectionContent"
 
 /** 配列順を曲順として扱い、startBarを1始まりで隙間なく再計算する。 */
 export function normalizeSectionTimeline(sections: Section[]): Section[] {
@@ -43,8 +44,12 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
 
   for (const section of normalizeSectionTimeline(project.sections)) {
     const offset = (section.startBar - 1) * beatsPerBar
-    for (const chord of project.chords.filter((candidate) => candidate.sectionId === section.id)) {
-      chords.push({ ...chord, startBeat: offset + chord.startBeat })
+    // Issue #41: accompaniment="none"(Silence)のセクションは伴奏を鳴らさない。
+    // ここで除外しないと Silence と Chords Only が曲全体再生・曲全体MIDIで同じ結果になる。
+    if (accompanimentEnabled(section)) {
+      for (const chord of project.chords.filter((candidate) => candidate.sectionId === section.id)) {
+        chords.push({ ...chord, startBeat: offset + chord.startBeat })
+      }
     }
     const variantId = project.sectionMelodyAssignments[section.id]
     const variant = variantId

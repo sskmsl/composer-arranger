@@ -225,3 +225,12 @@ export function notesBeforeEntryOffset(notes: MelodyNote[], entryOffsetBeats: nu
   const EPS = 1e-6
   return notes.filter((note) => note.startBeat < entryOffsetBeats - EPS)
 }
+
+/**
+ * Issue #41: そのセクションが伴奏(コード)を鳴らすか。
+ * accompaniment軸は保存するだけでは意味がなく、再生・MIDI書き出しの全経路で
+ * この判定を通す必要がある(通さないと Silence と Chords Only が同じ音になる)。
+ */
+export function accompanimentEnabled(section?: { content?: SectionContentSettings }): boolean {
+  return (section?.content?.accompaniment ?? DEFAULT_SECTION_CONTENT.accompaniment) !== "none"
+}

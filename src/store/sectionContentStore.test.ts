@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import { useProjectStore } from "./useProjectStore"
 import { createEmptyProject } from "@/core/project"
-import { DEFAULT_SECTION_CONTENT } from "@/core/sectionContent"
+import { DEFAULT_SECTION_CONTENT, notesBeforeEntryOffset } from "@/core/sectionContent"
 import { resolvedLeadContent } from "@/core/sectionLayers"
 import type { ComposerProject } from "@/core/project"
 import { parseChordInputText } from "@/core/chordInput"
@@ -201,5 +201,83 @@ describe("Issue #41 / 既存生成の回帰", () => {
       expect(variants.length).toBeGreaterThan(0)
       for (const variant of variants) expect(resolvedLeadContent(variant)).toBe("melody")
     }
+  })
+})
+
+describe("PR#43 fix3 / Melodyにも entryOffset / pickup が効く", () => {
+  it("Melody + entryOffset で、指定区間へノートが入らない", () => {
+    // 4小節 × 4拍 = 16拍。前半8拍(2小節)を無音にする
+    useProjectStore.getState().setSectionContent("s1", { lead: "melody", entryOffsetBeats: 8 })
+    useProjectStore.getState().generateForSection("s1")
+
+    const variants = useProjectStore.getState().project.melodyVariants
+    expect(variants.length).toBeGreaterThan(0)
+    for (const variant of variants) {
+      expect(resolvedLeadContent(variant)).toBe("melody")
+      // ここが修正前の不具合(melodyはcontent pipelineを迂回するのでentryOffsetが無視されていた)
+      expect(notesBeforeEntryOffset(variant.notes, 8)).toHaveLength(0)
+      expect(variant.notes.length).toBeGreaterThan(0)
+      // セクション終端も超えない
+      for (const note of variant.notes) expect(note.startBeat + note.durationBeats).toBeLessThanOrEqual(16 + 1e-6)
+    }
+  })
+
+  it("Melody + pickup で弱起Layerが作られる", () => {
+    useProjectStore.getState().setSectionContent("s1", { lead: "melody", pickup: true })
+    useProjectStore.getState().generateForSection("s1")
+
+    const variants = useProjectStore.getState().project.melodyVariants
+    const pickupLayers = variants.flatMap((v) => (v.layers ?? []).filter((l) => l.kind === "pickup"))
+    expect(pickupLayers.length).toBeGreaterThan(0)
+    for (const layer of pickupLayers) {
+      expect(layer.partRole).toBe("lead")
+      // 弱起はセクション末尾側(最後の1拍)にある
+      for (const note of layer.notes) expect(note.startBeat).toBeGreaterThanOrEqual(15 - 1e-6)
+    }
+  })
+
+  it("Melodyでもlayersが作られ、partRoleはlead", () => {
+    useProjectStore.getState().generateForSection("s1")
+    for (const variant of useProjectStore.getState().project.melodyVariants) {
+      expect(variant.layers?.length).toBeGreaterThan(0)
+      expect(variant.layers![0].partRole).toBe("lead")
+      expect(variant.layers![0].content).toBe("melody")
+      // notes と primary Layer の実音が一致している
+      expect(variant.layers![0].notes.length).toBeGreaterThan(0)
+    }
+  })
+
+  it("entryOffsetがセクション終端に達している場合は理由を通知して生成しない", () => {
+    useProjectStore.getState().setSectionContent("s1", { lead: "melody", entryOffsetBeats: 16 })
+    const before = useProjectStore.getState().project.melodyVariants.length
+    useProjectStore.getState().generateForSection("s1")
+    expect(useProjectStore.getState().project.melodyVariants).toHaveLength(before)
+    expect(useProjectStore.getState().workflowNotice).toContain("リード開始位置")
+  })
+
+  it("entryOffset/pickup未指定なら従来どおりGenerator Profile候補が出る(回帰)", () => {
+    useProjectStore.getState().generateForSection("s1")
+    const variants = useProjectStore.getState().project.melodyVariants
+    expect(variants.length).toBeGreaterThan(0)
+    for (const variant of variants) {
+      expect(variant.generatorProfile).toBeDefined()
+      expect(variant.patternIndex).toBeDefined()
+      // 全長で生成されるので先頭付近から鳴る
+      expect(Math.min(...variant.notes.map((n) => n.startBeat))).toBeLessThan(8)
+    }
+  })
+})
+
+describe("PR#43 fix4 / 構造検証を満たせない場合はUIへ通知する", () => {
+  it("Motifが成立しない設定では workflowNotice に理由が入る", () => {
+    useProjectStore.getState().setSectionContent("s1", { lead: "motif", entryOffsetBeats: 15 })
+    useProjectStore.getState().generateForSection("s1")
+    expect(useProjectStore.getState().workflowNotice).toContain("成立していません")
+  })
+
+  it("成立する設定では通知が出ない", () => {
+    useProjectStore.getState().setSectionContent("s1", { lead: "motif" })
+    useProjectStore.getState().generateForSection("s1")
+    expect(useProjectStore.getState().workflowNotice).toBeNull()
   })
 })

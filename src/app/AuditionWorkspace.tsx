@@ -3,6 +3,7 @@ import { EyeOff, Play, Square, Star, ThumbsDown, Check } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { parseTimeSignature } from "@/core/section"
+import { accompanimentEnabled } from "@/core/sectionContent"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
@@ -51,9 +52,12 @@ export function AuditionWorkspace() {
 
   const selectedVariants = slotIds.map((id) => variants.find((variant) => variant.id === id))
   const activeVariant = selectedVariants[activeSlot]
-  const chords = project.chords
-    .filter((chord) => chord.sectionId === selectedSectionId)
-    .sort((a, b) => a.startBeat - b.startBeat)
+  // Issue #41: accompaniment="none"(Silence)のセクションは比較試聴でも伴奏を鳴らさない
+  const chords = accompanimentEnabled(section)
+    ? project.chords
+        .filter((chord) => chord.sectionId === selectedSectionId)
+        .sort((a, b) => a.startBeat - b.startBeat)
+    : []
 
   const playbackOptions = (slot: number) => {
     const variant = selectedVariants[slot]
