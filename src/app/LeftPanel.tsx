@@ -5,6 +5,7 @@ import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
 import { chordEventsToText } from "@/core/chordInput"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput, type ChordDiagnosis } from "@/core/chordDiagnostics"
+import { prepareImportedProject } from "@/core/composerSongExchange"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { ProjectBrowser } from "./ProjectBrowser"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
@@ -128,9 +129,14 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             onChange={async (e) => {
               const file = e.target.files?.[0]
               if (!file) return
-              const p = await readProjectFile(file)
-              loadProject(p)
-              e.target.value = ""
+              try {
+                const raw = await readProjectFile(file)
+                loadProject(prepareImportedProject(raw))
+              } catch (error) {
+                window.alert(error instanceof Error ? error.message : "JSONの読み込みに失敗しました")
+              } finally {
+                e.target.value = ""
+              }
             }}
           />
         </div>
