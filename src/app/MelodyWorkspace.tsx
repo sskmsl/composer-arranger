@@ -5,6 +5,8 @@ import { PianoRoll, type BeatRange } from "./PianoRoll"
 import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
+import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS } from "@/core/sectionContent"
+import { resolvedLeadContent } from "@/core/sectionLayers"
 import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
 import type { RangeRegenerationLocks } from "@/core/melody"
@@ -42,6 +44,11 @@ export function MelodyWorkspace() {
   // Generateボタンの可否へ反映する(buildHarmonicMapのC majorフォールバックへ黙って進ませない)。
   const chordHasError = chords.length > 0 && diagnoseChordInput(chords, totalBeats).hasError
 
+  // Issue #41: このセクションが何を鳴らす設定か / 表示中の候補がどのcontentか
+  const sectionContent = section?.content ?? DEFAULT_SECTION_CONTENT
+  const variantContent = variant ? resolvedLeadContent(variant) : "melody"
+  const isMelodyVariant = variantContent === "melody"
+
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set())
   const [selection, setSelection] = useState<BeatRange | null>(null)
   const [continuationBars, setContinuationBars] = useState(2)
@@ -69,6 +76,10 @@ export function MelodyWorkspace() {
         <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
           <Sparkles size={14} /> Generate from Chords
         </Button>
+        {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
+        {sectionContent.lead !== "melody" && (
+          <Pill active>Content: {LEAD_CONTENT_LABELS[sectionContent.lead]}</Pill>
+        )}
         {chords.length === 0 && <span className="text-[12px] text-ink-muted-48">コード進行を入力してください</span>}
         {chords.length > 0 && chordHasError && (
           <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
@@ -122,12 +133,20 @@ export function MelodyWorkspace() {
         selection={selection}
         onSelectionChange={setSelection}
       />
-      <p className="text-[11px] text-ink-muted-48">
-        ノートをクリックでSeed選択(発展操作の対象) / ダブルクリックでPitch Lock切替 / 上部の小節番号でBar
-        Lock切替 / 五線内をドラッグで再生成範囲を選択
-      </p>
+      {isMelodyVariant ? (
+        <p className="text-[11px] text-ink-muted-48">
+          ノートをクリックでSeed選択(発展操作の対象) / ダブルクリックでPitch Lock切替 / 上部の小節番号でBar
+          Lock切替 / 五線内をドラッグで再生成範囲を選択
+        </p>
+      ) : (
+        /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */
+        <p className="text-[11px] text-ink-muted-48">
+          {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
+          作り直す場合は Generate を実行してください。
+        </p>
+      )}
 
-      {variant && selection && selection.end - selection.start >= 0.25 && (
+      {variant && isMelodyVariant && selection && selection.end - selection.start >= 0.25 && (
         <div className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[12px] text-ink-muted-48">
@@ -194,7 +213,7 @@ export function MelodyWorkspace() {
         </div>
       )}
 
-      {variant && selectedNoteIds.size > 0 && (
+      {variant && isMelodyVariant && selectedNoteIds.size > 0 && (
         <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-muted-48">
             <span>Develop a Seed — 選択中 {selectedNoteIds.size} 音</span>

@@ -5,6 +5,7 @@ import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import { Play, Square, Undo2, Redo2, Download, History } from "lucide-react"
+import { accompanimentEnabled } from "@/core/sectionContent"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -21,7 +22,13 @@ export function BottomBar() {
   const [playing, setPlaying] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
 
-  const chords = project.chords.filter((c) => c.sectionId === selectedSectionId).sort((a, b) => a.startBeat - b.startBeat)
+  const section = project.sections.find((s) => s.id === selectedSectionId)
+  // Issue #41: accompaniment="none"(Silence)では伴奏を鳴らさない。
+  // 保存するだけで消費しないと Silence と Chords Only が同じ音になってしまう。
+  const chordsEnabled = accompanimentEnabled(section)
+  const chords = chordsEnabled
+    ? project.chords.filter((c) => c.sectionId === selectedSectionId).sort((a, b) => a.startBeat - b.startBeat)
+    : []
   const sectionVariants = project.melodyVariants
     .filter((v) => v.sectionId === selectedSectionId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -37,9 +44,7 @@ export function BottomBar() {
   }
 
   const exportMidi = () => {
-    if (!variant || !selectedSectionId) return
-    const section = project.sections.find((s) => s.id === selectedSectionId)
-    if (!section) return
+    if (!variant || !selectedSectionId || !section) return
     const bytes = exportMelodyMidi({
       title: project.title,
       sectionName: section.name,
@@ -47,7 +52,8 @@ export function BottomBar() {
       timeSignature: project.song.timeSignature,
       chords,
       melody: variant,
-      includeChords: mode !== "melody-only",
+      // Issue #41: 伴奏なし設定のセクションでは、再生モードに関わらずコードを書き出さない
+      includeChords: chordsEnabled && mode !== "melody-only",
     })
     downloadMidi(bytes, `${project.title}-${section.name}-${variant.name}`)
   }

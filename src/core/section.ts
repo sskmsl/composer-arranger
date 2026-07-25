@@ -1,3 +1,5 @@
+import type { SectionContentSettings } from "./sectionContent"
+
 export type SectionRole =
   | "intro"
   | "verse"
@@ -29,6 +31,11 @@ export interface Section {
   role: SectionRole
   startBar: number
   lengthBars: number
+  /**
+   * Issue #41: このセクションで鳴らす内容(Roleとは独立した軸)。
+   * 旧プロジェクトには存在しないため任意とし、normalizeProjectで既定値を補完する。
+   */
+  content?: SectionContentSettings
 }
 
 export interface TimeSignature {

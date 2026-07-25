@@ -1,3 +1,10 @@
+import type {
+  ContentStructureFeatures,
+  ResolvedLeadContent,
+  SectionContentPlan,
+  SectionLayer,
+} from "./sectionContent"
+
 export type LockKind = "pitch" | "rhythm" | "startPosition" | "ending"
 
 export interface MelodyNote {
@@ -358,4 +365,22 @@ export interface MelodyVariant {
   profileExpressionPlan?: ProfileExpressionPlan
   /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
   generationDiagnostics?: CandidateGenerationDiagnostics
+
+  /**
+   * Issue #41: この候補が提示するリード内容(melody以外も取り得る)。
+   * 旧候補には無いため任意。読み出しは resolvedLeadContent() を使う。
+   */
+  leadContent?: ResolvedLeadContent
+  /**
+   * Issue #41: 実音の前に決めた構造計画。同一content内の3案がここで既に異なる。
+   */
+  contentPlan?: SectionContentPlan
+  /**
+   * Issue #41: partRoleの正。MIDIのトラック/チャンネル分割はこの値から決まる。
+   * 第1段階では長さ1だが、将来 motif + ostinato の重ね合わせでLayerを追加する。
+   * notes は全Layerのノートを平坦化した派生値として保持する(既存UI・再生経路の互換用)。
+   */
+  layers?: SectionLayer[]
+  /** Issue #41: content別の構造特徴量(Structural Validationと候補間比較に使う)。 */
+  contentFeatures?: ContentStructureFeatures
 }

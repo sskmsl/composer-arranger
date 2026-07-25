@@ -5,6 +5,7 @@ import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
 import { chordEventsToText } from "@/core/chordInput"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput, type ChordDiagnosis } from "@/core/chordDiagnostics"
+import { CONTENT_PRESETS, DEFAULT_SECTION_CONTENT, presetById, presetIdFor } from "@/core/sectionContent"
 import { prepareImportedProject } from "@/core/composerSongExchange"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { ProjectBrowser } from "./ProjectBrowser"
@@ -26,6 +27,18 @@ import {
 } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
+
+/** Issue #41: 各プリセットが音楽的に何を意味するかの短い説明 */
+const CONTENT_PRESET_HINTS: Record<string, string> = {
+  auto: "Role・Song Profile・コード進行から、妥当な入口を候補ごとに選びます",
+  melody: "通常の歌唱メロディを生成します",
+  motif: "2〜5音の短い象徴的モチーフを、余白を挟んで提示します",
+  ostinato: "短い音型を周期的に反復します(伴奏パートとして書き出し)",
+  drone: "1〜2音を長く保持します(コード境界をまたいで保持・伴奏パート)",
+  "chords-only": "リードを鳴らさず、コード伴奏だけで始めます",
+  silence: "リードも伴奏も鳴らしません(弱起のみ作ることもできます)",
+  "": "リードと伴奏の組み合わせがプリセットに一致しません",
+}
 
 /** Issue #12: 1コードの診断行 */
 function ChordDiagnosisRow({ d }: { d: ChordDiagnosis }) {
@@ -72,6 +85,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const setChordText = useProjectStore((s) => s.setChordText)
   const repeatSectionChords = useProjectStore((s) => s.repeatSectionChords)
   const extendLastChordToFill = useProjectStore((s) => s.extendLastChordToFill)
+  const setSectionContent = useProjectStore((s) => s.setSectionContent)
   const newProject = useProjectStore((s) => s.newProject)
   const loadProject = useProjectStore((s) => s.loadProject)
 
@@ -79,6 +93,8 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const [browserOpen, setBrowserOpen] = useState(false)
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const ts = parseTimeSignature(project.song.timeSignature)
+  const sectionContent = section?.content ?? DEFAULT_SECTION_CONTENT
+  const entryOffsetBars = Math.round((sectionContent.entryOffsetBeats / ts.beatsPerBar) * 100) / 100
   const sectionChords = section ? project.chords.filter((c) => c.sectionId === section.id) : []
   const chordText = section ? chordEventsToText([...sectionChords].sort((a, b) => a.startBeat - b.startBeat), ts.beatsPerBar) : ""
   const coveredBars = sectionChords.length
@@ -211,6 +227,49 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
                 key={`len-${section.id}-${section.lengthBars}`}
                 onBlur={(e) => updateSection(section.id, { lengthBars: Math.max(1, Number(e.currentTarget.value) || 1) })}
               />
+            </FieldGroup>
+
+            {/* Issue #41: 何を鳴らすかはRoleとは独立した軸。UIは7プリセットで提示し、内部は2軸で保持する */}
+            <FieldGroup label="Content(このセクションで鳴らす内容)">
+              <Select
+                value={presetIdFor(sectionContent) ?? ""}
+                onChange={(e) => {
+                  const preset = presetById(e.target.value)
+                  if (preset) setSectionContent(section.id, { lead: preset.lead, accompaniment: preset.accompaniment })
+                }}
+              >
+                {presetIdFor(sectionContent) === null && <option value="">(カスタム)</option>}
+                {CONTENT_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-[10px] text-ink-muted-48">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
+            </FieldGroup>
+
+            <FieldGroup label={`リード開始位置(先頭から${entryOffsetBars}小節を無音にする)`}>
+              <TextInput
+                type="number"
+                min={0}
+                max={section.lengthBars}
+                step={0.25}
+                defaultValue={entryOffsetBars}
+                key={`entry-${section.id}-${sectionContent.entryOffsetBeats}`}
+                onBlur={(e) => {
+                  const bars = Math.max(0, Number(e.currentTarget.value) || 0)
+                  setSectionContent(section.id, { entryOffsetBeats: bars * ts.beatsPerBar })
+                }}
+              />
+              <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-ink-muted-48">
+                <input
+                  type="checkbox"
+                  className="accent-primary"
+                  checked={sectionContent.pickup}
+                  onChange={(e) => setSectionContent(section.id, { pickup: e.target.checked })}
+                />
+                次セクション直前に弱起(Pickup)を作る
+              </label>
             </FieldGroup>
             <FieldGroup label='コード進行 ("|" "-" "–" いずれかの区切り。例: "F#m(add9) | E | D | Dsus2")'>
               <textarea

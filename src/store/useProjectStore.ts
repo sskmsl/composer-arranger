@@ -43,6 +43,21 @@ import {
 } from "@/storage/projectRepository"
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
 import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
+import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS, type SectionContentSettings } from "@/core/sectionContent"
+import { chorusPeakMidi, fallbackPlanFor, flattenLayerNotes, resolvedLeadContent } from "@/core/sectionLayers"
+import {
+  generateMelodyPickupNotes,
+  generateSectionContent,
+  toMelodyVariantFromContent,
+  usesContentPipeline,
+} from "@/melody-engine/generateSectionContent"
+import {
+  chordsForWindow,
+  isFullSectionWindow,
+  leadWindowOf,
+  shiftNotesToSection,
+  windowLengthBeats,
+} from "@/melody-engine/leadWindow"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
@@ -94,6 +109,8 @@ interface ProjectState {
 
   addSection: (name: string, role: SectionRole, lengthBars: number) => void
   updateSection: (sectionId: string, patch: Partial<Section>) => void
+  /** Issue #41: セクションのリード内容/伴奏/entryOffset/pickupを更新する */
+  setSectionContent: (sectionId: string, patch: Partial<SectionContentSettings>) => void
   removeSection: (sectionId: string) => void
   duplicateSection: (sectionId: string) => void
   moveSection: (sectionId: string, targetIndex: number) => void
@@ -292,12 +309,48 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addSection: (name, role, lengthBars) => {
     const prev = get().project
-    const section: Section = { id: crypto.randomUUID(), name, role, startBar: 1, lengthBars }
+    const section: Section = {
+      id: crypto.randomUUID(),
+      name,
+      role,
+      startBar: 1,
+      lengthBars,
+      // Issue #41: 新規セクションも2軸モデルを明示的に持たせる(既定は従来と同じMelody+Chords)
+      content: { ...DEFAULT_SECTION_CONTENT },
+    }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
       project: { ...prev, sections: normalizeSectionTimeline([...prev.sections, section]) },
       selectedSectionId: section.id,
+    })
+    get().persist()
+  },
+
+  /**
+   * Issue #41: セクションのリード内容/伴奏/entryOffset/pickupを更新する。
+   * entryOffsetはセクション長を超えないよう丸める(完全無音は entryOffset = セクション長)。
+   */
+  setSectionContent: (sectionId, patch) => {
+    const prev = get().project
+    const beatsPerBar = parseTimeSignature(prev.song.timeSignature).beatsPerBar
+    const sections = prev.sections.map((section) => {
+      if (section.id !== sectionId) return section
+      const current = section.content ?? DEFAULT_SECTION_CONTENT
+      const next = { ...current, ...patch }
+      const sectionBeats = section.lengthBars * beatsPerBar
+      return {
+        ...section,
+        content: {
+          ...next,
+          entryOffsetBeats: Math.max(0, Math.min(sectionBeats, next.entryOffsetBeats)),
+        },
+      }
+    })
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, sections },
     })
     get().persist()
   },
@@ -469,18 +522,70 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
+    const sectionContent = section.content ?? DEFAULT_SECTION_CONTENT
+
+    // Issue #41: melody以外のリード内容は、通常のMelody Engineではなく
+    // content専用の経路(計画→専用Generator→構造検証)を通す。
+    if (usesContentPipeline(sectionContent.lead)) {
+      const { candidates: contentCandidates, unresolvedCandidates } = generateSectionContent({
+        chords,
+        sectionId,
+        sectionRole: section.role,
+        songProfile: profile,
+        content: sectionContent,
+        range,
+        totalBeats,
+        beatsPerBar: ts.beatsPerBar,
+        seed: createSeed(),
+        key: prev.song.key,
+        density: settings.density,
+        drama: settings.drama,
+        // Issue #41: サビが未生成ならundefinedのまま渡し、生成側で予約値へフォールバックさせる
+        chorusPeakMidi: chorusPeakMidi(prev),
+      })
+      const contentBatchId = crypto.randomUUID()
+      const contentVariants = contentCandidates.map((candidate) =>
+        toMelodyVariantFromContent(sectionId, profile, candidate, contentBatchId),
+      )
+      set({
+        history: [...get().history, snapshot(prev)],
+        future: [],
+        project: { ...prev, melodyVariants: [...prev.melodyVariants, ...contentVariants] },
+        activeBatchId: contentBatchId,
+        activeCandidateIndex: 0,
+        // 作り直しの上限まで構造検証を満たせなかった場合は理由を伝える
+        workflowNotice:
+          unresolvedCandidates.length > 0
+            ? `一部の候補が${LEAD_CONTENT_LABELS[unresolvedCandidates[0].content]}として成立していません(${unresolvedCandidates[0].problems[0]})。リード開始位置やセクション長を見直してください。`
+            : null,
+      })
+      get().persist()
+      return
+    }
+
     const selectedProfiles: MelodyGeneratorProfile[] =
       settings.selectedGeneratorProfiles.length > 0 ? settings.selectedGeneratorProfiles : ["standard"]
 
+    // Issue #41 / PR#43: Melodyでも entryOffset / pickup は同じ2軸設定として効かせる。
+    // 窓の内側だけを生成対象にし(コードをずらして渡す)、生成後にセクション相対へ戻す。
+    const window = leadWindowOf(sectionContent, totalBeats)
+    const fullSection = isFullSectionWindow(window, totalBeats)
+    const windowChords = fullSection ? chords : chordsForWindow(chords, window)
+    const windowBeats = windowLengthBeats(window)
+    if (windowChords.length === 0 || windowBeats <= 0) {
+      set({ workflowNotice: "リード開始位置がセクション終端に達しているため、Melodyを生成できません。" })
+      return
+    }
+
     const { candidates } = generateFromChordsWithProfiles({
-      chords,
+      chords: windowChords,
       sectionId,
       sectionRole: section.role,
       songProfile: profile,
       density: settings.density,
       range,
       drama: settings.drama,
-      totalBeats,
+      totalBeats: windowBeats,
       seed: createSeed(),
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
@@ -491,6 +596,55 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const batchId = crypto.randomUUID()
     const variants: MelodyVariant[] = candidates.map((c) => {
       const v = toMelodyVariantFromProfile(sectionId, profile, c, batchId)
+      if (!fullSection) {
+        // 窓相対で作った実音をセクション相対へ戻し、Layer/notesを一致させる
+        v.notes = shiftNotesToSection(v.notes, window)
+        // restBeats も絶対拍位置なのでまとめてずらす
+        // (ずらし忘れると計画が実音とずれ、時間単位移行でも誤った値をスケールしてしまう)
+        v.phrasePlans = v.phrasePlans.map((plan) => ({
+          ...plan,
+          phraseStartBeat: plan.phraseStartBeat + window.startBeat,
+          climaxBeat: plan.climaxBeat + window.startBeat,
+          restBeats: plan.restBeats.map((beat) => beat + window.startBeat),
+        }))
+      }
+      v.leadContent = "melody"
+      const primaryNotes = v.notes
+      v.layers = [
+        {
+          id: `${v.id}:primary`,
+          partRole: "lead",
+          content: "melody",
+          plan: fallbackPlanFor("melody", primaryNotes),
+          notes: primaryNotes,
+          kind: "primary",
+        },
+      ]
+      // pickupが有効なら、窓の外(セクション末尾)へ弱起を別Layerとして足す
+      const pickupNotes = generateMelodyPickupNotes(v.seed, {
+        chords,
+        sectionId,
+        sectionRole: section.role,
+        songProfile: profile,
+        content: sectionContent,
+        range,
+        totalBeats,
+        beatsPerBar: ts.beatsPerBar,
+        seed: v.seed,
+        key: prev.song.key,
+        chorusPeakMidi: chorusPeakMidi(prev),
+      })
+      if (pickupNotes.length > 0) {
+        v.layers.push({
+          id: `${v.id}:pickup`,
+          partRole: "lead",
+          content: "melody",
+          plan: fallbackPlanFor("melody", pickupNotes),
+          notes: pickupNotes,
+          kind: "pickup",
+        })
+        v.notes = flattenLayerNotes(v.layers)
+      }
       v.features = computeMelodyFeatures(v.notes, harmonicMap, 0, totalBeats)
       return v
     })
@@ -673,6 +827,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const variant = prev.melodyVariants.find((v) => v.id === variantId)
     const section = variant && prev.sections.find((s) => s.id === variant.sectionId)
     if (!variant || !section) return
+    // Issue #41: 部分再生成は歌唱メロディ専用の処理。melody以外のcontent候補へ通すと
+    // 生成結果がMelody Engineの出力に置き換わり、leadContent/layersが失われてしまう。
+    if (resolvedLeadContent(variant) !== "melody") {
+      set({ workflowNotice: "この候補はメロディ以外の内容(Motif/Ostinato/Drone等)のため、範囲の部分再生成は使えません。Generateで作り直してください。" })
+      return
+    }
     const chords = prev.chords.filter((c) => c.sectionId === variant.sectionId)
     const harmonicMap = buildHarmonicMap(chords)
     const profile = effectiveSongProfile(prev, variant.sectionId)
@@ -775,6 +935,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const source = prev.melodyVariants.find((v) => v.id === sourceVariantId)
     const section = source && prev.sections.find((s) => s.id === source.sectionId)
     if (!source || !section) return
+    // Issue #41: Seed発展操作も歌唱メロディ専用。melody以外のcontent候補へは適用しない
+    // (適用するとMelody Engineの出力へ置き換わり、Content Modeが失われる)。
+    if (resolvedLeadContent(source) !== "melody") {
+      set({ workflowNotice: "この候補はメロディ以外の内容(Motif/Ostinato/Drone等)のため、Seedの発展操作は使えません。" })
+      return
+    }
     const seedNotes = source.notes.filter((n) => seedNoteIds.includes(n.id))
     if (seedNotes.length === 0) return
 
