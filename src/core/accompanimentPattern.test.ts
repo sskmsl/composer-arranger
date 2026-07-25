@@ -78,6 +78,33 @@ describe("Accompaniment Pattern / コード度数解決", () => {
     }
   })
 
+  it("和音開始・5音・6音アルペジオを標準テンプレートとして提供する", () => {
+    const patterns = createDefaultAccompanimentPatterns()
+    const chordEntry = patterns.find((pattern) => pattern.id === "chord-entry")!
+    const fiveNotes = patterns.find((pattern) => pattern.id === "arpeggio-five")!
+    const sixNotes = patterns.find((pattern) => pattern.id === "arpeggio-six")!
+
+    expect(chordEntry.events.filter((event) => event.offsetBeats === 0).map((event) => event.degree)).toEqual([
+      1, 3, 5,
+    ])
+    expect(new Set(fiveNotes.events.map((event) => event.offsetBeats)).size).toBe(5)
+    expect(fiveNotes.events.map((event) => event.degree)).toEqual([1, 3, 5, 7, 9])
+    expect(new Set(sixNotes.events.map((event) => event.offsetBeats)).size).toBe(6)
+    expect(sixNotes.events.map((event) => event.degree)).toEqual([1, 3, 5, 7, 9, 11])
+  })
+
+  it("保存済みProjectへ不足している新しい標準テンプレートを補完する", () => {
+    const project = createEmptyProject("legacy-patterns")
+    project.accompanimentPatterns = project.accompanimentPatterns.filter(
+      (pattern) => !["chord-entry", "arpeggio-five", "arpeggio-six"].includes(pattern.id),
+    )
+
+    const restored = normalizeProject(JSON.parse(JSON.stringify(project)))
+    expect(restored.accompanimentPatterns.map((pattern) => pattern.id)).toEqual(
+      expect.arrayContaining(["chord-entry", "arpeggio-five", "arpeggio-six"]),
+    )
+  })
+
   it("Project JSONのテンプレートとセクション割り当てを正規化後も保持する", () => {
     const project = createEmptyProject("pattern")
     project.sections = [{ id: "s", name: "A", role: "verse", startBar: 1, lengthBars: 4 }]
