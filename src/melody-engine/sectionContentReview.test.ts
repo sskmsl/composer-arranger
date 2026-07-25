@@ -5,6 +5,7 @@ import type { SectionContentSettings } from "@/core/sectionContent"
 import { notesBeforeEntryOffset } from "@/core/sectionContent"
 import { generateSectionContent } from "./generateSectionContent"
 import { chordsForWindow, leadWindowOf, shiftNotesToSection, windowLengthBeats } from "./leadWindow"
+import { computeContentStructureFeatures, validateContentStructure } from "./contentStructure"
 
 const TOTAL_BEATS = 16
 const BEATS_PER_BAR = 4
@@ -176,5 +177,53 @@ describe("PR#43 fix3 / leadWindow の窓変換", () => {
     const windowChords = chordsForWindow(CHORDS, window)
     // 4-8拍のFは6拍から始まる2拍分になる
     expect(windowChords[0]).toMatchObject({ startBeat: 0, durationBeats: 2, symbol: "F" })
+  })
+})
+
+describe("PR#43 自己レビュー分", () => {
+  it("melodyの実音が0音なら構造検証で検出する(鳴らせる区間がある場合)", () => {
+    const plan = {
+      content: "melody" as const,
+      entryOffsetBeats: 0,
+      pickupBeats: 0,
+      register: "middle" as const,
+      pitchVocabulary: [0, 4, 7],
+      rhythmGrammar: "melody-phrase",
+      recurrenceStrategy: "phrase" as const,
+      developmentStrategy: "develop" as const,
+      chordBoundaryResponse: "follow" as const,
+      cellLengthBeats: 0,
+      repetitionCount: 0,
+      sustainRatioTarget: 0.15,
+      motifIntervals: [],
+      cellDurations: [],
+      restBeats: [],
+    }
+    const features = computeContentStructureFeatures([], plan, TOTAL_BEATS)
+    const validation = validateContentStructure(features, plan, [], TOTAL_BEATS)
+    expect(validation.ok).toBe(false)
+    expect(validation.problems.join()).toContain("Melodyの実音が生成されていない")
+  })
+
+  it("鳴らせる区間が無い(完全無音)melodyは0音でも検証を通す", () => {
+    const plan = {
+      content: "melody" as const,
+      entryOffsetBeats: TOTAL_BEATS,
+      pickupBeats: 0,
+      register: "middle" as const,
+      pitchVocabulary: [0],
+      rhythmGrammar: "melody-phrase",
+      recurrenceStrategy: "phrase" as const,
+      developmentStrategy: "develop" as const,
+      chordBoundaryResponse: "follow" as const,
+      cellLengthBeats: 0,
+      repetitionCount: 0,
+      sustainRatioTarget: 0,
+      motifIntervals: [],
+      cellDurations: [],
+      restBeats: [],
+    }
+    const features = computeContentStructureFeatures([], plan, TOTAL_BEATS)
+    expect(validateContentStructure(features, plan, [], TOTAL_BEATS).ok).toBe(true)
   })
 })

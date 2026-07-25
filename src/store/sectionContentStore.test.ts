@@ -281,3 +281,22 @@ describe("PR#43 fix4 / 構造検証を満たせない場合はUIへ通知する"
     expect(useProjectStore.getState().workflowNotice).toBeNull()
   })
 })
+
+describe("PR#43 自己レビュー分 / 窓シフトでPhrasePlanの拍位置が一貫している", () => {
+  it("entryOffset適用時、phrasePlansの拍位置(restBeats含む)がすべてセクション相対へ揃う", () => {
+    useProjectStore.getState().setSectionContent("s1", { lead: "melody", entryOffsetBeats: 8 })
+    useProjectStore.getState().generateForSection("s1")
+
+    for (const variant of useProjectStore.getState().project.melodyVariants) {
+      for (const plan of variant.phrasePlans) {
+        expect(plan.phraseStartBeat).toBeGreaterThanOrEqual(8 - 1e-6)
+        expect(plan.climaxBeat).toBeGreaterThanOrEqual(8 - 1e-6)
+        // restBeats も絶対拍位置なので、ずらし忘れると窓より前を指してしまう
+        for (const beat of plan.restBeats) {
+          expect(beat).toBeGreaterThanOrEqual(8 - 1e-6)
+          expect(beat).toBeLessThanOrEqual(16 + 1e-6)
+        }
+      }
+    }
+  })
+})

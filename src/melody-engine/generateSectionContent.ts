@@ -196,7 +196,7 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
         : buildContentLayers(new SeededRandom(seed), plan, ctx, `${input.sectionId}:${index}`)
     const notes = flattenLayerNotes(layers)
     const features = computeContentStructureFeatures(notes, plan, input.totalBeats)
-    const validation = validateContentStructure(features, plan, notes)
+    const validation = validateContentStructure(features, plan, notes, input.totalBeats)
     return {
       patternIndex: (index + 1) as 1 | 2 | 3,
       content: plan.content,
@@ -248,12 +248,13 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
       input.seed + target * 7919 + attempt * 15485863,
       attempt,
     )
-    // 作り直しで悪化させない。検証が通るか、少なくとも問題が減る場合のみ差し替える。
-    // (entryOffsetをセクション末尾に固定した等、どう計画しても成立しない設定では
-    //  何度引き直しても失敗するため、元の候補を保持して打ち切る)
-    const wasInvalid = candidates[target].problems.length
-    if (replacement.problems.length <= wasInvalid) candidates[target] = replacement
-    else if (wasInvalid === 0) candidates[target] = replacement
+    // 作り直しで構造を悪化させない。構造的妥当性は類似度より優先する。
+    // (類似超過を直すために構造的に成立しない候補へ差し替えるのは本末転倒)
+    // entryOffsetをセクション末尾に固定した等、どう計画しても成立しない設定では
+    // 何度引き直しても失敗するため、元の候補を保持したまま試行回数を使い切る。
+    const before = candidates[target].problems.length
+    const after = replacement.problems.length
+    if (after === 0 || after < before) candidates[target] = replacement
   }
 
   // 上限まで作り直しても成立しない場合は、その事実を呼び出し側へ返してUIで知らせる

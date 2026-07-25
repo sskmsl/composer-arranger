@@ -215,12 +215,20 @@ export function validateContentStructure(
   features: ContentStructureFeatures,
   plan: SectionContentPlan,
   notes: MelodyNote[],
+  totalBeats: number,
 ): StructuralValidation {
   const problems: string[] = []
   const content: ResolvedLeadContent = plan.content
 
   const early = notes.filter((note) => note.startBeat < plan.entryOffsetBeats - EPS)
   if (early.length > 0) problems.push("entryOffsetより前にリードノートがある")
+
+  if (content === "melody") {
+    // melody は歌うべき内容なので、鳴らせる区間があるのに0音なら成立していない。
+    // (Autoがmelodyを選んだのに実音が作られなかった場合をここで捕まえる)
+    const hasRoom = plan.entryOffsetBeats + plan.pickupBeats < totalBeats - EPS
+    if (hasRoom && notes.length === 0) problems.push("Melodyの実音が生成されていない")
+  }
 
   if (content === "motif") {
     if (notes.length < 2) problems.push("Motifの音数が2音未満")

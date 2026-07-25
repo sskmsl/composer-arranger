@@ -599,10 +599,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (!fullSection) {
         // 窓相対で作った実音をセクション相対へ戻し、Layer/notesを一致させる
         v.notes = shiftNotesToSection(v.notes, window)
+        // restBeats も絶対拍位置なのでまとめてずらす
+        // (ずらし忘れると計画が実音とずれ、時間単位移行でも誤った値をスケールしてしまう)
         v.phrasePlans = v.phrasePlans.map((plan) => ({
           ...plan,
           phraseStartBeat: plan.phraseStartBeat + window.startBeat,
           climaxBeat: plan.climaxBeat + window.startBeat,
+          restBeats: plan.restBeats.map((beat) => beat + window.startBeat),
         }))
       }
       v.leadContent = "melody"
