@@ -29,8 +29,11 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
   return all.sort((a, b) => b.savedAt.localeCompare(a.savedAt))
 }
 
-/** メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate用) */
-async function putProjectRecord(project: ComposerProject): Promise<void> {
+/**
+ * メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate/削除の復元用)。
+ * 現在編集中のセッション(store.project/selectedSectionId/history等)には一切触れない。
+ */
+export async function putProjectRecord(project: ComposerProject): Promise<void> {
   const db = await getDb()
   await db.put(PROJECT_STORE, { ...project, savedAt: new Date().toISOString() })
 }
