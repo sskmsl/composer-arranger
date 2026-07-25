@@ -1,6 +1,6 @@
 import type { SeededRandom } from "@/core/rng"
 import type { MelodyNote } from "@/core/melody"
-import { pitchClass, type Midi } from "@/core/note"
+import type { Midi } from "@/core/note"
 import { chordTonePitchClasses } from "@/core/chord"
 import type { SectionContentPlan, SectionLayer } from "@/core/sectionContent"
 import { partRoleFor } from "@/core/sectionContent"

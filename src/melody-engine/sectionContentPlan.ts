@@ -9,7 +9,6 @@ import {
   type ChordBoundaryResponse,
   type ContentDevelopmentStrategy,
   type ContentRegister,
-  type RecurrenceStrategy,
   type ResolvedLeadContent,
   type SectionContentPlan,
 } from "@/core/sectionContent"
@@ -138,14 +137,13 @@ export function planSectionContentBatch(
   const sustainBias = PROFILE_SUSTAIN_BIAS[ctx.songProfile] ?? 0
   const plans: SectionContentPlan[] = []
   for (let i = 0; i < count; i++) {
-    plans.push(planOne(rng, content, ctx, offset, i, sustainBias))
+    plans.push(planOne(content, ctx, offset, i, sustainBias))
   }
   return plans
 }
 
 /** 単一候補の計画。呼び出し側の回転起点(offset)とindexで軸をずらす */
 function planOne(
-  rng: SeededRandom,
   content: ResolvedLeadContent,
   ctx: ContentPlanContext,
   offset: number,
@@ -332,7 +330,7 @@ export function planReplacement(
   for (let step = 0; step < 12; step++) {
     const offset = (startOffset + step) % 12
     for (let index = 0; index < 3; index++) {
-      const candidate = planOne(rng, content, ctx, offset, index, sustainBias)
+      const candidate = planOne(content, ctx, offset, index, sustainBias)
       const minDiff = existing.length
         ? Math.min(...existing.map((plan) => planDifferenceCount(plan, candidate)))
         : Number.POSITIVE_INFINITY
@@ -344,7 +342,7 @@ export function planReplacement(
     }
   }
   // 構造の自由度が足りず閾値に届かない場合は、最も違う計画を返す
-  return best ?? planOne(rng, content, ctx, startOffset, 0, sustainBias)
+  return best ?? planOne(content, ctx, startOffset, 0, sustainBias)
 }
 
 /**
@@ -376,7 +374,7 @@ export function planAutoContentBatch(
   return contents.map((content) => {
     const seen = seenPerContent.get(content) ?? 0
     seenPerContent.set(content, seen + 1)
-    return planOne(rng, content, ctx, planOffset, seen, sustainBias)
+    return planOne(content, ctx, planOffset, seen, sustainBias)
   })
 }
 
