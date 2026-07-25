@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { useActiveVariant, useCandidateBatch } from "./useActiveVariant"
 import { PianoRoll, type BeatRange } from "./PianoRoll"
+import { AccompanimentPianoRoll } from "./AccompanimentPianoRoll"
+import { ChordPianoRoll } from "./ChordPianoRoll"
 import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS } from "@/core/sectionContent"
-import { resolvedLeadContent } from "@/core/sectionLayers"
+import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
+import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
 import type { RangeRegenerationLocks } from "@/core/melody"
@@ -40,6 +43,17 @@ export function MelodyWorkspace() {
   const ts = parseTimeSignature(project.song.timeSignature)
   const totalBeats = section ? section.lengthBars * ts.beatsPerBar : 0
   const chords = project.chords.filter((c) => c.sectionId === selectedSectionId).sort((a, b) => a.startBeat - b.startBeat)
+  const accompanimentPatternNotes = useMemo(
+    () =>
+      selectedSectionId
+        ? accompanimentPatternNotesForSection(
+            project,
+            selectedSectionId,
+            variant ? notesByPartRole(variant, "lead") : undefined,
+          )
+        : [],
+    [project, selectedSectionId, variant],
+  )
   // Issue #12: 無効なコードを暗黙にC majorとして生成へ渡さないため、件数だけでなくエラーの有無も
   // Generateボタンの可否へ反映する(buildHarmonicMapのC majorフォールバックへ黙って進ませない)。
   const chordHasError = chords.length > 0 && diagnoseChordInput(chords, totalBeats).hasError
@@ -144,6 +158,23 @@ export function MelodyWorkspace() {
           {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
           作り直す場合は Generate を実行してください。
         </p>
+      )}
+      {accompanimentPatternNotes.length > 0 && (
+        <AccompanimentPianoRoll
+          notes={accompanimentPatternNotes}
+          chords={chords}
+          totalBeats={totalBeats}
+          timeSignature={project.song.timeSignature}
+          songKey={project.song.key}
+        />
+      )}
+      {chords.length > 0 && (
+        <ChordPianoRoll
+          chords={chords}
+          totalBeats={totalBeats}
+          timeSignature={project.song.timeSignature}
+          songKey={project.song.key}
+        />
       )}
 
       {variant && isMelodyVariant && selection && selection.end - selection.start >= 0.25 && (
