@@ -6,6 +6,7 @@ import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
 import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
+import type { RangeRegenerationLocks } from "@/core/melody"
 
 const SEED_OPS: { id: SeedOperation; label: string }[] = [
   { id: "continue", label: "Continue" },
@@ -21,7 +22,6 @@ export function MelodyWorkspace() {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const generateForSection = useProjectStore((s) => s.generateForSection)
-  const activeCandidateIndex = useProjectStore((s) => s.setActiveCandidateIndex)
   const setActiveCandidateIndex = useProjectStore((s) => s.setActiveCandidateIndex)
   const currentIndex = useProjectStore((s) => s.activeCandidateIndex)
   const setActiveMelody = useProjectStore((s) => s.setActiveMelody)
@@ -29,6 +29,7 @@ export function MelodyWorkspace() {
   const toggleBarLock = useProjectStore((s) => s.toggleBarLock)
   const regenerateRange = useProjectStore((s) => s.regenerateRange)
   const applySeedOperation = useProjectStore((s) => s.applySeedOperation)
+  const workflowNotice = useProjectStore((s) => s.workflowNotice)
 
   const batch = useCandidateBatch()
   const variant = useActiveVariant()
@@ -41,13 +42,18 @@ export function MelodyWorkspace() {
   const [selection, setSelection] = useState<BeatRange | null>(null)
   const [continuationBars, setContinuationBars] = useState(2)
   const [expandBars, setExpandBars] = useState(4)
+  const [regenerationLocks, setRegenerationLocks] = useState<RangeRegenerationLocks>({
+    pitch: false,
+    rhythm: false,
+    motif: false,
+    opening: false,
+    ending: false,
+  })
 
   useEffect(() => {
     setSelectedNoteIds(new Set())
     setSelection(null)
   }, [variant?.id])
-
-  void activeCandidateIndex
 
   if (!section) {
     return <div className="flex flex-1 items-center justify-center text-ink-muted-48">左のパネルからセクションを選択してください</div>
@@ -82,6 +88,12 @@ export function MelodyWorkspace() {
         </div>
       )}
 
+      {workflowNotice && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          {workflowNotice}
+        </p>
+      )}
+
       <PianoRoll
         variant={variant}
         chords={chords}
@@ -109,13 +121,69 @@ export function MelodyWorkspace() {
       </p>
 
       {variant && selection && selection.end - selection.start >= 0.25 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-          <span className="text-[12px] text-ink-muted-48">
-            選択範囲: {selection.start.toFixed(1)}拍 – {selection.end.toFixed(1)}拍
-          </span>
-          <Button variant="secondary" onClick={() => regenerateRange(variant.id, selection.start, selection.end)}>
-            選択範囲のみ再生成
-          </Button>
+        <div className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] text-ink-muted-48">
+              選択範囲: {selection.start.toFixed(1)}拍 – {selection.end.toFixed(1)}拍
+            </span>
+            <div className="ml-auto flex flex-wrap gap-1">
+              <Button
+                variant="dark"
+                onClick={() =>
+                  setSelection({
+                    start: 0,
+                    end: Math.min(totalBeats, variant.phrasePlans[0]?.phraseLengthBeats ?? Math.min(8, totalBeats)),
+                  })
+                }
+              >
+                Opening
+              </Button>
+              <Button
+                variant="dark"
+                onClick={() => setSelection({ start: totalBeats * 0.25, end: totalBeats * 0.75 })}
+              >
+                Middle
+              </Button>
+              <Button
+                variant="dark"
+                onClick={() =>
+                  setSelection({
+                    start: variant.phrasePlans.at(-1)?.phraseStartBeat ?? Math.max(0, totalBeats - 4),
+                    end: totalBeats,
+                  })
+                }
+              >
+                Ending
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[12px] text-ink-muted-48">
+            {(Object.keys(regenerationLocks) as (keyof RangeRegenerationLocks)[]).map((key) => (
+              <label key={key} className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={regenerationLocks[key]}
+                  onChange={(event) =>
+                    setRegenerationLocks((current) => ({ ...current, [key]: event.target.checked }))
+                  }
+                />
+                {key[0].toUpperCase() + key.slice(1)}を保持
+              </label>
+            ))}
+          </div>
+          {(regenerationLocks.pitch || regenerationLocks.motif) && regenerationLocks.rhythm && (
+            <p className="text-[11px] text-amber-300">
+              Pitch/MotifとRhythmを同時に保持すると選択範囲の実音が固定されます。Lockは自動解除されません。
+            </p>
+          )}
+          <div>
+            <Button
+              variant="secondary"
+              onClick={() => regenerateRange(variant.id, selection.start, selection.end, regenerationLocks)}
+            >
+              保持条件から最大3候補を生成
+            </Button>
+          </div>
         </div>
       )}
 

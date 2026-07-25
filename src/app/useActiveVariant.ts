@@ -17,6 +17,13 @@ export function useActiveVariant(): MelodyVariant | undefined {
   const activeCandidateIndex = useProjectStore((s) => s.activeCandidateIndex)
   const batch = useCandidateBatch()
   if (batch.length > 0) return batch[Math.min(activeCandidateIndex, batch.length - 1)]
+  if (selectedSectionId) {
+    const assignedId = project.sectionMelodyAssignments[selectedSectionId]
+    const assigned = project.melodyVariants.find(
+      (variant) => variant.id === assignedId && variant.sectionId === selectedSectionId,
+    )
+    if (assigned) return assigned
+  }
   if (project.activeMelodyId) {
     const variant = project.melodyVariants.find((v) => v.id === project.activeMelodyId)
     // Active Melodyが別セクションのVariantを指している場合、現在のセクションのコードと

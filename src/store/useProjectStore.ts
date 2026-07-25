@@ -7,14 +7,20 @@ import {
 } from "@/core/project"
 import type { Section, SectionRole } from "@/core/section"
 import { parseTimeSignature } from "@/core/section"
-import type { LockKind, MelodyGeneratorProfile, MelodyNote, MelodyVariant } from "@/core/melody"
+import type {
+  LockKind,
+  MelodyGeneratorProfile,
+  MelodyNote,
+  MelodyVariant,
+  RangeRegenerationLocks,
+} from "@/core/melody"
 import { parseChordInputText } from "@/core/chordInput"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
 import { generateFromChordsWithProfiles, toMelodyVariantFromProfile } from "@/melody-engine/generateFromChords"
 import { resolveGenerationParams, RANGE_PRESETS, type Density, type Drama, type RangeSetting } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { extractMotifDNA } from "@/melody-engine/motifDNA"
-import { regenerateSelection } from "@/melody-engine/regenerateSelection"
+import { generateRangeRegenerationCandidates } from "@/melody-engine/rangeRegeneration"
 import {
   seedContinue,
   seedExpand,
@@ -27,6 +33,8 @@ import {
 import { createSeed } from "@/core/rng"
 import { saveProject, loadLastOpenedProject, loadProject as loadProjectById, backupProjectTimingSnapshot } from "@/storage/projectRepository"
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
+import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
+import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -53,6 +61,7 @@ interface ProjectState {
   history: ComposerProject[]
   future: ComposerProject[]
   hydrated: boolean
+  workflowNotice: string | null
   /** Issue #16: 時間単位の自動変換通知/確認待ち(判定できなかった場合) */
   timingNotice: TimingNotice | null
 
@@ -72,6 +81,7 @@ interface ProjectState {
   updateSection: (sectionId: string, patch: Partial<Section>) => void
   removeSection: (sectionId: string) => void
   duplicateSection: (sectionId: string) => void
+  moveSection: (sectionId: string, targetIndex: number) => void
   selectSection: (sectionId: string | null) => void
 
   setChordText: (sectionId: string, text: string) => void
@@ -85,6 +95,8 @@ interface ProjectState {
   generateForSection: (sectionId: string) => void
   setActiveCandidateIndex: (index: number) => void
   setActiveMelody: (variantId: string) => void
+  assignVariantToSection: (sectionId: string, variantId: string | null) => void
+  setVariantReviewState: (variantId: string, reviewState: "favorite" | "rejected" | null) => void
   /** 生成履歴からVariantを選ぶ: Active Melodyにするだけでなく、現在の候補バッチ表示も解除する */
   selectVariantFromHistory: (variantId: string) => void
   renameVariant: (variantId: string, name: string) => void
@@ -94,7 +106,12 @@ interface ProjectState {
   toggleBarLock: (variantId: string, barIndex: number) => void
   updateNote: (variantId: string, noteId: string, patch: Partial<MelodyNote>) => void
   deleteNote: (variantId: string, noteId: string) => void
-  regenerateRange: (variantId: string, startBeat: number, endBeat: number) => void
+  regenerateRange: (
+    variantId: string,
+    startBeat: number,
+    endBeat: number,
+    locks?: Partial<RangeRegenerationLocks>,
+  ) => void
 
   applySeedOperation: (
     sourceVariantId: string,
@@ -140,6 +157,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   history: [],
   future: [],
   hydrated: false,
+  workflowNotice: null,
   timingNotice: null,
 
   hydrate: async () => {
@@ -164,7 +182,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   newProject: () => {
     const project = createEmptyProject("New Song")
-    set({ project, selectedSectionId: null, activeBatchId: null, history: [], future: [], timingNotice: null })
+    set({
+      project,
+      selectedSectionId: null,
+      activeBatchId: null,
+      history: [],
+      future: [],
+      timingNotice: null,
+      workflowNotice: null,
+    })
     get().persist()
   },
 
@@ -178,6 +204,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       history: [],
       future: [],
       timingNotice: timingNoticeFrom(result),
+      workflowNotice: null,
     })
     get().persist()
   },
@@ -224,12 +251,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addSection: (name, role, lengthBars) => {
     const prev = get().project
-    const lastEnd = prev.sections.reduce((m, s) => Math.max(m, s.startBar + s.lengthBars), 1)
-    const section: Section = { id: crypto.randomUUID(), name, role, startBar: lastEnd, lengthBars }
+    const section: Section = { id: crypto.randomUUID(), name, role, startBar: 1, lengthBars }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, sections: [...prev.sections, section] },
+      project: { ...prev, sections: normalizeSectionTimeline([...prev.sections, section]) },
       selectedSectionId: section.id,
     })
     get().persist()
@@ -237,24 +263,37 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateSection: (sectionId, patch) => {
     const prev = get().project
+    const sections = prev.sections.map((s) =>
+      s.id === sectionId
+        ? { ...s, ...patch, lengthBars: patch.lengthBars === undefined ? s.lengthBars : Math.max(1, patch.lengthBars) }
+        : s,
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, sections: prev.sections.map((s) => (s.id === sectionId ? { ...s, ...patch } : s)) },
+      project: { ...prev, sections: normalizeSectionTimeline(sections) },
     })
     get().persist()
   },
 
   removeSection: (sectionId) => {
     const prev = get().project
+    const { [sectionId]: _removedAssignment, ...sectionMelodyAssignments } = prev.sectionMelodyAssignments
+    void _removedAssignment
+    const removedVariantIds = new Set(
+      prev.melodyVariants.filter((variant) => variant.sectionId === sectionId).map((variant) => variant.id),
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
       project: {
         ...prev,
-        sections: prev.sections.filter((s) => s.id !== sectionId),
+        sections: normalizeSectionTimeline(prev.sections.filter((s) => s.id !== sectionId)),
         chords: prev.chords.filter((c) => c.sectionId !== sectionId),
         melodyVariants: prev.melodyVariants.filter((v) => v.sectionId !== sectionId),
+        sectionMelodyAssignments,
+        activeMelodyId:
+          prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
       selectedSectionId: prev.sections.find((s) => s.id !== sectionId)?.id ?? null,
     })
@@ -266,14 +305,27 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const src = prev.sections.find((s) => s.id === sectionId)
     if (!src) return
     const newId = crypto.randomUUID()
-    const lastEnd = prev.sections.reduce((m, s) => Math.max(m, s.startBar + s.lengthBars), 1)
-    const copy: Section = { ...src, id: newId, name: `${src.name} copy`, startBar: lastEnd }
+    const copy: Section = { ...src, id: newId, name: `${src.name} copy`, startBar: 1 }
     const chordCopies = prev.chords.filter((c) => c.sectionId === sectionId).map((c) => ({ ...c, id: crypto.randomUUID(), sectionId: newId }))
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, sections: [...prev.sections, copy], chords: [...prev.chords, ...chordCopies] },
+      project: {
+        ...prev,
+        sections: normalizeSectionTimeline([...prev.sections, copy]),
+        chords: [...prev.chords, ...chordCopies],
+      },
       selectedSectionId: newId,
+    })
+    get().persist()
+  },
+
+  moveSection: (sectionId, targetIndex) => {
+    const prev = get().project
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, sections: moveSectionInTimeline(prev.sections, sectionId, targetIndex) },
     })
     get().persist()
   },
@@ -309,7 +361,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: {
         ...prev,
         chords: [...prev.chords, ...copies],
-        sections: prev.sections.map((s) => (s.id === sectionId ? { ...s, lengthBars: newLengthBars } : s)),
+        sections: normalizeSectionTimeline(
+          prev.sections.map((s) => (s.id === sectionId ? { ...s, lengthBars: newLengthBars } : s)),
+        ),
       },
     })
     get().persist()
@@ -380,6 +434,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: { ...prev, melodyVariants: [...prev.melodyVariants, ...variants] },
       activeBatchId: batchId,
       activeCandidateIndex: 0,
+      workflowNotice: null,
     })
     get().persist()
   },
@@ -388,13 +443,73 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setActiveMelody: (variantId) => {
     const prev = get().project
-    set({ project: { ...prev, activeMelodyId: variantId } })
+    const variant = prev.melodyVariants.find((candidate) => candidate.id === variantId)
+    if (!variant) return
+    set({
+      project: {
+        ...prev,
+        activeMelodyId: variantId,
+        sectionMelodyAssignments: {
+          ...prev.sectionMelodyAssignments,
+          [variant.sectionId]: variantId,
+        },
+      },
+    })
+    get().persist()
+  },
+
+  assignVariantToSection: (sectionId, variantId) => {
+    const prev = get().project
+    if (
+      variantId &&
+      !prev.melodyVariants.some((variant) => variant.id === variantId && variant.sectionId === sectionId)
+    ) {
+      return
+    }
+    const assignments = { ...prev.sectionMelodyAssignments }
+    if (variantId) assignments[sectionId] = variantId
+    else delete assignments[sectionId]
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        activeMelodyId: variantId ?? prev.activeMelodyId,
+        sectionMelodyAssignments: assignments,
+      },
+    })
+    get().persist()
+  },
+
+  setVariantReviewState: (variantId, reviewState) => {
+    const prev = get().project
+    set({
+      project: {
+        ...prev,
+        melodyVariants: prev.melodyVariants.map((variant) =>
+          variant.id === variantId ? { ...variant, reviewState } : variant,
+        ),
+      },
+    })
     get().persist()
   },
 
   selectVariantFromHistory: (variantId) => {
     const prev = get().project
-    set({ project: { ...prev, activeMelodyId: variantId }, activeBatchId: null, activeCandidateIndex: 0 })
+    const variant = prev.melodyVariants.find((candidate) => candidate.id === variantId)
+    if (!variant) return
+    set({
+      project: {
+        ...prev,
+        activeMelodyId: variantId,
+        sectionMelodyAssignments: {
+          ...prev.sectionMelodyAssignments,
+          [variant.sectionId]: variantId,
+        },
+      },
+      activeBatchId: null,
+      activeCandidateIndex: 0,
+    })
     get().persist()
   },
 
@@ -406,10 +521,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   deleteVariant: (variantId) => {
     const prev = get().project
+    const sectionMelodyAssignments = Object.fromEntries(
+      Object.entries(prev.sectionMelodyAssignments).filter(([, assignedId]) => assignedId !== variantId),
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, melodyVariants: prev.melodyVariants.filter((v) => v.id !== variantId) },
+      project: {
+        ...prev,
+        melodyVariants: prev.melodyVariants.filter((v) => v.id !== variantId),
+        activeMelodyId: prev.activeMelodyId === variantId ? null : prev.activeMelodyId,
+        sectionMelodyAssignments,
+      },
     })
     get().persist()
   },
@@ -478,7 +601,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
-  regenerateRange: (variantId, startBeat, endBeat) => {
+  regenerateRange: (variantId, startBeat, endBeat, lockPatch = {}) => {
     const prev = get().project
     const variant = prev.melodyVariants.find((v) => v.id === variantId)
     const section = variant && prev.sections.find((s) => s.id === variant.sectionId)
@@ -488,30 +611,94 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, variant.sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
-    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama, prev.song.key)
+    const baseParams = resolveGenerationParams(profile, section.role, settings.density, settings.drama, prev.song.key)
+    const generatorProfile = variant.generatorProfile ?? "standard"
+    const params = applyProfileOverride(
+      baseParams,
+      generatorProfile,
+      generatorProfileIntensity(generatorProfile, section.role),
+    )
 
-    const notes = regenerateSelection(
-      variant.notes,
-      variant.lockedBars,
-      prev.song.timeSignature,
+    const totalBeats = section.lengthBars * parseTimeSignature(prev.song.timeSignature).beatsPerBar
+    const locks: RangeRegenerationLocks = {
+      pitch: false,
+      rhythm: false,
+      motif: false,
+      opening: false,
+      ending: false,
+      ...lockPatch,
+    }
+    const baseSeed = createSeed()
+    const result = generateRangeRegenerationCandidates({
+      sourceNotes: variant.notes,
+      phrasePlans: variant.phrasePlans,
+      lockedBars: variant.lockedBars,
+      timeSignature: prev.song.timeSignature,
       startBeat,
       endBeat,
+      totalBeats,
       harmonicMap,
       range,
       params,
-      settings.density,
-      createSeed(),
-    )
-    const totalBeats = section.lengthBars * parseTimeSignature(prev.song.timeSignature).beatsPerBar
-    const features = computeMelodyFeatures(notes, harmonicMap, 0, totalBeats)
+      density: settings.density,
+      profile: generatorProfile,
+      locks,
+      seed: baseSeed,
+    })
+    if (result.candidates.length === 0) {
+      set({
+        workflowNotice:
+          "品質下限を維持した候補を作れませんでした。範囲または保持条件を緩めてください。",
+      })
+      return
+    }
+    const batchId = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    const variants: MelodyVariant[] = result.candidates.map((candidate, index) => ({
+      ...variant,
+      id: crypto.randomUUID(),
+      name: `${variant.name} – Range ${index + 1}`,
+      sourceMode: "regenerate-range",
+      notes: candidate.notes,
+      phrasePlans: candidate.plans,
+      features: computeMelodyFeatures(candidate.notes, harmonicMap, 0, totalBeats),
+      seed: candidate.seed,
+      parentMelodyId: variant.id,
+      batchId,
+      createdAt,
+      patternIndex: (index + 1) as 1 | 2 | 3,
+      reviewState: null,
+      generationDiagnostics: undefined,
+      openingIntent:
+        locks.opening || startBeat >= (variant.phrasePlans[0]?.phraseLengthBeats ?? 8)
+          ? variant.openingIntent
+          : undefined,
+      candidateMelodyDNA: locks.motif ? variant.candidateMelodyDNA : undefined,
+      elegiacPlan: locks.motif && locks.ending ? variant.elegiacPlan : undefined,
+      profileExpressionPlan: undefined,
+      prosodyPlan: locks.rhythm ? variant.prosodyPlan : undefined,
+      rangeRegeneration: {
+        range: { startBeat, endBeat },
+        locks,
+        candidatePoolIndex: candidate.candidatePoolIndex,
+        qualityScore: candidate.qualityScore,
+      },
+    }))
 
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
       project: {
         ...prev,
-        melodyVariants: prev.melodyVariants.map((v) => (v.id === variantId ? { ...v, notes, features } : v)),
+        melodyVariants: [...prev.melodyVariants, ...variants],
       },
+      activeBatchId: batchId,
+      activeCandidateIndex: 0,
+      workflowNotice: result.overConstrained
+        ? "Pitch/MotifとRhythmを保持したため実音は固定されています。Lockは解除していません。"
+        : result.candidates.length < 3
+          ? `品質下限を維持できた${result.candidates.length}候補だけを返しました。`
+          : null,
     })
     get().persist()
   },
