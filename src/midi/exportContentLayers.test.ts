@@ -444,4 +444,33 @@ describe("Issue #41 / 旧Projectの移行と既定値補完", () => {
     expect(migrated.melodyVariants[0].layers).toEqual(original.layers)
     expect(layersOf(migrated.melodyVariants[0])[0].partRole).toBe("accompaniment")
   })
+
+  it("旧保存データでvariant.notesとLayerの音程が異なる場合は編集後のvariant.notesへ同期する", () => {
+    const editedNotes = [note(0, 1, 72)]
+    const staleLayerNotes = [note(0, 1, 60)]
+    const original = variant({
+      leadContent: "melody",
+      notes: editedNotes,
+      layers: [layer("melody", staleLayerNotes)],
+    })
+
+    const migrated = normalizeProject({
+      schemaVersion: "1.5",
+      sections: [],
+      melodyVariants: [original],
+    })
+    const restored = migrated.melodyVariants[0]
+    expect(notesByPartRole(restored, "lead").map((item) => item.pitch)).toEqual([72])
+
+    const bytes = exportMelodyMidi({
+      title: "t",
+      sectionName: "A",
+      tempo: 96,
+      timeSignature: "4/4",
+      chords: [],
+      melody: restored,
+      includeChords: false,
+    })
+    expect(notesOfTrack(bytes, "Active Melody").map((item) => item.pitch)).toEqual([72])
+  })
 })

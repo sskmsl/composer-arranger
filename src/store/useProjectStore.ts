@@ -44,7 +44,13 @@ import {
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
 import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS, type SectionContentSettings } from "@/core/sectionContent"
-import { chorusPeakMidi, fallbackPlanFor, flattenLayerNotes, resolvedLeadContent } from "@/core/sectionLayers"
+import {
+  chorusPeakMidi,
+  fallbackPlanFor,
+  flattenLayerNotes,
+  replaceVariantNotes,
+  resolvedLeadContent,
+} from "@/core/sectionLayers"
 import {
   generateMelodyPickupNotes,
   generateSectionContent,
@@ -170,7 +176,7 @@ function snapshot(project: ComposerProject): ComposerProject {
 
 /** 採用済みメロディーを別セクションへ複製し、編集可能な独立Variantにする。 */
 function duplicateVariantForSection(source: MelodyVariant, sectionId: string): MelodyVariant {
-  const copy = structuredClone(source)
+  const copy = structuredClone(replaceVariantNotes(source, source.notes))
   const noteIds = new Map<string, string>()
   const duplicateNote = (note: MelodyNote): MelodyNote => {
     let id = noteIds.get(note.id)
@@ -835,14 +841,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ...prev,
         melodyVariants: prev.melodyVariants.map((v) => {
           if (v.id !== variantId) return v
-          return {
-            ...v,
-            notes: v.notes.map((n) => {
+          return replaceVariantNotes(
+            v,
+            v.notes.map((n) => {
               if (n.id !== noteId) return n
               const has = n.locks.includes(lock)
               return { ...n, locks: has ? n.locks.filter((l) => l !== lock) : [...n.locks, lock] }
             }),
-          }
+          )
         }),
       },
     })
@@ -872,7 +878,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: {
         ...prev,
         melodyVariants: prev.melodyVariants.map((v) =>
-          v.id === variantId ? { ...v, notes: v.notes.map((n) => (n.id === noteId ? { ...n, ...patch } : n)) } : v,
+          v.id === variantId
+            ? replaceVariantNotes(v, v.notes.map((n) => (n.id === noteId ? { ...n, ...patch } : n)))
+            : v,
         ),
       },
     })
@@ -886,7 +894,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       future: [],
       project: {
         ...prev,
-        melodyVariants: prev.melodyVariants.map((v) => (v.id === variantId ? { ...v, notes: v.notes.filter((n) => n.id !== noteId) } : v)),
+        melodyVariants: prev.melodyVariants.map((v) =>
+          v.id === variantId ? replaceVariantNotes(v, v.notes.filter((n) => n.id !== noteId)) : v,
+        ),
       },
     })
     get().persist()
@@ -951,36 +961,40 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const variants: MelodyVariant[] = result.candidates.map((candidate, index) => ({
-      ...variant,
-      id: crypto.randomUUID(),
-      name: `${variant.name} – Range ${index + 1}`,
-      sourceMode: "regenerate-range",
-      notes: candidate.notes,
-      phrasePlans: candidate.plans,
-      features: computeMelodyFeatures(candidate.notes, harmonicMap, 0, totalBeats),
-      seed: candidate.seed,
-      parentMelodyId: variant.id,
-      batchId,
-      createdAt,
-      patternIndex: (index + 1) as 1 | 2 | 3,
-      reviewState: null,
-      generationDiagnostics: undefined,
-      openingIntent:
-        locks.opening || startBeat >= (variant.phrasePlans[0]?.phraseLengthBeats ?? 8)
-          ? variant.openingIntent
-          : undefined,
-      candidateMelodyDNA: locks.motif ? variant.candidateMelodyDNA : undefined,
-      elegiacPlan: locks.motif && locks.ending ? variant.elegiacPlan : undefined,
-      profileExpressionPlan: undefined,
-      prosodyPlan: locks.rhythm ? variant.prosodyPlan : undefined,
-      rangeRegeneration: {
-        range: { startBeat, endBeat },
-        locks,
-        candidatePoolIndex: candidate.candidatePoolIndex,
-        qualityScore: candidate.qualityScore,
-      },
-    }))
+    const variants: MelodyVariant[] = result.candidates.map((candidate, index) =>
+      replaceVariantNotes(
+        {
+          ...variant,
+          id: crypto.randomUUID(),
+          name: `${variant.name} – Range ${index + 1}`,
+          sourceMode: "regenerate-range",
+          phrasePlans: candidate.plans,
+          features: computeMelodyFeatures(candidate.notes, harmonicMap, 0, totalBeats),
+          seed: candidate.seed,
+          parentMelodyId: variant.id,
+          batchId,
+          createdAt,
+          patternIndex: (index + 1) as 1 | 2 | 3,
+          reviewState: null,
+          generationDiagnostics: undefined,
+          openingIntent:
+            locks.opening || startBeat >= (variant.phrasePlans[0]?.phraseLengthBeats ?? 8)
+              ? variant.openingIntent
+              : undefined,
+          candidateMelodyDNA: locks.motif ? variant.candidateMelodyDNA : undefined,
+          elegiacPlan: locks.motif && locks.ending ? variant.elegiacPlan : undefined,
+          profileExpressionPlan: undefined,
+          prosodyPlan: locks.rhythm ? variant.prosodyPlan : undefined,
+          rangeRegeneration: {
+            range: { startBeat, endBeat },
+            locks,
+            candidatePoolIndex: candidate.candidatePoolIndex,
+            qualityScore: candidate.qualityScore,
+          },
+        },
+        candidate.notes,
+      ),
+    )
 
     set({
       history: [...get().history, snapshot(prev)],

@@ -2,7 +2,7 @@ import type { Section } from "./section"
 import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
 import { normalizeSectionTimeline } from "./sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, partRoleFor, type SectionContentSettings } from "./sectionContent"
-import { fallbackPlanFor } from "./sectionLayers"
+import { fallbackPlanFor, replaceVariantNotes } from "./sectionLayers"
 import {
   createDefaultAccompanimentPatterns,
   type AccompanimentPatternTemplate,
@@ -157,7 +157,7 @@ export function normalizeSectionContent(section: Section): Section {
  * partRoleの正をLayer側へ寄せたうえで、notesは従来どおり平坦な派生値として残す。
  */
 export function normalizeVariantLayers(variant: MelodyVariant): MelodyVariant {
-  if (variant.layers && variant.layers.length > 0) return variant
+  if (variant.layers && variant.layers.length > 0) return replaceVariantNotes(variant, variant.notes)
   const content = variant.leadContent ?? "melody"
   return {
     ...variant,
