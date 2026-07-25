@@ -122,7 +122,22 @@ export interface MelodyFeatures {
   peakPosition: number
 }
 
-export type MelodySourceMode = "generate" | "develop-seed" | "improve"
+export type MelodySourceMode = "generate" | "develop-seed" | "improve" | "regenerate-range"
+
+export interface RangeRegenerationLocks {
+  pitch: boolean
+  rhythm: boolean
+  motif: boolean
+  opening: boolean
+  ending: boolean
+}
+
+export interface RangeRegenerationMetadata {
+  range: { startBeat: number; endBeat: number }
+  locks: RangeRegenerationLocks
+  candidatePoolIndex: number
+  qualityScore: number
+}
 
 /**
  * Melody Candidate Diversity v1.2: 作曲文法そのものを切り替える生成器プロファイル。
@@ -323,6 +338,10 @@ export interface MelodyVariant {
   /** 同時生成された候補群をグルーピングするためのID */
   batchId: string
   createdAt: string
+  /** 候補整理とAuditionで共有するユーザー判定。 */
+  reviewState?: "favorite" | "rejected" | null
+  /** 部分再生成候補が保持した範囲・要素と選抜情報。 */
+  rangeRegeneration?: RangeRegenerationMetadata
   /** Melody Candidate Diversity v1.2: この候補を生成したGenerator Profile */
   generatorProfile?: MelodyGeneratorProfile
   /** 同一Profile内での独立Pattern番号(1〜3)。優先順位や派生関係は持たない */

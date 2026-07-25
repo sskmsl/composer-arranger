@@ -1,9 +1,10 @@
-import type { ChordEvent } from "@/core/project"
+import type { ChordEvent, ComposerProject } from "@/core/project"
 import type { MelodyVariant } from "@/core/melody"
 import { parseTimeSignature } from "@/core/section"
 import { parseChordSymbol } from "@/core/chord"
 import { voiceChord } from "@/audio/chordVoicing"
 import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
+import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 
 export interface ExportMelodyOptions {
   title: string
@@ -62,6 +63,49 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
     tempoBpm: opts.tempo,
     timeSignature: ts,
     markers: [{ tick: 0, text: opts.sectionName }],
+    tracks,
+  })
+}
+
+export function exportSongMidi(project: ComposerProject, includeChords = true): Uint8Array {
+  const ts = parseTimeSignature(project.song.timeSignature)
+  const material = buildSongPlaybackMaterial(project)
+  const melodyTrack: SmfTrack = {
+    name: "Active Melodies",
+    notes: material.melody.map((note) => ({
+      pitch: note.pitch,
+      start: beatsToTicks(note.startBeat),
+      duration: beatsToTicks(note.durationBeats),
+      velocity: note.velocity,
+      channel: 0,
+    })),
+  }
+  const tracks: SmfTrack[] = [melodyTrack]
+
+  if (includeChords) {
+    const chordNotes: SmfTrack["notes"] = []
+    for (const chord of material.chords) {
+      const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+      if (!parsed) continue
+      const voicing = voiceChord(parsed)
+      const start = beatsToTicks(chord.startBeat)
+      const duration = beatsToTicks(chord.durationBeats)
+      chordNotes.push({ pitch: voicing.bassMidi, start, duration, velocity: 70, channel: 1 })
+      for (const pitch of voicing.upperMidi) {
+        chordNotes.push({ pitch, start, duration, velocity: 60, channel: 1 })
+      }
+    }
+    tracks.unshift({ name: "Chords", notes: chordNotes })
+  }
+
+  return buildSmf({
+    name: project.title,
+    tempoBpm: project.song.tempo,
+    timeSignature: ts,
+    markers: project.sections.map((section) => ({
+      tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar),
+      text: section.name,
+    })),
     tracks,
   })
 }

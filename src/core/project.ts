@@ -1,5 +1,6 @@
 import type { Section } from "./section"
 import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
+import { normalizeSectionTimeline } from "./sectionTimeline"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -78,6 +79,8 @@ export interface ComposerProject {
   arrangementVariants: unknown[]
   audioReferences: unknown[]
   activeMelodyId: string | null
+  /** 曲全体を組み立てるための、セクションごとの採用Variant。 */
+  sectionMelodyAssignments: Record<string, string>
   activeArrangementId: string | null
   notes: string
   /** Melody Candidate Diversity v1.2: Profileごとの役割づけ(任意・強制なし) */
@@ -88,7 +91,7 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-export const CURRENT_SCHEMA_VERSION = "1.2"
+export const CURRENT_SCHEMA_VERSION = "1.3"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -109,6 +112,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     arrangementVariants: [],
     audioReferences: [],
     activeMelodyId: null,
+    sectionMelodyAssignments: {},
     activeArrangementId: null,
     notes: "",
     timeBase: TIME_BASE,
@@ -134,12 +138,13 @@ export function normalizeProject(raw: unknown): ComposerProject {
       sectionProfileOverrides: r.song?.sectionProfileOverrides ?? [],
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS, ...r.arrangementSettings },
-    sections: r.sections ?? [],
+    sections: normalizeSectionTimeline(r.sections ?? []),
     chords: r.chords ?? [],
     melodyVariants: r.melodyVariants ?? [],
     arrangementVariants: r.arrangementVariants ?? [],
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
+    sectionMelodyAssignments: r.sectionMelodyAssignments ?? {},
     activeArrangementId: r.activeArrangementId ?? null,
     notes: r.notes ?? "",
     generatorProfileRoles: r.generatorProfileRoles,

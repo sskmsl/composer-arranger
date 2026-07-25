@@ -5,8 +5,9 @@ import { LeftPanel } from "./LeftPanel"
 import { RightPanel } from "./RightPanel"
 import { BottomBar } from "./BottomBar"
 import { MelodyWorkspace } from "./MelodyWorkspace"
-import { ComingSoonTab } from "./ComingSoonTab"
 import { TimingMigrationBanner } from "./TimingMigrationBanner"
+import { ArrangementWorkspace } from "./ArrangementWorkspace"
+import { AuditionWorkspace } from "./AuditionWorkspace"
 
 export type MainTab = "melody" | "arrangement" | "audition"
 
@@ -55,8 +56,8 @@ export function App() {
             )}
           </>
         )}
-        {tab === "arrangement" && <ComingSoonTab name="Arrangement" phase="Phase 4以降" />}
-        {tab === "audition" && <ComingSoonTab name="Audition" phase="Phase 3以降" />}
+        {tab === "arrangement" && <ArrangementWorkspace />}
+        {tab === "audition" && <AuditionWorkspace />}
       </div>
       <BottomBar />
     </div>

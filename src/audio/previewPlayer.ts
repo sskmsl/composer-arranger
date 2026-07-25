@@ -12,7 +12,16 @@ export interface PlayOptions {
   melody: MelodyNote[]
   mode: PreviewMode
   loop?: boolean
+  /** 比較試聴用。startBeatは今回の再生開始位置、rangeは共通ループ範囲。 */
+  startBeat?: number
+  range?: { startBeat: number; endBeat: number }
   onEnded?: () => void
+}
+
+export function resolveComparisonSwitchBeat(currentBeat: number, rangeStart: number, rangeEnd: number): number {
+  if (!Number.isFinite(currentBeat)) return rangeStart
+  if (currentBeat < rangeStart || currentBeat >= rangeEnd) return rangeStart
+  return currentBeat
 }
 
 /**
@@ -24,6 +33,7 @@ class PreviewPlayer {
   private endTimer: number | null = null
   private startTime = 0
   private secondsPerBeat = 0.5
+  private playbackStartBeat = 0
 
   play(opts: PlayOptions): void {
     this.stop()
@@ -42,6 +52,10 @@ class PreviewPlayer {
     this.secondsPerBeat = 60 / opts.bpm
     const start = ctx.currentTime + 0.05
     this.startTime = start
+    const rangeStart = opts.range?.startBeat ?? 0
+    const rangeEnd = opts.range?.endBeat ?? Number.POSITIVE_INFINITY
+    const playbackStart = Math.max(rangeStart, opts.startBeat ?? rangeStart)
+    this.playbackStartBeat = playbackStart
 
     let totalBeats = 0
 
@@ -50,26 +64,35 @@ class PreviewPlayer {
         const parsed = parseChordSymbol(c.symbol, c.bass ?? undefined)
         if (!parsed) continue
         const voicing = voiceChord(parsed)
-        const t0 = start + c.startBeat * this.secondsPerBeat
-        const dur = c.durationBeats * this.secondsPerBeat
+        const eventEnd = c.startBeat + c.durationBeats
+        if (eventEnd <= playbackStart || c.startBeat >= rangeEnd) continue
+        const clippedStart = Math.max(c.startBeat, playbackStart)
+        const clippedEnd = Math.min(eventEnd, rangeEnd)
+        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
+        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
         this.schedulePad(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, dur)
-        totalBeats = Math.max(totalBeats, c.startBeat + c.durationBeats)
+        totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
 
     if (opts.mode !== "chords-only") {
       for (const n of opts.melody) {
-        const t0 = start + n.startBeat * this.secondsPerBeat
-        const dur = n.durationBeats * this.secondsPerBeat
+        const eventEnd = n.startBeat + n.durationBeats
+        if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
+        const clippedStart = Math.max(n.startBeat, playbackStart)
+        const clippedEnd = Math.min(eventEnd, rangeEnd)
+        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
+        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
         this.scheduleLead(ctx, compressor, n.pitch, n.velocity, t0, dur)
-        totalBeats = Math.max(totalBeats, n.startBeat + n.durationBeats)
+        totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
 
-    const totalSeconds = totalBeats * this.secondsPerBeat + 1.0
+    if (Number.isFinite(rangeEnd)) totalBeats = Math.max(0, rangeEnd - playbackStart)
+    const totalSeconds = totalBeats * this.secondsPerBeat + 0.15
     this.endTimer = window.setTimeout(() => {
       if (opts.loop) {
-        this.play(opts)
+        this.play({ ...opts, startBeat: rangeStart })
       } else {
         this.dispose()
         opts.onEnded?.()
@@ -80,6 +103,19 @@ class PreviewPlayer {
   getElapsedBeats(): number {
     if (!this.ctx) return 0
     return (this.ctx.currentTime - this.startTime) / this.secondsPerBeat
+  }
+
+  getCurrentBeat(): number {
+    return this.playbackStartBeat + Math.max(0, this.getElapsedBeats())
+  }
+
+  /** 再生ヘッドを維持したまま、比較対象のイベントだけを置き換える。 */
+  switch(opts: PlayOptions): void {
+    const currentBeat = this.getCurrentBeat()
+    const rangeStart = opts.range?.startBeat ?? 0
+    const rangeEnd = opts.range?.endBeat ?? Number.POSITIVE_INFINITY
+    const nextBeat = resolveComparisonSwitchBeat(currentBeat, rangeStart, rangeEnd)
+    this.play({ ...opts, startBeat: nextBeat })
   }
 
   isPlaying(): boolean {
