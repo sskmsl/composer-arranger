@@ -175,33 +175,56 @@ class PreviewPlayer {
     bassOsc.stop(holdEnd + release + 0.05)
   }
 
+  /**
+   * ピアノに近いリード音。ピアノらしさの要点は
+   *   ①非常に速いアタック ②持続せず打鍵直後から連続的に減衰する余韻
+   *   ③打鍵直後だけ倍音が明るく、その後こもる(ローパスが閉じる)
+   *   ④低音ほど長く鳴る
+   * を Web Audio の合成で近似する(最終音色はLogic Proで決める前提の確認用、12章)。
+   */
   private scheduleLead(ctx: AudioContext, dest: AudioNode, pitch: number, velocity: number, t0: number, dur: number): void {
-    const attack = 0.02
-    const release = 0.12
-    const holdEnd = t0 + Math.max(0.05, dur * 0.88)
-    const peak = 0.22 * (velocity / 127)
+    const freq = midiToFreq(pitch)
+    const vel = Math.min(1, Math.max(0.15, velocity / 127))
+    const attack = 0.004
+    const peak = 0.3 * (0.45 + 0.55 * vel)
 
+    // 低音ほど長く、強打ほど少し長く残す減衰時間。音価が短ければその長さで切る。
+    const naturalRing = Math.min(3.4, 3.2 - (pitch - 60) * 0.05) * (0.75 + 0.25 * vel)
+    const ring = Math.max(0.28, Math.min(naturalRing, dur * 0.98 + 0.25))
+    const holdEnd = t0 + ring
+    const release = 0.09
+
+    // 弦の非整数倍音を含むピアノ寄りの倍音構成(基音+上倍音を漸減)
+    const wave = ctx.createPeriodicWave(
+      new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
+      new Float32Array([0, 1, 0.62, 0.4, 0.26, 0.17, 0.11, 0.07, 0.04]),
+      { disableNormalization: false },
+    )
     const osc = ctx.createOscillator()
-    osc.type = "triangle"
-    osc.frequency.value = midiToFreq(pitch)
-    const osc2 = ctx.createOscillator()
-    osc2.type = "sine"
-    osc2.frequency.value = midiToFreq(pitch)
-    osc2.detune.value = 4
+    osc.setPeriodicWave(wave)
+    osc.frequency.value = freq
 
+    // 打鍵直後だけ明るく、その後こもる = ハンマー打弦後の音色変化
+    const filter = ctx.createBiquadFilter()
+    filter.type = "lowpass"
+    const brightStart = Math.min(11000, freq * (5 + 6 * vel))
+    const brightEnd = Math.min(4200, Math.max(freq * 2.2, 900))
+    filter.frequency.setValueAtTime(brightStart, t0)
+    filter.frequency.exponentialRampToValueAtTime(brightEnd, t0 + Math.min(0.6, ring))
+    filter.Q.value = 0.6
+
+    // 打鍵→連続減衰のエンベロープ(持続プラトーを持たない)
     const gain = ctx.createGain()
-    gain.gain.setValueAtTime(0, t0)
-    gain.gain.linearRampToValueAtTime(peak, t0 + attack)
-    gain.gain.setValueAtTime(peak, holdEnd)
-    gain.gain.linearRampToValueAtTime(0, holdEnd + release)
+    gain.gain.setValueAtTime(0.0001, t0)
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + attack)
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0008, peak * 0.06), holdEnd)
+    gain.gain.exponentialRampToValueAtTime(0.0001, holdEnd + release)
 
-    osc.connect(gain)
-    osc2.connect(gain)
+    osc.connect(filter)
+    filter.connect(gain)
     gain.connect(dest)
     osc.start(t0)
     osc.stop(holdEnd + release + 0.05)
-    osc2.start(t0)
-    osc2.stop(holdEnd + release + 0.05)
   }
 
   private dispose(): void {
