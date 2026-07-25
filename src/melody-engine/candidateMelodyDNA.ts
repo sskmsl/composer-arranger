@@ -378,6 +378,7 @@ export function applyCandidateNarrative(
   climax.plannedToneRole = climaxChordTones.includes(pitchClass(peakPitch)) ? "chord-tone" : "tension-hold"
   for (const note of notes) {
     if (note === climax || note.pitch < peakPitch) continue
+    const originalPitchClass = pitchClass(note.pitch)
     let lowered = note.pitch
     while (lowered >= peakPitch && lowered - 12 >= range.low) lowered -= 12
     if (lowered >= peakPitch) {
@@ -390,6 +391,16 @@ export function applyCandidateNarrative(
       lowered = candidates.length > 0 ? candidates[candidates.length - 1] : Math.max(range.low, peakPitch - 1)
     }
     note.pitch = lowered
+    // 最高音の希少化で別pitch classへ移した場合、配置時のroleを残すと
+    // 「chord-tone」と表示しながら実音はtensionという不整合になる。
+    if (pitchClass(lowered) !== originalPitchClass) {
+      const noteEntry = chordAtBeat(harmonicMap, note.startBeat)
+      if (noteEntry) {
+        const chordTones = chordTonePitchClasses(noteEntry.parsed)
+        note.plannedToneRole = chordTones.includes(pitchClass(lowered)) ? "chord-tone" : "tension-hold"
+        note.plannedResolution = undefined
+      }
+    }
   }
   return notes
 }

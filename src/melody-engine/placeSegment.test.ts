@@ -53,6 +53,46 @@ describe("placeSegment: planned tone roleを保持する選択的補正", () => 
     expect(diagnostics.changedPitchCount).toBe(0)
   })
 
+  it("peak headroomで音域を狭めてもコードトーンを半音クランプしない", () => {
+    const e7: ChordEvent[] = [
+      { id: "e7", sectionId: "s", startBeat: 0, durationBeats: 4, symbol: "E7", bass: null },
+    ]
+    const verseParams = { ...params, peakHeadroomSemitones: 6 }
+    const diagnostics = createPlacementDiagnostics()
+    const notes = placeSegment(
+      events([1]),
+      [62],
+      0,
+      buildHarmonicMap(e7),
+      { low: 63, high: 79 },
+      verseParams,
+      new SeededRandom(9),
+      { diagnostics },
+    )
+    expect(notes[0].pitch).toBe(74)
+    expect(notes[0].pitch % 12).toBe(2)
+    expect(notes[0].plannedToneRole).toBe("chord-tone")
+    expect(diagnostics.corrections[0]?.reason).toBe("range-octave-adjustment")
+  })
+
+  it("1オクターブ未満の音域では境界音でなく最寄りコードトーンへ補正する", () => {
+    const e7: ChordEvent[] = [
+      { id: "e7-narrow", sectionId: "s", startBeat: 0, durationBeats: 4, symbol: "E7", bass: null },
+    ]
+    const notes = placeSegment(
+      events([1]),
+      [64],
+      0,
+      buildHarmonicMap(e7),
+      { low: 65, high: 73 },
+      { ...params, peakHeadroomSemitones: 6 },
+      new SeededRandom(10),
+    )
+    expect([4, 8, 11, 2]).toContain(notes[0].pitch % 12)
+    expect(notes[0].pitch).not.toBe(65)
+    expect(notes[0].plannedToneRole).toBe("chord-tone")
+  })
+
   it("appoggiaturaが2拍以内のコードトーンへ解決する場合は保持する", () => {
     const notes = placeSegment(events([1, 1]), [61, 60], 0, buildHarmonicMap(cMajor), range, params, new SeededRandom(2))
     expect(notes[0].pitch).toBe(61)
