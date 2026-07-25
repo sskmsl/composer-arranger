@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react"
-import type { MelodyVariant } from "@/core/melody"
+import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import type { ChordEvent } from "@/core/project"
 import { noteName } from "@/core/note"
 import { keyPrefersFlatSpelling } from "@/core/scale"
@@ -8,6 +8,7 @@ import { Lock } from "lucide-react"
 
 const PX_PER_BEAT = 32
 const ROW_HEIGHT = 8
+const EMPTY_NOTES: MelodyNote[] = []
 
 export interface BeatRange {
   start: number
@@ -43,7 +44,7 @@ export function PianoRoll({
 }) {
   const { beatsPerBar } = parseTimeSignature(timeSignature)
   const preferFlat = songKey ? keyPrefersFlatSpelling(songKey) : false
-  const notes = variant?.notes ?? []
+  const notes = variant?.notes ?? EMPTY_NOTES
 
   const { low, high } = useMemo(() => {
     if (notes.length === 0) return { low: 55, high: 79 }
@@ -70,6 +71,11 @@ export function PianoRoll({
 
   return (
     <div className="flex w-full min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
+      <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
+        <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
+        <h3 className="text-[12px] font-medium text-body-on-dark">Melody</h3>
+        <span className="text-[10px] text-ink-muted-48">編集可能</span>
+      </div>
       <div
         ref={containerRef}
         className="relative w-full min-w-0 overflow-auto no-scrollbar"
