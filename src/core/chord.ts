@@ -29,6 +29,14 @@ export interface ParsedChord {
   isSus: boolean
   isDominant: boolean
   isDiminished: boolean
+  /**
+   * 解析後に解釈できなかったトークン群(Issue #12、空白区切り)。空文字なら完全に解釈済み。
+   * 例: "Cmaj7xyz" → "xyz"、"Cadd99" → "add99"、"C(foo)" → "foo"。
+   * 診断表示で「未対応記法を無視した」ことを可視化するために使う。
+   */
+  unrecognized: string
+  /** unrecognizedを取り除いた、実際に生成へ渡る表記(Issue #12)。完全に解釈できた場合は symbol と同じ */
+  interpretedSymbol: string
 }
 
 function noteNameToPc(letter: string, accidental: string): number {
@@ -233,6 +241,42 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
 
   const resolvedBassPc = bassPc ?? (explicitBass ? noteNameToPc(explicitBass[0], explicitBass[1] ?? "") : rootPc)
 
+  // 未対応のadd/括弧内トークンを可視化する(Issue #12)。ALTER_TOKENに存在しないトークンは
+  // 「解釈できなかった」ため、restから単純に正規表現マッチを取り除くだけでは消えてしまう
+  // (例: "Cadd99" のadd99、"C(foo)" のfoo)。実際に解決できたトークンだけを除外対象とする。
+  const unresolvedBracketTokens = bracketTokens.filter((raw) => !ALTER_TOKEN[raw.replace(/^add/i, "").replace(/[()]/g, "")])
+  const unresolvedAddTokens = addMatches.filter((raw) => !ALTER_TOKEN[raw.replace(/^add/i, "")])
+  // leftoverRaw: 既知のadd記法を除いても残る、どの規則にも一致しなかった生の末尾文字(句読点は残したまま)。
+  // "Cmaj7xyz"のようにadd/括弧を伴わない未対応末尾を interpretedSymbol から正しく除去するために使う。
+  const leftoverRaw = rest.replace(/add[#b]?\d+/gi, "").trim()
+  const leftoverRest = leftoverRaw.replace(/[(),\s]/g, "").trim()
+  const unrecognized = [leftoverRest, ...unresolvedBracketTokens, ...unresolvedAddTokens].filter(Boolean).join(" ")
+
+  // interpretedSymbol: unrecognizedの各トークンを元のシンボル文字列から取り除いた、実際に使われる表記。
+  // 括弧グループ内に解決済み・未解決のトークンが混在する場合(例: "(add9,foo)")、
+  // 解決済みトークンだけを残す(例: "(add9)")。全て未解決ならグループごと取り除く。
+  // addMatches・末尾の未対応文字は個別に取り除く。
+  let interpretedSymbol = trimmed
+  if (unresolvedBracketTokens.length > 0) {
+    interpretedSymbol = interpretedSymbol.replace(/\(([^)]*)\)/g, (whole, inner: string) => {
+      const innerTokens = inner
+        .split(/[,\s]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      const resolvedTokens = innerTokens.filter((t) => !unresolvedBracketTokens.includes(t))
+      if (resolvedTokens.length === innerTokens.length) return whole
+      if (resolvedTokens.length === 0) return ""
+      return `(${resolvedTokens.join(",")})`
+    })
+  }
+  for (const raw of unresolvedAddTokens) {
+    interpretedSymbol = interpretedSymbol.replace(raw, "")
+  }
+  if (leftoverRaw) {
+    interpretedSymbol = interpretedSymbol.replace(leftoverRaw, "")
+  }
+  interpretedSymbol = interpretedSymbol.replace(/\s+/g, " ").trim() || trimmed
+
   return {
     symbol: trimmed,
     rootPc,
@@ -245,6 +289,8 @@ export function parseChordSymbol(symbol: string, explicitBass?: string): ParsedC
     isSus,
     isDominant: hasDominantSeventh && !hasExplicitMajorSeventh,
     isDiminished: isDim,
+    unrecognized,
+    interpretedSymbol,
   }
 }
 

@@ -15,6 +15,7 @@ import type {
   RangeRegenerationLocks,
 } from "@/core/melody"
 import { parseChordInputText } from "@/core/chordInput"
+import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
 import { generateFromChordsWithProfiles, toMelodyVariantFromProfile } from "@/melody-engine/generateFromChords"
 import { resolveGenerationParams, RANGE_PRESETS, type Density, type Drama, type RangeSetting } from "@/melody-engine/generationParams"
@@ -101,6 +102,8 @@ interface ProjectState {
   setChordText: (sectionId: string, text: string) => void
   /** 現在のコード進行をそのまま複製して後ろへ繋げ、小節数を2倍にする */
   repeatSectionChords: (sectionId: string) => void
+  /** Issue #12: セクション長に満たない場合、最後のコードを不足分だけ延長して充足させる */
+  extendLastChordToFill: (sectionId: string) => void
   setGenerationSettings: (patch: Partial<GenerationSettings>) => void
   toggleGeneratorProfile: (profile: MelodyGeneratorProfile) => void
   /** Song Motif DNA(将来のセクション間一貫性チェックの土台): 指定Variantから抽出して保存する */
@@ -407,6 +410,29 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
+  extendLastChordToFill: (sectionId) => {
+    const prev = get().project
+    const section = prev.sections.find((s) => s.id === sectionId)
+    const existing = prev.chords.filter((c) => c.sectionId === sectionId).sort((a, b) => a.startBeat - b.startBeat)
+    if (!section || existing.length === 0) return
+    const ts = parseTimeSignature(prev.song.timeSignature)
+    const sectionBeats = section.lengthBars * ts.beatsPerBar
+    const last = existing[existing.length - 1]
+    const covered = last.startBeat + last.durationBeats
+    const gap = sectionBeats - covered
+    if (gap <= 1e-6) return // 既に充足/超過している場合は何もしない
+    const extendedLast = { ...last, durationBeats: Math.round((last.durationBeats + gap) * 1000) / 1000 }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        chords: prev.chords.map((c) => (c.id === last.id ? extendedLast : c)),
+      },
+    })
+    get().persist()
+  },
+
   setGenerationSettings: (patch) => set({ generationSettings: { ...get().generationSettings, ...patch } }),
 
   toggleGeneratorProfile: (profile) => {
@@ -437,6 +463,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (chords.length === 0) return
 
     const totalBeats = section.lengthBars * ts.beatsPerBar
+    // Issue #12: 解析エラーのあるコードは、buildHarmonicMapが黙ってC majorへフォールバックする前に
+    // ここで止める(UIのGenerateボタン無効化と合わせた二重の防御)。
+    if (diagnoseChordInput(chords, totalBeats).hasError) return
     const profile = effectiveSongProfile(prev, sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)

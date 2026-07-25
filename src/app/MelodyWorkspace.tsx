@@ -4,6 +4,7 @@ import { useActiveVariant, useCandidateBatch } from "./useActiveVariant"
 import { PianoRoll, type BeatRange } from "./PianoRoll"
 import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
+import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
 import type { RangeRegenerationLocks } from "@/core/melody"
@@ -37,6 +38,9 @@ export function MelodyWorkspace() {
   const ts = parseTimeSignature(project.song.timeSignature)
   const totalBeats = section ? section.lengthBars * ts.beatsPerBar : 0
   const chords = project.chords.filter((c) => c.sectionId === selectedSectionId).sort((a, b) => a.startBeat - b.startBeat)
+  // Issue #12: 無効なコードを暗黙にC majorとして生成へ渡さないため、件数だけでなくエラーの有無も
+  // Generateボタンの可否へ反映する(buildHarmonicMapのC majorフォールバックへ黙って進ませない)。
+  const chordHasError = chords.length > 0 && diagnoseChordInput(chords, totalBeats).hasError
 
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set())
   const [selection, setSelection] = useState<BeatRange | null>(null)
@@ -62,10 +66,13 @@ export function MelodyWorkspace() {
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0}>
+        <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
           <Sparkles size={14} /> Generate from Chords
         </Button>
         {chords.length === 0 && <span className="text-[12px] text-ink-muted-48">コード進行を入力してください</span>}
+        {chords.length > 0 && chordHasError && (
+          <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
+        )}
 
         {variant && (
           <Button
