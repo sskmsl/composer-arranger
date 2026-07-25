@@ -7,6 +7,7 @@ import { Button, IconButton, Select } from "@/ui/primitives"
 import { Play, Square, Undo2, Redo2, Download, History } from "lucide-react"
 import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
+import { notesByPartRole } from "@/core/sectionLayers"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -34,7 +35,11 @@ export function BottomBar() {
     .filter((v) => v.sectionId === selectedSectionId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const accompanimentPatternNotes = selectedSectionId
-    ? accompanimentPatternNotesForSection(project, selectedSectionId)
+    ? accompanimentPatternNotesForSection(
+        project,
+        selectedSectionId,
+        variant ? notesByPartRole(variant, "lead") : undefined,
+      )
     : []
 
   const play = () => {

@@ -5,6 +5,7 @@ import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { parseTimeSignature } from "@/core/section"
 import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
+import { notesByPartRole } from "@/core/sectionLayers"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
@@ -59,13 +60,16 @@ export function AuditionWorkspace() {
         .filter((chord) => chord.sectionId === selectedSectionId)
         .sort((a, b) => a.startBeat - b.startBeat)
     : []
-  const accompanimentPatternNotes = selectedSectionId
-    ? accompanimentPatternNotesForSection(project, selectedSectionId)
-    : []
-
   const playbackOptions = (slot: number) => {
     const variant = selectedVariants[slot]
     if (!variant) return null
+    const accompanimentPatternNotes = selectedSectionId
+      ? accompanimentPatternNotesForSection(
+          project,
+          selectedSectionId,
+          notesByPartRole(variant, "lead"),
+        )
+      : []
     return {
       bpm: project.song.tempo,
       chords,

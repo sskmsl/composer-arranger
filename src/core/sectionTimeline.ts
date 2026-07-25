@@ -51,6 +51,15 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
     const sectionChords = project.chords
       .filter((candidate) => candidate.sectionId === section.id)
       .sort((a, b) => a.startBeat - b.startBeat)
+    const variantId = project.sectionMelodyAssignments[section.id]
+    const variant = variantId
+      ? project.melodyVariants.find((candidate) => candidate.id === variantId && candidate.sectionId === section.id)
+      : undefined
+    const sectionLeadNotes = variant
+      ? layersOf(variant)
+          .filter((layer) => layer.partRole === "lead")
+          .flatMap((layer) => layer.notes)
+      : []
     // Issue #41: accompaniment="none"(Silence)のセクションは伴奏を鳴らさない。
     // ここで除外しないと Silence と Chords Only が曲全体再生・曲全体MIDIで同じ結果になる。
     if (accompanimentEnabled(section)) {
@@ -67,6 +76,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
         pattern,
         sectionChords,
         section.lengthBars * beatsPerBar,
+        { melodyNotes: sectionLeadNotes },
       )
       for (const note of patternNotes) {
         accompanimentPattern.push({
@@ -76,10 +86,6 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
         })
       }
     }
-    const variantId = project.sectionMelodyAssignments[section.id]
-    const variant = variantId
-      ? project.melodyVariants.find((candidate) => candidate.id === variantId && candidate.sectionId === section.id)
-      : undefined
     if (!variant) continue
     // Issue #41: partRoleの正はLayer。曲全体へ展開する際も役割ごとに分けて持つ
     for (const layer of layersOf(variant)) {

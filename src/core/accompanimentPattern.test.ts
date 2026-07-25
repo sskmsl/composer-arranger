@@ -22,6 +22,10 @@ function chord(symbol: string, startBeat = 0, durationBeats = 4): ChordEvent {
   return { id: `${symbol}:${startBeat}`, sectionId: "s", startBeat, durationBeats, symbol, bass: null }
 }
 
+function melody(pitch: number, startBeat = 0, durationBeats = 1): import("./melody").MelodyNote {
+  return { id: `melody:${pitch}:${startBeat}`, pitch, startBeat, durationBeats, velocity: 88, locks: [] }
+}
+
 describe("Accompaniment Pattern / コード度数解決", () => {
   it.each([
     ["C", 3, 52],
@@ -47,6 +51,15 @@ describe("Accompaniment Pattern / コード度数解決", () => {
     ])
   })
 
+  it("コード境界では固定オクターブの大跳躍を避け、近い声部へ接続する", () => {
+    const notes = applyAccompanimentPattern(
+      sustainedRoot,
+      [chord("C", 0, 1), chord("B", 1, 1)],
+      2,
+    )
+    expect(notes.map((note) => note.pitch)).toEqual([48, 47])
+  })
+
   it("同じテンプレートを別コード進行へ適用してもリズムを保持し、音高だけを再解決する", () => {
     const pattern = createDefaultAccompanimentPatterns().find((candidate) => candidate.id === "arpeggio-up")!
     const first = applyAccompanimentPattern(pattern, [chord("C")], 4)
@@ -63,6 +76,81 @@ describe("Accompaniment Pattern / コード度数解決", () => {
     const after = applyAccompanimentPattern(sustainedRoot, [chord("E")], 2)
     expect(before[0].pitch).toBe(48)
     expect(after[0].pitch).toBe(52)
+  })
+
+  it("メロディとのユニゾン・半音衝突を避け、伴奏を下の音域へ配置する", () => {
+    const highRoot: AccompanimentPatternTemplate = {
+      id: "high-root",
+      name: "High Root",
+      lengthBeats: 1,
+      events: [{ offsetBeats: 0, durationBeats: 1, degree: 1, octaveOffset: 2, velocity: 76 }],
+    }
+    const notes = applyAccompanimentPattern(highRoot, [chord("C")], 1, {
+      melodyNotes: [melody(61)],
+    })
+    const pitchClassDistance = Math.min(
+      Math.abs(notes[0].pitch - 61) % 12,
+      12 - (Math.abs(notes[0].pitch - 61) % 12),
+    )
+
+    expect(notes[0].pitch).toBeLessThanOrEqual(56)
+    expect(pitchClassDistance).toBeGreaterThan(1)
+  })
+
+  it("メロディ発音中は伴奏を弱くし、上部テンションの同時アタックを間引く", () => {
+    const pattern: AccompanimentPatternTemplate = {
+      id: "melody-aware-density",
+      name: "Melody Aware Density",
+      lengthBeats: 2,
+      events: [
+        { offsetBeats: 0, durationBeats: 1, degree: 1, octaveOffset: 1, velocity: 76 },
+        { offsetBeats: 0, durationBeats: 1, degree: 9, octaveOffset: 1, velocity: 68 },
+      ],
+    }
+    const withoutMelody = applyAccompanimentPattern(pattern, [chord("C")], 2)
+    const withMelody = applyAccompanimentPattern(pattern, [chord("C")], 2, {
+      melodyNotes: [melody(72)],
+    })
+
+    expect(withMelody).toHaveLength(1)
+    expect(withMelody[0].velocity).toBeLessThan(withoutMelody[0].velocity)
+  })
+
+  it("和音開始の声部が衝突回避によって同じ音へ潰れない", () => {
+    const pattern = createDefaultAccompanimentPatterns().find((candidate) => candidate.id === "chord-entry")!
+    const notes = applyAccompanimentPattern(pattern, [chord("C")], 4, {
+      melodyNotes: [melody(64, 0, 1.5)],
+    })
+    const openingChord = notes.filter((note) => note.startBeat === 0).map((note) => note.pitch)
+
+    expect(new Set(openingChord).size).toBe(3)
+    expect(openingChord).toEqual([...openingChord].sort((a, b) => a - b))
+  })
+
+  it("4周期の強弱アークとフレーズ末尾の呼吸を決定論的に生成する", () => {
+    const pattern = createDefaultAccompanimentPatterns().find((candidate) => candidate.id === "arpeggio-up")!
+    const first = applyAccompanimentPattern(pattern, [chord("C", 0, 16)], 16)
+    const second = applyAccompanimentPattern(pattern, [chord("C", 0, 16)], 16)
+    const downbeats = first.filter((note) => note.startBeat % 4 === 0)
+
+    expect(first).toEqual(second)
+    expect(first).toHaveLength(15)
+    expect(new Set(downbeats.map((note) => note.velocity)).size).toBeGreaterThanOrEqual(3)
+    expect(first.find((note) => note.startBeat === 3)?.pitch).not.toBe(
+      first.find((note) => note.startBeat === 7)?.pitch,
+    )
+    expect(first.some((note) => note.startBeat === 15)).toBe(false)
+  })
+
+  it("メジャーコードの回避音11thは安全な色彩音へ替え、マイナーでは保持する", () => {
+    const pattern = createDefaultAccompanimentPatterns().find((candidate) => candidate.id === "arpeggio-six")!
+    const major = applyAccompanimentPattern(pattern, [chord("C")], 4)
+    const minor = applyAccompanimentPattern(pattern, [chord("Cm")], 4)
+    const finalMajorPitchClass = major.at(-1)!.pitch % 12
+    const finalMinorPitchClass = minor.at(-1)!.pitch % 12
+
+    expect(finalMajorPitchClass).toBe(9)
+    expect(finalMinorPitchClass).toBe(5)
   })
 
   it("初期テンプレートはIDが一意で、全イベントが周期内に収まる", () => {
