@@ -1,4 +1,5 @@
 import type { ComposerProject } from "@/core/project"
+import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectBrowser"
 import { getDb, PROJECT_STORE, META_STORE } from "./db"
 
 const LAST_OPENED_KEY = "lastOpenedProjectId"
@@ -28,9 +29,51 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
   return all.sort((a, b) => b.savedAt.localeCompare(a.savedAt))
 }
 
+/** メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate用) */
+async function putProjectRecord(project: ComposerProject): Promise<void> {
+  const db = await getDb()
+  await db.put(PROJECT_STORE, { ...project, savedAt: new Date().toISOString() })
+}
+
+/**
+ * Issue #14: プロジェクトを削除する。lastOpened だったレコードを消した場合は、
+ * meta の lastOpened も安全に更新する(残りの先頭、無ければクリア)。
+ */
 export async function deleteProject(projectId: string): Promise<void> {
   const db = await getDb()
+  const lastOpened = (await db.get(META_STORE, LAST_OPENED_KEY)) ?? null
+  const allIds = (await db.getAllKeys(PROJECT_STORE)) as string[]
   await db.delete(PROJECT_STORE, projectId)
+  const nextLast = nextLastOpenedAfterDelete(projectId, lastOpened, allIds)
+  if (nextLast) await db.put(META_STORE, nextLast, LAST_OPENED_KEY)
+  else await db.delete(META_STORE, LAST_OPENED_KEY)
+}
+
+/** Issue #14: 保存済みプロジェクトを複製する(新しいprojectId・全データ保持)。複製したプロジェクトを返す */
+export async function duplicateProject(projectId: string): Promise<ComposerProject | undefined> {
+  const db = await getDb()
+  const record = await db.get(PROJECT_STORE, projectId)
+  if (!record) return undefined
+  const { savedAt: _savedAt, ...project } = record as ComposerProject & { savedAt?: string }
+  const copy = duplicateProjectData(project)
+  await putProjectRecord(copy)
+  return copy
+}
+
+/** Issue #14: 保存済みプロジェクトのタイトルを変更する(lastOpenedは変えない)。更新後を返す */
+export async function renameProject(projectId: string, title: string): Promise<ComposerProject | undefined> {
+  const db = await getDb()
+  const record = await db.get(PROJECT_STORE, projectId)
+  if (!record) return undefined
+  const { savedAt: _savedAt, ...project } = record as ComposerProject & { savedAt?: string }
+  const renamed = { ...project, title }
+  await putProjectRecord(renamed)
+  return renamed
+}
+
+export async function getLastOpenedId(): Promise<string | null> {
+  const db = await getDb()
+  return (await db.get(META_STORE, LAST_OPENED_KEY)) ?? null
 }
 
 /**
