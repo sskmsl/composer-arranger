@@ -140,6 +140,11 @@ function noteOnChannels(bytes: Uint8Array): Set<number> {
   return channels
 }
 
+function noteOnChannelsOfTrack(bytes: Uint8Array, trackName: string): Set<number> {
+  const track = parseSmf(bytes).tracks.find((candidate) => candidate.name === trackName)
+  return new Set(track?.events.filter((event) => event.on).map((event) => event.channel) ?? [])
+}
+
 /** 指定トラックのNote On/Offから、音の開始tickと長さを復元する */
 function notesOfTrack(bytes: Uint8Array, trackName: string): { start: number; duration: number; pitch: number }[] {
   const track = parseSmf(bytes).tracks.find((t) => t.name === trackName)
@@ -159,7 +164,7 @@ function notesOfTrack(bytes: Uint8Array, trackName: string): { start: number; du
 }
 
 describe("Issue #41 / partRoleがMIDIのトラックへ反映される", () => {
-  it("Drone(伴奏パート)は Melody とは別トラック・別チャンネルへ書き出される", () => {
+  it("Drone(伴奏パート)は Melody とは別トラック・同じChannel 1へ書き出される", () => {
     const droneNotes = [note(0, 8, 57), note(8, 8, 57)]
     const bytes = exportMelodyMidi({
       title: "t",
@@ -172,8 +177,8 @@ describe("Issue #41 / partRoleがMIDIのトラックへ反映される", () => {
     })
 
     expect(trackNames(bytes)).toContain("Accompaniment")
-    // 伴奏はチャンネル2、リードのチャンネル0は使われない
-    expect(noteOnChannels(bytes)).toEqual(new Set([2]))
+    // Logic ProでGM Device扱いにならないよう、Melodyと同じChannel 1(内部値0)を使う
+    expect(noteOnChannels(bytes)).toEqual(new Set([0]))
   })
 
   it("Motif(リードパート)は Melody トラックのみへ書き出される", () => {
@@ -204,8 +209,8 @@ describe("Issue #41 / partRoleがMIDIのトラックへ反映される", () => {
     })
 
     expect(bytes.byteLength).toBeGreaterThan(0)
-    // コードトラックのチャンネル1のみが鳴る
-    expect(noteOnChannels(bytes)).toEqual(new Set([1]))
+    // コードもMelodyと同じChannel 1(内部値0)で書き出す
+    expect(noteOnChannels(bytes)).toEqual(new Set([0]))
   })
 
   it("Silence(リード0音・伴奏なし)でも空のMIDIを書き出せる", () => {
@@ -323,12 +328,12 @@ describe("Issue #41 / partRoleがMIDIのトラックへ反映される", () => {
 
     const bytes = exportSongMidi(project, false)
     expect(trackNames(bytes)).toContain("Accompaniment")
-    expect(noteOnChannels(bytes)).toEqual(new Set([0, 2]))
+    expect(noteOnChannels(bytes)).toEqual(new Set([0]))
   })
 })
 
 describe("Issue #45 / Accompaniment Pattern MIDI", () => {
-  it("Melody未選択でも専用トラック・専用チャンネルへ書き出せる", () => {
+  it("Melody未選択でも専用トラック・Melodyと同じChannel 1へ書き出せる", () => {
     const patternNotes = [note(0.5, 0.75, 48), note(1.5, 0.5, 55)]
     const bytes = exportMelodyMidi({
       title: "t",
@@ -341,7 +346,7 @@ describe("Issue #45 / Accompaniment Pattern MIDI", () => {
     })
 
     expect(trackNames(bytes)).toContain("Accompaniment Pattern")
-    expect(noteOnChannels(bytes)).toEqual(new Set([3]))
+    expect(noteOnChannels(bytes)).toEqual(new Set([0]))
     expect(notesOfTrack(bytes, "Accompaniment Pattern")).toEqual([
       { start: 0.5 * TICKS_PER_QUARTER, duration: 0.75 * TICKS_PER_QUARTER, pitch: 48 },
       { start: 1.5 * TICKS_PER_QUARTER, duration: 0.5 * TICKS_PER_QUARTER, pitch: 55 },
@@ -360,7 +365,37 @@ describe("Issue #45 / Accompaniment Pattern MIDI", () => {
 
     const bytes = exportSongMidi(project, false)
     expect(trackNames(bytes)).toContain("Accompaniment Pattern")
-    expect(noteOnChannels(bytes)).toEqual(new Set([3]))
+    expect(noteOnChannels(bytes)).toEqual(new Set([0]))
+  })
+
+  it("全楽器トラックを分離したままLogic互換のChannel 1へ統一する", () => {
+    const melodyNotes = [note(0, 1, 69)]
+    const accompanimentNotes = [note(0, 4, 45)]
+    const bytes = exportMelodyMidi({
+      title: "logic-compatible",
+      sectionName: "Intro",
+      tempo: 96,
+      timeSignature: "4/4",
+      chords: CHORDS,
+      melody: variant({
+        leadContent: "melody",
+        notes: [...melodyNotes, ...accompanimentNotes],
+        layers: [layer("melody", melodyNotes), layer("drone", accompanimentNotes)],
+      }),
+      accompanimentPatternNotes: [note(0.5, 0.5, 52)],
+      includeChords: true,
+    })
+
+    expect(trackNames(bytes)).toEqual([
+      "logic-compatible",
+      "Chords",
+      "Active Melody",
+      "Accompaniment",
+      "Accompaniment Pattern",
+    ])
+    for (const trackName of ["Chords", "Active Melody", "Accompaniment", "Accompaniment Pattern"]) {
+      expect(noteOnChannelsOfTrack(bytes, trackName)).toEqual(new Set([0]))
+    }
   })
 })
 

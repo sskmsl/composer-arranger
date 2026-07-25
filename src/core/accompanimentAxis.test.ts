@@ -134,7 +134,7 @@ describe("PR#43 fix2 / accompaniment軸が再生・MIDIへ反映される", () =
   it("曲全体MIDIでもSilenceのコードが書き出されない", () => {
     // includeChords=true でも、そのセクションが伴奏なしならコードは出ない
     expect(noteOnChannels(exportSongMidi(projectWith("none"), true)).size).toBe(0)
-    expect(noteOnChannels(exportSongMidi(projectWith("chords"), true))).toEqual(new Set([1]))
+    expect(noteOnChannels(exportSongMidi(projectWith("chords"), true))).toEqual(new Set([0]))
   })
 
   it("Drone + 伴奏なし でも伴奏トラックのみが鳴りコードは出ない", () => {
@@ -143,7 +143,7 @@ describe("PR#43 fix2 / accompaniment軸が再生・MIDIへ反映される", () =
     expect(material.chords).toHaveLength(0)
     // Droneは伴奏パートなので accompaniment 側へ入る
     expect(material.accompaniment).toHaveLength(1)
-    // channel 2(伴奏パート)のみ。コードのchannel 1は出ない
-    expect(noteOnChannels(exportSongMidi(project, true))).toEqual(new Set([2]))
+    // 伴奏パートもMelodyと同じChannel 1(内部値0)で書き出す
+    expect(noteOnChannels(exportSongMidi(project, true))).toEqual(new Set([0]))
   })
 })

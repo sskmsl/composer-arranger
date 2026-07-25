@@ -7,6 +7,13 @@ import { voiceChord } from "@/audio/chordVoicing"
 import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 
+/**
+ * Logic ProがSMFを読み込む際、トラックごとに異なるチャンネルを持つと
+ * Melody以外をGM Deviceの外部MIDIとして割り当てることがある。
+ * SMF Type 1のトラック分離は維持し、全楽器トラックをMelodyと同じChannel 1へ揃える。
+ */
+const SOFTWARE_INSTRUMENT_MIDI_CHANNEL = 0
+
 export interface ExportMelodyOptions {
   title: string
   sectionName: string
@@ -30,13 +37,13 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
   const range = opts.range ?? { startBeat: 0, endBeat: Infinity }
 
   const inRange = (note: MelodyNote) => note.startBeat >= range.startBeat && note.startBeat < range.endBeat
-  const toSmfNote = (channel: number) => (note: MelodyNote) => ({
+  const toSmfNote = (note: MelodyNote) => ({
     pitch: note.pitch,
     start: beatsToTicks(note.startBeat - range.startBeat),
     // 持続音はそのまま書き出す(コード境界での分割はしない)
     duration: beatsToTicks(note.durationBeats),
     velocity: note.velocity,
-    channel,
+    channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
   })
 
   // Issue #41: partRoleの正はLayer。lead と accompaniment を別トラックへ分ける
@@ -45,14 +52,14 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
   const accompanimentNotes = opts.melody ? notesByPartRole(opts.melody, "accompaniment").filter(inRange) : []
   const accompanimentPatternNotes = (opts.accompanimentPatternNotes ?? []).filter(inRange)
 
-  const tracks: SmfTrack[] = [{ name: "Active Melody", notes: leadNotes.map(toSmfNote(0)) }]
+  const tracks: SmfTrack[] = [{ name: "Active Melody", notes: leadNotes.map(toSmfNote) }]
   if (accompanimentNotes.length > 0) {
-    tracks.push({ name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote(2)) })
+    tracks.push({ name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote) })
   }
   if (accompanimentPatternNotes.length > 0) {
     tracks.push({
       name: "Accompaniment Pattern",
-      notes: accompanimentPatternNotes.map(toSmfNote(3)),
+      notes: accompanimentPatternNotes.map(toSmfNote),
     })
   }
 
@@ -65,9 +72,21 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
       const voicing = voiceChord(parsed)
       const start = beatsToTicks(c.startBeat - range.startBeat)
       const duration = beatsToTicks(c.durationBeats)
-      chordNotes.push({ pitch: voicing.bassMidi, start, duration, velocity: 70, channel: 1 })
+      chordNotes.push({
+        pitch: voicing.bassMidi,
+        start,
+        duration,
+        velocity: 70,
+        channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+      })
       for (const m of voicing.upperMidi) {
-        chordNotes.push({ pitch: m, start, duration, velocity: 60, channel: 1 })
+        chordNotes.push({
+          pitch: m,
+          start,
+          duration,
+          velocity: 60,
+          channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+        })
       }
     }
     tracks.unshift({ name: "Chords", notes: chordNotes })
@@ -85,23 +104,23 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
 export function exportSongMidi(project: ComposerProject, includeChords = true): Uint8Array {
   const ts = parseTimeSignature(project.song.timeSignature)
   const material = buildSongPlaybackMaterial(project)
-  const toSmfNote = (channel: number) => (note: MelodyNote) => ({
+  const toSmfNote = (note: MelodyNote) => ({
     pitch: note.pitch,
     start: beatsToTicks(note.startBeat),
     duration: beatsToTicks(note.durationBeats),
     velocity: note.velocity,
-    channel,
+    channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
   })
 
   // Issue #41: lead と accompaniment(Ostinato/Drone)を別トラックへ分ける
-  const tracks: SmfTrack[] = [{ name: "Active Melodies", notes: material.lead.map(toSmfNote(0)) }]
+  const tracks: SmfTrack[] = [{ name: "Active Melodies", notes: material.lead.map(toSmfNote) }]
   if (material.accompaniment.length > 0) {
-    tracks.push({ name: "Accompaniment", notes: material.accompaniment.map(toSmfNote(2)) })
+    tracks.push({ name: "Accompaniment", notes: material.accompaniment.map(toSmfNote) })
   }
   if (material.accompanimentPattern.length > 0) {
     tracks.push({
       name: "Accompaniment Pattern",
-      notes: material.accompanimentPattern.map(toSmfNote(3)),
+      notes: material.accompanimentPattern.map(toSmfNote),
     })
   }
 
@@ -113,9 +132,21 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
       const voicing = voiceChord(parsed)
       const start = beatsToTicks(chord.startBeat)
       const duration = beatsToTicks(chord.durationBeats)
-      chordNotes.push({ pitch: voicing.bassMidi, start, duration, velocity: 70, channel: 1 })
+      chordNotes.push({
+        pitch: voicing.bassMidi,
+        start,
+        duration,
+        velocity: 70,
+        channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+      })
       for (const pitch of voicing.upperMidi) {
-        chordNotes.push({ pitch, start, duration, velocity: 60, channel: 1 })
+        chordNotes.push({
+          pitch,
+          start,
+          duration,
+          velocity: 60,
+          channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+        })
       }
     }
     tracks.unshift({ name: "Chords", notes: chordNotes })
