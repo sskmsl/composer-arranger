@@ -159,6 +159,12 @@ export interface SectionLayer {
   content: ResolvedLeadContent
   plan: SectionContentPlan
   notes: MelodyNote[]
+  /**
+   * primary はそのcontentの本体。pickup は次セクションへの弱起だけを持つ別Layer。
+   * content="none" では primary のノート数が0のまま pickup だけが鳴る形になるため、
+   * 両者を同じLayerへ混ぜず分けて保持する。
+   */
+  kind?: "primary" | "pickup"
 }
 
 // ---------------------------------------------------------------------------
