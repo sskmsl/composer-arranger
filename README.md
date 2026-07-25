@@ -23,6 +23,10 @@ Composer Project (JSON) を介して連携する(仕様書2章)。
 - Generate from Chords: ルールベースのMelody Engineによる6候補生成(9章)
   - Harmonic Map / Phrase Planner / Rhythm & Pitch Motif / Motif Development / Scoring / Diversity Filter
   - Song Profile初期値傾向(9.9.1)・セクション別生成ルール(8章)を反映
+- Phrase Ideas: コード・Section Role・Song Profileから、2〜4小節の独立した3候補を生成
+  - Motif / Rhythm / Contour / Harmonic Approach / Cadenceを実音より先に計画
+  - 個別試聴・個別再生成・Logic Pro向けMIDI書き出し
+  - 設計詳細: [Phrase Generation](./docs/phrase-generation.md)
 - 3.3章の客観的特徴量の算出・表示(類似度スコアは非表示)
 - ピアノロール(コード背景・フレーズ境界・クライマックス表示・Lock表示)
 - Pitch Lock(ノート単位)・Bar Lock(小節単位)、選択範囲のみ再生成(10章)
@@ -62,6 +66,7 @@ npm run dev
 src/
   core/            Music Domain Core (Note/Chord/Section/Melody/Project の型とロジック)
   melody-engine/    Melody Engine (9章: Harmonic Map〜Diversity Filter、Develop a Seed、選択範囲再生成)
+  phrase-engine/    2〜4小節のPhrase計画・品質評価・多様性選抜・個別再生成
   midi/             SMF Type 1 エンコーダ・書き出し
   audio/            Web Audioプレビュー再生・コードボイシング
   storage/          IndexedDB永続化、Composer Project JSONの読み書き

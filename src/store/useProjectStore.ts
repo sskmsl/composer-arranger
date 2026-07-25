@@ -65,6 +65,12 @@ import {
   windowLengthBeats,
 } from "@/melody-engine/leadWindow"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
+import type { PhraseCandidate } from "@/core/phrase"
+import {
+  generatePhraseCandidates,
+  regeneratePhraseCandidate as buildRegeneratedPhrase,
+  type GeneratePhrasesInput,
+} from "@/phrase-engine/generatePhrases"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -87,6 +93,8 @@ interface ProjectState {
   selectedSectionId: string | null
   activeBatchId: string | null
   activeCandidateIndex: number
+  activePhraseBatchId: string | null
+  activePhraseCandidateIndex: number
   generationSettings: GenerationSettings
   history: ComposerProject[]
   future: ComposerProject[]
@@ -144,6 +152,10 @@ interface ProjectState {
   renameVariant: (variantId: string, name: string) => void
   deleteVariant: (variantId: string) => void
 
+  generatePhrasesForSection: (sectionId: string, lengthBars?: 2 | 3 | 4) => void
+  setActivePhraseCandidateIndex: (index: number) => void
+  regeneratePhrase: (candidateId: string) => void
+
   toggleNoteLock: (variantId: string, noteId: string, lock: LockKind) => void
   toggleBarLock: (variantId: string, barIndex: number) => void
   updateNote: (variantId: string, noteId: string, patch: Partial<MelodyNote>) => void
@@ -168,6 +180,43 @@ interface ProjectState {
 
 function resolveRange(settings: GenerationSettings): RangeSetting {
   return settings.rangePreset === "custom" ? settings.customRange : RANGE_PRESETS[settings.rangePreset]
+}
+
+function phraseGenerationInput(
+  project: ComposerProject,
+  sectionId: string,
+  settings: GenerationSettings,
+  seed: number,
+  lengthBars?: 2 | 3 | 4,
+): GeneratePhrasesInput | null {
+  const section = project.sections.find((candidate) => candidate.id === sectionId)
+  if (!section) return null
+  const timeSignature = parseTimeSignature(project.song.timeSignature)
+  const totalBeats = section.lengthBars * timeSignature.beatsPerBar
+  const chords = project.chords
+    .filter((chord) => chord.sectionId === sectionId)
+    .sort((a, b) => a.startBeat - b.startBeat)
+  if (
+    chords.length === 0 ||
+    section.lengthBars < 2 ||
+    diagnoseChordInput(chords, totalBeats).hasError
+  ) {
+    return null
+  }
+  return {
+    chords,
+    sectionId,
+    sectionRole: section.role,
+    songProfile: effectiveSongProfile(project, sectionId),
+    density: settings.density,
+    drama: settings.drama,
+    range: resolveRange(settings),
+    key: project.song.key,
+    beatsPerBar: timeSignature.beatsPerBar,
+    totalBeats,
+    seed,
+    lengthBars,
+  }
 }
 
 function snapshot(project: ComposerProject): ComposerProject {
@@ -220,6 +269,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedSectionId: null,
   activeBatchId: null,
   activeCandidateIndex: 0,
+  activePhraseBatchId: null,
+  activePhraseCandidateIndex: 0,
   generationSettings: {
     density: "balanced",
     rangePreset: "middle",
@@ -259,6 +310,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project,
       selectedSectionId: null,
       activeBatchId: null,
+      activePhraseBatchId: null,
+      activePhraseCandidateIndex: 0,
       history: [],
       future: [],
       timingNotice: null,
@@ -274,6 +327,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: result.project,
       selectedSectionId: result.project.sections[0]?.id ?? null,
       activeBatchId: null,
+      activePhraseBatchId: null,
+      activePhraseCandidateIndex: 0,
       history: [],
       future: [],
       timingNotice: timingNoticeFrom(result),
@@ -444,12 +499,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         sections: normalizeSectionTimeline(prev.sections.filter((s) => s.id !== sectionId)),
         chords: prev.chords.filter((c) => c.sectionId !== sectionId),
         melodyVariants: prev.melodyVariants.filter((v) => v.sectionId !== sectionId),
+        phraseCandidates: prev.phraseCandidates.filter((candidate) => candidate.sectionId !== sectionId),
         sectionMelodyAssignments,
         sectionAccompanimentPatternAssignments,
         activeMelodyId:
           prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
       selectedSectionId: prev.sections.find((s) => s.id !== sectionId)?.id ?? null,
+      activePhraseBatchId: null,
+      activePhraseCandidateIndex: 0,
     })
     get().persist()
   },
@@ -486,6 +544,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       selectedSectionId: newId,
       activeBatchId: null,
       activeCandidateIndex: 0,
+      activePhraseBatchId: null,
+      activePhraseCandidateIndex: 0,
     })
     get().persist()
   },
@@ -500,7 +560,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
-  selectSection: (sectionId) => set({ selectedSectionId: sectionId, activeBatchId: null }),
+  selectSection: (sectionId) =>
+    set({
+      selectedSectionId: sectionId,
+      activeBatchId: null,
+      activePhraseBatchId: null,
+      activePhraseCandidateIndex: 0,
+    }),
 
   setChordText: (sectionId, text) => {
     const prev = get().project
@@ -737,6 +803,73 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   setActiveCandidateIndex: (index) => set({ activeCandidateIndex: index }),
+
+  generatePhrasesForSection: (sectionId, lengthBars) => {
+    const prev = get().project
+    const input = phraseGenerationInput(prev, sectionId, get().generationSettings, createSeed(), lengthBars)
+    if (!input) {
+      set({ workflowNotice: "フレーズ生成には、2小節以上のセクションと有効なコード進行が必要です。" })
+      return
+    }
+    const generated = generatePhraseCandidates(input)
+    const batchId = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    const candidates: PhraseCandidate[] = generated.map((candidate, index) => ({
+      ...candidate,
+      id: crypto.randomUUID(),
+      batchId,
+      name: `Phrase ${index + 1}`,
+      createdAt,
+    }))
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, phraseCandidates: [...prev.phraseCandidates, ...candidates] },
+      activePhraseBatchId: batchId,
+      activePhraseCandidateIndex: 0,
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
+  setActivePhraseCandidateIndex: (index) => set({ activePhraseCandidateIndex: Math.max(0, index) }),
+
+  regeneratePhrase: (candidateId) => {
+    const prev = get().project
+    const current = prev.phraseCandidates.find((candidate) => candidate.id === candidateId)
+    if (!current) return
+    const input = phraseGenerationInput(
+      prev,
+      current.sectionId,
+      get().generationSettings,
+      current.seed + 104729,
+      current.intent.lengthBars,
+    )
+    if (!input) return
+    const siblings = prev.phraseCandidates.filter(
+      (candidate) => candidate.batchId === current.batchId && candidate.id !== current.id,
+    )
+    const regenerated = buildRegeneratedPhrase(input, current.seed, siblings)
+    const replacement: PhraseCandidate = {
+      ...regenerated,
+      id: crypto.randomUUID(),
+      batchId: current.batchId,
+      name: current.name,
+      createdAt: new Date().toISOString(),
+    }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        phraseCandidates: prev.phraseCandidates.map((candidate) =>
+          candidate.id === candidateId ? replacement : candidate,
+        ),
+      },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
 
   setActiveMelody: (variantId) => {
     const prev = get().project

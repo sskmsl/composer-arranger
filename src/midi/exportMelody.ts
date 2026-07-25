@@ -21,6 +21,10 @@ export interface ExportMelodyOptions {
   timeSignature: string
   chords: ChordEvent[]
   melody?: MelodyVariant
+  /** Phraseなど、Melody Variantへ昇格させない短い独立素材。 */
+  melodyNotes?: MelodyNote[]
+  /** 既定は従来互換のActive Melody。Phrase出力時のみ上書きする。 */
+  leadTrackName?: string
   /** Issue #45: コードから導出した独立Accompaniment Patternノート。 */
   accompanimentPatternNotes?: MelodyNote[]
   includeChords: boolean
@@ -48,11 +52,13 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
 
   // Issue #41: partRoleの正はLayer。lead と accompaniment を別トラックへ分ける
   // (Ostinato/Droneを将来Arrangement Engineへ移すときの移行コストを作らない)。
-  const leadNotes = opts.melody ? notesByPartRole(opts.melody, "lead").filter(inRange) : []
+  const leadNotes = opts.melody
+    ? notesByPartRole(opts.melody, "lead").filter(inRange)
+    : (opts.melodyNotes ?? []).filter(inRange)
   const accompanimentNotes = opts.melody ? notesByPartRole(opts.melody, "accompaniment").filter(inRange) : []
   const accompanimentPatternNotes = (opts.accompanimentPatternNotes ?? []).filter(inRange)
 
-  const tracks: SmfTrack[] = [{ name: "Active Melody", notes: leadNotes.map(toSmfNote) }]
+  const tracks: SmfTrack[] = [{ name: opts.leadTrackName ?? "Active Melody", notes: leadNotes.map(toSmfNote) }]
   if (accompanimentNotes.length > 0) {
     tracks.push({ name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote) })
   }

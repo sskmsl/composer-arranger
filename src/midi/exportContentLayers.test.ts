@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { exportMelodyMidi, exportSongMidi } from "./exportMelody"
 import { TICKS_PER_QUARTER } from "./smf"
 import type { ChordEvent, ComposerProject } from "@/core/project"
-import { createEmptyProject, normalizeProject } from "@/core/project"
+import { createEmptyProject, CURRENT_SCHEMA_VERSION, normalizeProject } from "@/core/project"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import type { ResolvedLeadContent, SectionLayer } from "@/core/sectionContent"
 import { partRoleFor } from "@/core/sectionContent"
@@ -412,7 +412,7 @@ describe("Issue #41 / 旧Projectの移行と既定値補完", () => {
       pickup: false,
     })
     // 既定が従来の挙動と同じなので、既存プロジェクトの生成結果は変わらない
-    expect(migrated.schemaVersion).toBe("1.5")
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
     expect(migrated.accompanimentPatterns.length).toBeGreaterThan(0)
     expect(migrated.sectionAccompanimentPatternAssignments).toEqual({})
   })

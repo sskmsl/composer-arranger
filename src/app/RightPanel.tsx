@@ -61,7 +61,15 @@ function IgnoredNote({ setting, selected }: { setting: GenerationSettingKey; sel
   )
 }
 
-export function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function RightPanel({
+  open,
+  onClose,
+  mode = "melody",
+}: {
+  open: boolean
+  onClose: () => void
+  mode?: "melody" | "phrase"
+}) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const updateSongField = useProjectStore((s) => s.updateSongField)
@@ -126,7 +134,7 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
       </SectionCard>
 
-      <SectionCard title="Generator Profile">
+      {mode === "melody" && <SectionCard title="Generator Profile">
         <p className="mb-2 text-[11px] text-ink-muted-48">
           選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
         </p>
@@ -153,7 +161,7 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
         <div className="mt-2">
           <IgnoredNote setting="key" selected={selected} />
         </div>
-      </SectionCard>
+      </SectionCard>}
 
       <SectionCard title="生成パラメータ">
         <div className="flex flex-col gap-2.5">
@@ -165,7 +173,7 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
                 <option value="active">Active</option>
               </Select>
             </FieldGroup>
-            <IgnoredNote setting="density" selected={selected} />
+            {mode === "melody" && <IgnoredNote setting="density" selected={selected} />}
           </div>
           <div className="flex flex-col gap-1">
             <FieldGroup label="Range">
@@ -215,15 +223,17 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
                 <option value="open">Open</option>
               </Select>
             </FieldGroup>
-            <IgnoredNote setting="drama" selected={selected} />
+            {mode === "melody" && <IgnoredNote setting="drama" selected={selected} />}
           </div>
           <p className="mt-1 border-t border-hairline pt-2 text-[10px] text-ink-muted-48">
-            生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。
+            {mode === "phrase"
+              ? "PhraseではDensity / Range / Dramaを利用します。Generator ProfileはMelody専用です。"
+              : "生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。"}
           </p>
         </div>
       </SectionCard>
 
-      <SectionCard title="特徴量">
+      {mode === "melody" && <SectionCard title="特徴量">
         {variant?.generatorProfile && (
           <p className="mb-1 text-[12px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
@@ -266,7 +276,7 @@ export function RightPanel({ open, onClose }: { open: boolean; onClose: () => vo
           </Button>
         )}
         {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">Song Motif DNA保存済み(他セクション生成へ軽く反映されます)</p>}
-      </SectionCard>
+      </SectionCard>}
     </aside>
   )
 }
