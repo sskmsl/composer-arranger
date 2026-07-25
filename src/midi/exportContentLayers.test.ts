@@ -327,6 +327,43 @@ describe("Issue #41 / partRoleがMIDIのトラックへ反映される", () => {
   })
 })
 
+describe("Issue #45 / Accompaniment Pattern MIDI", () => {
+  it("Melody未選択でも専用トラック・専用チャンネルへ書き出せる", () => {
+    const patternNotes = [note(0.5, 0.75, 48), note(1.5, 0.5, 55)]
+    const bytes = exportMelodyMidi({
+      title: "t",
+      sectionName: "Intro",
+      tempo: 96,
+      timeSignature: "4/4",
+      chords: CHORDS,
+      accompanimentPatternNotes: patternNotes,
+      includeChords: false,
+    })
+
+    expect(trackNames(bytes)).toContain("Accompaniment Pattern")
+    expect(noteOnChannels(bytes)).toEqual(new Set([3]))
+    expect(notesOfTrack(bytes, "Accompaniment Pattern")).toEqual([
+      { start: 0.5 * TICKS_PER_QUARTER, duration: 0.75 * TICKS_PER_QUARTER, pitch: 48 },
+      { start: 1.5 * TICKS_PER_QUARTER, duration: 0.5 * TICKS_PER_QUARTER, pitch: 55 },
+    ])
+  })
+
+  it("曲全体MIDIでもMelody Variantと独立してPatternを出力する", () => {
+    const project = createEmptyProject("song")
+    project.sections = [{ id: "s1", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 }]
+    project.chords = CHORDS
+    project.sectionAccompanimentPatternAssignments = { s1: "arpeggio-up" }
+
+    const material = buildSongPlaybackMaterial(project)
+    expect(material.lead).toHaveLength(0)
+    expect(material.accompanimentPattern.length).toBeGreaterThan(0)
+
+    const bytes = exportSongMidi(project, false)
+    expect(trackNames(bytes)).toContain("Accompaniment Pattern")
+    expect(noteOnChannels(bytes)).toEqual(new Set([3]))
+  })
+})
+
 describe("Issue #41 / 旧Projectの移行と既定値補完", () => {
   it("content未保存のセクションへ lead/accompaniment/entryOffset/pickup が補完される", () => {
     const migrated = normalizeProject({
@@ -340,7 +377,9 @@ describe("Issue #41 / 旧Projectの移行と既定値補完", () => {
       pickup: false,
     })
     // 既定が従来の挙動と同じなので、既存プロジェクトの生成結果は変わらない
-    expect(migrated.schemaVersion).toBe("1.4")
+    expect(migrated.schemaVersion).toBe("1.5")
+    expect(migrated.accompanimentPatterns.length).toBeGreaterThan(0)
+    expect(migrated.sectionAccompanimentPatternAssignments).toEqual({})
   })
 
   it("layers未保存の旧候補へ、notesを単一leadレイヤーとしたlayersが補完される", () => {

@@ -300,3 +300,81 @@ describe("PR#43 自己レビュー分 / 窓シフトでPhrasePlanの拍位置が
     }
   })
 })
+
+describe("セクション複製 / Active Melodyの継承", () => {
+  it("Set as Active Melody済みの実音・Layer・計画を独立Variantとして複製する", () => {
+    useProjectStore.getState().generateForSection("s1")
+    const source = useProjectStore.getState().project.melodyVariants[0]
+    useProjectStore.getState().setActiveMelody(source.id)
+    useProjectStore.getState().setSectionAccompanimentPattern("s1", "arpeggio-up")
+    const variantCountBefore = useProjectStore.getState().project.melodyVariants.length
+
+    useProjectStore.getState().duplicateSection("s1")
+
+    const state = useProjectStore.getState()
+    const duplicatedSectionId = state.selectedSectionId!
+    const duplicatedVariantId = state.project.sectionMelodyAssignments[duplicatedSectionId]
+    const duplicated = state.project.melodyVariants.find((variant) => variant.id === duplicatedVariantId)!
+
+    expect(duplicated).toBeDefined()
+    expect(state.project.melodyVariants).toHaveLength(variantCountBefore + 1)
+    expect(state.project.activeMelodyId).toBe(duplicated.id)
+    expect(duplicated.id).not.toBe(source.id)
+    expect(duplicated.sectionId).toBe(duplicatedSectionId)
+    expect(duplicated.parentMelodyId).toBe(source.id)
+    expect(duplicated.batchId).not.toBe(source.batchId)
+    expect(state.project.sectionAccompanimentPatternAssignments[duplicatedSectionId]).toBe("arpeggio-up")
+    expect(duplicated.notes.map(({ id: _id, ...note }) => note)).toEqual(
+      source.notes.map(({ id: _id, ...note }) => note),
+    )
+    expect(duplicated.notes.map((note) => note.id)).not.toEqual(source.notes.map((note) => note.id))
+    expect(duplicated.layers?.map((layer) => ({
+      ...layer,
+      id: undefined,
+      notes: layer.notes.map(({ id: _id, ...note }) => note),
+    }))).toEqual(source.layers?.map((layer) => ({
+      ...layer,
+      id: undefined,
+      notes: layer.notes.map(({ id: _id, ...note }) => note),
+    })))
+  })
+
+  it("Active Melody未設定なら候補を複製せず、セクションとコードだけを複製する", () => {
+    useProjectStore.getState().generateForSection("s1")
+    const variantCountBefore = useProjectStore.getState().project.melodyVariants.length
+
+    useProjectStore.getState().duplicateSection("s1")
+
+    const state = useProjectStore.getState()
+    const duplicatedSectionId = state.selectedSectionId!
+    expect(state.project.melodyVariants).toHaveLength(variantCountBefore)
+    expect(state.project.sectionMelodyAssignments[duplicatedSectionId]).toBeUndefined()
+    expect(state.project.chords.filter((chord) => chord.sectionId === duplicatedSectionId)).toHaveLength(4)
+  })
+})
+
+describe("Issue #45 / セクション別Accompaniment Pattern割り当て", () => {
+  it("テンプレートを割り当て・解除でき、Undo/Redoにも含まれる", () => {
+    expect(useProjectStore.getState().project.accompanimentPatterns.length).toBeGreaterThan(0)
+
+    useProjectStore.getState().setSectionAccompanimentPattern("s1", "broken-ninth")
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBe("broken-ninth")
+
+    useProjectStore.getState().undo()
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBeUndefined()
+    useProjectStore.getState().redo()
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBe("broken-ninth")
+
+    useProjectStore.getState().setSectionAccompanimentPattern("s1", null)
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBeUndefined()
+  })
+
+  it("存在しないテンプレートは割り当てず、セクション削除時に割り当ても除去する", () => {
+    useProjectStore.getState().setSectionAccompanimentPattern("s1", "missing")
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBeUndefined()
+
+    useProjectStore.getState().setSectionAccompanimentPattern("s1", "syncopated")
+    useProjectStore.getState().removeSection("s1")
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBeUndefined()
+  })
+})

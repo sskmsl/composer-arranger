@@ -6,6 +6,7 @@ import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import { Play, Square, Undo2, Redo2, Download, History } from "lucide-react"
 import { accompanimentEnabled } from "@/core/sectionContent"
+import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -32,11 +33,21 @@ export function BottomBar() {
   const sectionVariants = project.melodyVariants
     .filter((v) => v.sectionId === selectedSectionId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const accompanimentPatternNotes = selectedSectionId
+    ? accompanimentPatternNotesForSection(project, selectedSectionId)
+    : []
 
   const play = () => {
-    if (!variant) return
+    if (!variant && accompanimentPatternNotes.length === 0) return
     setPlaying(true)
-    previewPlayer.play({ bpm: project.song.tempo, chords, melody: variant.notes, mode, onEnded: () => setPlaying(false) })
+    previewPlayer.play({
+      bpm: project.song.tempo,
+      chords,
+      melody: variant?.notes ?? [],
+      accompaniment: accompanimentPatternNotes,
+      mode,
+      onEnded: () => setPlaying(false),
+    })
   }
   const stop = () => {
     previewPlayer.stop()
@@ -44,7 +55,7 @@ export function BottomBar() {
   }
 
   const exportMidi = () => {
-    if (!variant || !selectedSectionId || !section) return
+    if ((!variant && accompanimentPatternNotes.length === 0) || !selectedSectionId || !section) return
     const bytes = exportMelodyMidi({
       title: project.title,
       sectionName: section.name,
@@ -52,10 +63,11 @@ export function BottomBar() {
       timeSignature: project.song.timeSignature,
       chords,
       melody: variant,
+      accompanimentPatternNotes,
       // Issue #41: 伴奏なし設定のセクションでは、再生モードに関わらずコードを書き出さない
       includeChords: chordsEnabled && mode !== "melody-only",
     })
-    downloadMidi(bytes, `${project.title}-${section.name}-${variant.name}`)
+    downloadMidi(bytes, `${project.title}-${section.name}-${variant?.name ?? "Accompaniment Pattern"}`)
   }
 
   return (
@@ -80,13 +92,21 @@ export function BottomBar() {
         <option value="chords-melody">Chords + Melody</option>
         <option value="chords-only">Chords Only</option>
       </Select>
-      <IconButton onClick={playing ? stop : play} disabled={!variant} className="bg-primary text-on-primary hover:bg-primary-focus">
+      <IconButton
+        onClick={playing ? stop : play}
+        disabled={!variant && accompanimentPatternNotes.length === 0}
+        className="bg-primary text-on-primary hover:bg-primary-focus"
+      >
         {playing ? <Square size={14} /> : <Play size={14} />}
       </IconButton>
 
       <div className="mx-1 hidden h-6 w-px bg-hairline sm:block" />
 
-      <Button variant="dark" onClick={exportMidi} disabled={!variant}>
+      <Button
+        variant="dark"
+        onClick={exportMidi}
+        disabled={!variant && accompanimentPatternNotes.length === 0}
+      >
         <Download size={13} /> <span className="hidden sm:inline">MIDI書き出し</span>
       </Button>
 

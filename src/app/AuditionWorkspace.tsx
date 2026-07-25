@@ -4,6 +4,7 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { parseTimeSignature } from "@/core/section"
 import { accompanimentEnabled } from "@/core/sectionContent"
+import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
@@ -58,6 +59,9 @@ export function AuditionWorkspace() {
         .filter((chord) => chord.sectionId === selectedSectionId)
         .sort((a, b) => a.startBeat - b.startBeat)
     : []
+  const accompanimentPatternNotes = selectedSectionId
+    ? accompanimentPatternNotesForSection(project, selectedSectionId)
+    : []
 
   const playbackOptions = (slot: number) => {
     const variant = selectedVariants[slot]
@@ -66,6 +70,7 @@ export function AuditionWorkspace() {
       bpm: project.song.tempo,
       chords,
       melody: variant.notes,
+      accompaniment: accompanimentPatternNotes,
       mode,
       loop,
       range: {
