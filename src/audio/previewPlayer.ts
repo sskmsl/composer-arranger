@@ -185,33 +185,34 @@ class PreviewPlayer {
   private scheduleLead(ctx: AudioContext, dest: AudioNode, pitch: number, velocity: number, t0: number, dur: number): void {
     const freq = midiToFreq(pitch)
     const vel = Math.min(1, Math.max(0.15, velocity / 127))
-    const attack = 0.004
-    const peak = 0.3 * (0.45 + 0.55 * vel)
+    // 柔らかめ: アタックの角(クリック感)を丸めるため立ち上がりをやや緩める
+    const attack = 0.012
+    const peak = 0.28 * (0.5 + 0.5 * vel)
 
     // 低音ほど長く、強打ほど少し長く残す減衰時間。音価が短ければその長さで切る。
     const naturalRing = Math.min(3.4, 3.2 - (pitch - 60) * 0.05) * (0.75 + 0.25 * vel)
     const ring = Math.max(0.28, Math.min(naturalRing, dur * 0.98 + 0.25))
     const holdEnd = t0 + ring
-    const release = 0.09
+    const release = 0.12
 
-    // 弦の非整数倍音を含むピアノ寄りの倍音構成(基音+上倍音を漸減)
+    // 柔らかめ: 上倍音を大きく抑え、基音中心のまろやかな倍音構成にする(とがりの主因を除く)
     const wave = ctx.createPeriodicWave(
-      new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
-      new Float32Array([0, 1, 0.62, 0.4, 0.26, 0.17, 0.11, 0.07, 0.04]),
+      new Float32Array([0, 0, 0, 0, 0, 0]),
+      new Float32Array([0, 1, 0.32, 0.13, 0.05, 0.02]),
       { disableNormalization: false },
     )
     const osc = ctx.createOscillator()
     osc.setPeriodicWave(wave)
     osc.frequency.value = freq
 
-    // 打鍵直後だけ明るく、その後こもる = ハンマー打弦後の音色変化
+    // 柔らかめ: 打鍵直後の明るさを控えめにし、より早くこもらせる(耳につく高域を減らす)
     const filter = ctx.createBiquadFilter()
     filter.type = "lowpass"
-    const brightStart = Math.min(11000, freq * (5 + 6 * vel))
-    const brightEnd = Math.min(4200, Math.max(freq * 2.2, 900))
+    const brightStart = Math.min(5200, freq * (2.6 + 2.2 * vel))
+    const brightEnd = Math.min(2600, Math.max(freq * 1.6, 620))
     filter.frequency.setValueAtTime(brightStart, t0)
-    filter.frequency.exponentialRampToValueAtTime(brightEnd, t0 + Math.min(0.6, ring))
-    filter.Q.value = 0.6
+    filter.frequency.exponentialRampToValueAtTime(brightEnd, t0 + Math.min(0.35, ring))
+    filter.Q.value = 0.4
 
     // 打鍵→連続減衰のエンベロープ(持続プラトーを持たない)
     const gain = ctx.createGain()
