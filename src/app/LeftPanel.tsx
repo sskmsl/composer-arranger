@@ -182,7 +182,11 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             <FieldGroup label='コード進行 ("|" "-" "–" いずれかの区切り。例: "F#m(add9) | E | D | Dsus2")'>
               <textarea
                 defaultValue={chordText}
-                key={`chords-${section.id}-${sectionChords.length}`}
+                // 件数(sectionChords.length)だけをkeyにすると、延長のように件数を変えず
+                // durationBeatsだけを書き換える更新でremountされず、非制御textareaが古い表示の
+                // ままになってしまう(その後blurすると古い値でstoreを上書きしてしまう=延長が
+                // 元に戻る)。実際に表示すべきテキスト(chordText)自体をkeyにして確実に同期する。
+                key={`chords-${section.id}-${chordText}`}
                 onBlur={(e) => setChordText(section.id, e.currentTarget.value)}
                 rows={4}
                 className="rounded-sm border border-hairline bg-surface-tile-2 px-2.5 py-1.5 text-[13px] text-body-on-dark outline-none focus:border-primary-focus"

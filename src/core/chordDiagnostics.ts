@@ -31,12 +31,20 @@ export interface ChordDiagnosis {
 
 export interface SectionCoverage {
   sectionLengthBeats: number
+  /** 最後の和音の終端拍(区間内に空白があっても、これ単体では過不足を判定しない) */
   coveredBeats: number
   status: "exact" | "under" | "over"
-  /** under のとき不足拍(>0) */
+  /** gapsの合計(先頭・中間・末尾いずれの空白も含む。>0 のとき under) */
   gapBeats: number
   /** over のとき超過拍(>0) */
   overflowBeats: number
+  /**
+   * 区間[0, sectionLengthBeats]内で和音が置かれていない範囲(Issue #12 PR#35レビュー対応)。
+   * インポート等で和音が連続配置とは限らないため、終端拍だけでなく実際の被覆区間の和集合から
+   * 先頭の空白・中間の空白を検出する(例: 8拍のセクションで4〜8拍にしか和音が無い場合、
+   * 従来は終端一致だけを見て"exact"と誤判定していた)。
+   */
+  gaps: { startBeat: number; endBeat: number }[]
   /** 直前の和音と重なっているイベント(index)。順次配置なら通常は空 */
   overlaps: number[]
 }
@@ -86,7 +94,7 @@ export function diagnoseChord(event: ChordEvent, index: number): ChordDiagnosis 
     bassName: parsed.bassPc !== parsed.rootPc ? parsed.bassName : undefined,
     toneNames,
     tensionNames: tensionNames.length ? tensionNames : undefined,
-    interpretedSymbol: parsed.unrecognized ? event.symbol.slice(0, event.symbol.length - parsed.unrecognized.length) : event.symbol,
+    interpretedSymbol: parsed.unrecognized ? parsed.interpretedSymbol : event.symbol,
   }
 
   const reasons: string[] = []
@@ -97,6 +105,50 @@ export function diagnoseChord(event: ChordEvent, index: number): ChordDiagnosis 
     return { ...base, ...preview, status: "warning", reason: reasons.join(" / ") }
   }
   return { ...base, ...preview, status: "ok" }
+}
+
+function round3(v: number): number {
+  return Math.round(v * 1000) / 1000
+}
+
+/**
+ * 和音イベント列(startBeat順)の被覆区間を和集合として求め、[0, sectionLengthBeats]内の
+ * 空白(先頭・中間・末尾)を検出する(Issue #12 PR#35レビュー対応)。
+ * 重なり合う/連続するイベントは1つの区間へマージする。
+ */
+function computeCoverageGaps(
+  sorted: ChordEvent[],
+  sectionLengthBeats: number,
+): { gaps: { startBeat: number; endBeat: number }[] } {
+  if (sectionLengthBeats <= 0) return { gaps: [] }
+
+  const merged: { start: number; end: number }[] = []
+  for (const e of sorted) {
+    const start = e.startBeat
+    const end = e.startBeat + e.durationBeats
+    if (end <= start + EPS) continue // 長さ0以下は被覆に寄与しない(別途warningで検出済み)
+    const last = merged[merged.length - 1]
+    if (last && start <= last.end + EPS) {
+      last.end = Math.max(last.end, end)
+    } else {
+      merged.push({ start, end })
+    }
+  }
+
+  const gaps: { startBeat: number; endBeat: number }[] = []
+  let cursor = 0
+  for (const iv of merged) {
+    if (iv.start > cursor + EPS) gaps.push({ startBeat: cursor, endBeat: Math.min(iv.start, sectionLengthBeats) })
+    cursor = Math.max(cursor, iv.end)
+    if (cursor >= sectionLengthBeats) break
+  }
+  if (cursor < sectionLengthBeats - EPS) gaps.push({ startBeat: cursor, endBeat: sectionLengthBeats })
+
+  return {
+    gaps: gaps
+      .map((g) => ({ startBeat: round3(Math.max(0, g.startBeat)), endBeat: round3(Math.min(sectionLengthBeats, g.endBeat)) }))
+      .filter((g) => g.endBeat - g.startBeat > EPS),
+  }
 }
 
 /**
@@ -114,23 +166,20 @@ export function diagnoseChordInput(events: ChordEvent[], sectionLengthBeats: num
   }
 
   const coveredBeats = sorted.length ? Math.max(...sorted.map((e) => e.startBeat + e.durationBeats)) : 0
+  const { gaps } = computeCoverageGaps(sorted, sectionLengthBeats)
+  const gapBeats = round3(gaps.reduce((sum, g) => sum + (g.endBeat - g.startBeat), 0))
 
   let status: SectionCoverage["status"] = "exact"
-  let gapBeats = 0
   let overflowBeats = 0
-  if (sectionLengthBeats > 0) {
-    if (coveredBeats < sectionLengthBeats - EPS) {
-      status = "under"
-      gapBeats = Math.round((sectionLengthBeats - coveredBeats) * 1000) / 1000
-    } else if (coveredBeats > sectionLengthBeats + EPS) {
-      status = "over"
-      overflowBeats = Math.round((coveredBeats - sectionLengthBeats) * 1000) / 1000
-    }
+  if (sectionLengthBeats > 0 && coveredBeats > sectionLengthBeats + EPS) {
+    overflowBeats = round3(coveredBeats - sectionLengthBeats)
   }
+  if (gapBeats > EPS) status = "under"
+  else if (overflowBeats > EPS) status = "over"
 
   return {
     chords,
-    coverage: { sectionLengthBeats, coveredBeats, status, gapBeats, overflowBeats, overlaps },
+    coverage: { sectionLengthBeats, coveredBeats, status, gapBeats, overflowBeats, gaps, overlaps },
     hasError: chords.some((c) => c.status === "error"),
     hasWarning: chords.some((c) => c.status === "warning") || overlaps.length > 0 || status !== "exact",
   }
