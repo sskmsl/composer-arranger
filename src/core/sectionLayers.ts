@@ -60,6 +60,42 @@ export function flattenLayerNotes(layers: SectionLayer[]): MelodyNote[] {
   return layers.flatMap((layer) => layer.notes).sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch)
 }
 
+/**
+ * MelodyVariant.notesを編集後の正として、Layer側の実音も同じ内容へ同期する。
+ * UI/候補試聴はvariant.notes、曲全体再生/MIDIはlayersを参照するため、
+ * 両者が分岐すると表示と書き出しで異なる音程が鳴ってしまう。
+ */
+export function replaceVariantNotes(variant: MelodyVariant, notes: MelodyNote[]): MelodyVariant {
+  if (!variant.layers || variant.layers.length === 0) return { ...variant, notes }
+
+  const layerIndexByNoteId = new Map<string, number>()
+  variant.layers.forEach((layer, layerIndex) => {
+    layer.notes.forEach((note) => layerIndexByNoteId.set(note.id, layerIndex))
+  })
+  const primaryLayerIndex = Math.max(
+    0,
+    variant.layers.findIndex((layer) => layer.kind === "primary"),
+  )
+  const notesByLayer = variant.layers.map(() => [] as MelodyNote[])
+  for (const note of notes) {
+    const layerIndex = layerIndexByNoteId.get(note.id) ?? primaryLayerIndex
+    notesByLayer[layerIndex].push(note)
+  }
+
+  return {
+    ...variant,
+    notes,
+    layers: variant.layers.map((layer, layerIndex) => ({
+      ...layer,
+      notes: notesByLayer[layerIndex],
+      plan: {
+        ...layer.plan,
+        cellDurations: notesByLayer[layerIndex].map((note) => note.durationBeats),
+      },
+    })),
+  }
+}
+
 /** 指定partRoleのノートだけを取り出す(MIDIのトラック分割用) */
 export function notesByPartRole(variant: MelodyVariant, partRole: PartRole): MelodyNote[] {
   return layersOf(variant)

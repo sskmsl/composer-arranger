@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { useProjectStore } from "./useProjectStore"
 import { createEmptyProject } from "@/core/project"
 import { DEFAULT_SECTION_CONTENT, notesBeforeEntryOffset } from "@/core/sectionContent"
-import { resolvedLeadContent } from "@/core/sectionLayers"
+import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import type { ComposerProject } from "@/core/project"
 import { parseChordInputText } from "@/core/chordInput"
 
@@ -145,7 +145,46 @@ describe("Issue #41 / Content Modeが操作で失われない", () => {
 
     useProjectStore.getState().regenerateRange(target.id, 0, 8, { pitch: false })
 
-    expect(useProjectStore.getState().project.melodyVariants.length).toBeGreaterThan(before)
+    const generated = useProjectStore.getState().project.melodyVariants.slice(before)
+    expect(generated.length).toBeGreaterThan(0)
+    for (const variant of generated) {
+      expect(notesByPartRole(variant, "lead").map((note) => note.id)).toEqual(
+        variant.notes.map((note) => note.id),
+      )
+      expect(notesByPartRole(variant, "lead").map((note) => note.pitch)).toEqual(
+        variant.notes.map((note) => note.pitch),
+      )
+    }
+  })
+})
+
+describe("Melody実音 / variant.notesとLayerの同期", () => {
+  it("ピアノロールの音程編集を曲全体再生・MIDI参照Layerへ反映する", () => {
+    useProjectStore.getState().generateForSection("s1")
+    const source = useProjectStore.getState().project.melodyVariants[0]
+    const targetNote = source.notes[0]
+
+    useProjectStore.getState().updateNote(source.id, targetNote.id, { pitch: targetNote.pitch + 2 })
+
+    const updated = useProjectStore.getState().project.melodyVariants.find((variant) => variant.id === source.id)!
+    expect(updated.notes.find((note) => note.id === targetNote.id)?.pitch).toBe(targetNote.pitch + 2)
+    expect(notesByPartRole(updated, "lead").find((note) => note.id === targetNote.id)?.pitch).toBe(
+      targetNote.pitch + 2,
+    )
+  })
+
+  it("ノート削除とLock変更もLayerへ同期する", () => {
+    useProjectStore.getState().generateForSection("s1")
+    const source = useProjectStore.getState().project.melodyVariants[0]
+    const lockedNote = source.notes[0]
+    const deletedNote = source.notes[1]
+
+    useProjectStore.getState().toggleNoteLock(source.id, lockedNote.id, "pitch")
+    useProjectStore.getState().deleteNote(source.id, deletedNote.id)
+
+    const updated = useProjectStore.getState().project.melodyVariants.find((variant) => variant.id === source.id)!
+    expect(notesByPartRole(updated, "lead").find((note) => note.id === lockedNote.id)?.locks).toContain("pitch")
+    expect(notesByPartRole(updated, "lead").some((note) => note.id === deletedNote.id)).toBe(false)
   })
 })
 
