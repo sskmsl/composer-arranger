@@ -2,6 +2,7 @@ import type { ChordEvent, ComposerProject } from "./project"
 import type { MelodyNote, MelodyVariant } from "./melody"
 import type { Section } from "./section"
 import { parseTimeSignature } from "./section"
+import { layersOf } from "./sectionLayers"
 
 /** 配列順を曲順として扱い、startBarを1始まりで隙間なく再計算する。 */
 export function normalizeSectionTimeline(sections: Section[]): Section[] {
@@ -25,7 +26,11 @@ export function moveSectionInTimeline(sections: Section[], sectionId: string, ta
 
 export interface SongPlaybackMaterial {
   chords: ChordEvent[]
+  /** 再生用: lead と accompaniment を合わせた全ノート */
   melody: MelodyNote[]
+  /** Issue #41: MIDIのトラック分割用に partRole ごとへ分けたノート */
+  lead: MelodyNote[]
+  accompaniment: MelodyNote[]
   totalBeats: number
 }
 
@@ -33,7 +38,8 @@ export interface SongPlaybackMaterial {
 export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybackMaterial {
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const chords: ChordEvent[] = []
-  const melody: MelodyNote[] = []
+  const lead: MelodyNote[] = []
+  const accompaniment: MelodyNote[] = []
 
   for (const section of normalizeSectionTimeline(project.sections)) {
     const offset = (section.startBar - 1) * beatsPerBar
@@ -44,15 +50,23 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
     const variant = variantId
       ? project.melodyVariants.find((candidate) => candidate.id === variantId && candidate.sectionId === section.id)
       : undefined
-    for (const note of variant?.notes ?? []) {
-      melody.push({ ...note, id: `${section.id}:${note.id}`, startBeat: offset + note.startBeat })
+    if (!variant) continue
+    // Issue #41: partRoleの正はLayer。曲全体へ展開する際も役割ごとに分けて持つ
+    for (const layer of layersOf(variant)) {
+      const target = layer.partRole === "accompaniment" ? accompaniment : lead
+      for (const note of layer.notes) {
+        target.push({ ...note, id: `${section.id}:${note.id}`, startBeat: offset + note.startBeat })
+      }
     }
   }
 
+  const byBeat = (a: MelodyNote, b: MelodyNote) => a.startBeat - b.startBeat
   const totalBars = project.sections.reduce((sum, section) => sum + Math.max(1, section.lengthBars), 0)
   return {
     chords: chords.sort((a, b) => a.startBeat - b.startBeat),
-    melody: melody.sort((a, b) => a.startBeat - b.startBeat),
+    melody: [...lead, ...accompaniment].sort(byBeat),
+    lead: lead.sort(byBeat),
+    accompaniment: accompaniment.sort(byBeat),
     totalBeats: totalBars * beatsPerBar,
   }
 }
