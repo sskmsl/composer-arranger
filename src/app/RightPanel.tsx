@@ -56,7 +56,7 @@ function IgnoredNote({ setting, selected }: { setting: GenerationSettingKey; sel
   return (
     <p className="flex items-start gap-1 text-[10px] text-amber-400/90">
       <AlertCircle size={11} className="mt-0.5 shrink-0" />
-      <span>{ignoring.map((p) => GENERATOR_PROFILE_LABELS[p]).join("・")} では{GENERATION_SETTING_LABELS[setting]}は生成へ反映されません</span>
+      <span className="min-w-0 break-words">{ignoring.map((p) => GENERATOR_PROFILE_LABELS[p]).join("・")} では{GENERATION_SETTING_LABELS[setting]}は生成へ反映されません</span>
     </p>
   )
 }
@@ -96,7 +96,7 @@ export function RightPanel({
   return (
     <aside
       className={clsx(
-        "z-40 flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-l border-hairline bg-surface-tile-3 p-3 transition-transform duration-200",
+        "z-40 flex w-72 min-w-0 shrink-0 flex-col gap-3 overflow-x-hidden overflow-y-auto border-l border-hairline bg-surface-tile-3 p-3 transition-transform duration-200",
         "absolute inset-y-0 right-0 lg:static lg:translate-x-0",
         open ? "translate-x-0" : "translate-x-full",
       )}
@@ -105,10 +105,10 @@ export function RightPanel({
         <X size={16} />
       </IconButton>
 
-      <SectionCard title="Song Profile">
+      <SectionCard title="Song Profile" className="w-full min-w-0 overflow-hidden">
         <div className="flex flex-col gap-2.5">
           <FieldGroup label="曲全体のProfile">
-            <Select value={project.song.songProfile} onChange={(e) => updateSongField("songProfile", e.target.value as SongProfileId)}>
+            <Select className="w-full min-w-0" value={project.song.songProfile} onChange={(e) => updateSongField("songProfile", e.target.value as SongProfileId)}>
               {PROFILE_OPTIONS.map((p) => (
                 <option key={p} value={p}>
                   {SONG_PROFILE_LABELS[p]}
@@ -119,6 +119,7 @@ export function RightPanel({
           {selectedSectionId && (
             <FieldGroup label="このセクションだけ上書き">
               <Select
+                className="w-full min-w-0"
                 value={override?.songProfile ?? ""}
                 onChange={(e) => setSectionProfileOverride(selectedSectionId, (e.target.value || null) as SongProfileId | null)}
               >
@@ -134,7 +135,7 @@ export function RightPanel({
         </div>
       </SectionCard>
 
-      {mode === "melody" && <SectionCard title="Generator Profile">
+      {mode === "melody" && <SectionCard title="Generator Profile" className="w-full min-w-0 overflow-hidden">
         <p className="mb-2 text-[11px] text-ink-muted-48">
           選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
         </p>
@@ -150,9 +151,9 @@ export function RightPanel({
                 )}
               >
                 <input type="checkbox" className="mt-0.5 accent-primary" checked={checked} onChange={() => toggleGeneratorProfile(p)} />
-                <span className="flex flex-col">
+                <span className="flex min-w-0 flex-col">
                   <span className="font-medium text-body-on-dark">{GENERATOR_PROFILE_LABELS[p]}</span>
-                  <span className="text-ink-muted-48">{GENERATOR_PROFILE_DESCRIPTIONS[p]}</span>
+                  <span className="break-words text-ink-muted-48">{GENERATOR_PROFILE_DESCRIPTIONS[p]}</span>
                 </span>
               </label>
             )
@@ -163,11 +164,11 @@ export function RightPanel({
         </div>
       </SectionCard>}
 
-      <SectionCard title="生成パラメータ">
+      <SectionCard title="生成パラメータ" className="w-full min-w-0 overflow-hidden">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
             <FieldGroup label="Density">
-              <Select value={generationSettings.density} onChange={(e) => setGenerationSettings({ density: e.target.value as Density })}>
+              <Select className="w-full min-w-0" value={generationSettings.density} onChange={(e) => setGenerationSettings({ density: e.target.value as Density })}>
                 <option value="sparse">Sparse</option>
                 <option value="balanced">Balanced</option>
                 <option value="active">Active</option>
@@ -178,6 +179,7 @@ export function RightPanel({
           <div className="flex flex-col gap-1">
             <FieldGroup label="Range">
               <Select
+                className="w-full min-w-0"
                 value={generationSettings.rangePreset}
                 onChange={(e) => setGenerationSettings({ rangePreset: e.target.value as RangePreset })}
               >
@@ -188,23 +190,25 @@ export function RightPanel({
               </Select>
             </FieldGroup>
             {generationSettings.rangePreset === "custom" && (
-              <div className="mt-1 flex items-end gap-2">
-                <div className="flex flex-1 flex-col gap-1">
+              <div className="mt-1 flex min-w-0 items-end gap-2">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <Label>最低音</Label>
                   <TextInput
                     key={`low-${custom.low}`}
                     defaultValue={noteName(custom.low)}
                     onBlur={(e) => setCustomBound("low", e.target.value)}
                     placeholder="C4"
+                    className="w-full min-w-0"
                   />
                 </div>
-                <div className="flex flex-1 flex-col gap-1">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <Label>最高音</Label>
                   <TextInput
                     key={`high-${custom.high}`}
                     defaultValue={noteName(custom.high)}
                     onBlur={(e) => setCustomBound("high", e.target.value)}
                     placeholder="F5"
+                    className="w-full min-w-0"
                   />
                 </div>
               </div>
@@ -217,7 +221,7 @@ export function RightPanel({
           </div>
           <div className="flex flex-col gap-1">
             <FieldGroup label="Drama">
-              <Select value={generationSettings.drama} onChange={(e) => setGenerationSettings({ drama: e.target.value as Drama })}>
+              <Select className="w-full min-w-0" value={generationSettings.drama} onChange={(e) => setGenerationSettings({ drama: e.target.value as Drama })}>
                 <option value="restrained">Restrained</option>
                 <option value="growing">Growing</option>
                 <option value="open">Open</option>
@@ -233,7 +237,7 @@ export function RightPanel({
         </div>
       </SectionCard>
 
-      {mode === "melody" && <SectionCard title="特徴量">
+      {mode === "melody" && <SectionCard title="特徴量" className="w-full min-w-0 overflow-hidden">
         {variant?.generatorProfile && (
           <p className="mb-1 text-[12px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
@@ -271,8 +275,13 @@ export function RightPanel({
           </dl>
         )}
         {variant && (
-          <Button variant="dark" className="mt-3 w-full justify-center" onClick={() => extractMotifDNAFromVariant(variant.id)}>
-            <Dna size={13} /> このメロディからMotif DNAを抽出
+          <Button
+            variant="dark"
+            className="mt-3 h-auto w-full min-w-0 !whitespace-normal px-3 py-2 text-center leading-snug"
+            onClick={() => extractMotifDNAFromVariant(variant.id)}
+          >
+            <Dna size={13} className="shrink-0" />
+            <span className="min-w-0 break-words">このメロディからMotif DNAを抽出</span>
           </Button>
         )}
         {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">Song Motif DNA保存済み(他セクション生成へ軽く反映されます)</p>}

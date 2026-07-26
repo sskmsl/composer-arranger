@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
-import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
+import { previewLayersForMode, previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import { Play, Square, Undo2, Redo2, Download, History } from "lucide-react"
@@ -41,9 +41,14 @@ export function BottomBar() {
         variant ? notesByPartRole(variant, "lead") : undefined,
       )
     : []
+  const previewLayers = previewLayersForMode(mode)
+  const hasPlayableMaterial =
+    (previewLayers.chords && chords.length > 0) ||
+    (previewLayers.melody && (variant?.notes.length ?? 0) > 0) ||
+    (previewLayers.accompaniment && accompanimentPatternNotes.length > 0)
 
   const play = () => {
-    if (!variant && accompanimentPatternNotes.length === 0) return
+    if (!hasPlayableMaterial) return
     setPlaying(true)
     previewPlayer.play({
       bpm: project.song.tempo,
@@ -60,17 +65,17 @@ export function BottomBar() {
   }
 
   const exportMidi = () => {
-    if ((!variant && accompanimentPatternNotes.length === 0) || !selectedSectionId || !section) return
+    if (!hasPlayableMaterial || !selectedSectionId || !section) return
     const bytes = exportMelodyMidi({
       title: project.title,
       sectionName: section.name,
       tempo: project.song.tempo,
       timeSignature: project.song.timeSignature,
       chords,
-      melody: variant,
-      accompanimentPatternNotes,
+      melody: previewLayers.melody ? variant : undefined,
+      accompanimentPatternNotes: previewLayers.accompaniment ? accompanimentPatternNotes : [],
       // Issue #41: 伴奏なし設定のセクションでは、再生モードに関わらずコードを書き出さない
-      includeChords: chordsEnabled && mode !== "melody-only",
+      includeChords: chordsEnabled && previewLayers.chords,
     })
     downloadMidi(bytes, `${project.title}-${section.name}-${variant?.name ?? "Accompaniment Pattern"}`)
   }
@@ -96,10 +101,11 @@ export function BottomBar() {
         <option value="melody-only">Melody Only</option>
         <option value="chords-melody">Chords + Melody</option>
         <option value="chords-only">Chords Only</option>
+        <option value="accompaniment-only">Arpeggio Only</option>
       </Select>
       <IconButton
         onClick={playing ? stop : play}
-        disabled={!variant && accompanimentPatternNotes.length === 0}
+        disabled={!hasPlayableMaterial}
         className="bg-primary text-on-primary hover:bg-primary-focus"
       >
         {playing ? <Square size={14} /> : <Play size={14} />}
@@ -110,7 +116,7 @@ export function BottomBar() {
       <Button
         variant="dark"
         onClick={exportMidi}
-        disabled={!variant && accompanimentPatternNotes.length === 0}
+        disabled={!hasPlayableMaterial}
       >
         <Download size={13} /> <span className="hidden sm:inline">MIDI書き出し</span>
       </Button>
