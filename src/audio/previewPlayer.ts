@@ -4,13 +4,28 @@ import { parseChordSymbol } from "@/core/chord"
 import { midiToFreq } from "@/core/note"
 import { voiceChord } from "./chordVoicing"
 
-export type PreviewMode = "melody-only" | "chords-melody" | "chords-only"
+export type PreviewMode = "melody-only" | "chords-melody" | "chords-only" | "accompaniment-only"
+
+export interface PreviewLayers {
+  chords: boolean
+  melody: boolean
+  accompaniment: boolean
+}
+
+/** 再生モードを実際に鳴らすレイヤーへ一元変換する。 */
+export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
+  return {
+    chords: mode === "chords-melody" || mode === "chords-only",
+    melody: mode === "chords-melody" || mode === "melody-only",
+    accompaniment: mode === "chords-melody" || mode === "accompaniment-only",
+  }
+}
 
 export interface PlayOptions {
   bpm: number
   chords: ChordEvent[]
   melody: MelodyNote[]
-  /** Issue #45: コードパッドとは独立したPattern伴奏。melody-only以外で鳴らす。 */
+  /** Issue #45: コードパッドとは独立したPattern伴奏。 */
   accompaniment?: MelodyNote[]
   mode: PreviewMode
   loop?: boolean
@@ -60,8 +75,9 @@ class PreviewPlayer {
     this.playbackStartBeat = playbackStart
 
     let totalBeats = 0
+    const layers = previewLayersForMode(opts.mode)
 
-    if (opts.mode !== "melody-only") {
+    if (layers.chords) {
       for (const c of opts.chords) {
         const parsed = parseChordSymbol(c.symbol, c.bass ?? undefined)
         if (!parsed) continue
@@ -77,7 +93,7 @@ class PreviewPlayer {
       }
     }
 
-    if (opts.mode !== "chords-only") {
+    if (layers.melody) {
       for (const n of opts.melody) {
         const eventEnd = n.startBeat + n.durationBeats
         if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
@@ -90,7 +106,7 @@ class PreviewPlayer {
       }
     }
 
-    if (opts.mode !== "melody-only") {
+    if (layers.accompaniment) {
       for (const n of opts.accompaniment ?? []) {
         const eventEnd = n.startBeat + n.durationBeats
         if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
