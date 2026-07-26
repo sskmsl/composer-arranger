@@ -140,11 +140,20 @@ export function MelodyWorkspace() {
         行頭にProfile名を1回だけ出し、ピルはPattern番号だけにする。
       */}
       {candidateGroups.length > 0 && (
-        <div className="grid grid-cols-1 gap-x-5 gap-y-1 md:grid-cols-2">
+        /*
+          2列にするのは、Profile名が省略されずに収まる幅のときだけにする。
+          1024〜1179pxは左右パネルが固定表示になって中央が最も狭くなる帯で、
+          ここで2列にすると "Elegiac Cantabile" 等が切れるため1列へ戻す。
+
+          範囲が重ならない指定にしているのは、Tailwind v4が任意値の
+          ブレークポイントを名前付き(md/lg)より前に出力するため。
+          重なる指定にすると、あとに出力された名前付き側が常に勝ってしまう。
+        */
+        <div className="grid grid-cols-1 gap-x-5 gap-y-1 min-[768px]:max-[1024px]:grid-cols-2 min-[1180px]:grid-cols-2">
           {candidateGroups.map((group) => (
             <div key={group.key} className="flex min-w-0 items-center gap-2">
               {/* セル幅が狭いときはラベル側を縮めて省略する(ピルは潰さない) */}
-              <span className="min-w-0 flex-1 truncate text-[11px] text-ink-muted-48" title={group.label}>
+              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-body-on-dark" title={group.label}>
                 {group.label}
               </span>
               <div className="flex shrink-0 gap-1.5">
