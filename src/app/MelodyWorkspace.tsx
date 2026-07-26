@@ -140,16 +140,14 @@ export function MelodyWorkspace() {
         行頭にProfile名を1回だけ出し、ピルはPattern番号だけにする。
       */}
       {candidateGroups.length > 0 && (
-        <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-1 gap-x-5 gap-y-1 md:grid-cols-2">
           {candidateGroups.map((group) => (
-            <div key={group.key} className="flex items-center gap-2">
-              <span
-                className="w-32 shrink-0 truncate text-[11px] text-ink-muted-48"
-                title={group.label}
-              >
+            <div key={group.key} className="flex min-w-0 items-center gap-2">
+              {/* セル幅が狭いときはラベル側を縮めて省略する(ピルは潰さない) */}
+              <span className="min-w-0 flex-1 truncate text-[11px] text-ink-muted-48" title={group.label}>
                 {group.label}
               </span>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex shrink-0 gap-1.5">
                 {group.items.map((item) => (
                   <Pill
                     key={item.variant.id}
