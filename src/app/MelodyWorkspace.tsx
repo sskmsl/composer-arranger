@@ -8,11 +8,12 @@ import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS } from "@/core/sectionContent"
+import { GENERATOR_PROFILE_LABELS } from "@/melody-engine/generatorProfile"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
-import type { RangeRegenerationLocks } from "@/core/melody"
+import type { MelodyVariant, RangeRegenerationLocks } from "@/core/melody"
 
 const SEED_OPS: { id: SeedOperation; label: string }[] = [
   { id: "continue", label: "Continue" },
@@ -75,6 +76,27 @@ export function MelodyWorkspace() {
     ending: false,
   })
 
+  /**
+   * 候補をProfile(content候補ならリード内容)ごとにまとめる。
+   * batch内の並び順は保ち、行内のピルには元のindexを持たせて選択状態を崩さない。
+   */
+  const candidateGroups = useMemo(() => {
+    const groups: { key: string; label: string; items: { variant: MelodyVariant; index: number; patternLabel: string }[] }[] = []
+    batch.forEach((v, index) => {
+      const key = v.generatorProfile ?? `content:${resolvedLeadContent(v)}`
+      const label = v.generatorProfile
+        ? GENERATOR_PROFILE_LABELS[v.generatorProfile]
+        : LEAD_CONTENT_LABELS[resolvedLeadContent(v)]
+      let group = groups.find((g) => g.key === key)
+      if (!group) {
+        group = { key, label, items: [] }
+        groups.push(group)
+      }
+      group.items.push({ variant: v, index, patternLabel: String(v.patternIndex ?? group.items.length + 1) })
+    })
+    return groups
+  }, [batch])
+
   useEffect(() => {
     setSelectedNoteIds(new Set())
     setSelection(null)
@@ -110,12 +132,38 @@ export function MelodyWorkspace() {
         )}
       </div>
 
-      {batch.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {batch.map((v, i) => (
-            <Pill key={v.id} active={i === currentIndex} onClick={() => setActiveCandidateIndex(i)}>
-              {v.name}
-            </Pill>
+      {/*
+        候補はProfileごとに行を分けて並べる。全候補を1つのflex-wrapへ流すと、
+        Profileが増えるほど「Profile名 · Pattern n」が横一列に折り返して
+        Profile名が3回ずつ繰り返され、さらに同じProfileの3案が行をまたいで
+        分断されてしまうため(6 Profile選択で18個)。
+        行頭にProfile名を1回だけ出し、ピルはPattern番号だけにする。
+      */}
+      {candidateGroups.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {candidateGroups.map((group) => (
+            <div key={group.key} className="flex items-center gap-2">
+              <span
+                className="w-32 shrink-0 truncate text-[11px] text-ink-muted-48"
+                title={group.label}
+              >
+                {group.label}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {group.items.map((item) => (
+                  <Pill
+                    key={item.variant.id}
+                    active={item.index === currentIndex}
+                    onClick={() => setActiveCandidateIndex(item.index)}
+                    className="min-w-9 justify-center px-3 tabular-nums"
+                    title={item.variant.name}
+                    aria-label={item.variant.name}
+                  >
+                    {item.patternLabel}
+                  </Pill>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
