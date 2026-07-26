@@ -105,7 +105,7 @@ export function RightPanel({
         <X size={16} />
       </IconButton>
 
-      <SectionCard title="Song Profile" className="w-full min-w-0 overflow-hidden">
+      <SectionCard title="Song Profile" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <FieldGroup label="曲全体のProfile">
             <Select className="w-full min-w-0" value={project.song.songProfile} onChange={(e) => updateSongField("songProfile", e.target.value as SongProfileId)}>
@@ -135,7 +135,7 @@ export function RightPanel({
         </div>
       </SectionCard>
 
-      {mode === "melody" && <SectionCard title="Generator Profile" className="w-full min-w-0 overflow-hidden">
+      {mode === "melody" && <SectionCard title="Generator Profile" className="w-full min-w-0">
         <p className="mb-2 text-[11px] text-ink-muted-48">
           選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
         </p>
@@ -164,7 +164,7 @@ export function RightPanel({
         </div>
       </SectionCard>}
 
-      <SectionCard title="生成パラメータ" className="w-full min-w-0 overflow-hidden">
+      <SectionCard title="生成パラメータ" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
             <FieldGroup label="Density">
@@ -237,7 +237,7 @@ export function RightPanel({
         </div>
       </SectionCard>
 
-      {mode === "melody" && <SectionCard title="特徴量" className="w-full min-w-0 overflow-hidden">
+      {mode === "melody" && <SectionCard title="特徴量" className="w-full min-w-0">
         {variant?.generatorProfile && (
           <p className="mb-1 text-[12px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}

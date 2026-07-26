@@ -122,7 +122,7 @@ export function BottomBar() {
       </Button>
 
       {historyOpen && (
-        <div className="absolute bottom-full left-3 mb-1 max-h-72 w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border border-hairline bg-surface-tile-1 p-2 shadow-[3px_5px_30px_rgba(0,0,0,0.4)] sm:w-80">
+        <div className="absolute bottom-full left-3 z-50 mb-1 max-h-72 w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border border-hairline bg-surface-tile-1 p-2 shadow-[3px_5px_30px_rgba(0,0,0,0.4)] sm:w-80">
           {sectionVariants.length === 0 && <p className="p-2 text-[12px] text-ink-muted-48">まだ候補がありません</p>}
           {sectionVariants.map((v) => (
             <div key={v.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] hover:bg-white/5">
