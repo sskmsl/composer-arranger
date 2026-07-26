@@ -5,6 +5,7 @@ import type {
   PhraseCandidate,
   PhraseHarmonicApproach,
   PhraseIntent,
+  PhraseLengthBars,
 } from "@/core/phrase"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import { SeededRandom } from "@/core/rng"
@@ -28,7 +29,7 @@ export interface GeneratePhrasesInput {
   beatsPerBar: number
   totalBeats: number
   seed: number
-  lengthBars?: 2 | 3 | 4
+  lengthBars?: PhraseLengthBars
   candidateCount?: number
 }
 
@@ -56,9 +57,9 @@ function rotatePick<T>(rng: SeededRandom, values: readonly T[], poolIndex: numbe
   return values[(start + poolIndex) % values.length]
 }
 
-function availableLengths(input: GeneratePhrasesInput): (2 | 3 | 4)[] {
+function availableLengths(input: GeneratePhrasesInput): PhraseLengthBars[] {
   const sectionBars = Math.max(1, Math.floor(input.totalBeats / input.beatsPerBar))
-  const supported = ([2, 3, 4] as const).filter((bars) => bars <= sectionBars)
+  const supported = ([2, 3, 4, 5, 6, 7, 8] as const).filter((bars) => bars <= sectionBars)
   return supported.length > 0 ? [...supported] : [2]
 }
 
@@ -673,7 +674,7 @@ export function generatePhraseCandidates(input: GeneratePhrasesInput): Omit<Phra
   const pool = Array.from({ length: poolSize }, (_, poolIndex) =>
     buildPhrase(input, input.seed + poolIndex * 7919, poolIndex),
   )
-  const selected = selectPool(pool, phraseChords(input, Math.min(input.totalBeats, 4 * input.beatsPerBar)))
+  const selected = selectPool(pool, phraseChords(input, Math.min(input.totalBeats, 8 * input.beatsPerBar)))
   return selected.map(({ candidate, selectionScore, similarities }, index) => ({
     sectionId: input.sectionId,
     name: `Phrase ${index + 1}`,

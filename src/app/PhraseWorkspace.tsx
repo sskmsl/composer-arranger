@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Download, Play, RefreshCw, Sparkles, Square } from "lucide-react"
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
-import type { PhraseCandidate } from "@/core/phrase"
+import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
@@ -30,7 +30,7 @@ const CADENCE_LABELS: Record<PhraseCandidate["intent"]["cadence"], string> = {
   "carry-forward": "次へ接続",
 }
 
-type LengthChoice = "auto" | "2" | "3" | "4"
+type LengthChoice = "auto" | `${PhraseLengthBars}`
 
 export function PhraseWorkspace() {
   const project = useProjectStore((state) => state.project)
@@ -129,8 +129,8 @@ export function PhraseWorkspace() {
   }
 
   const requestedLength =
-    lengthChoice === "auto" ? undefined : (Number(lengthChoice) as 2 | 3 | 4)
-  const maxLength = Math.min(4, section.lengthBars)
+    lengthChoice === "auto" ? undefined : (Number(lengthChoice) as PhraseLengthBars)
+  const maxLength = Math.min(8, section.lengthBars)
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
@@ -138,7 +138,7 @@ export function PhraseWorkspace() {
         <div className="mr-auto">
           <h2 className="text-[15px] font-semibold text-body-on-dark">Phrase Ideas</h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            コードとセクションの役割から、Logic Proで組み合わせられる2〜4小節の独立した着想を作ります
+            コードとセクションの役割から、Logic Proで組み合わせられる2〜8小節の独立した着想を作ります
           </p>
         </div>
         <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
@@ -149,7 +149,7 @@ export function PhraseWorkspace() {
             className="!py-1"
           >
             <option value="auto">Auto</option>
-            {[2, 3, 4].map((bars) => (
+            {[2, 3, 4, 5, 6, 7, 8].map((bars) => (
               <option key={bars} value={bars} disabled={bars > maxLength}>
                 {bars}小節
               </option>

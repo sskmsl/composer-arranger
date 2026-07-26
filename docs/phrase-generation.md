@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Phrase Generation proposes three independent 2–4 bar melodic ideas from the selected section's chords.
+Phrase Generation proposes three independent 2–8 bar melodic ideas from the selected section's chords.
 It is intentionally separate from Melody Generation:
 
 - Melody Generation designs a complete section-level line and its long-range climax.
@@ -26,7 +26,7 @@ Only stable boundary components are shared. The section-scale Melody generator i
 
 Each pool candidate receives a `PhraseIntent` before notes are generated:
 
-- 2, 3, or 4 bar length
+- 2–8 bar length
 - contour
 - rhythm character (`flowing`, `syncopated`, `breathing`, `sustained`)
 - harmonic approach (`chord-anchored`, `common-tone`, `tension-release`, `anticipatory`)
@@ -72,7 +72,7 @@ Individual regeneration creates a new eight-candidate pool and selects against t
 
 ## UI and output
 
-The `Phrase` tab uses the selected section and existing generation settings. The only optional input is phrase length (`Auto`, 2, 3, or 4 bars).
+The `Phrase` tab uses the selected section and existing generation settings. The only optional input is phrase length (`Auto`, 2–8 bars).
 
 Each candidate supports:
 

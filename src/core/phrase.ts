@@ -3,13 +3,14 @@ import type { MelodyNote, MelodySimilarityBreakdown, PhraseContour } from "./mel
 export type PhraseRhythmCharacter = "flowing" | "syncopated" | "breathing" | "sustained"
 export type PhraseHarmonicApproach = "chord-anchored" | "common-tone" | "tension-release" | "anticipatory"
 export type PhraseCadence = "resolved" | "open" | "suspended" | "carry-forward"
+export type PhraseLengthBars = 2 | 3 | 4 | 5 | 6 | 7 | 8
 
 /**
  * 短いフレーズを単なるMelodyの切り詰めにしないため、実音より先に確定する作曲上の解釈。
  * UI入力ではなく、コード進行・Section Role・Song Profileから候補ごとに計画する。
  */
 export interface PhraseIntent {
-  lengthBars: 2 | 3 | 4
+  lengthBars: PhraseLengthBars
   contour: PhraseContour
   rhythmCharacter: PhraseRhythmCharacter
   harmonicApproach: PhraseHarmonicApproach

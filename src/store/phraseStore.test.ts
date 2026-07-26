@@ -61,6 +61,26 @@ describe("Phrase Candidate store", () => {
     }
   })
 
+  it("8小節セクションでは5〜8小節の長さを保存できる", () => {
+    useProjectStore.setState((state) => ({
+      project: {
+        ...state.project,
+        sections: state.project.sections.map((section) => ({ ...section, lengthBars: 8 })),
+        chords: parseChordInputText(
+          "Am(add9) | D#dim | Fmaj7 | E7 | Am(add9) | D#dim | Fmaj7 | E7",
+          "s1",
+          4,
+          "long",
+        ),
+      },
+    }))
+    useProjectStore.getState().generatePhrasesForSection("s1", 8)
+    const candidates = useProjectStore.getState().project.phraseCandidates
+    expect(candidates).toHaveLength(3)
+    expect(candidates.every((candidate) => candidate.intent.lengthBars === 8)).toBe(true)
+    expect(candidates.every((candidate) => candidate.phraseLengthBeats === 32)).toBe(true)
+  })
+
   it("2小節未満またはコードなしでは生成せず理由を通知する", () => {
     useProjectStore.setState((state) => ({
       project: {

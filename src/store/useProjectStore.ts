@@ -65,7 +65,7 @@ import {
   windowLengthBeats,
 } from "@/melody-engine/leadWindow"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
-import type { PhraseCandidate } from "@/core/phrase"
+import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
 import {
   generatePhraseCandidates,
   regeneratePhraseCandidate as buildRegeneratedPhrase,
@@ -152,7 +152,7 @@ interface ProjectState {
   renameVariant: (variantId: string, name: string) => void
   deleteVariant: (variantId: string) => void
 
-  generatePhrasesForSection: (sectionId: string, lengthBars?: 2 | 3 | 4) => void
+  generatePhrasesForSection: (sectionId: string, lengthBars?: PhraseLengthBars) => void
   setActivePhraseCandidateIndex: (index: number) => void
   regeneratePhrase: (candidateId: string) => void
 
@@ -187,7 +187,7 @@ function phraseGenerationInput(
   sectionId: string,
   settings: GenerationSettings,
   seed: number,
-  lengthBars?: 2 | 3 | 4,
+  lengthBars?: PhraseLengthBars,
 ): GeneratePhrasesInput | null {
   const section = project.sections.find((candidate) => candidate.id === sectionId)
   if (!section) return null
