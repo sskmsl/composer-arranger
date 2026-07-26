@@ -35,12 +35,12 @@ function input(seed = 41, role: GeneratePhrasesInput["sectionRole"] = "verse"): 
 }
 
 describe("Phrase Generator", () => {
-  it("2〜4小節の独立候補を3案選ぶ", () => {
+  it("2〜8小節の独立候補を3案選ぶ", () => {
     const candidates = generatePhraseCandidates(input())
     expect(candidates).toHaveLength(3)
     for (const candidate of candidates) {
       expect(candidate.intent.lengthBars).toBeGreaterThanOrEqual(2)
-      expect(candidate.intent.lengthBars).toBeLessThanOrEqual(4)
+      expect(candidate.intent.lengthBars).toBeLessThanOrEqual(8)
       expect(candidate.phraseLengthBeats).toBe(candidate.intent.lengthBars * 4)
       expect(candidate.notes.length).toBeGreaterThanOrEqual(4)
       expect(candidate.notes.every((note) => note.startBeat >= 0 && note.startBeat < candidate.phraseLengthBeats)).toBe(true)
@@ -54,6 +54,31 @@ describe("Phrase Generator", () => {
       }
       expect(longestRepeatedRun).toBeLessThanOrEqual(2)
     }
+  })
+
+  it.each([5, 6, 7, 8] as const)("%i小節を明示指定して3候補を生成できる", (lengthBars) => {
+    const extendedChords = [
+      ...chords,
+      ...chords.map((chord, index) => ({
+        ...chord,
+        id: `${chord.id}-second-${index}`,
+        startBeat: chord.startBeat + 16,
+      })),
+    ]
+    const candidates = generatePhraseCandidates({
+      ...input(80 + lengthBars),
+      chords: extendedChords,
+      totalBeats: 32,
+      lengthBars,
+    })
+    expect(candidates).toHaveLength(3)
+    expect(candidates.every((candidate) => candidate.intent.lengthBars === lengthBars)).toBe(true)
+    expect(candidates.every((candidate) => candidate.phraseLengthBeats === lengthBars * 4)).toBe(true)
+    expect(
+      candidates.every((candidate) =>
+        candidate.notes.every((note) => note.startBeat < lengthBars * 4),
+      ),
+    ).toBe(true)
   })
 
   it("固定seedで計画・実音・選抜結果を再現できる", () => {
