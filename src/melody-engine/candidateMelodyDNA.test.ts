@@ -11,7 +11,7 @@ import {
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 import { GENERATOR_PROFILES } from "./generatorProfile"
 import { chordAtBeat } from "./harmonicMap"
-import { isChordTone } from "@/core/chord"
+import { chordTonePitchClasses, isChordTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
 
 const chords: ChordEvent[] = [
@@ -165,6 +165,47 @@ describe("Candidate Melody DNA realization", () => {
     const carryLast = carry[carry.length - 1]
     expect(carryLast.durationBeats).toBeLessThanOrEqual(0.75)
     expect(carryLast.pitch).toBeGreaterThan(baseNotes()[baseNotes().length - 1].pitch)
+  })
+})
+
+describe("Issue #66: セクション種別のendTensionBiasを終止感へ反映", () => {
+  it("endTensionBiasが低い(Chorus/Grand-chorus等)とendingStrategyはresolvedへ寄る", () => {
+    for (let poolIndex = 0; poolIndex < 4; poolIndex++) {
+      const dna = planCandidateMelodyDNA(new SeededRandom(100 + poolIndex), "standard", poolIndex, 0.2)
+      expect(dna.endingStrategy).toBe("resolved")
+    }
+  })
+
+  it("endTensionBiasが高い(Pre-chorus/C-melody等)とendingStrategyはresolved以外へ寄る", () => {
+    for (let poolIndex = 0; poolIndex < 4; poolIndex++) {
+      const dna = planCandidateMelodyDNA(new SeededRandom(200 + poolIndex), "standard", poolIndex, 0.8)
+      expect(dna.endingStrategy).not.toBe("resolved")
+    }
+  })
+
+  it("中間帯のendTensionBias(Verse/Bridge等)は既存のprototype多様性を保つ", () => {
+    const withoutBias = Array.from({ length: 4 }, (_, i) => planCandidateMelodyDNA(new SeededRandom(300 + i), "standard", i))
+    const withMidBias = Array.from({ length: 4 }, (_, i) =>
+      planCandidateMelodyDNA(new SeededRandom(300 + i), "standard", i, 0.45),
+    )
+    expect(withMidBias.map((dna) => dna.endingStrategy)).toEqual(withoutBias.map((dna) => dna.endingStrategy))
+  })
+
+  it("終止直前の跳躍は、終止音ではなく直前ノート自身の和声コンテキストへ解決する", () => {
+    // 直前ノート(beat=8, Fmaj7区間)と終止音(beat=12, E7区間)がコード境界を跨ぐケース。
+    // 終止音のchordTones(E7: E/G#/B/D)を誤って流用すると、Fmaj7に存在しないG#等へ
+    // 補正してしまう(Issue #66実装中に発見した回帰)。
+    const base = planCandidateMelodyDNA(new SeededRandom(13), "standard", 0)
+    const notes = baseNotes()
+    notes[2].pitch = 60 // beat=8, Fmaj7区間: 終止音(pitch 68)との差を8半音の跳躍にする
+    const result = applyCandidateNarrative(notes, harmonicMap, 16, range, {
+      ...base,
+      endingStrategy: "resolved",
+    })
+    const approachNote = result[result.length - 2]
+    const approachEntry = chordAtBeat(harmonicMap, approachNote.startBeat)
+    expect(approachEntry?.chord.symbol).toBe("Fmaj7")
+    expect(chordTonePitchClasses(approachEntry!.parsed)).toContain(pitchClass(approachNote.pitch))
   })
 })
 

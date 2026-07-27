@@ -103,11 +103,32 @@ const CLIMAX_FRACTION: Record<CandidateMelodyDNA["climaxPlan"]["position"], numb
   late: 0.8,
 }
 
+/**
+ * Issue #66: セクション種別・Drama由来のendTensionBiasが低い(Chorus/Grand-chorus/restrained等)
+ * 場面ではendingStrategyをresolvedへ寄せ、高い(Pre-chorus/C-melody等)場面ではopen系(open/
+ * suspended/carry-forward)へ寄せる。中間帯は従来通りprototype本来の多様性を保つ
+ * (endTensionBias自体はGeneration Params側でのみ使われ、終止Strategyの選択には無関係だった)。
+ */
+function resolveEndingStrategy(
+  rng: SeededRandom,
+  fallback: CandidateMelodyDNA["endingStrategy"],
+  endTensionBias?: number,
+): CandidateMelodyDNA["endingStrategy"] {
+  if (endTensionBias === undefined) return fallback
+  if (endTensionBias < 0.3) return "resolved"
+  if (endTensionBias >= 0.65) {
+    if (fallback !== "resolved") return fallback
+    return rng.pick(["open", "suspended", "carry-forward"])
+  }
+  return fallback
+}
+
 /** Profile固有の候補群から、Pattern番号とは独立した全体DNAを決定する。 */
 export function planCandidateMelodyDNA(
   rng: SeededRandom,
   profile: MelodyGeneratorProfile,
   candidatePoolIndex: number,
+  endTensionBias?: number,
 ): CandidateMelodyDNA {
   const prototypes = PROTOTYPES[profile]
   const rotation = rng.intBetween(0, prototypes.length - 1)
@@ -115,6 +136,7 @@ export function planCandidateMelodyDNA(
   const jitter = (rng.next() - 0.5) * 0.06
   return {
     ...source,
+    endingStrategy: resolveEndingStrategy(rng, source.endingStrategy, endTensionBias),
     climaxPlan: {
       ...source.climaxPlan,
       targetFraction: clamp(CLIMAX_FRACTION[source.climaxPlan.position] + jitter, 0.2, 0.9),
@@ -340,6 +362,23 @@ export function applyCandidateNarrative(
         last.plannedToneRole = chordTones.includes(pitchClass(last.pitch)) ? "chord-tone" : "anticipation"
         last.durationBeats = Math.min(last.durationBeats, 0.75)
         break
+      }
+    }
+
+    // Issue #66: 終止直前の音型が唐突にならないよう、直前ノートとの跳躍を順次進行へ補正する
+    // (carry-forwardは次セクションへ橋渡しする短い前打音的接続が意図のため対象外)。
+    // 直前ノートが終止音と異なるコード区間に属することがあるため、補正先は直前ノート自身の
+    // 和声コンテキストから選ぶ(終止音のchordTonesを流用しない)。
+    const approachNote = notes[notes.length - 2]
+    if (approachNote && candidateDNA.endingStrategy !== "carry-forward") {
+      const approachInterval = last.pitch - approachNote.pitch
+      if (Math.abs(approachInterval) >= 5) {
+        const approachEntry = chordAtBeat(harmonicMap, approachNote.startBeat)
+        if (approachEntry) {
+          const direction = Math.sign(approachInterval)
+          const approachChordTones = chordTonePitchClasses(approachEntry.parsed)
+          approachNote.pitch = nearestAllowedPitch(last.pitch - direction * 2, approachChordTones, range)
+        }
       }
     }
   }

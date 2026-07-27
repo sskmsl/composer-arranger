@@ -490,6 +490,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         new SeededRandom(baseSeed ^ 0x6a09e667),
         profile,
         candidatePoolIndex,
+        baseParams.endTensionBias,
       )
 
       if (kind === "bespoke") {
