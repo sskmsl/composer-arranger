@@ -1,84 +1,96 @@
 # Composer Arranger
 
-コード進行と短いモチーフから、メロディ候補を生成・発展・比較するための作曲支援アプリ。
-[Composer_OS_Composer_Arranger_Spec_v1_5](./docs/spec-source.md) に基づく実装。
+Composer Arranger は、コード進行からメロディ・フレーズ・モチーフの候補を生成し、
+比較・採用した結果を Logic Pro へ渡すための共同アレンジャーです。
 
-Composer OS内では [Chord Generator](https://github.com/sskmsl/composer-os-chord-generator) とは別アプリとして実装し、
-Composer Project (JSON) を介して連携する(仕様書2章)。
+DAW を目指すアプリではありません。ノート編集や細かな打ち込みは Logic Pro 側で行う前提で、
+このアプリは「候補を出す」「聴き比べる」「採用したものを Logic Pro が読める形で渡す」ところまでを担当します。
 
-## 現在の実装スコープ
+操作方法の詳細は[操作マニュアル](https://sskmsl.github.io/composer-arranger/manual.html)を参照してください(アプリ内右上のヘルプアイコンからも開けます)。
 
-仕様書は7フェーズ構成(Melody → Arrangement → Logic Round Trip → Extended Arrangement)だが、
-このリポジトリは **Phase 1(Melody実用最小版)+ Phase 2(Melody作曲支援の核)** のみを実装している。
+## コンセプト
 
-実装済み:
+### 共同アレンジャー
 
-- Composer Project の読込・保存・JSON書き出し/読み込み(schemaVersion 1.1, 14章)
-- Chord Generatorの `.composer-song.json` 読み込み
-  (曲名・テンポ・セクション順・コード・繰り返しを新規Composer Projectへ変換)
-  - Section ROLEは両アプリ共通の10種類
-    (イントロ / Aメロ / Bメロ / サビ / 落ちサビ / 大サビ / Cメロ /
-    ブリッジ / 間奏 / アウトロ)
-- 手動コード入力("F#m(add9) | E | D | Dsus2" 形式, 6.3章)
-- Generate from Chords: ルールベースのMelody Engineによる6候補生成(9章)
-  - Harmonic Map / Phrase Planner / Rhythm & Pitch Motif / Motif Development / Scoring / Diversity Filter
-  - Song Profile初期値傾向(9.9.1)・セクション別生成ルール(8章)を反映
-- Phrase Ideas: コード・Section Role・Song Profileから、2〜8小節の独立した3候補を生成
-  - Motif / Rhythm / Contour / Harmonic Approach / Cadenceを実音より先に計画
-  - 個別試聴・個別再生成・Logic Pro向けMIDI書き出し
-  - 設計詳細: [Phrase Generation](./docs/phrase-generation.md)
-- 3.3章の客観的特徴量の算出・表示(類似度スコアは非表示)
-- ピアノロール(コード背景・フレーズ境界・クライマックス表示・Lock表示)
-- Pitch Lock(ノート単位)・Bar Lock(小節単位)、選択範囲のみ再生成(10章)
-- Develop a Seed: Continue / Variation(rhythm・pitch)/ Answer Phrase / Expand / Lift / Restrain(5.2章)
-- Web Audioによる簡易プレビュー再生(Melody Only / Chords + Melody / Chords Only)
-- Logic Pro向け SMF Type 1 書き出し
-- Undo/Redo、生成履歴、IndexedDBへの自動保存(15章・17章)
+コード進行を入力すると、Melody Engine がルールベースで複数のメロディ候補を生成します。
+最終的な採否は常に人が行い、アプリは選択肢を提示する役割に徹します。
 
-未実装(今後のフェーズで対応):
+### アイデア生成支援
 
-- Arrangement / Audition モジュール(Phase 3〜7)
-- Improve Existing Melody(既存MIDI読込による改善提案)
-- MIDI Import・自動コード判定
-- Logic Pro Round Trip(WAV/ステム読込・解析)
+「良いメロディを1つ当てる」のではなく、切り口の異なる候補を並べて聴き比べられるようにすることを重視しています。
+セクションごとに、通常のメロディだけでなく短いモチーフ・オスティナート・ドローンなど異なる性格の候補も生成できます。
 
-## デザイン
+### Logic Proとの役割分担
 
-`DESIGN-apple.md` のデザイントークン(Action Blue #0066cc、SF Pro、pill型ボタン、
-ヘアラインボーダー、単一の柔らかいシャドウ)を、マーケティングサイトではなく
-DAW隣接の制作ツールとして再解釈し、近黒(#000000〜#2a2a2c)のダークUIをベースにしている。
+| Composer Arranger が担うもの | Logic Pro が担うもの |
+| --- | --- |
+| コード進行の入力・セクション構成 | 音源選び・ミックス・マスタリング |
+| メロディ／フレーズ／モチーフ候補の生成と比較 | 細かなノート編集・打ち込み |
+| 採用結果の MIDI 書き出し(セクションマーカー付き) | 演奏表現・オートメーション |
 
-## 技術スタック
+## 主な機能
 
-Composer OS Chord Generatorと同一スタック: React 19 + TypeScript + Vite + Tailwind CSS v4 +
-zustand + idb (IndexedDB)。Electronパッケージングは現フェーズでは未導入(Webアプリとして動作)。
+- **コード入力**: `F#m(add9) | E | D | Dsus2` のようなテキスト表記でのコード入力、入力内容の解析結果・警告表示
+- **Chord Generator 連携**: [Chord Generator](https://github.com/sskmsl/composer-os-chord-generator) の書き出しファイルを読み込み、曲名・テンポ・セクション・コードを引き継いで開始
+- **セクション編集**: セクションの追加・複製・削除・ドラッグでの並び替え、Section Role(イントロ/Aメロ/サビ など)の設定
+- **セクション内容の指定**: 各セクションで鳴らす内容を Melody / Motif / Ostinato / Drone / 無音 から選択(現在はイントロ以外へも設定可能)
+- **メロディ生成**: コード進行・セクション・Song Profile から複数のメロディ候補を生成。ノート単位・小節単位でのロックと部分再生成に対応
+- **フレーズ生成**: 2〜8小節の独立したフレーズ候補を3案生成し、個別に試聴・再生成
+- **候補の比較・採用**: 複数候補をブラインドで聴き比べ、Star/却下などで評価しながらセクションごとに採用案を決定
+- **曲全体のプレビュー**: 採用したセクションを繋げて曲全体を試聴
+- **MIDI Export**: セクション単位・曲全体単位で SMF 書き出し。セクション名をマーカーとして出力し、Logic Pro 側で構成を確認できる
+- **プロジェクト保存**: ブラウザ内(IndexedDB)への自動保存、プロジェクト一覧からの再開・複製・削除、JSON ファイルでの書き出し・読み込み
+- **Undo/Redo**: 生成・編集操作の履歴管理
 
-## セットアップ
-
-```bash
-npm install
-npm run dev
-```
-
-## アーキテクチャ
+## ワークフロー
 
 ```text
-src/
-  core/            Music Domain Core (Note/Chord/Section/Melody/Project の型とロジック)
-  melody-engine/    Melody Engine (9章: Harmonic Map〜Diversity Filter、Develop a Seed、選択範囲再生成)
-  phrase-engine/    2〜8小節のPhrase計画・品質評価・多様性選抜・個別再生成
-  midi/             SMF Type 1 エンコーダ・書き出し
-  audio/            Web Audioプレビュー再生・コードボイシング
-  storage/          IndexedDB永続化、Composer Project JSONの読み書き
-  store/            zustand: アプリ状態・Undo/Redo・生成アクション
-  app/              UIコンポーネント(TopBar/LeftPanel/RightPanel/BottomBar/PianoRoll等)
-  ui/               Apple design tokensベースの共通UIプリミティブ
+コード入力 (または Chord Generator から取り込み)
+  ↓
+セクション構成の確認・編集
+  ↓
+候補生成 (メロディ / フレーズ / モチーフなど)
+  ↓
+比較・採用
+  ↓
+MIDI Export (セクションマーカー付き)
+  ↓
+Logic Pro で編曲・ミックス
 ```
 
-生成ロジックは決定論的seed(mulberry32)を使用し、同一seed・同一入力から同じ結果を再現できる(仕様書18章 受け入れ条件13)。
+## 技術構成
 
-## 既知の設計上の簡略化(レビュー時の参考)
+- React 19 + TypeScript + Vite
+- Tailwind CSS v4
+- zustand(状態管理)
+- idb(IndexedDB によるローカル永続化)
+- Web Audio API(プレビュー再生)
+- ビルド出力を GitHub Pages へデプロイ
 
-- Develop a Seedのシード入力は、フリーハンド入力UIの代わりに「既存候補のノートを選択してSeedにする」方式にしている。
-- コードシンボルのパースはジャズ理論の完全網羅ではなく、ポップ/シネマティック領域で頻出する記法を対象にしている(`src/core/chord.ts`)。
-- Undo/Redoは仕様書10章の「生成単位/ノート単位」の2階層を区別せず、単一のプロジェクトスナップショット履歴として実装している。
+外部サーバーは持たず、すべてブラウザ内で完結します。
+
+## 開発状況
+
+**Completed**
+
+- コード入力・セクション編集・Chord Generator 連携
+- メロディ／フレーズ生成、ロック・部分再生成、Develop a Seed(継続/変奏など)
+- セクション内容(Melody/Motif/Ostinato/Drone/無音)の生成と MIDI トラック分離
+- 候補比較・採用ワークフロー
+- MIDI Export(セクションマーカー付き)、プロジェクト保存・IndexedDB自動保存
+
+**In Progress**
+
+- セクション内容の自動選択・品質評価による多様性選抜
+- 複数レイヤーの重ね合わせ(モチーフ+オスティナートの同時使用など)
+- イントロ以外の間奏・アウトロ・ブリッジなどへの生成ルール拡張
+
+**Future**
+
+- Arrangement Engine(Pad/Texture/FX を含む本格的な伴奏生成)
+- 既存 MIDI やオーディオを読み込んでの改善提案(Logic Pro Round Trip)
+
+## Philosophy
+
+Composer Arranger は作曲を自動化するツールではなく、創作のヒントを提示する共同アレンジャーです。
+最終的にどの音を残すかは常に人が決め、アプリはその判断のための材料を用意することに徹します。

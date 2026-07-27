@@ -1,6 +1,6 @@
 import { useProjectStore } from "@/store/useProjectStore"
 import { IconButton, Pill, TextInput } from "@/ui/primitives"
-import { PanelLeft, PanelRight } from "lucide-react"
+import { CircleHelp, PanelLeft, PanelRight } from "lucide-react"
 import type { MainTab } from "./App"
 
 const TABS: { id: MainTab; label: string }[] = [
@@ -57,6 +57,16 @@ export function TopBar({
         <IconButton onClick={onToggleRight} className="lg:hidden" title="右パネルを開閉">
           <PanelRight size={16} />
         </IconButton>
+
+        <a
+          href="./manual.html"
+          target="_blank"
+          rel="noreferrer"
+          title="操作マニュアルを開く"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-body-muted transition hover:bg-white/10 hover:text-body-on-dark active:scale-95 lg:hidden"
+        >
+          <CircleHelp size={16} />
+        </a>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
@@ -96,6 +106,15 @@ export function TopBar({
             {t.label}
           </Pill>
         ))}
+        <a
+          href="./manual.html"
+          target="_blank"
+          rel="noreferrer"
+          title="操作マニュアルを開く"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-body-muted transition hover:bg-white/10 hover:text-body-on-dark active:scale-95"
+        >
+          <CircleHelp size={16} />
+        </a>
       </nav>
     </header>
   )

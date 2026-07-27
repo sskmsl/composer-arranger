@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer Arranger — 操作マニュアル</title>
+<style>
+  :root {
+    --ink: #18181b;
+    --paper: #f7f5f0;
+    --paper-raised: #ffffff;
+    --line: #e3ddd1;
+    --muted: #736e63;
+    --muted-2: #9a9488;
+    --accent: #0066cc;
+    --accent-strong: #004c99;
+    --accent-soft: #e2ecfb;
+    --ok: #1a7f4e;
+    --ok-soft: #e3f5eb;
+    --warn: #966a0b;
+    --warn-soft: #fbf0dc;
+    --err: #b3261e;
+    --err-soft: #fbe4e2;
+    --code-bg: #efe9dc;
+    --shadow: 0 1px 2px rgba(24,24,27,0.04), 0 8px 24px rgba(24,24,27,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ece9e3;
+      --paper: #121113;
+      --paper-raised: #1b1a1d;
+      --line: rgba(255,255,255,0.11);
+      --muted: #a19c92;
+      --muted-2: #6f6a62;
+      --accent: #4d9fff;
+      --accent-strong: #85bcff;
+      --accent-soft: rgba(77,159,255,0.14);
+      --ok: #55c98c;
+      --ok-soft: rgba(85,201,140,0.13);
+      --warn: #e0ac3f;
+      --warn-soft: rgba(224,172,63,0.14);
+      --err: #f0847d;
+      --err-soft: rgba(240,132,125,0.14);
+      --code-bg: #232025;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ece9e3; --paper: #121113; --paper-raised: #1b1a1d; --line: rgba(255,255,255,0.11);
+    --muted: #a19c92; --muted-2: #6f6a62; --accent: #4d9fff; --accent-strong: #85bcff;
+    --accent-soft: rgba(77,159,255,0.14); --ok: #55c98c; --ok-soft: rgba(85,201,140,0.13);
+    --warn: #e0ac3f; --warn-soft: rgba(224,172,63,0.14); --err: #f0847d; --err-soft: rgba(240,132,125,0.14);
+    --code-bg: #232025; --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --ink: #18181b; --paper: #f7f5f0; --paper-raised: #ffffff; --line: #e3ddd1;
+    --muted: #736e63; --muted-2: #9a9488; --accent: #0066cc; --accent-strong: #004c99;
+    --accent-soft: #e2ecfb; --ok: #1a7f4e; --ok-soft: #e3f5eb; --warn: #966a0b; --warn-soft: #fbf0dc;
+    --err: #b3261e; --err-soft: #fbe4e2; --code-bg: #efe9dc; --shadow: 0 1px 2px rgba(24,24,27,0.04), 0 8px 24px rgba(24,24,27,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--paper); }
+  body {
+    color: var(--ink);
+    background: var(--paper);
+    font-family: -apple-system, "SF Pro Text", "Hiragino Kaku Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  .manual-shell {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 760px);
+    justify-content: center;
+    gap: 56px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 48px 24px 120px;
+  }
+  @media (max-width: 900px) {
+    .manual-shell { grid-template-columns: 1fr; gap: 0; padding: 0 0 80px; }
+  }
+
+  /* ---- Masthead ---- */
+  .masthead {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 0 32px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 900px) {
+    .masthead { padding: 40px 24px 28px; }
+  }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .masthead h1 {
+    font-family: "New York", Georgia, "Hiragino Mincho ProN", serif;
+    font-weight: 600;
+    font-size: clamp(28px, 4vw, 38px);
+    letter-spacing: -0.01em;
+    margin: 2px 0 4px;
+    text-wrap: balance;
+  }
+  .masthead p {
+    color: var(--muted);
+    font-size: 14.5px;
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  /* ---- TOC / nav ---- */
+  .toc {
+    align-self: start;
+    position: sticky;
+    top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 16px 24px 24px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 8px;
+    }
+  }
+  .toc-label {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    margin: 0 0 8px;
+  }
+  @media (max-width: 900px) { .toc-label { display: none; } }
+  .toc a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+  }
+  @media (max-width: 900px) {
+    .toc a { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+  }
+  .toc a:hover { color: var(--ink); background: var(--accent-soft); }
+  .toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- Content ---- */
+  main { min-width: 0; }
+  @media (max-width: 900px) { main { padding: 0 24px; } }
+
+  section.chapter {
+    padding-top: 56px;
+    margin-top: -8px;
+    scroll-margin-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  section.chapter:first-of-type { border-top: none; padding-top: 8px; }
+
+  .chapter-num {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+  h2 {
+    font-family: "New York", Georgia, "Hiragino Mincho ProN", serif;
+    font-weight: 600;
+    font-size: 23px;
+    letter-spacing: -0.005em;
+    margin: 4px 0 6px;
+    text-wrap: balance;
+  }
+  .chapter-intro {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 22px;
+    max-width: 62ch;
+  }
+  h3 {
+    font-family: "New York", Georgia, "Hiragino Mincho ProN", serif;
+    font-weight: 600;
+    font-size: 16.5px;
+    margin: 28px 0 10px;
+  }
+  section.chapter > h3:first-of-type { margin-top: 0; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.3em; }
+  li { margin-bottom: 6px; max-width: 62ch; }
+  strong { font-weight: 600; }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--code-bg);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+  }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin: 0 0 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h4 {
+    margin: 0 0 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .card p:last-child { margin-bottom: 0; }
+
+  .kv-table-wrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 480px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { background: var(--code-bg); font-weight: 600; font-size: 12px; letter-spacing: 0.02em; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--accent-soft); }
+  td.mono, th.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 2px 9px 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip.ok { color: var(--ok); background: var(--ok-soft); }
+  .chip.warn { color: var(--warn); background: var(--warn-soft); }
+  .chip.err { color: var(--err); background: var(--err-soft); }
+  .chip.info { color: var(--accent); background: var(--accent-soft); }
+
+  .diagnostic-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .diagnostic-row:last-child { border-bottom: none; }
+  .diagnostic-row .chip { margin-top: 1px; flex-shrink: 0; }
+
+  .steps { list-style: none; padding: 0; margin: 0 0 18px; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 34px;
+    margin-bottom: 12px;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: -1px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .keycap {
+    display: inline-block;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    padding: 1px 7px;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--paper-raised);
+  }
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px;
+    margin: 0 0 18px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 18px; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .tab-pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; }
+  .tab-pill {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .tab-pill.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+
+  footer.manual-footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    margin-top: 40px;
+    padding-top: 24px;
+    color: var(--muted-2);
+    font-size: 12.5px;
+  }
+  @media (max-width: 900px) { footer.manual-footer { padding: 24px 24px 0; } }
+</style>
+</head>
+<body>
+<div class="manual-shell">
+  <div class="masthead">
+    <span class="eyebrow">User Manual</span>
+    <h1>Composer Arranger 操作マニュアル</h1>
+    <p>コード進行から旋律を生成し、育て、曲全体に組み上げるための作曲支援アプリ「Composer Arranger」の全機能ガイド。左のメニューから項目へジャンプできます。</p>
+  </div>
+
+  <nav class="toc" aria-label="目次">
+    <p class="toc-label">Contents</p>
+    <a href="#intro">アプリの全体像</a>
+    <a href="#topbar">上部バーと曲の基本情報</a>
+    <a href="#project">プロジェクトの管理</a>
+    <a href="#sections">セクションの管理</a>
+    <a href="#content">Content（鳴らす内容）</a>
+    <a href="#accompaniment">伴奏パターン</a>
+    <a href="#chords">コード進行の入力</a>
+    <a href="#melody">Melodyワークスペース</a>
+    <a href="#seed">Develop a Seed</a>
+    <a href="#rightpanel">生成設定パネル</a>
+    <a href="#bottombar">再生・書き出し・履歴</a>
+    <a href="#phrase">Phraseワークスペース</a>
+    <a href="#arrangement">Arrangementワークスペース</a>
+    <a href="#audition">Auditionワークスペース</a>
+  </nav>
+
+  <main>
+    <section class="chapter" id="intro">
+      <span class="chapter-num">00</span>
+      <h2>アプリの全体像</h2>
+      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Arrangement / Audition</strong> の4タブを切り替えて使います。</p>
+
+      <div class="tab-pill-row">
+        <span class="tab-pill active">Melody</span>
+        <span class="tab-pill">Phrase</span>
+        <span class="tab-pill">Arrangement</span>
+        <span class="tab-pill">Audition</span>
+      </div>
+
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>タブ</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td>Melody</td><td>セクション1つ分の旋律・モチーフ・伴奏を作り込む主画面</td></tr>
+            <tr><td>Phrase</td><td>2〜8小節の短いフレーズだけを、意図つきで作って聴き比べる</td></tr>
+            <tr><td>Arrangement</td><td>セクションを並べ替えて曲全体を組み立てる</td></tr>
+            <tr><td>Audition</td><td>候補をA/B/Cで切り替えながら判定する</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>セクションごとに「何を鳴らすか」を <a href="#content">Content</a>（メロディ／モチーフ／オスティナート／ドローン／コードのみ／無音）で選べるため、イントロや間奏を歌メロ以外の内容で作れます。</p>
+
+      <div class="note">
+        <p><strong>編集内容は自動保存されます。</strong>コード入力欄からフォーカスが外れた瞬間や、生成・編集操作のたびにブラウザのIndexedDBへ保存されるため、明示的な「保存」ボタンはありません。プロジェクトを閉じても「開く」からいつでも復元できます。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="topbar">
+      <span class="chapter-num">01</span>
+      <h2>上部バーと曲の基本情報</h2>
+      <p class="chapter-intro">画面最上部には、プロジェクト名と曲全体に関わる基本パラメータ、そしてタブ切り替えがあります。</p>
+
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>説明</th></tr></thead>
+          <tbody>
+            <tr><td>プロジェクト名</td><td>クリックして編集。フォーカスを外すと保存されます。</td></tr>
+            <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
+            <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
+            <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
+            <tr><td>Melody / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Key・拍子・Song Profile(右パネル)はプロジェクトの一部として保存されます。一方でDensity/Range/Drama/Generator Profileといった生成設定はセッション限りで、プロジェクトファイルには保存されません(<a href="#rightpanel">生成設定パネル</a>を参照)。</p>
+    </section>
+
+    <section class="chapter" id="project">
+      <span class="chapter-num">02</span>
+      <h2>プロジェクトの管理</h2>
+      <p class="chapter-intro">左パネル最上部「Composer Project」カードから、プロジェクト単位の操作を行います。</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h4>New</h4>
+          <p>新規プロジェクトを作成します。現在編集中のプロジェクトは自動保存済みのため、あとから「開く」で戻れます。実行前に確認ダイアログが出ます。</p>
+        </div>
+        <div class="card">
+          <h4>開く</h4>
+          <p>これまで保存された全プロジェクトの一覧(プロジェクトブラウザー)を開きます。検索・並び替え・複製・名前変更・削除(元に戻す付き)ができます。</p>
+        </div>
+        <div class="card">
+          <h4>Export</h4>
+          <p>現在のプロジェクトをJSONファイルとしてダウンロードします。バックアップや他端末への移動に使えます。</p>
+        </div>
+        <div class="card">
+          <h4>Import</h4>
+          <p>JSONファイルを選択してプロジェクトを読み込みます。古いスキーマのファイルも自動的に現行仕様へ変換されます。</p>
+        </div>
+      </div>
+
+      <h3>プロジェクトブラウザーでできること</h3>
+      <ul>
+        <li><strong>検索・並び替え</strong> — タイトルで絞り込み、更新日時などで並び替え。</li>
+        <li><strong>複製</strong> — 新しいIDで全データを丸ごとコピー。編集前のバックアップ代わりにも使えます。</li>
+        <li><strong>名前変更</strong> — 保存済みプロジェクトのタイトルのみを変更(最終編集日時は変わりません)。</li>
+        <li><strong>削除</strong> — 一覧から削除します。誤操作時は「元に戻す」で復元可能。今まさに編集中のプロジェクトを削除した場合のみ編集画面へ復元され、それ以外のプロジェクトを復元した場合は現在の編集セッションに影響しません。</li>
+      </ul>
+    </section>
+
+    <section class="chapter" id="sections">
+      <span class="chapter-num">03</span>
+      <h2>セクションの管理</h2>
+      <p class="chapter-intro">曲はセクション(イントロ・Aメロ・サビ…)の集まりとして構成します。左パネル「セクション」カードで一覧・追加・複製・削除、「セクション設定」カードで選択中セクションの詳細を編集します。</p>
+
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>Role</th><th>表示ラベル</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">intro</td><td>イントロ</td></tr>
+            <tr><td class="mono">verse</td><td>Aメロ</td></tr>
+            <tr><td class="mono">pre-chorus</td><td>Bメロ</td></tr>
+            <tr><td class="mono">chorus</td><td>サビ</td></tr>
+            <tr><td class="mono">breakdown-chorus</td><td>落ちサビ</td></tr>
+            <tr><td class="mono">grand-chorus</td><td>大サビ</td></tr>
+            <tr><td class="mono">c-melody</td><td>Cメロ</td></tr>
+            <tr><td class="mono">bridge</td><td>ブリッジ</td></tr>
+            <tr><td class="mono">instrumental</td><td>間奏</td></tr>
+            <tr><td class="mono">outro</td><td>アウトロ</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>セクション設定</h3>
+      <ul>
+        <li><strong>名前</strong> — 自由入力。フォーカスを外すと保存。</li>
+        <li><strong>Role</strong> — 上表のいずれか。Song Profileの解釈や展開ロジックに影響します。</li>
+        <li><strong>小節数</strong> — セクションの長さ。拍子と掛け合わせてビート数が決まります。</li>
+        <li><strong>Content</strong> — このセクションで鳴らす内容。<a href="#content">次章</a>で詳しく説明します。</li>
+        <li><strong>リード開始位置 / Pickup</strong> — 冒頭を無音にする長さと、次セクションへの弱起。</li>
+        <li><strong>Accompaniment Pattern</strong> — 伴奏の型。<a href="#accompaniment">後述</a>。</li>
+      </ul>
+      <p>セクション一覧の各行では、コピーアイコンで複製、ゴミ箱アイコンで削除ができます。</p>
+    </section>
+
+    <section class="chapter" id="content">
+      <span class="chapter-num">04</span>
+      <h2>Content（このセクションで鳴らす内容）</h2>
+      <p class="chapter-intro">セクションで鳴らす内容は、Roleとは<strong>独立した軸</strong>です。イントロを必ず歌メロにする必要はなく、短いモチーフだけ、ドローンの保持だけ、コード伴奏だけ、あるいは無音から始めることができます。セクション設定の「Content」から7つのプリセットで選びます。</p>
+
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>プリセット</th><th>鳴る内容</th></tr></thead>
+          <tbody>
+            <tr><td>Auto</td><td>Role・Song Profile・コード進行から、妥当な入口を候補ごとに選ぶ（3案で複数種類を提示）</td></tr>
+            <tr><td>Melody</td><td>通常の歌唱メロディ</td></tr>
+            <tr><td>Motif</td><td>2〜5音の短い象徴的モチーフを、余白を挟んで疎に提示</td></tr>
+            <tr><td>Ostinato</td><td>短い音型を周期的に反復（伴奏パートとして書き出し）</td></tr>
+            <tr><td>Drone</td><td>1〜2音を長く保持。コード境界をまたいで保持され、途中で分割されない（伴奏パート）</td></tr>
+            <tr><td>Chords Only</td><td>リードを鳴らさず、コード伴奏だけ</td></tr>
+            <tr><td>Silence</td><td>リードも伴奏も鳴らさない</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <p>内部的には「<strong>リードの内容</strong>」と「<strong>伴奏の有無</strong>」の2軸で保持されています。そのため <strong>Chords Only</strong>（リードなし・伴奏あり）と <strong>Silence</strong>（リードなし・伴奏なし）は、曲全体の再生やMIDI書き出しでもきちんと別の結果になります。</p>
+      </div>
+
+      <h3>リード開始位置（冒頭を無音にする）</h3>
+      <p>「先頭から何小節を無音にするか」を小節単位（0.25刻み）で指定します。指定した区間にはリードの音が1つも入りません。セクション長と同じ値にすれば完全な無音になります。</p>
+      <p>この設定は <strong>Melody にも効きます</strong>。「前半2小節は休みで、3小節目から歌が入る」といった作りが、Content を Melody のまま実現できます。</p>
+
+      <h3>Pickup（次セクション直前の弱起）</h3>
+      <p>チェックを入れると、セクション末尾に次セクションへ向かう弱起が別レイヤーとして作られます。「イントロは無音 → Aメロ直前に弱起だけ置く」という形も、Silence + Pickup で表現できます。</p>
+
+      <div class="card">
+        <h4>候補が成立しないとき</h4>
+        <p>たとえば Motif を選びながらリード開始位置をセクション終端ぎりぎりにすると、2〜5音の核が入りません。そうした場合は候補を作り直したうえで、それでも成立しなければ「<em>一部の候補がMotifとして成立していません</em>」という警告が表示されます。リード開始位置やセクション長を見直してください。</p>
+      </div>
+
+      <div class="note warn">
+        <p>Motif / Ostinato / Drone / Chords Only / Silence の候補には、<strong>Seedの発展操作と範囲の部分再生成は使えません</strong>（歌唱メロディ専用の処理のため）。作り直す場合は Generate を実行します。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="accompaniment">
+      <span class="chapter-num">05</span>
+      <h2>伴奏パターン（Accompaniment Pattern）</h2>
+      <p class="chapter-intro">セクション設定の「Accompaniment Pattern」で、伴奏の型をセクションごとに割り当てられます。度数（1・3・5・7・9・11）とリズムのテンプレートが、そのセクションのコードへ自動変換されます。専用のMIDIトラックとして書き出されます。</p>
+
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>パターン</th><th>形</th></tr></thead>
+          <tbody>
+            <tr><td>Pulse (1+5)</td><td>ルートと5度を刻む（2拍周期）</td></tr>
+            <tr><td>Arpeggio Up (1-3-5-7)</td><td>1拍ずつ上行するアルペジオ</td></tr>
+            <tr><td>Chord Entry (1+3+5 → 7-9-5)</td><td>和音で入り、後半をアルペジオで動かす</td></tr>
+            <tr><td>5-Note Arpeggio (1-3-5-7-9)</td><td>9thまで含む5音のアルペジオ</td></tr>
+            <tr><td>6-Note Arpeggio (1-3-5-7-9-11)</td><td>11thまで含む6音の連続アルペジオ</td></tr>
+            <tr><td>Broken Ninth (1-5-9-3)</td><td>細かく分散させた8音の動き</td></tr>
+            <tr><td>Syncopated (1-5-3-7)</td><td>拍の裏を使うシンコペーション</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>「None」を選べば伴奏パターンは付きません。パターンは旋律に合わせて音域・密度が調整されます。</p>
+    </section>
+
+    <section class="chapter" id="chords">
+      <span class="chapter-num">06</span>
+      <h2>コード進行の入力</h2>
+      <p class="chapter-intro">セクション設定の「コード進行」テキストエリアに、コードを区切り文字で並べて入力します。旋律生成の元になる最も重要な入力です。</p>
+
+      <div class="card">
+        <h4>記法</h4>
+        <p>区切りは <code>|</code> <code>-</code> <code>–</code>(EN DASH) <code>—</code>(EM DASH) のいずれか。<code>-</code>は前後に空白がある場合のみ区切りとみなされるため、<code>C-7</code>のようなマイナー表記とは区別されます。</p>
+        <p>長さを変えたい場合は <code>:拍数</code> を付けます(省略時は1小節分)。</p>
+        <p style="margin-bottom:0">例: <code>F#m(add9) | E | D | Dsus2</code>、または <code>F#m(add9):2 | E:6</code></p>
+      </div>
+
+      <h3>診断メッセージの見方</h3>
+      <p>入力欄の下に、コード進行がセクション長を過不足なく満たしているか、各コードが正しく解釈できているかが自動表示されます。</p>
+
+      <div class="card">
+        <div class="diagnostic-row"><span class="chip ok">OK</span><span>正しく解釈できたコード。ルート・構成音・テンションのプレビューが添えられます。</span></div>
+        <div class="diagnostic-row"><span class="chip warn">不足</span><span>セクションの小節数に対しコードが足りません。「最後のコードを延長して埋める」ボタンでワンクリック補完できます。</span></div>
+        <div class="diagnostic-row"><span class="chip warn">超過 / 重複</span><span>セクション終端を超えている場合は超過分が生成時に切り詰められます。コード区間が重なっている場合も警告されます。</span></div>
+        <div class="diagnostic-row"><span class="chip err">エラー</span><span>認識できない記号を含むコード。<strong>この状態のまま生成すると、そのコードが暗黙にCメジャーとして扱われてしまうため、Generateボタンはエラーが解消されるまで無効化されます。</strong></span></div>
+      </div>
+
+      <p>「繰り返して2倍」ボタンは、現在入力済みのコード進行をそのまま複製して長さを2倍にします(例: 4小節→8小節)。</p>
+    </section>
+
+    <section class="chapter" id="melody">
+      <span class="chapter-num">07</span>
+      <h2>Melodyワークスペース</h2>
+      <p class="chapter-intro">選択中セクションのコード進行から旋律候補を生成し、ピアノロール上で確認・編集します。</p>
+
+      <h3>生成と候補の選択</h3>
+      <ul>
+        <li><strong>Generate from Chords</strong> — コード進行から新しい候補群を生成します。右パネルで選択したGenerator Profileの数 × 3パターン分の候補が一度に作られます。</li>
+        <li>生成後は候補がピル(タブ)として並び、クリックで切り替えて聴き比べられます。</li>
+        <li><strong>Set as Active Melody</strong> — 表示中の候補をそのセクションの「採用旋律」に設定します。Arrangementタブでの曲全体再生・MIDI書き出しはこのActive Melodyを使います。</li>
+      </ul>
+
+      <h3>3つのピアノロール</h3>
+      <p>中央には役割ごとに分かれた3つのピアノロールが縦に並びます。編集できるのは一番上のリード（旋律）だけで、残り2つは確認用の表示です。</p>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>表示</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>リード（最上段）</td><td>旋律・モチーフ。クリック/ドラッグで編集できる</td></tr>
+            <tr><td>Accompaniment</td><td>Ostinato / Drone や伴奏パターンの音（確認用）</td></tr>
+            <tr><td>Chords</td><td>コードの構成音（確認用）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>ピアノロールの操作</h3>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>操作</th><th>効果</th></tr></thead>
+          <tbody>
+            <tr><td>ノートをクリック</td><td>Seedとして選択(下記「Develop a Seed」の対象になる)</td></tr>
+            <tr><td>ノートをダブルクリック</td><td>Pitch Lockの切り替え(その音の高さを再生成時に固定)</td></tr>
+            <tr><td>上部の小節番号をクリック</td><td>Bar Lockの切り替え(その小節全体を再生成対象から保護)</td></tr>
+            <tr><td>五線内をドラッグ</td><td>範囲を選択し、部分再生成(下記)を行う</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>範囲を選んで部分再生成</h3>
+      <p>ピアノロール上をドラッグして範囲を選ぶと、その範囲だけを対象にした再生成パネルが現れます。<span class="keycap">Opening</span> <span class="keycap">Middle</span> <span class="keycap">Ending</span> ボタンで代表的な範囲へすぐジャンプできます。</p>
+      <p>保持条件(チェックボックス)で、再生成時に何を変えず残すかを選べます:</p>
+      <ul>
+        <li><strong>Pitch</strong> — 音高を保持</li>
+        <li><strong>Rhythm</strong> — リズムを保持</li>
+        <li><strong>Motif</strong> — モチーフ(音型の特徴)を保持</li>
+        <li><strong>Opening</strong> — 選択範囲の入り方を保持</li>
+        <li><strong>Ending</strong> — 選択範囲の終わり方を保持</li>
+      </ul>
+      <div class="note warn">
+        <p>Pitch(またはMotif)とRhythmを同時に保持すると、選択範囲の実音がほぼ固定されます。Lockは自動解除されないため、意図せず変化しない場合は保持条件を見直してください。</p>
+      </div>
+      <p>「保持条件から最大3候補を生成」で、指定範囲のみを差し替えた候補が最大3つ作られます。</p>
+    </section>
+
+    <section class="chapter" id="seed">
+      <span class="chapter-num">08</span>
+      <h2>Develop a Seed(部分的な旋律操作)</h2>
+      <p class="chapter-intro">ピアノロールで1つ以上のノートを選択すると「Develop a Seed」パネルが現れ、選んだ音を種(Seed)として、そこから旋律を発展させる操作が行えます。</p>
+
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>操作</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>Continue</td><td>選択した音の続きを、指定した小節数ぶん自然に伸ばします。</td></tr>
+            <tr><td>Variation (rhythm)</td><td>音高の輪郭は保ちつつ、リズムだけを変化させます。</td></tr>
+            <tr><td>Variation (pitch)</td><td>リズムは保ちつつ、音高だけを変化させます。</td></tr>
+            <tr><td>Answer Phrase</td><td>選択部分を「問い」と見立て、それに応える「答え」のフレーズを作ります。</td></tr>
+            <tr><td>Expand</td><td>選択した音型を、指定した目標小節数まで引き伸ばして展開します。</td></tr>
+            <tr><td>Lift</td><td>選択部分を高揚させる方向に変化させます。</td></tr>
+            <tr><td>Restrain</td><td>選択部分を抑制的・静かな方向に変化させます。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Continue拍数</strong>と<strong>Expand目標</strong>の数値入力で、ContinueとExpandがそれぞれ何小節分作用するかを調整できます。</p>
+    </section>
+
+    <section class="chapter" id="rightpanel">
+      <span class="chapter-num">09</span>
+      <h2>生成設定パネル(右パネル)</h2>
+      <p class="chapter-intro">旋律生成の「方向性」を決めるパラメータ群です。Song Profileのみプロジェクトに保存され、それ以外(Generator Profile・Density・Range・Drama)はセッション限りの一時設定です。</p>
+
+      <h3>Song Profile</h3>
+      <p>曲全体の作風を決める5種類のプロファイル。特定セクションだけ上書きすることも可能です。</p>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>Profile</th></tr></thead>
+          <tbody>
+            <tr><td>Dark Romantic</td></tr>
+            <tr><td>Cinematic French Pop</td></tr>
+            <tr><td>Minimal Tension</td></tr>
+            <tr><td>Dramatic Synth Pop</td></tr>
+            <tr><td>Original Custom</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Generator Profile(旋律の生成ロジック、複数選択可)</h3>
+      <p>選択したProfile × 3パターン分の候補が生成されます。1つだけでなく複数選んで一度に聴き比べることもできます。</p>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>Profile</th><th>優先する性質</th></tr></thead>
+          <tbody>
+            <tr><td>Standard</td><td>コード進行に沿ったバランス型の旋律</td></tr>
+            <tr><td>Minimal</td><td>静けさと余白、少ない音数</td></tr>
+            <tr><td>Leaping</td><td>跳躍と起伏の大きい輪郭</td></tr>
+            <tr><td>Rhythmic</td><td>リズムの識別性と推進力</td></tr>
+            <tr><td>Chromatic</td><td>半音階的な経過音とテンション</td></tr>
+            <tr><td>Cinematic</td><td>複数小節にわたる展開とクライマックス設計</td></tr>
+            <tr><td>Elegiac Cantabile</td><td>長い旋律弧と遅延解決</td></tr>
+            <tr><td>Speech-Rhythmic</td><td>狭い音域と発話アクセント</td></tr>
+            <tr><td>Incantatory</td><td>短い核モチーフの反復と微細な変形</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>一部の設定(Density/Drama/Keyなど)は、選んだProfileによっては生成へ反映されないことがあり、その場合はパネル内に注意書きが表示されます。</p>
+
+      <h3>生成パラメータ</h3>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>選択肢</th><th>効果</th></tr></thead>
+          <tbody>
+            <tr><td>Density</td><td>Sparse / Balanced / Active</td><td>音数の密度</td></tr>
+            <tr><td>Range</td><td>Low(G3–C5) / Middle(C4–F5) / High(E4–A5) / Custom</td><td>使用する音域。Customは音名(例: <code>C4</code>, <code>F#5</code>, <code>Bb3</code>)で最低音・最高音を直接指定</td></tr>
+            <tr><td>Drama</td><td>Restrained / Growing / Open</td><td>曲中の起伏・盛り上がり方</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <p>Density / Range / Drama / Generator Profileはこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。</p>
+      </div>
+
+      <h3>特徴量とMotif DNA</h3>
+      <p>候補を生成すると、その旋律の音域・跳躍幅・休符率・テンション使用率・シンコペーション率などの特徴量が数値で一覧表示されます。気に入った候補があれば「このメロディからMotif DNAを抽出」で、その旋律の核となる音型を保存し、以降の他セクション生成に軽く反映させることができます。</p>
+    </section>
+
+    <section class="chapter" id="bottombar">
+      <span class="chapter-num">10</span>
+      <h2>再生・書き出し・履歴(下部バー)</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <h4>再生</h4>
+          <p>再生モードを Melody Only / Chords + Melody / Chords Only / Arpeggio Only から選び、再生・停止ボタンで試聴します。伴奏なし設定のセクションでは、モードに関わらずコードは鳴りません。</p>
+        </div>
+        <div class="card">
+          <h4>MIDI書き出し</h4>
+          <p>選択中セクションの、現在アクティブな候補をMIDIファイルとしてダウンロードします。役割ごとにトラックが分かれます。</p>
+        </div>
+        <div class="card">
+          <h4>生成履歴</h4>
+          <p>そのセクションで過去に生成した候補すべてを一覧表示。クリックで呼び戻し、不要なものは削除できます。★は現在のActive Melody。</p>
+        </div>
+        <div class="card">
+          <h4>Undo / Redo</h4>
+          <p>直前の編集操作を取り消し・やり直しします。</p>
+        </div>
+      </div>
+
+      <h3>MIDIのトラック構成</h3>
+      <p>書き出されるMIDIは役割ごとにトラックが分かれているため、DAW側でそれぞれ別の音源に割り当てられます。すべてソフトウェア音源用のチャンネルで出力されます。</p>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>トラック</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>Active Melody / Active Melodies</td><td>リード（旋律・モチーフ・弱起）</td></tr>
+            <tr><td>Accompaniment</td><td>Ostinato / Drone（伴奏パートのリード内容）</td></tr>
+            <tr><td>Accompaniment Pattern</td><td>割り当てた伴奏パターン</td></tr>
+            <tr><td>Chords</td><td>コードの構成音</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>音の出ないトラックは作られません。長い保持音はコード境界で分割されず、開始拍・無音区間もそのまま保たれます。</p>
+    </section>
+
+    <section class="chapter" id="phrase">
+      <span class="chapter-num">11</span>
+      <h2>Phraseワークスペース</h2>
+      <p class="chapter-intro">セクション1つ分ではなく、<strong>2〜8小節の短いフレーズ</strong>だけを作って聴き比べるタブです。「まずワンフレーズだけ決めたい」というときに使います。フレーズはMelodyを切り詰めたものではなく、長さ・輪郭・リズム性格・和声の扱い・終止の意図を先に決めてから作られます。</p>
+
+      <h3>使い方</h3>
+      <ol>
+        <li>左パネルでセクションを選び、コード進行を入力しておく</li>
+        <li>フレーズの長さを選ぶ（Auto、または2〜8小節）</li>
+        <li>生成すると複数の候補が並ぶ</li>
+        <li>各候補を再生して聴き比べ、気に入らなければその候補だけ作り直す</li>
+      </ol>
+
+      <h3>候補に表示される「意図」</h3>
+      <p>候補ごとに、そのフレーズが何を狙ったものかが表示されます。</p>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>軸</th><th>表示される値</th></tr></thead>
+          <tbody>
+            <tr><td>リズム性格</td><td>流れるリズム / シンコペーション / 余白と呼吸 / ロングトーン</td></tr>
+            <tr><td>和声の扱い</td><td>コードを軸に展開 / 共通音を保持 / 緊張から解決 / 次コードを先取り</td></tr>
+            <tr><td>終止</td><td>解決 / 余韻 / 未解決 / 次へ接続</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>候補ごとに再生・作り直し・MIDI書き出しができます。再生モードはこのタブ内で個別に選べます。</p>
+    </section>
+
+    <section class="chapter" id="arrangement">
+      <span class="chapter-num">12</span>
+      <h2>Arrangementワークスペース</h2>
+      <p class="chapter-intro">セクション単体ではなく、曲全体を組み立てるためのタブです。</p>
+      <ul>
+        <li><strong>曲全体タイムライン</strong> — セクションをドラッグして並び替え、曲の構成を組み替えます。</li>
+        <li><strong>採用Melody</strong> — 各セクションごとに、どの生成候補を曲の再生・書き出しに使うかをドロップダウンで選びます(Melodyタブの「Set as Active Melody」と連動)。</li>
+        <li><strong>曲全体を再生</strong> — 並べたセクションを通しで再生します。</li>
+        <li><strong>曲全体MIDI</strong> — 曲全体を1つのMIDIファイルとして書き出します。</li>
+      </ul>
+    </section>
+
+    <section class="chapter" id="audition">
+      <span class="chapter-num">13</span>
+      <h2>Auditionワークスペース</h2>
+      <p class="chapter-intro">複数の生成候補を客観的に比較するためのA/B/C試聴タブです。</p>
+      <ul>
+        <li>3つまでの候補をA・B・Cのスロットに割り当て、シームレスに切り替えながら聴き比べられます。</li>
+        <li><strong>Blindモード</strong> — 候補名を隠し「Candidate Xを判定」とだけ表示することで、先入観のない比較ができます。</li>
+        <li>各候補に対して <strong>Favorite</strong>(お気に入り)・<strong>Reject</strong>(却下)・<strong>Set Active</strong>(採用)を記録できます。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="manual-footer">
+    Composer Arranger — User Manual
+  </footer>
+</div>
+</body>
+</html>
