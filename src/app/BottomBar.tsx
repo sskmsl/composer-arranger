@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
 import { previewLayersForMode, previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
@@ -64,6 +64,25 @@ export function BottomBar() {
     setPlaying(false)
   }
 
+  // 候補ピルの切替(マウス)と再生(キーボード)を分担させ、試聴を繰り返す際に
+  // 再生ボタンまでマウスを往復させなくて済むようにする(Space = 再生/停止のトグル)。
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Space") return
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return
+      event.preventDefault()
+      // フォーカスされたボタンがSpaceキーで二重にクリックされないよう、先にフォーカスを外す
+      target?.blur()
+      if (!hasPlayableMaterial) return
+      if (playing) stop()
+      else play()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  })
+
   const exportMidi = () => {
     if (!hasPlayableMaterial || !selectedSectionId || !section) return
     const bytes = exportMelodyMidi({
@@ -106,6 +125,7 @@ export function BottomBar() {
       <IconButton
         onClick={playing ? stop : play}
         disabled={!hasPlayableMaterial}
+        title={playing ? "停止 (Space)" : "再生 (Space)"}
         className="bg-primary text-on-primary hover:bg-primary-focus"
       >
         {playing ? <Square size={14} /> : <Play size={14} />}

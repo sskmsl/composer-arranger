@@ -174,6 +174,11 @@ export function MelodyWorkspace() {
           ))}
         </div>
       )}
+      {/* Issue: 候補ピル(マウスで切替)のすぐ近くに再生ショートカットを明示し、
+          切替→再生を繰り返す際に下部バーまでマウスを往復させなくて済むようにする */}
+      {candidateGroups.length > 0 && (
+        <p className="text-[11px] text-ink-muted-48">候補を選んだら Space で再生・停止できます</p>
+      )}
 
       {workflowNotice && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
