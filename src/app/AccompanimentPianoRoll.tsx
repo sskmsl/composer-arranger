@@ -20,6 +20,7 @@ export function ReadOnlyPianoRoll({
   accentStroke,
   ariaLabel,
   noteLabel,
+  maxHeight = "min(40vh, 400px)",
 }: {
   notes: MelodyNote[]
   chords: ChordEvent[]
@@ -32,6 +33,8 @@ export function ReadOnlyPianoRoll({
   accentStroke: string
   ariaLabel: string
   noteLabel: string
+  /** Issue #59: コンテンツの音域はcontentごとに大きく異なる(Chord Voicingは特に広い)ため上書き可能にする */
+  maxHeight?: string
 }) {
   const { beatsPerBar } = parseTimeSignature(timeSignature)
   const preferFlat = songKey ? keyPrefersFlatSpelling(songKey) : false
@@ -51,7 +54,9 @@ export function ReadOnlyPianoRoll({
 
   return (
     <section
-      className="flex w-full min-w-0 flex-col overflow-hidden rounded-lg border bg-surface-tile-1"
+      // Issue #59: overflow-hidden を持つflexアイテムの自動最小サイズ規則により、
+      // コンテンツより小さく圧縮されることがある。shrink-0 で防ぐ(PianoRoll.tsxと同じ理由)。
+      className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-tile-1"
       style={{ borderColor: `${accentStroke}55` }}
     >
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
@@ -59,7 +64,10 @@ export function ReadOnlyPianoRoll({
         <h3 className="text-[12px] font-medium text-body-on-dark">{title}</h3>
         <span className="text-[10px] text-ink-muted-48">{subtitle}</span>
       </div>
-      <div className="w-full min-w-0 overflow-auto no-scrollbar" style={{ maxHeight: 260 }}>
+      {/* Issue #59: 固定260pxは Chord Voicing(Bass+Upper Notes)のような広い音域だと
+          常に内部スクロールを強制していた。viewport高に応じた可変上限へ変え、
+          呼び出し側(ChordPianoRoll)がcontentの典型的な音域に合わせて広げられるようにする。 */}
+      <div className="w-full min-w-0 overflow-auto no-scrollbar" style={{ maxHeight }}>
         <div
           className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[10px] text-ink-muted-48"
           style={{ width }}

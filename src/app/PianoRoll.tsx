@@ -70,7 +70,10 @@ export function PianoRoll({
   const bars = Math.ceil(totalBeats / beatsPerBar)
 
   return (
-    <div className="flex w-full min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
+    // Issue #59: overflow-hidden を持つflexアイテムは、CSSの自動最小サイズ規則により
+    // コンテンツより小さく圧縮され得る(main側はスクロールせず、この要素だけが潰れる)。
+    // shrink-0 で常にコンテンツの自然な高さ(=内部のmax-height指定に従う高さ)を確保する。
+    <div className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
         <h3 className="text-[12px] font-medium text-body-on-dark">Melody</h3>
@@ -79,7 +82,10 @@ export function PianoRoll({
       <div
         ref={containerRef}
         className="relative w-full min-w-0 overflow-auto no-scrollbar"
-        style={{ maxHeight: 400 }}
+        // Issue #59: 固定px高では画面サイズに関わらず一律にスクロールが発生していたため、
+        // viewport高に応じて自動調整する。通常の音域(コンテンツ実高)ならスクロールなしで
+        // 全体が収まり、極端に広い音域のときだけ内部スクロールでレイアウト崩れを防ぐ。
+        style={{ maxHeight: "min(52vh, 560px)" }}
         onMouseDown={(e) => {
           const target = e.target as SVGElement
           if (target.closest("[data-note]")) return

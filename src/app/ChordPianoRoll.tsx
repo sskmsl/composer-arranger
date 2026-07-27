@@ -29,6 +29,9 @@ export function ChordPianoRoll({
       accentStroke="#b4a9ff"
       ariaLabel="Chord Voicing Piano Roll"
       noteLabel="Chord Voicing"
+      // Issue #59: Bass(C2付近)+Upper(B3〜)の配置で常に3.5〜4.5オクターブに及ぶため、
+      // Melody/Accompanimentより広い上限にしないと典型的な進行でも内部スクロールが残る。
+      maxHeight="min(58vh, 520px)"
     />
   )
 }
