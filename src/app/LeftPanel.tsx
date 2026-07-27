@@ -24,6 +24,7 @@ import {
   XCircle,
   MoveRight,
   FolderOpen,
+  GripVertical,
 } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
@@ -82,6 +83,8 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const updateSection = useProjectStore((s) => s.updateSection)
   const removeSection = useProjectStore((s) => s.removeSection)
   const duplicateSection = useProjectStore((s) => s.duplicateSection)
+  const moveSection = useProjectStore((s) => s.moveSection)
+  const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const setChordText = useProjectStore((s) => s.setChordText)
   const repeatSectionChords = useProjectStore((s) => s.repeatSectionChords)
   const extendLastChordToFill = useProjectStore((s) => s.extendLastChordToFill)
@@ -161,14 +164,23 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
       <SectionCard title="セクション">
         <div className="flex flex-col gap-1.5">
-          {project.sections.map((s) => (
+          {project.sections.map((s, index) => (
             <div
               key={s.id}
+              draggable
+              onDragStart={() => setDraggedSectionId(s.id)}
+              onDragEnd={() => setDraggedSectionId(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (draggedSectionId && draggedSectionId !== s.id) moveSection(draggedSectionId, index)
+                setDraggedSectionId(null)
+              }}
               onClick={() => selectSection(s.id)}
-              className={`flex cursor-pointer items-center gap-2 rounded-sm border px-2 py-1.5 text-[13px] ${
+              className={`flex cursor-pointer items-center gap-1.5 rounded-sm border px-2 py-1.5 text-[13px] ${
                 s.id === selectedSectionId ? "border-primary-focus bg-primary/15" : "border-transparent bg-white/5 hover:bg-white/10"
-              }`}
+              } ${draggedSectionId === s.id ? "opacity-40" : ""}`}
             >
+              <GripVertical size={13} className="shrink-0 cursor-grab text-ink-muted-48" />
               <span className="flex-1 truncate">{s.name}</span>
               <span className="text-[11px] text-ink-muted-48">{SECTION_ROLE_LABELS[s.role]}</span>
               <IconButton

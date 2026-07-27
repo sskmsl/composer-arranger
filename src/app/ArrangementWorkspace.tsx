@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown } from "lucide-react"
+import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
@@ -12,6 +12,8 @@ export function ArrangementWorkspace() {
   const moveSection = useProjectStore((state) => state.moveSection)
   const selectSection = useProjectStore((state) => state.selectSection)
   const assignVariant = useProjectStore((state) => state.assignVariantToSection)
+  const duplicateSection = useProjectStore((state) => state.duplicateSection)
+  const removeSection = useProjectStore((state) => state.removeSection)
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
 
@@ -125,6 +127,16 @@ export function ArrangementWorkspace() {
                   ))}
                 </Select>
               </label>
+
+              {/* Issue #58: セクション編集画面へ戻らずアレンジ画面から直接複製・削除できるようにする */}
+              <div className="flex shrink-0 gap-1">
+                <IconButton title="複製" onClick={() => duplicateSection(section.id)}>
+                  <Copy size={13} />
+                </IconButton>
+                <IconButton title="削除" onClick={() => removeSection(section.id)}>
+                  <Trash2 size={13} />
+                </IconButton>
+              </div>
             </article>
           )
         })}
