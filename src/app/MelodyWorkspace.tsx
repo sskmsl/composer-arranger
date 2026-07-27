@@ -149,7 +149,10 @@ export function MelodyWorkspace() {
           ブレークポイントを名前付き(md/lg)より前に出力するため。
           重なる指定にすると、あとに出力された名前付き側が常に勝ってしまう。
         */
-        <div className="grid grid-cols-1 gap-x-5 gap-y-1 min-[768px]:max-[1024px]:grid-cols-2 min-[1180px]:grid-cols-2">
+        <div
+          className="grid grid-cols-1 gap-x-5 gap-y-1 min-[768px]:max-[1024px]:grid-cols-2 min-[1180px]:grid-cols-2"
+          title="候補を選んだら Space で再生・停止できます"
+        >
           {candidateGroups.map((group) => (
             <div key={group.key} className="flex min-w-0 items-center gap-2">
               {/* セル幅が狭いときはラベル側を縮めて省略する(ピルは潰さない) */}
@@ -173,11 +176,6 @@ export function MelodyWorkspace() {
             </div>
           ))}
         </div>
-      )}
-      {/* Issue: 候補ピル(マウスで切替)のすぐ近くに再生ショートカットを明示し、
-          切替→再生を繰り返す際に下部バーまでマウスを往復させなくて済むようにする */}
-      {candidateGroups.length > 0 && (
-        <p className="text-[11px] text-ink-muted-48">候補を選んだら Space で再生・停止できます</p>
       )}
 
       {workflowNotice && (
