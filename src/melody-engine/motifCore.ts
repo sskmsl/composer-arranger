@@ -115,6 +115,9 @@ export function generatePitchMotif(
   const pitches: number[] = []
   let prev: number | null = null
   let sounded = 0
+  // Issue #64: 跳躍の直後は反行・順次進行で回収し、跳躍が連続しないようにする
+  let lastWasLeap = false
+  let lastDirection = 1
 
   for (const event of events) {
     if (event.isRest) continue
@@ -158,14 +161,28 @@ export function generatePitchMotif(
       continue
     }
 
-    const useTension = rng.chance(params.tensionUsageTarget)
+    // 強拍ではコードトーン/テンション解決を安定させるため、テンション採用率を弱拍より抑える
+    const isStrongBeat = Math.abs(beat - Math.round(beat)) < 0.01
+    const tensionChance = isStrongBeat ? params.tensionUsageTarget * 0.5 : Math.min(1, params.tensionUsageTarget * 1.15)
+    const useTension = rng.chance(tensionChance)
     const allowed = useTension ? withKeyBias(usable, params.keyScalePitchClasses) : chordTones
-    const wantsLeap = rng.chance(params.leapWidthBias)
-    const direction = rng.chance(0.5) ? 1 : -1
-    const magnitude = wantsLeap ? rng.intBetween(3, 7) : rng.intBetween(1, 2)
+
+    let direction: number
+    let magnitude: number
+    if (lastWasLeap) {
+      // 跳躍の直後は逆方向への順次進行で回収し、歌いやすさを保つ(連続跳躍を作らない)
+      direction = -lastDirection
+      magnitude = rng.intBetween(1, 2)
+    } else {
+      const wantsLeap = rng.chance(params.leapWidthBias)
+      direction = rng.chance(0.5) ? 1 : -1
+      magnitude = wantsLeap ? rng.intBetween(3, 7) : rng.intBetween(1, 2)
+    }
     const candidate = prev + direction * magnitude
     const snapped = nearestAllowedPitch(candidate, allowed, effectiveRange)
     pitches.push(snapped)
+    lastWasLeap = !lastWasLeap && magnitude >= 3
+    lastDirection = direction
     prev = snapped
     sounded++
   }

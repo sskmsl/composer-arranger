@@ -6,7 +6,10 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   const motifUnity = 25 * clamp01(features.motifRepeatRatio)
 
   const leapPenalty = clamp01(features.avgLeap / 9)
-  const singability = 20 * (1 - leapPenalty * 0.7)
+  const singability = 10 * (1 - leapPenalty * 0.7)
+
+  // Issue #64: 跳躍後の反行・段階進行による回収度合いをボイスリーディングの評価に加える
+  const voiceLeading = 10 * clamp01(features.leapRecoveryRatio)
 
   const tensionFit = 1 - Math.min(1, Math.abs(features.tensionUsageRatio - params.tensionUsageTarget) / 0.4)
   const tensionAndResolution = 20 * clamp01(tensionFit)
@@ -25,7 +28,7 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   const varietyScore = clamp01((features.maxLeap - features.avgLeap) / 8 + features.tensionUsageRatio)
   const novelty = 10 * clamp01(varietyScore * (0.5 + params.noveltyWeight))
 
-  return motifUnity + singability + tensionAndResolution + sectionFit + restAndBreath + novelty
+  return motifUnity + singability + voiceLeading + tensionAndResolution + sectionFit + restAndBreath + novelty
 }
 
 function clamp01(v: number): number {

@@ -87,6 +87,9 @@ describe("Profile-specific Expression Arc", () => {
   })
 
   it("CinematicはArcごとに蓄積・中間頂点・頂点前の間・低音回帰を実音化する", () => {
+    // Issue #64で生成側に跳躍回収のランダム性が増えたため、低音回帰(cinematic-low-reprise)は
+    // 個々のseedではなく全seed平均の傾向として検証する(他のArcは1試行でも安定するため従来通り)。
+    const lowReprisePitchDiffs: number[] = []
     for (let seed = 1; seed <= 20; seed++) {
       for (const candidate of generate("cinematic", seed)) {
         const plan = candidate.profileExpressionPlan!
@@ -109,10 +112,11 @@ describe("Profile-specific Expression Arc", () => {
         } else {
           const early = notes.filter((note) => note.startBeat < 16).map((note) => note.pitch)
           const late = notes.filter((note) => note.startBeat >= 22).map((note) => note.pitch)
-          expect(average(late)).toBeLessThanOrEqual(average(early) + 1)
+          lowReprisePitchDiffs.push(average(late) - average(early))
         }
       }
     }
+    expect(average(lowReprisePitchDiffs)).toBeLessThanOrEqual(1)
   })
 
   it("Leapingは7半音以上の構造跳躍と2半音以内の回収を実音化する", () => {

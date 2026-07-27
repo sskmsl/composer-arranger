@@ -61,11 +61,17 @@ describe("Generator Profile: 既存6 Profileの回帰確認", () => {
     expect(candidates.length).toBe(9)
   })
 
-  it("Leapingはstandardより平均跳躍が大きい", () => {
+  it("Leapingはstandardより平均跳躍が大きい(seed平均)", () => {
     // Pattern 1は品質順であり固定サブタイプではないため、同一Profileの3案平均で比較する。
-    const leaping = generateOne("leaping", 5).reduce((sum, candidate) => sum + metricsFor(candidate.notes).avgLeap, 0) / 3
-    const standard = generateOne("standard", 5).reduce((sum, candidate) => sum + metricsFor(candidate.notes).avgLeap, 0) / 3
-    expect(leaping).toBeGreaterThan(standard)
+    // Issue #64で跳躍後の回収がランダム性を伴うため、単一seedではまれに逆転し得る。
+    // 統計的性質としてseed平均で比較する(Minimalの休符率テストと同じ理由)。
+    let leapingSum = 0
+    let standardSum = 0
+    for (let seed = 1; seed <= 10; seed++) {
+      leapingSum += generateOne("leaping", seed).reduce((sum, candidate) => sum + metricsFor(candidate.notes).avgLeap, 0) / 3
+      standardSum += generateOne("standard", seed).reduce((sum, candidate) => sum + metricsFor(candidate.notes).avgLeap, 0) / 3
+    }
+    expect(leapingSum / 10).toBeGreaterThan(standardSum / 10)
   })
 
   it("Minimalはstandardより休符率が高い(seed平均)", () => {

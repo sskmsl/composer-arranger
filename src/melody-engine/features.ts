@@ -24,6 +24,7 @@ export function computeMelodyFeatures(
       syncopationRatio: 0,
       motifRepeatRatio: 0,
       peakPosition: 0,
+      leapRecoveryRatio: 1,
     }
   }
 
@@ -31,12 +32,25 @@ export function computeMelodyFeatures(
   const pitches = sorted.map((n) => n.pitch)
 
   const leaps: number[] = []
+  const signedIntervals: number[] = []
   let repeated = 0
   for (let i = 1; i < pitches.length; i++) {
-    const interval = Math.abs(pitches[i] - pitches[i - 1])
+    const signed = pitches[i] - pitches[i - 1]
+    const interval = Math.abs(signed)
     leaps.push(interval)
+    signedIntervals.push(signed)
     if (interval === 0) repeated++
   }
+
+  // Issue #64: 跳躍(5半音以上)の直後が反行かつ順次進行(3半音以内)で回収されているか
+  const bigLeaps = signedIntervals
+    .map((interval, index) => ({ interval, index }))
+    .filter(({ interval }) => Math.abs(interval) >= 5)
+  const recoveredLeaps = bigLeaps.filter(({ interval, index }) => {
+    const next = signedIntervals[index + 1]
+    return next !== undefined && Math.sign(next) === -Math.sign(interval) && Math.abs(next) <= 3
+  })
+  const leapRecoveryRatio = bigLeaps.length > 0 ? recoveredLeaps.length / bigLeaps.length : 1
 
   const soundedBeats = sorted.reduce((sum, n) => sum + n.durationBeats, 0)
   const restRatio = Math.max(0, Math.min(1, 1 - soundedBeats / Math.max(phraseLengthBeats, 0.01)))
@@ -84,6 +98,7 @@ export function computeMelodyFeatures(
     syncopationRatio: syncopated / sorted.length,
     motifRepeatRatio,
     peakPosition: Math.max(0, Math.min(1, peakPosition)),
+    leapRecoveryRatio,
   }
 }
 
