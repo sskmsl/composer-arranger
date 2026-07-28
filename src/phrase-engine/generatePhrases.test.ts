@@ -136,6 +136,33 @@ describe("Phrase Generator", () => {
     expect(candidates.every((candidate) => candidate.qualityScore >= 55)).toBe(true)
   })
 
+  it("大きな跳躍(8半音以上)の直後は、狭い和声カテゴリへスナップして回収を打ち消さない", () => {
+    // 回帰: 減三和音等でtension-releaseのテンション候補が1種類しかない場面では、
+    // 跳躍回収用の小さな移動量(desired)がdesiredPitchClassesの狭い集合へスナップされ、
+    // その場に留まる(差0)か、逆にオクターブ違いへ跳ぶ(差12)ことで回収が打ち消されていた。
+    // seed/role横断で跳躍直後の回収率を統計的に検証する。
+    let totalLeaps = 0
+    let recoveredLeaps = 0
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const role of ["verse", "chorus", "pre-chorus", "bridge"] as const) {
+        const candidates = generatePhraseCandidates(input(seed, role))
+        for (const candidate of candidates) {
+          const intervals = candidate.notes.slice(1).map((note, index) => note.pitch - candidate.notes[index].pitch)
+          intervals.forEach((interval, index) => {
+            if (Math.abs(interval) < 8) return
+            totalLeaps++
+            const next = intervals[index + 1]
+            if (next !== undefined && Math.sign(next) === -Math.sign(interval) && Math.abs(next) <= 3) {
+              recoveredLeaps++
+            }
+          })
+        }
+      }
+    }
+    expect(totalLeaps).toBeGreaterThan(0)
+    expect(recoveredLeaps / totalLeaps).toBeGreaterThan(0.85)
+  })
+
   it("個別再生成は兄弟候補との差を考慮し、元候補と異なる実音を返す", () => {
     const candidates = generatePhraseCandidates(input(401))
     const regenerated = regeneratePhraseCandidate(input(401), candidates[0].seed, candidates.slice(1))

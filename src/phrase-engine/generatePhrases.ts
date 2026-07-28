@@ -376,8 +376,14 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
         : developmentCycle % 3 === 2
           ? -motifInterval
           : motifInterval
+    // 跳躍(前音との差が5半音以上)の直後は、和声カテゴリに縛られた狭いピッチクラス集合
+    // (減三和音のテンションのみ等、1〜2種類しかないことがある)ではなく、順次進行で
+    // 回収できる広いプールへ着地させる。desiredPitchClassesの狭い集合をそのまま使うと、
+    // 意図した小さな回収幅がスナップで打ち消され、その場に留まる(差0)か、
+    // 逆にさらに離れたオクターブ違いへ跳んでしまう(差12等)ことがあった。
+    const isRecovering = Math.abs(previousInterval) >= 5
     let desired = index === 0 ? previousPitch : previousPitch + transformedInterval
-    if (Math.abs(previousInterval) >= 5) desired = previousPitch - Math.sign(previousInterval) * rng.pick([1, 2])
+    if (isRecovering) desired = previousPitch - Math.sign(previousInterval) * rng.pick([1, 2])
 
     const progress = event.start / Math.max(1, phraseLengthBeats)
     const contourDrift =
@@ -394,13 +400,16 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
                 ? -2
                 : 2
               : 0
-    desired += developmentCycle > 0 ? contourDrift : 0
+    // 回収中はcontourDriftを重ねない(小さな回収幅がドリフト分だけ再び広がってしまうため)。
+    desired += developmentCycle > 0 && !isRecovering ? contourDrift : 0
 
     const beatInBar = ((event.start % input.beatsPerBar) + input.beatsPerBar) % input.beatsPerBar
     const strongBeat =
       Math.abs(beatInBar) < 0.06 ||
       Math.abs(beatInBar - input.beatsPerBar / 2) < 0.06
-    const allowed = desiredPitchClasses(intent, entry, nextEntry, event.start, strongBeat, keyScale)
+    const allowed = isRecovering
+      ? [...new Set([...allUsablePitchClasses(entry.parsed), ...keyScale])]
+      : desiredPitchClasses(intent, entry, nextEntry, event.start, strongBeat, keyScale)
     let placed = nearestPitchForClasses(desired, allowed, input.range)
     const repeatedRun =
       index > 1 && placed === previousPitch && notes[index - 1]?.pitch === notes[index - 2]?.pitch
