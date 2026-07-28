@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { parseChordInputText } from "@/core/chordInput"
 import {
+  assessDecorationNeed,
   DEFAULT_DECORATION_SETTINGS,
   generateDecorationCandidates,
   type GenerateDecorationInput,
@@ -28,19 +29,46 @@ function input(
   }
 }
 
+function hasRoleAppropriateLength(
+  candidate: ReturnType<typeof generateDecorationCandidates>[number],
+): boolean {
+  const role = candidate.decorationPlan?.gestureRole
+  const minimum = role === "pedal" ? 1 : role === "swell" ? 2 : 3
+  return candidate.notes.length >= minimum
+}
+
 describe("Issue #71 / Structure Driven Decoration Generator", () => {
   it("Active Melodyなしでも品質・多様性選抜した10候補を生成する", () => {
     const candidates = generateDecorationCandidates(input())
     expect(candidates).toHaveLength(10)
     expect(candidates.every((candidate) => candidate.kind === "decoration")).toBe(true)
     expect(candidates.every((candidate) => candidate.targetMelodyVariantId === null)).toBe(true)
-    expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.shape)).size).toBeGreaterThanOrEqual(4)
+    expect(
+      new Set(
+        candidates.map(
+          (candidate) => candidate.decorationPlan?.shape,
+        ),
+      ).size,
+      JSON.stringify(
+        candidates.map((candidate) => ({
+          role: candidate.decorationPlan?.gestureRole,
+          shape: candidate.decorationPlan?.shape,
+          rhythm: candidate.decorationPlan?.rhythmStyle,
+          quality: candidate.quality,
+        })),
+      ),
+    ).toBeGreaterThanOrEqual(4)
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.rhythmStyle)).size).toBeGreaterThanOrEqual(3)
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.register)).size).toBeGreaterThanOrEqual(2)
+    expect(
+      new Set(
+        candidates.map((candidate) => candidate.decorationPlan?.gestureRole),
+      ).size,
+    ).toBeGreaterThanOrEqual(4)
     expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
     expect(candidates.every((candidate) => candidate.quality.overallQuality >= 68)).toBe(true)
     expect(candidates.every((candidate) => candidate.quality.transitionValue >= 78)).toBe(true)
-    expect(candidates.every((candidate) => candidate.notes.length >= 3)).toBe(true)
+    expect(candidates.every(hasRoleAppropriateLength)).toBe(true)
     expect(
       new Set(
         candidates.map((candidate) =>
@@ -252,9 +280,93 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
           (candidate) =>
             candidate.quality.overallQuality >= 68 &&
             candidate.quality.transitionValue >= 78 &&
-            candidate.notes.length >= 3,
+            hasRoleAppropriateLength(candidate),
         ),
       ).toBe(true)
     }
+  })
+
+  it("主旋律と既存Arrangementが高密度ならSilence Gateを優先する", () => {
+    const melodyNotes = Array.from({ length: 16 }, (_, index) => ({
+      id: `dense-${index}`,
+      startBeat: index,
+      durationBeats: 1,
+      pitch: 60 + (index % 5),
+      velocity: 80,
+      locks: [],
+    }))
+    const need = assessDecorationNeed(
+      input({
+        melodyNotes,
+        arrangementContext: {
+          previousSectionNoteCount: 48,
+          currentSectionNoteCount: 64,
+          nextSectionNoteCount: 48,
+        },
+      }),
+    )
+    expect(need.level).toBe("silence")
+    expect(need.score).toBeLessThan(36)
+  })
+
+  it("Pedal・Swell・Pickupを役割に応じた実音へ変換する", () => {
+    const candidates = generateDecorationCandidates(input())
+    const pedal = candidates.find(
+      (candidate) => candidate.decorationPlan?.gestureRole === "pedal",
+    )
+    const swell = candidates.find(
+      (candidate) => candidate.decorationPlan?.gestureRole === "swell",
+    )
+    const directed = candidates.find((candidate) =>
+      ["pickup", "transition", "ending"].includes(
+        candidate.decorationPlan?.gestureRole ?? "",
+      ),
+    )
+
+    expect(pedal?.notes).toHaveLength(1)
+    expect(pedal?.notes[0].plannedToneRole).toBe("common-tone")
+    expect(pedal?.notes[0].durationBeats).toBeGreaterThanOrEqual(1)
+    expect(swell?.notes.length).toBeGreaterThanOrEqual(2)
+    expect(swell?.notes.at(-1)!.velocity).toBeGreaterThanOrEqual(
+      swell?.notes[0].velocity ?? 0,
+    )
+    expect((directed?.notes.at(-1)?.pitch ?? -1) % 12).toBe(
+      directed?.decorationPlan?.targetPitchClass,
+    )
+  })
+
+  it("Favorite / Reject履歴を候補スコアへ反映する", () => {
+    const candidates = generateDecorationCandidates(
+      input({
+        preferenceProfile: {
+          favoriteCharacters: ["piano"],
+          favoriteShapes: ["turn"],
+          favoriteRhythms: ["syncopation"],
+          rejectedCharacters: ["bell"],
+          rejectedShapes: ["sparse-accent"],
+          rejectedRhythms: ["staccato"],
+        },
+      }),
+    )
+    const favoriteAligned = candidates.filter(
+      (candidate) =>
+        candidate.decorationPlan?.character === "piano" ||
+        candidate.decorationPlan?.shape === "turn" ||
+        candidate.decorationPlan?.rhythmStyle === "syncopation",
+    )
+    expect(favoriteAligned.length).toBeGreaterThan(0)
+    expect(
+      Math.max(
+        ...favoriteAligned.map(
+          (candidate) => candidate.decorationPlan?.preferenceMatch ?? 0,
+        ),
+      ),
+    ).toBeGreaterThan(50)
+    expect(
+      candidates.every(
+        (candidate) =>
+          (candidate.decorationPlan?.preferenceMatch ?? 50) >= 50,
+      ),
+    ).toBe(true)
   })
 })

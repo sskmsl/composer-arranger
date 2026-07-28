@@ -5,9 +5,9 @@ Counter Generatorは、Active Melodyを置き換えず、その休符へ短い�
 ## 生成パイプライン
 
 1. セクションのActive Melodyから休符、Protected Moment、音域、密度予算を抽出する。
-2. Bell Response / Piano Echo / String Answer / Guitar Fill / Synth Whisperの各Styleを使い、9候補を独立生成する。
+2. Bell Response / Piano Echo / String Answer / Guitar Fill / Synth Whisperの各Styleを使い、40候補を独立生成する。
 3. コードトーンと明示テンションを使って1〜4拍の応答を作り、主旋律の直前の動きに対する反対方向も候補へ含める。
-4. Melody Respect、Harmonic Fit、Gap Usage、Register Separation、Motif Relationship、Section Fitを評価する。
+4. Melody Respect、Harmonic Fit、Gap Usage、Register Separation、Motif Relationship、Section Fitに加え、強拍協和、反行・斜行、終止協調によるCounterpoint Fitを評価する。
 5. Blocking Collisionと品質下限を確認し、Quality 65% + Diversity 35%のMMR型選抜で3候補を返す。
 
 ## 保存と再生
