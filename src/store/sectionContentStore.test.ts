@@ -88,11 +88,22 @@ describe("Issue #41 / generateForSectionがContent設定で経路を切り替え
     expect(useProjectStore.getState().project.sectionMelodyAssignments.s1).toBe(variants[0].id)
   })
 
-  it("Autoでは3候補に2種類以上のContentが現れる", () => {
+  it("Autoでは品質下限を満たす3候補に2種類以上のContentが現れ、Accompaniment割り当てを壊さない", () => {
     useProjectStore.getState().setSectionContent("s1", { lead: "auto" })
+    useProjectStore.getState().setSectionAccompanimentPattern("s1", "arpeggio-up")
     useProjectStore.getState().generateForSection("s1")
     const variants = useProjectStore.getState().project.melodyVariants
+    expect(variants).toHaveLength(3)
     expect(new Set(variants.map((v) => resolvedLeadContent(v))).size).toBeGreaterThanOrEqual(2)
+    expect(variants.every((variant) => variant.contentQuality)).toBe(true)
+    expect(
+      variants.every(
+        (variant) =>
+          (variant.contentQuality?.overallQuality ?? 0) >=
+          (variant.contentSelection?.qualityFloor ?? 101),
+      ),
+    ).toBe(true)
+    expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBe("arpeggio-up")
   })
 })
 

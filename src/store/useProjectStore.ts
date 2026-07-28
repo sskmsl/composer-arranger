@@ -735,6 +735,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // Issue #41: melody以外のリード内容は、通常のMelody Engineではなく
     // content専用の経路(計画→専用Generator→構造検証)を通す。
     if (usesContentPipeline(sectionContent.lead)) {
+      const timeline = normalizeSectionTimeline(prev.sections)
+      const sectionIndex = timeline.findIndex((candidate) => candidate.id === sectionId)
+      const nextSection = sectionIndex >= 0 ? timeline[sectionIndex + 1] : undefined
+      const nextSectionFirstChord = nextSection
+        ? prev.chords
+            .filter((chord) => chord.sectionId === nextSection.id)
+            .sort((a, b) => a.startBeat - b.startBeat)[0]?.symbol
+        : undefined
       const { candidates: contentCandidates, unresolvedCandidates } = generateSectionContent({
         chords,
         sectionId,
@@ -750,6 +758,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         drama: settings.drama,
         // Issue #41: サビが未生成ならundefinedのまま渡し、生成側で予約値へフォールバックさせる
         chorusPeakMidi: chorusPeakMidi(prev),
+        nextSectionRole: nextSection?.role,
+        nextSectionFirstChord,
+        songMotifDNA: prev.songMotifDNA,
       })
       const contentBatchId = crypto.randomUUID()
       const contentVariants = contentCandidates.map((candidate) =>

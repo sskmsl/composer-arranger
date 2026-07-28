@@ -147,6 +147,18 @@ export function MelodyWorkspace() {
             {Math.round(variant.transitionPlan.transitionFitScore)}
           </Pill>
         )}
+        {variant?.contentQuality && (
+          <Pill
+            title={`Section ${Math.round(variant.contentQuality.sectionFit)} / Profile ${Math.round(variant.contentQuality.songProfileFit)} / Harmony ${Math.round(variant.contentQuality.harmonicInterest)} / Structure ${Math.round(variant.contentQuality.structuralClarity)} / Space ${Math.round(variant.contentQuality.spaceQuality)}`}
+          >
+            Auto Quality {Math.round(variant.contentQuality.overallQuality)} ·{" "}
+            {variant.contentSelection?.reason === "highest-quality"
+              ? "Best Fit"
+              : variant.contentSelection?.reason === "content-diversity"
+                ? "Content Diversity"
+                : "Quality + Diversity"}
+          </Pill>
+        )}
       </div>
 
       {/*
