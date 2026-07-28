@@ -13,7 +13,7 @@ import type {
 import type { HarmonicMapEntry } from "./harmonicMap"
 import type { GenerationParams, RangeSetting, Density } from "./generationParams"
 import type { MotifCore, MotifEvent } from "./motifCore"
-import { generateRhythmMotif, generatePitchMotif } from "./motifCore"
+import { generateRhythmMotif, generatePitchMotif, MIN_MELODIC_DURATION_BEATS } from "./motifCore"
 import { applyDevelopmentOp, weightedDevelopmentOp } from "./motifDevelopment"
 import { chordAtBeat } from "./harmonicMap"
 import { allUsablePitchClasses, chordTonePitchClasses, isChordTone, isTensionTone } from "@/core/chord"
@@ -44,6 +44,9 @@ function clipEventsToLength(
     if (e.offsetBeats >= maxLengthBeats - 1e-6) break
     const clippedDuration = Math.min(e.durationBeats, maxLengthBeats - e.offsetBeats)
     if (clippedDuration <= 0.01) break
+    // フレーズ終端の残り時間が短い場合、聞き取れない装飾的な極短音を作らない。
+    // 休符は終端余白として保持できるが、発音イベントは最小音価を下回った時点で打ち切る。
+    if (!e.isRest && clippedDuration < MIN_MELODIC_DURATION_BEATS - 1e-6) break
     outEvents.push({ ...e, durationBeats: clippedDuration })
     if (!e.isRest) {
       outPitches.push(pitches[pitchIdx])

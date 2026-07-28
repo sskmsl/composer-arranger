@@ -19,10 +19,24 @@ export interface MotifCore {
   lengthBeats: number
 }
 
+export const MIN_MELODIC_DURATION_BEATS = 0.25
+
 const DURATION_PALETTE: Record<Density, number[]> = {
   sparse: [1, 1.5, 2, 2, 3],
   balanced: [0.5, 1, 1, 1.5, 2],
   active: [0.25, 0.5, 0.5, 0.5, 1, 1.5],
+}
+
+export type MetricPosition = "primary-strong" | "secondary-strong" | "weak" | "offbeat"
+
+/** 4/4の拍階層。将来の拍子対応時に差し替えやすいよう、音価選択から分離する。 */
+export function metricPositionAt(beat: number): MetricPosition {
+  const normalized = ((beat % 4) + 4) % 4
+  const rounded = Math.round(normalized)
+  if (Math.abs(normalized - rounded) >= 0.01) return "offbeat"
+  if (rounded % 4 === 0) return "primary-strong"
+  if (rounded === 2) return "secondary-strong"
+  return "weak"
 }
 
 /**
@@ -30,11 +44,37 @@ const DURATION_PALETTE: Record<Density, number[]> = {
  * multiplier>1(Active寄り)ほど短い音価を、<1(Outro等)ほど長い音価を選びやすくすることで、
  * 同じフレーズ長でも実際のノート数が変化するようにする(以前はDensity Note Multiplierが
  * 計算されるだけで生成処理のどこからも参照されておらず、常に無効だった)。
+ *
+ * Issue #65: 拍位置も重みに加える。強拍はフレーズを支える長めの音価、弱拍・裏拍は
+ * 動きを作る短めの音価を優先し、同じ音価の機械的な連続も抑える。
  */
-function pickDuration(rng: SeededRandom, palette: number[], densityNoteMultiplier: number): number {
+function pickDuration(
+  rng: SeededRandom,
+  palette: number[],
+  densityNoteMultiplier: number,
+  cursor: number,
+  previousDuration: number | null,
+  sameDurationRun: number,
+): number {
   const bias = Math.max(0.35, Math.min(2.8, densityNoteMultiplier))
   const n = palette.length
-  const weights = palette.map((_, i) => Math.pow(bias, 1 - (2 * i) / Math.max(1, n - 1)))
+  const minDuration = Math.min(...palette)
+  const maxDuration = Math.max(...palette)
+  const metricPosition = metricPositionAt(cursor)
+  const weights = palette.map((duration, i) => {
+    const densityWeight = Math.pow(bias, 1 - (2 * i) / Math.max(1, n - 1))
+    const normalizedDuration = (duration - minDuration) / Math.max(0.01, maxDuration - minDuration)
+    const metricWeight =
+      metricPosition === "primary-strong"
+        ? 0.75 + normalizedDuration * 1.15
+        : metricPosition === "secondary-strong"
+          ? 0.85 + normalizedDuration * 0.7
+          : metricPosition === "weak"
+            ? 1.35 - normalizedDuration * 0.45
+            : 1.5 - normalizedDuration * 0.65
+    const repetitionWeight = previousDuration === duration && sameDurationRun >= 2 ? 0.18 : 1
+    return densityWeight * metricWeight * repetitionWeight
+  })
   return rng.weightedPick(palette, weights)
 }
 
@@ -47,6 +87,8 @@ export function generateRhythmMotif(rng: SeededRandom, density: Density, params:
   const noteCount = rng.intBetween(2, 5)
   const events: MotifEvent[] = []
   let cursor = 0
+  let previousDuration: number | null = null
+  let sameDurationRun = 0
 
   if (opening) {
     // Opening Plan: 開始拍オフセット(弱起/休符後開始)を休符として先頭へ置く
@@ -57,10 +99,13 @@ export function generateRhythmMotif(rng: SeededRandom, density: Density, params:
     // 最初の音価は計画で固定する
     events.push({ offsetBeats: cursor, durationBeats: opening.firstNoteDuration, isRest: false })
     cursor += opening.firstNoteDuration
+    previousDuration = opening.firstNoteDuration
+    sameDurationRun = 1
     // repeated-note入口は2音目も同じ音価で刻み、識別可能な核にする
     if (opening.openingContour === "repeated-note") {
       events.push({ offsetBeats: cursor, durationBeats: opening.firstNoteDuration, isRest: false })
       cursor += opening.firstNoteDuration
+      sameDurationRun = 2
     }
   } else if (rng.chance(params.restRatioTarget * 0.3)) {
     // 小節頭の休符(9.3)を稀に許容し、フレーズの食い込みを演出する
@@ -77,23 +122,25 @@ export function generateRhythmMotif(rng: SeededRandom, density: Density, params:
   const isFlatOpening = opening && (opening.openingContour === "repeated-note" || opening.initialDirection === "static")
   const targetCount = isFlatOpening ? Math.max(noteCount, openingNoteBudget(opening!) + 2) : noteCount
   for (let i = startIdx; i < Math.max(startIdx + 1, targetCount); i++) {
-    const rawDuration = pickDuration(rng, palette, params.densityNoteMultiplier)
-    const isRest = i > 0 && i < noteCount - 1 && rng.chance(params.restRatioTarget * 0.35)
-    // syncopationAmountに応じて、拍頭に揃っている場合に限り開始位置を後ろへ食い込ませる。
-    // (durationも同じ分だけ削るため、次イベントのcursor位置は変えない=はみ出し・重なりは発生しない)
-    // 短い音価(0.5拍)も対象に含めることで、Active(音価が短くなる)でもsyncopationAmountが効くようにする。
+    const rawDuration = pickDuration(rng, palette, params.densityNoteMultiplier, cursor, previousDuration, sameDurationRun)
+    const metricPosition = metricPositionAt(cursor)
+    // 呼吸は強拍を無作為に欠落させず、弱拍または裏拍へ置く。
+    const restMetricWeight = metricPosition === "weak" || metricPosition === "offbeat" ? 1 : 0.18
+    const isRest = i > 0 && i < noteCount - 1 && rng.chance(params.restRatioTarget * 0.45 * restMetricWeight)
+    // syncopationAmountに応じて拍頭のアタックを後ろへ置き、元の音価を保ったまま次拍へまたがせる。
+    // 以前はずらした分だけ音価を削っていたため、裏拍で鳴るだけの短い機械的な音になっていた。
     const onBeat = Math.abs(cursor - Math.round(cursor)) < 0.01
     let offset = cursor
-    let duration = rawDuration
     if (!isRest && onBeat && rawDuration >= 0.5 && rng.chance(params.syncopationAmount * 0.7)) {
       const shift = rawDuration > 0.75 ? 0.5 : 0.25
-      if (rawDuration - shift >= 0.2) {
-        offset = cursor + shift
-        duration = rawDuration - shift
-      }
+      offset = cursor + shift
     }
-    events.push({ offsetBeats: offset, durationBeats: duration, isRest })
-    cursor += rawDuration
+    events.push({ offsetBeats: offset, durationBeats: rawDuration, isRest })
+    cursor = offset + rawDuration
+    if (!isRest) {
+      sameDurationRun = previousDuration === rawDuration ? sameDurationRun + 1 : 1
+      previousDuration = rawDuration
+    }
   }
   return events
 }
