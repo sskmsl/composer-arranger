@@ -6,6 +6,7 @@ import type {
 } from "@/core/melody"
 import { allUsablePitchClasses, chordTonePitchClasses } from "@/core/chord"
 import { pitchClass } from "@/core/note"
+import { MIN_MELODIC_DURATION_BEATS } from "./motifCore"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import type { RangeSetting } from "./generationParams"
@@ -394,23 +395,33 @@ function applyLeaping(
 ): void {
   if (plan.arc === "leaping-downward-release") {
     applyLeapGesture(notes, plan.focusBeat, -1, harmonicMap, range)
+    applyLeapGesture(notes, totalBeats * 0.48, 1, harmonicMap, range)
   } else if (plan.arc === "leaping-echo") {
     applyLeapGesture(notes, totalBeats * 0.34, 1, harmonicMap, range)
     applyLeapGesture(notes, totalBeats * 0.66, -1, harmonicMap, range)
   } else {
     applyLeapGesture(notes, plan.focusBeat, 1, harmonicMap, range)
+    applyLeapGesture(notes, totalBeats * 0.56, -1, harmonicMap, range)
   }
 }
 
 function normalizeMonophonic(notes: MelodyNote[], totalBeats: number): MelodyNote[] {
-  const sorted = notes
-    .filter((note) => note.startBeat < totalBeats - 0.01)
+  const candidates = notes
+    .filter((note) => note.startBeat <= totalBeats - MIN_MELODIC_DURATION_BEATS)
     .sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch)
+  // Profile表現の局所変形で近接しすぎたアタックは、直前音を極端に短くせず後続側を省く。
+  // これによりモノフォニック性と最小可聴音価を同時に保つ。
+  const sorted: MelodyNote[] = []
+  for (const note of candidates) {
+    const previous = sorted[sorted.length - 1]
+    if (previous && note.startBeat - previous.startBeat < MIN_MELODIC_DURATION_BEATS - 1e-6) continue
+    sorted.push(note)
+  }
   for (let index = 0; index < sorted.length; index++) {
     const note = sorted[index]
     const next = sorted[index + 1]
-    const available = Math.max(0.05, Math.min(totalBeats, next?.startBeat ?? totalBeats) - note.startBeat)
-    note.durationBeats = Math.max(0.05, Math.min(note.durationBeats, available))
+    const available = Math.min(totalBeats, next?.startBeat ?? totalBeats) - note.startBeat
+    note.durationBeats = Math.max(MIN_MELODIC_DURATION_BEATS, Math.min(note.durationBeats, available))
   }
   return sorted
 }

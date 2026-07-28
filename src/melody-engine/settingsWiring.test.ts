@@ -98,6 +98,73 @@ describe("Syncopation: syncopationAmountが高いほどオフビート開始が�
     expect(mid).toBeGreaterThan(low)
     expect(high).toBeGreaterThan(mid)
   })
+
+  it("高いsyncopationAmountでは、裏拍アタックが次拍へまたがる割合も増える", () => {
+    function meaningfulSyncopationRate(sync: number): number {
+      const params = { ...resolveGenerationParams("original-custom", "verse", "balanced", "growing"), syncopationAmount: sync }
+      let syncopated = 0
+      let total = 0
+      for (let seed = 1; seed <= 400; seed++) {
+        for (const event of generateRhythmMotif(new SeededRandom(seed * 137 + 11), "balanced", params)) {
+          if (event.isRest) continue
+          total++
+          const fractional = event.offsetBeats - Math.floor(event.offsetBeats)
+          const nextBeat = Math.floor(event.offsetBeats) + 1
+          if (fractional > 0.01 && event.offsetBeats + event.durationBeats > nextBeat + 0.01) syncopated++
+        }
+      }
+      return syncopated / total
+    }
+
+    expect(meaningfulSyncopationRate(0.8)).toBeGreaterThan(meaningfulSyncopationRate(0.15))
+  })
+})
+
+describe("Rhythm quality: 拍階層・音価・終端を人間的に保つ", () => {
+  it("強拍の平均音価は弱拍より長く、同音価の機械的な連続を抑える", () => {
+    const params = resolveGenerationParams("original-custom", "verse", "balanced", "growing")
+    let strongDuration = 0
+    let strongCount = 0
+    let weakDuration = 0
+    let weakCount = 0
+    let maxRun = 0
+
+    for (let seed = 1; seed <= 500; seed++) {
+      let previous: number | null = null
+      let run = 0
+      for (const event of generateRhythmMotif(new SeededRandom(seed * 173 + 19), "balanced", params)) {
+        if (event.isRest) continue
+        if (previous === event.durationBeats) run++
+        else run = 1
+        previous = event.durationBeats
+        maxRun = Math.max(maxRun, run)
+
+        const beat = Math.round(event.offsetBeats)
+        if (Math.abs(event.offsetBeats - beat) >= 0.01) continue
+        if (((beat % 2) + 2) % 2 === 0) {
+          strongDuration += event.durationBeats
+          strongCount++
+        } else {
+          weakDuration += event.durationBeats
+          weakCount++
+        }
+      }
+    }
+
+    expect(strongDuration / strongCount).toBeGreaterThan(weakDuration / weakCount)
+    expect(maxRun).toBeLessThanOrEqual(3)
+  })
+
+  it("全parametric Profileの完成ノートに0.25拍未満の極短音を作らない", () => {
+    const profiles: MelodyGeneratorProfile[] = ["standard", "minimal", "leaping", "rhythmic", "chromatic", "cinematic"]
+    for (const profile of profiles) {
+      for (let seed = 1; seed <= 50; seed++) {
+        for (const candidate of gen({ profiles: [profile], seed }).candidates) {
+          for (const note of candidate.notes) expect(note.durationBeats).toBeGreaterThanOrEqual(0.25)
+        }
+      }
+    }
+  })
 })
 
 describe("Key: parametric Profileの出力へ計測可能な差を生む", () => {

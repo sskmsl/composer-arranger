@@ -43,7 +43,7 @@ import {
   selectDiverseCandidates,
 } from "./candidateSelection"
 import { melodySimilarity } from "./melodySimilarity"
-import { isChordTone, isTensionTone } from "@/core/chord"
+import { allUsablePitchClasses, isChordTone, isTensionTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
 import { SETTINGS_APPLICABILITY } from "./settingsApplicability"
 import {
@@ -54,6 +54,7 @@ import {
   rangeForPhrase,
 } from "./candidateMelodyDNA"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
+import { nearestAllowedPitch } from "./pitchUtils"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -168,6 +169,7 @@ function buildCandidate(
       input.totalBeats,
     ),
     harmonicMap,
+    input.range,
   )
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
@@ -203,6 +205,7 @@ function refreshPhrasePlans(plans: PhrasePlan[], notes: MelodyNote[]): PhrasePla
 function reconcileFinalToneRoles(
   notes: MelodyNote[],
   harmonicMap: ReturnType<typeof buildHarmonicMap>,
+  range: RangeSetting,
 ): MelodyNote[] {
   for (const note of notes) {
     if (note.plannedResolution) continue
@@ -212,7 +215,14 @@ function reconcileFinalToneRoles(
         note.startBeat < candidate.chord.startBeat + candidate.chord.durationBeats,
     )
     if (!entry) continue
-    const pc = pitchClass(note.pitch)
+    let pc = pitchClass(note.pitch)
+    const usable = allUsablePitchClasses(entry.parsed)
+    // Candidate Narrative / Profile Expression後に説明できないコード外音が残った場合だけ、
+    // 最終実音を近傍の許容音へ直す。計画済みresolutionを持つ非和声音には適用しない。
+    if (!usable.includes(pc)) {
+      note.pitch = nearestAllowedPitch(note.pitch, usable, range)
+      pc = pitchClass(note.pitch)
+    }
     if (
       (note.plannedToneRole === "chord-tone" || note.plannedToneRole === "common-tone") &&
       !isChordTone(entry.parsed, pc)
@@ -220,6 +230,8 @@ function reconcileFinalToneRoles(
       note.plannedToneRole = isTensionTone(entry.parsed, pc) ? "tension-hold" : "unresolved-conflict"
     } else if (note.plannedToneRole === "tension-hold" && !isTensionTone(entry.parsed, pc)) {
       note.plannedToneRole = isChordTone(entry.parsed, pc) ? "chord-tone" : "unresolved-conflict"
+    } else if (note.plannedToneRole === "unresolved-conflict") {
+      note.plannedToneRole = isChordTone(entry.parsed, pc) ? "chord-tone" : "tension-hold"
     }
   }
   return notes

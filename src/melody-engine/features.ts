@@ -66,7 +66,13 @@ export function computeMelodyFeatures(
       else if (isTensionTone(entry.parsed, pc)) tensionCount++
     }
     const offsetInBeat = n.startBeat - Math.floor(n.startBeat)
-    if (Math.abs(offsetInBeat - 0.5) < 0.01) syncopated++
+    const offbeatAttack =
+      Math.abs(offsetInBeat - 0.25) < 0.01 ||
+      Math.abs(offsetInBeat - 0.5) < 0.01 ||
+      Math.abs(offsetInBeat - 0.75) < 0.01
+    const nextBeat = Math.floor(n.startBeat) + 1
+    const sustainsAcrossBeat = offsetInBeat > 0.01 && n.startBeat + n.durationBeats > nextBeat + 0.01
+    if (offbeatAttack || sustainsAcrossBeat) syncopated++
   }
 
   const highest = Math.max(...pitches)
