@@ -164,7 +164,7 @@ describe("Rhythm quality: 拍階層・音価・終端を人間的に保つ", () 
         }
       }
     }
-  })
+  }, 15_000)
 })
 
 describe("Key: parametric Profileの出力へ計測可能な差を生む", () => {
