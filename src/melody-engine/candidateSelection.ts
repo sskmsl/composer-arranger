@@ -1,6 +1,7 @@
 import type {
   CandidateMelodyDNA,
   CandidateSelectionReason,
+  MelodyTransitionPlan,
   MelodyGeneratorProfile,
   MelodySimilarityBreakdown,
 } from "@/core/melody"
@@ -42,6 +43,7 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   qualityScore: number
   profileFitScore: number
   candidateMelodyDNA?: CandidateMelodyDNA
+  transitionPlan?: MelodyTransitionPlan
 }
 
 export interface SelectedCandidate<T extends SelectableCandidate> {
@@ -63,6 +65,8 @@ export interface CandidateSelectionOptions {
   requireOpeningCategoryDiversity?: boolean
   requireActualStartBeatDiversity?: boolean
   requireCandidateDNADiversity?: boolean
+  requireTransitionStrategyDiversity?: boolean
+  minimumTransitionFitScore?: number
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
@@ -167,6 +171,18 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
       ]
       return new Set(signatures).size === set.length && dimensions.filter((values) => new Set(values).size >= 2).length >= 3
     }
+    const transitionStrategiesValid = (set: T[]): boolean => {
+      if (!options.requireTransitionStrategyDiversity) return true
+      const plans = set.map((candidate) => candidate.transitionPlan)
+      return (
+        plans.every(Boolean) &&
+        plans.every(
+          (plan) =>
+            plan!.transitionFitScore >= (options.minimumTransitionFitScore ?? 0),
+        ) &&
+        new Set(plans.map((plan) => plan!.strategy)).size >= 2
+      )
+    }
 
     type RankedSet = {
       set: T[]
@@ -182,6 +198,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
           const set = [eligible[i], eligible[j], eligible[k]]
           if (!openingCategoriesValid(set)) continue
           if (!candidateDNAValid(set)) continue
+          if (!transitionStrategiesValid(set)) continue
           const similarities = [
             pairSimilarity(set[0], set[1]),
             pairSimilarity(set[0], set[2]),

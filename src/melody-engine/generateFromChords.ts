@@ -10,6 +10,7 @@ import type {
   MelodyNote,
   MelodyOpeningIntent,
   MelodyOpeningPlan,
+  MelodyTransitionPlan,
   MelodyVariant,
   PhrasePlan,
   ProfileExpressionPlan,
@@ -61,6 +62,10 @@ import {
 } from "./candidateMelodyDNA"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
 import { nearestAllowedPitch } from "./pitchUtils"
+import {
+  applySectionTransition,
+  type SectionTransitionContext,
+} from "./sectionTransition"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -408,6 +413,8 @@ export interface GenerateProfileBatchInput {
   motifDNA?: SongMotifDNA
   /** Issue #13: parametric Profileのテンション候補、Speech-Rhythmicのsyncopationへ軽く反映する */
   key?: string
+  /** Issue #30: 前セクションにActive Melodyがある場合だけ与える接続コンテキスト。 */
+  transitionContext?: SectionTransitionContext
 }
 
 export interface ProfileCandidate {
@@ -424,6 +431,7 @@ export interface ProfileCandidate {
   elegiacPlan?: ElegiacGenerationPlan
   profileExpressionPlan?: ProfileExpressionPlan
   generationDiagnostics?: CandidateGenerationDiagnostics
+  transitionPlan?: MelodyTransitionPlan
 }
 
 /** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
@@ -445,6 +453,7 @@ interface BuiltPattern {
   candidateMelodyDNA: CandidateMelodyDNA
   elegiacPlan?: ElegiacGenerationPlan
   profileExpressionPlan?: ProfileExpressionPlan
+  transitionPlan?: MelodyTransitionPlan
 }
 
 /**
@@ -586,10 +595,22 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           }
         }
 
+        const transitioned = applySectionTransition(
+          notes,
+          input.transitionContext,
+          candidatePoolIndex,
+          input.range,
+          input.chords,
+        )
+        notes = transitioned.notes
         const features = computeMelodyFeatures(notes, harmonicMap, 0, input.totalBeats)
         const placementDiagnostics = directPlacementDiagnostics(notes, harmonicMap)
         const finalHash = noteHash(notes)
         const fitScore = profileFitScore(profile, features, advancedMetrics)
+        const intrinsicQuality = combinedQualityScore(scoreCandidate(features, profileParams), fitScore, profile)
+        const qualityScore = transitioned.plan
+          ? Math.min(intrinsicQuality, intrinsicQuality * 0.85 + transitioned.plan.transitionFitScore * 0.15)
+          : intrinsicQuality
         return {
           notes,
           plans,
@@ -597,7 +618,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           prosodyPlan,
           seed: patternSeed,
           opening,
-          qualityScore: combinedQualityScore(scoreCandidate(features, profileParams), fitScore, profile),
+          qualityScore,
           profileFitScore: fitScore,
           candidatePoolIndex,
           openingRegenerationAttempts,
@@ -608,29 +629,42 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           candidateMelodyDNA,
           elegiacPlan,
           profileExpressionPlan: undefined,
+          transitionPlan: transitioned.plan,
         }
       }
 
       // parametric: 既存フレーズ生成エンジンをProfile専用パラメータ + Opening Planで駆動する
       const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening, candidateMelodyDNA, profile)
-      const advancedMetrics = computeAdvancedMelodyMetrics(c.notes, harmonicMap)
-      const fitScore = profileFitScore(profile, computeMelodyFeatures(c.notes, harmonicMap, 0, input.totalBeats), advancedMetrics)
+      const transitioned = applySectionTransition(
+        c.notes,
+        input.transitionContext,
+        candidatePoolIndex,
+        input.range,
+        input.chords,
+      )
+      const advancedMetrics = computeAdvancedMelodyMetrics(transitioned.notes, harmonicMap)
+      const fitScore = profileFitScore(profile, computeMelodyFeatures(transitioned.notes, harmonicMap, 0, input.totalBeats), advancedMetrics)
+      const intrinsicQuality = combinedQualityScore(c.score, fitScore, profile)
+      const qualityScore = transitioned.plan
+        ? Math.min(intrinsicQuality, intrinsicQuality * 0.85 + transitioned.plan.transitionFitScore * 0.15)
+        : intrinsicQuality
       return {
-        notes: c.notes,
+        notes: transitioned.notes,
         plans: c.plans,
         advancedMetrics,
         seed: c.seed,
         opening,
-        qualityScore: combinedQualityScore(c.score, fitScore, profile),
+        qualityScore,
         profileFitScore: fitScore,
         candidatePoolIndex,
         openingRegenerationAttempts,
         placementDiagnostics: c.placementDiagnostics,
         rawNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.rawPitch, t.role, t.resolution])),
         placedNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.placedPitch, t.role, t.resolution])),
-        finalNotesHash: noteHash(c.notes),
+        finalNotesHash: noteHash(transitioned.notes),
         candidateMelodyDNA,
         profileExpressionPlan: c.profileExpressionPlan,
+        transitionPlan: transitioned.plan,
       }
     }
 
@@ -703,6 +737,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           requireOpeningCategoryDiversity: true,
           requireActualStartBeatDiversity: true,
           requireCandidateDNADiversity: true,
+          requireTransitionStrategyDiversity: Boolean(input.transitionContext),
+          minimumTransitionFitScore: input.transitionContext ? 55 : undefined,
         },
       )
 
@@ -780,6 +816,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         elegiacPlan: pattern.elegiacPlan,
         profileExpressionPlan: pattern.profileExpressionPlan,
         generationDiagnostics,
+        transitionPlan: pattern.transitionPlan,
       })
     })
   })
@@ -819,6 +856,7 @@ export function toMelodyVariantFromProfile(
     elegiacPlan: candidate.elegiacPlan,
     profileExpressionPlan: candidate.profileExpressionPlan,
     generationDiagnostics: candidate.generationDiagnostics,
+    transitionPlan: candidate.transitionPlan,
   }
 }
 

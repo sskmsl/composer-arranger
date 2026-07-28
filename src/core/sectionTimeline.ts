@@ -45,8 +45,9 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const lead: MelodyNote[] = []
   const accompaniment: MelodyNote[] = []
   const accompanimentPattern: MelodyNote[] = []
+  const sections = normalizeSectionTimeline(project.sections)
 
-  for (const section of normalizeSectionTimeline(project.sections)) {
+  for (const [sectionIndex, section] of sections.entries()) {
     const offset = (section.startBar - 1) * beatsPerBar
     const sectionChords = project.chords
       .filter((candidate) => candidate.sectionId === section.id)
@@ -60,6 +61,52 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
           .filter((layer) => layer.partRole === "lead")
           .flatMap((layer) => layer.notes)
       : []
+    // Issue #30: 接続計画は曲全体Preview/MIDIで同じ材料へ実音化する。
+    // 前セクション本体は保存時に書き換えず、採用中の組み合わせに対してだけ境界を組み立てる。
+    const transitionContextIsCurrent =
+      variant?.transitionPlan &&
+      project.sectionMelodyAssignments[variant.transitionPlan.sourceSectionId] ===
+        variant.transitionPlan.sourceVariantId &&
+      sections[sectionIndex - 1]?.id === variant.transitionPlan.sourceSectionId
+    if (variant?.transitionPlan && transitionContextIsCurrent) {
+      const plan = variant.transitionPlan
+      const sourceNotes = lead
+        .filter((note) => note.id.startsWith(`${plan.sourceSectionId}:`))
+        .sort((a, b) => a.startBeat - b.startBeat)
+      const sourceLast = sourceNotes[sourceNotes.length - 1]
+      const firstCurrentBeat = sectionLeadNotes.length > 0
+        ? offset + Math.min(...sectionLeadNotes.map((note) => note.startBeat))
+        : offset
+      if (sourceLast && plan.sustainAcrossBoundaryBeats > 0) {
+        const heldUntil = Math.min(offset + plan.sustainAcrossBoundaryBeats, firstCurrentBeat)
+        sourceLast.durationBeats = Math.max(
+          sourceLast.durationBeats,
+          heldUntil - sourceLast.startBeat,
+        )
+      }
+      if (plan.pickup) {
+        const pickupStart = offset - plan.pickup.durationBeats
+        if (sourceLast && sourceLast.startBeat + sourceLast.durationBeats > pickupStart) {
+          sourceLast.durationBeats = Math.max(0.0625, pickupStart - sourceLast.startBeat)
+        }
+        lead.push({
+          id: `${section.id}:transition-pickup:${variant.id}`,
+          startBeat: Math.max(0, pickupStart),
+          durationBeats: plan.pickup.durationBeats,
+          pitch: plan.pickup.pitch,
+          velocity: plan.pickup.velocity,
+          locks: [],
+          plannedToneRole: "anticipation",
+          plannedResolution: sectionLeadNotes[0]
+            ? {
+                targetPitchClass: ((sectionLeadNotes[0].pitch % 12) + 12) % 12,
+                targetBeat: offset + sectionLeadNotes[0].startBeat,
+                maximumDelayBeats: 1,
+              }
+            : undefined,
+        })
+      }
+    }
     // Issue #41: accompaniment="none"(Silence)のセクションは伴奏を鳴らさない。
     // ここで除外しないと Silence と Chords Only が曲全体再生・曲全体MIDIで同じ結果になる。
     if (accompanimentEnabled(section)) {

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
-import { SECTION_ROLE_LABELS } from "@/core/section"
+import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
@@ -39,6 +39,26 @@ export function ArrangementWorkspace() {
   const stop = () => {
     previewPlayer.stop()
     setPlaying(false)
+  }
+
+  const playBoundary = (sectionStartBar: number) => {
+    const material = buildSongPlaybackMaterial(project)
+    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const boundaryBeat = (sectionStartBar - 1) * beatsPerBar
+    const range = {
+      startBeat: Math.max(0, boundaryBeat - beatsPerBar),
+      endBeat: Math.min(material.totalBeats, boundaryBeat + beatsPerBar),
+    }
+    setPlaying(true)
+    previewPlayer.play({
+      bpm: project.song.tempo,
+      chords: material.chords,
+      melody: material.melody,
+      accompaniment: material.accompanimentPattern,
+      mode: "chords-melody",
+      range,
+      onEnded: () => setPlaying(false),
+    })
   }
 
   return (
@@ -130,6 +150,11 @@ export function ArrangementWorkspace() {
 
               {/* Issue #58: セクション編集画面へ戻らずアレンジ画面から直接複製・削除できるようにする */}
               <div className="flex shrink-0 gap-1">
+                {index > 0 && (
+                  <IconButton title="前セクションとの境界を再生" onClick={() => playBoundary(section.startBar)}>
+                    <Play size={13} />
+                  </IconButton>
+                )}
                 <IconButton title="複製" onClick={() => duplicateSection(section.id)}>
                   <Copy size={13} />
                 </IconButton>
