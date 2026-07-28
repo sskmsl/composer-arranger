@@ -202,6 +202,17 @@ export function assessReactiveLayerCollisions(
   let voiceCrossingCount = 0
   let simultaneousAttackCount = 0
   let parallelLargeLeapCount = 0
+  const melodyCenter =
+    melodyNotes.length === 0
+      ? 66
+      : melodyNotes.reduce((sum, note) => sum + note.pitch, 0) /
+        melodyNotes.length
+  const candidateCenter =
+    candidateNotes.length === 0
+      ? melodyCenter
+      : candidateNotes.reduce((sum, note) => sum + note.pitch, 0) /
+        candidateNotes.length
+  const candidateSide = candidateCenter < melodyCenter ? "below" : "above"
 
   for (const candidate of candidateNotes) {
     for (const melody of melodyNotes) {
@@ -212,16 +223,24 @@ export function assessReactiveLayerCollisions(
       if (interval === 1) minorSecondOverlapBeats += overlap
       if (Math.abs(candidate.startBeat - melody.startBeat) <= 0.08) simultaneousAttackCount++
       if (
-        (analysis.registerBudget.preferredSide === "below" && candidate.pitch >= melody.pitch) ||
-        (analysis.registerBudget.preferredSide === "above" && candidate.pitch <= melody.pitch)
+        (candidateSide === "below" && candidate.pitch >= melody.pitch) ||
+        (candidateSide === "above" && candidate.pitch <= melody.pitch)
       ) {
         voiceCrossingCount++
       }
     }
     for (const moment of analysis.protectedMoments) {
+      const protectedEnd =
+        moment.reasons.every(
+          (reason) =>
+            reason === "long-note" ||
+            reason === "leap-landing",
+        )
+          ? Math.min(moment.endBeat, moment.startBeat + 0.5)
+          : moment.endBeat
       protectedMomentOverlapBeats += Math.max(
         0,
-        Math.min(candidate.startBeat + candidate.durationBeats, moment.endBeat) -
+        Math.min(candidate.startBeat + candidate.durationBeats, protectedEnd) -
           Math.max(candidate.startBeat, moment.startBeat),
       )
     }
@@ -291,8 +310,21 @@ export function evaluateReactiveLayerQuality(
     candidateNotes.length === 0
       ? 0
       : candidateNotes.reduce((sum, note) => {
+          const melodyCenter =
+            analysis.registerBudget.melodyLow +
+            (analysis.registerBudget.melodyHigh -
+              analysis.registerBudget.melodyLow) /
+              2
+          const candidateCenter =
+            candidateNotes.reduce(
+              (candidateSum, candidate) =>
+                candidateSum + candidate.pitch,
+              0,
+            ) / candidateNotes.length
+          const candidateSide =
+            candidateCenter < melodyCenter ? "below" : "above"
           const distance =
-            analysis.registerBudget.preferredSide === "below"
+            candidateSide === "below"
               ? analysis.registerBudget.melodyLow - note.pitch
               : note.pitch - analysis.registerBudget.melodyHigh
           return sum + Math.max(0, distance)

@@ -167,7 +167,7 @@ export function CounterWorkspace() {
             Counter Generator
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            Active Melodyの隙間へ、主旋律を引き立てる1〜4拍の応答を提案します
+            休符と低活動区間へ、主旋律を引き立てる2〜4拍の対旋律を提案します
           </p>
         </div>
         <Button

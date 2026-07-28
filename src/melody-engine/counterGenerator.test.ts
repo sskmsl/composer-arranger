@@ -49,15 +49,49 @@ const input = {
 }
 
 describe("Issue #70 / Counter Generator MVP", () => {
-  it("9案から品質と多様性を考慮した独立3候補を選ぶ", () => {
+  it("拡張候補プールから品質と多様性を考慮した独立3候補を選ぶ", () => {
     const candidates = generateCounterCandidates(input)
-    expect(candidates).toHaveLength(3)
+    expect(
+      candidates,
+      JSON.stringify(
+        candidates.map((candidate) => ({
+          style: candidate.generatorStyle,
+          quality: candidate.quality,
+          collisions: candidate.collisions,
+          notes: candidate.notes.map((item) => [
+            item.startBeat,
+            item.durationBeats,
+            item.pitch,
+          ]),
+        })),
+      ),
+    ).toHaveLength(3)
     expect(new Set(candidates.map((candidate) => candidate.generatorStyle)).size).toBeGreaterThanOrEqual(2)
     expect(new Set(candidates.map((candidate) => candidate.role)).size).toBeGreaterThanOrEqual(2)
+    expect(
+      new Set(
+        candidates.map((candidate) =>
+          candidate.notes
+            .map(
+              (item) =>
+                `${item.startBeat}:${item.durationBeats}:${item.pitch}`,
+            )
+            .join("|"),
+        ),
+      ).size,
+    ).toBe(3)
     expect(candidates[0].selectionReason).toBe("highest-quality")
     expect(candidates.slice(1).every((candidate) => candidate.selectionReason === "quality-diversity-balance")).toBe(true)
     expect(candidates.every((candidate) => candidate.notes.length > 0)).toBe(true)
     expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
+    expect(candidates.every((candidate) => candidate.notes.length >= 3)).toBe(true)
+    expect(
+      candidates.every((candidate) => {
+        const first = candidate.notes[0]
+        const last = candidate.notes.at(-1)!
+        return last.startBeat + last.durationBeats - first.startBeat >= 1
+      }),
+    ).toBe(true)
     const hasStepwiseCandidate = candidates.some(
         (candidate) =>
           candidate.notes.length >= 2 &&
@@ -82,9 +116,9 @@ describe("Issue #70 / Counter Generator MVP", () => {
   it("主旋律の休符へ配置し、Blocking Collisionを作らない", () => {
     const candidates = generateCounterCandidates(input)
     for (const candidate of candidates) {
-      expect(candidate.quality.gapUsage).toBe(100)
+      expect(candidate.quality.gapUsage).toBeGreaterThanOrEqual(99.9)
       expect(candidate.collisions.hasBlockingCollision).toBe(false)
-      expect(candidate.notes.every((counterNote) => Math.floor(counterNote.startBeat) % 2 === 1)).toBe(true)
+      expect(Math.floor(candidate.notes[0].startBeat) % 2).toBe(1)
     }
   })
 
@@ -104,6 +138,14 @@ describe("Issue #70 / Counter Generator MVP", () => {
     expect(second.map(signature)).toEqual(first.map(signature))
   })
 
+  it("異なるseedでも単音候補へ退行しない", () => {
+    for (const seed of [1, 7, 42, 99, 2026]) {
+      const candidates = generateCounterCandidates({ ...input, seed })
+      expect(candidates).toHaveLength(3)
+      expect(candidates.every((candidate) => candidate.notes.length >= 3)).toBe(true)
+    }
+  })
+
   it("十分な休符がない場合は空候補となり、主旋律へ無理に重ねない", () => {
     const continuous = {
       ...input,
@@ -113,5 +155,30 @@ describe("Issue #70 / Counter Generator MVP", () => {
       },
     }
     expect(generateCounterCandidates(continuous)).toHaveLength(0)
+  })
+
+  it("最高音ではないロングトーンの後半をCounter Windowとして利用する", () => {
+    const sustained = {
+      ...input,
+      melody: {
+        ...input.melody,
+        notes: [
+          note("opening-high", 0, 1, 72),
+          note("sustain", 1, 3, 64),
+          note("closing-high", 4, 12, 72),
+        ],
+      },
+    }
+    const candidates = generateCounterCandidates(sustained)
+    expect(candidates.length).toBeGreaterThan(0)
+    expect(
+      candidates.some((candidate) =>
+        candidate.notes.some(
+          (counterNote) =>
+            counterNote.startBeat >= 1.75 && counterNote.startBeat < 3.75,
+        ),
+      ),
+    ).toBe(true)
+    expect(candidates.every((candidate) => candidate.notes.length >= 3)).toBe(true)
   })
 })
