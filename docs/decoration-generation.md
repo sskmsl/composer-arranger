@@ -32,6 +32,8 @@ Transition Fillは次Sectionの最初のコードを参照し、Root / Third / F
 
 候補選抜ではRoleとShapeの種類数、階段状の順次進行、Onset差を優先しつつ、Quality 55% + Diversity 35% + Preference 10%で比較する。同一ノート列はVelocity差だけでは別案と見なさない。
 
+短いMelody Gapへ通常の4拍用リズムセルを圧縮せず、Gap長とDensityに応じて最大発音数を制限する。Normalは全候補を同じ密度へ固定する指定ではなく、Pedal / Swell / 一部のResponseをSparse、推進目的の一部をRichに展開するバランス設定として扱う。余白を持つ候補を10案中最低3案確保し、密なFillだけへ選抜が偏らないようにする。
+
 ## Counterとの責務分離
 
 - Counter: Active Melodyの休符・Protected Moment・音域を主要Contextにする。
