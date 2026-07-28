@@ -31,12 +31,15 @@ DAW を目指すアプリではありません。ノート編集や細かな打�
 - **コード入力**: `F#m(add9) | E | D | Dsus2` のようなテキスト表記でのコード入力、入力内容の解析結果・警告表示
 - **Chord Generator 連携**: [Chord Generator](https://github.com/sskmsl/composer-os-chord-generator) の書き出しファイルを読み込み、曲名・テンポ・セクション・コードを引き継いで開始
 - **セクション編集**: セクションの追加・複製・削除・ドラッグでの並び替え、Section Role(イントロ/Aメロ/サビ など)の設定
-- **セクション内容の指定**: 各セクションで鳴らす内容を Melody / Motif / Ostinato / Drone / 無音 から選択(現在はイントロ以外へも設定可能)
+- **セクション内容の指定**: 各セクションで鳴らす内容を Melody / Motif / Ostinato / Drone / 無音 から選択(現在はイントロ以外へも設定可能)。Auto選択時はセクション適合度・Song Profile適合度・和声的な面白さ・構造の明瞭さ・間の心地よさを評価し、多様性を保ちながら3案を選抜
 - **メロディ生成**: コード進行・セクション・Song Profile から複数のメロディ候補を生成。ノート単位・小節単位でのロックと部分再生成に対応
+- **セクション接続(Transition)**: 前セクションの終止・音域・方向性・Motifの傾向を踏まえ、Resolved / Suspended / Open / Carry-over / Pickup / Call & Responseの6戦略から接続候補を計画。前セクションの採用メロディが変わった場合は接続情報が古い旨を表示
 - **フレーズ生成**: 2〜8小節の独立したフレーズ候補を3案生成し、個別に試聴・再生成
+- **Counter Generator**: Active Melodyの休符・隙間へ、Bell/Piano/Strings/Guitar/Synthの5スタイルから合いの手・応答フレーズ候補を生成。主旋律との衝突を検知
+- **Decoration Generator**: 前後セクションの構造とコード進行から、装飾(Decorative)・移行(Transition)・終止(Ending)いずれかのフィル候補を生成。Active Melodyがなくても使える
 - **候補の比較・採用**: 複数候補をブラインドで聴き比べ、Star/却下などで評価しながらセクションごとに採用案を決定
-- **曲全体のプレビュー**: 採用したセクションを繋げて曲全体を試聴
-- **MIDI Export**: セクション単位・曲全体単位で SMF 書き出し。セクション名をマーカーとして出力し、Logic Pro 側で構成を確認できる
+- **曲全体のプレビュー**: 採用したセクションを繋げて曲全体を試聴。セクション境界だけを前後1小節ずつ再生して繋がりを確認する機能もある
+- **MIDI Export**: セクション単位・曲全体単位で SMF 書き出し。セクション名をマーカーとして出力し、Logic Pro 側で構成を確認できる。Counter/Decorationは専用トラックとして分離
 - **プロジェクト保存**: ブラウザ内(IndexedDB)への自動保存、プロジェクト一覧からの再開・複製・削除、JSON ファイルでの書き出し・読み込み
 - **Undo/Redo**: 生成・編集操作の履歴管理
 
@@ -50,6 +53,8 @@ DAW を目指すアプリではありません。ノート編集や細かな打�
 候補生成 (メロディ / フレーズ / モチーフなど)
   ↓
 比較・採用
+  ↓
+(任意) Counter / Decoration で合いの手・装飾フレーズを追加
   ↓
 MIDI Export (セクションマーカー付き)
   ↓
@@ -73,18 +78,20 @@ Logic Pro で編曲・ミックス
 
 - コード入力・セクション編集・Chord Generator 連携
 - メロディ／フレーズ生成、ロック・部分再生成、Develop a Seed(継続/変奏など)
-- セクション内容(Melody/Motif/Ostinato/Drone/無音)の生成と MIDI トラック分離
+- セクション内容(Melody/Motif/Ostinato/Drone/無音)の生成と MIDI トラック分離、Auto選択の品質評価・多様性選抜
+- セクション間の接続(Transition)を考慮したメロディ生成
+- Counter Generator・Decoration Generator(主旋律を保護する共通基盤・衝突回避つき)
+- リズム/拍節の自然さ、候補多様性選抜、Generator Profileごとの生成規則の改善
 - 候補比較・採用ワークフロー
 - MIDI Export(セクションマーカー付き)、プロジェクト保存・IndexedDB自動保存
 
 **In Progress**
 
-- セクション内容の自動選択・品質評価による多様性選抜
-- 複数レイヤーの重ね合わせ(モチーフ+オスティナートの同時使用など)
-- イントロ以外の間奏・アウトロ・ブリッジなどへの生成ルール拡張
+- なし(直近の改善は上記Completedへ反映済み)
 
 **Future**
 
+- 複数レイヤーの重ね合わせ(モチーフ+オスティナートの同時使用など)
 - Arrangement Engine(Pad/Texture/FX を含む本格的な伴奏生成)
 - 既存 MIDI やオーディオを読み込んでの改善提案(Logic Pro Round Trip)
 

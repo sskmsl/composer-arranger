@@ -348,6 +348,8 @@
     <a href="#rightpanel">生成設定パネル</a>
     <a href="#bottombar">再生・書き出し・履歴</a>
     <a href="#phrase">Phraseワークスペース</a>
+    <a href="#counter">Counterワークスペース</a>
+    <a href="#decoration">Decorationワークスペース</a>
     <a href="#arrangement">Arrangementワークスペース</a>
     <a href="#audition">Auditionワークスペース</a>
   </nav>
@@ -356,11 +358,13 @@
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Arrangement / Audition</strong> の4タブを切り替えて使います。</p>
+      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Counter / Decoration / Arrangement / Audition</strong> の6タブを切り替えて使います。</p>
 
       <div class="tab-pill-row">
         <span class="tab-pill active">Melody</span>
         <span class="tab-pill">Phrase</span>
+        <span class="tab-pill">Counter</span>
+        <span class="tab-pill">Decor</span>
         <span class="tab-pill">Arrangement</span>
         <span class="tab-pill">Audition</span>
       </div>
@@ -371,6 +375,8 @@
           <tbody>
             <tr><td>Melody</td><td>セクション1つ分の旋律・モチーフ・伴奏を作り込む主画面</td></tr>
             <tr><td>Phrase</td><td>2〜8小節の短いフレーズだけを、意図つきで作って聴き比べる</td></tr>
+            <tr><td>Counter</td><td>Active Melodyの隙間へ、合いの手・応答フレーズを提案させる</td></tr>
+            <tr><td>Decoration</td><td>セクションの構造とコードから、装飾・移行・終止のフィルを提案させる</td></tr>
             <tr><td>Arrangement</td><td>セクションを並べ替えて曲全体を組み立てる</td></tr>
             <tr><td>Audition</td><td>候補をA/B/Cで切り替えながら判定する</td></tr>
           </tbody>
@@ -397,7 +403,7 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>Melody / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
+            <tr><td>Melody / Phrase / Counter / Decoration / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
           </tbody>
         </table>
       </div>
@@ -568,8 +574,14 @@
       <h3>生成と候補の選択</h3>
       <ul>
         <li><strong>Generate from Chords</strong> — コード進行から新しい候補群を生成します。右パネルで選択したGenerator Profileの数 × 3パターン分の候補が一度に作られます。</li>
-        <li>生成後は候補がピル(タブ)として並び、クリックで切り替えて聴き比べられます。</li>
+        <li>生成後は候補がピル(タブ)として並び、クリックで切り替えて聴き比べられます。候補ピルの近くにマウスを乗せると「<span class="keycap">Space</span>で再生・停止」のヒントが表示されます(下部バーの再生ボタンまでマウスを移動しなくても試聴できます)。</li>
         <li><strong>Set as Active Melody</strong> — 表示中の候補をそのセクションの「採用旋律」に設定します。Arrangementタブでの曲全体再生・MIDI書き出しはこのActive Melodyを使います。</li>
+      </ul>
+
+      <h3>候補に添えられるバッジ</h3>
+      <ul>
+        <li><strong>Transition</strong> — 前セクションの終止・音域・Motifの傾向を踏まえた接続戦略(Resolved / Suspended / Open / Carry-over / Pickup / Call & Response)と、接続の当てはまり度(Fit)を表示します。前セクションの採用旋律を変更すると、この情報が古くなった旨の注意書きが表示されるので、その場合は再生成してください。</li>
+        <li><strong>Auto Quality</strong> — ContentをAutoにして生成した候補にのみ表示され、セクション適合度・Song Profile適合度・和声的な面白さ・構造の明瞭さ・間の心地よさを合成した総合スコアと、選ばれた理由(Best Fit / Content Diversity / Quality + Diversity)を示します。カーソルを乗せると各観点の内訳が見られます。</li>
       </ul>
 
       <h3>3つのピアノロール</h3>
@@ -702,7 +714,7 @@
       <div class="grid-2">
         <div class="card">
           <h4>再生</h4>
-          <p>再生モードを Melody Only / Chords + Melody / Chords Only / Arpeggio Only から選び、再生・停止ボタンで試聴します。伴奏なし設定のセクションでは、モードに関わらずコードは鳴りません。</p>
+          <p>再生モードを Melody Only / Chords + Melody / Chords Only / Arpeggio Only から選び、再生・停止ボタンで試聴します。伴奏なし設定のセクションでは、モードに関わらずコードは鳴りません。テキスト入力にフォーカスしていなければ、<span class="keycap">Space</span>キーでも再生・停止を切り替えられます。</p>
         </div>
         <div class="card">
           <h4>MIDI書き出し</h4>
@@ -727,6 +739,7 @@
             <tr><td>Active Melody / Active Melodies</td><td>リード（旋律・モチーフ・弱起）</td></tr>
             <tr><td>Accompaniment</td><td>Ostinato / Drone（伴奏パートのリード内容）</td></tr>
             <tr><td>Accompaniment Pattern</td><td>割り当てた伴奏パターン</td></tr>
+            <tr><td>Counter and Decoration</td><td>採用したCounter / Decoration候補（曲全体書き出し時）</td></tr>
             <tr><td>Chords</td><td>コードの構成音</td></tr>
           </tbody>
         </table>
@@ -762,20 +775,75 @@
       <p>候補ごとに再生・作り直し・MIDI書き出しができます。再生モードはこのタブ内で個別に選べます。</p>
     </section>
 
-    <section class="chapter" id="arrangement">
+    <section class="chapter" id="counter">
       <span class="chapter-num">12</span>
+      <h2>Counterワークスペース</h2>
+      <p class="chapter-intro">主旋律(Active Melody)には手を加えず、その<strong>休符・隙間</strong>へ合いの手や応答フレーズを提案させるタブです。主旋律を変更したくない場合の対旋律づくりに使います。</p>
+
+      <div class="note warn">
+        <p>Melodyタブで、このセクションの<strong>Active Melodyを設定してから</strong>使います。Active Melodyが無い状態では生成できません。</p>
+      </div>
+
+      <h3>使い方</h3>
+      <ol>
+        <li>Melodyタブで採用旋律(Active Melody)を決めておく</li>
+        <li>Counterタブで <strong>Generate Counters</strong> を実行すると、9候補のプールから品質・多様性で選ばれた3案が並ぶ</li>
+        <li>各候補を試聴し、気に入らなければその候補だけ再生成する</li>
+      </ol>
+
+      <h3>候補カードの見方</h3>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>スタイル</td><td>Bell / Piano / Strings / Guitar / Synthの5種類から生成された性格</td></tr>
+            <tr><td>Role</td><td>Answer(応答) / Gap Fill(隙間埋め) / Counterline(対旋律) / Motif Echo(モチーフの反復) / Suspension(掛留)</td></tr>
+            <tr><td>Gap</td><td>主旋律の隙間をどれだけ活用しているか(%)</td></tr>
+            <tr><td>Collision</td><td>主旋律との音の衝突を検知した場合は警告表示</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>試聴モードは Counter Only / Melody + Counter / Chords + Melody + Counter から選べます。Favorite / Reject / Set Active、個別のMIDI書き出しにも対応しています。</p>
+    </section>
+
+    <section class="chapter" id="decoration">
+      <span class="chapter-num">13</span>
+      <h2>Decorationワークスペース</h2>
+      <p class="chapter-intro">セクションの構造(前後セクション・終止位置)とコード進行から、装飾フレーズを提案させるタブです。<strong>Active Melodyが無くても</strong>使えます。</p>
+
+      <h3>生成設定</h3>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>選択肢</th></tr></thead>
+          <tbody>
+            <tr><td>Type</td><td>Auto / Decorative Fill(装飾) / Transition Fill(移行) / Ending Fill(終止)</td></tr>
+            <tr><td>Character</td><td>Auto / Strings / Bell / Piano / Generic</td></tr>
+            <tr><td>Length</td><td>2拍 / 4拍 / 1小節</td></tr>
+            <tr><td>Density</td><td>Sparse / Normal / Rich</td></tr>
+            <tr><td>Direction</td><td>Auto / Rising / Falling / Mixed</td></tr>
+            <tr><td>Random Seed</td><td>固定値を指定すると同じ条件で再現できる</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Generate Decorations</strong>を実行すると、24候補のプールから品質・多様性で選ばれた10案が並びます。各候補には型・輪郭の形・リズムの性格・生成意図の説明が添えられ、主旋律との衝突がある場合は警告が表示されます。</p>
+      <p>試聴モードは Decoration Only / Chords + Decoration / (Active Melodyがあれば)Chords + Melody + Decoration から選べます。Favorite / Reject / Set Active、個別のMIDI書き出しにも対応しています。</p>
+    </section>
+
+    <section class="chapter" id="arrangement">
+      <span class="chapter-num">14</span>
       <h2>Arrangementワークスペース</h2>
       <p class="chapter-intro">セクション単体ではなく、曲全体を組み立てるためのタブです。</p>
       <ul>
         <li><strong>曲全体タイムライン</strong> — セクションをドラッグして並び替え、曲の構成を組み替えます。</li>
         <li><strong>採用Melody</strong> — 各セクションごとに、どの生成候補を曲の再生・書き出しに使うかをドロップダウンで選びます(Melodyタブの「Set as Active Melody」と連動)。</li>
+        <li><strong>境界を再生</strong> — 各セクション(先頭を除く)の再生アイコンから、前セクションとの繋ぎ目を前後1小節ずつ試聴できます。セクションを繋げたときの接続の自然さを確認するのに使います。</li>
         <li><strong>曲全体を再生</strong> — 並べたセクションを通しで再生します。</li>
         <li><strong>曲全体MIDI</strong> — 曲全体を1つのMIDIファイルとして書き出します。</li>
       </ul>
     </section>
 
     <section class="chapter" id="audition">
-      <span class="chapter-num">13</span>
+      <span class="chapter-num">15</span>
       <h2>Auditionワークスペース</h2>
       <p class="chapter-intro">複数の生成候補を客観的に比較するためのA/B/C試聴タブです。</p>
       <ul>
