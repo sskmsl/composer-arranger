@@ -59,6 +59,28 @@ export interface PlayOptions {
   onEnded?: () => void
 }
 
+/**
+ * Counter / Decorationの比較試聴範囲。
+ * 候補の直前・直後だけを残し、候補が鳴り終わったあとSection末まで待たせない。
+ */
+export function resolveReactivePreviewRange(
+  notes: MelodyNote[],
+  totalBeats: number,
+  contextBeats = 1,
+): { startBeat: number; endBeat: number } {
+  if (notes.length === 0 || totalBeats <= 0) {
+    return { startBeat: 0, endBeat: Math.max(0, totalBeats) }
+  }
+  const firstBeat = Math.min(...notes.map((note) => note.startBeat))
+  const lastBeat = Math.max(
+    ...notes.map((note) => note.startBeat + note.durationBeats),
+  )
+  return {
+    startBeat: Math.max(0, firstBeat - contextBeats),
+    endBeat: Math.min(totalBeats, lastBeat + contextBeats * 0.5),
+  }
+}
+
 export function resolveComparisonSwitchBeat(currentBeat: number, rangeStart: number, rangeEnd: number): number {
   if (!Number.isFinite(currentBeat)) return rangeStart
   if (currentBeat < rangeStart || currentBeat >= rangeEnd) return rangeStart

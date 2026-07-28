@@ -18,3 +18,14 @@ Reactive LayerはActive Melodyを直接変更せず、CounterとDecorationを独
 - Favorite、Reject、再生成、Preview、MIDIはMelody Variantを上書きしない。
 
 候補カードにはRole、対象Melody、使用音域、Note Density、Collision状態を表示する。
+
+## 音楽的品質
+
+- CounterはGap直前のActive Melodyから輪郭と音価を取り出し、反行する段階進行またはMotif変形として応答する。
+- DecorationのRhythmは音価を等分せず、弱起、シンコペーション、余白を含む認識可能なRhythm Cellから作る。
+- `rising`、`falling`、`sequence`、`repeated-sequence`はラベルだけでなく、実音でも隣接Scale Toneによる段階進行にする。
+- 候補選抜ではOverall Quality、Melody Respect、Harmonic Fit、Collision Safetyの下限を維持する。多様性だけを理由に下限未満の候補を採用しない。
+
+## 短縮試聴
+
+Counter / Decoration候補の試聴は、最初の候補音の1拍前から始まり、最終音の0.5拍後に終了する。コードとActive Melodyも同じ範囲に切り詰めるため、音楽的な前後関係を残しながらSection終端まで待たずに比較できる。

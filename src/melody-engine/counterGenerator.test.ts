@@ -41,6 +41,7 @@ const input = {
   sectionId: "s1",
   sectionRole: "verse" as const,
   songProfile: "dark-romantic" as const,
+  key: "Am",
   chords: parseChordInputText("Am | F | C | G", "s1", 4, "c"),
   melody: melody(),
   totalBeats: 16,
@@ -57,6 +58,25 @@ describe("Issue #70 / Counter Generator MVP", () => {
     expect(candidates.slice(1).every((candidate) => candidate.selectionReason === "quality-diversity-balance")).toBe(true)
     expect(candidates.every((candidate) => candidate.notes.length > 0)).toBe(true)
     expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
+    const hasStepwiseCandidate = candidates.some(
+        (candidate) =>
+          candidate.notes.length >= 2 &&
+          candidate.notes.slice(1).every((item, index) => {
+            const interval = Math.abs(item.pitch - candidate.notes[index].pitch)
+            return interval > 0 && interval <= 3
+          }),
+      )
+    expect(
+      hasStepwiseCandidate,
+      JSON.stringify(
+        candidates.map((candidate) => ({
+          style: candidate.generatorStyle,
+          quality: candidate.quality,
+          pitches: candidate.notes.map((item) => item.pitch),
+        })),
+      ),
+    ).toBe(true)
+    expect(candidates.every((candidate) => candidate.quality.overallQuality >= 68)).toBe(true)
   })
 
   it("主旋律の休符へ配置し、Blocking Collisionを作らない", () => {

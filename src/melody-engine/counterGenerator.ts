@@ -8,6 +8,7 @@ import type {
   ReactiveLayerCandidate,
   ReactiveLayerRole,
 } from "@/core/reactiveLayer"
+import { keyScalePitchClasses } from "@/core/scale"
 import {
   analyzeMelodyActivity,
   evaluateReactiveLayerQuality,
@@ -19,6 +20,7 @@ export interface GenerateCounterInput {
   sectionId: string
   sectionRole: SectionRole
   songProfile: SongProfileId
+  key: string
   chords: ChordEvent[]
   melody: MelodyVariant
   totalBeats: number
@@ -125,6 +127,72 @@ function pitchInRegister(
   )
 }
 
+function scaleLadder(key: string, low: number, high: number): number[] {
+  const pitchClasses = new Set(keyScalePitchClasses(key))
+  return Array.from({ length: high - low + 1 }, (_, index) => low + index).filter(
+    (pitch) => pitchClasses.has(((pitch % 12) + 12) % 12),
+  )
+}
+
+function nearestLadderIndex(ladder: number[], target: number): number {
+  let bestIndex = 0
+  for (let index = 1; index < ladder.length; index++) {
+    if (
+      Math.abs(ladder[index] - target) <
+      Math.abs(ladder[bestIndex] - target)
+    ) {
+      bestIndex = index
+    }
+  }
+  return bestIndex
+}
+
+function melodicSourceBefore(
+  melody: MelodyNote[],
+  beat: number,
+): MelodyNote[] {
+  return melody
+    .filter((note) => note.startBeat + note.durationBeats <= beat + 0.001)
+    .sort((a, b) => a.startBeat - b.startBeat)
+    .slice(-4)
+}
+
+function contourSteps(
+  plan: StylePlan,
+  source: MelodyNote[],
+  count: number,
+  inverseDirection: number,
+): number[] {
+  if (
+    plan.style === "bell-response" ||
+    plan.style === "string-answer" ||
+    plan.style === "synth-whisper"
+  ) {
+    return Array.from({ length: count }, (_, index) =>
+      index === 0 ? 0 : inverseDirection,
+    )
+  }
+  const sourceIntervals = source
+    .slice(1)
+    .map((note, index) => note.pitch - source[index].pitch)
+  if (sourceIntervals.length === 0) {
+    return Array.from({ length: count }, (_, index) =>
+      index === 0 ? 0 : inverseDirection,
+    )
+  }
+  const transformed =
+    plan.style === "piano-echo"
+      ? [...sourceIntervals].reverse()
+      : sourceIntervals.map((interval, index) =>
+          index % 2 === 0 ? -interval : interval,
+        )
+  return Array.from({ length: count }, (_, index) => {
+    if (index === 0) return 0
+    const interval = transformed[(index - 1) % transformed.length]
+    return Math.sign(interval) || inverseDirection
+  })
+}
+
 function registerForPlan(
   plan: StylePlan,
   analysis: MelodyActivityAnalysis,
@@ -176,36 +244,82 @@ function generatePhraseInGap(
   const count = Math.max(1, Math.min(requestedCount, Math.floor(gap.durationBeats / 0.25)))
   const pickupOffset =
     plan.style === "guitar-fill" && gap.durationBeats >= 1 ? 0.25 : 0
-  let beat = gap.startBeat + pickupOffset
+  const phraseStart = gap.startBeat + pickupOffset
   const endBeat = Math.min(gap.endBeat, gap.startBeat + 4)
+  const slotBeats = Math.max(0.25, (endBeat - phraseStart) / count)
   const inverseDirection = -melodyDirectionBefore(input.melody.notes, gap.startBeat)
-  let previousPitch: number | null = null
+  const source = melodicSourceBefore(input.melody.notes, gap.startBeat)
+  const ladder = scaleLadder(input.key, register.low, register.high)
+  if (ladder.length === 0) return []
+  let ladderIndex = nearestLadderIndex(
+    ladder,
+    (register.low + register.high) / 2,
+  )
+  const steps = contourSteps(plan, source, count, inverseDirection)
   const notes: MelodyNote[] = []
 
-  for (let index = 0; index < count && beat < endBeat - 0.1; index++) {
+  for (let index = 0; index < count; index++) {
+    const beat = phraseStart + index * slotBeats
+    if (beat >= endBeat - 0.1) break
     const chord = chordForBeat(input.chords, beat)
     const parsed = chord
       ? parseChordSymbol(chord.symbol, chord.bass ?? undefined)
       : null
-    const palette = parsed
-      ? [...parsed.tones, ...parsed.tensions.slice(0, 1)].map((tone) => tone.pitchClass)
-      : [0, 4, 7]
-    const direction =
-      plan.style === "piano-echo" ? inverseDirection : index % 3 === 2 ? -inverseDirection : inverseDirection
-    const center =
-      previousPitch === null
-        ? (register.low + register.high) / 2
-        : previousPitch + direction * rng.pick([1, 2, 3, 4])
-    const pitchClass = rng.pick(palette)
-    let pitch = pitchInRegister(pitchClass, register.low, register.high, center)
-    if (previousPitch !== null && Math.abs(pitch - previousPitch) > 7) {
-      const octaveAdjusted = pitch + (pitch > previousPitch ? -12 : 12)
-      if (octaveAdjusted >= register.low && octaveAdjusted <= register.high) pitch = octaveAdjusted
+    if (index > 0) {
+      ladderIndex = Math.max(
+        0,
+        Math.min(ladder.length - 1, ladderIndex + steps[index]),
+      )
+    }
+    let pitch = ladder[ladderIndex]
+    let pitchClass = ((pitch % 12) + 12) % 12
+    const isLast = index === count - 1
+    if (isLast && parsed) {
+      const chordPitchClasses = parsed.tones.map((tone) => tone.pitchClass)
+      const nearestChordPitchClass = chordPitchClasses.reduce((best, current) => {
+        const bestPitch = pitchInRegister(best, register.low, register.high, pitch)
+        const currentPitch = pitchInRegister(
+          current,
+          register.low,
+          register.high,
+          pitch,
+        )
+        return Math.abs(currentPitch - pitch) < Math.abs(bestPitch - pitch)
+          ? current
+          : best
+      })
+      const resolvedPitch = pitchInRegister(
+        nearestChordPitchClass,
+        register.low,
+        register.high,
+        pitch,
+      )
+      const previous = notes.at(-1)?.pitch
+      if (previous === undefined || Math.abs(resolvedPitch - previous) <= 3) {
+        pitchClass = nearestChordPitchClass
+        pitch = resolvedPitch
+      }
     }
 
-    const desiredDuration = rng.pick(plan.durations)
+    const echoedDuration =
+      plan.style === "piano-echo"
+        ? source[index % Math.max(1, source.length)]?.durationBeats
+        : undefined
+    const desiredDuration =
+      echoedDuration && plan.durations.includes(echoedDuration)
+        ? echoedDuration
+        : rng.pick(plan.durations)
     const remaining = endBeat - beat
-    const durationBeats = Math.max(0.25, Math.min(desiredDuration, remaining))
+    const articulatedSlot =
+      plan.style === "synth-whisper"
+        ? slotBeats
+        : plan.style === "piano-echo"
+          ? slotBeats * 0.72
+          : slotBeats * 0.82
+    const durationBeats = Math.max(
+      0.25,
+      Math.min(desiredDuration, articulatedSlot, remaining),
+    )
     notes.push({
       id: `counter:${input.seed}:${phraseIndex}:${index}`,
       startBeat: beat,
@@ -217,17 +331,11 @@ function generatePhraseInGap(
         ? "chord-tone"
         : plan.style === "synth-whisper"
           ? "tension-hold"
-          : "approach-tone",
+          : "passing-tone",
     })
-    previousPitch = pitch
-    const rest =
-      plan.style === "piano-echo" || plan.style === "synth-whisper"
-        ? rng.pick([0.25, 0.5])
-        : rng.pick([0, 0.25])
-    beat += durationBeats + rest
   }
   return notes.map((note, index) => {
-    if (note.plannedToneRole !== "approach-tone") return note
+    if (note.plannedToneRole !== "passing-tone") return note
     const target = notes[index + 1]
     if (!target) return { ...note, plannedToneRole: "tension-hold" }
     return {
@@ -307,12 +415,15 @@ function selectDiverseCandidates(
   const eligible = pool
     .filter(
       (candidate) =>
-        candidate.quality.overallQuality >= 55 &&
+        candidate.quality.overallQuality >= 68 &&
+        candidate.quality.melodyRespect >= 80 &&
+        candidate.quality.harmonicFit >= 70 &&
+        candidate.quality.motifRelationship >= 60 &&
         !candidate.collisions.hasBlockingCollision &&
         candidate.notes.length > 0,
     )
     .sort((a, b) => b.quality.overallQuality - a.quality.overallQuality)
-  const source = eligible.length >= finalCount ? eligible : pool.filter((candidate) => candidate.notes.length > 0)
+  const source = eligible
   const selected: ReactiveLayerCandidate[] = []
   while (selected.length < finalCount && selected.length < source.length) {
     if (selected.length === 0) {
@@ -322,7 +433,13 @@ function selectDiverseCandidates(
     const remaining = source.filter(
       (candidate) => !selected.some((item) => item.id === candidate.id),
     )
-    const next = remaining
+    const needsStepwise =
+      !selected.some((candidate) => isStepwiseCandidate(candidate)) &&
+      remaining.some((candidate) => isStepwiseCandidate(candidate))
+    const selectionPool = needsStepwise
+      ? remaining.filter((candidate) => isStepwiseCandidate(candidate))
+      : remaining
+    const next = selectionPool
       .map((candidate) => {
         const maximumSimilarity = Math.max(
           ...selected.map((item) => candidateSimilarity(candidate, item)),
@@ -339,6 +456,14 @@ function selectDiverseCandidates(
   return selected
 }
 
+function isStepwiseCandidate(candidate: ReactiveLayerCandidate): boolean {
+  if (candidate.notes.length < 2) return false
+  return candidate.notes.slice(1).every((note, index) => {
+    const interval = Math.abs(note.pitch - candidate.notes[index].pitch)
+    return interval > 0 && interval <= 3
+  })
+}
+
 function buildPoolCandidate(
   input: GenerateCounterInput,
   plan: StylePlan,
@@ -352,8 +477,19 @@ function buildPoolCandidate(
   const selectedGaps = gaps
     .map((gap) => ({
       gap,
-      score:
-        gap.endBeat / Math.max(1, input.totalBeats) + rng.next() * 0.25,
+      score: (() => {
+        const preceding = melodicSourceBefore(
+          input.melody.notes,
+          gap.startBeat,
+        ).at(-1)
+        const phraseRelease = preceding
+          ? Math.min(1.5, preceding.durationBeats) * 0.35
+          : 0
+        const usableSpace = Math.min(2, gap.durationBeats) * 0.35
+        const sectionalVariety =
+          ((poolIndex + Math.round(gap.startBeat)) % 5) * 0.06
+        return phraseRelease + usableSpace + sectionalVariety + rng.next() * 0.2
+      })(),
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, gapCount)
@@ -391,7 +527,7 @@ export function generateCounterCandidates(
   input: GenerateCounterInput,
 ): ReactiveLayerCandidate[] {
   const analysis = analyzeMelodyActivity(input.melody.notes, input.totalBeats)
-  const poolSize = Math.max(input.finalCount ?? 3, input.poolSize ?? 9)
+  const poolSize = Math.max(input.finalCount ?? 3, input.poolSize ?? 24)
   const pool = Array.from({ length: poolSize }, (_, index) =>
     buildPoolCandidate(
       input,
@@ -411,7 +547,7 @@ export function regenerateCounterCandidate(
   const generated = generateCounterCandidates({
     ...input,
     seed: (current.seed + 1_000_003) >>> 0,
-    poolSize: 9,
+    poolSize: 24,
     finalCount: 3,
   })
   const alternatives = generated

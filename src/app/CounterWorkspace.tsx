@@ -9,7 +9,11 @@ import {
   Square,
   X,
 } from "lucide-react"
-import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
+import {
+  previewPlayer,
+  resolveReactivePreviewRange,
+  type PreviewMode,
+} from "@/audio/previewPlayer"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
@@ -125,13 +129,17 @@ export function CounterWorkspace() {
     }
     setActiveIndex(batch.findIndex((item) => item.id === candidate.id))
     setPlayingId(candidate.id)
+    const previewRange = resolveReactivePreviewRange(
+      candidate.notes,
+      totalBeats,
+    )
     previewPlayer.play({
       bpm: project.song.tempo,
       chords,
       melody: activeMelody?.notes ?? [],
       reactive: candidate.notes,
       mode: previewMode,
-      range: { startBeat: 0, endBeat: totalBeats },
+      range: previewRange,
       onEnded: () => setPlayingId(null),
     })
   }
@@ -315,6 +323,9 @@ export function CounterWorkspace() {
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-ink-muted-48">試聴:</span>
+            <span className="text-[10px] text-ink-muted-48">
+              候補の前後だけを自動再生
+            </span>
             <Select
               value={previewMode}
               onChange={(event) => {
