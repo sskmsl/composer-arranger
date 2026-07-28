@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { parseChordInputText } from "@/core/chordInput"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import { generateCounterCandidates } from "./counterGenerator"
+import { unresolvedReactiveToneNoteIds } from "./reactiveLayerAnalysis"
 
 function note(id: string, startBeat: number, durationBeats: number, pitch: number): MelodyNote {
   return { id, startBeat, durationBeats, pitch, velocity: 80, locks: [] }
@@ -55,6 +56,7 @@ describe("Issue #70 / Counter Generator MVP", () => {
     expect(candidates[0].selectionReason).toBe("highest-quality")
     expect(candidates.slice(1).every((candidate) => candidate.selectionReason === "quality-diversity-balance")).toBe(true)
     expect(candidates.every((candidate) => candidate.notes.length > 0)).toBe(true)
+    expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
   })
 
   it("主旋律の休符へ配置し、Blocking Collisionを作らない", () => {

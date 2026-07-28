@@ -93,4 +93,38 @@ describe("Issue #71 / Decoration store workflow", () => {
     expect(state.sectionReactiveLayerAssignments?.a).toBe("counter-id")
     expect(state.sectionDecorationLayerAssignments?.a).toBe(decoration?.id)
   })
+
+  it("採用済みCounterと長時間衝突するDecorationは同時採用しない", () => {
+    useProjectStore.getState().generateDecorationsForSection("a")
+    const decoration =
+      useProjectStore.getState().project.reactiveLayerCandidates?.[0]
+    expect(decoration).toBeDefined()
+    if (!decoration) throw new Error("Decoration candidate was not generated")
+    const counter = {
+      ...structuredClone(decoration),
+      id: "counter-conflict",
+      kind: "counter" as const,
+      role: "answer-phrase" as const,
+      targetMelodyVariantId: null,
+      decorationPlan: undefined,
+      structureFingerprint: undefined,
+      notes: decoration.notes.map((note) => ({
+        ...note,
+        id: `counter-${note.id}`,
+      })),
+    }
+    useProjectStore.setState((state) => ({
+      project: {
+        ...state.project,
+        reactiveLayerCandidates: [
+          ...(state.project.reactiveLayerCandidates ?? []),
+          counter,
+        ],
+        sectionReactiveLayerAssignments: { a: counter.id },
+      },
+    }))
+    useProjectStore.getState().assignReactiveLayer(decoration.id)
+    expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBeUndefined()
+    expect(useProjectStore.getState().workflowNotice).toContain("採用できません")
+  })
 })

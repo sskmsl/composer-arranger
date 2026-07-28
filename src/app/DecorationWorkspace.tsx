@@ -341,6 +341,23 @@ export function DecorationWorkspace() {
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {plan?.rhythmStyle}
                       </span>
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        MIDI{" "}
+                        {candidate.notes.length > 0
+                          ? `${Math.min(...candidate.notes.map((note) => note.pitch))}–${Math.max(...candidate.notes.map((note) => note.pitch))}`
+                          : "—"}
+                      </span>
+                      <span
+                        className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                          candidate.collisions.hasBlockingCollision
+                            ? "bg-red-400/15 text-red-300"
+                            : "bg-emerald-400/10 text-emerald-200"
+                        }`}
+                      >
+                        {candidate.collisions.hasBlockingCollision
+                          ? "Collision warning"
+                          : `${candidate.notes.length} notes`}
+                      </span>
                       {assignedId === candidate.id && (
                         <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[10px] text-primary">
                           Active

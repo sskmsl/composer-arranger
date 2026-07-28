@@ -6,7 +6,9 @@ import {
   analyzeMelodyActivity,
   assessReactiveLayerCollisions,
   evaluateReactiveLayerQuality,
+  evaluateReactiveLayerCompatibility,
   isReactiveLayerStale,
+  unresolvedReactiveToneNoteIds,
 } from "./reactiveLayerAnalysis"
 
 function note(
@@ -76,6 +78,68 @@ describe("Issue #42 / collision and quality", () => {
     expect(evaluated.quality.overallQuality).toBeGreaterThan(75)
   })
 
+  it("planned非和声音の解決実音を検証し、意図的なtension holdは許可する", () => {
+    const resolved = [
+      note("approach", 1, 0.5, 61, {
+        plannedToneRole: "approach-tone",
+        plannedResolution: {
+          targetPitchClass: 2,
+          targetBeat: 1.5,
+          maximumDelayBeats: 0.5,
+        },
+      }),
+      note("target", 1.5, 0.5, 62, { plannedToneRole: "chord-tone" }),
+      note("hold", 3, 1, 66, { plannedToneRole: "tension-hold" }),
+    ]
+    expect(unresolvedReactiveToneNoteIds(resolved)).toEqual([])
+    expect(
+      unresolvedReactiveToneNoteIds([
+        {
+          ...resolved[0],
+          plannedResolution: {
+            targetPitchClass: 7,
+            targetBeat: 1.5,
+            maximumDelayBeats: 0.5,
+          },
+        },
+        resolved[1],
+      ]),
+    ).toEqual(["approach"])
+  })
+
+  it("CounterとDecorationを重ねた結果の同音・短2度・総密度を共通評価する", () => {
+    const candidate = (
+      id: string,
+      notes: MelodyNote[],
+    ): ReactiveLayerCandidate =>
+      ({
+        id,
+        notes,
+        collisions: {
+          hasBlockingCollision: false,
+        },
+      }) as ReactiveLayerCandidate
+    const compatibility = evaluateReactiveLayerCompatibility(
+      melody,
+      [
+        candidate("counter", [
+          note("c1", 1, 1, 55),
+          note("c2", 4, 1, 57),
+          note("c3", 7, 1, 59),
+        ]),
+        candidate("decoration", [
+          note("d1", 1, 1, 55),
+          note("d2", 4, 1, 58),
+          note("d3", 7, 1, 60),
+        ]),
+      ],
+      8,
+    )
+    expect(compatibility.samePitchOverlapBeats).toBeGreaterThan(0.5)
+    expect(compatibility.minorSecondOverlapBeats).toBeGreaterThan(0.5)
+    expect(compatibility.hasBlockingConflict).toBe(true)
+  })
+
   it("同音・短2度・Protected Moment・voice crossingを検出する", () => {
     const analysis = analyzeMelodyActivity(melody, 8)
     const candidate = [
@@ -89,6 +153,26 @@ describe("Issue #42 / collision and quality", () => {
     expect(collisions.minorSecondOverlapBeats).toBeGreaterThan(0)
     expect(collisions.protectedMomentOverlapBeats).toBeGreaterThan(0)
     expect(collisions.voiceCrossingCount).toBeGreaterThan(0)
+    expect(collisions.hasBlockingCollision).toBe(true)
+  })
+
+  it("主旋律と同時・同方向の大跳躍を検出する", () => {
+    const leapMelody = [
+      note("m1", 0, 0.5, 60),
+      note("m2", 1, 0.5, 67),
+      note("m3", 2, 0.5, 62),
+    ]
+    const analysis = analyzeMelodyActivity(leapMelody, 4)
+    const collisions = assessReactiveLayerCollisions(
+      leapMelody,
+      [
+        note("c1", 0, 0.5, 48),
+        note("c2", 1, 0.5, 55),
+        note("c3", 2, 0.5, 50),
+      ],
+      analysis,
+    )
+    expect(collisions.parallelLargeLeapCount).toBe(2)
     expect(collisions.hasBlockingCollision).toBe(true)
   })
 
