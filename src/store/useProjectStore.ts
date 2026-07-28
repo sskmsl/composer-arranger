@@ -487,8 +487,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       [sectionId]: _removedPatternAssignment,
       ...sectionAccompanimentPatternAssignments
     } = prev.sectionAccompanimentPatternAssignments
+    const {
+      [sectionId]: _removedReactiveAssignment,
+      ...sectionReactiveLayerAssignments
+    } = prev.sectionReactiveLayerAssignments ?? {}
     void _removedAssignment
     void _removedPatternAssignment
+    void _removedReactiveAssignment
     const removedVariantIds = new Set(
       prev.melodyVariants.filter((variant) => variant.sectionId === sectionId).map((variant) => variant.id),
     )
@@ -501,8 +506,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         chords: prev.chords.filter((c) => c.sectionId !== sectionId),
         melodyVariants: prev.melodyVariants.filter((v) => v.sectionId !== sectionId),
         phraseCandidates: prev.phraseCandidates.filter((candidate) => candidate.sectionId !== sectionId),
+        reactiveLayerCandidates: (prev.reactiveLayerCandidates ?? []).filter(
+          (candidate) => candidate.sectionId !== sectionId,
+        ),
         sectionMelodyAssignments,
         sectionAccompanimentPatternAssignments,
+        sectionReactiveLayerAssignments,
         activeMelodyId:
           prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
@@ -879,6 +888,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const prev = get().project
     const variant = prev.melodyVariants.find((candidate) => candidate.id === variantId)
     if (!variant) return
+    const sectionReactiveLayerAssignments = {
+      ...(prev.sectionReactiveLayerAssignments ?? {}),
+    }
+    if (prev.sectionMelodyAssignments[variant.sectionId] !== variantId) {
+      delete sectionReactiveLayerAssignments[variant.sectionId]
+    }
     set({
       project: {
         ...prev,
@@ -887,6 +902,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           ...prev.sectionMelodyAssignments,
           [variant.sectionId]: variantId,
         },
+        sectionReactiveLayerAssignments,
       },
     })
     get().persist()
@@ -903,6 +919,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const assignments = { ...prev.sectionMelodyAssignments }
     if (variantId) assignments[sectionId] = variantId
     else delete assignments[sectionId]
+    const sectionReactiveLayerAssignments = {
+      ...(prev.sectionReactiveLayerAssignments ?? {}),
+    }
+    if (prev.sectionMelodyAssignments[sectionId] !== variantId) {
+      delete sectionReactiveLayerAssignments[sectionId]
+    }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -910,6 +932,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ...prev,
         activeMelodyId: variantId ?? prev.activeMelodyId,
         sectionMelodyAssignments: assignments,
+        sectionReactiveLayerAssignments,
       },
     })
     get().persist()
@@ -932,6 +955,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const prev = get().project
     const variant = prev.melodyVariants.find((candidate) => candidate.id === variantId)
     if (!variant) return
+    const sectionReactiveLayerAssignments = {
+      ...(prev.sectionReactiveLayerAssignments ?? {}),
+    }
+    if (prev.sectionMelodyAssignments[variant.sectionId] !== variantId) {
+      delete sectionReactiveLayerAssignments[variant.sectionId]
+    }
     set({
       project: {
         ...prev,
@@ -940,6 +969,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           ...prev.sectionMelodyAssignments,
           [variant.sectionId]: variantId,
         },
+        sectionReactiveLayerAssignments,
       },
       activeBatchId: null,
       activeCandidateIndex: 0,
@@ -958,6 +988,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const sectionMelodyAssignments = Object.fromEntries(
       Object.entries(prev.sectionMelodyAssignments).filter(([, assignedId]) => assignedId !== variantId),
     )
+    const removedReactiveIds = new Set(
+      (prev.reactiveLayerCandidates ?? [])
+        .filter((candidate) => candidate.targetMelodyVariantId === variantId)
+        .map((candidate) => candidate.id),
+    )
+    const sectionReactiveLayerAssignments = Object.fromEntries(
+      Object.entries(prev.sectionReactiveLayerAssignments ?? {}).filter(
+        ([, assignedId]) => !removedReactiveIds.has(assignedId),
+      ),
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -966,6 +1006,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         melodyVariants: prev.melodyVariants.filter((v) => v.id !== variantId),
         activeMelodyId: prev.activeMelodyId === variantId ? null : prev.activeMelodyId,
         sectionMelodyAssignments,
+        reactiveLayerCandidates: (prev.reactiveLayerCandidates ?? []).filter(
+          (candidate) => candidate.targetMelodyVariantId !== variantId,
+        ),
+        sectionReactiveLayerAssignments,
       },
     })
     get().persist()

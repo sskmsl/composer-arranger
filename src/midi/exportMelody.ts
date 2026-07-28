@@ -129,6 +129,12 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
       notes: material.accompanimentPattern.map(toSmfNote),
     })
   }
+  if (material.reactiveLayers.length > 0) {
+    tracks.push({
+      name: "Counter and Decoration",
+      notes: material.reactiveLayers.map(toSmfNote),
+    })
+  }
 
   if (includeChords) {
     const chordNotes: SmfTrack["notes"] = []
