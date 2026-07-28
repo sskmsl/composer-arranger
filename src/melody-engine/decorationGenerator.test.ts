@@ -38,6 +38,38 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.rhythmStyle)).size).toBeGreaterThanOrEqual(3)
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.register)).size).toBeGreaterThanOrEqual(2)
     expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
+    expect(candidates.every((candidate) => candidate.quality.overallQuality >= 68)).toBe(true)
+    expect(
+      candidates.some((candidate) => {
+        if (candidate.notes.length < 3) return false
+        const intervals = candidate.notes
+          .slice(1)
+          .map((note, index) => note.pitch - candidate.notes[index].pitch)
+        const direction = Math.sign(intervals[0])
+        return (
+          direction !== 0 &&
+          intervals.every(
+            (interval) =>
+              Math.sign(interval) === direction &&
+              Math.abs(interval) >= 1 &&
+              Math.abs(interval) <= 3,
+          )
+        )
+      }),
+    ).toBe(true)
+    expect(
+      candidates.some((candidate) => {
+        const intervals = candidate.notes
+          .slice(1)
+          .map(
+            (note, index) =>
+              Math.round(
+                (note.startBeat - candidate.notes[index].startBeat) * 1000,
+              ) / 1000,
+          )
+        return new Set(intervals).size >= 2
+      }),
+    ).toBe(true)
   })
 
   it("Autoは次SectionがあればTransitionを含み、次コードの構成音へ着地する", () => {

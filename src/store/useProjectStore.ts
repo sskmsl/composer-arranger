@@ -271,6 +271,7 @@ function counterGenerationInput(
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),
+    key: project.song.key,
     chords,
     melody,
     totalBeats,

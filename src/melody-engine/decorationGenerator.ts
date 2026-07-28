@@ -199,24 +199,28 @@ function rhythmGrid(
   density: DecorationDensitySetting,
 ): { onsets: number[]; durations: number[] } {
   const densityCount = density === "sparse" ? 3 : density === "rich" ? 8 : 5
-  const baseStep =
-    style === "sixteenth" || style === "staccato"
-      ? 0.25
-      : style === "triplet"
-        ? 1 / 3
-        : style === "legato" || style === "dotted"
-          ? 0.75
-          : 0.5
-  const maxCount = Math.max(1, Math.floor(lengthBeats / baseStep))
-  const count = Math.min(densityCount, maxCount)
-  const onsets: number[] = []
-  const durations: number[] = []
-  for (let index = 0; index < count; index++) {
-    let onset = index * (lengthBeats / count)
-    if (style === "syncopation") onset += index === 0 ? 0.25 : index % 2 === 0 ? 0.125 : 0
-    onset = Math.min(lengthBeats - 0.125, onset)
-    onsets.push(Number(onset.toFixed(4)))
-    const next = index + 1 < count ? (index + 1) * (lengthBeats / count) : lengthBeats
+  const cells: Record<DecorationRhythmStyle, number[]> = {
+    eighth: [0, 0.5, 1.5, 2, 2.5, 3.5],
+    sixteenth: [0, 0.25, 0.5, 1.25, 1.5, 2.5, 2.75, 3.5],
+    triplet: [0, 1 / 3, 2 / 3, 1.5, 11 / 6, 13 / 6, 10 / 3],
+    syncopation: [0.5, 1.25, 1.75, 2.5, 3.25],
+    dotted: [0, 0.75, 1.5, 2.75, 3.5],
+    legato: [0, 1.25, 2.5, 3.25],
+    staccato: [0.25, 0.75, 1.5, 2.25, 3, 3.5],
+  }
+  const scaled = cells[style].map((onset) => onset * (lengthBeats / 4))
+  const count = Math.min(densityCount, scaled.length)
+  const indices =
+    count === scaled.length
+      ? scaled.map((_, index) => index)
+      : Array.from({ length: count }, (_, index) =>
+          Math.round((index * (scaled.length - 1)) / Math.max(1, count - 1)),
+        )
+  const onsets = indices.map((index) =>
+    Number(Math.min(lengthBeats - 0.125, scaled[index]).toFixed(4)),
+  )
+  const durations = onsets.map((onset, index) => {
+    const next = onsets[index + 1] ?? lengthBeats
     const available = Math.max(0.125, next - onset)
     const duration =
       style === "staccato"
@@ -224,10 +228,10 @@ function rhythmGrid(
         : style === "legato"
           ? available
           : style === "dotted"
-            ? Math.min(0.75, available)
-            : Math.min(baseStep, available)
-    durations.push(Number(duration.toFixed(4)))
-  }
+            ? Math.min(0.75 * (lengthBeats / 4), available)
+            : Math.min(style === "sixteenth" ? 0.25 : 0.5, available)
+    return Number(duration.toFixed(4))
+  })
   return { onsets, durations }
 }
 
@@ -267,6 +271,81 @@ function chordAtBeat(chords: ChordEvent[], beat: number): ChordEvent | undefined
   )
 }
 
+function pitchLadder(
+  pitchClasses: number[],
+  window: { low: number; high: number },
+): number[] {
+  const allowed = new Set(pitchClasses)
+  return Array.from(
+    { length: window.high - window.low + 1 },
+    (_, index) => window.low + index,
+  ).filter((pitch) => allowed.has(((pitch % 12) + 12) % 12))
+}
+
+function nearestPitch(
+  pitches: number[],
+  target: number,
+): number {
+  return pitches.reduce((best, pitch) =>
+    Math.abs(pitch - target) < Math.abs(best - target) ? pitch : best,
+  )
+}
+
+function stepwiseShapePitches(
+  input: GenerateDecorationInput,
+  plan: DecorationPlan,
+  count: number,
+  window: { low: number; high: number },
+): number[] | null {
+  if (
+    plan.shape !== "rising" &&
+    plan.shape !== "falling" &&
+    plan.shape !== "sequence" &&
+    plan.shape !== "repeated-sequence"
+  ) {
+    return null
+  }
+  const ladder = pitchLadder(keyScalePitchClasses(input.key), window)
+  if (ladder.length === 0) return null
+  const target = nearestPitchClass(
+    plan.targetPitchClass,
+    (window.low + window.high) / 2,
+    window,
+  )
+  const targetIndex = ladder.findIndex((pitch) => pitch === target)
+  const anchorIndex =
+    targetIndex >= 0
+      ? targetIndex
+      : ladder.reduce(
+          (best, pitch, index) =>
+            Math.abs(pitch - target) < Math.abs(ladder[best] - target)
+              ? index
+              : best,
+          0,
+        )
+  const direction =
+    plan.shape === "falling" || plan.direction === "falling" ? -1 : 1
+  const startIndex = Math.max(
+    0,
+    Math.min(
+      ladder.length - 1,
+      anchorIndex - direction * Math.max(0, count - 1),
+    ),
+  )
+  return Array.from({ length: count }, (_, index) => {
+    const sequenceStep =
+      plan.shape === "repeated-sequence"
+        ? Math.floor((index + 1) / 2)
+        : index
+    const ladderIndex = Math.max(
+      0,
+      Math.min(ladder.length - 1, startIndex + direction * sequenceStep),
+    )
+    if (index === count - 1) return target
+    return ladder[ladderIndex]
+  })
+}
+
 function notesForPlan(
   input: GenerateDecorationInput,
   plan: DecorationPlan,
@@ -282,20 +361,65 @@ function notesForPlan(
     window,
     nearestPitchClass(plan.targetPitchClass, (window.low + window.high) / 2, window),
   )
+  const stepwisePitches = stepwiseShapePitches(
+    input,
+    plan,
+    grid.onsets.length,
+    window,
+  )
   const keyScale = keyScalePitchClasses(input.key)
+  let previousPitch: number | null = null
   const notes: MelodyNote[] = grid.onsets.map((onset, index) => {
     const startBeat = plan.placementBeat + onset
     const chord = chordAtBeat(input.chords, Math.min(input.totalBeats - 0.001, startBeat))
     const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
+    const chordPitchClasses = parsed?.tones.map((tone) => tone.pitchClass) ?? []
     const palette = [
       ...(parsed?.tones.map((tone) => tone.pitchClass) ?? []),
       ...(parsed?.tensions.slice(0, 2).map((tone) => tone.pitchClass) ?? []),
       ...keyScale,
     ]
-    const pitchClass =
+    const desiredPitch =
+      stepwisePitches?.[index] ??
+      (previousPitch === null
+        ? pitchTargets[index]
+        : Math.max(
+            window.low,
+            Math.min(
+              window.high,
+              pitchTargets[index] * 0.65 + previousPitch * 0.35,
+            ),
+          ))
+    const targetPitchClass =
       index === grid.onsets.length - 1
         ? plan.targetPitchClass
-        : palette[(index + rng.intBetween(0, Math.max(0, palette.length - 1))) % Math.max(1, palette.length)] ?? 0
+        : undefined
+    const availablePitches = pitchLadder(
+      targetPitchClass === undefined ? palette : [targetPitchClass],
+      window,
+    )
+    let pitch =
+      stepwisePitches?.[index] ??
+      nearestPitch(availablePitches, desiredPitch)
+    if (
+      previousPitch !== null &&
+      Math.abs(pitch - previousPitch) > 7 &&
+      index < grid.onsets.length - 1
+    ) {
+      const scalePitches = pitchLadder(keyScale, window)
+      pitch = nearestPitch(
+        scalePitches.filter(
+          (candidate) => Math.abs(candidate - previousPitch!) <= 4,
+        ).length > 0
+          ? scalePitches.filter(
+              (candidate) => Math.abs(candidate - previousPitch!) <= 4,
+            )
+          : scalePitches,
+        desiredPitch,
+      )
+    }
+    previousPitch = pitch
+    const pitchClass = ((pitch % 12) + 12) % 12
     return {
       id: `decoration:${seed}:${index}`,
       startBeat,
@@ -303,7 +427,7 @@ function notesForPlan(
         grid.durations[index],
         Math.max(0.125, input.totalBeats - startBeat),
       ),
-      pitch: nearestPitchClass(pitchClass, pitchTargets[index], window),
+      pitch,
       velocity: rng.intBetween(
         plan.character === "bell" ? 52 : 45,
         plan.character === "strings" ? 66 : 72,
@@ -312,7 +436,7 @@ function notesForPlan(
       plannedToneRole:
         index === grid.onsets.length - 1
           ? "chord-tone"
-          : parsed?.tones.some((tone) => tone.pitchClass === pitchClass)
+          : chordPitchClasses.includes(pitchClass)
             ? "chord-tone"
             : "passing-tone",
     }
@@ -404,10 +528,31 @@ function planFor(
     input.settings.length === "bar" ? input.beatsPerBar : input.settings.length
   const shape = SHAPES[(poolIndex + rng.intBetween(0, SHAPES.length - 1)) % SHAPES.length]
   const rhythmStyle = RHYTHMS[(poolIndex * 2 + rng.intBetween(0, RHYTHMS.length - 1)) % RHYTHMS.length]
-  const placementBeat =
+  const melodyGaps =
+    input.melodyNotes && input.melodyNotes.length > 0
+      ? analyzeMelodyActivity(input.melodyNotes, input.totalBeats).gaps.filter(
+          (gap) => gap.durationBeats >= lengthBeats,
+        )
+      : []
+  const preferredGaps =
     type === "decorative-fill"
-      ? Math.max(0, Math.min(input.totalBeats - lengthBeats, Math.round(input.totalBeats * 0.5 / input.beatsPerBar) * input.beatsPerBar - lengthBeats / 2))
-      : Math.max(0, input.totalBeats - lengthBeats)
+      ? melodyGaps
+      : [...melodyGaps].sort((a, b) => b.startBeat - a.startBeat)
+  const selectedGap =
+    preferredGaps.length > 0
+      ? preferredGaps[poolIndex % preferredGaps.length]
+      : undefined
+  const placementBeat =
+    selectedGap?.startBeat ??
+    (type === "decorative-fill"
+      ? Math.max(
+          0,
+          Math.min(
+            input.totalBeats - lengthBeats,
+            (1 + (poolIndex % 3)) * input.beatsPerBar - lengthBeats / 2,
+          ),
+        )
+      : Math.max(0, input.totalBeats - lengthBeats))
   const intention =
     type === "transition-fill"
       ? `${input.sectionRole}から${input.nextSectionRole ?? "次セクション"}への期待を作る`
@@ -499,10 +644,16 @@ export function generateDecorationCandidates(
 ): ReactiveLayerCandidate[] {
   const finalCount = input.candidateCount ?? 10
   const fingerprint = decorationFingerprintForInput(input)
-  const pool = Array.from({ length: Math.max(24, finalCount * 2) }, (_, index) =>
+  const pool = Array.from({ length: Math.max(60, finalCount * 6) }, (_, index) =>
     buildCandidate(input, index, fingerprint),
   )
-    .filter((candidate) => candidate.quality.overallQuality >= 55)
+    .filter(
+      (candidate) =>
+        candidate.quality.overallQuality >= 68 &&
+        candidate.quality.harmonicFit >= 72 &&
+        candidate.quality.melodyRespect >= 78 &&
+        !candidate.collisions.hasBlockingCollision,
+    )
     .sort((a, b) => b.quality.overallQuality - a.quality.overallQuality)
   const selected: ReactiveLayerCandidate[] = []
   while (selected.length < finalCount && selected.length < pool.length) {
@@ -512,6 +663,11 @@ export function generateDecorationCandidates(
     }
     const next = pool
       .filter((candidate) => !selected.some((item) => item.id === candidate.id))
+      .filter(
+        (candidate) =>
+          selected.some((item) => isStepwiseDecoration(item)) ||
+          isStepwiseDecoration(candidate),
+      )
       .map((candidate) => {
         const maximumSimilarity = Math.max(
           ...selected.map((item) => similarity(candidate, item)),
@@ -528,6 +684,23 @@ export function generateDecorationCandidates(
     selected.push({ ...next, selectionReason: "quality-diversity-balance" })
   }
   return selected
+}
+
+function isStepwiseDecoration(candidate: ReactiveLayerCandidate): boolean {
+  if (candidate.notes.length < 3) return false
+  const intervals = candidate.notes
+    .slice(1)
+    .map((note, index) => note.pitch - candidate.notes[index].pitch)
+  const direction = Math.sign(intervals[0])
+  return (
+    direction !== 0 &&
+    intervals.every(
+      (interval) =>
+        Math.sign(interval) === direction &&
+        Math.abs(interval) >= 1 &&
+        Math.abs(interval) <= 3,
+    )
+  )
 }
 
 export function regenerateDecorationCandidate(

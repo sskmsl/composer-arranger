@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { previewLayersForMode, resolveComparisonSwitchBeat } from "./previewPlayer"
+import {
+  previewLayersForMode,
+  resolveComparisonSwitchBeat,
+  resolveReactivePreviewRange,
+} from "./previewPlayer"
 
 describe("comparison preview switching", () => {
   it("A/B/C切替時に現在の再生位置を維持する", () => {
@@ -9,6 +13,60 @@ describe("comparison preview switching", () => {
   it("ループ範囲外なら共通の先頭位置へ戻す", () => {
     expect(resolveComparisonSwitchBeat(12, 4, 12)).toBe(4)
     expect(resolveComparisonSwitchBeat(2, 4, 12)).toBe(4)
+  })
+})
+
+describe("reactive candidate preview range", () => {
+  it("候補の前後だけを再生し、Section末まで待たせない", () => {
+    expect(
+      resolveReactivePreviewRange(
+        [
+          {
+            id: "n1",
+            startBeat: 6,
+            durationBeats: 0.5,
+            pitch: 64,
+            velocity: 70,
+            locks: [],
+          },
+          {
+            id: "n2",
+            startBeat: 7,
+            durationBeats: 1,
+            pitch: 67,
+            velocity: 70,
+            locks: [],
+          },
+        ],
+        16,
+      ),
+    ).toEqual({ startBeat: 5, endBeat: 8.5 })
+  })
+
+  it("Section境界を越えない", () => {
+    expect(
+      resolveReactivePreviewRange(
+        [
+          {
+            id: "n1",
+            startBeat: 0.25,
+            durationBeats: 0.5,
+            pitch: 64,
+            velocity: 70,
+            locks: [],
+          },
+          {
+            id: "n2",
+            startBeat: 15,
+            durationBeats: 1,
+            pitch: 67,
+            velocity: 70,
+            locks: [],
+          },
+        ],
+        16,
+      ),
+    ).toEqual({ startBeat: 0, endBeat: 16 })
   })
 })
 
