@@ -78,6 +78,27 @@ describe("Issue #42 / collision and quality", () => {
     expect(evaluated.quality.overallQuality).toBeGreaterThan(75)
   })
 
+  it("ロングトーンのAttackを保護しつつ後半のCounterを許可する", () => {
+    const sustainedMelody = [
+      note("high-a", 0, 1, 72),
+      note("long", 1, 3, 64),
+      note("high-b", 4, 1, 72),
+    ]
+    const analysis = analyzeMelodyActivity(sustainedMelody, 8)
+    const candidate = [
+      note("c1", 2, 0.5, 52),
+      note("c2", 2.75, 0.5, 54),
+      note("c3", 3.5, 0.25, 55),
+    ]
+    const collisions = assessReactiveLayerCollisions(
+      sustainedMelody,
+      candidate,
+      analysis,
+    )
+    expect(collisions.protectedMomentOverlapBeats).toBe(0)
+    expect(collisions.hasBlockingCollision).toBe(false)
+  })
+
   it("planned非和声音の解決実音を検証し、意図的なtension holdは許可する", () => {
     const resolved = [
       note("approach", 1, 0.5, 61, {

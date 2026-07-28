@@ -43,43 +43,43 @@ const STYLE_PLANS: readonly StylePlan[] = [
   {
     style: "bell-response",
     role: "answer-phrase",
-    noteCount: [2, 3],
+    noteCount: [3, 5],
     durations: [0.5, 0.75],
     velocity: [54, 68],
     preferredSide: "above",
-    gapCount: [1, 2],
+    gapCount: [1, 1],
   },
   {
     style: "piano-echo",
     role: "motif-echo",
-    noteCount: [2, 4],
+    noteCount: [3, 5],
     durations: [0.5, 1, 1.5],
     velocity: [45, 61],
     preferredSide: "below",
-    gapCount: [1, 2],
+    gapCount: [1, 1],
   },
   {
     style: "string-answer",
     role: "counterline",
-    noteCount: [2, 4],
+    noteCount: [4, 6],
     durations: [0.75, 1, 1.5],
     velocity: [42, 58],
     preferredSide: "analysis",
-    gapCount: [1, 2],
+    gapCount: [1, 1],
   },
   {
     style: "guitar-fill",
     role: "gap-fill",
-    noteCount: [3, 5],
+    noteCount: [4, 7],
     durations: [0.25, 0.5, 0.75],
     velocity: [52, 68],
     preferredSide: "below",
-    gapCount: [1, 2],
+    gapCount: [1, 1],
   },
   {
     style: "synth-whisper",
     role: "suspension-layer",
-    noteCount: [1, 2],
+    noteCount: [3, 4],
     durations: [1, 1.5, 2],
     velocity: [36, 50],
     preferredSide: "above",
@@ -231,6 +231,73 @@ function availableGaps(
   return analysis.gaps.filter((gap) => gap.durationBeats >= minimumDuration)
 }
 
+function counterOpportunityWindows(
+  input: GenerateCounterInput,
+  analysis: MelodyActivityAnalysis,
+  minimumDuration: number,
+): MelodyGap[] {
+  const criticalStarts = analysis.protectedMoments
+    .filter((moment) =>
+      moment.reasons.some(
+        (reason) =>
+          reason === "highest-note" ||
+          reason === "non-chord-resolution",
+      ),
+    )
+    .map((moment) => moment.startBeat)
+    .sort((a, b) => a - b)
+  const fromRests = availableGaps(analysis, minimumDuration).map((gap) => {
+    const desiredEnd = Math.min(
+      input.totalBeats,
+      gap.startBeat + Math.max(2, Math.min(4, gap.durationBeats + 1.5)),
+    )
+    const nextCritical = criticalStarts.find(
+      (beat) => beat >= gap.endBeat - 0.001 && beat > gap.startBeat + 0.5,
+    )
+    const endBeat = Math.max(
+      gap.endBeat,
+      Math.min(desiredEnd, nextCritical ?? desiredEnd),
+    )
+    return {
+      startBeat: gap.startBeat,
+      endBeat,
+      durationBeats: endBeat - gap.startBeat,
+    }
+  })
+
+  const highestPitch = Math.max(...input.melody.notes.map((note) => note.pitch))
+  const sustainTails = input.melody.notes
+    .filter(
+      (note) =>
+        note.durationBeats >= 2 &&
+        note.pitch < highestPitch &&
+        !note.plannedResolution,
+    )
+    .map((note) => {
+      const startBeat = note.startBeat + Math.min(0.75, note.durationBeats * 0.4)
+      const endBeat = Math.min(
+        input.totalBeats,
+        note.startBeat + note.durationBeats - 0.25,
+      )
+      return {
+        startBeat,
+        endBeat,
+        durationBeats: endBeat - startBeat,
+      }
+    })
+    .filter((window) => window.durationBeats >= minimumDuration)
+
+  return [...fromRests, ...sustainTails]
+    .filter((window) => window.durationBeats >= minimumDuration)
+    .sort((a, b) => a.startBeat - b.startBeat)
+    .filter(
+      (window, index, windows) =>
+        index === 0 ||
+        Math.abs(window.startBeat - windows[index - 1].startBeat) > 0.125 ||
+        Math.abs(window.endBeat - windows[index - 1].endBeat) > 0.125,
+    )
+}
+
 function generatePhraseInGap(
   plan: StylePlan,
   gap: MelodyGap,
@@ -256,6 +323,46 @@ function generatePhraseInGap(
     (register.low + register.high) / 2,
   )
   const steps = contourSteps(plan, source, count, inverseDirection)
+  const usesStepwiseContour =
+    plan.style === "bell-response" ||
+    plan.style === "string-answer" ||
+    plan.style === "synth-whisper"
+  if (usesStepwiseContour) {
+    const finalBeat = phraseStart + (count - 1) * slotBeats
+    const finalChord = chordForBeat(input.chords, finalBeat)
+    const finalParsed = finalChord
+      ? parseChordSymbol(finalChord.symbol, finalChord.bass ?? undefined)
+      : null
+    const chordIndices = finalParsed?.tones
+      .map((tone) =>
+        ladder.findIndex(
+          (pitch) =>
+            ((pitch % 12) + 12) % 12 === tone.pitchClass,
+        ),
+      )
+      .filter((index) => index >= 0)
+    const alignedTarget = chordIndices
+      ?.map((targetIndex) => ({
+        targetIndex,
+        startIndex: targetIndex - inverseDirection * (count - 1),
+      }))
+      .filter(
+        ({ startIndex }) =>
+          startIndex >= 0 && startIndex < ladder.length,
+      )
+      .sort(
+        (left, right) =>
+          Math.abs(
+            ladder[left.startIndex] -
+              (register.low + register.high) / 2,
+          ) -
+          Math.abs(
+            ladder[right.startIndex] -
+              (register.low + register.high) / 2,
+          ),
+      )[0]
+    if (alignedTarget) ladderIndex = alignedTarget.startIndex
+  }
   const notes: MelodyNote[] = []
 
   for (let index = 0; index < count; index++) {
@@ -295,7 +402,11 @@ function generatePhraseInGap(
         pitch,
       )
       const previous = notes.at(-1)?.pitch
-      if (previous === undefined || Math.abs(resolvedPitch - previous) <= 3) {
+      if (
+        previous === undefined ||
+        (Math.abs(resolvedPitch - previous) >= 1 &&
+          Math.abs(resolvedPitch - previous) <= 3)
+      ) {
         pitchClass = nearestChordPitchClass
         pitch = resolvedPitch
       }
@@ -412,17 +523,35 @@ function selectDiverseCandidates(
   pool: ReactiveLayerCandidate[],
   finalCount: number,
 ): ReactiveLayerCandidate[] {
-  const eligible = pool
+  const eligibleWithDuplicates = pool
     .filter(
       (candidate) =>
         candidate.quality.overallQuality >= 68 &&
         candidate.quality.melodyRespect >= 80 &&
-        candidate.quality.harmonicFit >= 70 &&
-        candidate.quality.motifRelationship >= 60 &&
+        candidate.quality.harmonicFit >= 60 &&
+        candidate.quality.motifRelationship >= 55 &&
         !candidate.collisions.hasBlockingCollision &&
-        candidate.notes.length > 0,
+        candidate.notes.length >= 3,
     )
     .sort((a, b) => b.quality.overallQuality - a.quality.overallQuality)
+  const eligible = eligibleWithDuplicates.filter(
+    (candidate, index, candidates) =>
+      candidates.findIndex(
+        (other) =>
+          other.notes
+            .map(
+              (note) =>
+                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}`,
+            )
+            .join("|") ===
+          candidate.notes
+            .map(
+              (note) =>
+                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}`,
+            )
+            .join("|"),
+      ) === index,
+  )
   const source = eligible
   const selected: ReactiveLayerCandidate[] = []
   while (selected.length < finalCount && selected.length < source.length) {
@@ -472,7 +601,11 @@ function buildPoolCandidate(
 ): ReactiveLayerCandidate {
   const candidateSeed = (input.seed + (poolIndex + 1) * 104_729) >>> 0
   const rng = new SeededRandom(candidateSeed)
-  const gaps = availableGaps(analysis, plan.style === "synth-whisper" ? 0.75 : 0.5)
+  const gaps = counterOpportunityWindows(
+    input,
+    analysis,
+    plan.style === "synth-whisper" ? 0.75 : 0.5,
+  )
   const gapCount = Math.min(gaps.length, rng.intBetween(plan.gapCount[0], plan.gapCount[1]))
   const selectedGaps = gaps
     .map((gap) => ({
@@ -498,7 +631,8 @@ function buildPoolCandidate(
   const notes = selectedGaps.flatMap((gap, index) =>
     generatePhraseInGap(plan, gap, index, { ...input, seed: candidateSeed }, analysis, rng),
   )
-  const evaluated = evaluateReactiveLayerQuality(input.melody.notes, notes, analysis, {
+  const opportunityAnalysis = { ...analysis, gaps }
+  const evaluated = evaluateReactiveLayerQuality(input.melody.notes, notes, opportunityAnalysis, {
     harmonicFit: harmonicFit(notes, input.chords),
     motifRelationship: motifRelationship(input.melody.notes, notes),
     sectionFit: sectionFit(input.sectionRole, notes.length),
@@ -522,12 +656,12 @@ function buildPoolCandidate(
   }
 }
 
-/** #70 MVP: 9案を独立生成し、品質下限と候補間差を両立する3案を返す。 */
+/** 拡張候補プールを独立生成し、品質下限と候補間差を両立する3案を返す。 */
 export function generateCounterCandidates(
   input: GenerateCounterInput,
 ): ReactiveLayerCandidate[] {
   const analysis = analyzeMelodyActivity(input.melody.notes, input.totalBeats)
-  const poolSize = Math.max(input.finalCount ?? 3, input.poolSize ?? 24)
+  const poolSize = Math.max(input.finalCount ?? 3, input.poolSize ?? 40)
   const pool = Array.from({ length: poolSize }, (_, index) =>
     buildPoolCandidate(
       input,
@@ -547,7 +681,7 @@ export function regenerateCounterCandidate(
   const generated = generateCounterCandidates({
     ...input,
     seed: (current.seed + 1_000_003) >>> 0,
-    poolSize: 24,
+    poolSize: 40,
     finalCount: 3,
   })
   const alternatives = generated
