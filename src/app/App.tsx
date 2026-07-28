@@ -9,8 +9,9 @@ import { TimingMigrationBanner } from "./TimingMigrationBanner"
 import { ArrangementWorkspace } from "./ArrangementWorkspace"
 import { AuditionWorkspace } from "./AuditionWorkspace"
 import { PhraseWorkspace } from "./PhraseWorkspace"
+import { CounterWorkspace } from "./CounterWorkspace"
 
-export type MainTab = "melody" | "phrase" | "arrangement" | "audition"
+export type MainTab = "melody" | "phrase" | "counter" | "arrangement" | "audition"
 
 export function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
@@ -73,10 +74,25 @@ export function App() {
             )}
           </>
         )}
+        {tab === "counter" && (
+          <>
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <CounterWorkspace />
+            {(leftOpen || rightOpen) && (
+              <div
+                className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                onClick={() => {
+                  setLeftOpen(false)
+                  setRightOpen(false)
+                }}
+              />
+            )}
+          </>
+        )}
         {tab === "arrangement" && <ArrangementWorkspace />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
-      {tab !== "phrase" && <BottomBar />}
+      {tab !== "phrase" && tab !== "counter" && <BottomBar />}
     </div>
   )
 }

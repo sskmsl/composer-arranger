@@ -72,6 +72,12 @@ import {
   type GeneratePhrasesInput,
 } from "@/phrase-engine/generatePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
+import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
+import {
+  generateCounterCandidates,
+  regenerateCounterCandidate as buildRegeneratedCounter,
+  type GenerateCounterInput,
+} from "@/melody-engine/counterGenerator"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -96,6 +102,8 @@ interface ProjectState {
   activeCandidateIndex: number
   activePhraseBatchId: string | null
   activePhraseCandidateIndex: number
+  activeReactiveBatchId: string | null
+  activeReactiveCandidateIndex: number
   generationSettings: GenerationSettings
   history: ComposerProject[]
   future: ComposerProject[]
@@ -156,6 +164,14 @@ interface ProjectState {
   generatePhrasesForSection: (sectionId: string, lengthBars?: PhraseLengthBars) => void
   setActivePhraseCandidateIndex: (index: number) => void
   regeneratePhrase: (candidateId: string) => void
+  generateCounterForSection: (sectionId: string) => void
+  setActiveReactiveCandidateIndex: (index: number) => void
+  regenerateCounter: (candidateId: string) => void
+  setReactiveLayerReviewState: (
+    candidateId: string,
+    reviewState: "favorite" | "rejected" | null,
+  ) => void
+  assignReactiveLayer: (candidateId: string) => void
 
   toggleNoteLock: (variantId: string, noteId: string, lock: LockKind) => void
   toggleBarLock: (variantId: string, barIndex: number) => void
@@ -220,6 +236,34 @@ function phraseGenerationInput(
   }
 }
 
+function counterGenerationInput(
+  project: ComposerProject,
+  sectionId: string,
+  seed: number,
+): GenerateCounterInput | null {
+  const section = project.sections.find((candidate) => candidate.id === sectionId)
+  const melodyId = project.sectionMelodyAssignments[sectionId]
+  const melody = project.melodyVariants.find(
+    (candidate) => candidate.id === melodyId && candidate.sectionId === sectionId,
+  )
+  if (!section || !melody || melody.notes.length === 0) return null
+  const { beatsPerBar } = parseTimeSignature(project.song.timeSignature)
+  const totalBeats = section.lengthBars * beatsPerBar
+  const chords = project.chords
+    .filter((chord) => chord.sectionId === sectionId)
+    .sort((a, b) => a.startBeat - b.startBeat)
+  if (chords.length === 0 || diagnoseChordInput(chords, totalBeats).hasError) return null
+  return {
+    sectionId,
+    sectionRole: section.role,
+    songProfile: effectiveSongProfile(project, sectionId),
+    chords,
+    melody,
+    totalBeats,
+    seed,
+  }
+}
+
 function snapshot(project: ComposerProject): ComposerProject {
   return JSON.parse(JSON.stringify(project))
 }
@@ -272,6 +316,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeCandidateIndex: 0,
   activePhraseBatchId: null,
   activePhraseCandidateIndex: 0,
+  activeReactiveBatchId: null,
+  activeReactiveCandidateIndex: 0,
   generationSettings: {
     density: "balanced",
     rangePreset: "middle",
@@ -313,6 +359,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeReactiveBatchId: null,
+      activeReactiveCandidateIndex: 0,
       history: [],
       future: [],
       timingNotice: null,
@@ -330,6 +378,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeReactiveBatchId: null,
+      activeReactiveCandidateIndex: 0,
       history: [],
       future: [],
       timingNotice: timingNoticeFrom(result),
@@ -518,6 +568,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       selectedSectionId: prev.sections.find((s) => s.id !== sectionId)?.id ?? null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeReactiveBatchId: null,
+      activeReactiveCandidateIndex: 0,
     })
     get().persist()
   },
@@ -556,6 +608,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeCandidateIndex: 0,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeReactiveBatchId: null,
+      activeReactiveCandidateIndex: 0,
     })
     get().persist()
   },
@@ -576,6 +630,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeReactiveBatchId: null,
+      activeReactiveCandidateIndex: 0,
     }),
 
   setChordText: (sectionId, text) => {
@@ -878,6 +934,147 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         phraseCandidates: prev.phraseCandidates.map((candidate) =>
           candidate.id === candidateId ? replacement : candidate,
         ),
+      },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
+  generateCounterForSection: (sectionId) => {
+    const prev = get().project
+    const input = counterGenerationInput(prev, sectionId, createSeed())
+    if (!input) {
+      set({
+        workflowNotice:
+          "Counter生成には、有効なコード進行と採用済みActive Melodyが必要です。",
+      })
+      return
+    }
+    const generated = generateCounterCandidates(input)
+    if (generated.length === 0) {
+      set({
+        workflowNotice:
+          "主旋律を尊重できる十分な隙間がありません。Melodyの休符または音価を調整してください。",
+      })
+      return
+    }
+    const batchId = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    const candidates: ReactiveLayerCandidate[] = generated.map((candidate, index) => ({
+      ...candidate,
+      id: crypto.randomUUID(),
+      batchId,
+      name: `${candidate.name} ${index + 1}`,
+      notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
+      createdAt,
+    }))
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        reactiveLayerCandidates: [
+          ...(prev.reactiveLayerCandidates ?? []),
+          ...candidates,
+        ],
+      },
+      activeReactiveBatchId: batchId,
+      activeReactiveCandidateIndex: 0,
+      workflowNotice:
+        candidates.length < 3
+          ? `品質下限を満たすCounter候補は${candidates.length}件でした。`
+          : null,
+    })
+    get().persist()
+  },
+
+  setActiveReactiveCandidateIndex: (index) =>
+    set({ activeReactiveCandidateIndex: Math.max(0, index) }),
+
+  regenerateCounter: (candidateId) => {
+    const prev = get().project
+    const current = (prev.reactiveLayerCandidates ?? []).find(
+      (candidate) => candidate.id === candidateId && candidate.kind === "counter",
+    )
+    if (!current) return
+    const input = counterGenerationInput(prev, current.sectionId, current.seed)
+    if (!input || input.melody.id !== current.targetMelodyVariantId) {
+      set({ workflowNotice: "Active Melodyが変更されています。Counterを新しく生成してください。" })
+      return
+    }
+    const siblings = (prev.reactiveLayerCandidates ?? []).filter(
+      (candidate) =>
+        candidate.batchId === current.batchId &&
+        candidate.id !== current.id &&
+        candidate.kind === "counter",
+    )
+    const generated = buildRegeneratedCounter(input, current, siblings)
+    if (!generated) {
+      set({ workflowNotice: "品質下限を満たす別案を生成できませんでした。" })
+      return
+    }
+    const replacement: ReactiveLayerCandidate = {
+      ...generated,
+      id: crypto.randomUUID(),
+      batchId: current.batchId,
+      name: current.name,
+      notes: generated.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
+      createdAt: new Date().toISOString(),
+    }
+    const assignments = { ...(prev.sectionReactiveLayerAssignments ?? {}) }
+    if (assignments[current.sectionId] === current.id) {
+      assignments[current.sectionId] = replacement.id
+    }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        reactiveLayerCandidates: (prev.reactiveLayerCandidates ?? []).map((candidate) =>
+          candidate.id === current.id ? replacement : candidate,
+        ),
+        sectionReactiveLayerAssignments: assignments,
+      },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
+  setReactiveLayerReviewState: (candidateId, reviewState) => {
+    const prev = get().project
+    set({
+      project: {
+        ...prev,
+        reactiveLayerCandidates: (prev.reactiveLayerCandidates ?? []).map((candidate) =>
+          candidate.id === candidateId ? { ...candidate, reviewState } : candidate,
+        ),
+      },
+    })
+    get().persist()
+  },
+
+  assignReactiveLayer: (candidateId) => {
+    const prev = get().project
+    const candidate = (prev.reactiveLayerCandidates ?? []).find(
+      (item) => item.id === candidateId,
+    )
+    if (
+      !candidate ||
+      prev.sectionMelodyAssignments[candidate.sectionId] !==
+        candidate.targetMelodyVariantId
+    ) {
+      set({ workflowNotice: "この候補は現在のActive Melody向けではありません。" })
+      return
+    }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        sectionReactiveLayerAssignments: {
+          ...(prev.sectionReactiveLayerAssignments ?? {}),
+          [candidate.sectionId]: candidate.id,
+        },
       },
       workflowNotice: null,
     })
