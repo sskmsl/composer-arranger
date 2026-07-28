@@ -6,6 +6,13 @@ import type { MelodyNote } from "./melody"
  */
 export type ReactiveLayerKind = "counter" | "decoration"
 
+export type CounterGeneratorStyle =
+  | "bell-response"
+  | "piano-echo"
+  | "string-answer"
+  | "guitar-fill"
+  | "synth-whisper"
+
 export type ReactiveLayerRole =
   | "answer-phrase"
   | "gap-fill"
@@ -44,11 +51,14 @@ export interface ReactiveLayerCandidate {
   targetMelodyVariantId: string
   kind: ReactiveLayerKind
   role: ReactiveLayerRole
+  /** Counter Generatorの音楽的キャラクター。Decorationでは未指定。 */
+  generatorStyle?: CounterGeneratorStyle
   name: string
   notes: MelodyNote[]
   seed: number
   quality: ReactiveLayerQualityBreakdown
   collisions: ReactiveLayerCollisionSummary
+  selectionReason?: "highest-quality" | "quality-diversity-balance" | "regenerated"
   reviewState?: "favorite" | "rejected" | null
   createdAt: string
 }

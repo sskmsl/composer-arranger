@@ -27,6 +27,8 @@ export interface ExportMelodyOptions {
   leadTrackName?: string
   /** Issue #45: コードから導出した独立Accompaniment Patternノート。 */
   accompanimentPatternNotes?: MelodyNote[]
+  /** Issue #70: Active Melodyを変更しないCounter候補。 */
+  reactiveNotes?: MelodyNote[]
   includeChords: boolean
   /** 指定するとその範囲(セクション相対拍)のみ書き出す */
   range?: { startBeat: number; endBeat: number }
@@ -57,6 +59,7 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
     : (opts.melodyNotes ?? []).filter(inRange)
   const accompanimentNotes = opts.melody ? notesByPartRole(opts.melody, "accompaniment").filter(inRange) : []
   const accompanimentPatternNotes = (opts.accompanimentPatternNotes ?? []).filter(inRange)
+  const reactiveNotes = (opts.reactiveNotes ?? []).filter(inRange)
 
   const tracks: SmfTrack[] = [{ name: opts.leadTrackName ?? "Active Melody", notes: leadNotes.map(toSmfNote) }]
   if (accompanimentNotes.length > 0) {
@@ -66,6 +69,12 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
     tracks.push({
       name: "Accompaniment Pattern",
       notes: accompanimentPatternNotes.map(toSmfNote),
+    })
+  }
+  if (reactiveNotes.length > 0) {
+    tracks.push({
+      name: "Counter Melody",
+      notes: reactiveNotes.map(toSmfNote),
     })
   }
 
