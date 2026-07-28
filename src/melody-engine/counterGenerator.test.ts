@@ -149,6 +149,37 @@ describe("Issue #70 / Counter Generator MVP", () => {
     }
   })
 
+  it("Bell Response/String Answerは一直線の音階だけでなくアーチ型(折り返し)の輪郭も生成する", () => {
+    // 回帰: bell-response/string-answer/synth-whisperは常にinverseDirection一本の
+    // 単調な音階(常に上行 or 常に下行)しか生成できず、折り返しのある輪郭が
+    // 一切現れなかった。折り返しを許容してもフレーズ末尾の和声着地は保たれることを
+    // 併せて確認する。
+    const shapesByStyle: Record<string, Set<string>> = {
+      "bell-response": new Set(),
+      "string-answer": new Set(),
+    }
+    for (let seed = 1; seed <= 150; seed++) {
+      const candidates = generateCounterCandidates({ ...input, seed })
+      for (const candidate of candidates) {
+        const style = candidate.generatorStyle!
+        if (!(style in shapesByStyle)) continue
+        const signs = candidate.notes
+          .slice(1)
+          .map((note, index) => Math.sign(note.pitch - candidate.notes[index].pitch))
+        const hasUp = signs.includes(1)
+        const hasDown = signs.includes(-1)
+        shapesByStyle[style].add(hasUp && hasDown ? "arc" : hasUp ? "up-only" : "down-only")
+      }
+    }
+    expect(shapesByStyle["bell-response"].has("arc")).toBe(true)
+    expect(shapesByStyle["string-answer"].has("arc")).toBe(true)
+    expect(
+      generateCounterCandidates(input).every(
+        (candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0,
+      ),
+    ).toBe(true)
+  })
+
   it("十分な休符がない場合は空候補となり、主旋律へ無理に重ねない", () => {
     const continuous = {
       ...input,

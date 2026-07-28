@@ -158,6 +158,7 @@ function melodicSourceBefore(
 }
 
 function contourSteps(
+  rng: SeededRandom,
   plan: StylePlan,
   source: MelodyNote[],
   count: number,
@@ -168,9 +169,14 @@ function contourSteps(
     plan.style === "string-answer" ||
     plan.style === "synth-whisper"
   ) {
-    return Array.from({ length: count }, (_, index) =>
-      index === 0 ? 0 : inverseDirection,
-    )
+    // 4音以上の応答は、直線的な音階だけに偏らないよう一定確率で折り返し
+    // (アーチ型の輪郭)を許容する。3音以下の短い応答は単純な順次進行のままにする。
+    const turnAt =
+      count >= 4 && rng.chance(0.45) ? rng.intBetween(2, count - 1) : -1
+    return Array.from({ length: count }, (_, index) => {
+      if (index === 0) return 0
+      return turnAt >= 0 && index >= turnAt ? -inverseDirection : inverseDirection
+    })
   }
   const sourceIntervals = source
     .slice(1)
@@ -322,12 +328,15 @@ function generatePhraseInGap(
     ladder,
     (register.low + register.high) / 2,
   )
-  const steps = contourSteps(plan, source, count, inverseDirection)
+  const steps = contourSteps(rng, plan, source, count, inverseDirection)
   const usesStepwiseContour =
     plan.style === "bell-response" ||
     plan.style === "string-answer" ||
     plan.style === "synth-whisper"
   if (usesStepwiseContour) {
+    // 折り返し(アーチ型)を許容するようになったため、始点から終点までの純移動量は
+    // 単純なinverseDirection * (count - 1)ではなく、実際のsteps合計から求める。
+    const netDisplacement = steps.slice(1).reduce((sum, step) => sum + step, 0)
     const finalBeat = phraseStart + (count - 1) * slotBeats
     const finalChord = chordForBeat(input.chords, finalBeat)
     const finalParsed = finalChord
@@ -344,7 +353,7 @@ function generatePhraseInGap(
     const alignedTarget = chordIndices
       ?.map((targetIndex) => ({
         targetIndex,
-        startIndex: targetIndex - inverseDirection * (count - 1),
+        startIndex: targetIndex - netDisplacement,
       }))
       .filter(
         ({ startIndex }) =>
