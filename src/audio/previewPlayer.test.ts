@@ -18,6 +18,7 @@ describe("preview layer modes", () => {
       chords: false,
       melody: false,
       accompaniment: true,
+      reactive: false,
     })
   })
 
@@ -26,6 +27,7 @@ describe("preview layer modes", () => {
       chords: true,
       melody: false,
       accompaniment: false,
+      reactive: false,
     })
   })
 
@@ -34,6 +36,22 @@ describe("preview layer modes", () => {
       chords: true,
       melody: true,
       accompaniment: true,
+      reactive: false,
+    })
+  })
+
+  it("Reactive Layerを単独またはMelodyとのCombinedで選べる", () => {
+    expect(previewLayersForMode("reactive-only")).toEqual({
+      chords: false,
+      melody: false,
+      accompaniment: false,
+      reactive: true,
+    })
+    expect(previewLayersForMode("melody-reactive")).toEqual({
+      chords: false,
+      melody: true,
+      accompaniment: false,
+      reactive: true,
     })
   })
 })

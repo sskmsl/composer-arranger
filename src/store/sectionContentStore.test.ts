@@ -1,10 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useProjectStore } from "./useProjectStore"
 import { createEmptyProject } from "@/core/project"
 import { DEFAULT_SECTION_CONTENT, notesBeforeEntryOffset } from "@/core/sectionContent"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import type { ComposerProject } from "@/core/project"
 import { parseChordInputText } from "@/core/chordInput"
+
+vi.mock("@/core/rng", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/core/rng")>()
+  return {
+    ...actual,
+    createSeed: () => 246_813_579,
+  }
+})
 
 /** persistはIndexedDBへ書くため、ストア単体テストでは無効化する */
 function stubPersist() {

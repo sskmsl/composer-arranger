@@ -35,6 +35,8 @@ export interface SongPlaybackMaterial {
   accompaniment: MelodyNote[]
   /** Issue #45: コードから導出した独立Accompaniment Patternレイヤー。 */
   accompanimentPattern: MelodyNote[]
+  /** Issue #42: 採用中のCounter / Decoration独立レイヤー。 */
+  reactiveLayers: MelodyNote[]
   totalBeats: number
 }
 
@@ -45,6 +47,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const lead: MelodyNote[] = []
   const accompaniment: MelodyNote[] = []
   const accompanimentPattern: MelodyNote[] = []
+  const reactiveLayers: MelodyNote[] = []
   const sections = normalizeSectionTimeline(project.sections)
 
   for (const [sectionIndex, section] of sections.entries()) {
@@ -133,6 +136,24 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
         })
       }
     }
+    const reactiveId = project.sectionReactiveLayerAssignments?.[section.id]
+    const reactive = reactiveId
+      ? project.reactiveLayerCandidates?.find(
+          (candidate) =>
+            candidate.id === reactiveId &&
+            candidate.sectionId === section.id &&
+            candidate.targetMelodyVariantId === variant?.id,
+        )
+      : undefined
+    if (reactive) {
+      for (const note of reactive.notes) {
+        reactiveLayers.push({
+          ...note,
+          id: `${section.id}:reactive:${note.id}`,
+          startBeat: offset + note.startBeat,
+        })
+      }
+    }
     if (!variant) continue
     // Issue #41: partRoleの正はLayer。曲全体へ展開する際も役割ごとに分けて持つ
     for (const layer of layersOf(variant)) {
@@ -147,10 +168,11 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const totalBars = project.sections.reduce((sum, section) => sum + Math.max(1, section.lengthBars), 0)
   return {
     chords: chords.sort((a, b) => a.startBeat - b.startBeat),
-    melody: [...lead, ...accompaniment].sort(byBeat),
+    melody: [...lead, ...accompaniment, ...reactiveLayers].sort(byBeat),
     lead: lead.sort(byBeat),
     accompaniment: accompaniment.sort(byBeat),
     accompanimentPattern: accompanimentPattern.sort(byBeat),
+    reactiveLayers: reactiveLayers.sort(byBeat),
     totalBeats: totalBars * beatsPerBar,
   }
 }

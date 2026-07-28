@@ -4,20 +4,39 @@ import { parseChordSymbol } from "@/core/chord"
 import { midiToFreq } from "@/core/note"
 import { voiceChord } from "./chordVoicing"
 
-export type PreviewMode = "melody-only" | "chords-melody" | "chords-only" | "accompaniment-only"
+export type PreviewMode =
+  | "melody-only"
+  | "chords-melody"
+  | "chords-only"
+  | "accompaniment-only"
+  | "reactive-only"
+  | "melody-reactive"
+  | "chords-melody-reactive"
 
 export interface PreviewLayers {
   chords: boolean
   melody: boolean
   accompaniment: boolean
+  reactive: boolean
 }
 
 /** 再生モードを実際に鳴らすレイヤーへ一元変換する。 */
 export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
   return {
-    chords: mode === "chords-melody" || mode === "chords-only",
-    melody: mode === "chords-melody" || mode === "melody-only",
+    chords:
+      mode === "chords-melody" ||
+      mode === "chords-only" ||
+      mode === "chords-melody-reactive",
+    melody:
+      mode === "chords-melody" ||
+      mode === "melody-only" ||
+      mode === "melody-reactive" ||
+      mode === "chords-melody-reactive",
     accompaniment: mode === "chords-melody" || mode === "accompaniment-only",
+    reactive:
+      mode === "reactive-only" ||
+      mode === "melody-reactive" ||
+      mode === "chords-melody-reactive",
   }
 }
 
@@ -27,6 +46,8 @@ export interface PlayOptions {
   melody: MelodyNote[]
   /** Issue #45: コードパッドとは独立したPattern伴奏。 */
   accompaniment?: MelodyNote[]
+  /** Issue #42: Counter / Decoration共通の独立試聴レイヤー。 */
+  reactive?: MelodyNote[]
   mode: PreviewMode
   loop?: boolean
   /** 比較試聴用。startBeatは今回の再生開始位置、rangeは共通ループ範囲。 */
@@ -115,6 +136,19 @@ class PreviewPlayer {
         const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
         const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
         this.scheduleLead(ctx, compressor, n.pitch, n.velocity, t0, dur)
+        totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
+      }
+    }
+
+    if (layers.reactive) {
+      for (const n of opts.reactive ?? []) {
+        const eventEnd = n.startBeat + n.durationBeats
+        if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
+        const clippedStart = Math.max(n.startBeat, playbackStart)
+        const clippedEnd = Math.min(eventEnd, rangeEnd)
+        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
+        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
+        this.scheduleLead(ctx, compressor, n.pitch, Math.max(35, n.velocity - 8), t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
