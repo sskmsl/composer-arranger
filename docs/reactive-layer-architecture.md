@@ -24,6 +24,8 @@ Reactive LayerはActive Melodyを直接変更せず、CounterとDecorationを独
 - CounterはGap直前のActive Melodyから輪郭と音価を取り出し、反行する段階進行またはMotif変形として応答する。完全な休符だけでなく、通常音のAttack後に音域分離して展開できる低活動区間と、最高音ではないLong Tone後半をCounter Windowとして利用する。候補は最低3音・1拍以上の独立した旋律線とし、単音AccentはCounter候補として返さない。
 - DecorationのRhythmは音価を等分せず、弱起、シンコペーション、余白を含む認識可能なRhythm Cellから作る。
 - `rising`、`falling`、`sequence`、`repeated-sequence`はラベルだけでなく、実音でも隣接Scale Toneによる段階進行にする。
+- DecorationはType・Character・Shape・Rhythmを独立乱数にせず、一つのGestureとして組み合わせる。Transitionは次Chord Toneへ隣接音から接近しながらCrescendoし、EndingはDecrescendoと1拍以上のArrival Toneで余韻を作り、Decorative FillはActive MelodyのMotifを複製せず短い関連応答を返す。
+- Active Melodyに十分な空白がない場合は、1拍以上の安全なGapへGesture Lengthを縮める。指定長を守るために主旋律へ無理に重ねない。
 - 候補選抜ではOverall Quality、Melody Respect、Harmonic Fit、Collision Safetyの下限を維持する。多様性だけを理由に下限未満の候補を採用しない。
 
 ## 短縮試聴
