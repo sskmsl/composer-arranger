@@ -186,7 +186,7 @@ export function DecorationWorkspace() {
               Decoration Generator
             </h2>
             <p className="mt-0.5 text-[11px] text-ink-muted-48">
-              前後セクションと終止位置から、接続・余韻・推進力を作る10案を提案します
+              音色・旋律・強弱を一体化し、接続・余韻・推進力を作る10のGestureを提案します
             </p>
           </div>
           <Button
@@ -348,6 +348,13 @@ export function DecorationWorkspace() {
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {plan?.rhythmStyle}
+                      </span>
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        {plan?.type === "transition-fill"
+                          ? "Crescendo"
+                          : plan?.type === "ending-fill"
+                            ? "Release"
+                            : "Response"}
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         MIDI{" "}

@@ -62,29 +62,88 @@ export interface GenerateDecorationInput {
   candidateCount?: number
 }
 
-const SHAPES: DecorationShape[] = [
-  "rising",
-  "falling",
-  "sequence",
-  "repeated-sequence",
-  "turn",
-  "neighbor-motion",
-  "arpeggiated-fill",
-  "suspense",
-  "sparse-accent",
-]
-
-const RHYTHMS: DecorationRhythmStyle[] = [
-  "eighth",
-  "sixteenth",
-  "triplet",
-  "syncopation",
-  "dotted",
-  "legato",
-  "staccato",
-]
-
 const CHARACTERS: DecorationCharacter[] = ["strings", "bell", "piano", "generic"]
+
+const SHAPES_BY_TYPE: Record<DecorationType, DecorationShape[]> = {
+  "decorative-fill": [
+    "turn",
+    "neighbor-motion",
+    "arpeggiated-fill",
+    "repeated-sequence",
+    "sparse-accent",
+  ],
+  "transition-fill": [
+    "rising",
+    "sequence",
+    "repeated-sequence",
+    "suspense",
+    "arpeggiated-fill",
+  ],
+  "ending-fill": [
+    "falling",
+    "turn",
+    "neighbor-motion",
+    "suspense",
+    "sparse-accent",
+  ],
+}
+
+const RHYTHMS_BY_CHARACTER: Record<
+  DecorationCharacter,
+  DecorationRhythmStyle[]
+> = {
+  strings: ["legato", "dotted", "syncopation"],
+  bell: ["dotted", "syncopation", "staccato"],
+  piano: ["eighth", "sixteenth", "triplet", "syncopation"],
+  generic: ["eighth", "syncopation", "dotted", "legato"],
+}
+
+function resolveShape(
+  type: DecorationType,
+  character: DecorationCharacter,
+  poolIndex: number,
+  rng: SeededRandom,
+): DecorationShape {
+  const typeShapes = SHAPES_BY_TYPE[type]
+  const characterPreference: Partial<
+    Record<DecorationCharacter, DecorationShape[]>
+  > = {
+    strings: ["suspense", "falling", "rising", "neighbor-motion"],
+    bell: ["sparse-accent", "turn", "rising", "falling"],
+    piano: [
+      "turn",
+      "neighbor-motion",
+      "arpeggiated-fill",
+      "repeated-sequence",
+    ],
+  }
+  const preferred = characterPreference[character]?.filter((shape) =>
+    typeShapes.includes(shape),
+  )
+  const source = preferred && preferred.length > 0 ? preferred : typeShapes
+  return source[
+    (poolIndex + rng.intBetween(0, source.length - 1)) % source.length
+  ]
+}
+
+function resolveRhythmStyle(
+  type: DecorationType,
+  character: DecorationCharacter,
+  poolIndex: number,
+  rng: SeededRandom,
+): DecorationRhythmStyle {
+  const compatible = RHYTHMS_BY_CHARACTER[character].filter((style) => {
+    if (type === "ending-fill") return style !== "sixteenth"
+    if (type === "transition-fill" && character === "strings") {
+      return style === "legato" || style === "dotted" || style === "syncopation"
+    }
+    return true
+  })
+  return compatible[
+    (poolIndex * 2 + rng.intBetween(0, compatible.length - 1)) %
+      compatible.length
+  ]
+}
 
 export function decorationFingerprintForInput(input: GenerateDecorationInput): string {
   return decorationStructureFingerprint({
@@ -346,6 +405,126 @@ function stepwiseShapePitches(
   })
 }
 
+function gestureVelocity(
+  plan: DecorationPlan,
+  index: number,
+  count: number,
+  rng: SeededRandom,
+): number {
+  const ranges: Record<DecorationCharacter, readonly [number, number]> = {
+    strings: [42, 62],
+    bell: [50, 70],
+    piano: [48, 72],
+    generic: [46, 68],
+  }
+  const [low, high] = ranges[plan.character]
+  const progress = count <= 1 ? 1 : index / (count - 1)
+  const expressiveProgress =
+    plan.type === "transition-fill"
+      ? progress
+      : plan.type === "ending-fill"
+        ? 1 - progress * 0.7
+        : 1 - Math.abs(progress - 0.55) * 1.4
+  return Math.max(
+    1,
+    Math.min(
+      127,
+      Math.round(
+        low + (high - low) * expressiveProgress + rng.intBetween(-2, 2),
+      ),
+    ),
+  )
+}
+
+function applyGestureArrival(
+  notes: MelodyNote[],
+  input: GenerateDecorationInput,
+  plan: DecorationPlan,
+  window: { low: number; high: number },
+): MelodyNote[] {
+  if (notes.length === 0) return notes
+  const result = notes.map((note) => ({ ...note }))
+  const arrivalIndex = result.length - 1
+  const arrival = result[arrivalIndex]
+  const desiredArrivalDuration =
+    plan.type === "ending-fill"
+      ? 1
+      : plan.type === "transition-fill"
+        ? 0.75
+        : 0.5
+  const gestureEnd = Math.min(
+    input.totalBeats,
+    plan.placementBeat + plan.lengthBeats,
+  )
+  const preferredArrivalStart = gestureEnd - desiredArrivalDuration
+  const arrivalApproach = result[arrivalIndex - 1]
+  if (
+    arrivalApproach &&
+    arrivalApproach.startBeat >= preferredArrivalStart
+  ) {
+    const previousNote = result[arrivalIndex - 2]
+    arrivalApproach.startBeat = Math.max(
+      previousNote
+        ? previousNote.startBeat + 0.125
+        : plan.placementBeat,
+      preferredArrivalStart - 0.25,
+    )
+  }
+  const minimumArrivalStart =
+    result[arrivalIndex - 1]?.startBeat === undefined
+      ? plan.placementBeat
+      : result[arrivalIndex - 1].startBeat + 0.125
+  arrival.startBeat = Math.max(
+    minimumArrivalStart,
+    Math.min(arrival.startBeat, preferredArrivalStart),
+  )
+  arrival.plannedToneRole =
+    plan.type === "transition-fill" ? "tension-hold" : "chord-tone"
+  arrival.durationBeats = Math.min(
+    Math.max(arrival.durationBeats, desiredArrivalDuration),
+    Math.max(0.125, gestureEnd - arrival.startBeat),
+  )
+  if (arrivalIndex === 0) return result
+
+  const approachIndex = arrivalIndex - 1
+  const approach = result[approachIndex]
+  approach.durationBeats = Math.min(
+    approach.durationBeats,
+    Math.max(0.125, arrival.startBeat - approach.startBeat),
+  )
+  const scalePitches = pitchLadder(
+    [...keyScalePitchClasses(input.key), plan.targetPitchClass],
+    window,
+  )
+  const arrivalLadderIndex = scalePitches.reduce(
+    (best, pitch, index) =>
+      Math.abs(pitch - arrival.pitch) <
+      Math.abs(scalePitches[best] - arrival.pitch)
+        ? index
+        : best,
+    0,
+  )
+  const approachDirection =
+    plan.direction === "falling" || plan.type === "ending-fill" ? 1 : -1
+  const adjacentIndex = Math.max(
+    0,
+    Math.min(
+      scalePitches.length - 1,
+      arrivalLadderIndex + approachDirection,
+    ),
+  )
+  const chromaticApproach =
+    arrival.pitch + (approachDirection > 0 ? 1 : -1)
+  approach.pitch =
+    plan.shape === "suspense" &&
+    chromaticApproach >= window.low &&
+    chromaticApproach <= window.high
+      ? chromaticApproach
+      : scalePitches[adjacentIndex]
+  approach.plannedToneRole = "approach-tone"
+  return result
+}
+
 function notesForPlan(
   input: GenerateDecorationInput,
   plan: DecorationPlan,
@@ -428,22 +607,27 @@ function notesForPlan(
         Math.max(0.125, input.totalBeats - startBeat),
       ),
       pitch,
-      velocity: rng.intBetween(
-        plan.character === "bell" ? 52 : 45,
-        plan.character === "strings" ? 66 : 72,
-      ),
+      velocity: gestureVelocity(plan, index, grid.onsets.length, rng),
       locks: [],
       plannedToneRole:
         index === grid.onsets.length - 1
-          ? "chord-tone"
+          ? plan.type === "transition-fill"
+            ? "tension-hold"
+            : "chord-tone"
           : chordPitchClasses.includes(pitchClass)
             ? "chord-tone"
             : "passing-tone",
     }
   })
-  return notes.map((note, index) => {
-    if (note.plannedToneRole !== "passing-tone") return note
-    const target = notes[index + 1]
+  const resolvedGesture = applyGestureArrival(notes, input, plan, window)
+  return resolvedGesture.map((note, index) => {
+    if (
+      note.plannedToneRole !== "passing-tone" &&
+      note.plannedToneRole !== "approach-tone"
+    ) {
+      return note
+    }
+    const target = resolvedGesture[index + 1]
     if (!target) return { ...note, plannedToneRole: "tension-hold" }
     return {
       ...note,
@@ -472,19 +656,96 @@ function harmonicFit(notes: MelodyNote[], chords: ChordEvent[]): number {
 function transitionQuality(notes: MelodyNote[], plan: DecorationPlan): number {
   const last = notes[notes.length - 1]
   if (!last) return 0
+  const previous = notes.at(-2)
   const targetFit =
     ((last.pitch % 12) + 12) % 12 === plan.targetPitchClass ? 100 : 45
-  if (plan.type === "transition-fill") return targetFit
-  if (plan.type === "ending-fill") return targetFit * 0.9 + 8
-  return 72 + targetFit * 0.18
+  const approachInterval = previous
+    ? Math.abs(last.pitch - previous.pitch)
+    : 12
+  const approachFit =
+    approachInterval <= 2 ? 100 : approachInterval <= 4 ? 82 : 52
+  const arrivalWeight =
+    last.durationBeats >= 0.75 ? 100 : last.durationBeats >= 0.5 ? 82 : 60
+  if (plan.type === "transition-fill") {
+    return targetFit * 0.5 + approachFit * 0.3 + arrivalWeight * 0.2
+  }
+  if (plan.type === "ending-fill") {
+    return targetFit * 0.45 + approachFit * 0.25 + arrivalWeight * 0.3
+  }
+  return targetFit * 0.25 + approachFit * 0.35 + arrivalWeight * 0.4
 }
 
-function musicality(notes: MelodyNote[]): number {
+function musicality(
+  notes: MelodyNote[],
+  plan: DecorationPlan,
+): number {
   if (notes.length < 2) return 72
   const intervals = notes.slice(1).map((note, index) => Math.abs(note.pitch - notes[index].pitch))
   const largeLeaps = intervals.filter((interval) => interval > 9).length
   const repeated = intervals.filter((interval) => interval === 0).length
-  return Math.max(45, 94 - largeLeaps * 14 - Math.max(0, repeated - 2) * 5)
+  const onsetIntervals = notes
+    .slice(1)
+    .map((note, index) =>
+      Number((note.startBeat - notes[index].startBeat).toFixed(3)),
+    )
+  const rhythmVariety = new Set(onsetIntervals).size >= 2 ? 6 : 0
+  const firstVelocity = notes[0].velocity
+  const lastVelocity = notes.at(-1)?.velocity ?? firstVelocity
+  const dynamicFit =
+    plan.type === "transition-fill"
+      ? lastVelocity >= firstVelocity
+        ? 6
+        : -6
+      : plan.type === "ending-fill"
+        ? lastVelocity <= firstVelocity
+          ? 6
+          : -6
+        : 3
+  return Math.max(
+    45,
+    Math.min(
+      100,
+      88 -
+        largeLeaps * 14 -
+        Math.max(0, repeated - 1) * 5 +
+        rhythmVariety +
+        dynamicFit,
+    ),
+  )
+}
+
+function melodyRelationship(
+  melodyNotes: MelodyNote[],
+  notes: MelodyNote[],
+): number {
+  if (melodyNotes.length < 2 || notes.length < 2) return 78
+  const melodySource = [...melodyNotes]
+    .sort((a, b) => a.startBeat - b.startBeat)
+    .filter((note) => note.startBeat <= notes[0].startBeat + 0.001)
+    .slice(-4)
+  if (melodySource.length < 2) return 75
+  const sourceIntervals = melodySource
+    .slice(1)
+    .map((note, index) => Math.abs(note.pitch - melodySource[index].pitch))
+  const decorationIntervals = notes
+    .slice(1)
+    .map((note, index) => Math.abs(note.pitch - notes[index].pitch))
+  const related = decorationIntervals.filter((interval) =>
+    sourceIntervals.some(
+      (sourceInterval) => Math.abs(sourceInterval - interval) <= 1,
+    ),
+  ).length
+  const relationship =
+    related / Math.max(1, decorationIntervals.length)
+  const exactCopy =
+    sourceIntervals.length === decorationIntervals.length &&
+    sourceIntervals.every(
+      (interval, index) => interval === decorationIntervals[index],
+    )
+  return Math.max(
+    55,
+    Math.min(96, 68 + relationship * 24 - (exactCopy ? 14 : 0)),
+  )
 }
 
 function zeroCollisions(): ReactiveLayerCollisionSummary {
@@ -524,16 +785,22 @@ function planFor(
   const type = resolveType(input, poolIndex)
   const character = resolveCharacter(input.settings.character, poolIndex)
   const direction = resolveDirection(input.settings.direction, type, poolIndex)
-  const lengthBeats =
+  const requestedLengthBeats =
     input.settings.length === "bar" ? input.beatsPerBar : input.settings.length
-  const shape = SHAPES[(poolIndex + rng.intBetween(0, SHAPES.length - 1)) % SHAPES.length]
-  const rhythmStyle = RHYTHMS[(poolIndex * 2 + rng.intBetween(0, RHYTHMS.length - 1)) % RHYTHMS.length]
-  const melodyGaps =
+  const shape = resolveShape(type, character, poolIndex, rng)
+  const rhythmStyle = resolveRhythmStyle(type, character, poolIndex, rng)
+  const allMelodyGaps =
     input.melodyNotes && input.melodyNotes.length > 0
-      ? analyzeMelodyActivity(input.melodyNotes, input.totalBeats).gaps.filter(
-          (gap) => gap.durationBeats >= lengthBeats,
-        )
+      ? analyzeMelodyActivity(input.melodyNotes, input.totalBeats).gaps
       : []
+  const fullLengthGaps = allMelodyGaps.filter(
+    (gap) => gap.durationBeats >= requestedLengthBeats,
+  )
+  const usableShortGaps = allMelodyGaps.filter(
+    (gap) => gap.durationBeats >= Math.min(1, requestedLengthBeats),
+  )
+  const melodyGaps =
+    fullLengthGaps.length > 0 ? fullLengthGaps : usableShortGaps
   const preferredGaps =
     type === "decorative-fill"
       ? melodyGaps
@@ -542,6 +809,9 @@ function planFor(
     preferredGaps.length > 0
       ? preferredGaps[poolIndex % preferredGaps.length]
       : undefined
+  const lengthBeats = selectedGap
+    ? Math.min(requestedLengthBeats, selectedGap.durationBeats)
+    : requestedLengthBeats
   const placementBeat =
     selectedGap?.startBeat ??
     (type === "decorative-fill"
@@ -555,10 +825,10 @@ function planFor(
       : Math.max(0, input.totalBeats - lengthBeats))
   const intention =
     type === "transition-fill"
-      ? `${input.sectionRole}から${input.nextSectionRole ?? "次セクション"}への期待を作る`
+      ? `${rhythmStyle}の推進から${shape}で${input.nextSectionRole ?? "次セクション"}を先取りする`
       : type === "ending-fill"
-        ? `${input.sectionRole}の終止と余韻を補強する`
-        : `${input.sectionRole}内の空間へ短い色彩を加える`
+        ? `${shape}と減衰する強弱で${input.sectionRole}の終止後へ余韻を残す`
+        : `${character}の${shape}を主旋律の空間へ短く応答させる`
   return {
     type,
     character,
@@ -585,8 +855,10 @@ function buildCandidate(
   const notes = notesForPlan(input, plan, seed)
   const harmonic = harmonicFit(notes, input.chords)
   const transition = transitionQuality(notes, plan)
-  const music = musicality(notes)
+  const music = musicality(notes, plan)
   const melodyNotes = input.melodyNotes ?? []
+  const relationship = melodyRelationship(melodyNotes, notes)
+  const motifScore = music * 0.65 + relationship * 0.35
   const evaluated =
     melodyNotes.length > 0
       ? evaluateReactiveLayerQuality(
@@ -595,7 +867,7 @@ function buildCandidate(
           analyzeMelodyActivity(melodyNotes, input.totalBeats),
           {
             harmonicFit: harmonic,
-            motifRelationship: music,
+            motifRelationship: motifScore,
             sectionFit: plan.type === "transition-fill" && input.nextSectionRole ? 92 : 82,
             transitionValue: transition,
           },
@@ -606,11 +878,15 @@ function buildCandidate(
             harmonicFit: harmonic,
             gapUsage: 80,
             registerSeparation: 82,
-            motifRelationship: music,
+            motifRelationship: motifScore,
             sectionFit: plan.type === "transition-fill" && input.nextSectionRole ? 92 : 82,
             transitionValue: transition,
             overallQuality:
-              harmonic * 0.25 + transition * 0.3 + music * 0.2 + 82 * 0.15 + 90 * 0.1,
+              harmonic * 0.22 +
+              transition * 0.3 +
+              motifScore * 0.23 +
+              82 * 0.15 +
+              90 * 0.1,
           },
           collisions: zeroCollisions(),
         }
@@ -638,13 +914,15 @@ function buildCandidate(
   }
 }
 
-/** #71: Structure Driven候補プールから、品質とType/Shape/Rhythm差を持つ10案を返す。 */
+/** Gesture候補プールから、品質とType/Shape/Rhythm差を持つ10案を返す。 */
 export function generateDecorationCandidates(
   input: GenerateDecorationInput,
 ): ReactiveLayerCandidate[] {
   const finalCount = input.candidateCount ?? 10
   const fingerprint = decorationFingerprintForInput(input)
-  const pool = Array.from({ length: Math.max(60, finalCount * 6) }, (_, index) =>
+  const poolWithDuplicates = Array.from(
+    { length: Math.max(80, finalCount * 8) },
+    (_, index) =>
     buildCandidate(input, index, fingerprint),
   )
     .filter(
@@ -652,9 +930,30 @@ export function generateDecorationCandidates(
         candidate.quality.overallQuality >= 68 &&
         candidate.quality.harmonicFit >= 72 &&
         candidate.quality.melodyRespect >= 78 &&
+        candidate.quality.motifRelationship >= 70 &&
+        candidate.quality.transitionValue >= 78 &&
+        candidate.notes.length >= 3 &&
         !candidate.collisions.hasBlockingCollision,
     )
     .sort((a, b) => b.quality.overallQuality - a.quality.overallQuality)
+  const pool = poolWithDuplicates.filter(
+    (candidate, index, candidates) =>
+      candidates.findIndex(
+        (other) =>
+          other.notes
+            .map(
+              (note) =>
+                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}:${note.velocity}`,
+            )
+            .join("|") ===
+          candidate.notes
+            .map(
+              (note) =>
+                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}:${note.velocity}`,
+            )
+            .join("|"),
+      ) === index,
+  )
   const selected: ReactiveLayerCandidate[] = []
   while (selected.length < finalCount && selected.length < pool.length) {
     if (selected.length === 0) {
