@@ -224,6 +224,9 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
       ),
     ).toBe(true)
     expect(
+      candidates.every((candidate) => candidate.notes.length <= 2),
+    ).toBe(true)
+    expect(
       candidates.every(
         (candidate) => !candidate.collisions.hasBlockingCollision,
       ),
@@ -284,6 +287,37 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
         ),
       ).toBe(true)
     }
+  })
+
+  it("Normal設定でも余白のある候補を最低3案含める", () => {
+    const candidates = generateDecorationCandidates(input())
+    const breathingCandidates = candidates.filter((candidate) => {
+      const role = candidate.decorationPlan?.gestureRole
+      if (role === "pedal" || role === "swell") return true
+      if (candidate.notes.length <= 2) return true
+      const gaps = candidate.notes
+        .slice(1)
+        .map(
+          (note, index) =>
+            note.startBeat - candidate.notes[index].startBeat,
+        )
+      return (
+        gaps.reduce((sum, gap) => sum + gap, 0) /
+          Math.max(1, gaps.length) >=
+        0.85
+      )
+    })
+    expect(breathingCandidates.length).toBeGreaterThanOrEqual(3)
+    expect(
+      new Set(
+        candidates.map(
+          (candidate) => candidate.decorationPlan?.density,
+        ),
+      ).size,
+    ).toBeGreaterThanOrEqual(2)
+    expect(
+      candidates.some((candidate) => candidate.notes.length >= 4),
+    ).toBe(true)
   })
 
   it("主旋律と既存Arrangementが高密度ならSilence Gateを優先する", () => {

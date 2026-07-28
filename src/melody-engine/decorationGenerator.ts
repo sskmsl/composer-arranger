@@ -259,6 +259,19 @@ const RHYTHMS_BY_CHARACTER: Record<
   generic: ["eighth", "syncopation", "dotted", "legato"],
 }
 
+const SHAPES_BY_CHARACTER: Partial<
+  Record<DecorationCharacter, DecorationShape[]>
+> = {
+  strings: ["suspense", "falling", "rising", "neighbor-motion"],
+  bell: ["sparse-accent", "turn", "rising", "falling"],
+  piano: [
+    "turn",
+    "neighbor-motion",
+    "arpeggiated-fill",
+    "repeated-sequence",
+  ],
+}
+
 function resolveShape(
   type: DecorationType,
   character: DecorationCharacter,
@@ -266,19 +279,7 @@ function resolveShape(
   rng: SeededRandom,
 ): DecorationShape {
   const typeShapes = SHAPES_BY_TYPE[type]
-  const characterPreference: Partial<
-    Record<DecorationCharacter, DecorationShape[]>
-  > = {
-    strings: ["suspense", "falling", "rising", "neighbor-motion"],
-    bell: ["sparse-accent", "turn", "rising", "falling"],
-    piano: [
-      "turn",
-      "neighbor-motion",
-      "arpeggiated-fill",
-      "repeated-sequence",
-    ],
-  }
-  const preferred = characterPreference[character]?.filter((shape) =>
+  const preferred = SHAPES_BY_CHARACTER[character]?.filter((shape) =>
     typeShapes.includes(shape),
   )
   const source = preferred && preferred.length > 0 ? preferred : typeShapes
@@ -355,6 +356,28 @@ function resolveGestureRole(
     }
   }
   return roles[gestureIndex % roles.length]
+}
+
+function resolvePlanDensity(
+  setting: DecorationDensitySetting,
+  role: DecorationGestureRole,
+  poolIndex: number,
+): DecorationDensitySetting {
+  if (setting !== "normal") return setting
+  if (role === "pedal" || role === "swell") return "sparse"
+  if (
+    (role === "response" || role === "ending") &&
+    poolIndex % 2 === 0
+  ) {
+    return "sparse"
+  }
+  if (
+    (role === "pickup" || role === "transition") &&
+    poolIndex % 5 === 4
+  ) {
+    return "rich"
+  }
+  return "normal"
 }
 
 function preferenceMatch(
@@ -510,6 +533,13 @@ function rhythmGrid(
   density: DecorationDensitySetting,
 ): { onsets: number[]; durations: number[] } {
   const densityCount = density === "sparse" ? 3 : density === "rich" ? 8 : 5
+  const minimumSpacing =
+    density === "sparse" ? 0.75 : density === "rich" ? 0.25 : 0.5
+  // 短いMelody Gapへ4拍分の音数を圧縮しない。長さに応じた発音上限を先に設ける。
+  const lengthCapacity = Math.max(
+    1,
+    Math.floor((lengthBeats + 0.001) / minimumSpacing),
+  )
   const cells: Record<DecorationRhythmStyle, number[]> = {
     eighth: [0, 0.5, 1.5, 2, 2.5, 3.5],
     sixteenth: [0, 0.25, 0.5, 1.25, 1.5, 2.5, 2.75, 3.5],
@@ -520,7 +550,7 @@ function rhythmGrid(
     staccato: [0.25, 0.75, 1.5, 2.25, 3, 3.5],
   }
   const scaled = cells[style].map((onset) => onset * (lengthBeats / 4))
-  const count = Math.min(densityCount, scaled.length)
+  const count = Math.min(densityCount, scaled.length, lengthCapacity)
   const indices =
     count === scaled.length
       ? scaled.map((_, index) => index)
@@ -1192,7 +1222,42 @@ function similarity(a: ReactiveLayerCandidate, b: ReactiveLayerCandidate): numbe
 function minimumGestureNotes(plan: DecorationPlan | undefined): number {
   if (plan?.gestureRole === "pedal") return 1
   if (plan?.gestureRole === "swell") return 2
+  if ((plan?.lengthBeats ?? 4) <= 1) return 2
+  if (plan?.density === "sparse") return 2
   return 3
+}
+
+function isBreathingDecoration(
+  candidate: ReactiveLayerCandidate,
+): boolean {
+  const plan = candidate.decorationPlan
+  if (!plan || candidate.notes.length === 0) return false
+  if (
+    plan.gestureRole === "pedal" ||
+    plan.gestureRole === "swell" ||
+    plan.density === "sparse"
+  ) {
+    return true
+  }
+  if (candidate.notes.length <= 2) return true
+  const sorted = [...candidate.notes].sort(
+    (left, right) => left.startBeat - right.startBeat,
+  )
+  const onsetGaps = sorted
+    .slice(1)
+    .map((note, index) => note.startBeat - sorted[index].startBeat)
+  const averageGap =
+    onsetGaps.reduce((sum, gap) => sum + gap, 0) /
+    Math.max(1, onsetGaps.length)
+  const soundingBeats = sorted.reduce(
+    (sum, note) => sum + note.durationBeats,
+    0,
+  )
+  const restRatio = Math.max(
+    0,
+    1 - soundingBeats / Math.max(0.25, plan.lengthBeats),
+  )
+  return averageGap >= 0.85 || restRatio >= 0.35
 }
 
 function planFor(
@@ -1203,6 +1268,11 @@ function planFor(
   const type = resolveType(input, poolIndex)
   const need = assessDecorationNeed(input)
   const gestureRole = resolveGestureRole(type, need.level, poolIndex)
+  const density = resolvePlanDensity(
+    input.settings.density,
+    gestureRole,
+    poolIndex,
+  )
   const generatedCharacter = resolveCharacter(
     input.settings.character,
     poolIndex,
@@ -1221,8 +1291,11 @@ function planFor(
   const requestedLengthBeats =
     input.settings.length === "bar" ? input.beatsPerBar : input.settings.length
   const generatedShape = resolveShape(type, character, poolIndex, rng)
-  const gestureShapes = SHAPES_BY_GESTURE[gestureRole].filter((shape) =>
-    SHAPES_BY_TYPE[type].includes(shape),
+  const characterShapes = SHAPES_BY_CHARACTER[character]
+  const gestureShapes = SHAPES_BY_GESTURE[gestureRole].filter(
+    (shape) =>
+      SHAPES_BY_TYPE[type].includes(shape) &&
+      (!characterShapes || characterShapes.includes(shape)),
   )
   const roleShape =
     gestureShapes.length > 0
@@ -1234,7 +1307,8 @@ function planFor(
     input.preferenceProfile?.rejectedShapes,
     (value) =>
       SHAPES_BY_TYPE[type].includes(value) &&
-      SHAPES_BY_GESTURE[gestureRole].includes(value),
+      SHAPES_BY_GESTURE[gestureRole].includes(value) &&
+      (!characterShapes || characterShapes.includes(value)),
     poolIndex,
   )
   const generatedRhythm = resolveRhythmStyle(
@@ -1335,7 +1409,7 @@ function planFor(
     shape,
     rhythmStyle,
     direction,
-    density: input.settings.density,
+    density,
     lengthBeats,
     register: resolveRegister(type, character, poolIndex),
     placementBeat,
@@ -1492,10 +1566,17 @@ export function generateDecorationCandidates(
     const rolePool = needsRoleDiversity
       ? newRoleCandidates
       : remaining
+    const breathingTarget = Math.min(3, finalCount)
+    const needsBreathingSpace =
+      selected.filter(isBreathingDecoration).length < breathingTarget &&
+      rolePool.some(isBreathingDecoration)
+    const densityPool = needsBreathingSpace
+      ? rolePool.filter(isBreathingDecoration)
+      : rolePool
     const selectedShapes = new Set(
       selected.map((item) => item.decorationPlan?.shape),
     )
-    const newShapeCandidates = rolePool.filter(
+    const newShapeCandidates = densityPool.filter(
       (candidate) =>
         !selectedShapes.has(candidate.decorationPlan?.shape),
     )
@@ -1504,7 +1585,7 @@ export function generateDecorationCandidates(
       newShapeCandidates.length > 0
     const shapePool = needsShapeDiversity
       ? newShapeCandidates
-      : rolePool
+      : densityPool
     const needsStepwise =
       !selected.some((item) => isStepwiseDecoration(item)) &&
       shapePool.some((item) => isStepwiseDecoration(item))
