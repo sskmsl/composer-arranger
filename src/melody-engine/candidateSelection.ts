@@ -14,11 +14,14 @@ export const CANDIDATE_SELECTION_CONFIG = {
   candidatePoolSize: 9,
   finalCandidateCount: 3,
   maximumPoolSize: 15,
-  qualityWeight: 0.65,
-  diversityWeight: 0.35,
+  qualityWeight: 0.6,
+  diversityWeight: 0.4,
   maximumOverallSimilarity: 0.72,
   similarityRelaxationStep: 0.05,
   maximumRelaxedSimilarity: 0.9,
+  structuralRhythmSimilarity: 0.9,
+  structuralIntervalSimilarity: 0.84,
+  structuralContourSimilarity: 0.92,
 } as const
 
 /** 現行score(0..100)に対する保守的なProfile別最低品質。試聴後に個別調整できる設定値。 */
@@ -72,6 +75,34 @@ function similaritiesToSelected<T extends SelectableCandidate>(
   harmonicMap: HarmonicMapEntry[],
 ): MelodySimilarityBreakdown[] {
   return selected.map((item) => melodySimilarity(candidate, item.candidate, harmonicMap))
+}
+
+/**
+ * overallだけでは、同型の音程列・リズム骨格が音域や終止の差で薄まる場合がある。
+ * 実際に「同じ案の移高・小変更」と聞こえやすい組み合わせを構造的重複として扱う。
+ */
+export function isStructurallyRedundant(similarity: MelodySimilarityBreakdown): boolean {
+  return (
+    (similarity.rhythmSimilarity >= CANDIDATE_SELECTION_CONFIG.structuralRhythmSimilarity &&
+      similarity.intervalSimilarity >= CANDIDATE_SELECTION_CONFIG.structuralIntervalSimilarity) ||
+    (similarity.contourSimilarity >= CANDIDATE_SELECTION_CONFIG.structuralContourSimilarity &&
+      similarity.phraseSimilarity >= 0.9 &&
+      similarity.cadenceSimilarity >= 0.9)
+  )
+}
+
+/** 聴感上目立つ音程・リズム・輪郭をoverallより少し強く扱う選抜専用類似度。 */
+function perceptualSimilarity(similarity: MelodySimilarityBreakdown): number {
+  return Math.max(
+    similarity.overallSimilarity,
+    similarity.rhythmSimilarity * 0.45 +
+      similarity.intervalSimilarity * 0.35 +
+      similarity.contourSimilarity * 0.2,
+  )
+}
+
+function minimumPerceptualDiversity(similarities: MelodySimilarityBreakdown[]): number {
+  return 1 - Math.max(...similarities.map(perceptualSimilarity), 0)
 }
 
 export function selectDiverseCandidates<T extends SelectableCandidate>(
@@ -137,7 +168,13 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
       return new Set(signatures).size === set.length && dimensions.filter((values) => new Set(values).size >= 2).length >= 3
     }
 
-    type RankedSet = { set: T[]; similarities: MelodySimilarityBreakdown[]; maxOverall: number; score: number }
+    type RankedSet = {
+      set: T[]
+      similarities: MelodySimilarityBreakdown[]
+      maxOverall: number
+      structuralRedundancyCount: number
+      score: number
+    }
     const rankedSets: RankedSet[] = []
     for (let i = 0; i < eligible.length; i++) {
       for (let j = i + 1; j < eligible.length; j++) {
@@ -155,14 +192,17 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
           }
           const maxOverall = Math.max(...similarities.map((similarity) => similarity.overallSimilarity))
           const averageQuality = set.reduce((sum, candidate) => sum + normalizedQuality(candidate), 0) / set.length
-          const minimumDiversity = 1 - maxOverall
+          const minimumDiversity = minimumPerceptualDiversity(similarities)
+          const structuralRedundancyCount = similarities.filter(isStructurallyRedundant).length
           rankedSets.push({
             set,
             similarities,
             maxOverall,
+            structuralRedundancyCount,
             score:
               averageQuality * CANDIDATE_SELECTION_CONFIG.qualityWeight +
-              minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight,
+              minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight -
+              structuralRedundancyCount * 0.08,
           })
         }
       }
@@ -170,11 +210,29 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
 
     let setThreshold: number = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
     let bestSet: RankedSet | undefined
+    // まず全緩和範囲で構造重複ゼロの組を探し、それが存在しない場合だけ重複数最小の組へフォールバックする。
     while (!bestSet && setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity + 1e-9) {
       bestSet = rankedSets
-        .filter((candidateSet) => candidateSet.maxOverall <= setThreshold)
+        .filter(
+          (candidateSet) =>
+            candidateSet.maxOverall <= setThreshold &&
+            candidateSet.structuralRedundancyCount === 0,
+        )
         .sort((a, b) => b.score - a.score)[0]
       if (!bestSet) setThreshold += CANDIDATE_SELECTION_CONFIG.similarityRelaxationStep
+    }
+    if (!bestSet) {
+      setThreshold = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
+      while (!bestSet && setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity + 1e-9) {
+        bestSet = rankedSets
+          .filter((candidateSet) => candidateSet.maxOverall <= setThreshold)
+          .sort(
+            (a, b) =>
+              a.structuralRedundancyCount - b.structuralRedundancyCount ||
+              b.score - a.score,
+          )[0]
+        if (!bestSet) setThreshold += CANDIDATE_SELECTION_CONFIG.similarityRelaxationStep
+      }
     }
 
     if (bestSet) {
@@ -184,7 +242,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
       const selected: SelectedCandidate<T>[] = []
       for (const candidate of ordered) {
         const similarities = similaritiesToSelected(candidate, selected, harmonicMap)
-        const diversity = 1 - Math.max(...similarities.map((similarity) => similarity.overallSimilarity), 0)
+        const diversity = minimumPerceptualDiversity(similarities)
         selected.push({
           candidate,
           selectionScore:
@@ -195,6 +253,8 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
           reason:
             selected.length === 0
               ? "highest-quality"
+              : bestSet.structuralRedundancyCount > 0
+                ? "insufficient-diversity-fallback"
               : setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
                 ? "quality-diversity-balance"
                 : "diversity-threshold-relaxed",
@@ -237,14 +297,21 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
       .map((candidate) => {
         const similarities = similaritiesToSelected(candidate, selected, harmonicMap)
         const maximumSimilarity = Math.max(...similarities.map((s) => s.overallSimilarity), 0)
-        const minimumDiversity = 1 - maximumSimilarity
+        const minimumDiversity = minimumPerceptualDiversity(similarities)
         const selectionScore =
           normalizedQuality(candidate) * CANDIDATE_SELECTION_CONFIG.qualityWeight +
           minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight
-        return { candidate, similarities, maximumSimilarity, selectionScore }
+        return {
+          candidate,
+          similarities,
+          maximumSimilarity,
+          structurallyRedundant: similarities.some(isStructurallyRedundant),
+          selectionScore,
+        }
       })
       .sort(
         (a, b) =>
+          Number(a.structurallyRedundant) - Number(b.structurallyRedundant) ||
           b.selectionScore - a.selectionScore ||
           b.candidate.qualityScore - a.candidate.qualityScore ||
           a.candidate.candidatePoolIndex - b.candidate.candidatePoolIndex,
@@ -288,7 +355,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
       keepsActualStartBeatDiverse(item.candidate)
 
     const hardEligible = ranked.filter(hardConstraintsSatisfied)
-    let picked = hardEligible.find((item) => item.maximumSimilarity <= threshold)
+    let picked = hardEligible.find((item) => !item.structurallyRedundant && item.maximumSimilarity <= threshold)
     let reason: CandidateSelectionReason = threshold === CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
       ? "quality-diversity-balance"
       : "diversity-threshold-relaxed"

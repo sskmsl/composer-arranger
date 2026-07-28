@@ -12,14 +12,16 @@ import { pitchClass } from "@/core/note"
 import { openingSimilarity } from "./openingIntent"
 
 export const MELODY_SIMILARITY_WEIGHTS = {
-  opening: 0.15,
-  interval: 0.2,
+  opening: 0.13,
+  interval: 0.18,
   rhythm: 0.15,
-  contour: 0.15,
-  phrase: 0.1,
-  climax: 0.1,
+  contour: 0.12,
+  phrase: 0.08,
+  climax: 0.08,
   cadence: 0.05,
-  harmonicResponse: 0.1,
+  harmonicResponse: 0.08,
+  register: 0.07,
+  density: 0.06,
 } as const
 
 export interface MelodySimilarityFeatures {
@@ -31,6 +33,9 @@ export interface MelodySimilarityFeatures {
   durations: number[]
   restGaps: number[]
   densityCurve: number[]
+  noteDensity: number
+  registerCurve: number[]
+  pitchRange: number
   phraseLengths: number[]
   phraseBoundaries: number[]
   sustainBoundaries: number[]
@@ -90,8 +95,19 @@ function densityCurve(notes: MelodyNote[], totalBeats: number): number[] {
   const binCount = Math.max(1, Math.ceil(totalBeats / binSize))
   const bins = Array<number>(binCount).fill(0)
   for (const note of notes) bins[Math.min(binCount - 1, Math.floor(note.startBeat / binSize))]++
-  const max = Math.max(...bins, 1)
-  return bins.map((n) => n / max)
+  return bins.map((n) => n / binSize)
+}
+
+function registerCurve(notes: MelodyNote[], totalBeats: number): number[] {
+  const binSize = 4
+  const binCount = Math.max(1, Math.ceil(totalBeats / binSize))
+  return Array.from({ length: binCount }, (_value, index) => {
+    const start = index * binSize
+    const pitches = notes
+      .filter((note) => note.startBeat >= start && note.startBeat < start + binSize)
+      .map((note) => note.pitch)
+    return pitches.length > 0 ? pitches.reduce((sum, pitch) => sum + pitch, 0) / pitches.length : -1
+  })
 }
 
 function sustainBoundaries(notes: MelodyNote[], harmonicMap: HarmonicMapEntry[]): number[] {
@@ -155,6 +171,9 @@ export function extractMelodySimilarityFeatures(
     durations,
     restGaps,
     densityCurve: densityCurve(notes, totalBeats),
+    noteDensity: notes.length / totalBeats,
+    registerCurve: registerCurve(notes, totalBeats),
+    pitchRange: pitches.length ? Math.max(...pitches) - Math.min(...pitches) : 0,
     phraseLengths: candidate.plans.map((p) => p.phraseLengthBeats),
     phraseBoundaries: positionsOfPhraseBoundaries(candidate.plans),
     sustainBoundaries: sustainBoundaries(notes, harmonicMap),
@@ -189,8 +208,13 @@ export function melodySimilarity(
   const onset = numericSequenceSimilarity(fa.onsetIntervals, fb.onsetIntervals, 0.5)
   const duration = numericSequenceSimilarity(fa.durations, fb.durations, 0.5)
   const rests = numericSequenceSimilarity(fa.restGaps, fb.restGaps, 0.25)
-  const density = numericSequenceSimilarity(fa.densityCurve, fb.densityCurve, 0.25)
-  const rhythm = onset * 0.35 + duration * 0.3 + rests * 0.2 + density * 0.15
+  const rhythm = onset * 0.4 + duration * 0.35 + rests * 0.25
+  const densityCurveSimilarity = numericSequenceSimilarity(fa.densityCurve, fb.densityCurve, 0.5)
+  const absoluteDensitySimilarity = 1 - Math.min(1, Math.abs(fa.noteDensity - fb.noteDensity) / 0.75)
+  const density = densityCurveSimilarity * 0.65 + absoluteDensitySimilarity * 0.35
+  const registerTrajectory = numericSequenceSimilarity(fa.registerCurve, fb.registerCurve, 7)
+  const pitchRangeSimilarity = 1 - Math.min(1, Math.abs(fa.pitchRange - fb.pitchRange) / 12)
+  const register = registerTrajectory * 0.7 + pitchRangeSimilarity * 0.3
 
   const contour = numericSequenceSimilarity(fa.contour, fb.contour, 0.5)
   const phrase =
@@ -216,7 +240,9 @@ export function melodySimilarity(
     phrase * MELODY_SIMILARITY_WEIGHTS.phrase +
     climax * MELODY_SIMILARITY_WEIGHTS.climax +
     cadence * MELODY_SIMILARITY_WEIGHTS.cadence +
-    harmonic * MELODY_SIMILARITY_WEIGHTS.harmonicResponse
+    harmonic * MELODY_SIMILARITY_WEIGHTS.harmonicResponse +
+    register * MELODY_SIMILARITY_WEIGHTS.register +
+    density * MELODY_SIMILARITY_WEIGHTS.density
 
   return {
     openingSimilarity: clamp01(opening),
@@ -227,6 +253,8 @@ export function melodySimilarity(
     climaxSimilarity: clamp01(climax),
     cadenceSimilarity: clamp01(cadence),
     harmonicResponseSimilarity: clamp01(harmonic),
+    registerSimilarity: clamp01(register),
+    densitySimilarity: clamp01(density),
     overallSimilarity: clamp01(overall),
   }
 }
