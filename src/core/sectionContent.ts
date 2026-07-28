@@ -192,6 +192,34 @@ export interface ContentStructureFeatures {
   contour: number[]
 }
 
+/** Issue #63: Melody歌唱性とは分離した、Section Content専用の品質評価。 */
+export interface ContentQualityBreakdown {
+  sectionFit: number
+  songProfileFit: number
+  harmonicInterest: number
+  structuralClarity: number
+  nextSectionExpectation: number
+  motifRelationship: number
+  spaceQuality: number
+  overallQuality: number
+}
+
+export type ContentSelectionReason =
+  | "highest-quality"
+  | "quality-diversity-balance"
+  | "content-diversity"
+  | "below-quality-floor"
+  | "structural-validation-failed"
+  | "not-selected"
+
+export interface ContentSelectionDiagnostics {
+  qualityFloor: number
+  selectionScore: number | null
+  selected: boolean
+  reason: ContentSelectionReason
+  similarityToSelected: number[]
+}
+
 /** そのcontentが伴奏側パートか */
 export function partRoleFor(content: ResolvedLeadContent): PartRole {
   return CONTENT_PART_ROLE[content]

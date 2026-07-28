@@ -1,8 +1,10 @@
 import { SeededRandom } from "@/core/rng"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
-import type { MelodyNote, MelodyVariant } from "@/core/melody"
+import type { MelodyNote, MelodyVariant, SongMotifDNA } from "@/core/melody"
 import type {
+  ContentQualityBreakdown,
+  ContentSelectionDiagnostics,
   ContentStructureFeatures,
   LeadContent,
   ResolvedLeadContent,
@@ -38,6 +40,11 @@ import {
   planSectionContentBatch,
   type ContentPlanContext,
 } from "./sectionContentPlan"
+import {
+  contentQualityFloor,
+  evaluateContentQuality,
+  selectQualityDiverseContent,
+} from "./sectionContentQuality"
 
 const GENERATOR_VERSION = "2.1"
 
@@ -61,6 +68,10 @@ export interface GenerateSectionContentInput {
   /** content="melody" をMelody Engineへ渡す際に使う生成設定 */
   density?: Density
   drama?: Drama
+  /** Issue #63: 現在セクションの終わり方を次の役割へ合わせるための参照情報。 */
+  nextSectionRole?: SectionRole
+  nextSectionFirstChord?: string
+  songMotifDNA?: SongMotifDNA
 }
 
 export interface SectionContentCandidate {
@@ -75,6 +86,9 @@ export interface SectionContentCandidate {
   problems: string[]
   /** 類似超過で作り直した回数 */
   regenerationAttempts: number
+  /** Issue #63: Section Content専用の品質内訳。 */
+  quality: ContentQualityBreakdown
+  selection: ContentSelectionDiagnostics
 }
 
 const MAX_CONTENT_REGEN_ATTEMPTS = 4
@@ -175,17 +189,25 @@ function buildMelodyLayers(
 export function generateSectionContent(input: GenerateSectionContentInput): {
   candidates: SectionContentCandidate[]
   unresolvedCandidates: SectionContentCandidate[]
+  /** 開発用診断。未選抜候補を含むAuto候補プール。 */
+  candidatePool: SectionContentCandidate[]
 } {
   const count = input.candidateCount ?? 3
+  const poolCount = input.content.lead === "auto" ? Math.max(9, count * 3) : count
   const ctx = buildContext(input)
   const planRng = new SeededRandom(input.seed ^ 0x51ed270b)
 
   const plans =
     input.content.lead === "auto"
-      ? planAutoContentBatch(planRng, ctx, count)
-      : planSectionContentBatch(planRng, input.content.lead as ResolvedLeadContent, ctx, count)
+      ? planAutoContentBatch(planRng, ctx, poolCount)
+      : planSectionContentBatch(planRng, input.content.lead as ResolvedLeadContent, ctx, poolCount)
 
-  const build = (plan: SectionContentPlan, index: number, seed: number, attempts: number): SectionContentCandidate => {
+  const build = (
+    plan: SectionContentPlan,
+    index: number,
+    seed: number,
+    attempts: number,
+  ): Omit<SectionContentCandidate, "quality" | "selection"> => {
     // Issue #41 / PR#43: contentごとに生成器をdispatchする。
     // buildContentLayers は motif/ostinato/drone しか実音を作らないため、
     // Autoがmelodyを選んだ計画をそこへ通すと空候補になってしまう
@@ -203,7 +225,7 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
     const primaryFeatures = computeContentStructureFeatures(primaryNotes, plan, input.totalBeats)
     const validation = validateContentStructure(primaryFeatures, plan, primaryNotes, input.totalBeats, notes)
     return {
-      patternIndex: (index + 1) as 1 | 2 | 3,
+      patternIndex: ((index % 3) + 1) as 1 | 2 | 3,
       content: plan.content,
       plan,
       layers,
@@ -215,7 +237,9 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
     }
   }
 
-  const candidates = plans.map((plan, index) => build(plan, index, input.seed + index * 7919, 0))
+  const candidates = plans.map((plan, index) =>
+    build(plan, index, input.seed + index * 7919, 0),
+  )
 
   // 構造検証の失敗と類似超過を、どちらも作り直しの対象にする。
   // (検証結果を problems に置くだけでは、そのcontentとして成立していない候補が
@@ -263,11 +287,41 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
   }
 
   // 上限まで作り直しても成立しない場合は、その事実を呼び出し側へ返してUIで知らせる
-  const unresolved = candidates.filter((candidate) => candidate.problems.length > 0)
+  const qualityContext = {
+    sectionRole: input.sectionRole,
+    songProfile: input.songProfile,
+    chords: input.chords,
+    totalBeats: input.totalBeats,
+    nextSectionRole: input.nextSectionRole,
+    nextSectionFirstChord: input.nextSectionFirstChord,
+    songMotifDNA: input.songMotifDNA,
+  }
+  const evaluated = candidates.map((candidate) => ({
+    ...candidate,
+    quality: evaluateContentQuality(candidate, qualityContext),
+    selection: {
+      qualityFloor: contentQualityFloor(candidate.content),
+      selectionScore: null,
+      selected: input.content.lead !== "auto",
+      reason: "not-selected" as const,
+      similarityToSelected: [],
+    },
+  }))
+
+  const selection =
+    input.content.lead === "auto"
+      ? selectQualityDiverseContent(evaluated, count)
+      : { selected: evaluated, evaluatedPool: evaluated }
+  const selected = selection.selected.map((candidate, index) => ({
+    ...candidate,
+    patternIndex: (index + 1) as 1 | 2 | 3,
+  }))
+  const unresolved = selected.filter((candidate) => candidate.problems.length > 0)
   return {
-    candidates,
+    candidates: selected,
     /** 構造検証を満たせなかった候補(空なら全候補が下限を満たしている) */
     unresolvedCandidates: unresolved,
+    candidatePool: selection.evaluatedPool,
   }
 }
 
@@ -326,6 +380,8 @@ export function toMelodyVariantFromContent(
     contentPlan: candidate.plan,
     layers: candidate.layers,
     contentFeatures: candidate.features,
+    contentQuality: candidate.quality,
+    contentSelection: candidate.selection,
   }
 }
 

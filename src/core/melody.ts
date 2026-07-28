@@ -1,5 +1,7 @@
 import type {
   ContentStructureFeatures,
+  ContentQualityBreakdown,
+  ContentSelectionDiagnostics,
   ResolvedLeadContent,
   SectionContentPlan,
   SectionLayer,
@@ -424,4 +426,7 @@ export interface MelodyVariant {
   layers?: SectionLayer[]
   /** Issue #41: content別の構造特徴量(Structural Validationと候補間比較に使う)。 */
   contentFeatures?: ContentStructureFeatures
+  /** Issue #63: AutoがこのContent候補を採用した根拠。 */
+  contentQuality?: ContentQualityBreakdown
+  contentSelection?: ContentSelectionDiagnostics
 }
