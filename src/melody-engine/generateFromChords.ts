@@ -23,7 +23,13 @@ import type { MotifCore } from "./motifCore"
 import { computeMelodyFeatures } from "./features"
 import { scoreCandidate } from "./scoring"
 import { buildSignature, countDistinctCandidates, differenceCount, type DiversitySignature } from "./diversityFilter"
-import { GENERATOR_PROFILE_KIND, GENERATOR_PROFILE_LABELS, applyProfileOverride, generatorProfileIntensity } from "./generatorProfile"
+import {
+  GENERATOR_PROFILE_KIND,
+  GENERATOR_PROFILE_LABELS,
+  GENERATOR_PROFILE_RULES,
+  applyProfileOverride,
+  generatorProfileIntensity,
+} from "./generatorProfile"
 import { generateElegiacCantabile } from "./elegiacCantabile"
 import { generateSpeechRhythmicPattern } from "./speechRhythmic"
 import { generateIncantatoryPattern } from "./incantatory"
@@ -356,8 +362,7 @@ function profileFitScore(
 
 /** 汎用品質を主軸にしつつ、Profileらしさが選抜で消えない範囲だけ軽く反映する。 */
 function combinedQualityScore(baseQuality: number, profileFit: number, profile: MelodyGeneratorProfile): number {
-  const profileFitWeight =
-    profile === "leaping" ? 0.45 : profile === "speech-rhythmic" ? 0.45 : profile === "minimal" ? 0.3 : 0.25
+  const profileFitWeight = GENERATOR_PROFILE_RULES[profile].selectionFitWeight
   return baseQuality * (1 - profileFitWeight) + profileFit * profileFitWeight
 }
 

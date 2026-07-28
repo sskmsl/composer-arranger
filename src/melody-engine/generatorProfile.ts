@@ -44,6 +44,150 @@ export const GENERATOR_PROFILE_DESCRIPTIONS: Record<MelodyGeneratorProfile, stri
   incantatory: "短い核モチーフの反復と微細な変形を優先",
 }
 
+export type GeneratorProfilePlanningPriority =
+  | "pitch-led"
+  | "rhythm-led"
+  | "target-tone-led"
+  | "cycle-led"
+
+export type GeneratorProfileIdentityMetric =
+  | "chordToneUsageRatio"
+  | "restRatio"
+  | "avgLeap"
+  | "syncopationRatio"
+  | "tensionUsageRatio"
+  | "pitchRange"
+  | "delayedResolutionRatio"
+  | "repeatedNoteRatio"
+  | "motifRepeatRatio"
+
+export interface GeneratorProfileIdentityComparison {
+  metric: GeneratorProfileIdentityMetric
+  reference: MelodyGeneratorProfile
+  direction: "greater" | "less"
+}
+
+/**
+ * Issue #68: Profileの名前・説明だけでなく、生成順序と守るべき音楽的性格を一箇所で定義する。
+ * param override・専用生成器・Opening Strategyはこの契約を実音化する手段であり、
+ * 共通補正や候補選抜はprotectedTraitsを均してはならない。
+ */
+export interface GeneratorProfileRule {
+  /** 実装上の関数呼び出し順ではなく、音楽設計で先に守る判断軸。 */
+  planningPriority: GeneratorProfilePlanningPriority
+  pitchTendency: string
+  rhythmTendency: string
+  registerTendency: string
+  restTendency: string
+  endingTendency: string
+  protectedTraits: readonly string[]
+  /** 最終品質にProfile適合度を混ぜる比率。品質下限を維持したうえで固有色を選抜へ残す。 */
+  selectionFitWeight: number
+  identityComparison: GeneratorProfileIdentityComparison
+}
+
+export const GENERATOR_PROFILE_RULES: Record<MelodyGeneratorProfile, GeneratorProfileRule> = {
+  standard: {
+    planningPriority: "pitch-led",
+    pitchTendency: "コードトーン主体。順次進行を中心に、説明可能な経過音とテンションを許可する",
+    rhythmTendency: "強弱拍が明確なbalanced rhythm。規則性と変化を両立する",
+    registerTendency: "指定音域の中央を基準に、SectionとDNAの輪郭へ追従する",
+    restTendency: "中程度。フレーズ呼吸を作るが推進を止めすぎない",
+    endingTendency: "Sectionのend tensionに従い、解決と継続を使い分ける",
+    protectedTraits: ["歌唱性", "和声の明瞭さ", "過度に偏らない輪郭"],
+    selectionFitWeight: 0.25,
+    identityComparison: { metric: "chordToneUsageRatio", reference: "chromatic", direction: "greater" },
+  },
+  minimal: {
+    planningPriority: "cycle-led",
+    pitchTendency: "狭い音域の共通音・5th・9thを優先し、大跳躍を抑える",
+    rhythmTendency: "長音と反復を主体に、音数より沈黙の配置で差を作る",
+    registerTendency: "中央付近のcontained register",
+    restTendency: "多い。弱拍側の余白と長い呼吸を優先する",
+    endingTendency: "open / suspendedを許し、余韻を残す",
+    protectedTraits: ["余白", "狭い音域", "長音", "低い跳躍率"],
+    selectionFitWeight: 0.3,
+    identityComparison: { metric: "restRatio", reference: "standard", direction: "greater" },
+  },
+  leaping: {
+    planningPriority: "pitch-led",
+    pitchTendency: "構造点に跳躍を置き、直後は反行の順次進行で回収する",
+    rhythmTendency: "跳躍が知覚できる長さを確保し、全音を跳躍にはしない",
+    registerTendency: "中音域から広い輪郭へ展開する",
+    restTendency: "中〜少量。跳躍前後の輪郭を分断しない",
+    endingTendency: "終止直前は歌唱可能な接続へ戻す",
+    protectedTraits: ["構造跳躍", "跳躍後の回収", "広い輪郭"],
+    selectionFitWeight: 0.45,
+    identityComparison: { metric: "avgLeap", reference: "standard", direction: "greater" },
+  },
+  rhythmic: {
+    planningPriority: "rhythm-led",
+    pitchTendency: "リズム識別性を妨げない反復音・小さな音程セルを許可する",
+    rhythmTendency: "弱起、裏拍、拍またぎ、シンコペーションを明確に使う",
+    registerTendency: "中程度。音域差よりリズム骨格を優先する",
+    restTendency: "短い切れ目をアクセントとして使い、強拍の無作為な欠落は避ける",
+    endingTendency: "rhythmic peakまたはcarry-forwardを許可する",
+    protectedTraits: ["裏拍アタック", "拍またぎ", "識別可能なリズムセル"],
+    selectionFitWeight: 0.35,
+    identityComparison: { metric: "syncopationRatio", reference: "standard", direction: "greater" },
+  },
+  chromatic: {
+    planningPriority: "target-tone-led",
+    pitchTendency: "倚音・半音接近・掛留を解決先と組にして使う",
+    rhythmTendency: "非和声音の準備と解決が聞こえる音価を確保する",
+    registerTendency: "中音域を中心に半音進行の連続性を保つ",
+    restTendency: "解決の因果関係を切らない範囲の余白",
+    endingTendency: "suspended / openを許すが、無意味な未解決音は残さない",
+    protectedTraits: ["計画された非和声音", "半音接近", "遅延解決"],
+    selectionFitWeight: 0.3,
+    identityComparison: { metric: "tensionUsageRatio", reference: "standard", direction: "greater" },
+  },
+  cinematic: {
+    planningPriority: "pitch-led",
+    pitchTendency: "冒頭を抑制し、複数小節の弧の中で構造音を上昇させる",
+    rhythmTendency: "長音と呼吸を使い、クライマックス前後の時間差を作る",
+    registerTendency: "低〜中音域から広いrange trajectoryへ展開する",
+    restTendency: "頂点前のsilenceを含む構造的な休符",
+    endingTendency: "open / carry-forwardを含め、次Sectionへの展開を保つ",
+    protectedTraits: ["長期的な音域展開", "頂点前の余白", "最高音の希少性"],
+    selectionFitWeight: 0.3,
+    identityComparison: { metric: "pitchRange", reference: "minimal", direction: "greater" },
+  },
+  "elegiac-cantabile": {
+    planningPriority: "target-tone-led",
+    pitchTendency: "Motif Seedを遅延回帰・断片化し、2〜4小節単位のtarget toneへ向かう",
+    rhythmTendency: "歌唱的な長音、ためらい、弱起、breathをPhrase Architectureへ組み込む",
+    registerTendency: "感情曲線ごとに異なるtrajectory。後半高音型へ固定しない",
+    restTendency: "breathとsilence climaxを意味のある構造点へ置く",
+    endingTendency: "resolved / suspended / open / carry-overを候補間で分ける",
+    protectedTraits: ["Motif変形", "遅延解決", "複数Climax型", "複数Ending"],
+    selectionFitWeight: 0.35,
+    identityComparison: { metric: "delayedResolutionRatio", reference: "standard", direction: "greater" },
+  },
+  "speech-rhythmic": {
+    planningPriority: "rhythm-led",
+    pitchTendency: "Accent Mapを先に作り、狭い音域で同音反復と小さな屈折を使う",
+    rhythmTendency: "発話アクセント、不均等なPhrase長、小節線をまたぐ開始を優先する",
+    registerTendency: "狭いcontained register",
+    restTendency: "句読点に相当する短い間を非対称に配置する",
+    endingTendency: "発話の継続感を持つcarry-forward / openを許可する",
+    protectedTraits: ["同音反復", "Accent Map", "Phrase非対称性", "狭い音域"],
+    selectionFitWeight: 0.45,
+    identityComparison: { metric: "repeatedNoteRatio", reference: "rhythmic", direction: "greater" },
+  },
+  incantatory: {
+    planningPriority: "cycle-led",
+    pitchTendency: "2〜5音の核を反復し、周期ごとに限定的な変異を加える",
+    rhythmTendency: "核モチーフのアクセント周期と変異周期を維持する",
+    registerTendency: "反復可能な狭〜中音域。大きなtrajectoryより輪郭保持を優先する",
+    restTendency: "周期を壊さず、変異点または呼吸点へ置く",
+    endingTendency: "open / suspendedを含み、反復可能性を残す",
+    protectedTraits: ["核モチーフ", "反復周期", "輪郭保持", "限定的変異"],
+    selectionFitWeight: 0.35,
+    identityComparison: { metric: "motifRepeatRatio", reference: "rhythmic", direction: "greater" },
+  },
+}
+
 export type GeneratorProfileKind = "parametric" | "bespoke"
 
 /**
