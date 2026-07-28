@@ -460,25 +460,38 @@ function resolveCharacter(
   return setting === "auto" ? CHARACTERS[poolIndex % CHARACTERS.length] : setting
 }
 
+/**
+ * poolIndexだけで方向を決めると、resolveTypeのpoolIndex % Nによる型振り分けと剰余が
+ * 一致し(例: pre-chorus→chorusのtransitionWeight=3では decorative-fill が常に
+ * poolIndex % 3 === 0のスロットに固定される)、Auto方向が実質rising/falling固定に
+ * 潰れてしまう回帰があった。型振り分けと相関しないよう、rng(poolIndexごとに
+ * 個別seed化済み)から選ぶ。
+ */
 function resolveDirection(
+  rng: SeededRandom,
   setting: DecorationDirectionSetting,
   type: DecorationType,
-  poolIndex: number,
 ): DecorationPlan["direction"] {
   if (setting !== "auto") return setting
-  if (type === "transition-fill") return poolIndex % 3 === 0 ? "mixed" : "rising"
-  if (type === "ending-fill") return poolIndex % 3 === 0 ? "mixed" : "falling"
-  return (["rising", "falling", "mixed"] as const)[poolIndex % 3]
+  if (type === "transition-fill") return rng.chance(0.35) ? "mixed" : "rising"
+  if (type === "ending-fill") return rng.chance(0.35) ? "mixed" : "falling"
+  return rng.pick(["rising", "falling", "mixed"] as const)
 }
 
+/**
+ * decorative-fillはresolveTypeのpoolIndex % 3(pre-chorus→chorus等)と分母を共有する
+ * ことがあり、その剰余に固定されたスロットではpoolIndex % 3が常に同じ値になって
+ * lowレジスターが一切選ばれない回帰があった。resolveDirectionと同じくrngから選ぶ。
+ */
 function resolveRegister(
+  rng: SeededRandom,
   type: DecorationType,
   character: DecorationCharacter,
   poolIndex: number,
 ): DecorationPlan["register"] {
   if (character === "bell") return "high"
   if (type === "ending-fill") return poolIndex % 2 === 0 ? "middle" : "low"
-  return (["middle", "high", "low"] as const)[poolIndex % 3]
+  return rng.pick(["middle", "high", "low"] as const)
 }
 
 function registerWindow(register: DecorationPlan["register"]): { low: number; high: number } {
@@ -1287,7 +1300,7 @@ function planFor(
           poolIndex,
         )
       : generatedCharacter
-  const direction = resolveDirection(input.settings.direction, type, poolIndex)
+  const direction = resolveDirection(rng, input.settings.direction, type)
   const requestedLengthBeats =
     input.settings.length === "bar" ? input.beatsPerBar : input.settings.length
   const generatedShape = resolveShape(type, character, poolIndex, rng)
@@ -1411,7 +1424,7 @@ function planFor(
     direction,
     density,
     lengthBeats,
-    register: resolveRegister(type, character, poolIndex),
+    register: resolveRegister(rng, type, character, poolIndex),
     placementBeat,
     targetPitchClass: targetPitchClass(input, type, poolIndex),
     intention,

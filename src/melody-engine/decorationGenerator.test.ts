@@ -289,6 +289,29 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
     }
   })
 
+  it("Pre-chorus→ChorusのようにresolveTypeのpoolIndex剰余が重なる場面でも、Auto方向とレジスターが単一値へ潰れない", () => {
+    // 回帰: resolveDirection/resolveRegisterがpoolIndex % 3を直接使っていたため、
+    // resolveTypeのtransitionWeight=3(pre-chorus→chorus等)ではdecorative-fillが
+    // 常に同じ剰余のスロットへ固定され、Auto方向が実質rising/falling固定、
+    // decorative-fill(非bell)のレジスターがmiddle固定になっていた。
+    const directions = new Set<string>()
+    const decorativeRegisters = new Set<string>()
+    for (let seed = 1; seed <= 40; seed++) {
+      const candidates = generateDecorationCandidates(input({ seed }))
+      for (const candidate of candidates) {
+        directions.add(candidate.decorationPlan!.direction)
+        if (
+          candidate.decorationPlan!.type === "decorative-fill" &&
+          candidate.decorationPlan!.character !== "bell"
+        ) {
+          decorativeRegisters.add(candidate.decorationPlan!.register)
+        }
+      }
+    }
+    expect([...directions].sort()).toEqual(["falling", "mixed", "rising"])
+    expect([...decorativeRegisters].sort()).toEqual(["high", "low", "middle"])
+  })
+
   it("Normal設定でも余白のある候補を最低3案含める", () => {
     const candidates = generateDecorationCandidates(input())
     const breathingCandidates = candidates.filter((candidate) => {
