@@ -3,6 +3,7 @@ import type { ComposerProject } from "@/core/project"
 import type {
   ReactiveLayerCandidate,
   ReactiveLayerCollisionSummary,
+  ReactiveLayerCompatibility,
   ReactiveLayerQualityBreakdown,
 } from "@/core/reactiveLayer"
 
@@ -200,6 +201,7 @@ export function assessReactiveLayerCollisions(
   let protectedMomentOverlapBeats = 0
   let voiceCrossingCount = 0
   let simultaneousAttackCount = 0
+  let parallelLargeLeapCount = 0
 
   for (const candidate of candidateNotes) {
     for (const melody of melodyNotes) {
@@ -225,17 +227,41 @@ export function assessReactiveLayerCollisions(
     }
   }
 
+  const sortedMelody = [...melodyNotes].sort((a, b) => a.startBeat - b.startBeat)
+  const sortedCandidate = [...candidateNotes].sort((a, b) => a.startBeat - b.startBeat)
+  for (let candidateIndex = 1; candidateIndex < sortedCandidate.length; candidateIndex++) {
+    const previousCandidate = sortedCandidate[candidateIndex - 1]
+    const candidate = sortedCandidate[candidateIndex]
+    const candidateLeap = candidate.pitch - previousCandidate.pitch
+    if (Math.abs(candidateLeap) < 5) continue
+    for (let melodyIndex = 1; melodyIndex < sortedMelody.length; melodyIndex++) {
+      const previousMelody = sortedMelody[melodyIndex - 1]
+      const melody = sortedMelody[melodyIndex]
+      const melodyLeap = melody.pitch - previousMelody.pitch
+      if (
+        Math.abs(melodyLeap) >= 5 &&
+        Math.sign(melodyLeap) === Math.sign(candidateLeap) &&
+        Math.abs(melody.startBeat - candidate.startBeat) <= 0.5
+      ) {
+        parallelLargeLeapCount++
+        break
+      }
+    }
+  }
+
   return {
     samePitchOverlapBeats,
     minorSecondOverlapBeats,
     protectedMomentOverlapBeats,
     voiceCrossingCount,
     simultaneousAttackCount,
+    parallelLargeLeapCount,
     hasBlockingCollision:
       samePitchOverlapBeats > 0.5 ||
       minorSecondOverlapBeats > 0.5 ||
       protectedMomentOverlapBeats > 1 ||
-      voiceCrossingCount >= 3,
+      voiceCrossingCount >= 3 ||
+      parallelLargeLeapCount >= 2,
   }
 }
 
@@ -277,6 +303,7 @@ export function evaluateReactiveLayerQuality(
       collisions.minorSecondOverlapBeats * 45 -
       collisions.protectedMomentOverlapBeats * 22 -
       collisions.voiceCrossingCount * 8 -
+      (collisions.parallelLargeLeapCount ?? 0) * 12 -
       Math.max(0, candidateNotes.length - analysis.maximumNoteCount) * 7,
   )
   const gapUsage = totalDuration > 0 ? clampScore((durationInGaps / totalDuration) * 100) : 0
@@ -317,4 +344,100 @@ export function isReactiveLayerStale(
     project.sectionMelodyAssignments[candidate.sectionId] !==
     candidate.targetMelodyVariantId
   )
+}
+
+const RESOLUTION_REQUIRED_ROLES = new Set([
+  "approach-tone",
+  "passing-tone",
+  "neighbor-tone",
+  "appoggiatura",
+  "suspension",
+  "anticipation",
+])
+
+/** 意図的なtension-holdを除き、非和声音が保存済み計画どおり実音へ解決するか検証する。 */
+export function unresolvedReactiveToneNoteIds(notes: MelodyNote[]): string[] {
+  const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
+  return sorted
+    .filter((note) => {
+      if (!note.plannedToneRole || !RESOLUTION_REQUIRED_ROLES.has(note.plannedToneRole)) {
+        return false
+      }
+      const resolution = note.plannedResolution
+      if (!resolution) return true
+      const latestBeat = resolution.targetBeat + resolution.maximumDelayBeats
+      return !sorted.some((target) => {
+        const targetPc = ((target.pitch % 12) + 12) % 12
+        return (
+          target.id !== note.id &&
+          target.startBeat >= resolution.targetBeat - 0.0625 &&
+          target.startBeat <= latestBeat + 0.0625 &&
+          targetPc === resolution.targetPitchClass
+        )
+      })
+    })
+    .map((note) => note.id)
+}
+
+/**
+ * CounterとDecorationを同時採用するときの共通安全判定。
+ * 個別候補が良くても、重ねた結果の短2度・同音・総密度が過剰なら採用を止める。
+ */
+export function evaluateReactiveLayerCompatibility(
+  melodyNotes: MelodyNote[],
+  candidates: ReactiveLayerCandidate[],
+  totalBeats: number,
+): ReactiveLayerCompatibility {
+  const analysis = analyzeMelodyActivity(melodyNotes, totalBeats)
+  const maximumNoteCount =
+    analysis.maximumNoteCount + Math.max(3, Math.floor(totalBeats * 0.25))
+  const combinedNoteCount = candidates.reduce(
+    (sum, candidate) => sum + candidate.notes.length,
+    0,
+  )
+  let samePitchOverlapBeats = 0
+  let minorSecondOverlapBeats = 0
+  for (let leftIndex = 0; leftIndex < candidates.length; leftIndex++) {
+    for (let rightIndex = leftIndex + 1; rightIndex < candidates.length; rightIndex++) {
+      for (const left of candidates[leftIndex].notes) {
+        for (const right of candidates[rightIndex].notes) {
+          const overlap = overlapDuration(left, right)
+          if (overlap <= 0) continue
+          const interval = Math.abs(left.pitch - right.pitch)
+          if (interval === 0) samePitchOverlapBeats += overlap
+          if (interval === 1) minorSecondOverlapBeats += overlap
+        }
+      }
+    }
+  }
+  const unresolvedToneNoteIds = candidates.flatMap((candidate) =>
+    unresolvedReactiveToneNoteIds(candidate.notes),
+  )
+  const reasons: string[] = []
+  if (candidates.some((candidate) => candidate.collisions.hasBlockingCollision)) {
+    reasons.push("Active MelodyとのBlocking Collisionがあります")
+  }
+  if (combinedNoteCount > maximumNoteCount) {
+    reasons.push(
+      `Counter / Decorationの総密度が上限を超えています(${combinedNoteCount}/${maximumNoteCount}音)`,
+    )
+  }
+  if (samePitchOverlapBeats > 0.5) {
+    reasons.push("Counter / Decoration間で同音が長時間重なっています")
+  }
+  if (minorSecondOverlapBeats > 0.5) {
+    reasons.push("Counter / Decoration間で短2度が長時間重なっています")
+  }
+  if (unresolvedToneNoteIds.length > 0) {
+    reasons.push("解決計画を満たさない非和声音があります")
+  }
+  return {
+    combinedNoteCount,
+    maximumNoteCount,
+    samePitchOverlapBeats,
+    minorSecondOverlapBeats,
+    unresolvedToneNoteIds,
+    hasBlockingConflict: reasons.length > 0,
+    reasons,
+  }
 }

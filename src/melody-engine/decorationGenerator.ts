@@ -283,7 +283,7 @@ function notesForPlan(
     nearestPitchClass(plan.targetPitchClass, (window.low + window.high) / 2, window),
   )
   const keyScale = keyScalePitchClasses(input.key)
-  return grid.onsets.map((onset, index) => {
+  const notes: MelodyNote[] = grid.onsets.map((onset, index) => {
     const startBeat = plan.placementBeat + onset
     const chord = chordAtBeat(input.chords, Math.min(input.totalBeats - 0.001, startBeat))
     const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
@@ -315,6 +315,19 @@ function notesForPlan(
           : parsed?.tones.some((tone) => tone.pitchClass === pitchClass)
             ? "chord-tone"
             : "passing-tone",
+    }
+  })
+  return notes.map((note, index) => {
+    if (note.plannedToneRole !== "passing-tone") return note
+    const target = notes[index + 1]
+    if (!target) return { ...note, plannedToneRole: "tension-hold" }
+    return {
+      ...note,
+      plannedResolution: {
+        targetPitchClass: ((target.pitch % 12) + 12) % 12,
+        targetBeat: target.startBeat,
+        maximumDelayBeats: Math.max(0.25, target.startBeat - note.startBeat),
+      },
     }
   })
 }

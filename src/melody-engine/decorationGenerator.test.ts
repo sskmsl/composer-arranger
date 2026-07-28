@@ -5,6 +5,7 @@ import {
   generateDecorationCandidates,
   type GenerateDecorationInput,
 } from "./decorationGenerator"
+import { unresolvedReactiveToneNoteIds } from "./reactiveLayerAnalysis"
 
 function input(
   patch: Partial<GenerateDecorationInput> = {},
@@ -36,6 +37,7 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.shape)).size).toBeGreaterThanOrEqual(4)
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.rhythmStyle)).size).toBeGreaterThanOrEqual(3)
     expect(new Set(candidates.map((candidate) => candidate.decorationPlan?.register)).size).toBeGreaterThanOrEqual(2)
+    expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
   })
 
   it("Autoは次SectionがあればTransitionを含み、次コードの構成音へ着地する", () => {

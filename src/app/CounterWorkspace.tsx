@@ -220,12 +220,35 @@ export function CounterWorkspace() {
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       Gap {Math.round(candidate.quality.gapUsage)}%
                     </span>
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      MIDI{" "}
+                      {candidate.notes.length > 0
+                        ? `${Math.min(...candidate.notes.map((note) => note.pitch))}–${Math.max(...candidate.notes.map((note) => note.pitch))}`
+                        : "—"}
+                    </span>
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      {candidate.notes.length} notes / {totalBeats} beats
+                    </span>
+                    <span
+                      className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                        candidate.collisions.hasBlockingCollision
+                          ? "bg-red-400/15 text-red-300"
+                          : "bg-emerald-400/10 text-emerald-200"
+                      }`}
+                    >
+                      {candidate.collisions.hasBlockingCollision
+                        ? "Collision warning"
+                        : "Collision clear"}
+                    </span>
                     {assignedId === candidate.id && (
                       <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[10px] text-primary">
                         Active
                       </span>
                     )}
                   </div>
+                  <p className="mt-2 truncate text-[10px] text-ink-muted-48">
+                    Target: {activeMelody?.name ?? candidate.targetMelodyVariantId}
+                  </p>
                 </button>
                 <div className="mt-3 grid grid-cols-3 gap-1.5">
                   <Button

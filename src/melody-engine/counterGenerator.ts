@@ -215,7 +215,9 @@ function generatePhraseInGap(
       locks: [],
       plannedToneRole: parsed?.tones.some((tone) => tone.pitchClass === pitchClass)
         ? "chord-tone"
-        : "tension-hold",
+        : plan.style === "synth-whisper"
+          ? "tension-hold"
+          : "approach-tone",
     })
     previousPitch = pitch
     const rest =
@@ -224,7 +226,19 @@ function generatePhraseInGap(
         : rng.pick([0, 0.25])
     beat += durationBeats + rest
   }
-  return notes
+  return notes.map((note, index) => {
+    if (note.plannedToneRole !== "approach-tone") return note
+    const target = notes[index + 1]
+    if (!target) return { ...note, plannedToneRole: "tension-hold" }
+    return {
+      ...note,
+      plannedResolution: {
+        targetPitchClass: ((target.pitch % 12) + 12) % 12,
+        targetBeat: target.startBeat,
+        maximumDelayBeats: Math.max(0.25, target.startBeat - note.startBeat),
+      },
+    }
+  })
 }
 
 function harmonicFit(notes: MelodyNote[], chords: ChordEvent[]): number {

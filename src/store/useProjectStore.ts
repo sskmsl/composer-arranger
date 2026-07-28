@@ -73,6 +73,7 @@ import {
 } from "@/phrase-engine/generatePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
+import { evaluateReactiveLayerCompatibility } from "@/melody-engine/reactiveLayerAnalysis"
 import {
   generateCounterCandidates,
   regenerateCounterCandidate as buildRegeneratedCounter,
@@ -1281,6 +1282,39 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         })
         return
       }
+    }
+    const counterpartId =
+      candidate.kind === "decoration"
+        ? prev.sectionReactiveLayerAssignments?.[candidate.sectionId]
+        : prev.sectionDecorationLayerAssignments?.[candidate.sectionId]
+    const counterpart = counterpartId
+      ? (prev.reactiveLayerCandidates ?? []).find(
+          (item) => item.id === counterpartId,
+        )
+      : undefined
+    const activeMelodyId = prev.sectionMelodyAssignments[candidate.sectionId]
+    const activeMelody = prev.melodyVariants.find(
+      (variant) =>
+        variant.id === activeMelodyId &&
+        variant.sectionId === candidate.sectionId,
+    )
+    const section = prev.sections.find(
+      (item) => item.id === candidate.sectionId,
+    )
+    const totalBeats = section
+      ? section.lengthBars *
+        parseTimeSignature(prev.song.timeSignature).beatsPerBar
+      : 0
+    const compatibility = evaluateReactiveLayerCompatibility(
+      activeMelody?.notes ?? [],
+      counterpart ? [candidate, counterpart] : [candidate],
+      totalBeats,
+    )
+    if (compatibility.hasBlockingConflict) {
+      set({
+        workflowNotice: `この候補は採用できません: ${compatibility.reasons[0]}`,
+      })
+      return
     }
     const assignmentPatch =
       candidate.kind === "decoration"

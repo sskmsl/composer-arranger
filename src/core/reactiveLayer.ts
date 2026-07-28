@@ -116,7 +116,18 @@ export interface ReactiveLayerCollisionSummary {
   protectedMomentOverlapBeats: number
   voiceCrossingCount: number
   simultaneousAttackCount: number
+  parallelLargeLeapCount?: number
   hasBlockingCollision: boolean
+}
+
+export interface ReactiveLayerCompatibility {
+  combinedNoteCount: number
+  maximumNoteCount: number
+  samePitchOverlapBeats: number
+  minorSecondOverlapBeats: number
+  unresolvedToneNoteIds: string[]
+  hasBlockingConflict: boolean
+  reasons: string[]
 }
 
 export interface ReactiveLayerCandidate {
