@@ -46,4 +46,100 @@ describe("section timeline", () => {
     expect(material.melody.map((note) => note.startBeat)).toEqual([1, 10])
     expect(material.totalBeats).toBe(24)
   })
+
+  it("carry-overの保持を曲全体Preview/MIDI共通素材へ反映し、次の発音と重ねない", () => {
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: normalizeSectionTimeline(sections),
+      chords: [],
+      melodyVariants: [
+        {
+          id: "va",
+          sectionId: "a",
+          notes: [{ id: "tail", startBeat: 7, durationBeats: 0.5, pitch: 69, velocity: 80, locks: [] }],
+        },
+        {
+          id: "vb",
+          sectionId: "b",
+          notes: [{ id: "entry", startBeat: 1, durationBeats: 1, pitch: 72, velocity: 80, locks: [] }],
+          transitionPlan: {
+            strategy: "carry-over",
+            sourceSectionId: "a",
+            sourceVariantId: "va",
+            contextFingerprint: "context",
+            transitionFitScore: 90,
+            pitchContinuityScore: 90,
+            rhythmContinuityScore: 90,
+            tensionResolutionScore: 90,
+            motifRelationScore: 90,
+            registerTrajectoryScore: 90,
+            sustainAcrossBoundaryBeats: 1,
+          },
+        },
+      ],
+      sectionMelodyAssignments: { a: "va", b: "vb" },
+    } as unknown as ComposerProject
+
+    const material = buildSongPlaybackMaterial(project)
+    const tail = material.lead.find((note) => note.id === "a:tail")!
+    const entry = material.lead.find((note) => note.id === "b:entry")!
+    expect(tail.startBeat + tail.durationBeats).toBe(entry.startBeat)
+    expect(entry.startBeat).toBe(9)
+  })
+
+  it("pickup-to-nextを境界直前へ置き、前終音との重複を除く", () => {
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: normalizeSectionTimeline(sections),
+      chords: [],
+      melodyVariants: [
+        {
+          id: "va",
+          sectionId: "a",
+          notes: [{ id: "tail", startBeat: 7, durationBeats: 1, pitch: 69, velocity: 80, locks: [] }],
+        },
+        {
+          id: "vb",
+          sectionId: "b",
+          notes: [{ id: "entry", startBeat: 0, durationBeats: 1, pitch: 72, velocity: 80, locks: [] }],
+          transitionPlan: {
+            strategy: "pickup-to-next",
+            sourceSectionId: "a",
+            sourceVariantId: "va",
+            contextFingerprint: "context",
+            transitionFitScore: 90,
+            pitchContinuityScore: 90,
+            rhythmContinuityScore: 90,
+            tensionResolutionScore: 90,
+            motifRelationScore: 90,
+            registerTrajectoryScore: 90,
+            sustainAcrossBoundaryBeats: 0,
+            pickup: { pitch: 71, durationBeats: 0.5, velocity: 72 },
+          },
+        },
+      ],
+      sectionMelodyAssignments: { a: "va", b: "vb" },
+    } as unknown as ComposerProject
+
+    const material = buildSongPlaybackMaterial(project)
+    const tail = material.lead.find((note) => note.id === "a:tail")!
+    const pickup = material.lead.find((note) => note.id.startsWith("b:transition-pickup"))!
+    expect(pickup.startBeat).toBe(7.5)
+    expect(tail.startBeat + tail.durationBeats).toBeLessThanOrEqual(pickup.startBeat)
+    expect(pickup.startBeat + pickup.durationBeats).toBe(8)
+
+    const sixEightProject = {
+      ...project,
+      song: { timeSignature: "6/8" },
+      melodyVariants: project.melodyVariants.map((variant) =>
+        variant.id === "va"
+          ? { ...variant, notes: [{ ...variant.notes[0], startBeat: 5 }] }
+          : variant,
+      ),
+    } as unknown as ComposerProject
+    const sixEight = buildSongPlaybackMaterial(sixEightProject)
+    const sixEightPickup = sixEight.lead.find((note) => note.id.startsWith("b:transition-pickup"))!
+    expect(sixEightPickup.startBeat).toBe(5.5)
+    expect(sixEightPickup.startBeat + sixEightPickup.durationBeats).toBe(6)
+  })
 })

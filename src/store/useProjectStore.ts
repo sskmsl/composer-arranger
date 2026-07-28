@@ -71,6 +71,7 @@ import {
   regeneratePhraseCandidate as buildRegeneratedPhrase,
   type GeneratePhrasesInput,
 } from "@/phrase-engine/generatePhrases"
+import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -732,6 +733,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
       key: prev.song.key,
+      // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
+      transitionContext:
+        window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,
     })
 
     const harmonicMap = buildHarmonicMap(chords)

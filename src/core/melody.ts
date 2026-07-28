@@ -252,6 +252,41 @@ export type ClimaxType = "pitch-peak" | "rhythmic-peak" | "tension-peak"
 export type ClimaxPosition = "early" | "middle" | "late"
 export type MelodyEndingStrategy = "resolved" | "open" | "suspended" | "carry-forward"
 
+/** Issue #30: 前後セクションの境界で採る、旋律上の接続方針。 */
+export type SectionTransitionStrategy =
+  | "resolved"
+  | "suspended"
+  | "open"
+  | "carry-over"
+  | "pickup-to-next"
+  | "motif-call-response"
+
+/**
+ * 次セクションの候補へ保存する接続計画。
+ * contextFingerprint は、生成時に参照した前セクションのActive Melodyが
+ * 現在も同じかを判定するためのスナップショットで、古い候補の自動書き換えには使わない。
+ */
+export interface MelodyTransitionPlan {
+  strategy: SectionTransitionStrategy
+  sourceSectionId: string
+  sourceVariantId: string
+  contextFingerprint: string
+  transitionFitScore: number
+  pitchContinuityScore: number
+  rhythmContinuityScore: number
+  tensionResolutionScore: number
+  motifRelationScore: number
+  registerTrajectoryScore: number
+  /** 境界を越えて前セクション終音を保持する長さ。曲全体Preview/MIDIで同一に実音化する。 */
+  sustainAcrossBoundaryBeats: number
+  /** pickup-to-next の場合に、境界直前へ追加する弱起音。 */
+  pickup?: {
+    pitch: number
+    durationBeats: number
+    velocity: number
+  }
+}
+
 export interface CandidateMelodyDNA {
   motifIdentity: MotifIdentity
   rhythmGrammar: RhythmGrammar
@@ -367,6 +402,8 @@ export interface MelodyVariant {
   elegiacPlan?: ElegiacGenerationPlan
   /** Profile固有の緊張・展開・回収曲線。 */
   profileExpressionPlan?: ProfileExpressionPlan
+  /** Issue #30: 前セクションのActive Melodyを参照して生成した接続計画。 */
+  transitionPlan?: MelodyTransitionPlan
   /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
   generationDiagnostics?: CandidateGenerationDiagnostics
 

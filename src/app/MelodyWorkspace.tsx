@@ -14,6 +14,16 @@ import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern
 import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
 import type { MelodyVariant, RangeRegenerationLocks } from "@/core/melody"
+import { isTransitionContextStale } from "@/melody-engine/sectionTransition"
+
+const TRANSITION_LABELS = {
+  resolved: "Resolved",
+  suspended: "Suspended",
+  open: "Open",
+  "carry-over": "Carry-over",
+  "pickup-to-next": "Pickup",
+  "motif-call-response": "Call & Response",
+} as const
 
 const SEED_OPS: { id: SeedOperation; label: string }[] = [
   { id: "continue", label: "Continue" },
@@ -63,6 +73,7 @@ export function MelodyWorkspace() {
   const sectionContent = section?.content ?? DEFAULT_SECTION_CONTENT
   const variantContent = variant ? resolvedLeadContent(variant) : "melody"
   const isMelodyVariant = variantContent === "melody"
+  const staleTransitionContext = variant ? isTransitionContextStale(project, variant) : false
 
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set())
   const [selection, setSelection] = useState<BeatRange | null>(null)
@@ -130,6 +141,12 @@ export function MelodyWorkspace() {
             <Star size={13} /> {project.activeMelodyId === variant.id ? "Active Melody" : "Set as Active Melody"}
           </Button>
         )}
+        {variant?.transitionPlan && (
+          <Pill>
+            Transition: {TRANSITION_LABELS[variant.transitionPlan.strategy]} · Fit{" "}
+            {Math.round(variant.transitionPlan.transitionFitScore)}
+          </Pill>
+        )}
       </div>
 
       {/*
@@ -181,6 +198,11 @@ export function MelodyWorkspace() {
       {workflowNotice && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
           {workflowNotice}
+        </p>
+      )}
+      {staleTransitionContext && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          前セクションのActive Melodyが変更されています。この候補のTransition Contextは古いため、接続を更新するには再生成してください。
         </p>
       )}
 
