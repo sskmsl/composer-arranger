@@ -81,6 +81,7 @@ import {
 } from "@/melody-engine/counterGenerator"
 import {
   DEFAULT_DECORATION_SETTINGS,
+  assessDecorationNeed,
   decorationFingerprintForInput,
   generateDecorationCandidates,
   regenerateDecorationCandidate as buildRegeneratedDecoration,
@@ -306,6 +307,44 @@ function decorationGenerationInput(
   const activeMelody = project.melodyVariants.find(
     (variant) => variant.id === activeMelodyId && variant.sectionId === sectionId,
   )
+  const reactiveCandidates = project.reactiveLayerCandidates ?? []
+  const sectionArrangementNoteCount = (
+    targetSectionId: string | undefined,
+  ): number => {
+    if (!targetSectionId) return 0
+    const assignedIds = [
+      project.sectionReactiveLayerAssignments?.[targetSectionId],
+      project.sectionDecorationLayerAssignments?.[targetSectionId],
+    ].filter((id): id is string => Boolean(id))
+    const reactiveNoteCount = assignedIds.reduce(
+      (sum, id) =>
+        sum +
+        (reactiveCandidates.find((candidate) => candidate.id === id)?.notes
+          .length ?? 0),
+      0,
+    )
+    const accompanimentEstimate =
+      project.sectionAccompanimentPatternAssignments?.[targetSectionId]
+        ? 4
+        : 0
+    return reactiveNoteCount + accompanimentEstimate
+  }
+  const favoritePlans = reactiveCandidates
+    .flatMap((candidate) =>
+      candidate.kind === "decoration" &&
+      candidate.reviewState === "favorite" &&
+      candidate.decorationPlan
+        ? [candidate.decorationPlan]
+        : [],
+    )
+  const rejectedPlans = reactiveCandidates
+    .flatMap((candidate) =>
+      candidate.kind === "decoration" &&
+      candidate.reviewState === "rejected" &&
+      candidate.decorationPlan
+        ? [candidate.decorationPlan]
+        : [],
+    )
   return {
     sectionId,
     sectionRole: section.role,
@@ -321,6 +360,33 @@ function decorationGenerationInput(
     nextSectionRole: nextSection?.role,
     nextSectionFirstChord,
     isLastSection: !nextSection,
+    arrangementContext: {
+      previousSectionNoteCount: sectionArrangementNoteCount(
+        previousSection?.id,
+      ),
+      currentSectionNoteCount: sectionArrangementNoteCount(section.id),
+      nextSectionNoteCount: sectionArrangementNoteCount(nextSection?.id),
+    },
+    preferenceProfile: {
+      favoriteCharacters: [
+        ...new Set(favoritePlans.map((plan) => plan.character)),
+      ],
+      favoriteShapes: [
+        ...new Set(favoritePlans.map((plan) => plan.shape)),
+      ],
+      favoriteRhythms: [
+        ...new Set(favoritePlans.map((plan) => plan.rhythmStyle)),
+      ],
+      rejectedCharacters: [
+        ...new Set(rejectedPlans.map((plan) => plan.character)),
+      ],
+      rejectedShapes: [
+        ...new Set(rejectedPlans.map((plan) => plan.shape)),
+      ],
+      rejectedRhythms: [
+        ...new Set(rejectedPlans.map((plan) => plan.rhythmStyle)),
+      ],
+    },
   }
 }
 
@@ -1132,6 +1198,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       })
       return
     }
+    const need = assessDecorationNeed(input)
     const generated = generateDecorationCandidates(input)
     if (generated.length === 0) {
       set({ workflowNotice: "品質下限を満たすDecoration候補を生成できませんでした。" })
@@ -1162,7 +1229,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       workflowNotice:
         candidates.length < 10
           ? `品質下限を満たすDecoration候補は${candidates.length}件でした。`
-          : null,
+          : need.level === "silence"
+            ? `${need.reason} 比較用に控えめなGestureも生成しました。`
+            : need.level === "optional"
+              ? need.reason
+              : null,
     })
     get().persist()
   },

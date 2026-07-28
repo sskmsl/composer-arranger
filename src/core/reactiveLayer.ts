@@ -34,6 +34,16 @@ export type DecorationRhythmStyle =
   | "legato"
   | "staccato"
 
+export type DecorationGestureRole =
+  | "response"
+  | "transition"
+  | "ending"
+  | "swell"
+  | "pedal"
+  | "pickup"
+
+export type DecorationNeedLevel = "recommended" | "optional" | "silence"
+
 export interface DecorationPlan {
   type: DecorationType
   character: DecorationCharacter
@@ -46,6 +56,14 @@ export interface DecorationPlan {
   placementBeat: number
   targetPitchClass: number
   intention: string
+  /** 旧保存データでは未定義。Typeより具体的な音楽上の役割。 */
+  gestureRole?: DecorationGestureRole
+  /** Phrase解析で選んだ配置基準点。 */
+  phraseBoundaryBeat?: number
+  /** Arrangement密度を含む装飾必要度。 */
+  needLevel?: DecorationNeedLevel
+  /** Favorite / Reject履歴との一致度(0–100)。 */
+  preferenceMatch?: number
 }
 
 export interface DecorationStructureContext {

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 import { parseChordInputText } from "@/core/chordInput"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
-import { generateCounterCandidates } from "./counterGenerator"
+import {
+  evaluateCounterpointFit,
+  generateCounterCandidates,
+} from "./counterGenerator"
 import { unresolvedReactiveToneNoteIds } from "./reactiveLayerAnalysis"
 
 function note(id: string, startBeat: number, durationBeats: number, pitch: number): MelodyNote {
@@ -180,5 +183,27 @@ describe("Issue #70 / Counter Generator MVP", () => {
       ),
     ).toBe(true)
     expect(candidates.every((candidate) => candidate.notes.length >= 3)).toBe(true)
+  })
+
+  it("主旋律との協和と反行・斜行を持つCounterを高く評価する", () => {
+    const lead = [
+      note("lead-1", 0, 2, 72),
+      note("lead-2", 2, 2, 74),
+      note("lead-3", 4, 2, 76),
+    ]
+    const independent = [
+      note("independent-1", 0, 1, 64),
+      note("independent-2", 2, 1, 62),
+      note("independent-3", 4, 1, 60),
+    ]
+    const colliding = [
+      note("colliding-1", 0, 1, 71),
+      note("colliding-2", 2, 1, 73),
+      note("colliding-3", 4, 1, 75),
+    ]
+    const chords = parseChordInputText("C | Dm", "s1", 4, "c")
+    expect(
+      evaluateCounterpointFit(lead, independent, chords),
+    ).toBeGreaterThan(evaluateCounterpointFit(lead, colliding, chords))
   })
 })

@@ -495,6 +495,112 @@ function motifRelationship(melody: MelodyNote[], notes: MelodyNote[]): number {
   return 55 + (related / Math.max(1, counterIntervals.length)) * 35
 }
 
+function overlappingMelodyNote(
+  melody: MelodyNote[],
+  beat: number,
+): MelodyNote | undefined {
+  return melody.find(
+    (note) =>
+      beat >= note.startBeat &&
+      beat < note.startBeat + note.durationBeats,
+  )
+}
+
+/** 強拍協和・反行/斜行・終止協調をまとめたCounter固有評価。 */
+export function evaluateCounterpointFit(
+  melody: MelodyNote[],
+  counter: MelodyNote[],
+  chords: ChordEvent[],
+): number {
+  if (counter.length < 2) return 40
+  const consonantClasses = new Set([0, 3, 4, 5, 7, 8, 9])
+  let structuralAttacks = 0
+  let consonantAttacks = 0
+  for (const note of counter) {
+    if (Math.abs(note.startBeat - Math.round(note.startBeat)) > 0.08) {
+      continue
+    }
+    const melodyNote = overlappingMelodyNote(melody, note.startBeat)
+    if (!melodyNote) continue
+    structuralAttacks++
+    const intervalClass =
+      Math.abs(note.pitch - melodyNote.pitch) % 12
+    if (consonantClasses.has(intervalClass)) consonantAttacks++
+  }
+
+  let independentMotion = 0
+  let comparableMotion = 0
+  const sortedMelody = [...melody].sort(
+    (left, right) => left.startBeat - right.startBeat,
+  )
+  const sortedCounter = [...counter].sort(
+    (left, right) => left.startBeat - right.startBeat,
+  )
+  for (let index = 1; index < sortedCounter.length; index++) {
+    const previousCounter = sortedCounter[index - 1]
+    const currentCounter = sortedCounter[index]
+    const previousMelody =
+      overlappingMelodyNote(
+        sortedMelody,
+        previousCounter.startBeat,
+      ) ??
+      sortedMelody
+        .filter(
+          (note) => note.startBeat <= previousCounter.startBeat,
+        )
+        .at(-1)
+    const currentMelody =
+      overlappingMelodyNote(sortedMelody, currentCounter.startBeat) ??
+      sortedMelody
+        .filter(
+          (note) => note.startBeat <= currentCounter.startBeat,
+        )
+        .at(-1)
+    if (!previousMelody || !currentMelody) continue
+    const melodyMotion = Math.sign(
+      currentMelody.pitch - previousMelody.pitch,
+    )
+    const counterMotion = Math.sign(
+      currentCounter.pitch - previousCounter.pitch,
+    )
+    comparableMotion++
+    if (
+      melodyMotion === 0 ||
+      counterMotion === 0 ||
+      melodyMotion !== counterMotion
+    ) {
+      independentMotion++
+    }
+  }
+
+  const last = sortedCounter.at(-1)!
+  const lastChord = chordForBeat(chords, last.startBeat)
+  const parsedLast = lastChord
+    ? parseChordSymbol(lastChord.symbol, lastChord.bass ?? undefined)
+    : null
+  const lastPitchClass = ((last.pitch % 12) + 12) % 12
+  const cadenceFit = parsedLast?.tones.some(
+    (tone) => tone.pitchClass === lastPitchClass,
+  )
+    ? 100
+    : 68
+  const consonance =
+    structuralAttacks === 0
+      ? 82
+      : (consonantAttacks / structuralAttacks) * 100
+  const motion =
+    comparableMotion === 0
+      ? 78
+      : (independentMotion / comparableMotion) * 100
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      consonance * 0.42 + motion * 0.38 + cadenceFit * 0.2,
+    ),
+  )
+}
+
 function candidateSimilarity(
   left: Pick<ReactiveLayerCandidate, "notes" | "generatorStyle" | "role">,
   right: Pick<ReactiveLayerCandidate, "notes" | "generatorStyle" | "role">,
@@ -632,9 +738,15 @@ function buildPoolCandidate(
     generatePhraseInGap(plan, gap, index, { ...input, seed: candidateSeed }, analysis, rng),
   )
   const opportunityAnalysis = { ...analysis, gaps }
+  const relationship = motifRelationship(input.melody.notes, notes)
+  const counterpointFit = evaluateCounterpointFit(
+    input.melody.notes,
+    notes,
+    input.chords,
+  )
   const evaluated = evaluateReactiveLayerQuality(input.melody.notes, notes, opportunityAnalysis, {
     harmonicFit: harmonicFit(notes, input.chords),
-    motifRelationship: motifRelationship(input.melody.notes, notes),
+    motifRelationship: relationship * 0.55 + counterpointFit * 0.45,
     sectionFit: sectionFit(input.sectionRole, notes.length),
     transitionValue: input.sectionRole === "pre-chorus" || input.sectionRole === "bridge" ? 78 : 65,
   })

@@ -5,6 +5,8 @@ import { SeededRandom } from "@/core/rng"
 import type { SectionRole } from "@/core/section"
 import type {
   DecorationCharacter,
+  DecorationGestureRole,
+  DecorationNeedLevel,
   DecorationPlan,
   DecorationRhythmStyle,
   DecorationShape,
@@ -60,6 +62,165 @@ export interface GenerateDecorationInput {
   nextSectionFirstChord?: string
   isLastSection: boolean
   candidateCount?: number
+  arrangementContext?: DecorationArrangementContext
+  preferenceProfile?: DecorationPreferenceProfile
+}
+
+export interface DecorationArrangementContext {
+  previousSectionNoteCount: number
+  currentSectionNoteCount: number
+  nextSectionNoteCount: number
+}
+
+export interface DecorationPreferenceProfile {
+  favoriteCharacters: DecorationCharacter[]
+  favoriteShapes: DecorationShape[]
+  favoriteRhythms: DecorationRhythmStyle[]
+  rejectedCharacters: DecorationCharacter[]
+  rejectedShapes: DecorationShape[]
+  rejectedRhythms: DecorationRhythmStyle[]
+}
+
+export interface DecorationNeedAssessment {
+  level: DecorationNeedLevel
+  score: number
+  reason: string
+}
+
+interface PhraseBoundary {
+  beat: number
+  strength: number
+  kind: "breath" | "long-note-release" | "section-ending"
+}
+
+function phraseBoundaries(
+  melodyNotes: MelodyNote[],
+  totalBeats: number,
+): PhraseBoundary[] {
+  if (melodyNotes.length === 0) {
+    return [{ beat: totalBeats, strength: 70, kind: "section-ending" }]
+  }
+  const sorted = [...melodyNotes].sort(
+    (left, right) => left.startBeat - right.startBeat,
+  )
+  const boundaries: PhraseBoundary[] = []
+  sorted.forEach((note, index) => {
+    const noteEnd = Math.min(
+      totalBeats,
+      note.startBeat + note.durationBeats,
+    )
+    const next = sorted[index + 1]
+    const gap = next ? next.startBeat - noteEnd : totalBeats - noteEnd
+    if (gap >= 0.5) {
+      boundaries.push({
+        beat: noteEnd,
+        strength: Math.min(100, 55 + gap * 18),
+        kind: "breath",
+      })
+    }
+    if (note.durationBeats >= 1.5) {
+      boundaries.push({
+        beat: noteEnd,
+        strength: Math.min(92, 62 + note.durationBeats * 8),
+        kind: "long-note-release",
+      })
+    }
+  })
+  const lastEnd = Math.min(
+    totalBeats,
+    sorted.at(-1)!.startBeat + sorted.at(-1)!.durationBeats,
+  )
+  boundaries.push({
+    beat: Math.max(lastEnd, totalBeats - 0.5),
+    strength: 82,
+    kind: "section-ending",
+  })
+  return boundaries
+    .sort((left, right) => right.strength - left.strength)
+    .filter(
+      (boundary, index, all) =>
+        all.findIndex(
+          (other) => Math.abs(other.beat - boundary.beat) <= 0.125,
+        ) === index,
+    )
+}
+
+export function assessDecorationNeed(
+  input: GenerateDecorationInput,
+): DecorationNeedAssessment {
+  const analysis = analyzeMelodyActivity(
+    input.melodyNotes ?? [],
+    input.totalBeats,
+  )
+  const context = input.arrangementContext ?? {
+    previousSectionNoteCount: 0,
+    currentSectionNoteCount: 0,
+    nextSectionNoteCount: 0,
+  }
+  const transitionImportance =
+    input.nextSectionRole === "chorus" ||
+    input.nextSectionRole === "grand-chorus" ||
+    input.sectionRole === "pre-chorus"
+      ? 22
+      : input.nextSectionRole
+        ? 10
+        : 0
+  const endingImportance =
+    input.isLastSection || input.sectionRole === "outro" ? 18 : 0
+  const gapOpportunity = Math.min(
+    18,
+    analysis.gaps.reduce(
+      (sum, gap) => sum + Math.min(2, gap.durationBeats) * 3,
+      0,
+    ),
+  )
+  const densityPenalty =
+    analysis.melodyDensity * 24 +
+    Math.min(
+      28,
+      (context.currentSectionNoteCount / Math.max(1, input.totalBeats)) *
+        18,
+    )
+  const surroundingPenalty =
+    Math.min(
+      10,
+      (context.previousSectionNoteCount + context.nextSectionNoteCount) /
+        Math.max(4, input.totalBeats),
+    )
+  const score = Math.max(
+    0,
+    Math.min(
+      100,
+      44 +
+        transitionImportance +
+        endingImportance +
+        gapOpportunity -
+        densityPenalty -
+        surroundingPenalty,
+    ),
+  )
+  if (score < 36) {
+    return {
+      level: "silence",
+      score,
+      reason:
+        "主旋律と既存レイヤーの密度が高いため、装飾なしを第一候補にします。",
+    }
+  }
+  if (score < 58) {
+    return {
+      level: "optional",
+      score,
+      reason:
+        "装飾は必須ではありません。余白を保つ案と短いGestureを比較してください。",
+    }
+  }
+  return {
+    level: "recommended",
+    score,
+    reason:
+      "Phrase BoundaryとSection推移に装飾の有効な役割があります。",
+  }
 }
 
 const CHARACTERS: DecorationCharacter[] = ["strings", "bell", "piano", "generic"]
@@ -143,6 +304,97 @@ function resolveRhythmStyle(
     (poolIndex * 2 + rng.intBetween(0, compatible.length - 1)) %
       compatible.length
   ]
+}
+
+const GESTURES_BY_TYPE: Record<
+  DecorationType,
+  DecorationGestureRole[]
+> = {
+  "decorative-fill": ["response", "pedal", "swell"],
+  "transition-fill": ["pickup", "transition", "swell"],
+  "ending-fill": ["ending", "pedal", "response"],
+}
+
+const SHAPES_BY_GESTURE: Record<
+  DecorationGestureRole,
+  DecorationShape[]
+> = {
+  response: ["turn", "neighbor-motion", "repeated-sequence"],
+  transition: ["rising", "sequence", "suspense"],
+  ending: ["falling", "turn", "suspense"],
+  swell: ["suspense", "rising", "falling"],
+  pedal: ["sparse-accent", "suspense"],
+  pickup: ["rising", "arpeggiated-fill", "sequence"],
+}
+
+const RHYTHMS_BY_GESTURE: Record<
+  DecorationGestureRole,
+  DecorationRhythmStyle[]
+> = {
+  response: ["eighth", "syncopation", "dotted", "triplet"],
+  transition: ["syncopation", "dotted", "legato"],
+  ending: ["dotted", "legato", "eighth"],
+  swell: ["legato", "dotted"],
+  pedal: ["legato", "dotted"],
+  pickup: ["eighth", "sixteenth", "triplet", "syncopation"],
+}
+
+function resolveGestureRole(
+  type: DecorationType,
+  needLevel: DecorationNeedLevel,
+  poolIndex: number,
+): DecorationGestureRole {
+  const roles = GESTURES_BY_TYPE[type]
+  const gestureIndex = Math.floor(poolIndex / 3)
+  if (needLevel === "silence") {
+    const restrained = roles.filter(
+      (role) => role === "pedal" || role === "swell" || role === "response",
+    )
+    if (restrained.length > 0) {
+      return restrained[gestureIndex % restrained.length]
+    }
+  }
+  return roles[gestureIndex % roles.length]
+}
+
+function preferenceMatch(
+  input: GenerateDecorationInput,
+  character: DecorationCharacter,
+  shape: DecorationShape,
+  rhythm: DecorationRhythmStyle,
+): number {
+  const profile = input.preferenceProfile
+  if (!profile) return 50
+  let score = 50
+  if (profile.favoriteCharacters.includes(character)) score += 16
+  if (profile.favoriteShapes.includes(shape)) score += 18
+  if (profile.favoriteRhythms.includes(rhythm)) score += 16
+  if (profile.rejectedCharacters.includes(character)) score -= 18
+  if (profile.rejectedShapes.includes(shape)) score -= 20
+  if (profile.rejectedRhythms.includes(rhythm)) score -= 18
+  return Math.max(0, Math.min(100, score))
+}
+
+function preferredValue<T>(
+  generated: T,
+  favorites: T[] | undefined,
+  rejected: T[] | undefined,
+  compatible: (value: T) => boolean,
+  poolIndex: number,
+): T {
+  if (
+    favorites &&
+    favorites.length > 0 &&
+    poolIndex % 3 === 0
+  ) {
+    const favorite = favorites.find(compatible)
+    if (favorite !== undefined) return favorite
+  }
+  if (rejected?.includes(generated)) {
+    const alternative = favorites?.find(compatible)
+    if (alternative !== undefined) return alternative
+  }
+  return generated
 }
 
 export function decorationFingerprintForInput(input: GenerateDecorationInput): string {
@@ -525,11 +777,159 @@ function applyGestureArrival(
   return result
 }
 
+function commonTonePitchClass(
+  input: GenerateDecorationInput,
+  plan: DecorationPlan,
+): number {
+  const relevantChords = input.chords.filter((chord) => {
+    const endBeat = plan.placementBeat + plan.lengthBeats
+    return (
+      chord.startBeat < endBeat &&
+      chord.startBeat + chord.durationBeats > plan.placementBeat
+    )
+  })
+  const counts = new Map<number, number>()
+  for (const chord of relevantChords) {
+    const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+    for (const tone of parsed?.tones ?? []) {
+      counts.set(tone.pitchClass, (counts.get(tone.pitchClass) ?? 0) + 1)
+    }
+  }
+  return (
+    [...counts.entries()].sort(
+      (left, right) => right[1] - left[1],
+    )[0]?.[0] ?? plan.targetPitchClass
+  )
+}
+
+function notesForPedal(
+  input: GenerateDecorationInput,
+  plan: DecorationPlan,
+  seed: number,
+): MelodyNote[] {
+  const rng = new SeededRandom(seed)
+  const window = registerWindow(plan.register)
+  const pitchClass = commonTonePitchClass(input, plan)
+  const pitch = nearestPitchClass(
+    pitchClass,
+    (window.low + window.high) / 2,
+    window,
+  )
+  return [
+    {
+      id: `decoration:${seed}:pedal`,
+      startBeat: plan.placementBeat,
+      durationBeats: Math.min(
+        plan.lengthBeats,
+        input.totalBeats - plan.placementBeat,
+      ),
+      pitch,
+      velocity: rng.intBetween(42, 54),
+      locks: [],
+      plannedToneRole: "common-tone",
+    },
+  ]
+}
+
+function notesForSwell(
+  input: GenerateDecorationInput,
+  plan: DecorationPlan,
+  seed: number,
+): MelodyNote[] {
+  const rng = new SeededRandom(seed)
+  const window = registerWindow(plan.register)
+  const keyPitches = pitchLadder(keyScalePitchClasses(input.key), window)
+  const centerIndex = Math.max(
+    0,
+    Math.min(
+      keyPitches.length - 1,
+      Math.floor(keyPitches.length / 2),
+    ),
+  )
+  const count = plan.lengthBeats >= 3 ? 3 : 2
+  const slot = plan.lengthBeats / count
+  const notes: MelodyNote[] = Array.from(
+    { length: count },
+    (_, index) => {
+      const direction = plan.direction === "falling" ? -1 : 1
+      const pitchIndex = Math.max(
+        0,
+        Math.min(
+          keyPitches.length - 1,
+          centerIndex + direction * index,
+        ),
+      )
+      return {
+        id: `decoration:${seed}:swell:${index}`,
+        startBeat: plan.placementBeat + index * slot,
+        durationBeats: Math.max(0.5, slot),
+        pitch: keyPitches[pitchIndex],
+        velocity: gestureVelocity(plan, index, count, rng),
+        locks: [],
+        plannedToneRole: "tension-hold" as const,
+      }
+    },
+  )
+  if (
+    plan.type === "transition-fill" ||
+    plan.type === "ending-fill"
+  ) {
+    const final = notes.at(-1)!
+    const targetPitch = nearestPitchClass(
+      plan.targetPitchClass,
+      final.pitch,
+      window,
+    )
+    final.pitch = targetPitch
+    final.plannedToneRole =
+      plan.type === "transition-fill"
+        ? "tension-hold"
+        : "chord-tone"
+    const approach = notes.at(-2)
+    if (approach) {
+      const direction = plan.direction === "falling" ? 1 : -1
+      const scalePitches = pitchLadder(
+        [...keyScalePitchClasses(input.key), plan.targetPitchClass],
+        window,
+      )
+      const targetIndex = scalePitches.reduce(
+        (best, pitch, index) =>
+          Math.abs(pitch - targetPitch) <
+          Math.abs(scalePitches[best] - targetPitch)
+            ? index
+            : best,
+        0,
+      )
+      const approachIndex = Math.max(
+        0,
+        Math.min(scalePitches.length - 1, targetIndex + direction),
+      )
+      approach.pitch = scalePitches[approachIndex]
+      approach.plannedToneRole = "approach-tone"
+      approach.plannedResolution = {
+        targetPitchClass: plan.targetPitchClass,
+        targetBeat: final.startBeat,
+        maximumDelayBeats: Math.max(
+          0.25,
+          final.startBeat - approach.startBeat,
+        ),
+      }
+    }
+  }
+  return notes
+}
+
 function notesForPlan(
   input: GenerateDecorationInput,
   plan: DecorationPlan,
   seed: number,
 ): MelodyNote[] {
+  if (plan.gestureRole === "pedal") {
+    return notesForPedal(input, plan, seed)
+  }
+  if (plan.gestureRole === "swell") {
+    return notesForSwell(input, plan, seed)
+  }
   const rng = new SeededRandom(seed)
   const grid = rhythmGrid(plan.rhythmStyle, plan.lengthBeats, plan.density)
   const window = registerWindow(plan.register)
@@ -656,6 +1056,17 @@ function harmonicFit(notes: MelodyNote[], chords: ChordEvent[]): number {
 function transitionQuality(notes: MelodyNote[], plan: DecorationPlan): number {
   const last = notes[notes.length - 1]
   if (!last) return 0
+  if (plan.gestureRole === "pedal") {
+    return last.durationBeats >= 1 ? 94 : 78
+  }
+  if (plan.gestureRole === "swell") {
+    const first = notes[0]
+    const dynamicDirection =
+      plan.type === "ending-fill"
+        ? first.velocity >= last.velocity
+        : last.velocity >= first.velocity
+    return dynamicDirection ? 92 : 70
+  }
   const previous = notes.at(-2)
   const targetFit =
     ((last.pitch % 12) + 12) % 12 === plan.targetPitchClass ? 100 : 45
@@ -765,6 +1176,7 @@ function similarity(a: ReactiveLayerCandidate, b: ReactiveLayerCandidate): numbe
   if (!planA || !planB) return 1
   const categorical =
     Number(planA.type === planB.type) +
+    Number(planA.gestureRole === planB.gestureRole) +
     Number(planA.shape === planB.shape) +
     Number(planA.rhythmStyle === planB.rhythmStyle) +
     Number(planA.register === planB.register) +
@@ -774,7 +1186,13 @@ function similarity(a: ReactiveLayerCandidate, b: ReactiveLayerCandidate): numbe
   const onsetMatch =
     [...onsetsA].filter((onset) => onsetsB.has(onset)).length /
     Math.max(1, Math.max(onsetsA.size, onsetsB.size))
-  return (categorical / 5) * 0.7 + onsetMatch * 0.3
+  return (categorical / 6) * 0.7 + onsetMatch * 0.3
+}
+
+function minimumGestureNotes(plan: DecorationPlan | undefined): number {
+  if (plan?.gestureRole === "pedal") return 1
+  if (plan?.gestureRole === "swell") return 2
+  return 3
 }
 
 function planFor(
@@ -783,12 +1201,77 @@ function planFor(
   rng: SeededRandom,
 ): DecorationPlan {
   const type = resolveType(input, poolIndex)
-  const character = resolveCharacter(input.settings.character, poolIndex)
+  const need = assessDecorationNeed(input)
+  const gestureRole = resolveGestureRole(type, need.level, poolIndex)
+  const generatedCharacter = resolveCharacter(
+    input.settings.character,
+    poolIndex,
+  )
+  const character =
+    input.settings.character === "auto"
+      ? preferredValue(
+          generatedCharacter,
+          input.preferenceProfile?.favoriteCharacters,
+          input.preferenceProfile?.rejectedCharacters,
+          () => true,
+          poolIndex,
+        )
+      : generatedCharacter
   const direction = resolveDirection(input.settings.direction, type, poolIndex)
   const requestedLengthBeats =
     input.settings.length === "bar" ? input.beatsPerBar : input.settings.length
-  const shape = resolveShape(type, character, poolIndex, rng)
-  const rhythmStyle = resolveRhythmStyle(type, character, poolIndex, rng)
+  const generatedShape = resolveShape(type, character, poolIndex, rng)
+  const gestureShapes = SHAPES_BY_GESTURE[gestureRole].filter((shape) =>
+    SHAPES_BY_TYPE[type].includes(shape),
+  )
+  const roleShape =
+    gestureShapes.length > 0
+      ? gestureShapes[poolIndex % gestureShapes.length]
+      : generatedShape
+  const shape = preferredValue(
+    roleShape,
+    input.preferenceProfile?.favoriteShapes,
+    input.preferenceProfile?.rejectedShapes,
+    (value) =>
+      SHAPES_BY_TYPE[type].includes(value) &&
+      SHAPES_BY_GESTURE[gestureRole].includes(value),
+    poolIndex,
+  )
+  const generatedRhythm = resolveRhythmStyle(
+    type,
+    character,
+    poolIndex,
+    rng,
+  )
+  const gestureRhythms = RHYTHMS_BY_GESTURE[gestureRole].filter((rhythm) =>
+    RHYTHMS_BY_CHARACTER[character].includes(rhythm),
+  )
+  const roleRhythm =
+    gestureRhythms.length > 0
+      ? gestureRhythms[poolIndex % gestureRhythms.length]
+      : generatedRhythm
+  const rhythmStyle = preferredValue(
+    roleRhythm,
+    input.preferenceProfile?.favoriteRhythms,
+    input.preferenceProfile?.rejectedRhythms,
+    (value) =>
+      RHYTHMS_BY_CHARACTER[character].includes(value) &&
+      RHYTHMS_BY_GESTURE[gestureRole].includes(value),
+    poolIndex,
+  )
+  const boundaries = phraseBoundaries(
+    input.melodyNotes ?? [],
+    input.totalBeats,
+  )
+  const boundaryPool =
+    gestureRole === "transition" ||
+    gestureRole === "pickup" ||
+    gestureRole === "ending"
+      ? [...boundaries].sort((left, right) => right.beat - left.beat)
+      : boundaries
+  const boundary =
+    boundaryPool[poolIndex % Math.max(1, boundaryPool.length)] ??
+    ({ beat: input.totalBeats, strength: 70, kind: "section-ending" } as const)
   const allMelodyGaps =
     input.melodyNotes && input.melodyNotes.length > 0
       ? analyzeMelodyActivity(input.melodyNotes, input.totalBeats).gaps
@@ -814,17 +1297,34 @@ function planFor(
     : requestedLengthBeats
   const placementBeat =
     selectedGap?.startBeat ??
-    (type === "decorative-fill"
+    (gestureRole === "response"
       ? Math.max(
           0,
-          Math.min(
-            input.totalBeats - lengthBeats,
-            (1 + (poolIndex % 3)) * input.beatsPerBar - lengthBeats / 2,
-          ),
+          Math.min(input.totalBeats - lengthBeats, boundary.beat),
         )
-      : Math.max(0, input.totalBeats - lengthBeats))
+      : gestureRole === "swell" || gestureRole === "pedal"
+        ? Math.max(
+            0,
+            Math.min(
+              input.totalBeats - lengthBeats,
+              boundary.beat - lengthBeats / 2,
+            ),
+          )
+        : Math.max(
+            0,
+            Math.min(
+              input.totalBeats - lengthBeats,
+              boundary.beat - lengthBeats,
+            ),
+          ))
   const intention =
-    type === "transition-fill"
+    gestureRole === "pickup"
+      ? `${rhythmStyle}の弱起から${input.nextSectionRole ?? "次Phrase"}へ導く`
+      : gestureRole === "swell"
+        ? `${character}の持続と強弱でPhrase Boundaryを持ち上げる`
+        : gestureRole === "pedal"
+          ? `共通音を保持し、Harmony変化の色だけを聴かせる`
+          : type === "transition-fill"
       ? `${rhythmStyle}の推進から${shape}で${input.nextSectionRole ?? "次セクション"}を先取りする`
       : type === "ending-fill"
         ? `${shape}と減衰する強弱で${input.sectionRole}の終止後へ余韻を残す`
@@ -841,6 +1341,15 @@ function planFor(
     placementBeat,
     targetPitchClass: targetPitchClass(input, type, poolIndex),
     intention,
+    gestureRole,
+    phraseBoundaryBeat: boundary.beat,
+    needLevel: need.level,
+    preferenceMatch: preferenceMatch(
+      input,
+      character,
+      shape,
+      rhythmStyle,
+    ),
   }
 }
 
@@ -922,8 +1431,7 @@ export function generateDecorationCandidates(
   const fingerprint = decorationFingerprintForInput(input)
   const poolWithDuplicates = Array.from(
     { length: Math.max(80, finalCount * 8) },
-    (_, index) =>
-    buildCandidate(input, index, fingerprint),
+    (_, index) => buildCandidate(input, index, fingerprint),
   )
     .filter(
       (candidate) =>
@@ -932,10 +1440,17 @@ export function generateDecorationCandidates(
         candidate.quality.melodyRespect >= 78 &&
         candidate.quality.motifRelationship >= 70 &&
         candidate.quality.transitionValue >= 78 &&
-        candidate.notes.length >= 3 &&
+        candidate.notes.length >=
+          minimumGestureNotes(candidate.decorationPlan) &&
         !candidate.collisions.hasBlockingCollision,
     )
-    .sort((a, b) => b.quality.overallQuality - a.quality.overallQuality)
+    .sort(
+      (a, b) =>
+        b.quality.overallQuality +
+          (b.decorationPlan?.preferenceMatch ?? 50) * 0.08 -
+        (a.quality.overallQuality +
+          (a.decorationPlan?.preferenceMatch ?? 50) * 0.08),
+    )
   const pool = poolWithDuplicates.filter(
     (candidate, index, candidates) =>
       candidates.findIndex(
@@ -943,13 +1458,13 @@ export function generateDecorationCandidates(
           other.notes
             .map(
               (note) =>
-                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}:${note.velocity}`,
+                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}`,
             )
             .join("|") ===
           candidate.notes
             .map(
               (note) =>
-                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}:${note.velocity}`,
+                `${note.startBeat.toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}`,
             )
             .join("|"),
       ) === index,
@@ -960,13 +1475,43 @@ export function generateDecorationCandidates(
       selected.push({ ...pool[0], selectionReason: "highest-quality" })
       continue
     }
-    const next = pool
-      .filter((candidate) => !selected.some((item) => item.id === candidate.id))
-      .filter(
-        (candidate) =>
-          selected.some((item) => isStepwiseDecoration(item)) ||
-          isStepwiseDecoration(candidate),
-      )
+    const remaining = pool.filter(
+      (candidate) =>
+        !selected.some((item) => item.id === candidate.id),
+    )
+    const selectedRoles = new Set(
+      selected.map((item) => item.decorationPlan?.gestureRole),
+    )
+    const newRoleCandidates = remaining.filter(
+      (candidate) =>
+        !selectedRoles.has(candidate.decorationPlan?.gestureRole),
+    )
+    const needsRoleDiversity =
+      selectedRoles.size < Math.min(4, finalCount) &&
+      newRoleCandidates.length > 0
+    const rolePool = needsRoleDiversity
+      ? newRoleCandidates
+      : remaining
+    const selectedShapes = new Set(
+      selected.map((item) => item.decorationPlan?.shape),
+    )
+    const newShapeCandidates = rolePool.filter(
+      (candidate) =>
+        !selectedShapes.has(candidate.decorationPlan?.shape),
+    )
+    const needsShapeDiversity =
+      selectedShapes.size < Math.min(4, finalCount) &&
+      newShapeCandidates.length > 0
+    const shapePool = needsShapeDiversity
+      ? newShapeCandidates
+      : rolePool
+    const needsStepwise =
+      !selected.some((item) => isStepwiseDecoration(item)) &&
+      shapePool.some((item) => isStepwiseDecoration(item))
+    const selectionPool = needsStepwise
+      ? shapePool.filter((candidate) => isStepwiseDecoration(candidate))
+      : shapePool
+    const next = selectionPool
       .map((candidate) => {
         const maximumSimilarity = Math.max(
           ...selected.map((item) => similarity(candidate, item)),
@@ -974,8 +1519,9 @@ export function generateDecorationCandidates(
         return {
           candidate,
           score:
-            candidate.quality.overallQuality * 0.62 +
-            (1 - maximumSimilarity) * 100 * 0.38,
+            candidate.quality.overallQuality * 0.55 +
+            (1 - maximumSimilarity) * 100 * 0.35 +
+            (candidate.decorationPlan?.preferenceMatch ?? 50) * 0.1,
         }
       })
       .sort((a, b) => b.score - a.score)[0]?.candidate

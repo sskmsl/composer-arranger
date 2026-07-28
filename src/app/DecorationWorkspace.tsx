@@ -44,6 +44,21 @@ const SHAPE_LABELS: Record<string, string> = {
   "sparse-accent": "Sparse Accent",
 }
 
+const GESTURE_LABELS: Record<string, string> = {
+  response: "Response",
+  transition: "Transition",
+  ending: "Ending",
+  swell: "Swell",
+  pedal: "Pedal",
+  pickup: "Pickup",
+}
+
+const NEED_LABELS: Record<string, string> = {
+  recommended: "Recommended",
+  optional: "Optional",
+  silence: "Silence First",
+}
+
 export function DecorationWorkspace() {
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
@@ -186,7 +201,7 @@ export function DecorationWorkspace() {
               Decoration Generator
             </h2>
             <p className="mt-0.5 text-[11px] text-ink-muted-48">
-              音色・旋律・強弱を一体化し、接続・余韻・推進力を作る10のGestureを提案します
+              Silence GateとPhrase Boundaryを判断し、6つの役割から採用価値のある10 Gestureを提案します
             </p>
           </div>
           <Button
@@ -350,11 +365,11 @@ export function DecorationWorkspace() {
                         {plan?.rhythmStyle}
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
-                        {plan?.type === "transition-fill"
-                          ? "Crescendo"
-                          : plan?.type === "ending-fill"
-                            ? "Release"
-                            : "Response"}
+                        {GESTURE_LABELS[plan?.gestureRole ?? ""] ??
+                          "Gesture"}
+                      </span>
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        {NEED_LABELS[plan?.needLevel ?? ""] ?? "Optional"}
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         MIDI{" "}
