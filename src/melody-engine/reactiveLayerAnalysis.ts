@@ -312,6 +312,7 @@ export function isReactiveLayerStale(
   project: ComposerProject,
   candidate: ReactiveLayerCandidate,
 ): boolean {
+  if (candidate.kind === "decoration") return false
   return (
     project.sectionMelodyAssignments[candidate.sectionId] !==
     candidate.targetMelodyVariantId

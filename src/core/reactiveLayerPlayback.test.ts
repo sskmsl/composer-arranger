@@ -122,5 +122,6 @@ describe("Issue #42 / Reactive Layer playback and persistence", () => {
     })
     expect(migrated.reactiveLayerCandidates).toEqual([])
     expect(migrated.sectionReactiveLayerAssignments).toEqual({})
+    expect(migrated.sectionDecorationLayerAssignments).toEqual({})
   })
 })

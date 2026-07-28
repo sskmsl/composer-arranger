@@ -99,6 +99,8 @@ export interface ComposerProject {
   reactiveLayerCandidates?: ReactiveLayerCandidate[]
   /** セクションごとに採用したReactive Layer Candidate。 */
   sectionReactiveLayerAssignments?: Record<string, string>
+  /** Issue #71: Counterと同時利用できる、Structure Driven Decorationの採用候補。 */
+  sectionDecorationLayerAssignments?: Record<string, string>
   activeArrangementId: string | null
   notes: string
   /** Melody Candidate Diversity v1.2: Profileごとの役割づけ(任意・強制なし) */
@@ -109,8 +111,8 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-/** 1.7: Counter / Decoration共通の独立Reactive Layer保存基盤を追加 */
-export const CURRENT_SCHEMA_VERSION = "1.7"
+/** 1.8: Counterとは独立して採用できるDecoration割り当てを追加 */
+export const CURRENT_SCHEMA_VERSION = "1.8"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -137,6 +139,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     sectionAccompanimentPatternAssignments: {},
     reactiveLayerCandidates: [],
     sectionReactiveLayerAssignments: {},
+    sectionDecorationLayerAssignments: {},
     activeArrangementId: null,
     notes: "",
     timeBase: TIME_BASE,
@@ -223,6 +226,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     sectionAccompanimentPatternAssignments: r.sectionAccompanimentPatternAssignments ?? {},
     reactiveLayerCandidates: r.reactiveLayerCandidates ?? [],
     sectionReactiveLayerAssignments: r.sectionReactiveLayerAssignments ?? {},
+    sectionDecorationLayerAssignments: r.sectionDecorationLayerAssignments ?? {},
     activeArrangementId: r.activeArrangementId ?? null,
     notes: r.notes ?? "",
     generatorProfileRoles: r.generatorProfileRoles,

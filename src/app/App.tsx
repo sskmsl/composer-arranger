@@ -10,8 +10,15 @@ import { ArrangementWorkspace } from "./ArrangementWorkspace"
 import { AuditionWorkspace } from "./AuditionWorkspace"
 import { PhraseWorkspace } from "./PhraseWorkspace"
 import { CounterWorkspace } from "./CounterWorkspace"
+import { DecorationWorkspace } from "./DecorationWorkspace"
 
-export type MainTab = "melody" | "phrase" | "counter" | "arrangement" | "audition"
+export type MainTab =
+  | "melody"
+  | "phrase"
+  | "counter"
+  | "decoration"
+  | "arrangement"
+  | "audition"
 
 export function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
@@ -89,10 +96,27 @@ export function App() {
             )}
           </>
         )}
+        {tab === "decoration" && (
+          <>
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <DecorationWorkspace />
+            {(leftOpen || rightOpen) && (
+              <div
+                className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                onClick={() => {
+                  setLeftOpen(false)
+                  setRightOpen(false)
+                }}
+              />
+            )}
+          </>
+        )}
         {tab === "arrangement" && <ArrangementWorkspace />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
-      {tab !== "phrase" && tab !== "counter" && <BottomBar />}
+      {tab !== "phrase" && tab !== "counter" && tab !== "decoration" && (
+        <BottomBar />
+      )}
     </div>
   )
 }
