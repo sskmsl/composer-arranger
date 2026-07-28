@@ -10,6 +10,7 @@ export type PreviewMode =
   | "chords-only"
   | "accompaniment-only"
   | "reactive-only"
+  | "chords-reactive"
   | "melody-reactive"
   | "chords-melody-reactive"
 
@@ -26,6 +27,7 @@ export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
     chords:
       mode === "chords-melody" ||
       mode === "chords-only" ||
+      mode === "chords-reactive" ||
       mode === "chords-melody-reactive",
     melody:
       mode === "chords-melody" ||
@@ -35,6 +37,7 @@ export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
     accompaniment: mode === "chords-melody" || mode === "accompaniment-only",
     reactive:
       mode === "reactive-only" ||
+      mode === "chords-reactive" ||
       mode === "melody-reactive" ||
       mode === "chords-melody-reactive",
   }

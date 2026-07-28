@@ -5,6 +5,7 @@ import { parseTimeSignature } from "./section"
 import { layersOf } from "./sectionLayers"
 import { accompanimentEnabled } from "./sectionContent"
 import { applyAccompanimentPattern } from "./accompanimentPattern"
+import { decorationStructureFingerprint } from "./reactiveLayer"
 
 /** 配列順を曲順として扱い、startBarを1始まりで隙間なく再計算する。 */
 export function normalizeSectionTimeline(sections: Section[]): Section[] {
@@ -136,16 +137,44 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
         })
       }
     }
-    const reactiveId = project.sectionReactiveLayerAssignments?.[section.id]
-    const reactive = reactiveId
-      ? project.reactiveLayerCandidates?.find(
+    const reactiveIds = [
+      project.sectionReactiveLayerAssignments?.[section.id],
+      project.sectionDecorationLayerAssignments?.[section.id],
+    ].filter((id): id is string => Boolean(id))
+    const previousSection = sectionIndex > 0 ? sections[sectionIndex - 1] : undefined
+    const nextSection = sections[sectionIndex + 1]
+    const nextSectionFirstChord = nextSection
+      ? project.chords
+          .filter((chord) => chord.sectionId === nextSection.id)
+          .sort((a, b) => a.startBeat - b.startBeat)[0]?.symbol
+      : undefined
+    const currentDecorationFingerprint = decorationStructureFingerprint({
+      sectionId: section.id,
+      sectionRole: section.role,
+      chords: sectionChords,
+      totalBeats: section.lengthBars * beatsPerBar,
+      previousSectionRole: previousSection?.role,
+      nextSectionRole: nextSection?.role,
+      nextSectionFirstChord,
+      isLastSection: !nextSection,
+    })
+    const reactiveCandidates = reactiveIds
+      .map((reactiveId) =>
+        project.reactiveLayerCandidates?.find(
           (candidate) =>
             candidate.id === reactiveId &&
             candidate.sectionId === section.id &&
-            candidate.targetMelodyVariantId === variant?.id,
-        )
-      : undefined
-    if (reactive) {
+            (candidate.kind === "decoration" ||
+              candidate.targetMelodyVariantId === variant?.id),
+        ),
+      )
+      .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate))
+      .filter(
+        (candidate) =>
+          candidate.kind !== "decoration" ||
+          candidate.structureFingerprint === currentDecorationFingerprint,
+      )
+    for (const reactive of reactiveCandidates) {
       for (const note of reactive.notes) {
         reactiveLayers.push({
           ...note,

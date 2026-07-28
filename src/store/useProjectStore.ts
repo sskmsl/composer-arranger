@@ -78,6 +78,14 @@ import {
   regenerateCounterCandidate as buildRegeneratedCounter,
   type GenerateCounterInput,
 } from "@/melody-engine/counterGenerator"
+import {
+  DEFAULT_DECORATION_SETTINGS,
+  decorationFingerprintForInput,
+  generateDecorationCandidates,
+  regenerateDecorationCandidate as buildRegeneratedDecoration,
+  type DecorationSettings,
+  type GenerateDecorationInput,
+} from "@/melody-engine/decorationGenerator"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -167,6 +175,11 @@ interface ProjectState {
   generateCounterForSection: (sectionId: string) => void
   setActiveReactiveCandidateIndex: (index: number) => void
   regenerateCounter: (candidateId: string) => void
+  generateDecorationsForSection: (
+    sectionId: string,
+    settings?: DecorationSettings,
+  ) => void
+  regenerateDecoration: (candidateId: string) => void
   setReactiveLayerReviewState: (
     candidateId: string,
     reviewState: "favorite" | "rejected" | null,
@@ -261,6 +274,51 @@ function counterGenerationInput(
     melody,
     totalBeats,
     seed,
+  }
+}
+
+function decorationGenerationInput(
+  project: ComposerProject,
+  sectionId: string,
+  seed: number,
+  settings: DecorationSettings,
+): GenerateDecorationInput | null {
+  const timeline = normalizeSectionTimeline(project.sections)
+  const sectionIndex = timeline.findIndex((candidate) => candidate.id === sectionId)
+  const section = timeline[sectionIndex]
+  if (!section) return null
+  const { beatsPerBar } = parseTimeSignature(project.song.timeSignature)
+  const totalBeats = section.lengthBars * beatsPerBar
+  const chords = project.chords
+    .filter((chord) => chord.sectionId === sectionId)
+    .sort((a, b) => a.startBeat - b.startBeat)
+  if (chords.length === 0 || diagnoseChordInput(chords, totalBeats).hasError) return null
+  const previousSection = sectionIndex > 0 ? timeline[sectionIndex - 1] : undefined
+  const nextSection = timeline[sectionIndex + 1]
+  const nextSectionFirstChord = nextSection
+    ? project.chords
+        .filter((chord) => chord.sectionId === nextSection.id)
+        .sort((a, b) => a.startBeat - b.startBeat)[0]?.symbol
+    : undefined
+  const activeMelodyId = project.sectionMelodyAssignments[sectionId]
+  const activeMelody = project.melodyVariants.find(
+    (variant) => variant.id === activeMelodyId && variant.sectionId === sectionId,
+  )
+  return {
+    sectionId,
+    sectionRole: section.role,
+    songProfile: effectiveSongProfile(project, sectionId),
+    chords,
+    totalBeats,
+    beatsPerBar,
+    key: project.song.key,
+    seed,
+    settings,
+    melodyNotes: activeMelody?.notes,
+    previousSectionRole: previousSection?.role,
+    nextSectionRole: nextSection?.role,
+    nextSectionFirstChord,
+    isLastSection: !nextSection,
   }
 }
 
@@ -541,9 +599,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       [sectionId]: _removedReactiveAssignment,
       ...sectionReactiveLayerAssignments
     } = prev.sectionReactiveLayerAssignments ?? {}
+    const {
+      [sectionId]: _removedDecorationAssignment,
+      ...sectionDecorationLayerAssignments
+    } = prev.sectionDecorationLayerAssignments ?? {}
     void _removedAssignment
     void _removedPatternAssignment
     void _removedReactiveAssignment
+    void _removedDecorationAssignment
     const removedVariantIds = new Set(
       prev.melodyVariants.filter((variant) => variant.sectionId === sectionId).map((variant) => variant.id),
     )
@@ -562,6 +625,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         sectionMelodyAssignments,
         sectionAccompanimentPatternAssignments,
         sectionReactiveLayerAssignments,
+        sectionDecorationLayerAssignments,
         activeMelodyId:
           prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
@@ -1051,6 +1115,115 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
+  generateDecorationsForSection: (sectionId, settings = DEFAULT_DECORATION_SETTINGS) => {
+    const prev = get().project
+    const input = decorationGenerationInput(
+      prev,
+      sectionId,
+      settings.seed ?? createSeed(),
+      settings,
+    )
+    if (!input) {
+      set({
+        workflowNotice:
+          "Decoration生成には、有効なコード進行を持つセクションが必要です。",
+      })
+      return
+    }
+    const generated = generateDecorationCandidates(input)
+    if (generated.length === 0) {
+      set({ workflowNotice: "品質下限を満たすDecoration候補を生成できませんでした。" })
+      return
+    }
+    const batchId = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    const candidates: ReactiveLayerCandidate[] = generated.map((candidate, index) => ({
+      ...candidate,
+      id: crypto.randomUUID(),
+      batchId,
+      name: `${candidate.name} ${index + 1}`,
+      notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
+      createdAt,
+    }))
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        reactiveLayerCandidates: [
+          ...(prev.reactiveLayerCandidates ?? []),
+          ...candidates,
+        ],
+      },
+      activeReactiveBatchId: batchId,
+      activeReactiveCandidateIndex: 0,
+      workflowNotice:
+        candidates.length < 10
+          ? `品質下限を満たすDecoration候補は${candidates.length}件でした。`
+          : null,
+    })
+    get().persist()
+  },
+
+  regenerateDecoration: (candidateId) => {
+    const prev = get().project
+    const current = (prev.reactiveLayerCandidates ?? []).find(
+      (candidate) =>
+        candidate.id === candidateId && candidate.kind === "decoration",
+    )
+    if (!current || !current.decorationPlan) return
+    const input = decorationGenerationInput(prev, current.sectionId, current.seed, {
+      type: current.decorationPlan.type,
+      character: current.decorationPlan.character,
+      direction: current.decorationPlan.direction,
+      length:
+        current.decorationPlan.lengthBeats ===
+        parseTimeSignature(prev.song.timeSignature).beatsPerBar
+          ? "bar"
+          : current.decorationPlan.lengthBeats <= 2
+            ? 2
+            : 4,
+      density: current.decorationPlan.density,
+    })
+    if (!input) return
+    const siblings = (prev.reactiveLayerCandidates ?? []).filter(
+      (candidate) =>
+        candidate.batchId === current.batchId &&
+        candidate.id !== current.id &&
+        candidate.kind === "decoration",
+    )
+    const generated = buildRegeneratedDecoration(input, current, siblings)
+    if (!generated) {
+      set({ workflowNotice: "別のDecoration案を生成できませんでした。" })
+      return
+    }
+    const replacement: ReactiveLayerCandidate = {
+      ...generated,
+      id: crypto.randomUUID(),
+      batchId: current.batchId,
+      name: current.name,
+      notes: generated.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
+      createdAt: new Date().toISOString(),
+    }
+    const assignments = { ...(prev.sectionDecorationLayerAssignments ?? {}) }
+    if (assignments[current.sectionId] === current.id) {
+      assignments[current.sectionId] = replacement.id
+    }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        reactiveLayerCandidates: (prev.reactiveLayerCandidates ?? []).map((candidate) =>
+          candidate.id === current.id ? replacement : candidate,
+        ),
+        sectionDecorationLayerAssignments: assignments,
+      },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
   setReactiveLayerReviewState: (candidateId, reviewState) => {
     const prev = get().project
     set({
@@ -1069,23 +1242,66 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const candidate = (prev.reactiveLayerCandidates ?? []).find(
       (item) => item.id === candidateId,
     )
+    if (!candidate) return
     if (
-      !candidate ||
+      candidate.kind === "counter" &&
       prev.sectionMelodyAssignments[candidate.sectionId] !==
         candidate.targetMelodyVariantId
     ) {
       set({ workflowNotice: "この候補は現在のActive Melody向けではありません。" })
       return
     }
+    if (candidate.kind === "decoration" && candidate.decorationPlan) {
+      const currentInput = decorationGenerationInput(
+        prev,
+        candidate.sectionId,
+        candidate.seed,
+        {
+          type: candidate.decorationPlan.type,
+          character: candidate.decorationPlan.character,
+          direction: candidate.decorationPlan.direction,
+          length:
+            candidate.decorationPlan.lengthBeats ===
+            parseTimeSignature(prev.song.timeSignature).beatsPerBar
+              ? "bar"
+              : candidate.decorationPlan.lengthBeats <= 2
+                ? 2
+                : 4,
+          density: candidate.decorationPlan.density,
+        },
+      )
+      if (
+        !currentInput ||
+        decorationFingerprintForInput(currentInput) !==
+          candidate.structureFingerprint
+      ) {
+        set({
+          workflowNotice:
+            "セクション構造またはコードが変更されています。Decorationを再生成してください。",
+        })
+        return
+      }
+    }
+    const assignmentPatch =
+      candidate.kind === "decoration"
+        ? {
+            sectionDecorationLayerAssignments: {
+              ...(prev.sectionDecorationLayerAssignments ?? {}),
+              [candidate.sectionId]: candidate.id,
+            },
+          }
+        : {
+            sectionReactiveLayerAssignments: {
+              ...(prev.sectionReactiveLayerAssignments ?? {}),
+              [candidate.sectionId]: candidate.id,
+            },
+          }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
       project: {
         ...prev,
-        sectionReactiveLayerAssignments: {
-          ...(prev.sectionReactiveLayerAssignments ?? {}),
-          [candidate.sectionId]: candidate.id,
-        },
+        ...assignmentPatch,
       },
       workflowNotice: null,
     })

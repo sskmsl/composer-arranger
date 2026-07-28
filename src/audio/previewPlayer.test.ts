@@ -53,5 +53,11 @@ describe("preview layer modes", () => {
       accompaniment: false,
       reactive: true,
     })
+    expect(previewLayersForMode("chords-reactive")).toEqual({
+      chords: true,
+      melody: false,
+      accompaniment: false,
+      reactive: true,
+    })
   })
 })
