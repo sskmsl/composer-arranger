@@ -77,4 +77,21 @@ describe("全体Melody similarity", () => {
     expect(similarity.rhythmSimilarity).toBeLessThan(0.8)
     expect(similarity.phraseSimilarity).toBeLessThan(0.9)
   })
+
+  it("同じ音程型でも異なる音域軌跡と音域幅を検出する", () => {
+    const a = { notes: notes([60, 62, 64, 65, 67, 69, 67, 65]), plans: plan() }
+    const b = { notes: notes([72, 74, 76, 77, 67, 69, 67, 65]), plans: plan() }
+    const similarity = melodySimilarity(a, b, map)
+    expect(similarity.registerSimilarity).toBeLessThan(0.8)
+    expect(similarity.intervalSimilarity).toBeGreaterThan(similarity.registerSimilarity)
+  })
+
+  it("相対的な密度曲線だけでなく絶対ノート密度の差を検出する", () => {
+    const sparse = { notes: notes([60, 64, 67], [0, 3, 7], [2, 2, 1]), plans: plan() }
+    const dense = {
+      notes: notes([60, 62, 64, 65, 67, 69, 71, 72, 71, 69], [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7]),
+      plans: plan(),
+    }
+    expect(melodySimilarity(sparse, dense, map).densitySimilarity).toBeLessThan(0.75)
+  })
 })

@@ -71,6 +71,8 @@ export interface MelodySimilarityBreakdown {
   climaxSimilarity: number
   cadenceSimilarity: number
   harmonicResponseSimilarity: number
+  registerSimilarity: number
+  densitySimilarity: number
   overallSimilarity: number
 }
 

@@ -3,9 +3,11 @@ import type { MelodyNote, PhrasePlan } from "@/core/melody"
 import type { ChordEvent } from "@/core/project"
 import { buildHarmonicMap } from "./harmonicMap"
 import {
+  isStructurallyRedundant,
   selectDiverseCandidates,
   type SelectableCandidate,
 } from "./candidateSelection"
+import { melodySimilarity } from "./melodySimilarity"
 
 const map = buildHarmonicMap([
   { id: "c", sectionId: "s", startBeat: 0, durationBeats: 8, symbol: "C", bass: null } satisfies ChordEvent,
@@ -89,5 +91,25 @@ describe("品質下限つき多様性選抜", () => {
     const result = selectDiverseCandidates(pool, map, 40)
     expect(result.selected).toHaveLength(3)
     expect(result.selected.slice(1).some((item) => item.reason !== "quality-diversity-balance")).toBe(true)
+  })
+
+  it("移高しただけの同型音程・同型リズムを構造的重複として検出する", () => {
+    const original = candidate(0, 90, [60, 62, 64, 67, 65])
+    const transposed = candidate(1, 89, [67, 69, 71, 74, 72])
+    expect(isStructurallyRedundant(melodySimilarity(original, transposed, map))).toBe(true)
+  })
+
+  it("高品質な移高コピーより、品質下限を満たす異なる実音構造を優先する", () => {
+    const pool = [
+      candidate(0, 95, [60, 62, 64, 67, 65]),
+      candidate(1, 94, [67, 69, 71, 74, 72]),
+      candidate(2, 89, [60, 67, 63, 70, 61], [0, 0.5, 2, 4, 7]),
+      candidate(3, 87, [72, 68, 65, 63, 60], [0, 1.5, 3, 5.5, 7]),
+    ]
+    const selected = selectDiverseCandidates(pool, map, 40).selected.map((item) => item.candidate.candidatePoolIndex)
+    expect(selected).toContain(0)
+    expect(selected).toContain(2)
+    expect(selected).toContain(3)
+    expect(selected).not.toContain(1)
   })
 })

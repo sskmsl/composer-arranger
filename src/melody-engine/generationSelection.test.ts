@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type { ChordEvent } from "@/core/project"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
-import { CANDIDATE_SELECTION_CONFIG, PROFILE_MINIMUM_QUALITY } from "./candidateSelection"
+import { CANDIDATE_SELECTION_CONFIG, isStructurallyRedundant, PROFILE_MINIMUM_QUALITY } from "./candidateSelection"
+import { GENERATOR_PROFILES } from "./generatorProfile"
+import { buildHarmonicMap } from "./harmonicMap"
+import { melodySimilarity } from "./melodySimilarity"
 
 const chords: ChordEvent[] = [
   { id: "a", sectionId: "s", startBeat: 0, durationBeats: 4, symbol: "Am(add9)", bass: null },
@@ -9,6 +12,7 @@ const chords: ChordEvent[] = [
   { id: "f", sectionId: "s", startBeat: 8, durationBeats: 4, symbol: "Fmaj7", bass: null },
   { id: "e", sectionId: "s", startBeat: 12, durationBeats: 4, symbol: "E7", bass: null },
 ]
+const harmonicMap = buildHarmonicMap(chords)
 
 function generate(seed = 17) {
   return generateFromChordsWithProfiles({
@@ -32,6 +36,33 @@ describe("Profile候補プールと診断情報", () => {
     expect(result.diagnostics.length).toBeGreaterThanOrEqual(CANDIDATE_SELECTION_CONFIG.candidatePoolSize)
     expect(result.diagnostics.filter((d) => d.selected)).toHaveLength(3)
     expect(new Set(result.candidates.map((c) => c.generationDiagnostics?.candidatePoolIndex)).size).toBe(3)
+  })
+
+  it.each(GENERATOR_PROFILES)("%s: 最終3案に実音上の構造的重複がない", (profile) => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const candidates = generateFromChordsWithProfiles({
+        chords,
+        sectionId: "s",
+        sectionRole: "verse",
+        songProfile: "original-custom",
+        density: "balanced",
+        range: { low: 60, high: 79 },
+        drama: "growing",
+        totalBeats: 16,
+        seed,
+        profiles: [profile],
+      }).candidates
+      for (let i = 0; i < candidates.length; i++) {
+        for (let j = i + 1; j < candidates.length; j++) {
+          const similarity = melodySimilarity(
+            { notes: candidates[i].notes, plans: candidates[i].plans, openingPlan: candidates[i].openingPlan },
+            { notes: candidates[j].notes, plans: candidates[j].plans, openingPlan: candidates[j].openingPlan },
+            harmonicMap,
+          )
+          expect(isStructurallyRedundant(similarity), `${profile} seed=${seed} pair=${i + 1}-${j + 1}`).toBe(false)
+        }
+      }
+    }
   })
 
   it("選ばれた候補はProfile品質下限を維持する", () => {
