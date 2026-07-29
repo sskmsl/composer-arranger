@@ -5,7 +5,7 @@
 - 対象環境: Logic Pro 12
 - 連携対象: Composer OS Chord Generator / Logic Pro 12
 - 基本方針: Local First / AIは提案者 / 作曲者が最終決定者
-- ターゲット世界観: Mylène Farmer / Laurent Boutonnat期（Fairlight CMI、Prophet-5、DX7、LinnDrum、オーケストラルテクスチャ）を中核とし、Woodkidのシネマティック方向を補助線とする、ヨーロピアン・シネマティックサウンド
+- ターゲット世界観: Fairlight CMI、Prophet-5、DX7、LinnDrum、オーケストラルテクスチャを中核とし、Woodkidのシネマティック方向を補助線とする、ヨーロピアン・シネマティックサウンド
 
 ### 改訂履歴
 
@@ -119,7 +119,7 @@ Chord GeneratorとComposer Arrangerは直接密結合させず、共通のCompos
 
 ### 3.2 アーティスト名によるStyle生成は採用しない
 
-「Boutonnat風」「Mylène風」などを直接的な生成モードにはしない。
+固有名詞を直接的な生成モードにはしない。
 
 特定作品の表面的な模倣になりやすく、オリジナル作品を作る目的から外れるためである。
 
@@ -133,7 +133,7 @@ Chord GeneratorとComposer Arrangerは直接密結合させず、共通のCompos
 
 ### 3.3 類似度スコアは採用しない
 
-「Boutonnatらしさ82%」のような類似度表示は実装しない。
+固有名詞らしさ82%」のような類似度表示は実装しない。
 
 数値の根拠を保証しにくく、制作判断を誤らせるためである。
 
