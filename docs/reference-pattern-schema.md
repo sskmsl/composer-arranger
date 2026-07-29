@@ -1,5 +1,11 @@
 # 演出パターン参照データ: Step 2a resolver棚卸し
 
+> この文書は実装前の棚卸し記録である。現在の正式な設計境界は
+> `docs/composer-intelligence/architecture.md`、実装済みの軸一覧は
+> `docs/composer-intelligence/generator-axis-inventory.md`を参照すること。
+> 実行時のGeneratorは参照データやGenreを直接読まず、
+> 匿名化された`ResolvedComposerRules`だけを受け取る。
+
 4つのGenerator(Decoration / Counter / Phrase / Melody)が実際に扱っている軸を、既存コードの型定義から棚卸しした。参照データスキーマの「共通コア」と「Generator別拡張」を、この棚卸しに基づいて確定する。
 
 外部の演出パターン参照データそのもの(実在アーティスト・楽曲名を含むファイル)はこのリポジトリには含めない。ここに書くのはComposer Arranger自身のコード構造の分析のみ。

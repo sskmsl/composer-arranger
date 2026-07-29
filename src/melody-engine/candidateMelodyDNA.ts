@@ -12,6 +12,10 @@ import type { GenerationParams, RangeSetting } from "./generationParams"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import { nearestAllowedPitch } from "./pitchUtils"
+import {
+  techniquePreferenceWeight,
+  type ResolvedComposerRules,
+} from "@/composer-intelligence"
 
 type DNAPrototype = Omit<CandidateMelodyDNA, "climaxPlan"> & {
   climaxPlan: Omit<CandidateMelodyDNA["climaxPlan"], "targetFraction">
@@ -129,10 +133,59 @@ export function planCandidateMelodyDNA(
   profile: MelodyGeneratorProfile,
   candidatePoolIndex: number,
   endTensionBias?: number,
+  composerRules?: ResolvedComposerRules,
 ): CandidateMelodyDNA {
   const prototypes = PROTOTYPES[profile]
   const rotation = rng.intBetween(0, prototypes.length - 1)
-  const source = prototypes[(candidatePoolIndex + rotation) % prototypes.length]
+  const alignment = (candidate: DNAPrototype): number =>
+    techniquePreferenceWeight(
+      composerRules,
+      "motifIdentity",
+      candidate.motifIdentity,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "rhythmGrammar",
+      candidate.rhythmGrammar,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "phraseArchitecture",
+      candidate.phraseArchitecture,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "harmonicResponse",
+      candidate.harmonicResponse,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "registerTrajectory",
+      candidate.registerTrajectory,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "developmentStrategy",
+      candidate.developmentStrategy,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "climaxPlacement",
+      candidate.climaxPlan.position,
+    ) +
+    techniquePreferenceWeight(
+      composerRules,
+      "cadenceType",
+      candidate.endingStrategy,
+    )
+  const ordered = [...prototypes].sort(
+    (left, right) => alignment(right) - alignment(left),
+  )
+  const hasTechniquePreference = alignment(ordered[0]) > 0
+  const source =
+    hasTechniquePreference && candidatePoolIndex % 3 !== 2
+      ? ordered[(candidatePoolIndex + rotation) % Math.min(2, ordered.length)]
+      : ordered[(candidatePoolIndex + rotation) % ordered.length]
   const jitter = (rng.next() - 0.5) * 0.06
   return {
     ...source,

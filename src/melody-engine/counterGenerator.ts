@@ -3,6 +3,10 @@ import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import { SeededRandom } from "@/core/rng"
 import type { SectionRole } from "@/core/section"
+import {
+  techniquePreferenceWeight,
+  type ResolvedComposerRules,
+} from "@/composer-intelligence"
 import type {
   CounterGeneratorStyle,
   ReactiveLayerCandidate,
@@ -27,6 +31,7 @@ export interface GenerateCounterInput {
   seed: number
   poolSize?: number
   finalCount?: number
+  composerRules?: ResolvedComposerRules
 }
 
 interface StylePlan {
@@ -783,10 +788,43 @@ export function generateCounterCandidates(
 ): ReactiveLayerCandidate[] {
   const analysis = analyzeMelodyActivity(input.melody.notes, input.totalBeats)
   const poolSize = Math.max(input.finalCount ?? 3, input.poolSize ?? 40)
+  const orderedStylePlans = [...STYLE_PLANS].sort((left, right) => {
+    const score = (plan: StylePlan) =>
+      techniquePreferenceWeight(
+        input.composerRules,
+        "partRole",
+        plan.role,
+      ) +
+      techniquePreferenceWeight(
+        input.composerRules,
+        "registerRelation",
+        plan.preferredSide,
+      )
+    return score(right) - score(left)
+  })
+  const preferredStylePlans = orderedStylePlans.filter(
+    (plan) =>
+      techniquePreferenceWeight(
+        input.composerRules,
+        "partRole",
+        plan.role,
+      ) +
+        techniquePreferenceWeight(
+          input.composerRules,
+          "registerRelation",
+          plan.preferredSide,
+        ) >
+      0,
+  )
   const pool = Array.from({ length: poolSize }, (_, index) =>
     buildPoolCandidate(
       input,
-      STYLE_PLANS[(index + (input.seed % STYLE_PLANS.length)) % STYLE_PLANS.length],
+      preferredStylePlans.length > 0 && index % 2 === 0
+        ? preferredStylePlans[index % preferredStylePlans.length]
+        : orderedStylePlans[
+            (index + (input.seed % orderedStylePlans.length)) %
+              orderedStylePlans.length
+          ],
       index,
       analysis,
     ),

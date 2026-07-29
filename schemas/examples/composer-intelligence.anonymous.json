@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "techniques": [
+    {
+      "id": "technique-transition-lift",
+      "version": 1,
+      "status": "validated",
+      "category": "transition",
+      "observation": "転換前に音域と密度が段階的に変化する",
+      "intent": "次のセクションを自然に予告する",
+      "generatorTargets": ["decoration", "melody"],
+      "genreSourceIds": ["genre-source-core-01"],
+      "priority": 50,
+      "confidence": 0.88,
+      "rule": {
+        "when": {
+          "generatorTargets": ["decoration"],
+          "sectionRoles": ["pre-chorus"]
+        },
+        "prefer": {
+          "registerDirection": [
+            {
+              "value": "rising",
+              "weight": 0.7
+            },
+            {
+              "value": "stable",
+              "weight": 0.3
+            }
+          ],
+          "densityDirection": [
+            {
+              "value": "increasing",
+              "weight": 1
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "principles": [
+    {
+      "id": "principle-transition-lift",
+      "version": 1,
+      "status": "validated",
+      "techniqueId": "technique-transition-lift",
+      "observationIds": [
+        "observation-private-001",
+        "observation-private-002",
+        "observation-private-003"
+      ],
+      "referenceCount": 3,
+      "statement": "複数の独立Referenceで確認された転換技法",
+      "confidence": 0.9,
+      "generatorTargets": ["decoration", "melody"]
+    }
+  ]
+}

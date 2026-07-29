@@ -88,6 +88,7 @@ import {
   type DecorationSettings,
   type GenerateDecorationInput,
 } from "@/melody-engine/decorationGenerator"
+import { resolvePublicComposerRules } from "@/composer-intelligence"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -248,6 +249,10 @@ function phraseGenerationInput(
     totalBeats,
     seed,
     lengthBars,
+    composerRules: resolvePublicComposerRules({
+      generatorTarget: "phrase",
+      sectionRole: section.role,
+    }),
   }
 }
 
@@ -277,6 +282,10 @@ function counterGenerationInput(
     melody,
     totalBeats,
     seed,
+    composerRules: resolvePublicComposerRules({
+      generatorTarget: "counter",
+      sectionRole: section.role,
+    }),
   }
 }
 
@@ -387,6 +396,13 @@ function decorationGenerationInput(
         ...new Set(rejectedPlans.map((plan) => plan.rhythmStyle)),
       ],
     },
+    composerRules: resolvePublicComposerRules({
+      generatorTarget: "decoration",
+      sectionRole: section.role,
+      transition: nextSection
+        ? `${section.role}->${nextSection.role}`
+        : undefined,
+    }),
   }
 }
 
@@ -944,6 +960,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
       transitionContext:
         window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,
+      composerRules: resolvePublicComposerRules({
+        generatorTarget: "melody",
+        sectionRole: section.role,
+      }),
     })
 
     const harmonicMap = buildHarmonicMap(chords)

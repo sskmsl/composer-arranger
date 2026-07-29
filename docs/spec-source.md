@@ -5,14 +5,14 @@
 - 対象環境: Logic Pro 12
 - 連携対象: Composer OS Chord Generator / Logic Pro 12
 - 基本方針: Local First / AIは提案者 / 作曲者が最終決定者
-- ターゲット世界観: Fairlight CMI、Prophet-5、DX7、LinnDrum、オーケストラルテクスチャを中核とし、Woodkidのシネマティック方向を補助線とする、ヨーロピアン・シネマティックサウンド
+- ターゲット世界観: Fairlight CMI、Prophet-5、DX7、LinnDrum、オーケストラルテクスチャを中核とし、副次的なシネマティック参照方向を補助線とする、ヨーロピアン・シネマティックサウンド
 
 ### 改訂履歴
 
 - v1.0: 初稿
 - v1.1: レビュー指摘を反映。生成エンジンの実装方式を明記（9.0）、技術スタック・保存形式を追記（16章）、モチーフ統一性の評価基準を追記（5.2・9.6）、UI言語・Undo粒度・コード判定方式の未決事項を明記（7章・10章・6.2）
 - v1.2: 製品名をComposer Arrangerへ拡張。同一アプリ内にMelody・Arrangement・Auditionの3モジュールを定義し、音によるA/B比較、Logic ProとのMIDI／ステム往復、段階的なアレンジ生成を追加。
-- v1.3: 「唯一無二の世界観」に対する接続不足を是正。Emotional/Arrangement Profileを単一のSong Profileへ統合（7章）し、Phase別のProfile反映範囲を明記（19章）。Role Allocator／Part GeneratorsにBoutonnat期の音色的アンカーを付与（9.8.2・9.8.4）。Energy Plannerに非対称性パラメータを追加（9.8.1）。Arrangement ScoringにProfile整合性軸を追加（9.8.5）。プレビュー音色をProfile連動に変更（12章）。成功指標に世界観の一貫性を追加（21章）。
+- v1.3: 「唯一無二の世界観」に対する接続不足を是正。Emotional/Arrangement Profileを単一のSong Profileへ統合（7章）し、Phase別のProfile反映範囲を明記（19章）。Role Allocator／Part GeneratorsにPrimary Artist Intelligence由来の音色的アンカーを付与（9.8.2・9.8.4）。Energy Plannerに非対称性パラメータを追加（9.8.1）。Arrangement ScoringにProfile整合性軸を追加（9.8.5）。プレビュー音色をProfile連動に変更（12章）。成功指標に世界観の一貫性を追加（21章）。
 - v1.4: Song ProfileのPhase記述を修正。Core Aestheticを追加し、固定世界観とSong Profileを分離。Composer ProjectへSong ProfileとArrangement Settingsを追加。音声解析をStereo Analysis／Stem-Assisted Analysisへ分割。音色アンカーを固定指定から重み付けへ変更。Asymmetry Intentを数値化。候補操作を種別ごとに整理。Product VersionとPhaseの対応、Song Profile差分の検証条件、Cinematic Expansion Anchorを追加。
 - v1.5: Core Aestheticの和声記述をSong Profile名（Dark Romantic）と重複しない語彙へ修正（3.9）。Cinematic Expansion AnchorをEnergy Plannerへ接続（9.8.1）。Arrangement Settingsの数値レンジ（0.0〜1.0）を明文化（7章）。Arrangement客観的特徴量を新設（3.3b）。schemaVersionを1.1へ改め、旧schemaVersion読込時のデフォルト値方針を追記（16.0）。最終版として確定。
 
@@ -243,7 +243,7 @@ Song ProfileはCore Aestheticを置き換えず、その中での表現方向を
 
 ### 3.10 Cinematic Expansion Anchor
 
-Woodkid的な方向性は選択可能なStyleではなく、映画的スケールを拡張する内部アンカーとして扱う。
+副次的なTechnique Intelligenceの方向性は選択可能なStyleではなく、映画的スケールを拡張する内部アンカーとして扱う。
 
 - 低音ストリングスの反復
 - 大型パーカッション
@@ -923,7 +923,7 @@ Cinematic Expansion Anchor（3.10）が有効な場合、Energy Curveの最小�
 
 各Roleは機能分類であり、音色の固定指定ではない。
 
-Boutonnat期の質感を失わないため、Part Generatorが候補を選ぶ際の重みとして、以下の音色イメージを参照する。
+Primary Artist Intelligenceの質感を失わないため、Part Generatorが候補を選ぶ際の重みとして、以下の音色イメージを参照する。
 
 - Foundation: シンセベースを高めに重み付けし、アコースティックベースは補助候補とする
 - Harmony: Prophet-5的アナログパッド、DX7的ベル系ハーモニーを候補として重み付けする
