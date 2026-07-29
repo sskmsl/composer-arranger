@@ -31,8 +31,19 @@ import {
   validateObservationDictionary,
 } from "./observation-dictionary.mjs"
 import {
+  exportValidationQueueMarkdown,
+  generateAnonymousRuleCandidates,
+  importFirstAnalysis,
+  importValidationQueueMarkdown,
+  reviewEvidenceCandidate,
+  techniquePromotionCandidates,
+  validateFirstAnalysisPipeline,
+} from "./first-analysis-pipeline.mjs"
+import {
   DEFAULT_WORKSPACE_PATH,
+  loadJson,
   loadWorkspace,
+  saveJson,
   saveWorkspace,
   writeText,
 } from "./storage.mjs"
@@ -73,6 +84,31 @@ Commands:
                        [--value <JSON>] [--unit <unit>]
                        [--confidence <0..1>]
                        [--validation draft|validated] [--note <text>]
+  pipeline import      --analysis <analysis.md>
+                       --knowledge-base <knowledge-base.json>
+                       --sources <source-registry.json>
+                       --output <validation-pipeline.json>
+  pipeline queue       --pipeline <validation-pipeline.json>
+                       --output <validation-queue.md>
+                       [--sort technique|song|genre|confidence|missing-time|unconfirmed-section]
+  pipeline queue-import
+                       --pipeline <validation-pipeline.json>
+                       --input <edited-validation-queue.md>
+  pipeline review      --pipeline <validation-pipeline.json>
+                       --evidence <EVD-id>
+                       --action validate|reject|revise
+                       --reviewer <name> --reason <text>
+                       [--section <section>] [--start <time>] [--end <time>]
+                       [--time-status confirmed|approximate|unknown]
+                       [--time-not-required true|false]
+                       [--observation-confirmed true|false]
+                       [--technique-confirmed true|false]
+                       [--section-confirmed true|false]
+                       [--validation-confidence <0..1>]
+  pipeline promotions  --pipeline <validation-pipeline.json>
+  pipeline rules       --pipeline <validation-pipeline.json>
+                       --output <rule-candidates.json>
+  pipeline validate    --pipeline <validation-pipeline.json>
   technique add        --name <name> --category <category>
                        --observation <text> --intent <intent>
                        --genre <genre> [--genre-source <id>]
@@ -357,6 +393,111 @@ async function main() {
       warnings: created.warnings,
     }
     mutated = true
+  } else if (command === "pipeline" && action === "import") {
+    const analysisPath = resolve(required(options, "analysis"))
+    const knowledgeBasePath = resolve(
+      required(options, "knowledge-base"),
+    )
+    const sourcePath = resolve(required(options, "sources"))
+    const outputPath = resolve(required(options, "output"))
+    const imported = importFirstAnalysis({
+      workspace,
+      analysisMarkdown: await readFile(analysisPath, "utf8"),
+      knowledgeBase: await loadJson(knowledgeBasePath),
+      sourceRegistry: await loadJson(sourcePath),
+    })
+    await saveJson(outputPath, imported.pipeline)
+    result = {
+      output: outputPath,
+      techniqueCandidates:
+        imported.pipeline.techniqueCandidates.length,
+      observationInstances:
+        imported.pipeline.observationInstances.length,
+      evidenceCandidates:
+        imported.pipeline.evidenceCandidates.length,
+      warnings: imported.validation.warnings.length,
+    }
+  } else if (command === "pipeline" && action === "queue") {
+    const pipeline = await loadJson(
+      resolve(required(options, "pipeline")),
+    )
+    const validation = validateFirstAnalysisPipeline(pipeline)
+    if (!validation.valid) {
+      throw new Error(validation.errors.join("; "))
+    }
+    const outputPath = resolve(required(options, "output"))
+    await writeText(
+      outputPath,
+      exportValidationQueueMarkdown(
+        pipeline,
+        options.sort ?? "technique",
+      ),
+    )
+    result = { output: outputPath, warnings: validation.warnings.length }
+  } else if (
+    command === "pipeline" &&
+    action === "queue-import"
+  ) {
+    const pipelinePath = resolve(required(options, "pipeline"))
+    const imported = importValidationQueueMarkdown(
+      await loadJson(pipelinePath),
+      await readFile(resolve(required(options, "input")), "utf8"),
+    )
+    await saveJson(pipelinePath, imported.pipeline)
+    result = { reviewedEvidenceIds: imported.reviewedEvidenceIds }
+  } else if (command === "pipeline" && action === "review") {
+    const pipelinePath = resolve(required(options, "pipeline"))
+    const reviewed = reviewEvidenceCandidate(
+      await loadJson(pipelinePath),
+      {
+        evidenceId: required(options, "evidence"),
+        action: required(options, "action"),
+        reviewer: required(options, "reviewer"),
+        reason: required(options, "reason"),
+        techniqueId: options.technique,
+        sectionName: options.section,
+        sectionNote: options.note,
+        startTime: options.start,
+        endTime: options.end,
+        timeStatus: options["time-status"],
+        timeNotRequired: booleanOption(options["time-not-required"]),
+        observationConfirmed: booleanOption(
+          options["observation-confirmed"],
+        ),
+        techniqueRelationConfirmed: booleanOption(
+          options["technique-confirmed"],
+        ),
+        sectionConfirmed: booleanOption(
+          options["section-confirmed"],
+        ),
+        validationConfidence: options["validation-confidence"],
+      },
+    )
+    await saveJson(pipelinePath, reviewed.pipeline)
+    result = reviewed.evidence
+  } else if (
+    command === "pipeline" &&
+    action === "promotions"
+  ) {
+    result = techniquePromotionCandidates(
+      await loadJson(resolve(required(options, "pipeline"))),
+    )
+  } else if (command === "pipeline" && action === "rules") {
+    const outputPath = resolve(required(options, "output"))
+    const rules = generateAnonymousRuleCandidates(
+      await loadJson(resolve(required(options, "pipeline"))),
+    )
+    await saveJson(outputPath, rules)
+    result = {
+      output: outputPath,
+      generated: rules.ruleCandidates.length,
+      blocked: rules.blockedCandidates.length,
+    }
+  } else if (command === "pipeline" && action === "validate") {
+    result = validateFirstAnalysisPipeline(
+      await loadJson(resolve(required(options, "pipeline"))),
+    )
+    if (!result.valid) process.exitCode = 1
   } else if (command === "technique" && action === "add") {
     const genre = required(options, "genre")
     const created = createTechnique(workspace, {

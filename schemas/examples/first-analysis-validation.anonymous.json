@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "VALIDATION-PIPELINE-0001",
+  "genre": {
+    "id": "genre-source-example",
+    "name": "Example Genre"
+  },
+  "analysisStatus": "draft",
+  "importStatus": "draft",
+  "techniqueCandidates": [
+    {
+      "id": "PIPELINE-TECH-0001",
+      "techniqueId": "TECH-0001",
+      "name": "Example Technique",
+      "category": "arrangement",
+      "registrationStatus": "matched-existing",
+      "existingMatchCandidates": [
+        {
+          "techniqueId": "TECH-0001",
+          "name": "Example Technique",
+          "score": 1
+        }
+      ],
+      "observationMatches": [
+        {
+          "id": "OBS-MATCH-0001",
+          "sourceText": "A small number of principal parts sound.",
+          "matchType": "related-match",
+          "observationId": "OBS-0001",
+          "candidateObservationIds": ["OBS-0001"],
+          "reason": "Related through a Dictionary anchor",
+          "requiresHumanConfirmation": true
+        }
+      ],
+      "intentHypothesis": "Preserve focus around the principal element.",
+      "genrePrincipleHypothesis": "Reduced density can remain meaningful.",
+      "confidence": {
+        "analysisConfidence": 0.9
+      }
+    }
+  ],
+  "observationInstances": [
+    {
+      "id": "OBSERVATION-CANDIDATE-0001",
+      "observationId": "OBS-0001",
+      "candidateObservationIds": ["OBS-0001"],
+      "matchType": "related-match",
+      "songId": "reference-example",
+      "sectionId": null,
+      "evidenceId": "EVD-0001",
+      "value": true,
+      "confidence": 0.9,
+      "validationStatus": "draft",
+      "note": "A small number of principal parts sound.",
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
+  "evidenceCandidates": [
+    {
+      "id": "EVD-0001",
+      "techniqueId": "TECH-0001",
+      "genreId": "genre-source-example",
+      "referenceId": "reference-example",
+      "songTitle": "Reference Song",
+      "artistName": "Reference Artist",
+      "sectionName": "unresolved",
+      "sectionCandidates": ["Intro"],
+      "sectionNote": "Formal Section is not confirmed.",
+      "startTime": null,
+      "endTime": null,
+      "timeStatus": "unknown",
+      "timeNotRequired": false,
+      "observationInstanceIds": ["OBSERVATION-CANDIDATE-0001"],
+      "analysisNote": "Private analysis note.",
+      "intentHypothesis": "Preserve focus around the principal element.",
+      "confidence": {
+        "analysisConfidence": 0.9
+      },
+      "validationStatus": "needs-listening",
+      "reviewedBy": null,
+      "reviewedAt": null,
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
+  "reviewHistory": [],
+  "ruleCandidates": [],
+  "createdAt": "2026-07-30T00:00:00.000Z",
+  "updatedAt": "2026-07-30T00:00:00.000Z"
+}
