@@ -4,6 +4,10 @@ import type {
   TechniqueDefinition,
   TechniqueLibrary,
 } from "./types"
+import {
+  evaluateTechniqueLifecycle,
+  lifecycleEligiblePrinciples,
+} from "./techniqueLifecycle"
 
 export function createTechniqueLibrary(
   techniques: TechniqueDefinition[] = [],
@@ -30,25 +34,31 @@ export function upsertTechnique(
  */
 export function ruleFromTechnique(
   technique: TechniqueDefinition,
-  principle: GenrePrinciple,
+  principleOrPrinciples: GenrePrinciple | GenrePrinciple[],
 ): ComposerRule | null {
-  if (
-    technique.status !== "validated" ||
-    principle.status !== "validated" ||
-    technique.id !== principle.techniqueId ||
-    principle.referenceCount < 3
-  ) {
-    return null
-  }
+  const principles = Array.isArray(principleOrPrinciples)
+    ? principleOrPrinciples
+    : [principleOrPrinciples]
+  const lifecycle = evaluateTechniqueLifecycle(technique, principles)
+  if (!lifecycle.eligible) return null
+  const eligiblePrinciples = lifecycleEligiblePrinciples(
+    technique,
+    principles,
+  )
+  const principleConfidence =
+    eligiblePrinciples.reduce(
+      (sum, principle) => sum + principle.confidence,
+      0,
+    ) / eligiblePrinciples.length
   return {
     id: `technique-rule:${technique.id}:v${technique.version}`,
     origin: "technique",
     techniqueId: technique.id,
-    status: "validated",
+    status: technique.status,
     priority: technique.priority,
     confidence: Math.max(
       0,
-      Math.min(1, technique.confidence * principle.confidence),
+      Math.min(1, technique.confidence * principleConfidence),
     ),
     when: {
       ...technique.rule.when,

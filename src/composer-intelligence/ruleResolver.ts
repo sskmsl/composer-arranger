@@ -6,6 +6,7 @@ import type {
   ResolvedComposerRules,
   WeightedTechniqueValue,
 } from "./types"
+import { TECHNIQUE_LIFECYCLE_WEIGHTS } from "./types"
 import type { SeededRandom } from "@/core/rng"
 
 function contextRelevance(
@@ -63,7 +64,10 @@ export function resolveComposerRules(
   context: ComposerRuleContext,
 ): ResolvedComposerRules {
   const active = rules
-    .filter((rule) => rule.status === "validated")
+    .filter(
+      (rule) =>
+        rule.status === "validated" || rule.status === "canonical",
+    )
     .map((rule) => ({
       rule,
       relevance: contextRelevance(rule, context),
@@ -84,13 +88,26 @@ export function resolveComposerRules(
     )
     const priority = Math.max(...matching.map(({ rule }) => rule.priority))
     const winning = matching.filter(({ rule }) => rule.priority === priority)
+    const hasCanonicalTechnique = winning.some(
+      ({ rule }) =>
+        rule.origin === "technique" && rule.status === "canonical",
+    )
     const weights = new Map<string, number>()
     for (const { rule, relevance } of winning) {
+      const lifecycleWeight =
+        rule.origin !== "technique"
+          ? 1
+          : rule.status === "canonical"
+            ? TECHNIQUE_LIFECYCLE_WEIGHTS.canonical
+            : hasCanonicalTechnique
+              ? TECHNIQUE_LIFECYCLE_WEIGHTS.validated
+              : 1
       for (const preference of rule.prefer[axis] ?? []) {
         const effectiveWeight =
           Math.max(0, preference.weight) *
           Math.max(0, Math.min(1, rule.confidence)) *
-          relevance
+          relevance *
+          lifecycleWeight
         weights.set(
           preference.value,
           (weights.get(preference.value) ?? 0) + effectiveWeight,
