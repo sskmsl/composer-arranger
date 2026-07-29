@@ -35,6 +35,11 @@ Structured analysis should use the
 [Observation Dictionary](./observation-dictionary.md). Legacy free-text
 Observation records remain supported for backward compatibility.
 
+The
+[First Analysis Validation Pipeline](./first-analysis-validation-pipeline.md)
+connects imported Genre Analysis documents to listening Evidence without
+automatically validating musical claims.
+
 ## Privacy boundary
 
 Real artist, song and album data is private analysis material. The default

@@ -1,0 +1,411 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://composer-arranger.local/schemas/first-analysis-validation.schema.json",
+  "title": "Composer Intelligence First Analysis Validation Pipeline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "genre",
+    "analysisStatus",
+    "importStatus",
+    "techniqueCandidates",
+    "observationInstances",
+    "evidenceCandidates",
+    "reviewHistory",
+    "ruleCandidates",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^VALIDATION-PIPELINE-[0-9]{4,}$"
+    },
+    "genre": { "$ref": "#/$defs/genre" },
+    "analysisStatus": { "type": "string", "minLength": 1 },
+    "importStatus": { "enum": ["draft"] },
+    "techniqueCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/techniqueCandidate" }
+    },
+    "observationInstances": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observationInstance" }
+    },
+    "evidenceCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidenceCandidate" }
+    },
+    "reviewHistory": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/review" }
+    },
+    "ruleCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ruleCandidate" }
+    },
+    "createdAt": { "$ref": "#/$defs/timestamp" },
+    "updatedAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "techniqueId": {
+      "type": "string",
+      "pattern": "^TECH-[0-9]{4,}$"
+    },
+    "genre": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "confidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analysisConfidence"],
+      "properties": {
+        "analysisConfidence": { "$ref": "#/$defs/confidence" },
+        "validationConfidence": { "$ref": "#/$defs/confidence" },
+        "combinedConfidence": { "$ref": "#/$defs/confidence" }
+      }
+    },
+    "techniqueMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["techniqueId", "name", "score"],
+      "properties": {
+        "techniqueId": { "$ref": "#/$defs/techniqueId" },
+        "name": { "type": "string", "minLength": 1 },
+        "score": { "$ref": "#/$defs/confidence" }
+      }
+    },
+    "observationMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceText",
+        "matchType",
+        "observationId",
+        "candidateObservationIds",
+        "reason",
+        "requiresHumanConfirmation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^OBS-MATCH-[0-9]{4,}$"
+        },
+        "sourceText": { "type": "string", "minLength": 1 },
+        "matchType": {
+          "enum": [
+            "exact-match",
+            "alias-match",
+            "related-match",
+            "new-observation-candidate",
+            "unresolved"
+          ]
+        },
+        "observationId": {
+          "type": ["string", "null"],
+          "pattern": "^OBS-[0-9]{4,}$"
+        },
+        "candidateObservationIds": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^OBS-[0-9]{4,}$" }
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "requiresHumanConfirmation": { "type": "boolean" }
+      }
+    },
+    "techniqueCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "techniqueId",
+        "name",
+        "category",
+        "registrationStatus",
+        "existingMatchCandidates",
+        "observationMatches",
+        "intentHypothesis",
+        "genrePrincipleHypothesis",
+        "confidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^PIPELINE-TECH-[0-9]{4,}$"
+        },
+        "techniqueId": { "$ref": "#/$defs/techniqueId" },
+        "name": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 },
+        "registrationStatus": {
+          "enum": [
+            "matched-existing",
+            "needs-human-link",
+            "new-draft"
+          ]
+        },
+        "existingMatchCandidates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/techniqueMatch" }
+        },
+        "observationMatches": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/observationMatch" }
+        },
+        "intentHypothesis": { "type": "string", "minLength": 1 },
+        "genrePrincipleHypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence": { "$ref": "#/$defs/confidenceRecord" }
+      }
+    },
+    "observationInstance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "observationId",
+        "candidateObservationIds",
+        "matchType",
+        "songId",
+        "sectionId",
+        "evidenceId",
+        "confidence",
+        "validationStatus",
+        "note",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^OBSERVATION-CANDIDATE-[0-9]{4,}$"
+        },
+        "observationId": {
+          "type": ["string", "null"],
+          "pattern": "^OBS-[0-9]{4,}$"
+        },
+        "candidateObservationIds": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^OBS-[0-9]{4,}$" }
+        },
+        "matchType": {
+          "enum": [
+            "exact-match",
+            "alias-match",
+            "related-match",
+            "new-observation-candidate",
+            "unresolved"
+          ]
+        },
+        "songId": { "type": "string", "minLength": 1 },
+        "sectionId": { "type": "null" },
+        "evidenceId": { "type": "string", "pattern": "^EVD-[0-9]{4,}$" },
+        "value": {},
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "validationStatus": { "enum": ["draft", "validated"] },
+        "note": { "type": "string", "minLength": 1 },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "evidenceCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "techniqueId",
+        "genreId",
+        "referenceId",
+        "songTitle",
+        "artistName",
+        "sectionName",
+        "sectionCandidates",
+        "sectionNote",
+        "startTime",
+        "endTime",
+        "timeStatus",
+        "timeNotRequired",
+        "observationInstanceIds",
+        "analysisNote",
+        "intentHypothesis",
+        "confidence",
+        "validationStatus",
+        "reviewedBy",
+        "reviewedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^EVD-[0-9]{4,}$" },
+        "techniqueId": { "$ref": "#/$defs/techniqueId" },
+        "genreId": { "type": "string", "minLength": 1 },
+        "referenceId": { "type": "string", "minLength": 1 },
+        "songTitle": { "type": "string", "minLength": 1 },
+        "artistName": { "type": "string", "minLength": 1 },
+        "sectionName": {
+          "enum": [
+            "unresolved",
+            "intro",
+            "verse",
+            "pre-chorus",
+            "chorus",
+            "bridge",
+            "interlude",
+            "break",
+            "outro",
+            "transition"
+          ]
+        },
+        "sectionCandidates": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sectionNote": { "type": "string" },
+        "startTime": { "type": ["string", "null"] },
+        "endTime": { "type": ["string", "null"] },
+        "timeStatus": {
+          "enum": ["confirmed", "approximate", "unknown"]
+        },
+        "timeNotRequired": { "type": "boolean" },
+        "observationInstanceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^OBSERVATION-CANDIDATE-[0-9]{4,}$"
+          }
+        },
+        "analysisNote": { "type": "string" },
+        "intentHypothesis": { "type": "string", "minLength": 1 },
+        "confidence": { "$ref": "#/$defs/confidenceRecord" },
+        "validationStatus": {
+          "enum": [
+            "draft",
+            "needs-listening",
+            "validated",
+            "rejected"
+          ]
+        },
+        "reviewedBy": { "type": ["string", "null"] },
+        "reviewedAt": {
+          "oneOf": [
+            { "$ref": "#/$defs/timestamp" },
+            { "type": "null" }
+          ]
+        },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "evidenceId",
+        "action",
+        "reviewer",
+        "reason",
+        "confirmation",
+        "reviewedAt",
+        "before",
+        "after"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^EVIDENCE-REVIEW-[0-9]{4,}$"
+        },
+        "evidenceId": { "type": "string", "pattern": "^EVD-[0-9]{4,}$" },
+        "action": { "enum": ["validate", "reject", "revise"] },
+        "reviewer": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "confirmation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "observationConfirmed",
+            "techniqueRelationConfirmed",
+            "sectionConfirmed",
+            "timeConfirmed",
+            "timeNotRequired"
+          ],
+          "properties": {
+            "observationConfirmed": { "type": "boolean" },
+            "techniqueRelationConfirmed": { "type": "boolean" },
+            "sectionConfirmed": { "type": "boolean" },
+            "timeConfirmed": { "type": "boolean" },
+            "timeNotRequired": { "type": "boolean" }
+          }
+        },
+        "reviewedAt": { "$ref": "#/$defs/timestamp" },
+        "before": { "$ref": "#/$defs/snapshot" },
+        "after": { "$ref": "#/$defs/snapshot" }
+      }
+    },
+    "ruleCandidate": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "techniqueId",
+        "category",
+        "applicableSections",
+        "preconditions",
+        "action",
+        "intendedEffect",
+        "constraints",
+        "confidence",
+        "sourceEvidenceIds",
+        "status",
+        "generatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^RULE-CANDIDATE-[0-9]{4,}$"
+        },
+        "techniqueId": { "$ref": "#/$defs/techniqueId" },
+        "category": { "type": "string", "minLength": 1 },
+        "applicableSections": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "preconditions": { "type": "array" },
+        "action": { "type": "object" },
+        "intendedEffect": { "type": "array" },
+        "constraints": { "type": "array" },
+        "confidence": { "$ref": "#/$defs/confidenceRecord" },
+        "sourceEvidenceIds": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^EVD-[0-9]{4,}$" }
+        },
+        "status": { "const": "draft-rule-candidate" },
+        "generatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    }
+  }
+}
