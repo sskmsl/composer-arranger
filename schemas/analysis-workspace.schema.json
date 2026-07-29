@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://composer-arranger.local/schemas/analysis-workspace.schema.json",
+  "title": "Composer Intelligence Analysis Workspace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "projects",
+    "songs",
+    "sections",
+    "observations",
+    "techniques"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/project" }
+    },
+    "songs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/song" }
+    },
+    "sections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/section" }
+    },
+    "observations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation" }
+    },
+    "techniques": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/technique" }
+    }
+  },
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "genre", "createdAt", "updatedAt"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^PROJECT-[0-9]{4,}$" },
+        "name": { "type": "string", "minLength": 1 },
+        "genre": { "type": "string", "minLength": 1 },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "song": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "projectId",
+        "title",
+        "artist",
+        "album",
+        "year",
+        "bpm",
+        "key",
+        "genre",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^SONG-[0-9]{4,}$" },
+        "projectId": { "type": "string", "pattern": "^PROJECT-[0-9]{4,}$" },
+        "title": { "type": "string", "minLength": 1 },
+        "artist": { "type": "string", "minLength": 1 },
+        "album": { "type": "string", "minLength": 1 },
+        "year": { "type": "integer", "minimum": 1000, "maximum": 9999 },
+        "bpm": {
+          "type": ["number", "null"],
+          "exclusiveMinimum": 0
+        },
+        "key": { "type": ["string", "null"] },
+        "genre": { "type": "string", "minLength": 1 },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "sectionType": {
+      "enum": [
+        "intro",
+        "verse",
+        "pre-chorus",
+        "chorus",
+        "bridge",
+        "interlude",
+        "break",
+        "outro",
+        "transition",
+        "other"
+      ]
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "songId",
+        "type",
+        "label",
+        "startSeconds",
+        "endSeconds",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^SECTION-[0-9]{4,}$" },
+        "songId": { "type": "string", "pattern": "^SONG-[0-9]{4,}$" },
+        "type": { "$ref": "#/$defs/sectionType" },
+        "label": { "type": ["string", "null"] },
+        "startSeconds": { "type": "number", "minimum": 0 },
+        "endSeconds": { "type": "number", "exclusiveMinimum": 0 },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sectionId",
+        "observation",
+        "intent",
+        "techniqueCandidateIds",
+        "confidence",
+        "validation",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^OBSERVATION-[0-9]{4,}$" },
+        "sectionId": { "type": "string", "pattern": "^SECTION-[0-9]{4,}$" },
+        "observation": { "type": "string", "minLength": 1 },
+        "intent": { "type": "string", "minLength": 1 },
+        "techniqueCandidateIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^TECH-[0-9]{4,}$" }
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "validation": { "enum": ["draft", "validated"] },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "genreSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^genre-source-[a-z0-9-]+$" },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "id",
+        "techniqueId",
+        "observationId",
+        "referenceId",
+        "songTitle",
+        "artist",
+        "album",
+        "year",
+        "genre",
+        "genreSourceId",
+        "section",
+        "startSeconds",
+        "endSeconds",
+        "comment",
+        "sectionConfirmed",
+        "intentConfirmed",
+        "observationConfirmed",
+        "verifiedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^EVIDENCE-[0-9]{4,}$" },
+        "techniqueId": { "type": "string", "pattern": "^TECH-[0-9]{4,}$" },
+        "observationId": {
+          "type": "string",
+          "pattern": "^OBSERVATION-[0-9]{4,}$"
+        },
+        "referenceId": { "type": "string", "pattern": "^SONG-[0-9]{4,}$" },
+        "songTitle": { "type": "string", "minLength": 1 },
+        "artist": { "type": "string", "minLength": 1 },
+        "album": { "type": "string", "minLength": 1 },
+        "year": { "type": "integer" },
+        "genre": { "type": "string", "minLength": 1 },
+        "genreSourceId": {
+          "type": "string",
+          "pattern": "^genre-source-[a-z0-9-]+$"
+        },
+        "section": { "$ref": "#/$defs/sectionType" },
+        "startSeconds": { "type": "number", "minimum": 0 },
+        "endSeconds": { "type": "number", "exclusiveMinimum": 0 },
+        "comment": { "type": "string" },
+        "sectionConfirmed": { "type": "boolean" },
+        "intentConfirmed": { "type": "boolean" },
+        "observationConfirmed": { "type": "boolean" },
+        "verifiedAt": {
+          "oneOf": [
+            { "$ref": "#/$defs/timestamp" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reviewedAt",
+        "fromStatus",
+        "toStatus",
+        "reason",
+        "reviewer"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^REVIEW-[0-9]{4,}$" },
+        "reviewedAt": { "$ref": "#/$defs/timestamp" },
+        "fromStatus": {
+          "enum": ["draft", "validated", "canonical", "deprecated"]
+        },
+        "toStatus": {
+          "enum": ["draft", "validated", "canonical", "deprecated"]
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "reviewer": { "type": "string", "minLength": 1 }
+      }
+    },
+    "technique": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "name",
+        "status",
+        "category",
+        "observation",
+        "intent",
+        "confidence",
+        "genreSources",
+        "evidence",
+        "reviewHistory",
+        "reproducibilityConfirmed",
+        "extensions",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^TECH-[0-9]{4,}$" },
+        "version": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": ["draft", "validated", "canonical", "deprecated"]
+        },
+        "category": {
+          "enum": [
+            "decoration",
+            "phrase",
+            "counter",
+            "transition",
+            "texture",
+            "dynamics",
+            "harmony",
+            "rhythm",
+            "sound-design",
+            "automation",
+            "arrangement",
+            "mix-perspective"
+          ]
+        },
+        "observation": { "type": "string", "minLength": 1 },
+        "intent": { "type": "string", "minLength": 1 },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "genreSources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/genreSource" }
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "reviewHistory": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/review" }
+        },
+        "reproducibilityConfirmed": { "type": "boolean" },
+        "extensions": {
+          "type": "object",
+          "required": ["analysisWorkspace"],
+          "properties": {
+            "analysisWorkspace": {
+              "type": "object",
+              "required": ["genrePrinciple"],
+              "properties": {
+                "genrePrinciple": {
+                  "type": "object",
+                  "required": ["statement", "confirmed"],
+                  "properties": {
+                    "statement": { "type": "string" },
+                    "confirmed": { "type": "boolean" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    }
+  }
+}
