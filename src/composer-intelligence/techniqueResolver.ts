@@ -9,13 +9,12 @@ export function compileTechniqueRules(
   library: TechniqueLibrary,
   principles: GenrePrinciple[],
 ): ComposerRule[] {
-  const principleByTechnique = new Map(
-    principles.map((principle) => [principle.techniqueId, principle]),
-  )
   return library.techniques.flatMap((technique) => {
-    const principle = principleByTechnique.get(technique.id)
-    if (!principle) return []
-    const rule = ruleFromTechnique(technique, principle)
+    const evidence = principles.filter(
+      (principle) => principle.techniqueId === technique.id,
+    )
+    if (evidence.length === 0) return []
+    const rule = ruleFromTechnique(technique, evidence)
     return rule ? [rule] : []
   })
 }

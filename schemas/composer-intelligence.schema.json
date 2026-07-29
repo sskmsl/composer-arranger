@@ -24,7 +24,7 @@
   },
   "$defs": {
     "status": {
-      "enum": ["draft", "validated", "retired"]
+      "enum": ["draft", "validated", "canonical", "retired"]
     },
     "generatorTarget": {
       "enum": ["decoration", "phrase", "counter", "melody"]
@@ -226,6 +226,7 @@
         "version",
         "status",
         "techniqueId",
+        "genreSourceId",
         "observationIds",
         "referenceCount",
         "statement",
@@ -247,6 +248,10 @@
         "techniqueId": {
           "type": "string",
           "pattern": "^technique-[a-z0-9-]+$"
+        },
+        "genreSourceId": {
+          "type": "string",
+          "pattern": "^genre-source-[a-z0-9-]+$"
         },
         "observationIds": {
           "type": "array",

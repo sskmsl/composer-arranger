@@ -21,7 +21,12 @@ export type TechniqueCategory =
   | "mix-perspective"
 
 export type KnowledgeOrigin = "artist" | "technique" | "experimental"
-export type KnowledgeStatus = "draft" | "validated" | "retired"
+export type TechniqueLifecycleStatus =
+  | "draft"
+  | "validated"
+  | "canonical"
+  | "retired"
+export type KnowledgeStatus = TechniqueLifecycleStatus
 
 /**
  * Generator間で共有する抽象軸。固有名・Genre名・参照曲は実行時へ渡さない。
@@ -117,6 +122,8 @@ export interface GenrePrinciple {
   version: number
   status: KnowledgeStatus
   techniqueId: string
+  /** Principleが検証されたGenre Source。実行時Ruleから除去する。 */
+  genreSourceId: string
   observationIds: string[]
   referenceCount: number
   statement: string
@@ -159,4 +166,11 @@ export const KNOWLEDGE_PRIORITIES = {
   artist: 100,
   technique: 50,
   experimental: 20,
+} as const
+
+export const TECHNIQUE_LIFECYCLE_WEIGHTS = {
+  draft: 0,
+  validated: 0.35,
+  canonical: 1,
+  retired: 0,
 } as const

@@ -3,6 +3,7 @@ import {
   buildGenrePrinciple,
   compileTechniqueRules,
   createTechniqueLibrary,
+  evaluateTechniqueLifecycle,
   resolveComposerRules,
   ruleFromTechnique,
   techniquePreferenceWeight,
@@ -11,11 +12,14 @@ import {
   type TechniqueDefinition,
 } from "."
 
-function observations(count: number): GenreObservation[] {
+function observations(
+  count: number,
+  genreSourceId = "genre-source-core-01",
+): GenreObservation[] {
   return Array.from({ length: count }, (_, index) => ({
-    id: `observation-${index}`,
-    referenceId: `private-reference-${index}`,
-    genreSourceId: "genre-source-core-01",
+    id: `observation-${genreSourceId}-${index}`,
+    referenceId: `private-reference-${genreSourceId}-${index}`,
+    genreSourceId,
     techniqueId: "technique-transition-lift",
     observation: "匿名化された演出上の事実",
     inferredIntent: "場面転換の期待感を高める",
@@ -24,16 +28,19 @@ function observations(count: number): GenreObservation[] {
   }))
 }
 
-function technique(): TechniqueDefinition {
+function technique(
+  status: TechniqueDefinition["status"] = "validated",
+  genreSourceIds = ["genre-source-core-01"],
+): TechniqueDefinition {
   return {
     id: "technique-transition-lift",
     version: 1,
-    status: "validated",
+    status,
     category: "transition",
     observation: "転換前に音域と密度が段階的に変化する",
     intent: "次セクションを自然に予告する",
     generatorTargets: ["decoration", "melody"],
-    genreSourceIds: ["genre-source-core-01"],
+    genreSourceIds,
     priority: 50,
     confidence: 0.9,
     rule: {
@@ -60,6 +67,7 @@ describe("Composer Intelligence / Genre Principle", () => {
       buildGenrePrinciple({
         id: "principle-1",
         techniqueId: "technique-transition-lift",
+        genreSourceId: "genre-source-core-01",
         statement: "転換前の段階的な上昇は期待を作る",
         generatorTargets: ["decoration"],
         observations: observations(2),
@@ -69,6 +77,7 @@ describe("Composer Intelligence / Genre Principle", () => {
     const principle = buildGenrePrinciple({
       id: "principle-1",
       techniqueId: "technique-transition-lift",
+      genreSourceId: "genre-source-core-01",
       statement: "転換前の段階的な上昇は期待を作る",
       generatorTargets: ["decoration"],
       observations: observations(3),
@@ -95,6 +104,7 @@ describe("Composer Intelligence / Genre Principle", () => {
       buildGenrePrinciple({
         id: "principle-1",
         techniqueId: "technique-transition-lift",
+        genreSourceId: "genre-source-core-01",
         statement: "原則",
         generatorTargets: ["decoration"],
         observations: duplicated,
@@ -108,6 +118,7 @@ describe("Composer Intelligence / Technique Library", () => {
     const principle = buildGenrePrinciple({
       id: "principle-1",
       techniqueId: "technique-transition-lift",
+      genreSourceId: "genre-source-core-01",
       statement: "転換前の段階的な上昇は期待を作る",
       generatorTargets: ["decoration"],
       observations: observations(3),
@@ -123,6 +134,75 @@ describe("Composer Intelligence / Technique Library", () => {
 
     const library = createTechniqueLibrary([technique()])
     expect(compileTechniqueRules(library, [principle])).toEqual([rule])
+  })
+
+  it("Draftは分析対象に留め、Ruleへ変換しない", () => {
+    const principle = buildGenrePrinciple({
+      id: "principle-draft",
+      techniqueId: "technique-transition-lift",
+      genreSourceId: "genre-source-core-01",
+      statement: "原則",
+      generatorTargets: ["decoration"],
+      observations: observations(3),
+    })!
+    const draft = technique("draft")
+    expect(evaluateTechniqueLifecycle(draft, [principle])).toMatchObject({
+      status: "draft",
+      eligible: false,
+    })
+    expect(ruleFromTechnique(draft, principle)).toBeNull()
+  })
+
+  it("Canonicalは2 Genre以上のValidated Principleを必要とする", () => {
+    const first = buildGenrePrinciple({
+      id: "principle-core-01",
+      techniqueId: "technique-transition-lift",
+      genreSourceId: "genre-source-core-01",
+      statement: "原則A",
+      generatorTargets: ["decoration"],
+      observations: observations(3, "genre-source-core-01"),
+    })!
+    const second = buildGenrePrinciple({
+      id: "principle-core-02",
+      techniqueId: "technique-transition-lift",
+      genreSourceId: "genre-source-core-02",
+      statement: "原則B",
+      generatorTargets: ["decoration"],
+      observations: observations(3, "genre-source-core-02"),
+    })!
+    const canonical = technique("canonical", [
+      "genre-source-core-01",
+      "genre-source-core-02",
+    ])
+
+    expect(
+      evaluateTechniqueLifecycle(canonical, [first]),
+    ).toMatchObject({
+      eligible: false,
+      distinctGenreSources: 1,
+    })
+    expect(ruleFromTechnique(canonical, first)).toBeNull()
+
+    const evaluation = evaluateTechniqueLifecycle(canonical, [
+      first,
+      second,
+    ])
+    expect(evaluation).toMatchObject({
+      status: "canonical",
+      eligible: true,
+      distinctGenreSources: 2,
+      validatedPrincipleCount: 2,
+    })
+    expect(ruleFromTechnique(canonical, [first, second])).toMatchObject({
+      status: "canonical",
+      priority: 50,
+    })
+    expect(
+      compileTechniqueRules(
+        createTechniqueLibrary([canonical]),
+        [first, second],
+      ),
+    ).toHaveLength(1)
   })
 })
 
@@ -239,6 +319,66 @@ describe("Composer Intelligence / Rule Resolver", () => {
         resolved,
         "cadenceType",
         "resolved",
+      ),
+    ).toBe(0)
+  })
+
+  it("Canonicalを主成分、Validatedを補助成分として混合する", () => {
+    const rules: ComposerRule[] = [
+      {
+        id: "canonical-technique",
+        origin: "technique",
+        status: "canonical",
+        priority: 50,
+        confidence: 1,
+        when: { generatorTargets: ["decoration"] },
+        prefer: {
+          phraseDensity: [{ value: "sparse", weight: 1 }],
+        },
+      },
+      {
+        id: "validated-technique",
+        origin: "technique",
+        status: "validated",
+        priority: 50,
+        confidence: 1,
+        when: { generatorTargets: ["decoration"] },
+        prefer: {
+          phraseDensity: [{ value: "rich", weight: 1 }],
+        },
+      },
+      {
+        id: "draft-technique",
+        origin: "technique",
+        status: "draft",
+        priority: 50,
+        confidence: 1,
+        when: { generatorTargets: ["decoration"] },
+        prefer: {
+          phraseDensity: [{ value: "normal", weight: 1 }],
+        },
+      },
+    ]
+    const resolved = resolveComposerRules(rules, {
+      generatorTarget: "decoration",
+      sectionRole: "verse",
+    })
+
+    expect(
+      techniquePreferenceWeight(
+        resolved,
+        "phraseDensity",
+        "sparse",
+      ),
+    ).toBeCloseTo(1 / 1.35)
+    expect(
+      techniquePreferenceWeight(resolved, "phraseDensity", "rich"),
+    ).toBeCloseTo(0.35 / 1.35)
+    expect(
+      techniquePreferenceWeight(
+        resolved,
+        "phraseDensity",
+        "normal",
       ),
     ).toBe(0)
   })

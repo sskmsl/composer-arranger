@@ -41,9 +41,26 @@ preferenceWeight
 × contextRelevance
 ```
 
+## Technique Lifecycle
+
+| Status | 昇格条件 | Composer Arrangerでの扱い |
+| --- | --- | --- |
+| Draft | 初回分析 | Learning層だけに保持し、Ruleへ変換しない |
+| Validated | 1 Genre内で、独立Reference 3件以上を試聴確認 | Canonicalがない軸では利用可能。Canonicalがある軸では補助成分 |
+| Canonical | 2 Genre以上でValidated Principleを確認 | Technique Libraryの主成分として優先利用 |
+| Retired | 副作用・重複・陳腐化などにより利用停止 | Ruleへ変換しない |
+
+CanonicalとValidatedが同じ軸へ該当する場合、Canonicalを重み`1.0`、
+Validatedを補助重み`0.35`として集計する。Canonicalが存在しない軸では、
+Validatedを通常重み`1.0`として扱う。
+
+LifecycleはKnowledge Priorityとは別の概念である。Artist Intelligenceの
+Priority 100、Technique LibraryのPriority 50、ExperimentalのPriority 20は
+維持され、Canonical TechniqueであってもArtist Intelligenceを上書きしない。
+
 ## Genre Principle
 
-Principleへ昇格できるのは、人間確認済みで、異なるReference IDを3件以上持つObservationだけである。同一Referenceの重複や未確認Observationは件数へ含めない。
+Principleへ昇格できるのは、人間確認済みで、同一Genre Source内に異なるReference IDを3件以上持つObservationだけである。同一Referenceの重複や未確認Observationは件数へ含めない。TechniqueをCanonicalへ昇格するには、異なるGenre SourceのValidated Principleが2件以上必要である。
 
 ## Technique Library
 

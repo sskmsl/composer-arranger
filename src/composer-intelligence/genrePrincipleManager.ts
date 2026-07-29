@@ -9,6 +9,7 @@ export const MINIMUM_GENRE_PRINCIPLE_REFERENCES = 3
 export interface BuildGenrePrincipleInput {
   id: string
   techniqueId: string
+  genreSourceId: string
   statement: string
   generatorTargets: ComposerGeneratorTarget[]
   observations: GenreObservation[]
@@ -24,6 +25,7 @@ export function buildGenrePrinciple(
   const observations = input.observations.filter(
     (observation) =>
       observation.techniqueId === input.techniqueId &&
+      observation.genreSourceId === input.genreSourceId &&
       observation.verifiedByHuman,
   )
   const referenceIds = new Set(
@@ -40,6 +42,7 @@ export function buildGenrePrinciple(
     version: 1,
     status: "validated",
     techniqueId: input.techniqueId,
+    genreSourceId: input.genreSourceId,
     observationIds: observations.map((observation) => observation.id),
     referenceCount: referenceIds.size,
     statement: input.statement,
