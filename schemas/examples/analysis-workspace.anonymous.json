@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "projects": [
+    {
+      "id": "PROJECT-0001",
+      "name": "Example Genre Analysis",
+      "genre": "Example Genre",
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
+  "songs": [
+    {
+      "id": "SONG-0001",
+      "projectId": "PROJECT-0001",
+      "title": "Reference Song A",
+      "artist": "Reference Artist A",
+      "album": "Reference Album A",
+      "year": 2026,
+      "bpm": 90,
+      "key": "Am",
+      "genre": "Example Genre",
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
+  "sections": [
+    {
+      "id": "SECTION-0001",
+      "songId": "SONG-0001",
+      "type": "intro",
+      "label": null,
+      "startSeconds": 0,
+      "endSeconds": 16,
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
+  "observations": [],
+  "techniques": []
+}
