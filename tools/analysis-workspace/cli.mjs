@@ -20,6 +20,17 @@ import {
   validateWorkspace,
 } from "./core.mjs"
 import {
+  OBSERVATION_SEED_COUNT,
+  createObservationDefinition,
+  createObservationInstance,
+  exportObservationDefinitionMarkdown,
+  importObservationDefinitionMarkdown,
+  resolveObservationDefinition,
+  searchObservationDefinitions,
+  setObservationDefinitionStatus,
+  validateObservationDictionary,
+} from "./observation-dictionary.mjs"
+import {
   DEFAULT_WORKSPACE_PATH,
   loadWorkspace,
   saveWorkspace,
@@ -42,6 +53,26 @@ Commands:
                        [--techniques <id,id>] [--confidence <0..1>]
                        [--validation draft|validated]
   observation validate --id <id> --validation draft|validated
+  observation-definition search
+                       --query <text> [--category <category>]
+                       [--status <status>] [--limit <number>]
+  observation-definition add
+                       --name <canonical name> --description <fact>
+                       --category <category> --value-type <type>
+                       [--aliases <name,name>] [--unit <unit>]
+                       [--allowed-values <value,value>]
+  observation-definition status
+                       --id <OBS-id> --status draft|active|deprecated|merged
+                       [--merged-into <OBS-id>]
+  observation-definition resolve --id <OBS-id>
+  observation-definition export --id <OBS-id> --output <path>
+  observation-definition import --input <path>
+  observation-definition validate
+  observation-instance add
+                       --section <id> --observation <OBS-id>
+                       [--value <JSON>] [--unit <unit>]
+                       [--confidence <0..1>]
+                       [--validation draft|validated] [--note <text>]
   technique add        --name <name> --category <category>
                        --observation <text> --intent <intent>
                        --genre <genre> [--genre-source <id>]
@@ -49,6 +80,7 @@ Commands:
   technique search     --query <text> [--limit <number>]
   technique principle  --id <id> --statement <text> [--confirmed true|false]
   evidence add         --observation <id> --technique <id> [--comment <text>]
+                       [--intent-confirmed true|false]
   validate             --technique <id>
                        --status draft|validated|canonical|deprecated
                        --reason <text> --reviewer <name>
@@ -100,6 +132,23 @@ function booleanOption(value) {
   if (value === true || value === "true") return true
   if (value === "false") return false
   throw new Error("Boolean options accept true or false")
+}
+
+function commaList(value) {
+  if (!value) return []
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function structuredValue(value) {
+  if (value === undefined) return undefined
+  try {
+    return JSON.parse(String(value))
+  } catch {
+    return String(value)
+  }
 }
 
 function print(value) {
@@ -186,6 +235,128 @@ async function main() {
     workspace = result.workspace
     result = result.observation
     mutated = true
+  } else if (
+    command === "observation-definition" &&
+    action === "search"
+  ) {
+    result = searchObservationDefinitions(
+      workspace,
+      options.query ?? "",
+      {
+        category: options.category,
+        status: options.status,
+        limit: Number(options.limit ?? 10),
+      },
+    ).map((candidate) => ({
+      id: candidate.definition.id,
+      canonicalName: candidate.definition.canonicalName,
+      category: candidate.definition.category,
+      status: candidate.definition.status,
+      score: candidate.score,
+    }))
+  } else if (
+    command === "observation-definition" &&
+    action === "add"
+  ) {
+    const created = createObservationDefinition(workspace, {
+      canonicalName: required(options, "name"),
+      description: required(options, "description"),
+      category: required(options, "category"),
+      valueType: required(options, "value-type"),
+      aliases: commaList(options.aliases),
+      unit: options.unit,
+      allowedValues: options["allowed-values"]
+        ? commaList(options["allowed-values"])
+        : undefined,
+      parentObservationId: options.parent,
+      relatedObservationIds: commaList(options.related),
+      oppositeObservationIds: commaList(options.opposite),
+    })
+    workspace = created.workspace
+    result = {
+      definition: created.definition,
+      duplicateCandidates: created.duplicateCandidates.map(
+        (candidate) => ({
+          id: candidate.definition.id,
+          canonicalName: candidate.definition.canonicalName,
+          score: candidate.score,
+        }),
+      ),
+    }
+    mutated = true
+  } else if (
+    command === "observation-definition" &&
+    action === "status"
+  ) {
+    const changed = setObservationDefinitionStatus(workspace, {
+      observationId: required(options, "id"),
+      status: required(options, "status"),
+      mergedIntoObservationId: options["merged-into"],
+    })
+    workspace = changed.workspace
+    result = changed.definition
+    mutated = true
+  } else if (
+    command === "observation-definition" &&
+    action === "resolve"
+  ) {
+    result = resolveObservationDefinition(
+      workspace,
+      required(options, "id"),
+    )
+  } else if (
+    command === "observation-definition" &&
+    action === "export"
+  ) {
+    const outputPath = resolve(required(options, "output"))
+    await writeText(
+      outputPath,
+      exportObservationDefinitionMarkdown(
+        workspace,
+        required(options, "id"),
+      ),
+    )
+    result = { output: outputPath }
+  } else if (
+    command === "observation-definition" &&
+    action === "import"
+  ) {
+    const inputPath = resolve(required(options, "input"))
+    workspace = importObservationDefinitionMarkdown(
+      workspace,
+      await readFile(inputPath, "utf8"),
+    )
+    result = { imported: inputPath }
+    mutated = true
+  } else if (
+    command === "observation-definition" &&
+    action === "validate"
+  ) {
+    result = {
+      ...validateObservationDictionary(workspace),
+      seedCount: OBSERVATION_SEED_COUNT,
+    }
+    if (!result.valid) process.exitCode = 1
+  } else if (
+    command === "observation-instance" &&
+    action === "add"
+  ) {
+    const created = createObservationInstance(workspace, {
+      sectionId: required(options, "section"),
+      observationId: required(options, "observation"),
+      value: structuredValue(options.value),
+      unit: options.unit,
+      confidence: options.confidence,
+      validationStatus: options.validation,
+      note: options.note,
+      evidenceId: options.evidence,
+    })
+    workspace = created.workspace
+    result = {
+      instance: created.instance,
+      warnings: created.warnings,
+    }
+    mutated = true
   } else if (command === "technique" && action === "add") {
     const genre = required(options, "genre")
     const created = createTechnique(workspace, {
@@ -231,6 +402,7 @@ async function main() {
       observationId: required(options, "observation"),
       techniqueId: required(options, "technique"),
       comment: options.comment,
+      intentConfirmed: booleanOption(options["intent-confirmed"]),
     })
     workspace = changed.workspace
     result = changed.evidence
