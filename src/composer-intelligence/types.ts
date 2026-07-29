@@ -25,8 +25,76 @@ export type TechniqueLifecycleStatus =
   | "draft"
   | "validated"
   | "canonical"
-  | "retired"
+  | "deprecated"
 export type KnowledgeStatus = TechniqueLifecycleStatus
+export type TechniqueId = `TECH-${string}`
+
+export type TechniqueEvidenceSection =
+  | "intro"
+  | "verse"
+  | "pre-chorus"
+  | "chorus"
+  | "bridge"
+  | "interlude"
+  | "break"
+  | "outro"
+  | "transition"
+  | "other"
+
+export interface TechniqueGenreSource {
+  id: string
+  name: string
+}
+
+export interface TechniqueEvidence {
+  id: string
+  techniqueId: TechniqueId
+  referenceId: string
+  songTitle: string
+  genre: string
+  genreSourceId: string
+  section: TechniqueEvidenceSection
+  startSeconds: number | null
+  endSeconds: number | null
+  comment: string
+  sectionConfirmed: boolean
+  intentConfirmed: boolean
+  observationConfirmed: boolean
+  verifiedAt: string | null
+}
+
+export interface TechniqueReviewHistoryEntry {
+  id: string
+  reviewedAt: string
+  fromStatus: TechniqueLifecycleStatus
+  toStatus: TechniqueLifecycleStatus
+  reason: string
+  reviewer: string
+}
+
+/**
+ * Learning層の永続レコード。Evidenceの実名情報を含むためGit管理外に置く。
+ */
+export interface TechniqueKnowledgeRecord {
+  id: TechniqueId
+  version: number
+  name: string
+  status: TechniqueLifecycleStatus
+  category: TechniqueCategory
+  observation: string
+  intent: string
+  confidence: number
+  genreSources: TechniqueGenreSource[]
+  evidence: TechniqueEvidence[]
+  reviewHistory: TechniqueReviewHistoryEntry[]
+  reproducibilityConfirmed: boolean
+  extensions?: Record<string, unknown>
+}
+
+export interface TechniqueKnowledgeBase {
+  schemaVersion: 1
+  techniques: TechniqueKnowledgeRecord[]
+}
 
 /**
  * Generator間で共有する抽象軸。固有名・Genre名・参照曲は実行時へ渡さない。
@@ -77,7 +145,7 @@ export interface ComposerRuleCondition {
 export interface ComposerRule {
   id: string
   origin: KnowledgeOrigin
-  techniqueId?: string
+  techniqueId?: TechniqueId
   status: KnowledgeStatus
   priority: number
   confidence: number
@@ -88,7 +156,7 @@ export interface ComposerRule {
 }
 
 export interface TechniqueDefinition {
-  id: string
+  id: TechniqueId
   version: number
   status: KnowledgeStatus
   category: TechniqueCategory
@@ -99,6 +167,11 @@ export interface TechniqueDefinition {
   genreSourceIds: string[]
   priority: 50
   confidence: number
+  lifecycleEvidence: {
+    verifiedEvidenceCount: number
+    distinctGenreSourceCount: number
+    reproducibilityConfirmed: boolean
+  }
   rule: Omit<
     ComposerRule,
     "id" | "origin" | "techniqueId" | "status" | "priority" | "confidence"
@@ -110,7 +183,7 @@ export interface GenreObservation {
   /** 実名や曲名ではなく、Git管理外台帳が発行するopaque ID。 */
   referenceId: string
   genreSourceId: string
-  techniqueId: string
+  techniqueId: TechniqueId
   observation: string
   inferredIntent: string
   confidence: number
@@ -121,7 +194,7 @@ export interface GenrePrinciple {
   id: string
   version: number
   status: KnowledgeStatus
-  techniqueId: string
+  techniqueId: TechniqueId
   /** Principleが検証されたGenre Source。実行時Ruleから除去する。 */
   genreSourceId: string
   observationIds: string[]
@@ -132,7 +205,7 @@ export interface GenrePrinciple {
 }
 
 export interface TechniqueLibrary {
-  schemaVersion: 1
+  schemaVersion: 2
   techniques: TechniqueDefinition[]
 }
 
@@ -172,5 +245,5 @@ export const TECHNIQUE_LIFECYCLE_WEIGHTS = {
   draft: 0,
   validated: 0.35,
   canonical: 1,
-  retired: 0,
+  deprecated: 0,
 } as const

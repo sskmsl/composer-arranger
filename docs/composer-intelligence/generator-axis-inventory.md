@@ -24,5 +24,7 @@ User explicit settings
 
 Technique Ruleは明示値を変更しない。適合するRuleがない場合や、公開Technique Libraryが空の場合は現行フォールバックへ戻る。
 
-Lifecycleの扱いは全Generatorで共通とし、Draft / Retiredは実行対象外、
+Lifecycleの扱いは全Generatorで共通とし、Draft / Deprecatedは実行対象外、
 Canonicalを主成分、Validatedを補助成分としてRule Resolverが解決する。
+GeneratorはTechnique名、Genre、Evidence、Review Historyを参照せず、
+永続Technique IDを持つ匿名Ruleだけを受け取る。

@@ -7,7 +7,7 @@
   "required": ["schemaVersion", "techniques", "principles"],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "techniques": {
       "type": "array",
@@ -24,7 +24,7 @@
   },
   "$defs": {
     "status": {
-      "enum": ["draft", "validated", "canonical", "retired"]
+      "enum": ["draft", "validated", "canonical", "deprecated"]
     },
     "generatorTarget": {
       "enum": ["decoration", "phrase", "counter", "melody"]
@@ -153,12 +153,13 @@
         "genreSourceIds",
         "priority",
         "confidence",
+        "lifecycleEvidence",
         "rule"
       ],
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^technique-[a-z0-9-]+$"
+          "pattern": "^TECH-[0-9]{4,}$"
         },
         "version": {
           "type": "integer",
@@ -202,6 +203,28 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "lifecycleEvidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verifiedEvidenceCount",
+            "distinctGenreSourceCount",
+            "reproducibilityConfirmed"
+          ],
+          "properties": {
+            "verifiedEvidenceCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "distinctGenreSourceCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reproducibilityConfirmed": {
+              "type": "boolean"
+            }
+          }
         },
         "rule": {
           "type": "object",
@@ -247,7 +270,7 @@
         },
         "techniqueId": {
           "type": "string",
-          "pattern": "^technique-[a-z0-9-]+$"
+          "pattern": "^TECH-[0-9]{4,}$"
         },
         "genreSourceId": {
           "type": "string",

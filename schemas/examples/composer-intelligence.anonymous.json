@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "techniques": [
     {
-      "id": "technique-transition-lift",
+      "id": "TECH-9001",
       "version": 1,
       "status": "validated",
       "category": "transition",
@@ -12,6 +12,11 @@
       "genreSourceIds": ["genre-source-core-01"],
       "priority": 50,
       "confidence": 0.88,
+      "lifecycleEvidence": {
+        "verifiedEvidenceCount": 3,
+        "distinctGenreSourceCount": 1,
+        "reproducibilityConfirmed": true
+      },
       "rule": {
         "when": {
           "generatorTargets": ["decoration"],
@@ -43,7 +48,7 @@
       "id": "principle-transition-lift",
       "version": 1,
       "status": "validated",
-      "techniqueId": "technique-transition-lift",
+      "techniqueId": "TECH-9001",
       "genreSourceId": "genre-source-core-01",
       "observationIds": [
         "observation-private-001",

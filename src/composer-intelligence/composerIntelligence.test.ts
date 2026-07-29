@@ -20,7 +20,7 @@ function observations(
     id: `observation-${genreSourceId}-${index}`,
     referenceId: `private-reference-${genreSourceId}-${index}`,
     genreSourceId,
-    techniqueId: "technique-transition-lift",
+    techniqueId: "TECH-9001",
     observation: "匿名化された演出上の事実",
     inferredIntent: "場面転換の期待感を高める",
     confidence: 0.8 + index * 0.03,
@@ -33,7 +33,7 @@ function technique(
   genreSourceIds = ["genre-source-core-01"],
 ): TechniqueDefinition {
   return {
-    id: "technique-transition-lift",
+    id: "TECH-9001",
     version: 1,
     status,
     category: "transition",
@@ -43,6 +43,11 @@ function technique(
     genreSourceIds,
     priority: 50,
     confidence: 0.9,
+    lifecycleEvidence: {
+      verifiedEvidenceCount: status === "draft" ? 0 : 3,
+      distinctGenreSourceCount: genreSourceIds.length,
+      reproducibilityConfirmed: status === "canonical",
+    },
     rule: {
       when: {
         generatorTargets: ["decoration"],
@@ -66,7 +71,7 @@ describe("Composer Intelligence / Genre Principle", () => {
     expect(
       buildGenrePrinciple({
         id: "principle-1",
-        techniqueId: "technique-transition-lift",
+        techniqueId: "TECH-9001",
         genreSourceId: "genre-source-core-01",
         statement: "転換前の段階的な上昇は期待を作る",
         generatorTargets: ["decoration"],
@@ -76,7 +81,7 @@ describe("Composer Intelligence / Genre Principle", () => {
 
     const principle = buildGenrePrinciple({
       id: "principle-1",
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
       genreSourceId: "genre-source-core-01",
       statement: "転換前の段階的な上昇は期待を作る",
       generatorTargets: ["decoration"],
@@ -85,7 +90,7 @@ describe("Composer Intelligence / Genre Principle", () => {
     expect(principle).toMatchObject({
       status: "validated",
       referenceCount: 3,
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
     })
   })
 
@@ -103,7 +108,7 @@ describe("Composer Intelligence / Genre Principle", () => {
     expect(
       buildGenrePrinciple({
         id: "principle-1",
-        techniqueId: "technique-transition-lift",
+        techniqueId: "TECH-9001",
         genreSourceId: "genre-source-core-01",
         statement: "原則",
         generatorTargets: ["decoration"],
@@ -117,7 +122,7 @@ describe("Composer Intelligence / Technique Library", () => {
   it("Validated Principleからだけ匿名Technique Ruleを生成する", () => {
     const principle = buildGenrePrinciple({
       id: "principle-1",
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
       genreSourceId: "genre-source-core-01",
       statement: "転換前の段階的な上昇は期待を作る",
       generatorTargets: ["decoration"],
@@ -127,7 +132,7 @@ describe("Composer Intelligence / Technique Library", () => {
     expect(rule).toMatchObject({
       origin: "technique",
       priority: 50,
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
     })
     expect(JSON.stringify(rule)).not.toContain("private-reference")
     expect(JSON.stringify(rule)).not.toContain("genre-source")
@@ -139,7 +144,7 @@ describe("Composer Intelligence / Technique Library", () => {
   it("Draftは分析対象に留め、Ruleへ変換しない", () => {
     const principle = buildGenrePrinciple({
       id: "principle-draft",
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
       genreSourceId: "genre-source-core-01",
       statement: "原則",
       generatorTargets: ["decoration"],
@@ -156,7 +161,7 @@ describe("Composer Intelligence / Technique Library", () => {
   it("Canonicalは2 Genre以上のValidated Principleを必要とする", () => {
     const first = buildGenrePrinciple({
       id: "principle-core-01",
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
       genreSourceId: "genre-source-core-01",
       statement: "原則A",
       generatorTargets: ["decoration"],
@@ -164,24 +169,27 @@ describe("Composer Intelligence / Technique Library", () => {
     })!
     const second = buildGenrePrinciple({
       id: "principle-core-02",
-      techniqueId: "technique-transition-lift",
+      techniqueId: "TECH-9001",
       genreSourceId: "genre-source-core-02",
       statement: "原則B",
       generatorTargets: ["decoration"],
       observations: observations(3, "genre-source-core-02"),
     })!
+    const insufficient = technique("canonical", [
+      "genre-source-core-01",
+    ])
     const canonical = technique("canonical", [
       "genre-source-core-01",
       "genre-source-core-02",
     ])
 
     expect(
-      evaluateTechniqueLifecycle(canonical, [first]),
+      evaluateTechniqueLifecycle(insufficient, [first]),
     ).toMatchObject({
       eligible: false,
       distinctGenreSources: 1,
     })
-    expect(ruleFromTechnique(canonical, first)).toBeNull()
+    expect(ruleFromTechnique(insufficient, first)).toBeNull()
 
     const evaluation = evaluateTechniqueLifecycle(canonical, [
       first,
@@ -223,7 +231,7 @@ describe("Composer Intelligence / Rule Resolver", () => {
       {
         id: "technique-rule",
         origin: "technique",
-        techniqueId: "technique-1",
+        techniqueId: "TECH-9002",
         status: "validated",
         priority: 50,
         confidence: 1,

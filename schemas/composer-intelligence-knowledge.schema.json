@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://composer-arranger.local/schemas/composer-intelligence-knowledge.schema.json",
+  "title": "Composer Intelligence Learning Knowledge Base",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "techniques"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "techniques": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/techniqueKnowledge"
+      }
+    }
+  },
+  "$defs": {
+    "techniqueId": {
+      "type": "string",
+      "pattern": "^TECH-[0-9]{4,}$"
+    },
+    "status": {
+      "enum": ["draft", "validated", "canonical", "deprecated"]
+    },
+    "category": {
+      "enum": [
+        "decoration",
+        "phrase",
+        "counter",
+        "transition",
+        "texture",
+        "dynamics",
+        "harmony",
+        "rhythm",
+        "sound-design",
+        "automation",
+        "arrangement",
+        "mix-perspective"
+      ]
+    },
+    "section": {
+      "enum": [
+        "intro",
+        "verse",
+        "pre-chorus",
+        "chorus",
+        "bridge",
+        "interlude",
+        "break",
+        "outro",
+        "transition",
+        "other"
+      ]
+    },
+    "genreSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^genre-source-[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "techniqueId",
+        "referenceId",
+        "songTitle",
+        "genre",
+        "genreSourceId",
+        "section",
+        "startSeconds",
+        "endSeconds",
+        "comment",
+        "sectionConfirmed",
+        "intentConfirmed",
+        "observationConfirmed",
+        "verifiedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "techniqueId": {
+          "$ref": "#/$defs/techniqueId"
+        },
+        "referenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "songTitle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "genre": {
+          "type": "string",
+          "minLength": 1
+        },
+        "genreSourceId": {
+          "type": "string",
+          "pattern": "^genre-source-[a-z0-9-]+$"
+        },
+        "section": {
+          "$ref": "#/$defs/section"
+        },
+        "startSeconds": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "endSeconds": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "comment": {
+          "type": "string"
+        },
+        "sectionConfirmed": {
+          "type": "boolean"
+        },
+        "intentConfirmed": {
+          "type": "boolean"
+        },
+        "observationConfirmed": {
+          "type": "boolean"
+        },
+        "verifiedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "reviewHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reviewedAt",
+        "fromStatus",
+        "toStatus",
+        "reason",
+        "reviewer"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "fromStatus": {
+          "$ref": "#/$defs/status"
+        },
+        "toStatus": {
+          "$ref": "#/$defs/status"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "techniqueKnowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "name",
+        "status",
+        "category",
+        "observation",
+        "intent",
+        "confidence",
+        "genreSources",
+        "evidence",
+        "reviewHistory",
+        "reproducibilityConfirmed"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/techniqueId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "genreSources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/genreSource"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "reviewHistory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reviewHistory"
+          }
+        },
+        "reproducibilityConfirmed": {
+          "type": "boolean"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Reserved for future Technique Graph, Human Feedback and Rule Recommendation metadata"
+        }
+      }
+    }
+  }
+}

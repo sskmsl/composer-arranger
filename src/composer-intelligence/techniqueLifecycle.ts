@@ -3,6 +3,11 @@ import type {
   TechniqueDefinition,
   TechniqueLifecycleStatus,
 } from "./types"
+import {
+  CANONICAL_EVIDENCE_THRESHOLD,
+  MINIMUM_CANONICAL_GENRES,
+  MINIMUM_VALIDATED_EVIDENCE,
+} from "./techniqueValidation"
 
 export interface TechniqueLifecycleEvaluation {
   status: TechniqueLifecycleStatus
@@ -27,33 +32,56 @@ function eligiblePrinciples(
 }
 
 /**
- * Draftは分析専用、Validatedは1 Genre内の3 Reference、
- * Canonicalは2 Genre以上で再現した場合だけExecutionへ昇格できる。
+ * Learning層で検証済みの集計値とPrincipleを使い、
+ * 個別EvidenceをExecution層へ漏らさずRule化可否を再確認する。
  */
 export function evaluateTechniqueLifecycle(
   technique: TechniqueDefinition,
   principles: GenrePrinciple[],
 ): TechniqueLifecycleEvaluation {
   const evidence = eligiblePrinciples(technique, principles)
-  const distinctGenreSources = new Set(
+  const principleGenreCount = new Set(
     evidence.map((principle) => principle.genreSourceId),
   ).size
+  const evidenceCount =
+    technique.lifecycleEvidence.verifiedEvidenceCount
+  const aggregateGenreCount =
+    technique.lifecycleEvidence.distinctGenreSourceCount
+  const distinctGenreSources = Math.max(
+    principleGenreCount,
+    aggregateGenreCount,
+  )
   const reasons: string[] = []
 
   if (technique.status === "draft") {
     reasons.push("Draft TechniqueはLearning層の分析対象")
-  } else if (technique.status === "retired") {
-    reasons.push("Retired TechniqueはExecution対象外")
+  } else if (technique.status === "deprecated") {
+    reasons.push("Deprecated TechniqueはExecution対象外")
   } else if (technique.status === "validated") {
-    if (distinctGenreSources < 1) {
+    if (
+      evidenceCount < MINIMUM_VALIDATED_EVIDENCE ||
+      evidence.length < 1
+    ) {
       reasons.push(
-        "Validatedには1 Genre内で3件以上の確認済みReferenceが必要",
+        "Validatedには確認済みEvidenceと成立済みGenre Principleが必要",
       )
     }
-  } else if (distinctGenreSources < 2) {
-    reasons.push(
-      "Canonicalには2 Genre以上のValidated Principleが必要",
-    )
+  } else {
+    const enoughGenres =
+      distinctGenreSources >= MINIMUM_CANONICAL_GENRES
+    const enoughEvidence =
+      evidenceCount >= CANONICAL_EVIDENCE_THRESHOLD
+    if (evidence.length < 1) {
+      reasons.push("Canonicalには成立済みGenre Principleが必要")
+    }
+    if (!enoughGenres && !enoughEvidence) {
+      reasons.push(
+        "Canonicalには複数Genreまたは十分な確認済みEvidenceが必要",
+      )
+    }
+    if (!technique.lifecycleEvidence.reproducibilityConfirmed) {
+      reasons.push("Canonicalには再現性確認が必要")
+    }
   }
 
   return {

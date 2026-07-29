@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "techniques": [
+    {
+      "id": "TECH-9001",
+      "version": 2,
+      "name": "Transition Lift",
+      "status": "validated",
+      "category": "transition",
+      "observation": "転換前に音域と密度が段階的に変化する",
+      "intent": "次のセクションを自然に予告する",
+      "confidence": 0.88,
+      "genreSources": [
+        {
+          "id": "genre-source-core-01",
+          "name": "Genre A"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-001",
+          "techniqueId": "TECH-9001",
+          "referenceId": "reference-private-001",
+          "songTitle": "Internal Reference A",
+          "genre": "Genre A",
+          "genreSourceId": "genre-source-core-01",
+          "section": "transition",
+          "startSeconds": 42,
+          "endSeconds": 47,
+          "comment": "Section、Intent、Observationを試聴確認",
+          "sectionConfirmed": true,
+          "intentConfirmed": true,
+          "observationConfirmed": true,
+          "verifiedAt": "2026-07-30T00:00:00.000Z"
+        }
+      ],
+      "reviewHistory": [
+        {
+          "id": "review-001",
+          "reviewedAt": "2026-07-30T00:00:00.000Z",
+          "fromStatus": "draft",
+          "toStatus": "validated",
+          "reason": "対象SectionでTechniqueを試聴確認",
+          "reviewer": "human-reviewer"
+        }
+      ],
+      "reproducibilityConfirmed": false,
+      "extensions": {}
+    }
+  ]
+}

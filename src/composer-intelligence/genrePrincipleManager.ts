@@ -2,13 +2,14 @@ import type {
   ComposerGeneratorTarget,
   GenreObservation,
   GenrePrinciple,
+  TechniqueId,
 } from "./types"
 
 export const MINIMUM_GENRE_PRINCIPLE_REFERENCES = 3
 
 export interface BuildGenrePrincipleInput {
   id: string
-  techniqueId: string
+  techniqueId: TechniqueId
   genreSourceId: string
   statement: string
   generatorTargets: ComposerGeneratorTarget[]
