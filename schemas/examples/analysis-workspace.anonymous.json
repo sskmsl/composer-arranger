@@ -36,6 +36,38 @@
       "updatedAt": "2026-07-30T00:00:00.000Z"
     }
   ],
-  "observations": [],
+  "observationDefinitions": [
+    {
+      "id": "OBS-0001",
+      "canonicalName": "Sparse Arrangement",
+      "description": "A small number of principal parts sound simultaneously.",
+      "category": "density",
+      "aliases": [
+        "Low Density Arrangement",
+        "Minimal Layering"
+      ],
+      "valueType": "boolean",
+      "relatedObservationIds": [],
+      "oppositeObservationIds": [],
+      "status": "active",
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
+  "observations": [
+    {
+      "id": "OBSERVATION-0001",
+      "kind": "dictionary-instance",
+      "observationId": "OBS-0001",
+      "songId": "SONG-0001",
+      "sectionId": "SECTION-0001",
+      "value": true,
+      "confidence": 0.9,
+      "validationStatus": "draft",
+      "note": "A small number of principal layers are audible.",
+      "createdAt": "2026-07-30T00:00:00.000Z",
+      "updatedAt": "2026-07-30T00:00:00.000Z"
+    }
+  ],
   "techniques": []
 }

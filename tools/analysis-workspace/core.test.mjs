@@ -102,6 +102,7 @@ describe("Analysis Workspace data model", () => {
     expect(validateWorkspace(context.workspace)).toEqual({
       valid: true,
       errors: [],
+      warnings: [],
     })
     expect(context.observation.techniqueCandidateIds).toEqual([
       context.technique.id,

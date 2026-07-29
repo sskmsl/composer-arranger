@@ -1,3 +1,9 @@
+import {
+  ensureObservationWorkspace,
+  validateObservationDictionary,
+} from "./observation-dictionary.mjs"
+import { createObservationSeed } from "./observation-seed.mjs"
+
 export const WORKSPACE_SCHEMA_VERSION = 1
 export const SECTION_TYPES = [
   "intro",
@@ -97,6 +103,7 @@ export function emptyWorkspace() {
     projects: [],
     songs: [],
     sections: [],
+    observationDefinitions: createObservationSeed(),
     observations: [],
     techniques: [],
   }
@@ -246,7 +253,11 @@ export function setObservationValidation(workspace, input, clock) {
     throw new Error("Observation validation must be draft or validated")
   }
   const updatedAt = nowIso(clock)
-  observation.validation = validation
+  if (observation.kind === "dictionary-instance") {
+    observation.validationStatus = validation
+  } else {
+    observation.validation = validation
+  }
   observation.updatedAt = updatedAt
   const verified = validation === "validated"
   const techniques = workspace.techniques.map((item) => {
@@ -260,13 +271,20 @@ export function setObservationValidation(workspace, input, clock) {
     const technique = clone(item)
     technique.evidence = technique.evidence.map((evidence) =>
       evidence.observationId === observation.id
-        ? {
-            ...evidence,
-            sectionConfirmed: verified,
-            intentConfirmed: verified,
-            observationConfirmed: verified,
-            verifiedAt: verified ? updatedAt : null,
-          }
+        ? (() => {
+            const intentConfirmed =
+              observation.kind === "dictionary-instance"
+                ? evidence.intentConfirmed
+                : verified
+            return {
+              ...evidence,
+              sectionConfirmed: verified,
+              intentConfirmed,
+              observationConfirmed: verified,
+              verifiedAt:
+                verified && intentConfirmed ? updatedAt : null,
+            }
+          })()
         : evidence,
     )
     technique.updatedAt = updatedAt
@@ -442,8 +460,16 @@ export function linkEvidence(workspace, input, clock) {
   const technique = clone(
     findById(workspace.techniques, input.techniqueId, "Technique"),
   )
-  const verified = context.observation.validation === "validated"
-  const verifiedAt = verified ? nowIso(clock) : null
+  const observationVerified =
+    (context.observation.kind === "dictionary-instance"
+      ? context.observation.validationStatus
+      : context.observation.validation) === "validated"
+  const intentVerified =
+    context.observation.kind === "dictionary-instance"
+      ? Boolean(input.intentConfirmed)
+      : observationVerified
+  const verifiedAt =
+    observationVerified && intentVerified ? nowIso(clock) : null
   const evidence = {
     id: nextId(
       workspace.techniques.flatMap((candidate) => candidate.evidence),
@@ -462,9 +488,9 @@ export function linkEvidence(workspace, input, clock) {
     startSeconds: context.section.startSeconds,
     endSeconds: context.section.endSeconds,
     comment: input.comment ? String(input.comment).trim() : "",
-    sectionConfirmed: verified,
-    intentConfirmed: verified,
-    observationConfirmed: verified,
+    sectionConfirmed: observationVerified,
+    intentConfirmed: intentVerified,
+    observationConfirmed: observationVerified,
     verifiedAt,
   }
   if (
@@ -488,9 +514,22 @@ export function linkEvidence(workspace, input, clock) {
     })
   }
   technique.updatedAt = nowIso(clock)
+  const observations =
+    context.observation.kind === "dictionary-instance"
+      ? workspace.observations.map((observation) =>
+          observation.id === context.observation.id
+            ? {
+                ...observation,
+                evidenceId: evidence.id,
+                updatedAt: technique.updatedAt,
+              }
+            : observation,
+        )
+      : workspace.observations
   return {
     workspace: {
       ...clone(workspace),
+      observations,
       techniques: replaceById(workspace.techniques, technique),
     },
     evidence,
@@ -621,6 +660,11 @@ export function dashboard(workspace, genre = null) {
     projectCount: projects.length,
     songCount: songs.length,
     techniqueCount: techniques.length,
+    observationDefinitionCount:
+      workspace.observationDefinitions?.length ?? 0,
+    observationInstanceCount: workspace.observations.filter(
+      (item) => item.kind === "dictionary-instance",
+    ).length,
     draftCount: techniques.filter((item) => item.status === "draft").length,
     validatedCount: techniques.filter((item) => item.status === "validated").length,
     canonicalCount: techniques.filter((item) => item.status === "canonical").length,
@@ -654,18 +698,25 @@ export function draftTechniques(workspace, sort = "confidence") {
 
 export function validateWorkspace(workspace) {
   const errors = []
+  const warnings = []
   if (!workspace || typeof workspace !== "object") {
-    return { valid: false, errors: ["Workspace must be an object"] }
+    return {
+      valid: false,
+      errors: ["Workspace must be an object"],
+      warnings,
+    }
   }
+  const normalizedWorkspace = ensureObservationWorkspace(workspace)
   if (workspace.schemaVersion !== WORKSPACE_SCHEMA_VERSION) {
     errors.push(`Unsupported schemaVersion: ${workspace.schemaVersion}`)
   }
   const collections = [
-    ["projects", workspace.projects],
-    ["songs", workspace.songs],
-    ["sections", workspace.sections],
-    ["observations", workspace.observations],
-    ["techniques", workspace.techniques],
+    ["projects", normalizedWorkspace.projects],
+    ["songs", normalizedWorkspace.songs],
+    ["sections", normalizedWorkspace.sections],
+    ["observationDefinitions", normalizedWorkspace.observationDefinitions],
+    ["observations", normalizedWorkspace.observations],
+    ["techniques", normalizedWorkspace.techniques],
   ]
   for (const [name, items] of collections) {
     if (!Array.isArray(items)) errors.push(`${name} must be an array`)
@@ -675,14 +726,20 @@ export function validateWorkspace(workspace) {
       ids.add(item.id)
     }
   }
-  const projects = Array.isArray(workspace.projects) ? workspace.projects : []
-  const songs = Array.isArray(workspace.songs) ? workspace.songs : []
-  const sections = Array.isArray(workspace.sections) ? workspace.sections : []
-  const observations = Array.isArray(workspace.observations)
-    ? workspace.observations
+  const projects = Array.isArray(normalizedWorkspace.projects)
+    ? normalizedWorkspace.projects
     : []
-  const techniques = Array.isArray(workspace.techniques)
-    ? workspace.techniques
+  const songs = Array.isArray(normalizedWorkspace.songs)
+    ? normalizedWorkspace.songs
+    : []
+  const sections = Array.isArray(normalizedWorkspace.sections)
+    ? normalizedWorkspace.sections
+    : []
+  const observations = Array.isArray(normalizedWorkspace.observations)
+    ? normalizedWorkspace.observations
+    : []
+  const techniques = Array.isArray(normalizedWorkspace.techniques)
+    ? normalizedWorkspace.techniques
     : []
   const projectIds = new Set(projects.map((item) => item.id))
   const songIds = new Set(songs.map((item) => item.id))
@@ -716,6 +773,12 @@ export function validateWorkspace(workspace) {
   }
   for (const observation of observations) {
     if (!sectionIds.has(observation.sectionId)) errors.push(`Observation ${observation.id} has invalid sectionId`)
+    if (observation.kind === "dictionary-instance") {
+      if (!songIds.has(observation.songId)) {
+        errors.push(`Observation ${observation.id} has invalid songId`)
+      }
+      continue
+    }
     for (const techniqueId of observation.techniqueCandidateIds ?? []) {
       if (!techniqueIds.has(techniqueId)) errors.push(`Observation ${observation.id} has invalid Technique ID`)
     }
@@ -726,6 +789,11 @@ export function validateWorkspace(workspace) {
       errors.push(`Observation ${observation.id} has invalid confidence`)
     }
   }
+  const dictionaryValidation = validateObservationDictionary(
+    normalizedWorkspace,
+  )
+  errors.push(...dictionaryValidation.errors)
+  warnings.push(...dictionaryValidation.warnings)
   const evidenceIds = new Set()
   const reviewIds = new Set()
   for (const technique of techniques) {
@@ -757,7 +825,11 @@ export function validateWorkspace(workspace) {
       }
     }
   }
-  return { valid: errors.length === 0, errors }
+  return {
+    valid: errors.length === 0,
+    errors: [...new Set(errors)],
+    warnings: [...new Set(warnings)],
+  }
 }
 
 function projectSubset(workspace, projectId) {
@@ -772,8 +844,33 @@ function projectSubset(workspace, projectId) {
     sectionIds.has(observation.sectionId),
   )
   const techniqueIds = new Set(
-    observations.flatMap((observation) => observation.techniqueCandidateIds),
+    observations.flatMap(
+      (observation) => observation.techniqueCandidateIds ?? [],
+    ),
   )
+  const observationDefinitionIds = new Set(
+    observations
+      .filter((observation) => observation.kind === "dictionary-instance")
+      .map((observation) => observation.observationId),
+  )
+  let definitionCount = -1
+  while (definitionCount !== observationDefinitionIds.size) {
+    definitionCount = observationDefinitionIds.size
+    for (const definition of workspace.observationDefinitions ?? []) {
+      if (!observationDefinitionIds.has(definition.id)) continue
+      for (const reference of [
+        definition.parentObservationId,
+        definition.mergedIntoObservationId,
+        ...(definition.relatedObservationIds ?? []),
+        ...(definition.oppositeObservationIds ?? []),
+      ]) {
+        if (reference) observationDefinitionIds.add(reference)
+      }
+    }
+  }
+  const observationDefinitions = (
+    workspace.observationDefinitions ?? []
+  ).filter((definition) => observationDefinitionIds.has(definition.id))
   for (const technique of workspace.techniques) {
     if (
       technique.evidence.some((evidence) =>
@@ -793,6 +890,7 @@ function projectSubset(workspace, projectId) {
     projects: [project],
     songs,
     sections,
+    observationDefinitions,
     observations,
     techniques,
   }
@@ -820,14 +918,26 @@ export function exportProjectMarkdown(workspace, projectId) {
         "",
         ...subset.observations
           .filter((observation) => observation.sectionId === section.id)
-          .flatMap((observation) => [
-            `- Observation: ${observation.observation}`,
-            `- Intent: ${observation.intent}`,
-            `- Technique Candidates: ${observation.techniqueCandidateIds.join(", ")}`,
-            `- Confidence: ${observation.confidence}`,
-            `- Validation: ${observation.validation}`,
-            "",
-          ]),
+          .flatMap((observation) =>
+            observation.kind === "dictionary-instance"
+              ? [
+                  `- Observation ID: ${observation.observationId}`,
+                  `- Value: ${JSON.stringify(observation.value ?? null)}`,
+                  `- Unit: ${observation.unit ?? ""}`,
+                  `- Confidence: ${observation.confidence}`,
+                  `- Validation: ${observation.validationStatus}`,
+                  `- Note: ${observation.note ?? ""}`,
+                  "",
+                ]
+              : [
+                  `- Observation: ${observation.observation}`,
+                  `- Intent: ${observation.intent}`,
+                  `- Technique Candidates: ${observation.techniqueCandidateIds.join(", ")}`,
+                  `- Confidence: ${observation.confidence}`,
+                  `- Validation: ${observation.validation}`,
+                  "",
+                ],
+          ),
       ]),
     ]
   })
@@ -865,6 +975,10 @@ export function importProjectMarkdown(workspace, markdown) {
     projects: merge(workspace.projects, imported.projects),
     songs: merge(workspace.songs, imported.songs),
     sections: merge(workspace.sections, imported.sections),
+    observationDefinitions: merge(
+      workspace.observationDefinitions ?? [],
+      imported.observationDefinitions ?? [],
+    ),
     observations: merge(workspace.observations, imported.observations),
     techniques: merge(workspace.techniques, imported.techniques),
   }
@@ -884,6 +998,8 @@ export function dashboardHtml(summary, drafts = []) {
     ["Validated", summary.validatedCount],
     ["Canonical", summary.canonicalCount],
     ["Evidence", summary.evidenceCount],
+    ["Observation Terms", summary.observationDefinitionCount],
+    ["Observation Instances", summary.observationInstanceCount],
   ]
   const escape = (value) =>
     String(value)

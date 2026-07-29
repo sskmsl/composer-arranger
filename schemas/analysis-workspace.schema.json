@@ -9,6 +9,7 @@
     "projects",
     "songs",
     "sections",
+    "observationDefinitions",
     "observations",
     "techniques"
   ],
@@ -25,6 +26,10 @@
     "sections": {
       "type": "array",
       "items": { "$ref": "#/$defs/section" }
+    },
+    "observationDefinitions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observationDefinition" }
     },
     "observations": {
       "type": "array",
@@ -128,7 +133,113 @@
         "updatedAt": { "$ref": "#/$defs/timestamp" }
       }
     },
+    "observationDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "canonicalName",
+        "description",
+        "category",
+        "aliases",
+        "valueType",
+        "relatedObservationIds",
+        "oppositeObservationIds",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^OBS-[0-9]{4,}$" },
+        "canonicalName": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "category": {
+          "enum": [
+            "arrangement",
+            "density",
+            "register",
+            "harmony",
+            "melody",
+            "phrase",
+            "rhythm",
+            "groove",
+            "dynamics",
+            "timbre",
+            "texture",
+            "stereo",
+            "space",
+            "reverb",
+            "delay",
+            "automation",
+            "transition",
+            "instrumentation",
+            "articulation",
+            "silence"
+          ]
+        },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "valueType": {
+          "enum": ["boolean", "number", "range", "enum", "text"]
+        },
+        "unit": { "type": "string", "minLength": 1 },
+        "allowedValues": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "parentObservationId": {
+          "type": "string",
+          "pattern": "^OBS-[0-9]{4,}$"
+        },
+        "relatedObservationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^OBS-[0-9]{4,}$" }
+        },
+        "oppositeObservationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^OBS-[0-9]{4,}$" }
+        },
+        "status": {
+          "enum": ["draft", "active", "deprecated", "merged"]
+        },
+        "mergedIntoObservationId": {
+          "type": "string",
+          "pattern": "^OBS-[0-9]{4,}$"
+        },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "valueType": { "const": "enum" } },
+            "required": ["valueType"]
+          },
+          "then": { "required": ["allowedValues"] }
+        },
+        {
+          "if": {
+            "properties": { "status": { "const": "merged" } },
+            "required": ["status"]
+          },
+          "then": { "required": ["mergedIntoObservationId"] }
+        }
+      ]
+    },
     "observation": {
+      "oneOf": [
+        { "$ref": "#/$defs/legacyObservation" },
+        { "$ref": "#/$defs/dictionaryObservationInstance" }
+      ]
+    },
+    "legacyObservation": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -154,6 +265,54 @@
         },
         "confidence": { "$ref": "#/$defs/confidence" },
         "validation": { "enum": ["draft", "validated"] },
+        "createdAt": { "$ref": "#/$defs/timestamp" },
+        "updatedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "dictionaryObservationInstance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "observationId",
+        "songId",
+        "sectionId",
+        "confidence",
+        "validationStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^OBSERVATION-[0-9]{4,}$" },
+        "kind": { "const": "dictionary-instance" },
+        "observationId": {
+          "type": "string",
+          "pattern": "^OBS-[0-9]{4,}$"
+        },
+        "songId": { "type": "string", "pattern": "^SONG-[0-9]{4,}$" },
+        "sectionId": { "type": "string", "pattern": "^SECTION-[0-9]{4,}$" },
+        "evidenceId": { "type": "string", "minLength": 1 },
+        "value": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "number" },
+            { "type": "string" },
+            {
+              "type": "array",
+              "prefixItems": [
+                { "type": "number" },
+                { "type": "number" }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "unit": { "type": "string", "minLength": 1 },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "validationStatus": { "enum": ["draft", "validated"] },
+        "note": { "type": "string" },
         "createdAt": { "$ref": "#/$defs/timestamp" },
         "updatedAt": { "$ref": "#/$defs/timestamp" }
       }

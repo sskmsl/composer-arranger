@@ -21,14 +21,19 @@ Analysis Project
 - Analysis Project groups references by Genre.
 - Song stores reference metadata.
 - Section stores an exact start and end time.
-- Observation stores a factual observation, its musical intent, confidence and
-  validation state.
+- Observation Definition standardizes an objective musical fact.
+- Observation Instance stores its Section-specific value, confidence and
+  validation state. Intent remains a separate concept.
 - Technique candidates reference stable `TECH-####` IDs.
 - Evidence links a Technique back to the exact Observation and Section.
 - Review History records every Technique status change.
 
 Duplicate detection presents similar Technique candidates. It never merges
 records automatically; the author makes that decision.
+
+Structured analysis should use the
+[Observation Dictionary](./observation-dictionary.md). Legacy free-text
+Observation records remain supported for backward compatibility.
 
 ## Privacy boundary
 
