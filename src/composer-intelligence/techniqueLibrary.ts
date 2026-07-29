@@ -13,7 +13,7 @@ export function createTechniqueLibrary(
   techniques: TechniqueDefinition[] = [],
 ): TechniqueLibrary {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     techniques: techniques.map((technique) => structuredClone(technique)),
   }
 }
