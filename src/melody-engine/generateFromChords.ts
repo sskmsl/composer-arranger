@@ -66,6 +66,7 @@ import {
   applySectionTransition,
   type SectionTransitionContext,
 } from "./sectionTransition"
+import type { ResolvedComposerRules } from "@/composer-intelligence"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -415,6 +416,8 @@ export interface GenerateProfileBatchInput {
   key?: string
   /** Issue #30: 前セクションにActive Melodyがある場合だけ与える接続コンテキスト。 */
   transitionContext?: SectionTransitionContext
+  /** 固有名・Genreを含まないRule Resolver解決済みPreference。 */
+  composerRules?: ResolvedComposerRules
 }
 
 export interface ProfileCandidate {
@@ -517,6 +520,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         profile,
         candidatePoolIndex,
         baseParams.endTensionBias,
+        input.composerRules,
       )
 
       if (kind === "bespoke") {

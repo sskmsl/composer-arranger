@@ -3,6 +3,10 @@ import type { MelodyNote } from "@/core/melody"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import { SeededRandom } from "@/core/rng"
 import type { SectionRole } from "@/core/section"
+import {
+  pickTechniquePreference,
+  type ResolvedComposerRules,
+} from "@/composer-intelligence"
 import type {
   DecorationCharacter,
   DecorationGestureRole,
@@ -64,6 +68,7 @@ export interface GenerateDecorationInput {
   candidateCount?: number
   arrangementContext?: DecorationArrangementContext
   preferenceProfile?: DecorationPreferenceProfile
+  composerRules?: ResolvedComposerRules
 }
 
 export interface DecorationArrangementContext {
@@ -344,6 +349,8 @@ function resolveGestureRole(
   type: DecorationType,
   needLevel: DecorationNeedLevel,
   poolIndex: number,
+  rng: SeededRandom,
+  composerRules?: ResolvedComposerRules,
 ): DecorationGestureRole {
   const roles = GESTURES_BY_TYPE[type]
   const gestureIndex = Math.floor(poolIndex / 3)
@@ -352,32 +359,49 @@ function resolveGestureRole(
       (role) => role === "pedal" || role === "swell" || role === "response",
     )
     if (restrained.length > 0) {
-      return restrained[gestureIndex % restrained.length]
+      return pickTechniquePreference(
+        rng,
+        composerRules,
+        "decorationGestureRole",
+        restrained,
+        restrained[gestureIndex % restrained.length],
+      )
     }
   }
-  return roles[gestureIndex % roles.length]
+  return pickTechniquePreference(
+    rng,
+    composerRules,
+    "decorationGestureRole",
+    roles,
+    roles[gestureIndex % roles.length],
+  )
 }
 
 function resolvePlanDensity(
   setting: DecorationDensitySetting,
   role: DecorationGestureRole,
   poolIndex: number,
+  rng: SeededRandom,
+  composerRules?: ResolvedComposerRules,
 ): DecorationDensitySetting {
   if (setting !== "normal") return setting
-  if (role === "pedal" || role === "swell") return "sparse"
-  if (
-    (role === "response" || role === "ending") &&
-    poolIndex % 2 === 0
-  ) {
-    return "sparse"
-  }
-  if (
-    (role === "pickup" || role === "transition") &&
-    poolIndex % 5 === 4
-  ) {
-    return "rich"
-  }
-  return "normal"
+  const fallback: DecorationDensitySetting =
+    role === "pedal" || role === "swell"
+      ? "sparse"
+      : (role === "response" || role === "ending") &&
+          poolIndex % 2 === 0
+        ? "sparse"
+        : (role === "pickup" || role === "transition") &&
+            poolIndex % 5 === 4
+          ? "rich"
+          : "normal"
+  return pickTechniquePreference(
+    rng,
+    composerRules,
+    "phraseDensity",
+    ["sparse", "normal", "rich"],
+    fallback,
+  )
 }
 
 function preferenceMatch(
@@ -471,11 +495,35 @@ function resolveDirection(
   rng: SeededRandom,
   setting: DecorationDirectionSetting,
   type: DecorationType,
+  composerRules?: ResolvedComposerRules,
 ): DecorationPlan["direction"] {
   if (setting !== "auto") return setting
-  if (type === "transition-fill") return rng.chance(0.35) ? "mixed" : "rising"
-  if (type === "ending-fill") return rng.chance(0.35) ? "mixed" : "falling"
-  return rng.pick(["rising", "falling", "mixed"] as const)
+  const fallback =
+    type === "transition-fill"
+      ? rng.chance(0.35)
+        ? "mixed"
+        : "rising"
+      : type === "ending-fill"
+        ? rng.chance(0.35)
+          ? "mixed"
+          : "falling"
+        : rng.pick(["rising", "falling", "mixed"] as const)
+  const preferred = pickTechniquePreference(
+    rng,
+    composerRules,
+    "melodicDirection",
+    ["ascending", "descending", "mixed", "stable"],
+    fallback === "rising"
+      ? "ascending"
+      : fallback === "falling"
+        ? "descending"
+        : "mixed",
+  )
+  return preferred === "ascending"
+    ? "rising"
+    : preferred === "descending"
+      ? "falling"
+      : "mixed"
 }
 
 /**
@@ -488,10 +536,23 @@ function resolveRegister(
   type: DecorationType,
   character: DecorationCharacter,
   poolIndex: number,
+  composerRules?: ResolvedComposerRules,
 ): DecorationPlan["register"] {
   if (character === "bell") return "high"
-  if (type === "ending-fill") return poolIndex % 2 === 0 ? "middle" : "low"
-  return rng.pick(["middle", "high", "low"] as const)
+  const options = ["middle", "high", "low"] as const
+  const fallback =
+    type === "ending-fill"
+      ? poolIndex % 2 === 0
+        ? "middle"
+        : "low"
+      : rng.pick(options)
+  return pickTechniquePreference(
+    rng,
+    composerRules,
+    "register",
+    options,
+    fallback,
+  )
 }
 
 function registerWindow(register: DecorationPlan["register"]): { low: number; high: number } {
@@ -1280,11 +1341,19 @@ function planFor(
 ): DecorationPlan {
   const type = resolveType(input, poolIndex)
   const need = assessDecorationNeed(input)
-  const gestureRole = resolveGestureRole(type, need.level, poolIndex)
+  const gestureRole = resolveGestureRole(
+    type,
+    need.level,
+    poolIndex,
+    rng,
+    input.composerRules,
+  )
   const density = resolvePlanDensity(
     input.settings.density,
     gestureRole,
     poolIndex,
+    rng,
+    input.composerRules,
   )
   const generatedCharacter = resolveCharacter(
     input.settings.character,
@@ -1300,7 +1369,12 @@ function planFor(
           poolIndex,
         )
       : generatedCharacter
-  const direction = resolveDirection(rng, input.settings.direction, type)
+  const direction = resolveDirection(
+    rng,
+    input.settings.direction,
+    type,
+    input.composerRules,
+  )
   const requestedLengthBeats =
     input.settings.length === "bar" ? input.beatsPerBar : input.settings.length
   const generatedShape = resolveShape(type, character, poolIndex, rng)
@@ -1424,7 +1498,13 @@ function planFor(
     direction,
     density,
     lengthBeats,
-    register: resolveRegister(rng, type, character, poolIndex),
+    register: resolveRegister(
+      rng,
+      type,
+      character,
+      poolIndex,
+      input.composerRules,
+    ),
     placementBeat,
     targetPitchClass: targetPitchClass(input, type, poolIndex),
     intention,

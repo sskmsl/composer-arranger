@@ -16,6 +16,10 @@ import { buildHarmonicMap, chordAtBeat, type HarmonicMapEntry } from "@/melody-e
 import { melodySimilarity } from "@/melody-engine/melodySimilarity"
 import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
+import {
+  pickTechniquePreference,
+  type ResolvedComposerRules,
+} from "@/composer-intelligence"
 
 export interface GeneratePhrasesInput {
   chords: ChordEvent[]
@@ -31,6 +35,7 @@ export interface GeneratePhrasesInput {
   seed: number
   lengthBars?: PhraseLengthBars
   candidateCount?: number
+  composerRules?: ResolvedComposerRules
 }
 
 interface BuiltPhrase {
@@ -63,7 +68,12 @@ function availableLengths(input: GeneratePhrasesInput): PhraseLengthBars[] {
   return supported.length > 0 ? [...supported] : [2]
 }
 
-function planCadence(rng: SeededRandom, role: SectionRole, poolIndex: number): PhraseCadence {
+function planCadence(
+  rng: SeededRandom,
+  role: SectionRole,
+  poolIndex: number,
+  composerRules?: ResolvedComposerRules,
+): PhraseCadence {
   void poolIndex
   const options: PhraseCadence[] = ["resolved", "open", "suspended", "carry-forward"]
   const weights = RESOLVING_ROLES.has(role)
@@ -71,13 +81,20 @@ function planCadence(rng: SeededRandom, role: SectionRole, poolIndex: number): P
     : TENSION_ROLES.has(role)
       ? [0.12, 0.3, 0.32, 0.26]
       : [0.25, 0.3, 0.2, 0.25]
-  return rng.weightedPick(options, weights)
+  return pickTechniquePreference(
+    rng,
+    composerRules,
+    "cadenceType",
+    options,
+    rng.weightedPick(options, weights),
+  )
 }
 
 function planHarmonicApproach(
   rng: SeededRandom,
   map: HarmonicMapEntry[],
   poolIndex: number,
+  composerRules?: ResolvedComposerRules,
 ): PhraseHarmonicApproach {
   const hasColor = map.some((entry) => entry.parsed.tensions.length > 0 || entry.parsed.isDominant || entry.parsed.isDiminished)
   const hasCommonTones = map.some((entry) => entry.commonTonesWithNext > 0)
@@ -86,7 +103,13 @@ function planHarmonicApproach(
     ...(hasCommonTones ? (["common-tone"] as const) : []),
     ...(hasColor ? (["tension-release", "anticipatory"] as const) : (["anticipatory"] as const)),
   ]
-  return rotatePick(rng, options, poolIndex)
+  return pickTechniquePreference(
+    rng,
+    composerRules,
+    "harmonicApproach",
+    options,
+    rotatePick(rng, options, poolIndex),
+  )
 }
 
 function motifFor(
@@ -134,22 +157,47 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
   const map = buildHarmonicMap(input.chords)
   const lengths = availableLengths(input)
   const lengthBars = input.lengthBars ?? rotatePick(rng, lengths, poolIndex)
-  const contour = rotatePick(
-    rng,
-    input.sectionRole === "pre-chorus" || input.sectionRole === "grand-chorus"
+  const contourOptions =
+    input.sectionRole === "pre-chorus" ||
+    input.sectionRole === "grand-chorus"
       ? (["ascending", "arch", "wave", "descending"] as const)
-      : (["ascending", "descending", "arch", "inverted-arch", "wave"] as const),
-    poolIndex,
-  )
-  const rhythmCharacter = rotatePick(
+      : ([
+          "ascending",
+          "descending",
+          "arch",
+          "inverted-arch",
+          "wave",
+        ] as const)
+  const contour = pickTechniquePreference(
     rng,
+    input.composerRules,
+    "phraseContour",
+    contourOptions,
+    rotatePick(rng, contourOptions, poolIndex),
+  )
+  const rhythmOptions =
     input.songProfile === "minimal-tension"
       ? (["breathing", "sustained", "flowing", "syncopated"] as const)
-      : (["flowing", "syncopated", "breathing", "sustained"] as const),
-    poolIndex * 3,
+      : (["flowing", "syncopated", "breathing", "sustained"] as const)
+  const rhythmCharacter = pickTechniquePreference(
+    rng,
+    input.composerRules,
+    "rhythmCharacter",
+    rhythmOptions,
+    rotatePick(rng, rhythmOptions, poolIndex * 3),
   )
-  const harmonicApproach = planHarmonicApproach(rng, map, poolIndex * 5)
-  const cadence = planCadence(rng, input.sectionRole, poolIndex * 7)
+  const harmonicApproach = planHarmonicApproach(
+    rng,
+    map,
+    poolIndex * 5,
+    input.composerRules,
+  )
+  const cadence = planCadence(
+    rng,
+    input.sectionRole,
+    poolIndex * 7,
+    input.composerRules,
+  )
   const densityBase = input.density === "sparse" ? 0.35 : input.density === "active" ? 0.78 : 0.56
   const density = clamp01(densityBase + (rng.next() - 0.5) * 0.22)
   const restRatio =
