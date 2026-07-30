@@ -48,6 +48,8 @@ function project() {
 }
 
 beforeEach(() => {
+  const generationSettings =
+    useProjectStore.getState().generationSettings
   useProjectStore.setState({
     project: project(),
     selectedSectionId: "s1",
@@ -56,6 +58,10 @@ beforeEach(() => {
     history: [],
     future: [],
     workflowNotice: null,
+    generationSettings: {
+      ...generationSettings,
+      techniqueExperimentPresetId: null,
+    },
     persist: () => {},
   })
 })
@@ -91,5 +97,44 @@ describe("Issue #70 / Counter store workflow", () => {
     useProjectStore.getState().generateCounterForSection("s1")
     expect(useProjectStore.getState().project.reactiveLayerCandidates).toHaveLength(0)
     expect(useProjectStore.getState().workflowNotice).toContain("Active Melody")
+  })
+
+  it("Technique実験ではNormal 3案とTreatment 3案を同じbatchへ保存する", () => {
+    useProjectStore.getState().setGenerationSettings({
+      techniqueExperimentPresetId:
+        "stable-loop-local-mutation",
+    })
+    useProjectStore.getState().generateCounterForSection("s1")
+    const candidates =
+      useProjectStore.getState().project.reactiveLayerCandidates ??
+      []
+    expect(candidates).toHaveLength(6)
+    expect(
+      candidates.filter(
+        (candidate) =>
+          candidate.techniqueExperiment?.mode === "baseline",
+      ),
+    ).toHaveLength(3)
+    const treatment = candidates.filter(
+      (candidate) =>
+        candidate.techniqueExperiment?.mode === "treatment",
+    )
+    expect(treatment).toHaveLength(3)
+    expect(
+      treatment.every(
+        (candidate) =>
+          candidate.techniqueFitScore !== undefined,
+      ),
+    ).toBe(true)
+    const target = treatment[0]
+    useProjectStore.getState().regenerateCounter(target.id)
+    const replacement = useProjectStore
+      .getState()
+      .project.reactiveLayerCandidates?.find(
+        (candidate) => candidate.name === target.name,
+      )
+    expect(replacement?.techniqueExperiment).toEqual(
+      target.techniqueExperiment,
+    )
   })
 })

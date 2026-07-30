@@ -24,6 +24,8 @@ function project() {
 }
 
 beforeEach(() => {
+  const generationSettings =
+    useProjectStore.getState().generationSettings
   useProjectStore.setState({
     project: project(),
     selectedSectionId: "a",
@@ -32,6 +34,10 @@ beforeEach(() => {
     history: [],
     future: [],
     workflowNotice: null,
+    generationSettings: {
+      ...generationSettings,
+      techniqueExperimentPresetId: null,
+    },
     persist: () => {},
   })
 })
@@ -126,5 +132,43 @@ describe("Issue #71 / Decoration store workflow", () => {
     useProjectStore.getState().assignReactiveLayer(decoration.id)
     expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBeUndefined()
     expect(useProjectStore.getState().workflowNotice).toContain("採用できません")
+  })
+
+  it("Technique実験ではNormal 10案とTreatment 10案を同じbatchへ保存する", () => {
+    useProjectStore.getState().setGenerationSettings({
+      techniqueExperimentPresetId: "negative-space-groove",
+    })
+    useProjectStore.getState().generateDecorationsForSection("a")
+    const candidates =
+      useProjectStore.getState().project.reactiveLayerCandidates ??
+      []
+    expect(candidates).toHaveLength(20)
+    expect(
+      candidates.filter(
+        (candidate) =>
+          candidate.techniqueExperiment?.mode === "baseline",
+      ),
+    ).toHaveLength(10)
+    const treatment = candidates.filter(
+      (candidate) =>
+        candidate.techniqueExperiment?.mode === "treatment",
+    )
+    expect(treatment).toHaveLength(10)
+    expect(
+      treatment.every(
+        (candidate) =>
+          candidate.techniqueFitScore !== undefined,
+      ),
+    ).toBe(true)
+    const target = treatment[0]
+    useProjectStore.getState().regenerateDecoration(target.id)
+    const replacement = useProjectStore
+      .getState()
+      .project.reactiveLayerCandidates?.find(
+        (candidate) => candidate.name === target.name,
+      )
+    expect(replacement?.techniqueExperiment).toEqual(
+      target.techniqueExperiment,
+    )
   })
 })

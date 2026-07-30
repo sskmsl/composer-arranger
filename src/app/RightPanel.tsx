@@ -2,6 +2,7 @@ import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
 import type { MelodyGeneratorProfile } from "@/core/melody"
+import { SECTION_ROLE_LABELS } from "@/core/section"
 import { noteName, parseNoteName } from "@/core/note"
 import { Select, FieldGroup, SectionCard, IconButton, Button, TextInput, Label } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
@@ -72,7 +73,7 @@ export function RightPanel({
 }: {
   open: boolean
   onClose: () => void
-  mode?: "melody" | "phrase"
+  mode?: "melody" | "phrase" | "counter" | "decoration"
 }) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
@@ -85,6 +86,9 @@ export function RightPanel({
   const variant = useActiveVariant()
 
   const override = project.song.sectionProfileOverrides.find((o) => o.sectionId === selectedSectionId)
+  const selectedSection = project.sections.find(
+    (section) => section.id === selectedSectionId,
+  )
   const selected = generationSettings.selectedGeneratorProfiles
   const custom = generationSettings.customRange
 
@@ -168,7 +172,10 @@ export function RightPanel({
         </div>
       </SectionCard>}
 
-      {mode === "melody" && (
+      {(mode === "melody" ||
+        mode === "phrase" ||
+        mode === "counter" ||
+        mode === "decoration") && (
         <SectionCard
           title="Technique Fit 実験"
           className="w-full min-w-0"
@@ -222,20 +229,40 @@ export function RightPanel({
                   generationSettings.techniqueExperimentPresetId,
               ).map((preset) => (
                 <div key={preset.id}>
+                  {(() => {
+                    const generatorTarget =
+                      mode === "phrase"
+                        ? "phrase"
+                        : mode === "counter"
+                          ? "counter"
+                          : mode === "decoration"
+                            ? "decoration"
+                            : "melody"
+                    const validationLevel =
+                      preset.targetValidationLevels[
+                        generatorTarget
+                      ] ?? "exploratory"
+                    const recommendedSectionRoles =
+                      preset.recommendedSectionRolesByTarget?.[
+                        generatorTarget
+                      ] ?? []
+                    return (
+                      <>
                   <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px]">
                     <span
                       className={clsx(
                         "rounded-full border px-1.5 py-0.5",
-                        preset.validationLevel === "confirmed"
+                        validationLevel === "confirmed"
                           ? "border-emerald-400/40 text-emerald-300"
                           : "border-amber-400/40 text-amber-300",
                       )}
                     >
-                      {preset.validationLevel === "confirmed"
+                      {validationLevel === "confirmed"
                         ? "100 seed確認済み"
                         : "探索中"}
                     </span>
-                    {preset.recommendedProfiles.length > 0 && (
+                    {mode === "melody" &&
+                      preset.recommendedProfiles.length > 0 && (
                       <span className="text-ink-muted-48">
                         推奨:{" "}
                         {preset.recommendedProfiles
@@ -246,6 +273,18 @@ export function RightPanel({
                           .join("・")}
                       </span>
                     )}
+                    {generatorTarget !== "melody" &&
+                      recommendedSectionRoles.length > 0 && (
+                        <span className="text-ink-muted-48">
+                          推奨:{" "}
+                          {recommendedSectionRoles
+                            .map(
+                              (role) =>
+                                SECTION_ROLE_LABELS[role],
+                            )
+                            .join("・")}
+                        </span>
+                      )}
                   </div>
                   <p className="text-[11px] text-ink-muted-48">
                     {preset.description}
@@ -255,7 +294,8 @@ export function RightPanel({
                       <li key={name}>{name}</li>
                     ))}
                   </ul>
-                  {preset.recommendedProfiles.length > 0 &&
+                  {mode === "melody" &&
+                    preset.recommendedProfiles.length > 0 &&
                     !selected.some((profile) =>
                       preset.recommendedProfiles.includes(profile),
                     ) && (
@@ -263,6 +303,19 @@ export function RightPanel({
                         現在選択中のGenerator Profileは自動検証済みの推奨対象外です。
                       </p>
                     )}
+                  {generatorTarget !== "melody" &&
+                    recommendedSectionRoles.length > 0 &&
+                    selectedSection &&
+                    !recommendedSectionRoles.includes(
+                      selectedSection.role,
+                    ) && (
+                      <p className="mt-2 text-[10px] text-amber-300/90">
+                        現在のSection Roleは自動検証済みの推奨対象外です。
+                      </p>
+                    )}
+                      </>
+                    )
+                  })()}
                 </div>
               ))}
               <p className="border-t border-hairline pt-2 text-[10px] text-amber-300/90">
@@ -273,6 +326,7 @@ export function RightPanel({
         </SectionCard>
       )}
 
+      {(mode === "melody" || mode === "phrase") && (
       <SectionCard title="生成パラメータ" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
@@ -345,6 +399,7 @@ export function RightPanel({
           </p>
         </div>
       </SectionCard>
+      )}
 
       {mode === "melody" && <SectionCard title="特徴量" className="w-full min-w-0">
         {variant?.generatorProfile && (

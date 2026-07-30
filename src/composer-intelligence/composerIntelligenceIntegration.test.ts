@@ -331,10 +331,82 @@ describe("Composer Intelligence / Generator execution boundary", () => {
       recommendedProfiles: ["elegiac-cantabile"],
     })
     expect(
+      techniqueExperimentPreset("negative-space-groove"),
+    ).toMatchObject({
+      targetValidationLevels: {
+        phrase: "confirmed",
+        counter: "confirmed",
+        decoration: "confirmed",
+      },
+      recommendedSectionRolesByTarget: {
+        phrase: ["pre-chorus", "chorus", "outro"],
+        counter: ["intro", "verse"],
+        decoration: [
+          "intro",
+          "verse",
+          "pre-chorus",
+          "chorus",
+          "bridge",
+          "outro",
+        ],
+      },
+    })
+    expect(
+      techniqueExperimentPreset(
+        "stable-loop-local-mutation",
+      ),
+    ).toMatchObject({
+      targetValidationLevels: { decoration: "confirmed" },
+      recommendedSectionRolesByTarget: {
+        decoration: [
+          "intro",
+          "verse",
+          "pre-chorus",
+          "chorus",
+          "bridge",
+          "outro",
+        ],
+      },
+    })
+    expect(
       techniqueExperimentRules(
         "negative-space-groove",
         context,
       ),
     ).toHaveLength(1)
+    const phraseRules = techniqueExperimentRules(
+      "stable-loop-local-mutation",
+      {
+        generatorTarget: "phrase",
+        sectionRole: "verse",
+      },
+    )
+    expect(phraseRules).toHaveLength(1)
+    expect(
+      phraseRules[0].prefer.developmentStrategy,
+    ).toBeDefined()
+    expect(phraseRules[0].when.generatorTargets).toEqual([
+      "phrase",
+    ])
+    const counterRules = techniqueExperimentRules(
+      "stable-loop-local-mutation",
+      {
+        generatorTarget: "counter",
+        sectionRole: "verse",
+      },
+    )
+    expect(counterRules).toHaveLength(1)
+    expect(counterRules[0].prefer.partRole).toBeDefined()
+    const decorationRules = techniqueExperimentRules(
+      "negative-space-groove",
+      {
+        generatorTarget: "decoration",
+        sectionRole: "outro",
+      },
+    )
+    expect(decorationRules).toHaveLength(1)
+    expect(
+      decorationRules[0].prefer.decorationGestureRole,
+    ).toBeDefined()
   })
 })

@@ -5,6 +5,7 @@ import { SeededRandom } from "@/core/rng"
 import type { SectionRole } from "@/core/section"
 import {
   pickTechniquePreference,
+  techniquePreferenceWeight,
   type ResolvedComposerRules,
 } from "@/composer-intelligence"
 import type {
@@ -69,6 +70,8 @@ export interface GenerateDecorationInput {
   arrangementContext?: DecorationArrangementContext
   preferenceProfile?: DecorationPreferenceProfile
   composerRules?: ResolvedComposerRules
+  /** A/B実験時だけ有効にする、候補選抜におけるTechnique Fitの補助比率。 */
+  techniqueFitSelectionWeight?: number
 }
 
 export interface DecorationArrangementContext {
@@ -1388,7 +1391,7 @@ function planFor(
     gestureShapes.length > 0
       ? gestureShapes[poolIndex % gestureShapes.length]
       : generatedShape
-  const shape = preferredValue(
+  const preferredShape = preferredValue(
     roleShape,
     input.preferenceProfile?.favoriteShapes,
     input.preferenceProfile?.rejectedShapes,
@@ -1398,6 +1401,22 @@ function planFor(
       (!characterShapes || characterShapes.includes(value)),
     poolIndex,
   )
+  const compatibleShapes = SHAPES_BY_GESTURE[gestureRole].filter(
+    (value) =>
+      SHAPES_BY_TYPE[type].includes(value) &&
+      (!characterShapes || characterShapes.includes(value)),
+  )
+  const shape =
+    input.composerRules?.preferences.decorationShape &&
+    compatibleShapes.length > 0
+      ? pickTechniquePreference(
+          rng,
+          input.composerRules,
+          "decorationShape",
+          compatibleShapes,
+          preferredShape,
+        )
+      : preferredShape
   const generatedRhythm = resolveRhythmStyle(
     type,
     character,
@@ -1411,7 +1430,7 @@ function planFor(
     gestureRhythms.length > 0
       ? gestureRhythms[poolIndex % gestureRhythms.length]
       : generatedRhythm
-  const rhythmStyle = preferredValue(
+  const preferredRhythm = preferredValue(
     roleRhythm,
     input.preferenceProfile?.favoriteRhythms,
     input.preferenceProfile?.rejectedRhythms,
@@ -1420,6 +1439,22 @@ function planFor(
       RHYTHMS_BY_GESTURE[gestureRole].includes(value),
     poolIndex,
   )
+  const compatibleRhythms = RHYTHMS_BY_GESTURE[
+    gestureRole
+  ].filter((value) =>
+    RHYTHMS_BY_CHARACTER[character].includes(value),
+  )
+  const rhythmStyle =
+    input.composerRules?.preferences.decorationRhythmStyle &&
+    compatibleRhythms.length > 0
+      ? pickTechniquePreference(
+          rng,
+          input.composerRules,
+          "decorationRhythmStyle",
+          compatibleRhythms,
+          preferredRhythm,
+        )
+      : preferredRhythm
   const boundaries = phraseBoundaries(
     input.melodyNotes ?? [],
     input.totalBeats,
@@ -1520,6 +1555,57 @@ function planFor(
   }
 }
 
+function normalizedDecorationPreferenceWeight(
+  composerRules: ResolvedComposerRules | undefined,
+  axis:
+    | "decorationGestureRole"
+    | "decorationShape"
+    | "decorationRhythmStyle"
+    | "phraseDensity",
+  value: string,
+): number | undefined {
+  const preference = composerRules?.preferences[axis]
+  if (!preference || preference.values.length === 0) return undefined
+  const maximum = Math.max(
+    ...preference.values.map((candidate) => candidate.weight),
+  )
+  return maximum > 0
+    ? techniquePreferenceWeight(composerRules, axis, value) / maximum
+    : undefined
+}
+
+export function decorationTechniqueFitScore(
+  plan: DecorationPlan | undefined,
+  composerRules?: ResolvedComposerRules,
+): number | undefined {
+  if (!plan) return undefined
+  const pairs = [
+    ["decorationGestureRole", plan.gestureRole],
+    ["decorationShape", plan.shape],
+    ["decorationRhythmStyle", plan.rhythmStyle],
+    ["phraseDensity", plan.density],
+  ] as const
+  const values = pairs.flatMap(([axis, value]) => {
+    if (!value) return []
+    const score = normalizedDecorationPreferenceWeight(
+      composerRules,
+      axis,
+      value,
+    )
+    return score === undefined ? [] : [score]
+  })
+  return values.length > 0
+    ? Math.max(
+        0,
+        Math.min(
+          1,
+          values.reduce((sum, value) => sum + value, 0) /
+            values.length,
+        ),
+      )
+    : undefined
+}
+
 function buildCandidate(
   input: GenerateDecorationInput,
   poolIndex: number,
@@ -1585,6 +1671,10 @@ function buildCandidate(
     seed,
     quality: evaluated.quality,
     collisions: evaluated.collisions,
+    techniqueFitScore: decorationTechniqueFitScore(
+      plan,
+      input.composerRules,
+    ),
     reviewState: null,
     createdAt: new Date(0).toISOString(),
   }
@@ -1595,6 +1685,12 @@ export function generateDecorationCandidates(
   input: GenerateDecorationInput,
 ): ReactiveLayerCandidate[] {
   const finalCount = input.candidateCount ?? 10
+  const techniqueFitSelectionWeight =
+    input.techniqueFitSelectionWeight ?? 0
+  const structuralWeight = Math.max(
+    0,
+    1 - techniqueFitSelectionWeight,
+  )
   const fingerprint = decorationFingerprintForInput(input)
   const poolWithDuplicates = Array.from(
     { length: Math.max(80, finalCount * 8) },
@@ -1613,10 +1709,18 @@ export function generateDecorationCandidates(
     )
     .sort(
       (a, b) =>
-        b.quality.overallQuality +
-          (b.decorationPlan?.preferenceMatch ?? 50) * 0.08 -
-        (a.quality.overallQuality +
-          (a.decorationPlan?.preferenceMatch ?? 50) * 0.08),
+        (b.quality.overallQuality +
+          (b.decorationPlan?.preferenceMatch ?? 50) * 0.08) *
+          structuralWeight +
+          (b.techniqueFitScore ?? 0) *
+            100 *
+            techniqueFitSelectionWeight -
+        ((a.quality.overallQuality +
+          (a.decorationPlan?.preferenceMatch ?? 50) * 0.08) *
+          structuralWeight +
+          (a.techniqueFitScore ?? 0) *
+            100 *
+            techniqueFitSelectionWeight),
     )
   const pool = poolWithDuplicates.filter(
     (candidate, index, candidates) =>
@@ -1693,9 +1797,19 @@ export function generateDecorationCandidates(
         return {
           candidate,
           score:
-            candidate.quality.overallQuality * 0.55 +
-            (1 - maximumSimilarity) * 100 * 0.35 +
-            (candidate.decorationPlan?.preferenceMatch ?? 50) * 0.1,
+            candidate.quality.overallQuality *
+              0.55 *
+              structuralWeight +
+            (1 - maximumSimilarity) *
+              100 *
+              0.35 *
+              structuralWeight +
+            (candidate.decorationPlan?.preferenceMatch ?? 50) *
+              0.1 *
+              structuralWeight +
+            (candidate.techniqueFitScore ?? 0) *
+              100 *
+              techniqueFitSelectionWeight,
         }
       })
       .sort((a, b) => b.score - a.score)[0]?.candidate
