@@ -34,6 +34,7 @@ function hasRoleAppropriateLength(
 ): boolean {
   const role = candidate.decorationPlan?.gestureRole
   const minimum = role === "pedal" ? 1 : role === "swell" ? 2 : 3
+  if (role === "response") return candidate.notes.length >= 2
   return candidate.notes.length >= minimum
 }
 
@@ -200,7 +201,7 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
     ).toBe(true)
   })
 
-  it("Active Melodyの短い空白へ長さを縮め、無理に重ねない", () => {
+  it("短いMelody GapはResponseだけへ使い、長い色彩とTransitionを1拍へ潰さない", () => {
     const melodyNotes = [
       { id: "m1", startBeat: 0, durationBeats: 3, pitch: 64, velocity: 80, locks: [] },
       { id: "m2", startBeat: 4, durationBeats: 3, pitch: 67, velocity: 80, locks: [] },
@@ -211,26 +212,165 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
       input({
         settings: {
           ...DEFAULT_DECORATION_SETTINGS,
-          type: "decorative-fill",
           length: 4,
         },
         melodyNotes,
       }),
     )
     expect(candidates.length).toBeGreaterThan(0)
+    const responses = candidates.filter(
+      (candidate) =>
+        candidate.decorationPlan?.gestureRole === "response",
+    )
+    const sustained = candidates.filter(
+      (candidate) =>
+        candidate.decorationPlan?.gestureRole === "pedal" ||
+        candidate.decorationPlan?.gestureRole === "swell",
+    )
+    const directional = candidates.filter(
+      (candidate) =>
+        candidate.decorationPlan?.gestureRole === "transition" ||
+        candidate.decorationPlan?.gestureRole === "pickup",
+    )
+    expect(responses.length).toBeGreaterThan(0)
     expect(
-      candidates.every(
-        (candidate) => (candidate.decorationPlan?.lengthBeats ?? 4) <= 1,
+      responses.every(
+        (candidate) =>
+          (candidate.decorationPlan?.lengthBeats ?? 4) <= 1 &&
+          candidate.notes.length <= 2,
       ),
     ).toBe(true)
     expect(
-      candidates.every((candidate) => candidate.notes.length <= 2),
+      sustained.some(
+        (candidate) =>
+          (candidate.decorationPlan?.lengthBeats ?? 0) >= 4,
+      ),
+    ).toBe(true)
+    expect(
+      directional.some(
+        (candidate) =>
+          (candidate.decorationPlan?.lengthBeats ?? 0) >= 2 &&
+          candidate.notes.length >= 3,
+      ),
+    ).toBe(true)
+    expect(
+      new Set(
+        candidates.map(
+          (candidate) => candidate.decorationPlan?.lengthBeats,
+        ),
+      ).size,
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      new Set(candidates.map((candidate) => candidate.notes.length))
+        .size,
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      candidates.some(
+        (candidate) =>
+          candidate.notes.length >= 3 &&
+          candidate.notes
+            .slice(1)
+            .some(
+              (note, index) =>
+                note.pitch !== candidate.notes[index].pitch,
+            ),
+      ),
     ).toBe(true)
     expect(
       candidates.every(
         (candidate) => !candidate.collisions.hasBlockingCollision,
       ),
     ).toBe(true)
+  })
+
+  it("Active Melodyありでも各batchに異なる聴感Archetypeを維持する", () => {
+    const melodyNotes = Array.from({ length: 8 }, (_, index) => ({
+      id: `melody-${index}`,
+      startBeat: index * 2,
+      durationBeats: 1,
+      pitch: [64, 67, 69, 72, 71, 69, 67, 64][index],
+      velocity: 80,
+      locks: [],
+    }))
+    for (const seed of [1, 42, 2026]) {
+      const candidates = generateDecorationCandidates(
+        input({ melodyNotes, seed }),
+      )
+      const audibleSignatures = new Set(
+        candidates.map((candidate) => {
+          const plan = candidate.decorationPlan!
+          const intervals = candidate.notes
+            .slice(1)
+            .map(
+              (note, index) =>
+                note.pitch - candidate.notes[index].pitch,
+            )
+            .join(",")
+          const relativeOnsets = candidate.notes
+            .map((note) =>
+              Number(
+                (
+                  note.startBeat - plan.placementBeat
+                ).toFixed(3),
+              ),
+            )
+            .join(",")
+          return [
+            plan.gestureRole,
+            plan.lengthBeats,
+            candidate.notes.length,
+            intervals,
+            relativeOnsets,
+          ].join("|")
+        }),
+      )
+      expect(candidates).toHaveLength(10)
+      expect(
+        new Set(
+          candidates.map(
+            (candidate) =>
+              candidate.decorationPlan?.gestureRole,
+          ),
+        ).size,
+      ).toBeGreaterThanOrEqual(4)
+      expect(
+        new Set(
+          candidates.map(
+            (candidate) =>
+              candidate.decorationPlan?.lengthBeats,
+          ),
+        ).size,
+      ).toBeGreaterThanOrEqual(3)
+      expect(
+        new Set(candidates.map((candidate) => candidate.notes.length))
+          .size,
+      ).toBeGreaterThanOrEqual(4)
+      expect(audibleSignatures.size).toBeGreaterThanOrEqual(8)
+      expect(
+        candidates.every(
+          (candidate) =>
+            candidate.quality.overallQuality >= 68 &&
+            !candidate.collisions.hasBlockingCollision,
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it("楽曲終端でも4種類以上のGesture Roleを維持する", () => {
+    const candidates = generateDecorationCandidates(
+      input({
+        seed: 71,
+        isLastSection: true,
+      }),
+    )
+
+    expect(
+      new Set(
+        candidates.map(
+          (candidate) => candidate.decorationPlan?.gestureRole,
+        ),
+      ).size,
+    ).toBeGreaterThanOrEqual(4)
   })
 
   it("Type・Character・Length・Density・Direction指定を実音計画へ反映する", () => {

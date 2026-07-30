@@ -132,6 +132,12 @@ export function DecorationWorkspace() {
     [],
   )
 
+  useEffect(() => {
+    setPreviewMode(
+      activeMelody ? "chords-melody-reactive" : "chords-reactive",
+    )
+  }, [activeMelody, selectedSectionId])
+
   if (!section) {
     return (
       <main className="flex flex-1 items-center justify-center text-ink-muted-48">
@@ -388,6 +394,9 @@ export function DecorationWorkspace() {
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {GESTURE_LABELS[plan?.gestureRole ?? ""] ??
                           "Gesture"}
+                      </span>
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        {plan?.lengthBeats ?? 0} beats
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {NEED_LABELS[plan?.needLevel ?? ""] ?? "Optional"}

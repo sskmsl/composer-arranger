@@ -341,14 +341,7 @@ describe("Composer Intelligence / Generator execution boundary", () => {
       recommendedSectionRolesByTarget: {
         phrase: ["pre-chorus", "chorus", "outro"],
         counter: ["intro", "verse"],
-        decoration: [
-          "intro",
-          "verse",
-          "pre-chorus",
-          "chorus",
-          "bridge",
-          "outro",
-        ],
+        decoration: ["outro"],
       },
     })
     expect(
@@ -358,14 +351,7 @@ describe("Composer Intelligence / Generator execution boundary", () => {
     ).toMatchObject({
       targetValidationLevels: { decoration: "confirmed" },
       recommendedSectionRolesByTarget: {
-        decoration: [
-          "intro",
-          "verse",
-          "pre-chorus",
-          "chorus",
-          "bridge",
-          "outro",
-        ],
+        decoration: ["outro"],
       },
     })
     expect(

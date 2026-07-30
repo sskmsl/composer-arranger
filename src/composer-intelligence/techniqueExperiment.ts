@@ -326,14 +326,7 @@ export const TECHNIQUE_EXPERIMENT_PRESETS: readonly TechniqueExperimentPreset[] 
       recommendedSectionRolesByTarget: {
         phrase: ["pre-chorus", "chorus", "outro"],
         counter: ["intro", "verse"],
-        decoration: [
-          "intro",
-          "verse",
-          "pre-chorus",
-          "chorus",
-          "bridge",
-          "outro",
-        ],
+        decoration: ["outro"],
       },
       rules: [NEGATIVE_SPACE_GROOVE_RULE],
       rulesByTarget: {
@@ -357,14 +350,7 @@ export const TECHNIQUE_EXPERIMENT_PRESETS: readonly TechniqueExperimentPreset[] 
       },
       recommendedProfiles: [],
       recommendedSectionRolesByTarget: {
-        decoration: [
-          "intro",
-          "verse",
-          "pre-chorus",
-          "chorus",
-          "bridge",
-          "outro",
-        ],
+        decoration: ["outro"],
       },
       rules: [STABLE_LOOP_LOCAL_MUTATION_RULE],
       rulesByTarget: {
