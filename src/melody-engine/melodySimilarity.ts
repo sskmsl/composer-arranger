@@ -1,4 +1,5 @@
 import type {
+  CandidateMelodyDNA,
   MelodyNote,
   MelodyOpeningPlan,
   MelodySimilarityBreakdown,
@@ -52,6 +53,8 @@ export interface MelodySimilarityCandidate {
   notes: MelodyNote[]
   plans: PhrasePlan[]
   openingPlan?: MelodyOpeningPlan
+  /** 候補全体のClimax計画。Phrase Plan個別の局所Climaxより優先する。 */
+  candidateMelodyDNA?: CandidateMelodyDNA
 }
 
 function sortedNotes(notes: MelodyNote[]): MelodyNote[] {
@@ -139,7 +142,10 @@ function motifRecurrence(intervals: number[]): number[] {
 }
 
 export function extractMelodySimilarityFeatures(
-  candidate: Pick<MelodySimilarityCandidate, "notes" | "plans">,
+  candidate: Pick<
+    MelodySimilarityCandidate,
+    "notes" | "plans" | "candidateMelodyDNA"
+  >,
   harmonicMap: HarmonicMapEntry[],
 ): MelodySimilarityFeatures {
   const notes = sortedNotes(candidate.notes)
@@ -158,7 +164,13 @@ export function extractMelodySimilarityFeatures(
   const highest = pitches.length ? Math.max(...pitches) : 0
   const highestIndex = pitches.indexOf(highest)
   const highestNotePosition = highestIndex >= 0 ? notes[highestIndex].startBeat / totalBeats : 0
-  const plannedClimax = candidate.plans[0]?.climaxBeat ?? notes[highestIndex]?.startBeat ?? 0
+  // PhrasePlan.climaxBeatは各Phrase内の局所Climaxであり、plans[0]だけでは
+  // 候補全体のClimax位置を表せない。全体DNAがある生成候補ではその計画値を使い、
+  // 旧データや手動候補では実音の最高音位置へフォールバックする。
+  const plannedClimax =
+    candidate.candidateMelodyDNA?.climaxPlan.targetFraction !== undefined
+      ? candidate.candidateMelodyDNA.climaxPlan.targetFraction * totalBeats
+      : notes[highestIndex]?.startBeat ?? 0
   const cadenceNotes = notes.slice(-5)
   const cadencePitches = cadenceNotes.map((n) => n.pitch)
 

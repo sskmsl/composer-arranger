@@ -94,10 +94,22 @@ export function MelodyWorkspace() {
   const candidateGroups = useMemo(() => {
     const groups: { key: string; label: string; items: { variant: MelodyVariant; index: number; patternLabel: string }[] }[] = []
     batch.forEach((v, index) => {
-      const key = v.generatorProfile ?? `content:${resolvedLeadContent(v)}`
-      const label = v.generatorProfile
+      const experimentSuffix = v.techniqueExperiment
+        ? `:${v.techniqueExperiment.mode}`
+        : ""
+      const key = v.generatorProfile
+        ? `${v.generatorProfile}${experimentSuffix}`
+        : `content:${resolvedLeadContent(v)}${experimentSuffix}`
+      const baseLabel = v.generatorProfile
         ? GENERATOR_PROFILE_LABELS[v.generatorProfile]
         : LEAD_CONTENT_LABELS[resolvedLeadContent(v)]
+      const label = v.techniqueExperiment
+        ? `${baseLabel} · ${
+            v.techniqueExperiment.mode === "baseline"
+              ? "Normal"
+              : "Technique"
+          }`
+        : baseLabel
       let group = groups.find((g) => g.key === key)
       if (!group) {
         group = { key, label, items: [] }
@@ -158,6 +170,30 @@ export function MelodyWorkspace() {
                 ? "Content Diversity"
                 : "Quality + Diversity"}
           </Pill>
+        )}
+        {variant?.techniqueExperiment && (
+          <>
+            <Pill active>
+              A/B:{" "}
+              {variant.techniqueExperiment.mode === "baseline"
+                ? "Normal"
+                : variant.techniqueExperiment.presetLabel}
+            </Pill>
+            <Pill
+              title={`Quality ${Math.round(
+                variant.generationDiagnostics?.qualityScore ?? 0,
+              )}`}
+            >
+              Fit{" "}
+              {variant.generationDiagnostics?.techniqueFitScore ===
+              undefined
+                ? "—"
+                : `${Math.round(
+                    variant.generationDiagnostics
+                      .techniqueFitScore * 100,
+                  )}%`}
+            </Pill>
+          </>
         )}
       </div>
 

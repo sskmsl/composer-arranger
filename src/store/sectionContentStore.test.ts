@@ -37,6 +37,7 @@ function projectWithSection(): ComposerProject {
 }
 
 beforeEach(() => {
+  const settings = useProjectStore.getState().generationSettings
   useProjectStore.setState({
     project: projectWithSection(),
     selectedSectionId: "s1",
@@ -45,6 +46,11 @@ beforeEach(() => {
     history: [],
     future: [],
     workflowNotice: null,
+    generationSettings: {
+      ...settings,
+      selectedGeneratorProfiles: ["standard"],
+      techniqueExperimentPresetId: null,
+    },
   })
   stubPersist()
 })
@@ -59,6 +65,42 @@ describe("Issue #41 / generateForSectionがContent設定で経路を切り替え
       // 従来経路はGenerator Profileを持つ
       expect(variant.generatorProfile).toBeDefined()
     }
+  })
+
+  it("Technique実験では同じbase seedのNormal 3案とTreatment 3案を生成する", () => {
+    useProjectStore.getState().setGenerationSettings({
+      techniqueExperimentPresetId: "space-microvariation",
+    })
+    useProjectStore.getState().generateForSection("s1")
+    const variants =
+      useProjectStore.getState().project.melodyVariants
+    expect(variants).toHaveLength(6)
+    expect(
+      variants.filter(
+        (variant) =>
+          variant.techniqueExperiment?.mode === "baseline",
+      ),
+    ).toHaveLength(3)
+    const treatment = variants.filter(
+      (variant) =>
+        variant.techniqueExperiment?.mode === "treatment",
+    )
+    expect(treatment).toHaveLength(3)
+    expect(
+      treatment.every(
+        (variant) =>
+          variant.generationDiagnostics?.techniqueFitScore !==
+          undefined,
+      ),
+    ).toBe(true)
+    expect(
+      new Set(
+        variants.map(
+          (variant) =>
+            variant.generationDiagnostics?.batchBaseSeed,
+        ),
+      ).size,
+    ).toBe(1)
   })
 
   it("Droneを選ぶとcontent専用経路を通り、伴奏Layerを持つ候補が生成される", () => {

@@ -16,7 +16,13 @@ const plans: PhrasePlan[] = [
   { phraseStartBeat: 0, phraseLengthBeats: 8, climaxBeat: 5, contour: "arch", restBeats: [], endTension: 0.2 },
 ]
 
-function candidate(index: number, quality: number, pitches: number[], starts?: number[]): SelectableCandidate {
+function candidate(
+  index: number,
+  quality: number,
+  pitches: number[],
+  starts?: number[],
+  techniqueFitScore?: number,
+): SelectableCandidate {
   const melody: MelodyNote[] = pitches.map((pitch, noteIndex) => ({
     id: `${index}-${noteIndex}`,
     startBeat: starts?.[noteIndex] ?? noteIndex,
@@ -29,6 +35,7 @@ function candidate(index: number, quality: number, pitches: number[], starts?: n
     candidatePoolIndex: index,
     qualityScore: quality,
     profileFitScore: quality,
+    techniqueFitScore,
     notes: melody,
     plans,
   }
@@ -58,6 +65,37 @@ describe("品質下限つき多様性選抜", () => {
     const result = selectDiverseCandidates(pool, map, 40)
     expect(result.selected.map((item) => item.candidate.candidatePoolIndex)).not.toContain(3)
     expect(result.belowQualityFloor.map((item) => item.candidatePoolIndex)).toContain(3)
+  })
+
+  it("品質差が小さい場合だけTechnique適合度を選抜へ反映する", () => {
+    const pool = [
+      candidate(0, 90, [60, 62, 64, 65], undefined, 0),
+      candidate(1, 89, [67, 65, 64, 62], undefined, 1),
+      candidate(2, 88, [60, 64, 61, 67], undefined, 0.5),
+    ]
+    const result = selectDiverseCandidates(pool, map, 40, 3, {
+      techniqueFitWeight: 0.1,
+    })
+    expect(result.selected[0].candidate.candidatePoolIndex).toBe(1)
+  })
+
+  it("Technique適合度が高くても品質下限未満は採用しない", () => {
+    const pool = [
+      candidate(0, 90, [60, 62, 64, 65], undefined, 0),
+      candidate(1, 85, [67, 65, 64, 62], undefined, 0),
+      candidate(2, 20, [60, 64, 61, 67], undefined, 1),
+    ]
+    const result = selectDiverseCandidates(pool, map, 40, 3, {
+      techniqueFitWeight: 0.1,
+    })
+    expect(
+      result.selected.map((item) => item.candidate.candidatePoolIndex),
+    ).not.toContain(2)
+    expect(
+      result.belowQualityFloor.map(
+        (item) => item.candidatePoolIndex,
+      ),
+    ).toContain(2)
   })
 
   it("同じ候補プールでは選抜結果が再現される", () => {

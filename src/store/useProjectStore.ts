@@ -88,7 +88,12 @@ import {
   type DecorationSettings,
   type GenerateDecorationInput,
 } from "@/melody-engine/decorationGenerator"
-import { resolvePublicComposerRules } from "@/composer-intelligence"
+import {
+  resolvePublicComposerRules,
+  techniqueExperimentPreset,
+  techniqueExperimentRules,
+  type TechniqueExperimentPresetId,
+} from "@/composer-intelligence"
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -104,6 +109,8 @@ interface GenerationSettings {
   drama: Drama
   /** Melody Candidate Diversity v1.2: 有効化するGenerator Profile(未選択時はStandardのみ) */
   selectedGeneratorProfiles: MelodyGeneratorProfile[]
+  /** セッション限定。Draft TechniqueのLifecycleは変更しない。 */
+  techniqueExperimentPresetId: TechniqueExperimentPresetId | null
 }
 
 interface ProjectState {
@@ -466,6 +473,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     customRange: RANGE_PRESETS.middle,
     drama: "growing",
     selectedGeneratorProfiles: ["standard"],
+    techniqueExperimentPresetId: null,
   },
   history: [],
   future: [],
@@ -944,7 +952,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return
     }
 
-    const { candidates } = generateFromChordsWithProfiles({
+    const baseSeed = createSeed()
+    const ruleContext = {
+      generatorTarget: "melody" as const,
+      sectionRole: section.role,
+    }
+    const commonGenerationInput = {
       chords: windowChords,
       sectionId,
       sectionRole: section.role,
@@ -953,23 +966,75 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       range,
       drama: settings.drama,
       totalBeats: windowBeats,
-      seed: createSeed(),
+      seed: baseSeed,
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
       key: prev.song.key,
       // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
       transitionContext:
         window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,
-      composerRules: resolvePublicComposerRules({
-        generatorTarget: "melody",
-        sectionRole: section.role,
-      }),
-    })
+    }
+    const experimentPresetId =
+      settings.techniqueExperimentPresetId
+    const experimentPreset = experimentPresetId
+      ? techniqueExperimentPreset(experimentPresetId)
+      : null
+    const generatedGroups = experimentPreset
+      ? [
+          {
+            mode: "baseline" as const,
+            candidates: generateFromChordsWithProfiles({
+              ...commonGenerationInput,
+              composerRules:
+                resolvePublicComposerRules(ruleContext),
+              techniqueFitSelectionWeight: 0,
+            }).candidates,
+          },
+          {
+            mode: "treatment" as const,
+            candidates: generateFromChordsWithProfiles({
+              ...commonGenerationInput,
+              composerRules: resolvePublicComposerRules(
+                ruleContext,
+                techniqueExperimentRules(
+                  experimentPreset.id,
+                  ruleContext,
+                ),
+              ),
+            }).candidates,
+          },
+        ]
+      : [
+          {
+            mode: null,
+            candidates: generateFromChordsWithProfiles({
+              ...commonGenerationInput,
+              composerRules:
+                resolvePublicComposerRules(ruleContext),
+            }).candidates,
+          },
+        ]
+    const taggedCandidates = generatedGroups.flatMap((group) =>
+      group.candidates.map((candidate) => ({
+        candidate,
+        experimentMode: group.mode,
+      })),
+    )
 
     const harmonicMap = buildHarmonicMap(chords)
     const batchId = crypto.randomUUID()
-    const variants: MelodyVariant[] = candidates.map((c) => {
+    const variants: MelodyVariant[] = taggedCandidates.map(
+      ({ candidate: c, experimentMode }) => {
       const v = toMelodyVariantFromProfile(sectionId, profile, c, batchId)
+      if (experimentPreset && experimentMode) {
+        v.techniqueExperiment = {
+          presetId: experimentPreset.id,
+          presetLabel: experimentPreset.label,
+          mode: experimentMode,
+          techniqueNames: [...experimentPreset.techniqueNames],
+        }
+        v.name = `${experimentMode === "baseline" ? "Normal" : experimentPreset.label} · ${v.name}`
+      }
       if (!fullSection) {
         // 窓相対で作った実音をセクション相対へ戻し、Layer/notesを一致させる
         v.notes = shiftNotesToSection(v.notes, window)
@@ -1021,7 +1086,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       }
       v.features = computeMelodyFeatures(v.notes, harmonicMap, 0, totalBeats)
       return v
-    })
+      },
+    )
 
     set({
       history: [...get().history, snapshot(prev)],

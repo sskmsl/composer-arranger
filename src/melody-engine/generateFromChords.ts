@@ -56,6 +56,7 @@ import { SETTINGS_APPLICABILITY } from "./settingsApplicability"
 import {
   applyCandidateMelodyDNA,
   applyCandidateNarrative,
+  candidateTechniqueFitScore,
   phraseLengthsForDNA,
   planCandidateMelodyDNA,
   rangeForPhrase,
@@ -418,6 +419,8 @@ export interface GenerateProfileBatchInput {
   transitionContext?: SectionTransitionContext
   /** 固有名・Genreを含まないRule Resolver解決済みPreference。 */
   composerRules?: ResolvedComposerRules
+  /** 自動比較用。未指定時はRuleがある場合だけ既定値を使用する。 */
+  techniqueFitSelectionWeight?: number
 }
 
 export interface ProfileCandidate {
@@ -447,6 +450,7 @@ interface BuiltPattern {
   opening: MelodyOpeningPlan
   qualityScore: number
   profileFitScore: number
+  techniqueFitScore?: number
   candidatePoolIndex: number
   openingRegenerationAttempts: number
   placementDiagnostics: PlacementDiagnostics
@@ -520,6 +524,10 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         profile,
         candidatePoolIndex,
         baseParams.endTensionBias,
+        input.composerRules,
+      )
+      const techniqueFitScore = candidateTechniqueFitScore(
+        candidateMelodyDNA,
         input.composerRules,
       )
 
@@ -624,6 +632,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           opening,
           qualityScore,
           profileFitScore: fitScore,
+          techniqueFitScore,
           candidatePoolIndex,
           openingRegenerationAttempts,
           placementDiagnostics,
@@ -660,6 +669,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         opening,
         qualityScore,
         profileFitScore: fitScore,
+        techniqueFitScore,
         candidatePoolIndex,
         openingRegenerationAttempts,
         placementDiagnostics: c.placementDiagnostics,
@@ -730,6 +740,13 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       )
     }
 
+    const techniqueSelectionWeight = (): number =>
+      input.techniqueFitSelectionWeight ??
+      (input.composerRules &&
+      pool.some((candidate) => candidate.techniqueFitScore !== undefined)
+        ? CANDIDATE_SELECTION_CONFIG.techniqueFitWeight
+        : 0)
+
     const runSelection = () =>
       selectDiverseCandidates(
         pool.map((candidate) => ({ ...candidate, openingPlan: candidate.opening })),
@@ -743,6 +760,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           requireCandidateDNADiversity: true,
           requireTransitionStrategyDiversity: Boolean(input.transitionContext),
           minimumTransitionFitScore: input.transitionContext ? 55 : undefined,
+          techniqueFitWeight: techniqueSelectionWeight(),
         },
       )
 
@@ -765,7 +783,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         .filter((item) => item.candidate.candidatePoolIndex !== pattern.candidatePoolIndex)
         .map((item) =>
             melodySimilarity(
-              { notes: pattern.notes, plans: pattern.plans, openingPlan: pattern.opening },
+              {
+                notes: pattern.notes,
+                plans: pattern.plans,
+                openingPlan: pattern.opening,
+                candidateMelodyDNA: pattern.candidateMelodyDNA,
+              },
               item.candidate,
               harmonicMap,
             ),
@@ -773,8 +796,13 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       const rejectedDiversity = 1 - Math.max(...similarityToSelected.map((similarity) => similarity.overallSimilarity), 0)
       const diagnosticSelectionScore =
         selectedItem?.selectionScore ??
-        Math.max(0, Math.min(1, pattern.qualityScore / 100)) * CANDIDATE_SELECTION_CONFIG.qualityWeight +
-          rejectedDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight
+        Math.max(0, Math.min(1, pattern.qualityScore / 100)) *
+          CANDIDATE_SELECTION_CONFIG.qualityWeight *
+          (1 - techniqueSelectionWeight()) +
+          rejectedDiversity *
+            CANDIDATE_SELECTION_CONFIG.diversityWeight *
+            (1 - techniqueSelectionWeight()) +
+          (pattern.techniqueFitScore ?? 0) * techniqueSelectionWeight()
       allDiagnostics.push({
         batchBaseSeed: baseSeed,
         candidateSeed: pattern.seed,
@@ -782,6 +810,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         openingRegenerationAttempts: pattern.openingRegenerationAttempts,
         qualityScore: pattern.qualityScore,
         profileFitScore: pattern.profileFitScore,
+        techniqueFitScore: pattern.techniqueFitScore,
         selectionScore: diagnosticSelectionScore,
         selected: selectedPoolIndexes.has(pattern.candidatePoolIndex),
         reason: selectedItem?.reason ?? (belowFloor ? "below-quality-floor" : "not-selected"),

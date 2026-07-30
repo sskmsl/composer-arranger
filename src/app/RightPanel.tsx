@@ -16,6 +16,10 @@ import { GENERATION_SETTING_LABELS, profilesIgnoring, type GenerationSettingKey 
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
 import { X, Dna, AlertCircle } from "lucide-react"
+import {
+  TECHNIQUE_EXPERIMENT_PRESETS,
+  type TechniqueExperimentPresetId,
+} from "@/composer-intelligence"
 
 const PROFILE_OPTIONS = Object.keys(SONG_PROFILE_LABELS) as SongProfileId[]
 
@@ -164,6 +168,78 @@ export function RightPanel({
         </div>
       </SectionCard>}
 
+      {mode === "melody" && (
+        <SectionCard
+          title="Technique Fit 実験"
+          className="w-full min-w-0"
+        >
+          <label className="flex cursor-pointer items-start gap-2 text-[12px]">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-primary"
+              checked={
+                generationSettings.techniqueExperimentPresetId !==
+                null
+              }
+              onChange={(event) =>
+                setGenerationSettings({
+                  techniqueExperimentPresetId: event.target.checked
+                    ? TECHNIQUE_EXPERIMENT_PRESETS[0].id
+                    : null,
+                })
+              }
+            />
+            <span className="min-w-0">
+              同じseedでA/B比較する
+            </span>
+          </label>
+          {generationSettings.techniqueExperimentPresetId && (
+            <div className="mt-3 flex flex-col gap-2">
+              <FieldGroup label="Draft Preset">
+                <Select
+                  className="w-full min-w-0"
+                  value={
+                    generationSettings.techniqueExperimentPresetId
+                  }
+                  onChange={(event) =>
+                    setGenerationSettings({
+                      techniqueExperimentPresetId:
+                        event.target
+                          .value as TechniqueExperimentPresetId,
+                    })
+                  }
+                >
+                  {TECHNIQUE_EXPERIMENT_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </Select>
+              </FieldGroup>
+              {TECHNIQUE_EXPERIMENT_PRESETS.filter(
+                (preset) =>
+                  preset.id ===
+                  generationSettings.techniqueExperimentPresetId,
+              ).map((preset) => (
+                <div key={preset.id}>
+                  <p className="text-[11px] text-ink-muted-48">
+                    {preset.description}
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-[10px] text-ink-muted-48">
+                    {preset.techniqueNames.map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              <p className="border-t border-hairline pt-2 text-[10px] text-amber-300/90">
+                Draftの状態は変更しません。通常3案と適用3案を同時生成し、この設定はプロジェクトへ保存されません。
+              </p>
+            </div>
+          )}
+        </SectionCard>
+      )}
+
       <SectionCard title="生成パラメータ" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
@@ -249,6 +325,29 @@ export function RightPanel({
             入口: {OPENING_ENTRY_LABELS[variant.openingIntent.entryType]} · {OPENING_EMOTION_LABELS[variant.openingIntent.emotionalFunction]} ·{" "}
             {OPENING_REGISTER_LABELS[variant.openingIntent.register]} · {OPENING_DIRECTION_LABELS[variant.openingIntent.initialDirection]}
           </p>
+        )}
+        {variant?.techniqueExperiment && (
+          <div className="mb-3 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-2 text-[11px]">
+            <p className="font-medium text-primary-on-dark">
+              {variant.techniqueExperiment.mode === "baseline"
+                ? "A/B · Normal"
+                : `A/B · ${variant.techniqueExperiment.presetLabel}`}
+            </p>
+            {variant.generationDiagnostics?.techniqueFitScore !==
+              undefined && (
+              <p className="mt-1 text-ink-muted-48">
+                Technique Fit{" "}
+                {Math.round(
+                  variant.generationDiagnostics.techniqueFitScore *
+                    100,
+                )}
+                % · Quality{" "}
+                {Math.round(
+                  variant.generationDiagnostics.qualityScore,
+                )}
+              </p>
+            )}
+          </div>
         )}
         {variant?.features ? (
           <dl className="grid grid-cols-2 gap-x-2 gap-y-2 text-[12px]">
