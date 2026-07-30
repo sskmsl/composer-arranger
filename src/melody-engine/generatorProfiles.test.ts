@@ -129,9 +129,25 @@ describe("Speech-Rhythmic (§4, §12.2)", () => {
   })
 
   it("Rhythmicより同音反復率が高い", () => {
-    const speech = metricsFor(generateOne("speech-rhythmic", 22)[0].notes)
-    const rhythmic = metricsFor(generateOne("rhythmic", 22)[0].notes)
-    expect(speech.repeatedNoteRatio).toBeGreaterThan(rhythmic.repeatedNoteRatio)
+    // Pattern番号は品質順位や固定サブタイプを表さないため、単一Patternの
+    // 入れ替わりに依存せず、3候補×seed平均でProfile固有性を確認する。
+    let speech = 0
+    let rhythmic = 0
+    for (let seed = 1; seed <= 20; seed++) {
+      speech +=
+        generateOne("speech-rhythmic", seed).reduce(
+          (sum, candidate) =>
+            sum + metricsFor(candidate.notes).repeatedNoteRatio,
+          0,
+        ) / 3
+      rhythmic +=
+        generateOne("rhythmic", seed).reduce(
+          (sum, candidate) =>
+            sum + metricsFor(candidate.notes).repeatedNoteRatio,
+          0,
+        ) / 3
+    }
+    expect(speech).toBeGreaterThan(rhythmic)
   })
 
   it("standardよりフレーズ非対称性が高い(seed平均)", () => {

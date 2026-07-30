@@ -2,6 +2,7 @@ import { createTechniqueLibrary } from "./techniqueLibrary"
 import { resolveComposerRules } from "./ruleResolver"
 import { compileTechniqueRules } from "./techniqueResolver"
 import type {
+  ComposerRule,
   ComposerRuleContext,
   GenrePrinciple,
   ResolvedComposerRules,
@@ -16,12 +17,16 @@ export const PUBLIC_GENRE_PRINCIPLES: GenrePrinciple[] = []
 
 export function resolvePublicComposerRules(
   context: ComposerRuleContext,
+  additionalRules: ComposerRule[] = [],
 ): ResolvedComposerRules {
   return resolveComposerRules(
-    compileTechniqueRules(
-      PUBLIC_TECHNIQUE_LIBRARY,
-      PUBLIC_GENRE_PRINCIPLES,
-    ),
+    [
+      ...compileTechniqueRules(
+        PUBLIC_TECHNIQUE_LIBRARY,
+        PUBLIC_GENRE_PRINCIPLES,
+      ),
+      ...additionalRules,
+    ],
     context,
   )
 }

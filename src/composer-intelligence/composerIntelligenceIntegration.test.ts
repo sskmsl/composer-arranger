@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest"
 import { parseChordInputText } from "@/core/chordInput"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import { SeededRandom } from "@/core/rng"
-import { planCandidateMelodyDNA } from "@/melody-engine/candidateMelodyDNA"
+import {
+  candidateTechniqueFitScore,
+  planCandidateMelodyDNA,
+} from "@/melody-engine/candidateMelodyDNA"
 import { generateCounterCandidates } from "@/melody-engine/counterGenerator"
+import { generateFromChordsWithProfiles } from "@/melody-engine/generateFromChords"
 import {
   DEFAULT_DECORATION_SETTINGS,
   generateDecorationCandidates,
@@ -14,6 +18,8 @@ import {
 } from "@/phrase-engine/generatePhrases"
 import {
   resolveComposerRules,
+  resolvePublicComposerRules,
+  techniqueExperimentRules,
   type ComposerGeneratorTarget,
   type ComposerRule,
 } from "."
@@ -224,5 +230,96 @@ describe("Composer Intelligence / Generator execution boundary", () => {
     ).toBeGreaterThanOrEqual(3)
     expect(new Set(candidates.map((candidate) => candidate.motifIdentity)).size)
       .toBeGreaterThanOrEqual(2)
+  })
+
+  it("生成後のMelody DNAをTechnique Ruleとの適合度として採点する", () => {
+    const composerRules = rulesFor("melody", {
+      motifIdentity: [{ value: "repeated-cell", weight: 1 }],
+      rhythmGrammar: [{ value: "cyclic", weight: 1 }],
+    })
+    const matching = {
+      ...planCandidateMelodyDNA(
+        new SeededRandom(42),
+        "incantatory",
+        0,
+        0.5,
+      ),
+      motifIdentity: "repeated-cell" as const,
+      rhythmGrammar: "cyclic" as const,
+    }
+    const mismatching = {
+      ...matching,
+      motifIdentity: "stepwise-cell" as const,
+      rhythmGrammar: "balanced" as const,
+    }
+    expect(candidateTechniqueFitScore(matching, composerRules)).toBe(1)
+    expect(candidateTechniqueFitScore(mismatching, composerRules)).toBe(0)
+    expect(candidateTechniqueFitScore(matching, undefined)).toBeUndefined()
+  })
+
+  it("Technique適合度を候補診断へ残し、固定seedで選抜を再現する", () => {
+    const composerRules = rulesFor("melody", {
+      motifIdentity: [{ value: "repeated-cell", weight: 1 }],
+      rhythmGrammar: [{ value: "cyclic", weight: 1 }],
+    })
+    const generate = () =>
+      generateFromChordsWithProfiles({
+        chords: parseChordInputText("Am | F | C | G", "verse", 4, "c"),
+        sectionId: "verse",
+        sectionRole: "verse",
+        songProfile: "dark-romantic",
+        density: "balanced",
+        drama: "growing",
+        range: { low: 55, high: 79 },
+        totalBeats: 16,
+        seed: 42,
+        profiles: ["standard"],
+        composerRules,
+      })
+    const first = generate()
+    const repeated = generate()
+    expect(
+      first.diagnostics.every(
+        (diagnostic) =>
+          diagnostic.techniqueFitScore !== undefined &&
+          diagnostic.techniqueFitScore >= 0 &&
+          diagnostic.techniqueFitScore <= 1,
+      ),
+    ).toBe(true)
+    expect(
+      first.candidates.map(
+        (candidate) =>
+          candidate.generationDiagnostics?.candidatePoolIndex,
+      ),
+    ).toEqual(
+      repeated.candidates.map(
+        (candidate) =>
+          candidate.generationDiagnostics?.candidatePoolIndex,
+      ),
+    )
+  })
+
+  it("Draft実験PresetをLifecycle昇格なしの一時Ruleとしてだけ解決する", () => {
+    const context = {
+      generatorTarget: "melody" as const,
+      sectionRole: "verse" as const,
+    }
+    const withoutExperiment = resolvePublicComposerRules(context)
+    const rules = techniqueExperimentRules(
+      "space-microvariation",
+      context,
+    )
+    const withExperiment = resolvePublicComposerRules(
+      context,
+      rules,
+    )
+    expect(withoutExperiment.appliedRuleIds).toHaveLength(0)
+    expect(withExperiment.appliedRuleIds.length).toBeGreaterThan(0)
+    expect(rules.every((rule) => rule.origin === "experimental")).toBe(
+      true,
+    )
+    expect(
+      JSON.stringify(rules).includes("genreSource"),
+    ).toBe(false)
   })
 })

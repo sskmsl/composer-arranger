@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import type { MelodyNote, PhrasePlan } from "@/core/melody"
+import type {
+  CandidateMelodyDNA,
+  MelodyNote,
+  PhrasePlan,
+} from "@/core/melody"
 import type { ChordEvent } from "@/core/project"
 import { buildHarmonicMap } from "./harmonicMap"
 import { melodySimilarity } from "./melodySimilarity"
@@ -37,6 +41,23 @@ function plan(climaxBeat = 3, phraseLengths = [4, 4]): PhrasePlan[] {
   })
 }
 
+function dna(targetFraction: number): CandidateMelodyDNA {
+  return {
+    motifIdentity: "stepwise-cell",
+    rhythmGrammar: "balanced",
+    phraseArchitecture: "balanced",
+    harmonicResponse: "chord-following",
+    registerTrajectory: "arch",
+    developmentStrategy: "sequence",
+    climaxPlan: {
+      type: "pitch-peak",
+      position: targetFraction < 0.5 ? "early" : "late",
+      targetFraction,
+    },
+    endingStrategy: "resolved",
+  }
+}
+
 describe("全体Melody similarity", () => {
   it("移高された同型モチーフを高いinterval similarityとして検出する", () => {
     const a = { notes: notes([60, 62, 64, 67, 65]), plans: plan() }
@@ -62,6 +83,27 @@ describe("全体Melody similarity", () => {
     const a = { notes: notes([72, 60, 62, 64, 65, 67, 69, 67]), plans: plan(0) }
     const b = { notes: notes([60, 62, 64, 65, 67, 69, 67, 72]), plans: plan(7) }
     expect(melodySimilarity(a, b, map).climaxSimilarity).toBeLessThan(0.4)
+  })
+
+  it("複数Phraseでは先頭Phraseの局所Climaxより候補全体DNAのClimax計画を優先する", () => {
+    const sharedNotes = notes(
+      [60, 62, 64, 65, 67, 69, 67, 65],
+      [0, 1, 2, 3, 8, 9, 10, 11],
+    )
+    const sharedPlans = plan(2, [8, 8])
+    const early = {
+      notes: sharedNotes,
+      plans: sharedPlans,
+      candidateMelodyDNA: dna(0.25),
+    }
+    const late = {
+      notes: sharedNotes,
+      plans: sharedPlans,
+      candidateMelodyDNA: dna(0.8),
+    }
+    expect(
+      melodySimilarity(early, late, map).climaxSimilarity,
+    ).toBeLessThan(0.6)
   })
 
   it("異なるEndingをcadence similarityで検出する", () => {

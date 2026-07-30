@@ -197,6 +197,39 @@ export function planCandidateMelodyDNA(
   }
 }
 
+const TECHNIQUE_FIT_AXES = [
+  ["motifIdentity", (dna: CandidateMelodyDNA) => dna.motifIdentity],
+  ["rhythmGrammar", (dna: CandidateMelodyDNA) => dna.rhythmGrammar],
+  ["phraseArchitecture", (dna: CandidateMelodyDNA) => dna.phraseArchitecture],
+  ["harmonicResponse", (dna: CandidateMelodyDNA) => dna.harmonicResponse],
+  ["registerTrajectory", (dna: CandidateMelodyDNA) => dna.registerTrajectory],
+  ["developmentStrategy", (dna: CandidateMelodyDNA) => dna.developmentStrategy],
+  ["climaxPlacement", (dna: CandidateMelodyDNA) => dna.climaxPlan.position],
+  ["cadenceType", (dna: CandidateMelodyDNA) => dna.endingStrategy],
+] as const
+
+/**
+ * 生成後の候補DNAが、解決済みTechnique Preferenceへどれだけ適合するかを測る。
+ * Ruleが評価可能な軸を持たない場合は、選抜へ影響させないためundefinedを返す。
+ */
+export function candidateTechniqueFitScore(
+  dna: CandidateMelodyDNA,
+  composerRules?: ResolvedComposerRules,
+): number | undefined {
+  if (!composerRules) return undefined
+  const evaluated = TECHNIQUE_FIT_AXES.filter(
+    ([axis]) => composerRules.preferences[axis]?.values.length,
+  )
+  if (evaluated.length === 0) return undefined
+  return (
+    evaluated.reduce(
+      (sum, [axis, value]) =>
+        sum + techniquePreferenceWeight(composerRules, axis, value(dna)),
+      0,
+    ) / evaluated.length
+  )
+}
+
 /** DNAを既存Profile値へ穏やかに重ね、Profileらしさを残したまま生成判断を分岐する。 */
 export function applyCandidateMelodyDNA(
   params: GenerationParams,

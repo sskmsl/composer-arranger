@@ -93,6 +93,8 @@ export interface CandidateGenerationDiagnostics {
   openingRegenerationAttempts: number
   qualityScore: number
   profileFitScore: number
+  /** 解決済みTechnique Ruleと候補DNAの適合度(0..1)。Ruleがない場合は未定義。 */
+  techniqueFitScore?: number
   selectionScore: number | null
   selected: boolean
   reason: CandidateSelectionReason
@@ -408,6 +410,13 @@ export interface MelodyVariant {
   transitionPlan?: MelodyTransitionPlan
   /** UIへ常時表示しない、生成・選抜を追跡するための内部診断情報。 */
   generationDiagnostics?: CandidateGenerationDiagnostics
+  /** Draft Techniqueを昇格せず同一seedで比較した一時A/B候補。 */
+  techniqueExperiment?: {
+    presetId: string
+    presetLabel: string
+    mode: "baseline" | "treatment"
+    techniqueNames: string[]
+  }
 
   /**
    * Issue #41: この候補が提示するリード内容(melody以外も取り得る)。

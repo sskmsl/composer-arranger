@@ -17,6 +17,8 @@ export const CANDIDATE_SELECTION_CONFIG = {
   maximumPoolSize: 15,
   qualityWeight: 0.6,
   diversityWeight: 0.4,
+  /** Rule指定時だけ使用する。残り90%はquality/diversityの比率を維持する。 */
+  techniqueFitWeight: 0.1,
   maximumOverallSimilarity: 0.72,
   similarityRelaxationStep: 0.05,
   maximumRelaxedSimilarity: 0.9,
@@ -42,6 +44,7 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   candidatePoolIndex: number
   qualityScore: number
   profileFitScore: number
+  techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
   transitionPlan?: MelodyTransitionPlan
 }
@@ -67,10 +70,49 @@ export interface CandidateSelectionOptions {
   requireCandidateDNADiversity?: boolean
   requireTransitionStrategyDiversity?: boolean
   minimumTransitionFitScore?: number
+  /** 0なら従来選抜。指定時もquality floorは変更しない。 */
+  techniqueFitWeight?: number
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
   return Math.max(0, Math.min(1, candidate.qualityScore / 100))
+}
+
+function normalizedTechniqueFit(candidate: SelectableCandidate): number {
+  return Math.max(0, Math.min(1, candidate.techniqueFitScore ?? 0))
+}
+
+function techniqueFitWeight(options: CandidateSelectionOptions): number {
+  return Math.max(0, Math.min(0.25, options.techniqueFitWeight ?? 0))
+}
+
+function firstCandidateScore(
+  candidate: SelectableCandidate,
+  options: CandidateSelectionOptions,
+): number {
+  const fitWeight = techniqueFitWeight(options)
+  return (
+    normalizedQuality(candidate) * (1 - fitWeight) +
+    normalizedTechniqueFit(candidate) * fitWeight
+  )
+}
+
+function balancedSelectionScore(
+  candidate: SelectableCandidate,
+  diversity: number,
+  options: CandidateSelectionOptions,
+): number {
+  const fitWeight = techniqueFitWeight(options)
+  const baseWeight = 1 - fitWeight
+  return (
+    normalizedQuality(candidate) *
+      CANDIDATE_SELECTION_CONFIG.qualityWeight *
+      baseWeight +
+    diversity *
+      CANDIDATE_SELECTION_CONFIG.diversityWeight *
+      baseWeight +
+    normalizedTechniqueFit(candidate) * fitWeight
+  )
 }
 
 function similaritiesToSelected<T extends SelectableCandidate>(
@@ -209,16 +251,28 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
           }
           const maxOverall = Math.max(...similarities.map((similarity) => similarity.overallSimilarity))
           const averageQuality = set.reduce((sum, candidate) => sum + normalizedQuality(candidate), 0) / set.length
+          const averageTechniqueFit =
+            set.reduce(
+              (sum, candidate) =>
+                sum + normalizedTechniqueFit(candidate),
+              0,
+            ) / set.length
           const minimumDiversity = minimumPerceptualDiversity(similarities)
           const structuralRedundancyCount = similarities.filter(isStructurallyRedundant).length
+          const fitWeight = techniqueFitWeight(options)
           rankedSets.push({
             set,
             similarities,
             maxOverall,
             structuralRedundancyCount,
             score:
-              averageQuality * CANDIDATE_SELECTION_CONFIG.qualityWeight +
-              minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight -
+              averageQuality *
+                CANDIDATE_SELECTION_CONFIG.qualityWeight *
+                (1 - fitWeight) +
+              minimumDiversity *
+                CANDIDATE_SELECTION_CONFIG.diversityWeight *
+                (1 - fitWeight) +
+              averageTechniqueFit * fitWeight -
               structuralRedundancyCount * 0.08,
           })
         }
@@ -264,9 +318,8 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
           candidate,
           selectionScore:
             selected.length === 0
-              ? normalizedQuality(candidate)
-              : normalizedQuality(candidate) * CANDIDATE_SELECTION_CONFIG.qualityWeight +
-                diversity * CANDIDATE_SELECTION_CONFIG.diversityWeight,
+              ? firstCandidateScore(candidate, options)
+              : balancedSelectionScore(candidate, diversity, options),
           reason:
             selected.length === 0
               ? "highest-quality"
@@ -298,11 +351,18 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
   const remaining = [...eligible]
 
   if (remaining.length > 0) {
-    remaining.sort((a, b) => b.qualityScore - a.qualityScore || b.profileFitScore - a.profileFitScore || a.candidatePoolIndex - b.candidatePoolIndex)
+    remaining.sort(
+      (a, b) =>
+        firstCandidateScore(b, options) -
+          firstCandidateScore(a, options) ||
+        b.qualityScore - a.qualityScore ||
+        b.profileFitScore - a.profileFitScore ||
+        a.candidatePoolIndex - b.candidatePoolIndex,
+    )
     const first = remaining.shift()!
     selected.push({
       candidate: first,
-      selectionScore: normalizedQuality(first),
+      selectionScore: firstCandidateScore(first, options),
       reason: "highest-quality",
       similarityToSelected: [],
     })
@@ -315,9 +375,11 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
         const similarities = similaritiesToSelected(candidate, selected, harmonicMap)
         const maximumSimilarity = Math.max(...similarities.map((s) => s.overallSimilarity), 0)
         const minimumDiversity = minimumPerceptualDiversity(similarities)
-        const selectionScore =
-          normalizedQuality(candidate) * CANDIDATE_SELECTION_CONFIG.qualityWeight +
-          minimumDiversity * CANDIDATE_SELECTION_CONFIG.diversityWeight
+        const selectionScore = balancedSelectionScore(
+          candidate,
+          minimumDiversity,
+          options,
+        )
         return {
           candidate,
           similarities,

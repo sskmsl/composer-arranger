@@ -55,8 +55,18 @@ describe("Profile候補プールと診断情報", () => {
       for (let i = 0; i < candidates.length; i++) {
         for (let j = i + 1; j < candidates.length; j++) {
           const similarity = melodySimilarity(
-            { notes: candidates[i].notes, plans: candidates[i].plans, openingPlan: candidates[i].openingPlan },
-            { notes: candidates[j].notes, plans: candidates[j].plans, openingPlan: candidates[j].openingPlan },
+            {
+              notes: candidates[i].notes,
+              plans: candidates[i].plans,
+              openingPlan: candidates[i].openingPlan,
+              candidateMelodyDNA: candidates[i].candidateMelodyDNA,
+            },
+            {
+              notes: candidates[j].notes,
+              plans: candidates[j].plans,
+              openingPlan: candidates[j].openingPlan,
+              candidateMelodyDNA: candidates[j].candidateMelodyDNA,
+            },
             harmonicMap,
           )
           expect(isStructurallyRedundant(similarity), `${profile} seed=${seed} pair=${i + 1}-${j + 1}`).toBe(false)
