@@ -23,6 +23,8 @@ function projectWithSection() {
 }
 
 beforeEach(() => {
+  const generationSettings =
+    useProjectStore.getState().generationSettings
   useProjectStore.setState({
     project: projectWithSection(),
     selectedSectionId: "s1",
@@ -31,6 +33,10 @@ beforeEach(() => {
     history: [],
     future: [],
     workflowNotice: null,
+    generationSettings: {
+      ...generationSettings,
+      techniqueExperimentPresetId: null,
+    },
     persist: () => {},
   })
 })
@@ -59,6 +65,49 @@ describe("Phrase Candidate store", () => {
     for (const sibling of siblings) {
       expect(after.find((candidate) => candidate.id === sibling.id)).toEqual(sibling)
     }
+  })
+
+  it("Technique実験では同じseed条件のNormal 3案とTreatment 3案を保存する", () => {
+    useProjectStore.getState().setGenerationSettings({
+      techniqueExperimentPresetId:
+        "stable-loop-local-mutation",
+    })
+    useProjectStore.getState().generatePhrasesForSection("s1", 4)
+    const candidates =
+      useProjectStore.getState().project.phraseCandidates
+    expect(candidates).toHaveLength(6)
+    expect(
+      candidates.filter(
+        (candidate) =>
+          candidate.techniqueExperiment?.mode === "baseline",
+      ),
+    ).toHaveLength(3)
+    const treatment = candidates.filter(
+      (candidate) =>
+        candidate.techniqueExperiment?.mode === "treatment",
+    )
+    expect(treatment).toHaveLength(3)
+    expect(
+      treatment.every(
+        (candidate) =>
+          candidate.techniqueFitScore !== undefined &&
+          candidate.intent.developmentStrategy !== undefined,
+      ),
+    ).toBe(true)
+    expect(new Set(candidates.map((candidate) => candidate.batchId)).size)
+      .toBe(1)
+
+    const target = treatment[0]
+    useProjectStore.getState().regeneratePhrase(target.id)
+    const replacement = useProjectStore
+      .getState()
+      .project.phraseCandidates.find(
+        (candidate) => candidate.name === target.name,
+      )
+    expect(replacement?.techniqueExperiment).toEqual(
+      target.techniqueExperiment,
+    )
+    expect(replacement?.techniqueFitScore).toBeDefined()
   })
 
   it("8小節セクションでは5〜8小節の長さを保存できる", () => {

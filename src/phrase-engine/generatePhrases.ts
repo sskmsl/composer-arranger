@@ -18,6 +18,7 @@ import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
 import {
   pickTechniquePreference,
+  techniquePreferenceWeight,
   type ResolvedComposerRules,
 } from "@/composer-intelligence"
 
@@ -36,6 +37,8 @@ export interface GeneratePhrasesInput {
   lengthBars?: PhraseLengthBars
   candidateCount?: number
   composerRules?: ResolvedComposerRules
+  /** A/B実験時だけ有効にする、候補選抜におけるTechnique Fitの補助比率。 */
+  techniqueFitSelectionWeight?: number
 }
 
 interface BuiltPhrase {
@@ -44,6 +47,7 @@ interface BuiltPhrase {
   phraseLengthBeats: number
   seed: number
   qualityScore: number
+  techniqueFitScore?: number
 }
 
 const FINAL_CANDIDATE_COUNT = 3
@@ -208,8 +212,28 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
         : 0.08 + rng.next() * 0.16
   const leapBase = input.drama === "restrained" ? 0.18 : input.drama === "open" ? 0.58 : 0.38
   const leapAmount = clamp01(leapBase + (rng.next() - 0.5) * 0.25)
-  const climaxPosition =
-    input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"
+  const climaxPreference =
+    input.composerRules?.preferences.climaxPlacement
+  const climaxPosition = climaxPreference
+    ? (() => {
+        const climaxPlacement = pickTechniquePreference(
+          rng,
+          input.composerRules,
+          "climaxPlacement",
+          ["early", "middle", "late"] as const,
+          input.sectionRole === "chorus" ||
+            input.sectionRole === "grand-chorus"
+            ? "late"
+            : "middle",
+        )
+        return climaxPlacement === "early"
+          ? 0.22 + rng.next() * 0.2
+          : climaxPlacement === "late"
+            ? 0.66 + rng.next() * 0.22
+            : 0.43 + rng.next() * 0.2
+      })()
+    : input.sectionRole === "chorus" ||
+        input.sectionRole === "grand-chorus"
       ? 0.58 + rng.next() * 0.28
       : 0.28 + rng.next() * 0.48
   const pickupBeats =
@@ -219,6 +243,30 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
         ? rng.pick([0.5, 1])
         : 0
   const motif = motifFor(rng, contour, leapAmount)
+  const developmentStrategy =
+    input.composerRules?.preferences.developmentStrategy
+      ? pickTechniquePreference(
+          rng,
+          input.composerRules,
+          "developmentStrategy",
+          [
+            "fragmentation",
+            "delayed-return",
+            "inversion",
+            "augmentation",
+          ] as const,
+          rotatePick(
+            rng,
+            [
+              "fragmentation",
+              "delayed-return",
+              "inversion",
+              "augmentation",
+            ] as const,
+            poolIndex * 11,
+          ),
+        )
+      : undefined
 
   return {
     lengthBars,
@@ -233,7 +281,55 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
     pickupBeats,
     motifIntervals: motif.intervals,
     motifDurations: motif.durations,
+    developmentStrategy,
   }
+}
+
+export function phraseTechniqueFitScore(
+  intent: PhraseIntent,
+  composerRules?: ResolvedComposerRules,
+): number | undefined {
+  if (!composerRules) return undefined
+  const values = [
+    ["phraseContour", intent.contour],
+    ["rhythmCharacter", intent.rhythmCharacter],
+    ["harmonicApproach", intent.harmonicApproach],
+    ["cadenceType", intent.cadence],
+    ["developmentStrategy", intent.developmentStrategy],
+    [
+      "climaxPlacement",
+      intent.climaxPosition >= 0.66
+        ? "late"
+        : intent.climaxPosition <= 0.42
+          ? "early"
+          : "middle",
+    ],
+  ] as const
+  const scored = values.flatMap(([axis, value]) => {
+    if (!value) return []
+    const preference = composerRules.preferences[axis]
+    if (!preference || preference.values.length === 0) return []
+    const maximum = Math.max(
+      ...preference.values.map((candidate) => candidate.weight),
+    )
+    return maximum > 0
+      ? [
+          techniquePreferenceWeight(
+            composerRules,
+            axis,
+            value,
+          ) / maximum,
+        ]
+      : []
+  })
+  return scored.length > 0 ? clamp01(mean(scored)) : undefined
+}
+
+function mean(values: number[]): number {
+  return values.length
+    ? values.reduce((sum, value) => sum + value, 0) /
+        values.length
+    : 0
 }
 
 function phraseChords(input: GeneratePhrasesInput, phraseLengthBeats: number): ChordEvent[] {
@@ -418,12 +514,36 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
     const nextEntry = nextMapEntry(map, entry)
     const motifInterval = intent.motifIntervals[index % intent.motifIntervals.length]
     const developmentCycle = Math.floor(index / intent.motifIntervals.length)
-    const transformedInterval =
-      developmentCycle % 3 === 1
-        ? Math.sign(motifInterval) * Math.max(1, Math.abs(motifInterval) - 1)
-        : developmentCycle % 3 === 2
-          ? -motifInterval
-          : motifInterval
+    const transformedInterval = (() => {
+      if (developmentCycle === 0) return motifInterval
+      switch (intent.developmentStrategy) {
+        case undefined:
+          return developmentCycle % 3 === 1
+            ? Math.sign(motifInterval) *
+                Math.max(1, Math.abs(motifInterval) - 1)
+            : developmentCycle % 3 === 2
+              ? -motifInterval
+              : motifInterval
+        case "fragmentation":
+          return Math.sign(motifInterval) *
+            Math.max(1, Math.abs(motifInterval) - 1)
+        case "delayed-return":
+          return developmentCycle % 3 === 1
+            ? intent.motifIntervals[
+                (index + 1) % intent.motifIntervals.length
+              ]
+            : motifInterval
+        case "augmentation":
+          return Math.sign(motifInterval) *
+            Math.max(
+              1,
+              Math.round(Math.abs(motifInterval) * 1.5),
+            )
+        case "inversion":
+        default:
+          return -motifInterval
+      }
+    })()
     // 跳躍(前音との差が5半音以上)の直後は、和声カテゴリに縛られた狭いピッチクラス集合
     // (減三和音のテンションのみ等、1〜2種類しかないことがある)ではなく、順次進行で
     // 回収できる広いプールへ着地させる。desiredPitchClassesの狭い集合をそのまま使うと、
@@ -561,6 +681,10 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
     phraseLengthBeats,
     seed,
     qualityScore: scorePhrase(articulatedNotes, intent, map, phraseLengthBeats),
+    techniqueFitScore: phraseTechniqueFitScore(
+      intent,
+      input.composerRules,
+    ),
   }
 }
 
@@ -670,7 +794,11 @@ export function phraseSimilarity(
   }
 }
 
-function selectPool(pool: BuiltPhrase[], chords: ChordEvent[]): {
+function selectPool(
+  pool: BuiltPhrase[],
+  chords: ChordEvent[],
+  techniqueFitSelectionWeight = 0,
+): {
   candidate: BuiltPhrase
   selectionScore: number
   similarities: MelodySimilarityBreakdown[]
@@ -692,7 +820,16 @@ function selectPool(pool: BuiltPhrase[], chords: ChordEvent[]): {
       const candidate = remaining[index]
       const similarities = selected.map((item) => phraseSimilarity(candidate, item.candidate, chords))
       const diversity = similarities.length === 0 ? 1 : 1 - Math.max(...similarities.map((value) => value.overallSimilarity))
-      const score = candidate.qualityScore * 0.68 + diversity * 100 * 0.32
+      const structuralWeight = Math.max(
+        0,
+        1 - techniqueFitSelectionWeight,
+      )
+      const score =
+        candidate.qualityScore * 0.68 * structuralWeight +
+        diversity * 100 * 0.32 * structuralWeight +
+        (candidate.techniqueFitScore ?? 0) *
+          100 *
+          techniqueFitSelectionWeight
       const intentRedundancy =
         selected.length === 0
           ? 0
@@ -731,7 +868,14 @@ export function generatePhraseCandidates(input: GeneratePhrasesInput): Omit<Phra
   const pool = Array.from({ length: poolSize }, (_, poolIndex) =>
     buildPhrase(input, input.seed + poolIndex * 7919, poolIndex),
   )
-  const selected = selectPool(pool, phraseChords(input, Math.min(input.totalBeats, 8 * input.beatsPerBar)))
+  const selected = selectPool(
+    pool,
+    phraseChords(
+      input,
+      Math.min(input.totalBeats, 8 * input.beatsPerBar),
+    ),
+    input.techniqueFitSelectionWeight,
+  )
   return selected.map(({ candidate, selectionScore, similarities }, index) => ({
     sectionId: input.sectionId,
     name: `Phrase ${index + 1}`,
@@ -740,6 +884,7 @@ export function generatePhraseCandidates(input: GeneratePhrasesInput): Omit<Phra
     intent: candidate.intent,
     phraseLengthBeats: candidate.phraseLengthBeats,
     qualityScore: candidate.qualityScore,
+    techniqueFitScore: candidate.techniqueFitScore,
     selectionScore,
     similarityToSelected: similarities,
   }))
@@ -763,7 +908,17 @@ export function regeneratePhraseCandidate(
       return {
         candidate,
         similarities,
-        score: candidate.qualityScore * 0.65 + diversity * 100 * 0.35,
+        score:
+          candidate.qualityScore *
+            0.65 *
+            (1 - (input.techniqueFitSelectionWeight ?? 0)) +
+          diversity *
+            100 *
+            0.35 *
+            (1 - (input.techniqueFitSelectionWeight ?? 0)) +
+          (candidate.techniqueFitScore ?? 0) *
+            100 *
+            (input.techniqueFitSelectionWeight ?? 0),
       }
     })
     .sort((a, b) => b.score - a.score)
@@ -776,6 +931,7 @@ export function regeneratePhraseCandidate(
     intent: best.candidate.intent,
     phraseLengthBeats: best.candidate.phraseLengthBeats,
     qualityScore: best.candidate.qualityScore,
+    techniqueFitScore: best.candidate.techniqueFitScore,
     selectionScore: Math.round(best.score * 100) / 100,
     similarityToSelected: best.similarities,
   }

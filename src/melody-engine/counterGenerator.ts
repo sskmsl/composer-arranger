@@ -32,6 +32,8 @@ export interface GenerateCounterInput {
   poolSize?: number
   finalCount?: number
   composerRules?: ResolvedComposerRules
+  /** A/B実験時だけ有効にする、候補選抜におけるTechnique Fitの補助比率。 */
+  techniqueFitSelectionWeight?: number
 }
 
 interface StylePlan {
@@ -639,10 +641,70 @@ function candidateSimilarity(
   return onsetSimilarity * 0.4 + contourSimilarity * 0.3 + styleSimilarity * 0.2 + roleSimilarity * 0.1
 }
 
+function normalizedPreferenceWeight(
+  composerRules: ResolvedComposerRules | undefined,
+  axis: "partRole" | "registerRelation",
+  value: string,
+): number | undefined {
+  const preference = composerRules?.preferences[axis]
+  if (!preference || preference.values.length === 0) return undefined
+  const maximum = Math.max(
+    ...preference.values.map((candidate) => candidate.weight),
+  )
+  return maximum > 0
+    ? techniquePreferenceWeight(composerRules, axis, value) / maximum
+    : undefined
+}
+
+export function counterTechniqueFitScore(
+  candidate: Pick<ReactiveLayerCandidate, "notes" | "role">,
+  melody: readonly MelodyNote[],
+  composerRules?: ResolvedComposerRules,
+): number | undefined {
+  const values: number[] = []
+  const roleFit = normalizedPreferenceWeight(
+    composerRules,
+    "partRole",
+    candidate.role,
+  )
+  if (roleFit !== undefined) values.push(roleFit)
+  if (candidate.notes.length > 0 && melody.length > 0) {
+    const counterAverage =
+      candidate.notes.reduce((sum, note) => sum + note.pitch, 0) /
+      candidate.notes.length
+    const melodyAverage =
+      melody.reduce((sum, note) => sum + note.pitch, 0) /
+      melody.length
+    const relation =
+      counterAverage >= melodyAverage + 2 ? "above" : "below"
+    const registerFit = normalizedPreferenceWeight(
+      composerRules,
+      "registerRelation",
+      relation,
+    )
+    if (registerFit !== undefined) values.push(registerFit)
+  }
+  return values.length > 0
+    ? Math.max(
+        0,
+        Math.min(
+          1,
+          values.reduce((sum, value) => sum + value, 0) /
+            values.length,
+        ),
+      )
+    : undefined
+}
+
 function selectDiverseCandidates(
   pool: ReactiveLayerCandidate[],
   finalCount: number,
+  techniqueFitSelectionWeight = 0,
 ): ReactiveLayerCandidate[] {
+  const structuralWeight = Math.max(
+    0,
+    1 - techniqueFitSelectionWeight,
+  )
   const eligibleWithDuplicates = pool
     .filter(
       (candidate) =>
@@ -653,7 +715,17 @@ function selectDiverseCandidates(
         !candidate.collisions.hasBlockingCollision &&
         candidate.notes.length >= 3,
     )
-    .sort((a, b) => b.quality.overallQuality - a.quality.overallQuality)
+    .sort(
+      (a, b) =>
+        b.quality.overallQuality * structuralWeight +
+        (b.techniqueFitScore ?? 0) *
+          100 *
+          techniqueFitSelectionWeight -
+        (a.quality.overallQuality * structuralWeight +
+          (a.techniqueFitScore ?? 0) *
+            100 *
+            techniqueFitSelectionWeight),
+    )
   const eligible = eligibleWithDuplicates.filter(
     (candidate, index, candidates) =>
       candidates.findIndex(
@@ -695,7 +767,17 @@ function selectDiverseCandidates(
         )
         return {
           candidate,
-          score: candidate.quality.overallQuality * 0.65 + (1 - maximumSimilarity) * 100 * 0.35,
+          score:
+            candidate.quality.overallQuality *
+              0.65 *
+              structuralWeight +
+            (1 - maximumSimilarity) *
+              100 *
+              0.35 *
+              structuralWeight +
+            (candidate.techniqueFitScore ?? 0) *
+              100 *
+              techniqueFitSelectionWeight,
         }
       })
       .sort((a, b) => b.score - a.score)[0]?.candidate
@@ -777,6 +859,11 @@ function buildPoolCandidate(
     seed: candidateSeed,
     quality: evaluated.quality,
     collisions: evaluated.collisions,
+    techniqueFitScore: counterTechniqueFitScore(
+      { notes, role: plan.role },
+      input.melody.notes,
+      input.composerRules,
+    ),
     reviewState: null,
     createdAt: new Date(0).toISOString(),
   }
@@ -829,7 +916,11 @@ export function generateCounterCandidates(
       analysis,
     ),
   )
-  return selectDiverseCandidates(pool, input.finalCount ?? 3)
+  return selectDiverseCandidates(
+    pool,
+    input.finalCount ?? 3,
+    input.techniqueFitSelectionWeight,
+  )
 }
 
 export function regenerateCounterCandidate(

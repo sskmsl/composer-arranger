@@ -85,6 +85,7 @@ export function App() {
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <CounterWorkspace />
+            <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="counter" />
             {(leftOpen || rightOpen) && (
               <div
                 className="absolute inset-0 z-30 bg-black/50 lg:hidden"
@@ -100,6 +101,7 @@ export function App() {
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <DecorationWorkspace />
+            <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="decoration" />
             {(leftOpen || rightOpen) && (
               <div
                 className="absolute inset-0 z-30 bg-black/50 lg:hidden"

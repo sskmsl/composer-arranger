@@ -167,6 +167,15 @@ export interface ReactiveLayerCandidate {
   quality: ReactiveLayerQualityBreakdown
   collisions: ReactiveLayerCollisionSummary
   selectionReason?: "highest-quality" | "quality-diversity-balance" | "regenerated"
+  /** Technique実験が指定された場合の生成意図適合度(0–1)。 */
+  techniqueFitScore?: number
+  /** Draft Techniqueを昇格せず同一seedで比較した一時A/B候補。 */
+  techniqueExperiment?: {
+    presetId: string
+    presetLabel: string
+    mode: "baseline" | "treatment"
+    techniqueNames: string[]
+  }
   reviewState?: "favorite" | "rejected" | null
   createdAt: string
 }

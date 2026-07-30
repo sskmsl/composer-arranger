@@ -354,6 +354,27 @@ export function DecorationWorkspace() {
                         {Math.round(candidate.quality.overallQuality)}
                       </span>
                     </div>
+                    {candidate.techniqueExperiment && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
+                          A/B:{" "}
+                          {candidate.techniqueExperiment.mode ===
+                          "baseline"
+                            ? "Normal"
+                            : candidate.techniqueExperiment
+                                .presetLabel}
+                        </span>
+                        <span className="text-ink-muted-48">
+                          Fit{" "}
+                          {candidate.techniqueFitScore === undefined
+                            ? "—"
+                            : `${Math.round(
+                                candidate.techniqueFitScore *
+                                  100,
+                              )}%`}
+                        </span>
+                      </div>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-1">
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {TYPE_LABELS[plan?.type ?? ""] ?? "Decoration"}

@@ -68,6 +68,7 @@ import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine
 import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
 import {
   generatePhraseCandidates,
+  phraseTechniqueFitScore,
   regeneratePhraseCandidate as buildRegeneratedPhrase,
   type GeneratePhrasesInput,
 } from "@/phrase-engine/generatePhrases"
@@ -75,6 +76,7 @@ import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import { evaluateReactiveLayerCompatibility } from "@/melody-engine/reactiveLayerAnalysis"
 import {
+  counterTechniqueFitScore,
   generateCounterCandidates,
   regenerateCounterCandidate as buildRegeneratedCounter,
   type GenerateCounterInput,
@@ -82,6 +84,7 @@ import {
 import {
   DEFAULT_DECORATION_SETTINGS,
   assessDecorationNeed,
+  decorationTechniqueFitScore,
   decorationFingerprintForInput,
   generateDecorationCandidates,
   regenerateDecorationCandidate as buildRegeneratedDecoration,
@@ -1104,21 +1107,98 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   generatePhrasesForSection: (sectionId, lengthBars) => {
     const prev = get().project
-    const input = phraseGenerationInput(prev, sectionId, get().generationSettings, createSeed(), lengthBars)
+    const settings = get().generationSettings
+    const input = phraseGenerationInput(
+      prev,
+      sectionId,
+      settings,
+      createSeed(),
+      lengthBars,
+    )
     if (!input) {
       set({ workflowNotice: "フレーズ生成には、2小節以上のセクションと有効なコード進行が必要です。" })
       return
     }
-    const generated = generatePhraseCandidates(input)
+    const ruleContext = {
+      generatorTarget: "phrase" as const,
+      sectionRole: input.sectionRole,
+    }
+    const experimentPreset = settings.techniqueExperimentPresetId
+      ? techniqueExperimentPreset(
+          settings.techniqueExperimentPresetId,
+        )
+      : null
+    const experimentRules = experimentPreset
+      ? resolvePublicComposerRules(
+          ruleContext,
+          techniqueExperimentRules(
+            experimentPreset.id,
+            ruleContext,
+          ),
+        )
+      : null
+    const generatedGroups = experimentPreset
+      ? [
+          {
+            mode: "baseline" as const,
+            candidates: generatePhraseCandidates({
+              ...input,
+              composerRules:
+                resolvePublicComposerRules(ruleContext),
+              techniqueFitSelectionWeight: 0,
+            }),
+          },
+          {
+            mode: "treatment" as const,
+            candidates: generatePhraseCandidates({
+              ...input,
+              composerRules: experimentRules!,
+              techniqueFitSelectionWeight: 0.1,
+            }),
+          },
+        ]
+      : [
+          {
+            mode: null,
+            candidates: generatePhraseCandidates(input),
+          },
+        ]
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: PhraseCandidate[] = generated.map((candidate, index) => ({
-      ...candidate,
-      id: crypto.randomUUID(),
-      batchId,
-      name: `Phrase ${index + 1}`,
-      createdAt,
-    }))
+    const candidates: PhraseCandidate[] = generatedGroups.flatMap(
+      (group) =>
+        group.candidates.map((candidate, index) => ({
+          ...candidate,
+          id: crypto.randomUUID(),
+          batchId,
+          name: group.mode
+            ? `${
+                group.mode === "baseline"
+                  ? "Normal"
+                  : experimentPreset!.label
+              } · Phrase ${index + 1}`
+            : `Phrase ${index + 1}`,
+          createdAt,
+          techniqueFitScore:
+            experimentRules && group.mode
+              ? phraseTechniqueFitScore(
+                  candidate.intent,
+                  experimentRules,
+                )
+              : candidate.techniqueFitScore,
+          techniqueExperiment:
+            experimentPreset && group.mode
+              ? {
+                  presetId: experimentPreset.id,
+                  presetLabel: experimentPreset.label,
+                  mode: group.mode,
+                  techniqueNames: [
+                    ...experimentPreset.techniqueNames,
+                  ],
+                }
+              : undefined,
+        })),
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -1144,16 +1224,62 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       current.intent.lengthBars,
     )
     if (!input) return
+    const ruleContext = {
+      generatorTarget: "phrase" as const,
+      sectionRole: input.sectionRole,
+    }
+    const experimentPreset = current.techniqueExperiment
+      ? techniqueExperimentPreset(
+          current.techniqueExperiment
+            .presetId as TechniqueExperimentPresetId,
+        )
+      : null
+    const experimentRules = experimentPreset
+      ? resolvePublicComposerRules(
+          ruleContext,
+          techniqueExperimentRules(
+            experimentPreset.id,
+            ruleContext,
+          ),
+        )
+      : null
+    const regenerationInput: GeneratePhrasesInput = {
+      ...input,
+      composerRules:
+        current.techniqueExperiment?.mode === "treatment" &&
+        experimentRules
+          ? experimentRules
+          : resolvePublicComposerRules(ruleContext),
+      techniqueFitSelectionWeight:
+        current.techniqueExperiment?.mode === "treatment"
+          ? 0.1
+          : 0,
+    }
     const siblings = prev.phraseCandidates.filter(
-      (candidate) => candidate.batchId === current.batchId && candidate.id !== current.id,
+      (candidate) =>
+        candidate.batchId === current.batchId &&
+        candidate.id !== current.id &&
+        candidate.techniqueExperiment?.mode ===
+          current.techniqueExperiment?.mode,
     )
-    const regenerated = buildRegeneratedPhrase(input, current.seed, siblings)
+    const regenerated = buildRegeneratedPhrase(
+      regenerationInput,
+      current.seed,
+      siblings,
+    )
     const replacement: PhraseCandidate = {
       ...regenerated,
       id: crypto.randomUUID(),
       batchId: current.batchId,
       name: current.name,
       createdAt: new Date().toISOString(),
+      techniqueFitScore: experimentRules
+        ? phraseTechniqueFitScore(
+            regenerated.intent,
+            experimentRules,
+          )
+        : regenerated.techniqueFitScore,
+      techniqueExperiment: current.techniqueExperiment,
     }
     set({
       history: [...get().history, snapshot(prev)],
@@ -1179,7 +1305,56 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       })
       return
     }
-    const generated = generateCounterCandidates(input)
+    const ruleContext = {
+      generatorTarget: "counter" as const,
+      sectionRole: input.sectionRole,
+    }
+    const experimentPresetId =
+      get().generationSettings.techniqueExperimentPresetId
+    const experimentPreset = experimentPresetId
+      ? techniqueExperimentPreset(experimentPresetId)
+      : null
+    const experimentRules = experimentPreset
+      ? resolvePublicComposerRules(
+          ruleContext,
+          techniqueExperimentRules(
+            experimentPreset.id,
+            ruleContext,
+          ),
+        )
+      : null
+    const generatedGroups = experimentPreset
+      ? [
+          {
+            mode: "baseline" as const,
+            candidates: generateCounterCandidates({
+              ...input,
+              composerRules:
+                resolvePublicComposerRules(ruleContext),
+              techniqueFitSelectionWeight: 0,
+            }),
+          },
+          {
+            mode: "treatment" as const,
+            candidates: generateCounterCandidates({
+              ...input,
+              composerRules: experimentRules!,
+              techniqueFitSelectionWeight: 0.08,
+            }),
+          },
+        ]
+      : [
+          {
+            mode: null,
+            candidates: generateCounterCandidates(input),
+          },
+        ]
+    const generated = generatedGroups.flatMap((group) =>
+      group.candidates.map((candidate) => ({
+        candidate,
+        experimentMode: group.mode,
+      })),
+    )
     if (generated.length === 0) {
       set({
         workflowNotice:
@@ -1189,14 +1364,39 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: ReactiveLayerCandidate[] = generated.map((candidate, index) => ({
+    const candidates: ReactiveLayerCandidate[] = generated.map(
+      ({ candidate, experimentMode }, index) => ({
       ...candidate,
       id: crypto.randomUUID(),
       batchId,
-      name: `${candidate.name} ${index + 1}`,
+      name: experimentMode
+        ? `${
+            experimentMode === "baseline"
+              ? "Normal"
+              : experimentPreset!.label
+          } · ${candidate.name} ${(index % 3) + 1}`
+        : `${candidate.name} ${index + 1}`,
       notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
       createdAt,
-    }))
+      techniqueFitScore:
+        experimentRules && experimentMode
+          ? counterTechniqueFitScore(
+              candidate,
+              input.melody.notes,
+              experimentRules,
+            )
+          : candidate.techniqueFitScore,
+      techniqueExperiment:
+        experimentPreset && experimentMode
+          ? {
+              presetId: experimentPreset.id,
+              presetLabel: experimentPreset.label,
+              mode: experimentMode,
+              techniqueNames: [...experimentPreset.techniqueNames],
+            }
+          : undefined,
+    }),
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -1210,7 +1410,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeReactiveBatchId: batchId,
       activeReactiveCandidateIndex: 0,
       workflowNotice:
-        candidates.length < 3
+        candidates.length <
+        (experimentPreset ? 6 : 3)
           ? `品質下限を満たすCounter候補は${candidates.length}件でした。`
           : null,
     })
@@ -1231,13 +1432,50 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set({ workflowNotice: "Active Melodyが変更されています。Counterを新しく生成してください。" })
       return
     }
+    const ruleContext = {
+      generatorTarget: "counter" as const,
+      sectionRole: input.sectionRole,
+    }
+    const experimentPreset = current.techniqueExperiment
+      ? techniqueExperimentPreset(
+          current.techniqueExperiment
+            .presetId as TechniqueExperimentPresetId,
+        )
+      : null
+    const experimentRules = experimentPreset
+      ? resolvePublicComposerRules(
+          ruleContext,
+          techniqueExperimentRules(
+            experimentPreset.id,
+            ruleContext,
+          ),
+        )
+      : null
+    const regenerationInput: GenerateCounterInput = {
+      ...input,
+      composerRules:
+        current.techniqueExperiment?.mode === "treatment" &&
+        experimentRules
+          ? experimentRules
+          : resolvePublicComposerRules(ruleContext),
+      techniqueFitSelectionWeight:
+        current.techniqueExperiment?.mode === "treatment"
+          ? 0.08
+          : 0,
+    }
     const siblings = (prev.reactiveLayerCandidates ?? []).filter(
       (candidate) =>
         candidate.batchId === current.batchId &&
         candidate.id !== current.id &&
-        candidate.kind === "counter",
+        candidate.kind === "counter" &&
+        candidate.techniqueExperiment?.mode ===
+          current.techniqueExperiment?.mode,
     )
-    const generated = buildRegeneratedCounter(input, current, siblings)
+    const generated = buildRegeneratedCounter(
+      regenerationInput,
+      current,
+      siblings,
+    )
     if (!generated) {
       set({ workflowNotice: "品質下限を満たす別案を生成できませんでした。" })
       return
@@ -1249,6 +1487,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       name: current.name,
       notes: generated.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
       createdAt: new Date().toISOString(),
+      techniqueFitScore: experimentRules
+        ? counterTechniqueFitScore(
+            generated,
+            input.melody.notes,
+            experimentRules,
+          )
+        : generated.techniqueFitScore,
+      techniqueExperiment: current.techniqueExperiment,
     }
     const assignments = { ...(prev.sectionReactiveLayerAssignments ?? {}) }
     if (assignments[current.sectionId] === current.id) {
@@ -1285,21 +1531,97 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return
     }
     const need = assessDecorationNeed(input)
-    const generated = generateDecorationCandidates(input)
+    const ruleContext = {
+      generatorTarget: "decoration" as const,
+      sectionRole: input.sectionRole,
+      transition: input.nextSectionRole
+        ? `${input.sectionRole}->${input.nextSectionRole}`
+        : undefined,
+    }
+    const experimentPresetId =
+      get().generationSettings.techniqueExperimentPresetId
+    const experimentPreset = experimentPresetId
+      ? techniqueExperimentPreset(experimentPresetId)
+      : null
+    const experimentRules = experimentPreset
+      ? resolvePublicComposerRules(
+          ruleContext,
+          techniqueExperimentRules(
+            experimentPreset.id,
+            ruleContext,
+          ),
+        )
+      : null
+    const generatedGroups = experimentPreset
+      ? [
+          {
+            mode: "baseline" as const,
+            candidates: generateDecorationCandidates({
+              ...input,
+              composerRules:
+                resolvePublicComposerRules(ruleContext),
+              techniqueFitSelectionWeight: 0,
+            }),
+          },
+          {
+            mode: "treatment" as const,
+            candidates: generateDecorationCandidates({
+              ...input,
+              composerRules: experimentRules!,
+              techniqueFitSelectionWeight: 0.1,
+            }),
+          },
+        ]
+      : [
+          {
+            mode: null,
+            candidates: generateDecorationCandidates(input),
+          },
+        ]
+    const generated = generatedGroups.flatMap((group) =>
+      group.candidates.map((candidate) => ({
+        candidate,
+        experimentMode: group.mode,
+      })),
+    )
     if (generated.length === 0) {
       set({ workflowNotice: "品質下限を満たすDecoration候補を生成できませんでした。" })
       return
     }
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: ReactiveLayerCandidate[] = generated.map((candidate, index) => ({
+    const candidates: ReactiveLayerCandidate[] = generated.map(
+      ({ candidate, experimentMode }, index) => ({
       ...candidate,
       id: crypto.randomUUID(),
       batchId,
-      name: `${candidate.name} ${index + 1}`,
+      name: experimentMode
+        ? `${
+            experimentMode === "baseline"
+              ? "Normal"
+              : experimentPreset!.label
+          } · ${candidate.name} ${(index % 10) + 1}`
+        : `${candidate.name} ${index + 1}`,
       notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
       createdAt,
-    }))
+      techniqueFitScore:
+        experimentRules && experimentMode
+          ? decorationTechniqueFitScore(
+              candidate.decorationPlan,
+              experimentRules,
+            )
+          : candidate.techniqueFitScore,
+      techniqueExperiment:
+        experimentPreset && experimentMode
+          ? {
+              presetId: experimentPreset.id,
+              presetLabel: experimentPreset.label,
+              mode: experimentMode,
+              techniqueNames: [...experimentPreset.techniqueNames],
+            }
+          : undefined,
+    }),
+    )
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -1313,7 +1635,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeReactiveBatchId: batchId,
       activeReactiveCandidateIndex: 0,
       workflowNotice:
-        candidates.length < 10
+        candidates.length < (experimentPreset ? 20 : 10)
           ? `品質下限を満たすDecoration候補は${candidates.length}件でした。`
           : need.level === "silence"
             ? `${need.reason} 比較用に控えめなGestureも生成しました。`
@@ -1345,13 +1667,53 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       density: current.decorationPlan.density,
     })
     if (!input) return
+    const ruleContext = {
+      generatorTarget: "decoration" as const,
+      sectionRole: input.sectionRole,
+      transition: input.nextSectionRole
+        ? `${input.sectionRole}->${input.nextSectionRole}`
+        : undefined,
+    }
+    const experimentPreset = current.techniqueExperiment
+      ? techniqueExperimentPreset(
+          current.techniqueExperiment
+            .presetId as TechniqueExperimentPresetId,
+        )
+      : null
+    const experimentRules = experimentPreset
+      ? resolvePublicComposerRules(
+          ruleContext,
+          techniqueExperimentRules(
+            experimentPreset.id,
+            ruleContext,
+          ),
+        )
+      : null
+    const regenerationInput: GenerateDecorationInput = {
+      ...input,
+      composerRules:
+        current.techniqueExperiment?.mode === "treatment" &&
+        experimentRules
+          ? experimentRules
+          : resolvePublicComposerRules(ruleContext),
+      techniqueFitSelectionWeight:
+        current.techniqueExperiment?.mode === "treatment"
+          ? 0.1
+          : 0,
+    }
     const siblings = (prev.reactiveLayerCandidates ?? []).filter(
       (candidate) =>
         candidate.batchId === current.batchId &&
         candidate.id !== current.id &&
-        candidate.kind === "decoration",
+        candidate.kind === "decoration" &&
+        candidate.techniqueExperiment?.mode ===
+          current.techniqueExperiment?.mode,
     )
-    const generated = buildRegeneratedDecoration(input, current, siblings)
+    const generated = buildRegeneratedDecoration(
+      regenerationInput,
+      current,
+      siblings,
+    )
     if (!generated) {
       set({ workflowNotice: "別のDecoration案を生成できませんでした。" })
       return
@@ -1363,6 +1725,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       name: current.name,
       notes: generated.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
       createdAt: new Date().toISOString(),
+      techniqueFitScore: experimentRules
+        ? decorationTechniqueFitScore(
+            generated.decorationPlan,
+            experimentRules,
+          )
+        : generated.techniqueFitScore,
+      techniqueExperiment: current.techniqueExperiment,
     }
     const assignments = { ...(prev.sectionDecorationLayerAssignments ?? {}) }
     if (assignments[current.sectionId] === current.id) {
