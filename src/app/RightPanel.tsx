@@ -222,6 +222,31 @@ export function RightPanel({
                   generationSettings.techniqueExperimentPresetId,
               ).map((preset) => (
                 <div key={preset.id}>
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span
+                      className={clsx(
+                        "rounded-full border px-1.5 py-0.5",
+                        preset.validationLevel === "confirmed"
+                          ? "border-emerald-400/40 text-emerald-300"
+                          : "border-amber-400/40 text-amber-300",
+                      )}
+                    >
+                      {preset.validationLevel === "confirmed"
+                        ? "100 seed確認済み"
+                        : "探索中"}
+                    </span>
+                    {preset.recommendedProfiles.length > 0 && (
+                      <span className="text-ink-muted-48">
+                        推奨:{" "}
+                        {preset.recommendedProfiles
+                          .map(
+                            (profile) =>
+                              GENERATOR_PROFILE_LABELS[profile],
+                          )
+                          .join("・")}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-ink-muted-48">
                     {preset.description}
                   </p>
@@ -230,6 +255,14 @@ export function RightPanel({
                       <li key={name}>{name}</li>
                     ))}
                   </ul>
+                  {preset.recommendedProfiles.length > 0 &&
+                    !selected.some((profile) =>
+                      preset.recommendedProfiles.includes(profile),
+                    ) && (
+                      <p className="mt-2 text-[10px] text-amber-300/90">
+                        現在選択中のGenerator Profileは自動検証済みの推奨対象外です。
+                      </p>
+                    )}
                 </div>
               ))}
               <p className="border-t border-hairline pt-2 text-[10px] text-amber-300/90">
