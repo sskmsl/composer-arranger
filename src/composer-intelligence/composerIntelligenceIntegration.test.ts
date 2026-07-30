@@ -17,8 +17,10 @@ import {
   type GeneratePhrasesInput,
 } from "@/phrase-engine/generatePhrases"
 import {
+  TECHNIQUE_EXPERIMENT_PRESETS,
   resolveComposerRules,
   resolvePublicComposerRules,
+  techniqueExperimentPreset,
   techniqueExperimentRules,
   type ComposerGeneratorTarget,
   type ComposerRule,
@@ -321,5 +323,18 @@ describe("Composer Intelligence / Generator execution boundary", () => {
     expect(
       JSON.stringify(rules).includes("genreSource"),
     ).toBe(false)
+    expect(TECHNIQUE_EXPERIMENT_PRESETS).toHaveLength(4)
+    expect(
+      techniqueExperimentPreset("slow-burn-escalation"),
+    ).toMatchObject({
+      validationLevel: "confirmed",
+      recommendedProfiles: ["elegiac-cantabile"],
+    })
+    expect(
+      techniqueExperimentRules(
+        "negative-space-groove",
+        context,
+      ),
+    ).toHaveLength(1)
   })
 })
