@@ -319,9 +319,9 @@ const GESTURES_BY_TYPE: Record<
   DecorationType,
   DecorationGestureRole[]
 > = {
-  "decorative-fill": ["response", "pedal", "swell"],
-  "transition-fill": ["pickup", "transition", "swell"],
-  "ending-fill": ["ending", "pedal", "response"],
+  "decorative-fill": ["response", "pedal", "swell", "pickup"],
+  "transition-fill": ["pickup", "transition", "swell", "response"],
+  "ending-fill": ["ending", "pedal", "response", "swell"],
 }
 
 const SHAPES_BY_GESTURE: Record<
@@ -562,6 +562,43 @@ function registerWindow(register: DecorationPlan["register"]): { low: number; hi
   if (register === "low") return { low: 43, high: 60 }
   if (register === "high") return { low: 72, high: 91 }
   return { low: 58, high: 77 }
+}
+
+/**
+ * 長いGestureはMelody Gapだけへ押し込まず、主旋律の外側の音域を使って共存させる。
+ * 1拍前後の短いResponseはGap内で鳴るため、元のCharacter音域を維持する。
+ */
+function registerWindowForPlan(
+  input: GenerateDecorationInput,
+  plan: DecorationPlan,
+): { low: number; high: number } {
+  const base = registerWindow(plan.register)
+  const melodyNotes = input.melodyNotes ?? []
+  if (melodyNotes.length === 0 || plan.lengthBeats <= 1.25) {
+    return base
+  }
+  const budget = analyzeMelodyActivity(
+    melodyNotes,
+    input.totalBeats,
+  ).registerBudget
+  if (plan.register === "low") {
+    const separated = {
+      low: Math.max(36, Math.min(base.low, budget.low)),
+      high: Math.min(base.high, budget.melodyLow - 3),
+    }
+    if (separated.low <= separated.high) return separated
+  }
+  if (plan.register === "high") {
+    const separated = {
+      low: Math.max(base.low, budget.melodyHigh + 3),
+      high: Math.min(96, Math.max(base.high, budget.high)),
+    }
+    if (separated.low <= separated.high) return separated
+  }
+  return {
+    low: budget.low,
+    high: budget.high,
+  }
 }
 
 function targetPitchClass(
@@ -915,7 +952,7 @@ function notesForPedal(
   seed: number,
 ): MelodyNote[] {
   const rng = new SeededRandom(seed)
-  const window = registerWindow(plan.register)
+  const window = registerWindowForPlan(input, plan)
   const pitchClass = commonTonePitchClass(input, plan)
   const pitch = nearestPitchClass(
     pitchClass,
@@ -944,7 +981,7 @@ function notesForSwell(
   seed: number,
 ): MelodyNote[] {
   const rng = new SeededRandom(seed)
-  const window = registerWindow(plan.register)
+  const window = registerWindowForPlan(input, plan)
   const keyPitches = pitchLadder(keyScalePitchClasses(input.key), window)
   const centerIndex = Math.max(
     0,
@@ -1039,7 +1076,7 @@ function notesForPlan(
   }
   const rng = new SeededRandom(seed)
   const grid = rhythmGrid(plan.rhythmStyle, plan.lengthBeats, plan.density)
-  const window = registerWindow(plan.register)
+  const window = registerWindowForPlan(input, plan)
   const pitchTargets = shapePitchTargets(
     plan.shape,
     plan.direction,
@@ -1288,12 +1325,65 @@ function similarity(a: ReactiveLayerCandidate, b: ReactiveLayerCandidate): numbe
     Number(planA.rhythmStyle === planB.rhythmStyle) +
     Number(planA.register === planB.register) +
     Number(planA.direction === planB.direction)
-  const onsetsA = new Set(a.notes.map((note) => Math.round(note.startBeat * 4)))
-  const onsetsB = new Set(b.notes.map((note) => Math.round(note.startBeat * 4)))
+  const onsetsA = new Set(
+    a.notes.map((note) =>
+      Math.round((note.startBeat - planA.placementBeat) * 4),
+    ),
+  )
+  const onsetsB = new Set(
+    b.notes.map((note) =>
+      Math.round((note.startBeat - planB.placementBeat) * 4),
+    ),
+  )
   const onsetMatch =
     [...onsetsA].filter((onset) => onsetsB.has(onset)).length /
     Math.max(1, Math.max(onsetsA.size, onsetsB.size))
-  return (categorical / 6) * 0.7 + onsetMatch * 0.3
+  const intervalsA = a.notes
+    .slice(1)
+    .map((note, index) => note.pitch - a.notes[index].pitch)
+  const intervalsB = b.notes
+    .slice(1)
+    .map((note, index) => note.pitch - b.notes[index].pitch)
+  const intervalCount = Math.max(intervalsA.length, intervalsB.length)
+  const intervalMatch =
+    intervalCount === 0
+      ? Number(intervalsA.length === intervalsB.length)
+      : Array.from({ length: intervalCount }, (_, index) => {
+          const left = intervalsA[index]
+          const right = intervalsB[index]
+          if (left === undefined || right === undefined) return 0
+          const directionMatch =
+            Math.sign(left) === Math.sign(right) ? 1 : 0
+          const sizeMatch = Math.max(
+            0,
+            1 - Math.abs(Math.abs(left) - Math.abs(right)) / 7,
+          )
+          return directionMatch * 0.6 + sizeMatch * 0.4
+        }).reduce((sum, value) => sum + value, 0) / intervalCount
+  const lengthMatch =
+    1 -
+    Math.min(
+      1,
+      Math.abs(planA.lengthBeats - planB.lengthBeats) /
+        Math.max(0.25, planA.lengthBeats, planB.lengthBeats),
+    )
+  const placementMatch =
+    1 -
+    Math.min(
+      1,
+      Math.abs(planA.placementBeat - planB.placementBeat) / 4,
+    )
+  const noteCountMatch =
+    Math.min(a.notes.length, b.notes.length) /
+    Math.max(1, a.notes.length, b.notes.length)
+  return (
+    (categorical / 6) * 0.35 +
+    onsetMatch * 0.2 +
+    intervalMatch * 0.2 +
+    lengthMatch * 0.1 +
+    placementMatch * 0.1 +
+    noteCountMatch * 0.05
+  )
 }
 
 function minimumGestureNotes(plan: DecorationPlan | undefined): number {
@@ -1472,16 +1562,37 @@ function planFor(
     input.melodyNotes && input.melodyNotes.length > 0
       ? analyzeMelodyActivity(input.melodyNotes, input.totalBeats).gaps
       : []
+  const roleLengthBeats =
+    gestureRole === "response" || gestureRole === "pickup"
+      ? Math.min(2, requestedLengthBeats)
+      : requestedLengthBeats
   const fullLengthGaps = allMelodyGaps.filter(
-    (gap) => gap.durationBeats >= requestedLengthBeats,
+    (gap) => gap.durationBeats >= roleLengthBeats,
   )
-  const usableShortGaps = allMelodyGaps.filter(
-    (gap) => gap.durationBeats >= Math.min(1, requestedLengthBeats),
+  const mediumGaps = allMelodyGaps.filter(
+    (gap) =>
+      gap.durationBeats >= Math.min(2, roleLengthBeats) &&
+      !fullLengthGaps.includes(gap),
   )
+  const shortGaps = allMelodyGaps.filter(
+    (gap) => gap.durationBeats >= Math.min(0.5, roleLengthBeats),
+  )
+  // Responseだけは短い旋律の隙間へ収める。Transition / Swell / Pedalまで
+  // 同じGapへ縮めると、全候補が1拍・1〜2音へ収束してしまう。
   const melodyGaps =
-    fullLengthGaps.length > 0 ? fullLengthGaps : usableShortGaps
+    gestureRole === "response"
+      ? fullLengthGaps.length > 0
+        ? fullLengthGaps
+        : mediumGaps.length > 0
+          ? mediumGaps
+          : shortGaps
+      : gestureRole === "pickup"
+        ? fullLengthGaps.length > 0
+          ? fullLengthGaps
+          : mediumGaps
+        : []
   const preferredGaps =
-    type === "decorative-fill"
+    gestureRole === "response"
       ? melodyGaps
       : [...melodyGaps].sort((a, b) => b.startBeat - a.startBeat)
   const selectedGap =
@@ -1489,8 +1600,8 @@ function planFor(
       ? preferredGaps[poolIndex % preferredGaps.length]
       : undefined
   const lengthBeats = selectedGap
-    ? Math.min(requestedLengthBeats, selectedGap.durationBeats)
-    : requestedLengthBeats
+    ? Math.min(roleLengthBeats, selectedGap.durationBeats)
+    : roleLengthBeats
   const placementBeat =
     selectedGap?.startBeat ??
     (gestureRole === "response"
@@ -1666,7 +1777,7 @@ function buildCandidate(
           : "gap-fill",
     decorationPlan: plan,
     structureFingerprint: fingerprint,
-    name: `${plan.type === "transition-fill" ? "Transition" : plan.type === "ending-fill" ? "Ending" : "Decorative"} · ${plan.character}`,
+    name: `${plan.gestureRole ?? "gesture"} · ${plan.character} · ${plan.shape}`,
     notes,
     seed,
     quality: evaluated.quality,

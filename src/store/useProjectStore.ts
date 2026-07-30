@@ -1568,7 +1568,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             candidates: generateDecorationCandidates({
               ...input,
               composerRules: experimentRules!,
-              techniqueFitSelectionWeight: 0.1,
+              techniqueFitSelectionWeight: 0.05,
             }),
           },
         ]
@@ -1698,7 +1698,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           : resolvePublicComposerRules(ruleContext),
       techniqueFitSelectionWeight:
         current.techniqueExperiment?.mode === "treatment"
-          ? 0.1
+          ? 0.05
           : 0,
     }
     const siblings = (prev.reactiveLayerCandidates ?? []).filter(
