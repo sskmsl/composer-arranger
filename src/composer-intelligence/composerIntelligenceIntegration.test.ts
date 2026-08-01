@@ -323,7 +323,7 @@ describe("Composer Intelligence / Generator execution boundary", () => {
     expect(
       JSON.stringify(rules).includes("genreSource"),
     ).toBe(false)
-    expect(TECHNIQUE_EXPERIMENT_PRESETS).toHaveLength(4)
+    expect(TECHNIQUE_EXPERIMENT_PRESETS).toHaveLength(5)
     expect(
       techniqueExperimentPreset("slow-burn-escalation"),
     ).toMatchObject({
@@ -355,6 +355,27 @@ describe("Composer Intelligence / Generator execution boundary", () => {
       },
     })
     expect(
+      techniqueExperimentPreset("motif-economy-reframing"),
+    ).toMatchObject({
+      validationLevel: "exploratory",
+      targetValidationLevels: {
+        melody: "exploratory",
+        phrase: "exploratory",
+        counter: "exploratory",
+        decoration: "confirmed",
+      },
+      recommendedProfiles: [],
+      recommendedSectionRolesByTarget: {
+        decoration: [
+          "intro",
+          "verse",
+          "pre-chorus",
+          "chorus",
+          "bridge",
+        ],
+      },
+    })
+    expect(
       techniqueExperimentRules(
         "negative-space-groove",
         context,
@@ -383,6 +404,12 @@ describe("Composer Intelligence / Generator execution boundary", () => {
     )
     expect(counterRules).toHaveLength(1)
     expect(counterRules[0].prefer.partRole).toBeDefined()
+    expect(
+      techniqueExperimentRules("motif-economy-reframing", {
+        generatorTarget: "melody",
+        sectionRole: "verse",
+      })[0].prefer.developmentStrategy,
+    ).toBeDefined()
     const decorationRules = techniqueExperimentRules(
       "negative-space-groove",
       {
