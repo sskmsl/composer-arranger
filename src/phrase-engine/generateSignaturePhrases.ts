@@ -11,6 +11,7 @@ import { SeededRandom } from "@/core/rng"
 import { keyScalePitchClasses } from "@/core/scale"
 import type {
   SignaturePhraseCandidate,
+  SignaturePhraseArchetype,
   SignaturePhrasePlan,
   SignaturePhraseScore,
   SignaturePhraseSimilarity,
@@ -58,8 +59,23 @@ interface BuiltSignaturePhrase {
 }
 
 const DEFAULT_FINAL_COUNT = 12
-const DEFAULT_POOL_SIZE = 48
+const DEFAULT_POOL_SIZE = 72
 const QUALITY_FLOOR = 58
+
+const ARCHETYPES: SignaturePhraseArchetype[] = [
+  "atmospheric-gateway",
+  "obsessive-motor",
+  "kinetic-hook",
+]
+
+const ARCHETYPE_RHYTHMS: Record<
+  SignaturePhraseArchetype,
+  readonly SignatureRhythmIdentity[]
+> = {
+  "atmospheric-gateway": ["call-gap-answer", "long-short-signal"],
+  "obsessive-motor": ["opening-stamp", "broken-pulse"],
+  "kinetic-hook": ["pickup-hook", "syncopated-cell"],
+}
 
 const RHYTHM_BLUEPRINTS: Record<
   SignatureRhythmIdentity,
@@ -105,10 +121,6 @@ const RHYTHM_BLUEPRINTS: Record<
   ],
 }
 
-const RHYTHM_IDENTITIES = Object.keys(
-  RHYTHM_BLUEPRINTS,
-) as SignatureRhythmIdentity[]
-
 const CONTOURS: PhraseContour[] = [
   "ascending",
   "descending",
@@ -117,28 +129,30 @@ const CONTOURS: PhraseContour[] = [
   "wave",
 ]
 
-const VARIATIONS: SignatureVariationStrategy[] = [
-  "displacement",
-  "fragmentation",
-  "augmentation",
-  "answer",
-  "delayed-return",
-]
-
-const MOTIF_PATHS: readonly number[][] = [
-  [0, 2, -1, 3],
-  [0, -2, 1, -3],
-  [0, 4, -2, -1],
-  [0, -5, 2, 1],
-  [0, 0, 3, -1, -2],
-  [0, 3, -1, 2, -4],
-  [0, -3, 1, -2, 4],
-  [0, 2, 2, -3, 1],
-  [0, -1, 4, -2],
-  [0, 5, -2, -2],
-  [0, -4, 1, 2],
-  [0, 1, -2, 4, -1],
-]
+/**
+ * 音程そのものではなく、隣接音間の動き。狭い反復・空間的な呼応・
+ * 身体的な折り返しを別語彙にし、全候補が同じ階段運動へ寄らないようにする。
+ */
+const MOTIF_PATHS: Record<SignaturePhraseArchetype, readonly number[][]> = {
+  "atmospheric-gateway": [
+    [0, 2, -1],
+    [0, -1, 3],
+    [0, 3, -2, 0],
+    [0, -2, 1, 0],
+  ],
+  "obsessive-motor": [
+    [0, 0, -1, 0],
+    [0, -1, 0, 2],
+    [0, 3, -3, 1],
+    [0, 0, 3, -1, 0],
+  ],
+  "kinetic-hook": [
+    [0, 4, -2, -3],
+    [0, -5, 2, 4],
+    [0, 2, 3, -4, 1],
+    [0, -3, 5, -2],
+  ],
+}
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
@@ -163,26 +177,78 @@ function planSignaturePhrase(
   const lengthBars = (input.lengthBars ?? (poolIndex % 3 === 0 ? 1 : 2)) as
     | 1
     | 2
+  const profileWeights: Record<SongProfileId, readonly number[]> = {
+    "dark-romantic": [1.25, 1.45, 0.8],
+    "cinematic-french-pop": [1.55, 0.75, 1],
+    "minimal-tension": [1.6, 1.05, 0.55],
+    "dramatic-synth-pop": [0.75, 1.4, 1.55],
+    "original-custom": [1, 1, 1],
+  }
+  const archetype =
+    poolIndex < ARCHETYPES.length
+      ? ARCHETYPES[poolIndex]
+      : rng.weightedPick(ARCHETYPES, profileWeights[input.songProfile])
+  const archetypeRhythms = ARCHETYPE_RHYTHMS[archetype]
   const rhythmIdentity =
-    RHYTHM_IDENTITIES[(poolIndex + rng.intBetween(0, 2)) % RHYTHM_IDENTITIES.length]
+    archetypeRhythms[(poolIndex + rng.intBetween(0, 1)) % archetypeRhythms.length]
   const contour = CONTOURS[(poolIndex * 3 + rng.intBetween(0, 2)) % CONTOURS.length]
+  const preferredVariations: Record<
+    SignaturePhraseArchetype,
+    readonly SignatureVariationStrategy[]
+  > = {
+    "atmospheric-gateway": ["augmentation", "answer", "delayed-return"],
+    "obsessive-motor": ["displacement", "fragmentation", "delayed-return"],
+    "kinetic-hook": ["answer", "displacement", "fragmentation"],
+  }
+  const variationOptions = preferredVariations[archetype]
   const variationStrategy =
-    VARIATIONS[(poolIndex * 2 + rng.intBetween(0, 2)) % VARIATIONS.length]
+    variationOptions[(poolIndex * 2 + rng.intBetween(0, 2)) % variationOptions.length]
   const harmonicPolicies = [
     "structural-only",
     "opening-and-ending",
     "tension-led",
   ] as const
+  const archetypePolicy: Record<
+    SignaturePhraseArchetype,
+    (typeof harmonicPolicies)[number]
+  > = {
+    "atmospheric-gateway": "tension-led",
+    "obsessive-motor": "structural-only",
+    "kinetic-hook": "opening-and-ending",
+  }
+  const motifOptions = MOTIF_PATHS[archetype]
+  const motifVariant = ((poolIndex * 5 + seed) % motifOptions.length) as
+    | 0
+    | 1
+    | 2
+    | 3
   return {
     role: "intro",
     lengthBars,
+    archetype,
     rhythmIdentity,
     contour,
     variationStrategy,
-    motifSize: RHYTHM_BLUEPRINTS[rhythmIdentity].length,
+    motifSize: motifOptions[motifVariant].length,
+    motifVariant,
     pickupBeats: RHYTHM_BLUEPRINTS[rhythmIdentity][0]?.start ?? 0,
+    rhythmVariant: (poolIndex % 3) as 0 | 1 | 2,
+    repetitionStrength:
+      archetype === "obsessive-motor"
+        ? 0.88
+        : archetype === "kinetic-hook"
+          ? 0.7
+          : 0.52,
+    targetSilenceRatio:
+      archetype === "atmospheric-gateway"
+        ? 0.5
+        : archetype === "kinetic-hook"
+          ? 0.3
+          : 0.22,
     harmonicAnchorPolicy:
-      harmonicPolicies[(poolIndex + rng.intBetween(0, 2)) % harmonicPolicies.length],
+      rng.next() < 0.72
+        ? archetypePolicy[archetype]
+        : harmonicPolicies[(poolIndex + rng.intBetween(0, 2)) % harmonicPolicies.length],
   }
 }
 
@@ -232,6 +298,57 @@ function transformStatement(
   }
 }
 
+function shapeStatementForArchetype(
+  source: readonly RhythmEvent[],
+  plan: SignaturePhrasePlan,
+  statementIndex: number,
+): RhythmEvent[] {
+  if (plan.archetype === "atmospheric-gateway") {
+    return source
+      .filter((_, index) => {
+        if (plan.rhythmVariant === 1) return index === 0 || index === source.length - 1
+        if (plan.rhythmVariant === 2) return index !== 1
+        return index % 2 === 0 || index === source.length - 1
+      })
+      .map((event, index) => ({
+        ...event,
+        start: Math.min(3.75, event.start + (statementIndex > 0 && index === 0 ? 0.5 : 0)),
+        duration: Math.min(2.25, event.duration * (index === 0 ? 1.6 : 1.25)),
+        accent: Math.max(0.48, event.accent - index * 0.08),
+      }))
+  }
+
+  if (plan.archetype === "obsessive-motor") {
+    return source
+      .filter((_, index) => plan.rhythmVariant !== 2 || index !== source.length - 2)
+      .map((event, index) => ({
+        ...event,
+        start: Math.min(
+          3.75,
+          event.start +
+            (plan.rhythmVariant === 1 && index % 2 === 1 ? 0.25 : 0),
+        ),
+        duration: Math.min(event.duration, index % 3 === 0 ? 0.5 : 0.35),
+        accent:
+          index === 0 || index === source.length - 1
+            ? 1
+            : Math.max(0.5, event.accent - 0.12),
+      }))
+  }
+
+  return source.map((event, index) => ({
+    ...event,
+    start: Math.min(
+      3.75,
+      event.start +
+        (plan.rhythmVariant === 1 && index === 1 ? 0.25 : 0) +
+        (plan.rhythmVariant === 2 && statementIndex > 0 && index === 0 ? 0.25 : 0),
+    ),
+    duration: Math.min(event.duration, index % 2 === 0 ? 0.5 : 0.75),
+    accent: index % 3 === 0 ? 1 : Math.max(0.58, event.accent),
+  }))
+}
+
 /** Pitchより先に、休符を含むRhythm Skeletonを完成させる。 */
 export function buildSignatureRhythmSkeleton(
   plan: SignaturePhrasePlan,
@@ -240,7 +357,8 @@ export function buildSignatureRhythmSkeleton(
   const source = RHYTHM_BLUEPRINTS[plan.rhythmIdentity]
   const events: RhythmEvent[] = []
   for (let bar = 0; bar < plan.lengthBars; bar++) {
-    const statement = transformStatement(source, plan.variationStrategy, bar)
+    const transformed = transformStatement(source, plan.variationStrategy, bar)
+    const statement = shapeStatementForArchetype(transformed, plan, bar)
     for (const event of statement) {
       const scale = beatsPerBar / 4
       const start = roundQuarter(bar * beatsPerBar + event.start * scale)
@@ -289,13 +407,23 @@ function startPitch(
     (value) => !chordTones.includes(value),
   )
   const pool =
-    plan.harmonicAnchorPolicy === "tension-led" && tensions.length > 0
+    (plan.harmonicAnchorPolicy === "tension-led" ||
+      plan.archetype === "atmospheric-gateway") &&
+    tensions.length > 0
       ? tensions
       : [...new Set([...chordTones, ...keyScale])]
+  const registerPosition =
+    plan.archetype === "obsessive-motor"
+      ? 0.38
+      : plan.archetype === "kinetic-hook"
+        ? 0.5
+        : 0.58
   const center =
     range.low +
     (range.high - range.low) *
-      (plan.contour === "descending" ? 0.67 : 0.42)
+      (plan.contour === "descending"
+        ? Math.min(0.72, registerPosition + 0.12)
+        : registerPosition)
   return nearestAllowedPitch(
     Math.round(center) + rng.pick([-4, -2, 0, 2, 5]),
     pool,
@@ -335,6 +463,27 @@ function transformedStep(
   }
 }
 
+function singleStatementVariation(
+  step: number,
+  strategy: SignatureVariationStrategy,
+  indexInMotif: number,
+  motifLength: number,
+): number {
+  if (indexInMotif < Math.ceil(motifLength / 2)) return step
+  switch (strategy) {
+    case "displacement":
+      return indexInMotif === motifLength - 1 ? 0 : step
+    case "fragmentation":
+      return Math.sign(step) * Math.max(1, Math.abs(step) - 1)
+    case "augmentation":
+      return Math.sign(step) * Math.max(1, Math.round(Math.abs(step) * 1.4))
+    case "answer":
+      return -step
+    case "delayed-return":
+      return indexInMotif === motifLength - 1 ? -step : 0
+  }
+}
+
 function placePitchPath(
   input: GenerateSignaturePhrasesInput,
   plan: SignaturePhrasePlan,
@@ -349,27 +498,58 @@ function placePitchPath(
   const keyScale = keyScalePitchClasses(input.key)
   const firstEntry = chordAtBeat(map, events[0].start) ?? map[0]
   let previous = startPitch(plan, firstEntry, keyScale, input.range, rng)
+  const motifRoot = previous
   let previousInterval = 0
   let repeatedPitchCount = 0
+  let previousStatement = -1
+  let statementEventIndex = 0
 
   return events.map((event, index) => {
     const entry = chordAtBeat(map, event.start) ?? map[map.length - 1]
     const statement = Math.floor(event.start / input.beatsPerBar)
-    const indexInMotif = index % motifPath.length
+    if (statement !== previousStatement) {
+      statementEventIndex = 0
+      previousStatement = statement
+    }
+    const indexInMotif = statementEventIndex % motifPath.length
+    statementEventIndex += 1
     let step = transformedStep(
       motifPath[indexInMotif],
       plan.variationStrategy,
       statement,
       indexInMotif,
     )
+    if (plan.lengthBars === 1 && index > 0) {
+      step = singleStatementVariation(
+        step,
+        plan.variationStrategy,
+        indexInMotif,
+        motifPath.length,
+      )
+    }
     const direction = contourDirection(
       plan.contour,
       event.start / Math.max(1, phraseLengthBeats),
     )
-    if (index > 0 && step !== 0 && Math.sign(step) !== direction) {
-      step = Math.abs(step) * direction
+    if (statement > 0 && indexInMotif === 0) {
+      const returnDistance =
+        plan.archetype === "obsessive-motor"
+          ? plan.rhythmVariant === 2
+            ? direction
+            : 0
+          : plan.archetype === "kinetic-hook"
+            ? direction * (plan.rhythmVariant + 1)
+            : direction * (plan.rhythmVariant === 1 ? 2 : 1)
+      step = motifRoot + returnDistance - previous
+    } else if (
+      index > 0 &&
+      indexInMotif === motifPath.length - 1 &&
+      plan.archetype !== "obsessive-motor"
+    ) {
+      // 全音を同方向へ矯正せず、Motif終端だけ長期Contourへ軽く導く。
+      step += direction
     }
-    if (Math.abs(previousInterval) >= 5) {
+    if (Math.abs(previousInterval) >= 5 && plan.archetype !== "kinetic-hook") {
       step = -Math.sign(previousInterval) * rng.pick([1, 2])
     }
     const desired = index === 0 ? previous : previous + step
@@ -402,7 +582,14 @@ function placePitchPath(
       durationBeats: event.duration,
       pitch: placed,
       velocity: Math.round(
-        68 + event.accent * 22 + rng.intBetween(-4, 4),
+        (plan.archetype === "atmospheric-gateway"
+          ? 55
+          : plan.archetype === "obsessive-motor"
+            ? 66
+            : 70) +
+          event.accent *
+            (plan.archetype === "atmospheric-gateway" ? 18 : 25) +
+          rng.intBetween(-3, 3),
       ),
       locks: [],
       plannedToneRole: role,
@@ -444,6 +631,7 @@ function scoreSignaturePhrase(
   plan: SignaturePhrasePlan,
   map: HarmonicMapEntry[],
   phraseLengthBeats: number,
+  motifPath: readonly number[],
 ): SignaturePhraseScore {
   if (notes.length < 3) {
     return {
@@ -453,7 +641,13 @@ function scoreSignaturePhrase(
       contourIdentity: 0,
       developmentPotential: 0,
       standaloneStrength: 0,
+      worldBuilding: 0,
+      motifMemorability: 0,
+      motifIntegrity: 0,
+      repetitionDrive: 0,
+      silenceUse: 0,
       arpeggioPenalty: 1,
+      mechanicalPenalty: 1,
       overall: 0,
     }
   }
@@ -529,6 +723,76 @@ function scoreSignaturePhrase(
       (notes.at(-1)!.durationBeats >= 0.5 ? 0.13 : 0.07) +
       (restRatio >= 0.08 ? 0.1 : 0.03),
   )
+  const repeatedIntervalCells = intervals.filter(
+    (interval, index) =>
+      index > 0 && intervals.slice(0, index).includes(interval),
+  ).length / Math.max(1, intervals.length)
+  const expectedMotifIntervals = motifPath.slice(
+    1,
+    Math.min(motifPath.length, intervals.length + 1),
+  )
+  const motifIntegrity = clamp01(
+    sequenceSimilarity(
+      intervals.slice(0, expectedMotifIntervals.length),
+      expectedMotifIntervals,
+      2,
+    ),
+  )
+  const shortKernel = Math.max(2, Math.min(plan.motifSize, 5))
+  const motifMemorability = clamp01(
+    (notes.length >= 3 && notes.length <= 10 ? 0.28 : 0.14) +
+      Math.min(1, repeatedIntervalCells / 0.45) * 0.28 +
+      (shortKernel <= 5 ? 0.2 : 0.08) +
+      (new Set(intervals.map((interval) => Math.abs(interval))).size <= 5
+        ? 0.16
+        : 0.06) +
+      (gaps.some((gap, index) => index > 0 && gaps.slice(0, index).includes(gap))
+        ? 0.08
+        : 0.02),
+  )
+  const beatsPerStatement = phraseLengthBeats / Math.max(1, plan.lengthBars)
+  const firstStatement = notes.filter((note) => note.startBeat < beatsPerStatement)
+  const secondStatement = notes.filter((note) => note.startBeat >= beatsPerStatement)
+  const recurrence =
+    secondStatement.length > 0
+      ? sequenceSimilarity(
+          onsetGaps(firstStatement),
+          onsetGaps(secondStatement),
+          0.25,
+        ) *
+          0.45 +
+        sequenceSimilarity(
+          intervalSequence(firstStatement).map(Math.sign),
+          intervalSequence(secondStatement).map(Math.sign),
+        ) *
+          0.55
+      : repeatedIntervalCells
+  const repetitionDrive = clamp01(
+    Math.min(1, recurrence / 0.7) * 0.65 +
+      (recurrence < 0.98 ? 0.2 : 0.05) +
+      plan.repetitionStrength * 0.15,
+  )
+  const silenceUse = clamp01(
+    1 -
+      Math.abs(restRatio - plan.targetSilenceRatio) /
+        Math.max(0.2, plan.targetSilenceRatio),
+  )
+  const worldBuilding = clamp01(
+    plan.archetype === "atmospheric-gateway"
+      ? silenceUse * 0.42 +
+          Math.min(1, Math.max(...durations) / 1.5) * 0.28 +
+          (chordToneRatio < 0.78 ? 0.18 : 0.06) +
+          (notes[0].velocity < 84 ? 0.12 : 0.04)
+      : plan.archetype === "obsessive-motor"
+        ? repetitionDrive * 0.42 +
+          motifMemorability * 0.28 +
+          rhythmicIdentity * 0.2 +
+          (pitchRange <= 10 ? 0.1 : 0.04)
+        : rhythmicIdentity * 0.32 +
+          contourIdentity * 0.28 +
+          openingImpact * 0.24 +
+          (pitchRange >= 5 ? 0.16 : 0.06),
+  )
   const thirdMotion = intervals.filter(
     (interval) => Math.abs(interval) === 3 || Math.abs(interval) === 4,
   ).length / Math.max(1, intervals.length)
@@ -537,13 +801,32 @@ function scoreSignaturePhrase(
     Math.max(0, chordToneRatio - 0.72) * 1.8 +
       (thirdMotion > 0.65 && monotonic ? 0.35 : 0),
   )
+  const uniformDuration = new Set(durations).size === 1
+  const stepwiseStaircase =
+    monotonic &&
+    intervals.length >= 3 &&
+    intervals.filter((interval) => Math.abs(interval) <= 2).length /
+      intervals.length >=
+      0.75
+  const overfilled = notes.length / Math.max(1, phraseLengthBeats) > 1.25
+  const mechanicalPenalty = clamp01(
+    (uniformDuration ? 0.28 : 0) +
+      (stepwiseStaircase ? 0.38 : 0) +
+      (overfilled ? 0.25 : 0) +
+      (recurrence > 0.985 ? 0.16 : 0),
+  )
   const weighted =
-    identity * 0.2 +
-    openingImpact * 0.18 +
-    rhythmicIdentity * 0.19 +
-    contourIdentity * 0.16 +
-    developmentPotential * 0.15 +
-    standaloneStrength * 0.12
+    identity * 0.09 +
+    openingImpact * 0.12 +
+    rhythmicIdentity * 0.13 +
+    contourIdentity * 0.1 +
+    developmentPotential * 0.1 +
+    standaloneStrength * 0.06 +
+    worldBuilding * 0.13 +
+    motifMemorability * 0.13 +
+    motifIntegrity * 0.06 +
+    repetitionDrive * 0.05 +
+    silenceUse * 0.03
   return {
     identity,
     openingImpact,
@@ -551,8 +834,18 @@ function scoreSignaturePhrase(
     contourIdentity,
     developmentPotential,
     standaloneStrength,
+    worldBuilding,
+    motifMemorability,
+    motifIntegrity,
+    repetitionDrive,
+    silenceUse,
     arpeggioPenalty,
-    overall: Math.round(clamp01(weighted - arpeggioPenalty * 0.22) * 10000) / 100,
+    mechanicalPenalty,
+    overall:
+      Math.round(
+        clamp01(weighted - arpeggioPenalty * 0.18 - mechanicalPenalty * 0.22) *
+          10000,
+      ) / 100,
   }
 }
 
@@ -575,8 +868,8 @@ function buildSignaturePhrase(
           (_, index) => index % 4 !== 2 || baseEvents.length <= 4,
         )
       : baseEvents
-  const baseMotifPath =
-    MOTIF_PATHS[(poolIndex * 5 + seed) % MOTIF_PATHS.length]
+  const motifOptions = MOTIF_PATHS[plan.archetype]
+  const baseMotifPath = motifOptions[plan.motifVariant]
   const motifPath = baseMotifPath.map((step) => {
     if (input.drama === "restrained") {
       return Math.sign(step) * Math.min(3, Math.abs(step))
@@ -600,7 +893,13 @@ function buildSignaturePhrase(
     plan,
     phraseLengthBeats,
     seed,
-    score: scoreSignaturePhrase(notes, plan, map, phraseLengthBeats),
+    score: scoreSignaturePhrase(
+      notes,
+      plan,
+      map,
+      phraseLengthBeats,
+      motifPath,
+    ),
   }
 }
 
@@ -635,10 +934,11 @@ export function signaturePhraseSimilarity(
   const contourSimilarity = sequenceSimilarity(leftContour, rightContour)
   const durationSimilarity = sequenceSimilarity(leftDurations, rightDurations, 0.01)
   const planSimilarity =
-    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.45 : 0) +
-    (left.plan.contour === right.plan.contour ? 0.25 : 0) +
-    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.2 : 0) +
-    (left.plan.lengthBars === right.plan.lengthBars ? 0.1 : 0)
+    (left.plan.archetype === right.plan.archetype ? 0.3 : 0) +
+    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.3 : 0) +
+    (left.plan.contour === right.plan.contour ? 0.18 : 0) +
+    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.14 : 0) +
+    (left.plan.lengthBars === right.plan.lengthBars ? 0.08 : 0)
   return {
     rhythmSimilarity,
     intervalSimilarity,
@@ -663,12 +963,23 @@ function selectDiversePool(
   selectionScore: number
   similarities: SignaturePhraseSimilarity[]
 }[] {
-  const eligible = pool.filter(
-    (candidate) => candidate.score.overall >= QUALITY_FLOOR,
+  const qualityEligible = pool.filter(
+    (candidate) =>
+      candidate.score.overall >= QUALITY_FLOOR &&
+      candidate.score.mechanicalPenalty <= 0.5,
+  )
+  const hookEligible = qualityEligible.filter(
+    (candidate) =>
+      candidate.score.openingImpact >= 0.55 &&
+      candidate.score.motifMemorability >= 0.55 &&
+      candidate.score.motifIntegrity >= 0.4 &&
+      candidate.score.worldBuilding >= 0.5,
   )
   const source =
-    eligible.length >= finalCount
-      ? eligible
+    hookEligible.length >= finalCount
+      ? hookEligible
+      : qualityEligible.length >= finalCount
+        ? qualityEligible
       : [...pool].sort((left, right) => right.score.overall - left.score.overall)
   const selected: {
     candidate: BuiltSignaturePhrase
@@ -698,13 +1009,21 @@ function selectDiversePool(
       const sameContourCount = selected.filter(
         (item) => item.candidate.plan.contour === candidate.plan.contour,
       ).length
+      const sameArchetypeCount = selected.filter(
+        (item) => item.candidate.plan.archetype === candidate.plan.archetype,
+      ).length
+      const archetypeAlreadyRepresented = sameArchetypeCount > 0
       const redundancyPenalty =
         sameRhythmCount * 4 + sameContourCount * 1.5 +
+        sameArchetypeCount * 2.5 +
         (maximumSimilarity > 0.78 ? 18 : 0)
+      const archetypeCoverageBonus =
+        selected.length < 6 && !archetypeAlreadyRepresented ? 18 : 0
       const score =
         candidate.score.overall * 0.62 +
         diversity * 100 * 0.38 -
-        redundancyPenalty
+        redundancyPenalty +
+        archetypeCoverageBonus
       if (score > bestScore) {
         bestIndex = index
         bestScore = score
@@ -752,13 +1071,13 @@ export function generateSignaturePhraseCandidates(
 
 export function regenerateSignaturePhraseCandidate(
   input: GenerateSignaturePhrasesInput,
-  currentSeed: number,
+  current: Pick<SignaturePhraseCandidate, "seed" | "notes" | "plan">,
   avoid: Pick<SignaturePhraseCandidate, "notes" | "plan">[],
 ): Omit<SignaturePhraseCandidate, "id" | "batchId" | "createdAt"> {
   const pool = Array.from({ length: 24 }, (_, index) =>
     buildSignaturePhrase(
       input,
-      (currentSeed + 104729 + index * 16127) >>> 0,
+      (current.seed + 104729 + index * 16127) >>> 0,
       index + 7,
     ),
   )
@@ -771,10 +1090,15 @@ export function regenerateSignaturePhraseCandidate(
         similarities.length === 0
           ? 1
           : 1 - Math.max(...similarities.map((value) => value.overallSimilarity))
+      const currentSimilarity = signaturePhraseSimilarity(candidate, current)
       return {
         candidate,
         similarities,
-        selectionScore: candidate.score.overall * 0.62 + diversity * 100 * 0.38,
+        selectionScore:
+          candidate.score.overall * 0.58 +
+          diversity * 100 * 0.3 +
+          (1 - currentSimilarity.overallSimilarity) * 100 * 0.12 -
+          (currentSimilarity.rhythmSimilarity > 0.96 ? 16 : 0),
       }
     })
     .sort((left, right) => right.selectionScore - left.selectionScore)

@@ -9,6 +9,12 @@ export type SignaturePhraseRole =
 
 export type SignaturePhraseLengthBars = 1 | 2 | 4
 
+/** 固有曲を参照せず、曲の入口を作る方法だけを抽象化した上位設計。 */
+export type SignaturePhraseArchetype =
+  | "atmospheric-gateway"
+  | "obsessive-motor"
+  | "kinetic-hook"
+
 export type SignatureRhythmIdentity =
   | "opening-stamp"
   | "pickup-hook"
@@ -28,11 +34,19 @@ export type SignatureVariationStrategy =
 export interface SignaturePhrasePlan {
   role: SignaturePhraseRole
   lengthBars: SignaturePhraseLengthBars
+  archetype: SignaturePhraseArchetype
   rhythmIdentity: SignatureRhythmIdentity
   contour: PhraseContour
   variationStrategy: SignatureVariationStrategy
   motifSize: number
+  motifVariant: 0 | 1 | 2 | 3
   pickupBeats: number
+  /** 0: 基本形、1: 余白／アクセント変形、2: 回帰位置変形。 */
+  rhythmVariant: 0 | 1 | 2
+  /** 1に近いほど核Motifを保ち、局所変異だけで推進する。 */
+  repetitionStrength: number
+  /** 無音を欠落ではなく、Signatureの構成要素として計画する。 */
+  targetSilenceRatio: number
   /** コードごとの着地を避け、構造点だけ和声へ接続する。 */
   harmonicAnchorPolicy: "structural-only" | "opening-and-ending" | "tension-led"
 }
@@ -44,7 +58,13 @@ export interface SignaturePhraseScore {
   contourIdentity: number
   developmentPotential: number
   standaloneStrength: number
+  worldBuilding: number
+  motifMemorability: number
+  motifIntegrity: number
+  repetitionDrive: number
+  silenceUse: number
   arpeggioPenalty: number
+  mechanicalPenalty: number
   overall: number
 }
 

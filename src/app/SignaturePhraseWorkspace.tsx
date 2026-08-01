@@ -9,6 +9,7 @@ import {
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import type {
   SignaturePhraseCandidate,
+  SignaturePhraseArchetype,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
 } from "@/core/signaturePhrase"
@@ -34,6 +35,18 @@ const VARIATION_LABELS: Record<SignatureVariationStrategy, string> = {
   augmentation: "拡張",
   answer: "応答形",
   "delayed-return": "遅延回帰",
+}
+
+const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
+  "atmospheric-gateway": "Atmospheric Gateway",
+  "obsessive-motor": "Obsessive Motor",
+  "kinetic-hook": "Kinetic Hook",
+}
+
+function candidateArchetype(
+  candidate: SignaturePhraseCandidate,
+): SignaturePhraseArchetype {
+  return candidate.plan.archetype ?? "kinetic-hook"
 }
 
 export function SignaturePhraseWorkspace() {
@@ -136,6 +149,12 @@ export function SignaturePhraseWorkspace() {
       ),
       melody: candidate.notes,
       mode: previewMode,
+      leadStyle:
+        candidateArchetype(candidate) === "atmospheric-gateway"
+          ? "atmospheric"
+          : candidateArchetype(candidate) === "obsessive-motor"
+            ? "obsessive"
+            : "kinetic",
       range: { startBeat: 0, endBeat: candidate.phraseLengthBeats },
       onEnded: () => setPlayingId(null),
     })
@@ -233,6 +252,9 @@ export function SignaturePhraseWorkspace() {
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
+                      {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
+                    </span>
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       {RHYTHM_LABELS[candidate.plan.rhythmIdentity]}
                     </span>
@@ -244,10 +266,14 @@ export function SignaturePhraseWorkspace() {
                     </span>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-ink-muted-48">
-                    <span>Identity {Math.round(candidate.score.identity * 100)}</span>
+                    <span>
+                      World {Math.round((candidate.score.worldBuilding ?? 0) * 100)}
+                    </span>
                     <span>Opening {Math.round(candidate.score.openingImpact * 100)}</span>
                     <span>Rhythm {Math.round(candidate.score.rhythmicIdentity * 100)}</span>
-                    <span>Develop {Math.round(candidate.score.developmentPotential * 100)}</span>
+                    <span>
+                      Memory {Math.round((candidate.score.motifMemorability ?? 0) * 100)}
+                    </span>
                   </div>
                 </button>
                 <div className="mt-3 flex gap-1.5">

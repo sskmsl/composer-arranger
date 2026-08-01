@@ -321,7 +321,7 @@ function signaturePhraseGenerationInput(
     seed,
     lengthBars: resolvedLength,
     finalCandidateCount: 12,
-    candidatePoolSize: 48,
+    candidatePoolSize: 72,
   }
 }
 
@@ -1440,7 +1440,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     )
     const regenerated = buildRegeneratedSignaturePhrase(
       input,
-      current.seed,
+      current,
       siblings,
     )
     const replacement: SignaturePhraseCandidate = {

@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest"
 import {
   previewLayersForMode,
+  previewTailSeconds,
   resolveComparisonSwitchBeat,
   resolveReactivePreviewRange,
 } from "./previewPlayer"
+
+describe("signature preview expression", () => {
+  it("空間型だけはフレーズ終端で残響を切らない", () => {
+    expect(previewTailSeconds("atmospheric")).toBeGreaterThanOrEqual(1)
+    expect(previewTailSeconds("obsessive")).toBeLessThan(0.5)
+    expect(previewTailSeconds("kinetic")).toBeLessThan(0.5)
+  })
+})
 
 describe("comparison preview switching", () => {
   it("A/B/C切替時に現在の再生位置を維持する", () => {

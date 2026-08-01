@@ -21,6 +21,16 @@ export interface PreviewLayers {
   reactive: boolean
 }
 
+export type LeadPreviewStyle =
+  | "neutral"
+  | "atmospheric"
+  | "obsessive"
+  | "kinetic"
+
+export function previewTailSeconds(style: LeadPreviewStyle): number {
+  return style === "atmospheric" ? 1.15 : 0.15
+}
+
 /** 再生モードを実際に鳴らすレイヤーへ一元変換する。 */
 export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
   return {
@@ -52,6 +62,8 @@ export interface PlayOptions {
   /** Issue #42: Counter / Decoration共通の独立試聴レイヤー。 */
   reactive?: MelodyNote[]
   mode: PreviewMode
+  /** Signature Phraseの演出意図を比較試聴へ反映する。MIDI音符自体は変えない。 */
+  leadStyle?: LeadPreviewStyle
   loop?: boolean
   /** 比較試聴用。startBeatは今回の再生開始位置、rangeは共通ループ範囲。 */
   startBeat?: number
@@ -122,6 +134,11 @@ class PreviewPlayer {
 
     let totalBeats = 0
     const layers = previewLayersForMode(opts.mode)
+    const leadStyle = opts.leadStyle ?? "neutral"
+    const leadDestination =
+      layers.melody && leadStyle === "atmospheric"
+        ? this.createAtmosphericLeadBus(ctx, compressor)
+        : compressor
 
     if (layers.chords) {
       for (const c of opts.chords) {
@@ -147,7 +164,7 @@ class PreviewPlayer {
         const clippedEnd = Math.min(eventEnd, rangeEnd)
         const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
         const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
-        this.scheduleLead(ctx, compressor, n.pitch, n.velocity, t0, dur)
+        this.scheduleLead(ctx, leadDestination, n.pitch, n.velocity, t0, dur, leadStyle)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
@@ -179,7 +196,8 @@ class PreviewPlayer {
     }
 
     if (Number.isFinite(rangeEnd)) totalBeats = Math.max(0, rangeEnd - playbackStart)
-    const totalSeconds = totalBeats * this.secondsPerBeat + 0.15
+    const totalSeconds =
+      totalBeats * this.secondsPerBeat + previewTailSeconds(leadStyle)
     this.endTimer = window.setTimeout(() => {
       if (opts.loop) {
         this.play({ ...opts, startBeat: rangeStart })
@@ -265,6 +283,33 @@ class PreviewPlayer {
     bassOsc.stop(holdEnd + release + 0.05)
   }
 
+  private createAtmosphericLeadBus(
+    ctx: AudioContext,
+    dest: AudioNode,
+  ): AudioNode {
+    const input = ctx.createGain()
+    const dry = ctx.createGain()
+    const delay = ctx.createDelay(1.5)
+    const feedback = ctx.createGain()
+    const wet = ctx.createGain()
+    const tone = ctx.createBiquadFilter()
+    dry.gain.value = 0.82
+    delay.delayTime.value = 0.31
+    feedback.gain.value = 0.24
+    wet.gain.value = 0.2
+    tone.type = "lowpass"
+    tone.frequency.value = 2800
+    input.connect(dry)
+    dry.connect(dest)
+    input.connect(delay)
+    delay.connect(feedback)
+    feedback.connect(delay)
+    delay.connect(tone)
+    tone.connect(wet)
+    wet.connect(dest)
+    return input
+  }
+
   /**
    * ピアノに近いリード音。ピアノらしさの要点は
    *   ①非常に速いアタック ②持続せず打鍵直後から連続的に減衰する余韻
@@ -272,23 +317,47 @@ class PreviewPlayer {
    *   ④低音ほど長く鳴る
    * を Web Audio の合成で近似する(最終音色はLogic Proで決める前提の確認用、12章)。
    */
-  private scheduleLead(ctx: AudioContext, dest: AudioNode, pitch: number, velocity: number, t0: number, dur: number): void {
+  private scheduleLead(
+    ctx: AudioContext,
+    dest: AudioNode,
+    pitch: number,
+    velocity: number,
+    t0: number,
+    dur: number,
+    style: LeadPreviewStyle = "neutral",
+  ): void {
     const freq = midiToFreq(pitch)
     const vel = Math.min(1, Math.max(0.15, velocity / 127))
     // 柔らかめ: アタックの角(クリック感)を丸めるため立ち上がりをやや緩める
-    const attack = 0.012
-    const peak = 0.28 * (0.5 + 0.5 * vel)
+    const attack =
+      style === "atmospheric" ? 0.04 : style === "kinetic" ? 0.006 : 0.012
+    const peakBase =
+      style === "atmospheric" ? 0.21 : style === "kinetic" ? 0.32 : 0.28
+    const peak = peakBase * (0.5 + 0.5 * vel)
 
     // 低音ほど長く、強打ほど少し長く残す減衰時間。音価が短ければその長さで切る。
-    const naturalRing = Math.min(3.4, 3.2 - (pitch - 60) * 0.05) * (0.75 + 0.25 * vel)
-    const ring = Math.max(0.28, Math.min(naturalRing, dur * 0.98 + 0.25))
+    const ringScale = style === "atmospheric" ? 1.45 : style === "obsessive" ? 0.72 : 1
+    const naturalRing =
+      Math.min(3.4, 3.2 - (pitch - 60) * 0.05) *
+      (0.75 + 0.25 * vel) *
+      ringScale
+    const ring = Math.max(
+      style === "atmospheric" ? 0.55 : 0.28,
+      Math.min(naturalRing, dur * 0.98 + (style === "atmospheric" ? 0.7 : 0.25)),
+    )
     const holdEnd = t0 + ring
-    const release = 0.12
+    const release = style === "atmospheric" ? 0.65 : style === "obsessive" ? 0.08 : 0.12
 
     // 柔らかめ: 上倍音を大きく抑え、基音中心のまろやかな倍音構成にする(とがりの主因を除く)
     const wave = ctx.createPeriodicWave(
       new Float32Array([0, 0, 0, 0, 0, 0]),
-      new Float32Array([0, 1, 0.32, 0.13, 0.05, 0.02]),
+      new Float32Array(
+        style === "atmospheric"
+          ? [0, 1, 0.2, 0.06, 0.02, 0.005]
+          : style === "obsessive"
+            ? [0, 1, 0.42, 0.2, 0.08, 0.03]
+            : [0, 1, 0.32, 0.13, 0.05, 0.02],
+      ),
       { disableNormalization: false },
     )
     const osc = ctx.createOscillator()
@@ -298,8 +367,9 @@ class PreviewPlayer {
     // 柔らかめ: 打鍵直後の明るさを控えめにし、より早くこもらせる(耳につく高域を減らす)
     const filter = ctx.createBiquadFilter()
     filter.type = "lowpass"
-    const brightStart = Math.min(5200, freq * (2.6 + 2.2 * vel))
-    const brightEnd = Math.min(2600, Math.max(freq * 1.6, 620))
+    const brightness = style === "atmospheric" ? 0.7 : style === "kinetic" ? 1.18 : 1
+    const brightStart = Math.min(6200, freq * (2.6 + 2.2 * vel) * brightness)
+    const brightEnd = Math.min(3000, Math.max(freq * 1.6 * brightness, 620))
     filter.frequency.setValueAtTime(brightStart, t0)
     filter.frequency.exponentialRampToValueAtTime(brightEnd, t0 + Math.min(0.35, ring))
     filter.Q.value = 0.4

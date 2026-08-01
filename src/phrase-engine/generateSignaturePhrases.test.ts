@@ -59,6 +59,21 @@ describe("Signature Phrase Generator", () => {
     expect(
       new Set(candidates.map((candidate) => candidate.plan.variationStrategy)).size,
     ).toBeGreaterThanOrEqual(4)
+    expect(
+      new Set(candidates.map((candidate) => candidate.plan.archetype)),
+    ).toEqual(
+      new Set(["atmospheric-gateway", "obsessive-motor", "kinetic-hook"]),
+    )
+    for (const archetype of [
+      "atmospheric-gateway",
+      "obsessive-motor",
+      "kinetic-hook",
+    ] as const) {
+      expect(
+        candidates.filter((candidate) => candidate.plan.archetype === archetype)
+          .length,
+      ).toBeGreaterThanOrEqual(2)
+    }
   })
 
   it("全評価軸を計算し、採用・編集候補となる品質を最低2案確保する", () => {
@@ -70,11 +85,50 @@ describe("Signature Phrase Generator", () => {
       expect(candidate.score.contourIdentity).toBeGreaterThanOrEqual(0)
       expect(candidate.score.developmentPotential).toBeGreaterThanOrEqual(0)
       expect(candidate.score.standaloneStrength).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.worldBuilding).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.motifMemorability).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.motifIntegrity).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.repetitionDrive).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.silenceUse).toBeGreaterThanOrEqual(0)
       expect(candidate.score.arpeggioPenalty).toBeLessThanOrEqual(1)
+      expect(candidate.score.mechanicalPenalty).toBeLessThanOrEqual(1)
     }
     expect(
       candidates.filter((candidate) => candidate.score.overall >= 70).length,
     ).toBeGreaterThanOrEqual(2)
+  })
+
+  it("入口戦略ごとに余白・反復・身体的輪郭の異なる音楽的IDを持つ", () => {
+    const candidates = generateSignaturePhraseCandidates(input(39017))
+    const atmospheric = candidates.filter(
+      (candidate) => candidate.plan.archetype === "atmospheric-gateway",
+    )
+    const obsessive = candidates.filter(
+      (candidate) => candidate.plan.archetype === "obsessive-motor",
+    )
+    const kinetic = candidates.filter(
+      (candidate) => candidate.plan.archetype === "kinetic-hook",
+    )
+    const soundingRatio = (candidate: (typeof candidates)[number]) =>
+      candidate.notes.reduce((sum, note) => sum + note.durationBeats, 0) /
+      candidate.phraseLengthBeats
+    const maximumInterval = (candidate: (typeof candidates)[number]) =>
+      Math.max(
+        0,
+        ...candidate.notes.slice(1).map((note, index) =>
+          Math.abs(note.pitch - candidate.notes[index].pitch),
+        ),
+      )
+
+    expect(atmospheric.some((candidate) => soundingRatio(candidate) < 0.62)).toBe(true)
+    expect(
+      obsessive.some((candidate) => candidate.score.repetitionDrive >= 0.58),
+    ).toBe(true)
+    expect(kinetic.some((candidate) => maximumInterval(candidate) >= 4)).toBe(true)
+    expect(
+      candidates.filter((candidate) => candidate.score.mechanicalPenalty < 0.3)
+        .length,
+    ).toBeGreaterThanOrEqual(8)
   })
 
   it("複数seedでも高品質候補を最低2案維持する", () => {
@@ -85,6 +139,52 @@ describe("Signature Phrase Generator", () => {
           .length,
       ).toBeGreaterThanOrEqual(2)
     }
+  })
+
+  it("総合点だけでなくHook品質ゲートを満たす候補を優先する", () => {
+    const candidates = generateSignaturePhraseCandidates(input(7419))
+    const hookReady = candidates.filter(
+      (candidate) =>
+        candidate.score.openingImpact >= 0.55 &&
+        candidate.score.motifMemorability >= 0.55 &&
+        candidate.score.motifIntegrity >= 0.4 &&
+        candidate.score.worldBuilding >= 0.5 &&
+        candidate.score.mechanicalPenalty <= 0.5,
+    )
+    expect(hookReady.length).toBeGreaterThanOrEqual(10)
+    expect(
+      candidates.every(
+        (candidate) =>
+          candidate.plan.motifSize >= 3 && candidate.plan.motifSize <= 5,
+      ),
+    ).toBe(true)
+  })
+
+  it("Song Profileと1小節内変形が生成結果へ実際に反映される", () => {
+    const minimal = generateSignaturePhraseCandidates({
+      ...input(8102),
+      songProfile: "minimal-tension",
+      lengthBars: 1,
+    })
+    const dramatic = generateSignaturePhraseCandidates({
+      ...input(8102),
+      songProfile: "dramatic-synth-pop",
+      lengthBars: 1,
+    })
+    const fingerprints = (candidates: typeof minimal) =>
+      candidates.map(
+        (candidate) =>
+          `${candidate.plan.archetype}:${candidate.plan.variationStrategy}:${rhythmSignature(candidate)}:${candidate.notes.map((note) => note.pitch).join(",")}`,
+      )
+    expect(fingerprints(minimal)).not.toEqual(fingerprints(dramatic))
+    expect(new Set(minimal.map(rhythmSignature)).size).toBeGreaterThanOrEqual(8)
+    expect(
+      new Set(
+        minimal.map((candidate) =>
+          candidate.notes.map((note) => note.pitch).join(","),
+        ),
+      ).size,
+    ).toBeGreaterThanOrEqual(8)
   })
 
   it("Diversity Filterでリズム・移高不変音程・輪郭の重複を抑える", () => {
@@ -108,7 +208,7 @@ describe("Signature Phrase Generator", () => {
 
     const replacement = regenerateSignaturePhraseCandidate(
       sourceInput,
-      first[0].seed,
+      first[0],
       first.slice(1),
     )
     expect(replacement.seed).not.toBe(first[0].seed)
