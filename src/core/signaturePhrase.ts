@@ -30,6 +30,14 @@ export type SignatureVariationStrategy =
   | "answer"
   | "delayed-return"
 
+/**
+ * 単音の旋律線だけでなく、和音由来の質感も候補として提案できるようにする軸。
+ * single-line: 従来通りの単音Motif。
+ * block-chord: 各音へ和声音を1〜2声重ね、同時発音のスタブ／パッドにする。
+ * broken-chord: 各音を短いアルペジオへ分解し、和音を分散和音として鳴らす。
+ */
+export type SignatureVoicingMode = "single-line" | "block-chord" | "broken-chord"
+
 /** 実音生成より先に確定する、短いSignature Phrase専用の設計。 */
 export interface SignaturePhrasePlan {
   role: SignaturePhraseRole
@@ -49,6 +57,8 @@ export interface SignaturePhrasePlan {
   targetSilenceRatio: number
   /** コードごとの着地を避け、構造点だけ和声へ接続する。 */
   harmonicAnchorPolicy: "structural-only" | "opening-and-ending" | "tension-led"
+  /** 単音Motifか、和音のスタブ／分散和音として鳴らすか。 */
+  voicingMode: SignatureVoicingMode
 }
 
 export interface SignaturePhraseScore {
@@ -65,6 +75,8 @@ export interface SignaturePhraseScore {
   silenceUse: number
   arpeggioPenalty: number
   mechanicalPenalty: number
+  /** block-chord/broken-chordで追加した声部の音間隔・重複を評価する(single-lineは常に1)。 */
+  voicingQuality: number
   overall: number
 }
 

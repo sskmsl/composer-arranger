@@ -17,6 +17,7 @@ import type {
   SignaturePhraseSimilarity,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
+  SignatureVoicingMode,
 } from "@/core/signaturePhrase"
 import type { SectionRole } from "@/core/section"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
@@ -52,6 +53,8 @@ interface RhythmEvent {
 
 interface BuiltSignaturePhrase {
   notes: MelodyNote[]
+  /** 和音展開前の単音Motif。identity/rhythm/contour系スコアの基準として使う。 */
+  leadNotes: MelodyNote[]
   plan: SignaturePhrasePlan
   phraseLengthBeats: number
   seed: number
@@ -61,6 +64,28 @@ interface BuiltSignaturePhrase {
 const DEFAULT_FINAL_COUNT = 12
 const DEFAULT_POOL_SIZE = 72
 const QUALITY_FLOOR = 58
+
+const VOICING_MODES: SignatureVoicingMode[] = [
+  "single-line",
+  "block-chord",
+  "broken-chord",
+]
+
+/**
+ * Archetypeごとの質感に合わせた分布。single-lineを最大配分に保ち、
+ * 「短音だけでなく和音のフレーズも提案する」を既存の単音候補への追加として扱う。
+ * obsessive-motorは反復スタブ(Dead or Aliveのシンセスタブのような駆動感)と
+ * 相性が良いためblock-chordを厚めに、atmospheric-gatewayは分散和音の質感も
+ * 活かせるためbroken-chordを厚めにする。
+ */
+const VOICING_MODE_WEIGHTS: Record<
+  SignaturePhraseArchetype,
+  readonly [number, number, number]
+> = {
+  "atmospheric-gateway": [0.4, 0.28, 0.32],
+  "obsessive-motor": [0.35, 0.45, 0.2],
+  "kinetic-hook": [0.5, 0.25, 0.25],
+}
 
 const ARCHETYPES: SignaturePhraseArchetype[] = [
   "atmospheric-gateway",
@@ -249,6 +274,7 @@ function planSignaturePhrase(
       rng.next() < 0.72
         ? archetypePolicy[archetype]
         : harmonicPolicies[(poolIndex + rng.intBetween(0, 2)) % harmonicPolicies.length],
+    voicingMode: rng.weightedPick(VOICING_MODES, VOICING_MODE_WEIGHTS[archetype]),
   }
 }
 
@@ -611,6 +637,165 @@ function placePitchPath(
   })
 }
 
+function chordToneLadder(
+  chordTones: readonly number[],
+  range: RangeSetting,
+): number[] {
+  const ladder: number[] = []
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
+    if (chordTones.includes(pitchClass(pitch))) ladder.push(pitch)
+  }
+  return ladder
+}
+
+function nearestLadderIndex(ladder: readonly number[], target: number): number {
+  return ladder.reduce(
+    (best, pitch, index) =>
+      Math.abs(pitch - target) < Math.abs(ladder[best] - target) ? index : best,
+    0,
+  )
+}
+
+/**
+ * leadピッチの直下から、和音構成音のうち既存の声部と3半音以上離れた
+ * 支援音を探す。濁った密集和音(半音・全音の重なり)を避けるため。
+ */
+function supportPitchBelow(
+  fromPitch: number,
+  chordTones: readonly number[],
+  range: RangeSetting,
+  usedPitches: readonly number[],
+): number | null {
+  for (let pitch = fromPitch - 3; pitch >= range.low; pitch--) {
+    if (!chordTones.includes(pitchClass(pitch))) continue
+    if (usedPitches.some((used) => Math.abs(used - pitch) < 3)) continue
+    return pitch
+  }
+  return null
+}
+
+/** 各leadノートへ和音構成音を1〜2声重ね、同時発音のスタブ／パッドにする。 */
+function applyBlockChordVoicing(
+  leadNotes: readonly MelodyNote[],
+  map: readonly HarmonicMapEntry[],
+  range: RangeSetting,
+  seed: number,
+): MelodyNote[] {
+  const rng = new SeededRandom(seed ^ 0x1b873593)
+  const result: MelodyNote[] = []
+  for (const note of leadNotes) {
+    result.push(note)
+    const entry = chordAtBeat(map as HarmonicMapEntry[], note.startBeat)
+    if (!entry) continue
+    const chordTones = chordTonePitchClasses(entry.parsed)
+    if (chordTones.length === 0) continue
+    const voiceCount = rng.chance(0.55) ? 2 : 1
+    const used = [note.pitch]
+    for (let voice = 0; voice < voiceCount; voice++) {
+      const support = supportPitchBelow(
+        used[used.length - 1],
+        chordTones,
+        range,
+        used,
+      )
+      if (support === null) break
+      used.push(support)
+      result.push({
+        id: `${note.id}-chord${voice}`,
+        startBeat: note.startBeat,
+        durationBeats: note.durationBeats,
+        pitch: support,
+        velocity: Math.max(20, note.velocity - 14 - voice * 6),
+        locks: [],
+        plannedToneRole: "chord-tone",
+      })
+    }
+  }
+  return result
+}
+
+/** 各leadノートを短いアルペジオへ分解し、和音を分散和音として鳴らす。 */
+function applyBrokenChordVoicing(
+  leadNotes: readonly MelodyNote[],
+  map: readonly HarmonicMapEntry[],
+  range: RangeSetting,
+  seed: number,
+): MelodyNote[] {
+  const rng = new SeededRandom(seed ^ 0x27d4eb2f)
+  const result: MelodyNote[] = []
+  leadNotes.forEach((note, index) => {
+    const entry = chordAtBeat(map as HarmonicMapEntry[], note.startBeat)
+    const chordTones = entry ? chordTonePitchClasses(entry.parsed) : []
+    const ladder = chordToneLadder(chordTones, range)
+    if (!entry || chordTones.length < 2 || ladder.length < 2 || note.durationBeats < 0.5) {
+      result.push(note)
+      return
+    }
+    const subdivisions = note.durationBeats >= 1 ? 3 : 2
+    const anchorIndex = nearestLadderIndex(ladder, note.pitch)
+    const direction = index % 2 === 0 ? 1 : -1
+    const subDuration = note.durationBeats / subdivisions
+    for (let step = 0; step < subdivisions; step++) {
+      const isLast = step === subdivisions - 1
+      const ladderIndex = isLast
+        ? anchorIndex
+        : Math.max(
+            0,
+            Math.min(ladder.length - 1, anchorIndex + direction * (subdivisions - 1 - step)),
+          )
+      result.push({
+        id: `${note.id}-arp${step}`,
+        startBeat: roundQuarter(note.startBeat + step * subDuration),
+        durationBeats: roundQuarter(subDuration),
+        pitch: ladder[ladderIndex],
+        velocity: Math.max(20, note.velocity - step * 3 + rng.intBetween(-2, 2)),
+        locks: [],
+        plannedToneRole: "chord-tone",
+      })
+    }
+  })
+  return result
+}
+
+function applyVoicing(
+  voicingMode: SignatureVoicingMode,
+  leadNotes: readonly MelodyNote[],
+  map: readonly HarmonicMapEntry[],
+  range: RangeSetting,
+  seed: number,
+): MelodyNote[] {
+  if (voicingMode === "block-chord") {
+    return applyBlockChordVoicing(leadNotes, map, range, seed)
+  }
+  if (voicingMode === "broken-chord") {
+    return applyBrokenChordVoicing(leadNotes, map, range, seed)
+  }
+  return leadNotes.map((note) => ({ ...note }))
+}
+
+/** block-chord/broken-chordで追加した声部の音間隔・重複を評価する。単音のみなら常に1。 */
+function computeVoicingQuality(notes: readonly MelodyNote[]): number {
+  const groups = new Map<number, number[]>()
+  for (const note of notes) {
+    const key = Math.round(note.startBeat * 4)
+    const group = groups.get(key) ?? []
+    group.push(note.pitch)
+    groups.set(key, group)
+  }
+  let chordGroups = 0
+  let violations = 0
+  for (const pitches of groups.values()) {
+    if (pitches.length < 2) continue
+    chordGroups++
+    const sorted = [...pitches].sort((left, right) => left - right)
+    for (let index = 1; index < sorted.length; index++) {
+      if (sorted[index] - sorted[index - 1] < 3) violations++
+    }
+  }
+  if (chordGroups === 0) return 1
+  return clamp01(1 - violations / (chordGroups * 1.5))
+}
+
 function intervalSequence(notes: readonly MelodyNote[]): number[] {
   return notes.slice(1).map((note, index) => note.pitch - notes[index].pitch)
 }
@@ -632,6 +817,7 @@ function scoreSignaturePhrase(
   map: HarmonicMapEntry[],
   phraseLengthBeats: number,
   motifPath: readonly number[],
+  fullNotes: MelodyNote[] = notes,
 ): SignaturePhraseScore {
   if (notes.length < 3) {
     return {
@@ -648,6 +834,7 @@ function scoreSignaturePhrase(
       silenceUse: 0,
       arpeggioPenalty: 1,
       mechanicalPenalty: 1,
+      voicingQuality: 1,
       overall: 0,
     }
   }
@@ -827,6 +1014,7 @@ function scoreSignaturePhrase(
     motifIntegrity * 0.06 +
     repetitionDrive * 0.05 +
     silenceUse * 0.03
+  const voicingQuality = computeVoicingQuality(fullNotes)
   return {
     identity,
     openingImpact,
@@ -841,10 +1029,15 @@ function scoreSignaturePhrase(
     silenceUse,
     arpeggioPenalty,
     mechanicalPenalty,
+    voicingQuality,
     overall:
       Math.round(
-        clamp01(weighted - arpeggioPenalty * 0.18 - mechanicalPenalty * 0.22) *
-          10000,
+        clamp01(
+          weighted -
+            arpeggioPenalty * 0.18 -
+            mechanicalPenalty * 0.22 -
+            (1 - voicingQuality) * 0.12,
+        ) * 10000,
       ) / 100,
   }
 }
@@ -879,7 +1072,7 @@ function buildSignaturePhrase(
     }
     return step
   })
-  const notes = placePitchPath(
+  const leadNotes = placePitchPath(
     input,
     plan,
     events,
@@ -888,17 +1081,20 @@ function buildSignaturePhrase(
     motifPath,
     phraseLengthBeats,
   )
+  const notes = applyVoicing(plan.voicingMode, leadNotes, map, input.range, seed)
   return {
     notes,
+    leadNotes,
     plan,
     phraseLengthBeats,
     seed,
     score: scoreSignaturePhrase(
-      notes,
+      leadNotes,
       plan,
       map,
       phraseLengthBeats,
       motifPath,
+      notes,
     ),
   }
 }
@@ -918,15 +1114,22 @@ function sequenceSimilarity(
 }
 
 export function signaturePhraseSimilarity(
-  left: Pick<BuiltSignaturePhrase, "notes" | "plan">,
-  right: Pick<BuiltSignaturePhrase, "notes" | "plan">,
+  left: Pick<BuiltSignaturePhrase, "notes" | "plan"> &
+    Partial<Pick<BuiltSignaturePhrase, "leadNotes">>,
+  right: Pick<BuiltSignaturePhrase, "notes" | "plan"> &
+    Partial<Pick<BuiltSignaturePhrase, "leadNotes">>,
 ): SignaturePhraseSimilarity {
-  const leftOnsets = left.notes.map((note) => roundQuarter(note.startBeat))
-  const rightOnsets = right.notes.map((note) => roundQuarter(note.startBeat))
-  const leftDurations = left.notes.map((note) => roundQuarter(note.durationBeats))
-  const rightDurations = right.notes.map((note) => roundQuarter(note.durationBeats))
-  const leftIntervals = intervalSequence(left.notes)
-  const rightIntervals = intervalSequence(right.notes)
+  // 和音展開後のnotesではなく、旋律の核であるleadNotesで比較する
+  // (block-chord/broken-chordが加える声部の数で類似度が薄まらないようにする)。
+  // leadNotesを持たない呼び出し元(公開Candidate型)にはnotesへ後方互換フォールバックする。
+  const leftMelodic = left.leadNotes ?? left.notes
+  const rightMelodic = right.leadNotes ?? right.notes
+  const leftOnsets = leftMelodic.map((note) => roundQuarter(note.startBeat))
+  const rightOnsets = rightMelodic.map((note) => roundQuarter(note.startBeat))
+  const leftDurations = leftMelodic.map((note) => roundQuarter(note.durationBeats))
+  const rightDurations = rightMelodic.map((note) => roundQuarter(note.durationBeats))
+  const leftIntervals = intervalSequence(leftMelodic)
+  const rightIntervals = intervalSequence(rightMelodic)
   const leftContour = leftIntervals.map(Math.sign)
   const rightContour = rightIntervals.map(Math.sign)
   const rhythmSimilarity = sequenceSimilarity(leftOnsets, rightOnsets, 0.01)
@@ -934,11 +1137,12 @@ export function signaturePhraseSimilarity(
   const contourSimilarity = sequenceSimilarity(leftContour, rightContour)
   const durationSimilarity = sequenceSimilarity(leftDurations, rightDurations, 0.01)
   const planSimilarity =
-    (left.plan.archetype === right.plan.archetype ? 0.3 : 0) +
-    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.3 : 0) +
-    (left.plan.contour === right.plan.contour ? 0.18 : 0) +
-    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.14 : 0) +
-    (left.plan.lengthBars === right.plan.lengthBars ? 0.08 : 0)
+    (left.plan.archetype === right.plan.archetype ? 0.26 : 0) +
+    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.26 : 0) +
+    (left.plan.contour === right.plan.contour ? 0.16 : 0) +
+    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.12 : 0) +
+    (left.plan.lengthBars === right.plan.lengthBars ? 0.08 : 0) +
+    (left.plan.voicingMode === right.plan.voicingMode ? 0.12 : 0)
   return {
     rhythmSimilarity,
     intervalSimilarity,
@@ -966,7 +1170,8 @@ function selectDiversePool(
   const qualityEligible = pool.filter(
     (candidate) =>
       candidate.score.overall >= QUALITY_FLOOR &&
-      candidate.score.mechanicalPenalty <= 0.5,
+      candidate.score.mechanicalPenalty <= 0.5 &&
+      candidate.score.voicingQuality >= 0.5,
   )
   const hookEligible = qualityEligible.filter(
     (candidate) =>
@@ -1012,18 +1217,32 @@ function selectDiversePool(
       const sameArchetypeCount = selected.filter(
         (item) => item.candidate.plan.archetype === candidate.plan.archetype,
       ).length
+      const sameVoicingCount = selected.filter(
+        (item) => item.candidate.plan.voicingMode === candidate.plan.voicingMode,
+      ).length
       const archetypeAlreadyRepresented = sameArchetypeCount > 0
+      const voicingAlreadyRepresented = sameVoicingCount > 0
       const redundancyPenalty =
         sameRhythmCount * 4 + sameContourCount * 1.5 +
         sameArchetypeCount * 2.5 +
+        sameVoicingCount * 1.5 +
         (maximumSimilarity > 0.78 ? 18 : 0)
       const archetypeCoverageBonus =
         selected.length < 6 && !archetypeAlreadyRepresented ? 18 : 0
+      // 単音のみに偏らないよう、和音系Voicingが未選出のうちは軽く後押しする
+      // (single-lineは既定配分が最も厚いため、ここでは優遇しない)。
+      const voicingCoverageBonus =
+        selected.length < 6 &&
+        !voicingAlreadyRepresented &&
+        candidate.plan.voicingMode !== "single-line"
+          ? 10
+          : 0
       const score =
         candidate.score.overall * 0.62 +
         diversity * 100 * 0.38 -
         redundancyPenalty +
-        archetypeCoverageBonus
+        archetypeCoverageBonus +
+        voicingCoverageBonus
       if (score > bestScore) {
         bestIndex = index
         bestScore = score

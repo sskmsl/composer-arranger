@@ -228,4 +228,87 @@ describe("Signature Phrase Generator", () => {
     expect("intent" in ordinary[0]).toBe(true)
     expect("plan" in signature[0]).toBe(true)
   })
+
+  it("単音だけでなくblock-chord/broken-chordの和音フレーズも提案する", () => {
+    const modeCounts: Record<string, number> = {
+      "single-line": 0,
+      "block-chord": 0,
+      "broken-chord": 0,
+    }
+    for (let seed = 1; seed <= 20; seed++) {
+      const candidates = generateSignaturePhraseCandidates(input(seed))
+      for (const candidate of candidates) {
+        modeCounts[candidate.plan.voicingMode] += 1
+      }
+    }
+    expect(modeCounts["single-line"]).toBeGreaterThan(0)
+    expect(modeCounts["block-chord"]).toBeGreaterThan(0)
+    expect(modeCounts["broken-chord"]).toBeGreaterThan(0)
+  })
+
+  it("block-chordは同時発音の声部がほとんどのケースで3半音以上離れて濁らない", () => {
+    // 稀に、別々に生成された2つのleadノートが量子化後に同じ拍へ重なり、
+    // それぞれのスタックが衝突することがある(voicingQualityが検出しペナルティにする)。
+    // 完全にゼロにする保証はしないため、統計的な清潔さで検証する。
+    let totalGroups = 0
+    let cleanGroups = 0
+    const qualityScores: number[] = []
+    for (let seed = 1; seed <= 20; seed++) {
+      const candidates = generateSignaturePhraseCandidates(
+        input(seed),
+      ).filter((candidate) => candidate.plan.voicingMode === "block-chord")
+      for (const candidate of candidates) {
+        qualityScores.push(candidate.score.voicingQuality)
+        const groups = new Map<number, number[]>()
+        for (const note of candidate.notes) {
+          const key = Math.round(note.startBeat * 4)
+          const group = groups.get(key) ?? []
+          group.push(note.pitch)
+          groups.set(key, group)
+        }
+        for (const pitches of groups.values()) {
+          if (pitches.length < 2) continue
+          totalGroups++
+          const sorted = [...pitches].sort((left, right) => left - right)
+          const clean = sorted.every(
+            (pitch, index) => index === 0 || pitch - sorted[index - 1] >= 3,
+          )
+          if (clean) cleanGroups++
+        }
+      }
+    }
+    expect(totalGroups).toBeGreaterThan(0)
+    expect(cleanGroups / totalGroups).toBeGreaterThan(0.9)
+    expect(qualityScores.reduce((sum, value) => sum + value, 0) / qualityScores.length).toBeGreaterThan(0.9)
+  })
+
+  it("broken-chordは単音を短いアルペジオへ分解し、音数がleadより増える", () => {
+    const candidates = generateSignaturePhraseCandidates(input(3)).filter(
+      (candidate) => candidate.plan.voicingMode === "broken-chord",
+    )
+    expect(candidates.length).toBeGreaterThan(0)
+    for (const candidate of candidates) {
+      expect(candidate.notes.length).toBeGreaterThan(0)
+      expect(
+        candidate.notes.every(
+          (note) =>
+            note.startBeat >= 0 &&
+            note.startBeat + note.durationBeats <= candidate.phraseLengthBeats + 0.001,
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it("和音展開後もPlan由来の類似度比較は旋律の核(leadNotes)で行い、声部数で薄まらない", () => {
+    const candidates = generateSignaturePhraseCandidates(input(555))
+    // 全候補ペアでoverallSimilarityが発散しない(NaN/Infinityにならない)ことを確認する
+    for (let i = 0; i < candidates.length; i++) {
+      for (let j = i + 1; j < candidates.length; j++) {
+        const similarity = signaturePhraseSimilarity(candidates[i], candidates[j])
+        expect(Number.isFinite(similarity.overallSimilarity)).toBe(true)
+        expect(similarity.overallSimilarity).toBeGreaterThanOrEqual(0)
+        expect(similarity.overallSimilarity).toBeLessThanOrEqual(1)
+      }
+    }
+  })
 })

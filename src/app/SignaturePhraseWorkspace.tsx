@@ -12,6 +12,7 @@ import type {
   SignaturePhraseArchetype,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
+  SignatureVoicingMode,
 } from "@/core/signaturePhrase"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { parseTimeSignature } from "@/core/section"
@@ -41,6 +42,12 @@ const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
   "atmospheric-gateway": "Atmospheric Gateway",
   "obsessive-motor": "Obsessive Motor",
   "kinetic-hook": "Kinetic Hook",
+}
+
+const VOICING_MODE_LABELS: Record<SignatureVoicingMode, string> = {
+  "single-line": "単音",
+  "block-chord": "和音スタブ",
+  "broken-chord": "分散和音",
 }
 
 function candidateArchetype(
@@ -255,6 +262,11 @@ export function SignaturePhraseWorkspace() {
                     <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
                       {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
                     </span>
+                    {candidate.plan.voicingMode !== "single-line" && (
+                      <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">
+                        {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
+                      </span>
+                    )}
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       {RHYTHM_LABELS[candidate.plan.rhythmIdentity]}
                     </span>
