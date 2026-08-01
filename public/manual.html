@@ -819,11 +819,13 @@
             <tr><td>Length</td><td>1 / 2 / 4 / 8小節。選択中セクションより長い値は選べません。</td></tr>
             <tr><td>Archetype</td><td>余白と残響 / 反復と不穏な運動 / リズムと強い輪郭を、曲設定に合わせて配分します。</td></tr>
             <tr><td>Voicing</td><td>Single Line / Block Chord / Broken Chord。和音は全音へ付けず、構造上重要な位置だけへ配置します。</td></tr>
+            <tr><td>Voicing Style</td><td>Close / Open Spread / Drop 2 / Pedal / Inner Motion。候補カードに実際の配置方針を表示します。</td></tr>
+            <tr><td>Voice Motion</td><td>Smooth / Contrary / Oblique。低声と内声が前の和音を参照し、移動量・反行・共通音保持を計画します。</td></tr>
             <tr><td>Phrase Architecture</td><td>Identity Return / Question &amp; Answer / Slow Burn。8小節では小節ごとの発展段階も表示します。</td></tr>
           </tbody>
         </table>
       </div>
-      <p><strong>12案を生成</strong>すると、内部の多数候補から、識別性・冒頭の強さ・リズム・輪郭・発展可能性・単独での強さ・長期整合性・変化量・和音品質を評価した候補が並びます。同じコードを機械的に連打せず、最初の核が後半で意味を持って戻る構成を優先します。</p>
+      <p><strong>12案を生成</strong>すると、内部の多数候補から、識別性・冒頭の強さ・リズム・輪郭・発展可能性・単独での強さ・長期整合性・変化量・和音品質・声部進行を評価した候補が並びます。同じコードを機械的に連打せず、最初の核が後半で意味を持って戻る構成を優先します。テンションは全拍へ固定せず、音域上昇や回帰など意味のある構造点だけで候補化されます。</p>
       <p>候補ごとに個別試聴とMIDI書き出しができます。統合Decorationも同じMIDIへ含まれるため、別タブでFillを後付けする必要はありません。以前のプロジェクトに保存されたDecorationデータは互換性のため保持されます。</p>
     </section>
 

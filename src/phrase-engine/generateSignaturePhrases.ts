@@ -21,7 +21,10 @@ import type {
   SignaturePhraseSimilarity,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
+  SignatureVoiceLeadingPlan,
+  SignatureVoiceMotion,
   SignatureVoicingMode,
+  SignatureVoicingStyle,
 } from "@/core/signaturePhrase"
 import type { SectionRole } from "@/core/section"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
@@ -92,6 +95,20 @@ const VOICING_MODE_WEIGHTS: Record<
   "obsessive-motor": [0.35, 0.45, 0.2],
   "kinetic-hook": [0.5, 0.25, 0.25],
 }
+
+const VOICING_STYLES: SignatureVoicingStyle[] = [
+  "close-position",
+  "open-spread",
+  "drop-2",
+  "pedal-tone",
+  "inner-motion",
+]
+
+const VOICE_MOTIONS: SignatureVoiceMotion[] = [
+  "smooth",
+  "contrary",
+  "oblique",
+]
 
 const ARCHETYPES: SignaturePhraseArchetype[] = [
   "atmospheric-gateway",
@@ -337,6 +354,67 @@ function roundQuarter(value: number): number {
   return Math.round(value * 4) / 4
 }
 
+function commonPedalPitchClass(
+  input: GenerateSignaturePhrasesInput,
+): number | undefined {
+  const entries = buildHarmonicMap(input.chords).slice(0, 8)
+  if (entries.length < 2) return undefined
+  const first = chordTonePitchClasses(entries[0].parsed)
+  return first.find((pc) =>
+    entries.every((entry) =>
+      allUsablePitchClasses(entry.parsed).includes(pc),
+    ),
+  )
+}
+
+function voiceLeadingPlanFor(
+  input: GenerateSignaturePhrasesInput,
+  archetype: SignaturePhraseArchetype,
+  architecture: SignaturePhraseArchitecture,
+  poolIndex: number,
+  rng: SeededRandom,
+): SignatureVoiceLeadingPlan {
+  const preferredStyles: Record<
+    SignaturePhraseArchetype,
+    readonly SignatureVoicingStyle[]
+  > = {
+    "atmospheric-gateway": ["open-spread", "pedal-tone", "inner-motion"],
+    "obsessive-motor": ["close-position", "inner-motion", "pedal-tone"],
+    "kinetic-hook": ["drop-2", "open-spread", "close-position"],
+  }
+  const style =
+    poolIndex < VOICING_STYLES.length
+      ? VOICING_STYLES[poolIndex]
+      : rng.pick(preferredStyles[archetype])
+  const motion =
+    architecture === "slow-burn-return"
+      ? rng.pick<SignatureVoiceMotion>(["oblique", "smooth"])
+      : architecture === "question-answer-return"
+        ? rng.pick<SignatureVoiceMotion>(["contrary", "smooth"])
+        : VOICE_MOTIONS[(poolIndex + rng.intBetween(0, 2)) % VOICE_MOTIONS.length]
+  const voiceCount: 2 | 3 | 4 =
+    style === "drop-2"
+      ? 4
+      : style === "pedal-tone"
+        ? 2
+        : style === "open-spread" && rng.chance(0.35)
+          ? 4
+          : 3
+  return {
+    style,
+    motion,
+    voiceCount,
+    maxVoiceLeap: motion === "smooth" ? 5 : motion === "oblique" ? 4 : 7,
+    tensionPolicy:
+      archetype === "atmospheric-gateway"
+        ? "color-on-return"
+        : archetype === "kinetic-hook"
+          ? "color-on-lift"
+          : "chord-tones-only",
+    pedalPitchClass: style === "pedal-tone" ? commonPedalPitchClass(input) : undefined,
+  }
+}
+
 function planSignaturePhrase(
   input: GenerateSignaturePhrasesInput,
   seed: number,
@@ -392,6 +470,10 @@ function planSignaturePhrase(
     | 3
   const architecture =
     ARCHITECTURES[(poolIndex + rng.intBetween(0, 2)) % ARCHITECTURES.length]
+  const voicingMode = rng.weightedPick(
+    VOICING_MODES,
+    VOICING_MODE_WEIGHTS[archetype],
+  )
   return {
     role: "intro",
     lengthBars,
@@ -426,7 +508,14 @@ function planSignaturePhrase(
       rng.next() < 0.72
         ? archetypePolicy[archetype]
         : harmonicPolicies[(poolIndex + rng.intBetween(0, 2)) % harmonicPolicies.length],
-    voicingMode: rng.weightedPick(VOICING_MODES, VOICING_MODE_WEIGHTS[archetype]),
+    voicingMode,
+    voiceLeading: voiceLeadingPlanFor(
+      input,
+      archetype,
+      architecture,
+      poolIndex,
+      rng,
+    ),
   }
 }
 
@@ -970,102 +1059,301 @@ function placePitchPath(
   })
 }
 
-function chordToneLadder(
-  chordTones: readonly number[],
-  range: RangeSetting,
-): number[] {
-  const ladder: number[] = []
-  for (let pitch = range.low; pitch <= range.high; pitch++) {
-    if (chordTones.includes(pitchClass(pitch))) ladder.push(pitch)
-  }
-  return ladder
+interface SignatureVoicingFrame {
+  startBeat: number
+  pitches: number[]
+  leadPitch: number
 }
 
-function nearestLadderIndex(ladder: readonly number[], target: number): number {
-  return ladder.reduce(
-    (best, pitch, index) =>
-      Math.abs(pitch - target) < Math.abs(ladder[best] - target) ? index : best,
-    0,
+interface VoicedSignaturePhrase {
+  notes: MelodyNote[]
+  frames: SignatureVoicingFrame[]
+}
+
+function supportCombinations(
+  pitches: readonly number[],
+  count: number,
+): number[][] {
+  if (count <= 0) return [[]]
+  const combinations: number[][] = []
+  const visit = (start: number, selected: number[]) => {
+    if (selected.length === count) {
+      combinations.push([...selected])
+      return
+    }
+    for (let index = start; index < pitches.length; index++) {
+      selected.push(pitches[index])
+      visit(index + 1, selected)
+      selected.pop()
+    }
+  }
+  visit(0, [])
+  return combinations
+}
+
+function normalizedVoiceMovement(
+  previous: readonly number[],
+  current: readonly number[],
+): number[] {
+  const count = Math.min(previous.length, current.length)
+  return Array.from({ length: count }, (_, index) => {
+    const previousIndex = Math.round(
+      index * (previous.length - 1) / Math.max(1, count - 1),
+    )
+    const currentIndex = Math.round(
+      index * (current.length - 1) / Math.max(1, count - 1),
+    )
+    return current[currentIndex] - previous[previousIndex]
+  })
+}
+
+function voicingStylePenalty(
+  pitches: readonly number[],
+  entry: HarmonicMapEntry,
+  plan: SignatureVoiceLeadingPlan,
+  previous: SignatureVoicingFrame | null,
+): number {
+  const gaps = pitches.slice(1).map((pitch, index) => pitch - pitches[index])
+  const span = pitches.at(-1)! - pitches[0]
+  const bassIsRoot = pitchClass(pitches[0]) === entry.parsed.rootPc
+  let penalty = 0
+  if (plan.style === "close-position") {
+    penalty += Math.max(0, span - 16) * 0.8
+    penalty += gaps.filter((gap) => gap > 7).length * 5
+  } else if (plan.style === "open-spread") {
+    penalty += Math.max(0, 11 - span) * 1.2
+    penalty += Math.max(0, 5 - gaps[0]) * 1.4
+  } else if (plan.style === "drop-2") {
+    penalty += Math.max(0, 12 - span) * 1.1
+    penalty += pitches.length < 4 ? 8 : 0
+    penalty += gaps.filter((gap) => gap >= 5).length === 0 ? 6 : 0
+  } else if (plan.style === "pedal-tone") {
+    penalty +=
+      plan.pedalPitchClass !== undefined &&
+      !pitches.some((pitch) => pitchClass(pitch) === plan.pedalPitchClass)
+        ? 12
+        : 0
+  } else if (plan.style === "inner-motion" && previous) {
+    penalty += Math.abs(pitches[0] - previous.pitches[0]) * 1.3
+  }
+  // すべてをRoot Positionへ戻さず、自然な転回形を候補化する。
+  if (bassIsRoot && plan.style !== "close-position") penalty += 2.5
+  return penalty
+}
+
+function chooseVoicingFrame(
+  note: MelodyNote,
+  entry: HarmonicMapEntry,
+  range: RangeSetting,
+  voicePlan: SignatureVoiceLeadingPlan,
+  stage: SignatureDevelopmentStage,
+  previous: SignatureVoicingFrame | null,
+): SignatureVoicingFrame {
+  const addColor =
+    (voicePlan.tensionPolicy === "color-on-lift" && stage === "register-lift") ||
+    (voicePlan.tensionPolicy === "color-on-return" &&
+      stage === "decorated-return")
+  const chordTones = chordTonePitchClasses(entry.parsed)
+  const allowed = [
+    ...new Set([
+      ...chordTones,
+      ...(addColor ? allUsablePitchClasses(entry.parsed) : []),
+      ...(voicePlan.style === "pedal-tone" &&
+      voicePlan.pedalPitchClass !== undefined
+        ? [voicePlan.pedalPitchClass]
+        : []),
+    ]),
+  ]
+  const available = Array.from(
+    { length: Math.max(0, note.pitch - range.low - 2) },
+    (_, index) => range.low + index,
+  )
+    .filter(
+      (pitch) =>
+        pitch <= note.pitch - 3 && allowed.includes(pitchClass(pitch)),
+    )
+    .slice(-14)
+  const desiredSupportCount = Math.max(1, voicePlan.voiceCount - 1)
+  let candidates: number[][] = []
+  for (let count = desiredSupportCount; count >= 1; count--) {
+    candidates = supportCombinations(available, count)
+      .map((support) => [...support, note.pitch])
+      .filter((pitches) =>
+        pitches.slice(1).every(
+          (pitch, index) => pitch - pitches[index] >= 3,
+        ),
+      )
+    if (candidates.length > 0) break
+  }
+  if (candidates.length === 0) {
+    return { startBeat: note.startBeat, pitches: [note.pitch], leadPitch: note.pitch }
+  }
+
+  const previousLead = previous?.leadPitch ?? note.pitch
+  const leadMotion = note.pitch - previousLead
+  let best = candidates[0]
+  let bestCost = Infinity
+  for (const pitches of candidates) {
+    const movements = previous
+      ? normalizedVoiceMovement(previous.pitches, pitches)
+      : []
+    const supportMovements = movements.slice(0, -1)
+    const totalMovement = supportMovements.reduce(
+      (sum, movement) => sum + Math.abs(movement),
+      0,
+    )
+    const leapPenalty = supportMovements.reduce(
+      (sum, movement) =>
+        sum + Math.max(0, Math.abs(movement) - voicePlan.maxVoiceLeap) * 3,
+      0,
+    )
+    const commonToneBonus = supportMovements.filter(
+      (movement) => movement === 0,
+    ).length * 5
+    const movingSupport = supportMovements.filter((movement) => movement !== 0)
+    const parallelPenalty =
+      leadMotion !== 0 &&
+      movingSupport.length > 0 &&
+      movingSupport.every((movement) => Math.sign(movement) === Math.sign(leadMotion))
+        ? 7
+        : 0
+    const contraryBonus =
+      voicePlan.motion === "contrary" &&
+      leadMotion !== 0 &&
+      movingSupport.some((movement) => Math.sign(movement) === -Math.sign(leadMotion))
+        ? 8
+        : 0
+    const obliqueBonus =
+      voicePlan.motion === "oblique" &&
+      supportMovements.some((movement) => movement === 0)
+        ? 8
+        : 0
+    const smoothWeight = voicePlan.motion === "smooth" ? 1.45 : 1
+    const colorBonus =
+      addColor &&
+      pitches.slice(0, -1).some(
+        (pitch) => !chordTones.includes(pitchClass(pitch)),
+      )
+        ? 4
+        : 0
+    const cost =
+      totalMovement * smoothWeight +
+      leapPenalty +
+      parallelPenalty +
+      voicingStylePenalty(pitches, entry, voicePlan, previous) -
+      commonToneBonus -
+      contraryBonus -
+      obliqueBonus -
+      colorBonus
+    if (cost < bestCost) {
+      best = pitches
+      bestCost = cost
+    }
+  }
+  return {
+    startBeat: note.startBeat,
+    pitches: best,
+    leadPitch: note.pitch,
+  }
+}
+
+function canVoiceNote(
+  note: MelodyNote,
+  noteIndex: number,
+  barIndex: number,
+  stage: SignatureDevelopmentStage,
+  voicedBars: ReadonlySet<number>,
+  mode: SignatureVoicingMode,
+): boolean {
+  const structuralStage =
+    stage === "establish" ||
+    stage === "answer" ||
+    stage === "register-lift" ||
+    stage === "decorated-return" ||
+    stage === "open-tail"
+  return (
+    !voicedBars.has(barIndex) &&
+    note.durationBeats >= (mode === "broken-chord" ? 0.75 : 0.5) &&
+    (structuralStage || (barIndex % 2 === 0 && noteIndex % 3 === 0)) &&
+    note.plannedToneRole !== "approach-tone" &&
+    note.plannedToneRole !== "neighbor-tone"
   )
 }
 
-/**
- * leadピッチの直下から、和音構成音のうち既存の声部と3半音以上離れた
- * 支援音を探す。濁った密集和音(半音・全音の重なり)を避けるため。
- */
-function supportPitchBelow(
-  fromPitch: number,
-  chordTones: readonly number[],
-  range: RangeSetting,
-  usedPitches: readonly number[],
-): number | null {
-  for (let pitch = fromPitch - 3; pitch >= range.low; pitch--) {
-    if (!chordTones.includes(pitchClass(pitch))) continue
-    if (usedPitches.some((used) => Math.abs(used - pitch) < 3)) continue
-    return pitch
-  }
-  return null
+function voiceLabel(index: number, total: number): "low" | "inner" | "upper" {
+  if (index === 0) return "low"
+  if (index === total - 1) return "upper"
+  return "inner"
 }
 
-/** 各leadノートへ和音構成音を1〜2声重ね、同時発音のスタブ／パッドにする。 */
+/** 構造点だけを和音化し、前のVoicing Frameから各声部を独立して接続する。 */
 function applyBlockChordVoicing(
   leadNotes: readonly MelodyNote[],
   map: readonly HarmonicMapEntry[],
   range: RangeSetting,
-  seed: number,
   plan: SignaturePhrasePlan,
   beatsPerBar: number,
-): MelodyNote[] {
-  const rng = new SeededRandom(seed ^ 0x1b873593)
+): VoicedSignaturePhrase {
   const result: MelodyNote[] = []
+  const frames: SignatureVoicingFrame[] = []
   const voicedBars = new Set<number>()
+  let previousFrame: SignatureVoicingFrame | null = null
   for (const [noteIndex, note] of leadNotes.entries()) {
     result.push(note)
     const barIndex = Math.floor(note.startBeat / beatsPerBar)
     const stage = plan.developmentStages[barIndex] ?? "repeat"
-    const structuralStage =
-      stage === "establish" ||
-      stage === "register-lift" ||
-      stage === "decorated-return" ||
-      stage === "open-tail"
-    const canVoice =
-      !voicedBars.has(barIndex) &&
-      note.durationBeats >= 0.5 &&
-      (structuralStage || (barIndex % 2 === 0 && noteIndex % 3 === 0)) &&
-      note.plannedToneRole !== "approach-tone" &&
-      note.plannedToneRole !== "neighbor-tone"
-    if (!canVoice) continue
+    if (!canVoiceNote(note, noteIndex, barIndex, stage, voicedBars, "block-chord")) continue
     const entry = chordAtBeat(map as HarmonicMapEntry[], note.startBeat)
     if (!entry) continue
-    const chordTones = chordTonePitchClasses(entry.parsed)
-    if (chordTones.length === 0) continue
+    const frame = chooseVoicingFrame(
+      note,
+      entry,
+      range,
+      plan.voiceLeading,
+      stage,
+      previousFrame,
+    )
+    if (frame.pitches.length < 2) continue
     voicedBars.add(barIndex)
-    const voiceCount = note.durationBeats >= 1 && rng.chance(0.35) ? 2 : 1
-    const used = [note.pitch]
-    for (let voice = 0; voice < voiceCount; voice++) {
-      const support = supportPitchBelow(
-        used[used.length - 1],
-        chordTones,
-        range,
-        used,
-      )
-      if (support === null) break
-      used.push(support)
+    frames.push(frame)
+    previousFrame = frame
+    const supportPitches = frame.pitches.slice(0, -1)
+    for (const [voice, support] of supportPitches.entries()) {
+      const label = voiceLabel(voice, supportPitches.length)
       result.push({
-        id: `${note.id}-chord${voice}`,
+        id: `${note.id}-voice-${label}-${voice}`,
         startBeat: note.startBeat,
         durationBeats: note.durationBeats,
         pitch: support,
         velocity: Math.max(20, note.velocity - 14 - voice * 6),
         locks: [],
-        plannedToneRole: "chord-tone",
+        plannedToneRole: isChordTone(entry.parsed, pitchClass(support))
+          ? "chord-tone"
+          : "tension-hold",
       })
     }
   }
-  return result
+  return { notes: result, frames }
 }
 
-/** 各leadノートを短いアルペジオへ分解し、和音を分散和音として鳴らす。 */
+function arpeggioOrder(
+  frame: SignatureVoicingFrame,
+  style: SignatureVoicingStyle,
+  maximumNotes: number,
+): number[] {
+  const source = [...frame.pitches]
+  let ordered = source
+  if (style === "drop-2" && source.length >= 4) {
+    ordered = [source[0], source[2], source[1], source.at(-1)!]
+  } else if (style === "inner-motion" && source.length >= 3) {
+    ordered = [source[0], source.at(-2)!, source.at(-1)!]
+  }
+  if (ordered.length <= maximumNotes) return ordered
+  if (maximumNotes === 2) return [ordered[0], ordered.at(-1)!]
+  return [ordered[0], ordered[Math.floor(ordered.length / 2)], ordered.at(-1)!]
+}
+
+/** Blockと同じVoice Leading Frameを、短いアルペジオとして時間方向へ展開する。 */
 function applyBrokenChordVoicing(
   leadNotes: readonly MelodyNote[],
   map: readonly HarmonicMapEntry[],
@@ -1073,61 +1361,69 @@ function applyBrokenChordVoicing(
   seed: number,
   plan: SignaturePhrasePlan,
   beatsPerBar: number,
-): MelodyNote[] {
+): VoicedSignaturePhrase {
   const rng = new SeededRandom(seed ^ 0x27d4eb2f)
   const result: MelodyNote[] = []
+  const frames: SignatureVoicingFrame[] = []
   const voicedBars = new Set<number>()
+  let previousFrame: SignatureVoicingFrame | null = null
   leadNotes.forEach((note, index) => {
     const barIndex = Math.floor(note.startBeat / beatsPerBar)
     const stage = plan.developmentStages[barIndex] ?? "repeat"
-    const structuralStage =
-      stage === "establish" ||
-      stage === "answer" ||
-      stage === "decorated-return" ||
-      stage === "open-tail"
     const entry = chordAtBeat(map as HarmonicMapEntry[], note.startBeat)
-    const chordTones = entry ? chordTonePitchClasses(entry.parsed) : []
-    const ladder = chordToneLadder(chordTones, range)
-    const canVoice =
-      !voicedBars.has(barIndex) &&
-      structuralStage &&
-      note.durationBeats >= 0.75 &&
-      note.plannedToneRole !== "approach-tone" &&
-      note.plannedToneRole !== "neighbor-tone"
     if (
-      !canVoice ||
       !entry ||
-      chordTones.length < 2 ||
-      ladder.length < 2
+      !canVoiceNote(note, index, barIndex, stage, voicedBars, "broken-chord")
     ) {
       result.push(note)
       return
     }
+    const frame = chooseVoicingFrame(
+      note,
+      entry,
+      range,
+      plan.voiceLeading,
+      stage,
+      previousFrame,
+    )
+    if (frame.pitches.length < 2) {
+      result.push(note)
+      return
+    }
     voicedBars.add(barIndex)
-    const subdivisions = note.durationBeats >= 1 ? 3 : 2
-    const anchorIndex = nearestLadderIndex(ladder, note.pitch)
-    const direction = index % 2 === 0 ? 1 : -1
-    const subDuration = note.durationBeats / subdivisions
-    for (let step = 0; step < subdivisions; step++) {
-      const isLast = step === subdivisions - 1
-      const ladderIndex = isLast
-        ? anchorIndex
-        : Math.max(
-            0,
-            Math.min(ladder.length - 1, anchorIndex + direction * (subdivisions - 1 - step)),
-          )
+    frames.push(frame)
+    previousFrame = frame
+    const maximumNotes = Math.max(2, Math.floor(note.durationBeats / 0.25))
+    const ordered = arpeggioOrder(
+      frame,
+      plan.voiceLeading.style,
+      maximumNotes,
+    )
+    const subDuration = note.durationBeats / ordered.length
+    for (let step = 0; step < ordered.length; step++) {
+      const startBeat = roundQuarter(note.startBeat + step * subDuration)
+      const nextBeat =
+        step === ordered.length - 1
+          ? note.startBeat + note.durationBeats
+          : roundQuarter(note.startBeat + (step + 1) * subDuration)
+      const label =
+        step === ordered.length - 1
+          ? "lead"
+          : voiceLabel(step, ordered.length - 1)
       result.push({
-        id: `${note.id}-arp${step}`,
-        startBeat: roundQuarter(note.startBeat + step * subDuration),
-        durationBeats: roundQuarter(subDuration),
-        pitch: ladder[ladderIndex],
+        id: `${note.id}-voice-${label}-arp${step}`,
+        startBeat,
+        durationBeats: Math.max(0.25, roundQuarter(nextBeat - startBeat)),
+        pitch: ordered[step],
         velocity: Math.max(20, note.velocity - step * 3 + rng.intBetween(-2, 2)),
         locks: [],
-        plannedToneRole: "chord-tone",
+        plannedToneRole: isChordTone(entry.parsed, pitchClass(ordered[step]))
+          ? "chord-tone"
+          : "tension-hold",
       })
     }
   })
-  return result
+  return { notes: result, frames }
 }
 
 function applyVoicing(
@@ -1138,13 +1434,12 @@ function applyVoicing(
   seed: number,
   plan: SignaturePhrasePlan,
   beatsPerBar: number,
-): MelodyNote[] {
+): VoicedSignaturePhrase {
   if (voicingMode === "block-chord") {
     return applyBlockChordVoicing(
       leadNotes,
       map,
       range,
-      seed,
       plan,
       beatsPerBar,
     )
@@ -1159,7 +1454,7 @@ function applyVoicing(
       beatsPerBar,
     )
   }
-  return leadNotes.map((note) => ({ ...note }))
+  return { notes: leadNotes.map((note) => ({ ...note })), frames: [] }
 }
 
 /** block-chord/broken-chordで追加した声部の音間隔・重複を評価する。単音のみなら常に1。 */
@@ -1185,6 +1480,67 @@ function computeVoicingQuality(notes: readonly MelodyNote[]): number {
   return clamp01(1 - violations / (chordGroups * 1.5))
 }
 
+function computeVoiceLeadingQuality(
+  frames: readonly SignatureVoicingFrame[],
+  plan: SignatureVoiceLeadingPlan,
+): number {
+  if (frames.length < 2) return 1
+  let leapExcess = 0
+  let movementCount = 0
+  let parallelPairs = 0
+  let motionMatches = 0
+  let commonTonePairs = 0
+  for (let index = 1; index < frames.length; index++) {
+    const previous = frames[index - 1]
+    const current = frames[index]
+    const movements = normalizedVoiceMovement(previous.pitches, current.pitches)
+    const supportMovements = movements.slice(0, -1)
+    movementCount += supportMovements.length
+    leapExcess += supportMovements.reduce(
+      (sum, movement) =>
+        sum + Math.max(0, Math.abs(movement) - plan.maxVoiceLeap),
+      0,
+    )
+    const leadMovement = current.leadPitch - previous.leadPitch
+    const moving = supportMovements.filter((movement) => movement !== 0)
+    if (
+      leadMovement !== 0 &&
+      moving.length > 0 &&
+      moving.every((movement) => Math.sign(movement) === Math.sign(leadMovement))
+    ) {
+      parallelPairs++
+    }
+    if (supportMovements.some((movement) => movement === 0)) {
+      commonTonePairs++
+      if (plan.motion === "oblique") motionMatches++
+    }
+    if (
+      plan.motion === "contrary" &&
+      leadMovement !== 0 &&
+      moving.some((movement) => Math.sign(movement) === -Math.sign(leadMovement))
+    ) {
+      motionMatches++
+    }
+    if (
+      plan.motion === "smooth" &&
+      supportMovements.every((movement) => Math.abs(movement) <= 4)
+    ) {
+      motionMatches++
+    }
+  }
+  const pairCount = frames.length - 1
+  const leapPenalty = Math.min(
+    0.45,
+    leapExcess / Math.max(1, movementCount * 12),
+  )
+  const parallelPenalty = parallelPairs / pairCount * 0.24
+  const motionBonus = motionMatches / pairCount * 0.12
+  const commonToneBonus = commonTonePairs / pairCount * 0.08
+  return clamp01(
+    0.82 - leapPenalty - parallelPenalty + motionBonus + commonToneBonus,
+  )
+}
+
 function intervalSequence(notes: readonly MelodyNote[]): number[] {
   return notes.slice(1).map((note, index) => note.pitch - notes[index].pitch)
 }
@@ -1200,6 +1556,23 @@ function countDirectionChanges(intervals: readonly number[]): number {
   return signs.slice(1).filter((sign, index) => sign !== signs[index]).length
 }
 
+function soundingTimeRatio(
+  notes: readonly MelodyNote[],
+  phraseLengthBeats: number,
+): number {
+  const ranges = [...notes]
+    .sort((left, right) => left.startBeat - right.startBeat)
+    .reduce<{ start: number; end: number }[]>((merged, note) => {
+      const end = note.startBeat + note.durationBeats
+      const last = merged.at(-1)
+      if (last && note.startBeat <= last.end) last.end = Math.max(last.end, end)
+      else merged.push({ start: note.startBeat, end })
+      return merged
+    }, [])
+  return ranges.reduce((sum, range) => sum + range.end - range.start, 0) /
+    Math.max(1, phraseLengthBeats)
+}
+
 function scoreSignaturePhrase(
   notes: MelodyNote[],
   plan: SignaturePhrasePlan,
@@ -1207,6 +1580,7 @@ function scoreSignaturePhrase(
   phraseLengthBeats: number,
   motifPath: readonly number[],
   fullNotes: MelodyNote[] = notes,
+  voicingFrames: readonly SignatureVoicingFrame[] = [],
 ): SignaturePhraseScore {
   if (notes.length < 3) {
     return {
@@ -1226,6 +1600,7 @@ function scoreSignaturePhrase(
       arpeggioPenalty: 1,
       mechanicalPenalty: 1,
       voicingQuality: 1,
+      voiceLeadingQuality: 1,
       overall: 0,
     }
   }
@@ -1462,6 +1837,10 @@ function scoreSignaturePhrase(
       : clamp01(1 - Math.max(0, voicingExpansion - 1.65) * 0.9)
   const voicingQuality =
     computeVoicingQuality(fullNotes) * 0.72 + voicingDensityQuality * 0.28
+  const voiceLeadingQuality =
+    plan.voicingMode === "single-line"
+      ? 1
+      : computeVoiceLeadingQuality(voicingFrames, plan.voiceLeading)
   return {
     identity,
     openingImpact,
@@ -1479,13 +1858,15 @@ function scoreSignaturePhrase(
     arpeggioPenalty,
     mechanicalPenalty,
     voicingQuality,
+    voiceLeadingQuality,
     overall:
       Math.round(
         clamp01(
           weighted -
             arpeggioPenalty * 0.18 -
             mechanicalPenalty * 0.22 -
-            (1 - voicingQuality) * 0.12,
+            (1 - voicingQuality) * 0.1 -
+            (1 - voiceLeadingQuality) * 0.1,
         ) * 10000,
       ) / 100,
   }
@@ -1530,7 +1911,7 @@ function buildSignaturePhrase(
     motifPath,
     phraseLengthBeats,
   )
-  const notes = applyVoicing(
+  const voiced = applyVoicing(
     plan.voicingMode,
     leadNotes,
     map,
@@ -1539,6 +1920,7 @@ function buildSignaturePhrase(
     plan,
     input.beatsPerBar,
   )
+  const notes = voiced.notes
   return {
     notes,
     leadNotes,
@@ -1552,6 +1934,7 @@ function buildSignaturePhrase(
       phraseLengthBeats,
       motifPath,
       notes,
+      voiced.frames,
     ),
   }
 }
@@ -1594,12 +1977,14 @@ export function signaturePhraseSimilarity(
   const contourSimilarity = sequenceSimilarity(leftContour, rightContour)
   const durationSimilarity = sequenceSimilarity(leftDurations, rightDurations, 0.01)
   const planSimilarity =
-    (left.plan.archetype === right.plan.archetype ? 0.26 : 0) +
-    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.26 : 0) +
-    (left.plan.contour === right.plan.contour ? 0.16 : 0) +
-    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.12 : 0) +
+    (left.plan.archetype === right.plan.archetype ? 0.24 : 0) +
+    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.24 : 0) +
+    (left.plan.contour === right.plan.contour ? 0.14 : 0) +
+    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.1 : 0) +
     (left.plan.lengthBars === right.plan.lengthBars ? 0.08 : 0) +
-    (left.plan.voicingMode === right.plan.voicingMode ? 0.12 : 0)
+    (left.plan.voicingMode === right.plan.voicingMode ? 0.08 : 0) +
+    (left.plan.voiceLeading?.style === right.plan.voiceLeading?.style ? 0.07 : 0) +
+    (left.plan.voiceLeading?.motion === right.plan.voiceLeading?.motion ? 0.05 : 0)
   return {
     rhythmSimilarity,
     intervalSimilarity,
@@ -1628,7 +2013,8 @@ function selectDiversePool(
     (candidate) =>
       candidate.score.overall >= QUALITY_FLOOR &&
       candidate.score.mechanicalPenalty <= 0.5 &&
-      candidate.score.voicingQuality >= 0.5,
+      candidate.score.voicingQuality >= 0.5 &&
+      candidate.score.voiceLeadingQuality >= 0.58,
   )
   const hookEligible = qualityEligible.filter(
     (candidate) =>
@@ -1680,12 +2066,26 @@ function selectDiversePool(
       const sameVoicingCount = selected.filter(
         (item) => item.candidate.plan.voicingMode === candidate.plan.voicingMode,
       ).length
+      const sameVoicingStyleCount = selected.filter(
+        (item) =>
+          item.candidate.plan.voiceLeading.style ===
+          candidate.plan.voiceLeading.style,
+      ).length
       const archetypeAlreadyRepresented = sameArchetypeCount > 0
       const voicingAlreadyRepresented = sameVoicingCount > 0
+      const sparseAtmosphereAlreadyRepresented = selected.some(
+        (item) =>
+          item.candidate.plan.archetype === "atmospheric-gateway" &&
+          soundingTimeRatio(
+            item.candidate.leadNotes,
+            item.candidate.phraseLengthBeats,
+          ) < 0.62,
+      )
       const redundancyPenalty =
         sameRhythmCount * 4 + sameContourCount * 1.5 +
         sameArchetypeCount * 2.5 +
         sameVoicingCount * 1.5 +
+        sameVoicingStyleCount * 1.25 +
         (maximumSimilarity > 0.78 ? 18 : 0)
       const archetypeCoverageBonus =
         selected.length < 6 && !archetypeAlreadyRepresented ? 18 : 0
@@ -1697,12 +2097,20 @@ function selectDiversePool(
         candidate.plan.voicingMode !== "single-line"
           ? 10
           : 0
+      const sparseAtmosphereCoverageBonus =
+        selected.length < 8 &&
+        !sparseAtmosphereAlreadyRepresented &&
+        candidate.plan.archetype === "atmospheric-gateway" &&
+        soundingTimeRatio(candidate.leadNotes, candidate.phraseLengthBeats) < 0.62
+          ? 12
+          : 0
       const score =
         candidate.score.overall * 0.62 +
         diversity * 100 * 0.38 -
         redundancyPenalty +
         archetypeCoverageBonus +
-        voicingCoverageBonus
+        voicingCoverageBonus +
+        sparseAtmosphereCoverageBonus
       if (score > bestScore) {
         bestIndex = index
         bestScore = score

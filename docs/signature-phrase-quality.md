@@ -50,6 +50,22 @@ Atmospheric系では音数追加より長音、共通音、余韻を優先する
 
 Block ChordとBroken Chordは全音符へ機械的に適用しない。1小節につき最大1つの構造点だけを対象にし、Approach ToneとNeighbor Toneは和音化しない。これにより、音数の過密化、コード列への退行、主モチーフの輪郭消失を防ぐ。
 
+和音候補は次のVoicing語彙を持つ。
+
+- `close-position`: 狭い音域でまとまりを作る。
+- `open-spread`: 低声と内声を開き、空間と透明感を作る。
+- `drop-2`: 4声の第2上声を下へ開いた配置を優先する。
+- `pedal-tone`: 複数コードで意味を持つ共通音を低声または内声へ保持する。
+- `inner-motion`: 低声を安定させ、内声の小さな動きで和声変化を聴かせる。
+
+各構造点では和音を新しく積み直さず、直前の`SignatureVoicingFrame`を参照する。低声・内声・上声を対応づけ、最大跳躍、共通音保持、平行移動を評価して次の転回形を選ぶ。Voice Motionは次の3方式を使う。
+
+- `smooth`: 各声部の総移動量を抑える。
+- `contrary`: Leadと反対方向へ動く内声または低声を作る。
+- `oblique`: 1声を保持し、他声だけを動かす。
+
+テンションは全和音へ常時追加せず、`register-lift`または`decorated-return`などの構造点だけで候補化する。Block ChordとBroken Chordは同じVoicing Frameを共有するため、同じ候補を同時和音とアルペジオのどちらで鳴らしても和声設計は一致する。
+
 ## 評価
 
 既存のIdentity、Opening Impact、Rhythmic Identity、Contour Identity、Development Potential、Standalone Strengthに加え、4〜8小節では次を評価する。
@@ -57,6 +73,7 @@ Block ChordとBroken Chordは全音符へ機械的に適用しない。1小節�
 - `longRangeCoherence`: 冒頭の核が後半へ意味を持って回帰するか。
 - `variationBalance`: 完全反復と無関係な変化の中間にあるか。
 - `voicingQuality`: 和音化で主旋律の明瞭さを失っていないか。
+- `voiceLeadingQuality`: 急な低声移動、全声部の同方向移動、共通音保持、Motion方針との一致を評価する。
 
 候補プールから最低品質を満たすものを選び、Archetype、Rhythm、Contour、Voicing、候補間類似度を同時に評価して12案へ絞る。固定Seedでは同じ候補を再現する。
 

@@ -390,23 +390,137 @@ describe("Signature Phrase Generator", () => {
     for (const candidate of candidates) {
       if (candidate.plan.voicingMode === "block-chord") {
         const supportNotes = candidate.notes.filter((note) =>
-          note.id.includes("-chord"),
+          /-voice-(low|inner|upper)-\d+$/.test(note.id),
         )
         const voicedBars = new Set(
           supportNotes.map((note) => Math.floor(note.startBeat / 4)),
         )
         expect(voicedBars.size).toBeLessThanOrEqual(8)
-        expect(supportNotes.length).toBeLessThanOrEqual(16)
+        expect(supportNotes.length).toBeLessThanOrEqual(24)
       }
       if (candidate.plan.voicingMode === "broken-chord") {
         const arpeggiatedSources = new Set(
           candidate.notes
             .filter((note) => note.id.includes("-arp"))
-            .map((note) => note.id.replace(/-arp\d+$/, "")),
+            .map((note) => note.id.replace(/-voice-.*-arp\d+$/, "")),
         )
-        expect(arpeggiatedSources.size).toBeLessThanOrEqual(4)
+        expect(arpeggiatedSources.size).toBeLessThanOrEqual(6)
       }
     }
+  })
+
+  it("転回・開離・Drop 2・Pedal・内声移動のVoicing語彙を候補群で網羅する", () => {
+    const styles = new Set<string>()
+    const motions = new Set<string>()
+    const chordCandidates = []
+    for (let seed = 1; seed <= 12; seed++) {
+      for (const candidate of generateSignaturePhraseCandidates(
+        eightBarInput(seed * 3571),
+      )) {
+        if (candidate.plan.voicingMode === "single-line") continue
+        styles.add(candidate.plan.voiceLeading.style)
+        motions.add(candidate.plan.voiceLeading.motion)
+        chordCandidates.push(candidate)
+      }
+    }
+    expect(styles).toEqual(
+      new Set([
+        "close-position",
+        "open-spread",
+        "drop-2",
+        "pedal-tone",
+        "inner-motion",
+      ]),
+    )
+    expect(motions).toEqual(new Set(["smooth", "contrary", "oblique"]))
+    expect(
+      chordCandidates.every(
+        (candidate) => candidate.score.voiceLeadingQuality >= 0.58,
+      ),
+    ).toBe(true)
+    expect(
+      chordCandidates.some((candidate) => {
+        const pedal = candidate.plan.voiceLeading.pedalPitchClass
+        if (
+          candidate.plan.voiceLeading.style !== "pedal-tone" ||
+          pedal === undefined
+        ) {
+          return false
+        }
+        return candidate.notes.filter(
+          (note) =>
+            note.id.includes("-voice-") &&
+            ((note.pitch % 12) + 12) % 12 === pedal,
+        ).length >= 2
+      }),
+    ).toBe(true)
+  })
+
+  it("Block Chordの低声が前後を参照し、全声部の平行移動へ偏らない", () => {
+    let transitions = 0
+    let controlledLeaps = 0
+    let parallelTransitions = 0
+    for (let seed = 1; seed <= 16; seed++) {
+      const candidates = generateSignaturePhraseCandidates(
+        eightBarInput(seed * 6151),
+      ).filter((candidate) => candidate.plan.voicingMode === "block-chord")
+      for (const candidate of candidates) {
+        const frames = [...new Set(
+          candidate.notes
+            .filter((note) => /-voice-(low|inner|upper)-\d+$/.test(note.id))
+            .map((note) => note.startBeat),
+        )].sort((left, right) => left - right).map((startBeat) => {
+          const pitches = candidate.notes
+            .filter((note) => note.startBeat === startBeat)
+            .map((note) => note.pitch)
+            .sort((left, right) => left - right)
+          return { bass: pitches[0], lead: pitches.at(-1)! }
+        })
+        for (let index = 1; index < frames.length; index++) {
+          const bassMotion = frames[index].bass - frames[index - 1].bass
+          const leadMotion = frames[index].lead - frames[index - 1].lead
+          transitions++
+          if (Math.abs(bassMotion) <= candidate.plan.voiceLeading.maxVoiceLeap) {
+            controlledLeaps++
+          }
+          if (
+            bassMotion !== 0 &&
+            leadMotion !== 0 &&
+            Math.sign(bassMotion) === Math.sign(leadMotion)
+          ) {
+            parallelTransitions++
+          }
+        }
+      }
+    }
+    expect(transitions).toBeGreaterThan(20)
+    expect(controlledLeaps / transitions).toBeGreaterThan(0.75)
+    expect(parallelTransitions / transitions).toBeLessThan(0.6)
+  })
+
+  it("構造上のLiftまたはReturnだけでテンション声部を段階的に候補化する", () => {
+    let tensionCandidates = 0
+    let totalChordCandidates = 0
+    for (let seed = 1; seed <= 20; seed++) {
+      for (const candidate of generateSignaturePhraseCandidates(
+        eightBarInput(seed * 1877),
+      )) {
+        if (candidate.plan.voicingMode === "single-line") continue
+        totalChordCandidates++
+        if (
+          candidate.notes.some(
+            (note) =>
+              note.id.includes("-voice-") &&
+              note.plannedToneRole === "tension-hold",
+          )
+        ) {
+          tensionCandidates++
+        }
+      }
+    }
+    expect(totalChordCandidates).toBeGreaterThan(30)
+    expect(tensionCandidates).toBeGreaterThan(0)
+    expect(tensionCandidates).toBeLessThan(totalChordCandidates)
   })
 
   it("broken-chordは単音を短いアルペジオへ分解し、音数がleadより増える", () => {
@@ -423,6 +537,25 @@ describe("Signature Phrase Generator", () => {
             note.startBeat + note.durationBeats <= candidate.phraseLengthBeats + 0.001,
         ),
       ).toBe(true)
+      const arpeggios = new Map<string, typeof candidate.notes>()
+      for (const note of candidate.notes.filter((item) => item.id.includes("-arp"))) {
+        const sourceId = note.id.replace(/-voice-.*-arp\d+$/, "")
+        const notes = arpeggios.get(sourceId) ?? []
+        notes.push(note)
+        arpeggios.set(sourceId, notes)
+      }
+      for (const notes of arpeggios.values()) {
+        const ordered = [...notes].sort(
+          (left, right) => left.startBeat - right.startBeat,
+        )
+        expect(
+          ordered.slice(1).every(
+            (note, index) =>
+              ordered[index].startBeat + ordered[index].durationBeats <=
+              note.startBeat + 0.001,
+          ),
+        ).toBe(true)
+      }
     }
   })
 

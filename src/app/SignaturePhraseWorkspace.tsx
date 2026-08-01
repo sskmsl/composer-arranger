@@ -14,7 +14,9 @@ import type {
   SignaturePhraseLengthBars,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
+  SignatureVoiceMotion,
   SignatureVoicingMode,
+  SignatureVoicingStyle,
 } from "@/core/signaturePhrase"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { parseTimeSignature } from "@/core/section"
@@ -56,6 +58,20 @@ const VOICING_MODE_LABELS: Record<SignatureVoicingMode, string> = {
   "single-line": "単音",
   "block-chord": "和音スタブ",
   "broken-chord": "分散和音",
+}
+
+const VOICING_STYLE_LABELS: Record<SignatureVoicingStyle, string> = {
+  "close-position": "Close",
+  "open-spread": "Open Spread",
+  "drop-2": "Drop 2",
+  "pedal-tone": "Pedal",
+  "inner-motion": "Inner Motion",
+}
+
+const VOICE_MOTION_LABELS: Record<SignatureVoiceMotion, string> = {
+  smooth: "Smooth",
+  contrary: "Contrary",
+  oblique: "Oblique",
 }
 
 function candidateArchetype(
@@ -293,9 +309,18 @@ export function SignaturePhraseWorkspace() {
                       </span>
                     )}
                     {candidate.plan.voicingMode !== "single-line" && (
-                      <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">
-                        {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
-                      </span>
+                      <>
+                        <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">
+                          {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
+                        </span>
+                        {candidate.plan.voiceLeading && (
+                          <span className="rounded-pill bg-sky-400/15 px-2 py-0.5 text-[10px] text-sky-200">
+                            {VOICING_STYLE_LABELS[candidate.plan.voiceLeading.style]}
+                            {" · "}
+                            {VOICE_MOTION_LABELS[candidate.plan.voiceLeading.motion]}
+                          </span>
+                        )}
+                      </>
                     )}
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       {RHYTHM_LABELS[candidate.plan.rhythmIdentity]}
@@ -316,6 +341,11 @@ export function SignaturePhraseWorkspace() {
                     <span>
                       Memory {Math.round((candidate.score.motifMemorability ?? 0) * 100)}
                     </span>
+                    {candidate.plan.voicingMode !== "single-line" && (
+                      <span>
+                        Voice Lead {Math.round((candidate.score.voiceLeadingQuality ?? 0) * 100)}
+                      </span>
+                    )}
                     {candidate.plan.lengthBars >= 4 && (
                       <>
                         <span>

@@ -67,6 +67,28 @@ export type SignatureVariationStrategy =
  */
 export type SignatureVoicingMode = "single-line" | "block-chord" | "broken-chord"
 
+export type SignatureVoicingStyle =
+  | "close-position"
+  | "open-spread"
+  | "drop-2"
+  | "pedal-tone"
+  | "inner-motion"
+
+export type SignatureVoiceMotion = "smooth" | "contrary" | "oblique"
+
+/** 和音を各拍の独立した塊ではなく、連続する声部として動かすための事前計画。 */
+export interface SignatureVoiceLeadingPlan {
+  style: SignatureVoicingStyle
+  motion: SignatureVoiceMotion
+  /** leadを含む目標声部数。実音域が狭い場合は安全に減らす。 */
+  voiceCount: 2 | 3 | 4
+  /** 各声部に許容する1回の最大移動幅。 */
+  maxVoiceLeap: number
+  tensionPolicy: "chord-tones-only" | "color-on-lift" | "color-on-return"
+  /** 共通音が成立する場合に低声または内声で保持するPitch Class。 */
+  pedalPitchClass?: number
+}
+
 /** 実音生成より先に確定する、短いSignature Phrase専用の設計。 */
 export interface SignaturePhrasePlan {
   role: SignaturePhraseRole
@@ -91,6 +113,8 @@ export interface SignaturePhrasePlan {
   harmonicAnchorPolicy: "structural-only" | "opening-and-ending" | "tension-led"
   /** 単音Motifか、和音のスタブ／分散和音として鳴らすか。 */
   voicingMode: SignatureVoicingMode
+  /** 転回・開離配置・内声移動と、声部間の運動方針。 */
+  voiceLeading: SignatureVoiceLeadingPlan
 }
 
 export interface SignaturePhraseScore {
@@ -111,6 +135,8 @@ export interface SignaturePhraseScore {
   mechanicalPenalty: number
   /** block-chord/broken-chordで追加した声部の音間隔・重複を評価する(single-lineは常に1)。 */
   voicingQuality: number
+  /** 声部交差、急な跳躍、平行移動、共通音保持を総合評価する。 */
+  voiceLeadingQuality: number
   overall: number
 }
 
