@@ -85,6 +85,7 @@ import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import { evaluateReactiveLayerCompatibility } from "@/melody-engine/reactiveLayerAnalysis"
 import {
+  COUNTER_CANDIDATE_CONFIG,
   counterTechniqueFitScore,
   generateCounterCandidates,
   regenerateCounterCandidate as buildRegeneratedCounter,
@@ -100,12 +101,15 @@ import {
   type DecorationSettings,
   type GenerateDecorationInput,
 } from "@/melody-engine/decorationGenerator"
+
 import {
   resolvePublicComposerRules,
   techniqueExperimentPreset,
   techniqueExperimentRules,
   type TechniqueExperimentPresetId,
 } from "@/composer-intelligence"
+
+const COUNTER_EXPERIMENT_CANDIDATES_PER_MODE = 5
 
 export type RangePreset = "low" | "middle" | "high" | "custom"
 
@@ -1501,6 +1505,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             mode: "baseline" as const,
             candidates: generateCounterCandidates({
               ...input,
+              poolSize: 60,
+              finalCount: COUNTER_EXPERIMENT_CANDIDATES_PER_MODE,
               composerRules:
                 resolvePublicComposerRules(ruleContext),
               techniqueFitSelectionWeight: 0,
@@ -1510,6 +1516,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             mode: "treatment" as const,
             candidates: generateCounterCandidates({
               ...input,
+              poolSize: 60,
+              finalCount: COUNTER_EXPERIMENT_CANDIDATES_PER_MODE,
               composerRules: experimentRules!,
               techniqueFitSelectionWeight: 0.08,
             }),
@@ -1546,7 +1554,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             experimentMode === "baseline"
               ? "Normal"
               : experimentPreset!.label
-          } · ${candidate.name} ${(index % 3) + 1}`
+          } · ${candidate.name} ${(index % COUNTER_EXPERIMENT_CANDIDATES_PER_MODE) + 1}`
         : `${candidate.name} ${index + 1}`,
       notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
       createdAt,
@@ -1583,7 +1591,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeReactiveCandidateIndex: 0,
       workflowNotice:
         candidates.length <
-        (experimentPreset ? 6 : 3)
+        COUNTER_CANDIDATE_CONFIG.finalCandidateCount
           ? `品質下限を満たすCounter候補は${candidates.length}件でした。`
           : null,
     })

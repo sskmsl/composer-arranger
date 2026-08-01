@@ -2,6 +2,8 @@
 
 Counter Generatorは、Active Melodyを置き換えず、その休符へ短い応答を置く独立Generatorである。
 
+標準生成では120件の独立候補プールから、品質下限、音楽的役割、Style、音程・リズム類似度を評価して10案を提示する。Technique A/B実験時はNormal 5案とTreatment 5案の合計10案とする。
+
 ## 生成パイプライン
 
 1. セクションのActive Melodyから休符、Protected Moment、音域、密度予算を抽出する。

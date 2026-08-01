@@ -67,10 +67,10 @@ beforeEach(() => {
 })
 
 describe("Issue #70 / Counter store workflow", () => {
-  it("CounterをMelody Variantとは別領域へ3案保存する", () => {
+  it("CounterをMelody Variantとは別領域へ10案保存する", () => {
     useProjectStore.getState().generateCounterForSection("s1")
     const state = useProjectStore.getState()
-    expect(state.project.reactiveLayerCandidates).toHaveLength(3)
+    expect(state.project.reactiveLayerCandidates).toHaveLength(10)
     expect(state.project.melodyVariants).toHaveLength(1)
     expect(new Set(state.project.reactiveLayerCandidates?.map((item) => item.batchId)).size).toBe(1)
     expect(state.activeReactiveBatchId).toBe(state.project.reactiveLayerCandidates?.[0].batchId)
@@ -85,7 +85,7 @@ describe("Issue #70 / Counter store workflow", () => {
 
     useProjectStore.getState().regenerateCounter(target.id)
     const after = useProjectStore.getState().project.reactiveLayerCandidates ?? []
-    expect(after).toHaveLength(3)
+    expect(after).toHaveLength(10)
     expect(after.some((candidate) => candidate.id === target.id)).toBe(false)
     expect(useProjectStore.getState().project.sectionReactiveLayerAssignments?.s1).not.toBe(target.id)
   })
@@ -99,7 +99,7 @@ describe("Issue #70 / Counter store workflow", () => {
     expect(useProjectStore.getState().workflowNotice).toContain("Active Melody")
   })
 
-  it("Technique実験ではNormal 3案とTreatment 3案を同じbatchへ保存する", () => {
+  it("Technique実験ではNormal 5案とTreatment 5案を同じbatchへ保存する", () => {
     useProjectStore.getState().setGenerationSettings({
       techniqueExperimentPresetId:
         "stable-loop-local-mutation",
@@ -108,18 +108,18 @@ describe("Issue #70 / Counter store workflow", () => {
     const candidates =
       useProjectStore.getState().project.reactiveLayerCandidates ??
       []
-    expect(candidates).toHaveLength(6)
+    expect(candidates).toHaveLength(10)
     expect(
       candidates.filter(
         (candidate) =>
           candidate.techniqueExperiment?.mode === "baseline",
       ),
-    ).toHaveLength(3)
+    ).toHaveLength(5)
     const treatment = candidates.filter(
       (candidate) =>
         candidate.techniqueExperiment?.mode === "treatment",
     )
-    expect(treatment).toHaveLength(3)
+    expect(treatment).toHaveLength(5)
     expect(
       treatment.every(
         (candidate) =>

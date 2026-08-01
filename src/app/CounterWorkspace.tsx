@@ -167,14 +167,14 @@ export function CounterWorkspace() {
             Counter Generator
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            休符と低活動区間へ、主旋律を引き立てる2〜4拍の対旋律を提案します
+            休符と低活動区間へ、主旋律を引き立てる独立した対旋律を10案提案します
           </p>
         </div>
         <Button
           onClick={() => generate(section.id)}
           disabled={!activeMelody || chords.length === 0 || chordHasError}
         >
-          <Sparkles size={14} /> Generate Counters
+          <Sparkles size={14} /> Generate 10 Counters
         </Button>
       </section>
 
@@ -196,7 +196,7 @@ export function CounterWorkspace() {
 
       {batch.length > 0 && (
         <>
-          <div className="grid gap-2 lg:grid-cols-3">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
             {batch.map((candidate, index) => (
               <article
                 key={candidate.id}
@@ -385,7 +385,7 @@ export function CounterWorkspace() {
               まだCounter候補がありません
             </p>
             <p className="mt-1 text-[11px] text-ink-muted-48">
-              Active Melodyを尊重する独立した3案を生成します
+              Active Melodyを尊重する独立した10案を生成します
             </p>
           </div>
         </div>

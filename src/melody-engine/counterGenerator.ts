@@ -46,6 +46,11 @@ interface StylePlan {
   gapCount: readonly [number, number]
 }
 
+export const COUNTER_CANDIDATE_CONFIG = {
+  candidatePoolSize: 120,
+  finalCandidateCount: 10,
+} as const
+
 const STYLE_PLANS: readonly StylePlan[] = [
   {
     style: "bell-response",
@@ -869,12 +874,15 @@ function buildPoolCandidate(
   }
 }
 
-/** 拡張候補プールを独立生成し、品質下限と候補間差を両立する3案を返す。 */
+/** 拡張候補プールを独立生成し、品質下限と候補間差を両立する10案を返す。 */
 export function generateCounterCandidates(
   input: GenerateCounterInput,
 ): ReactiveLayerCandidate[] {
   const analysis = analyzeMelodyActivity(input.melody.notes, input.totalBeats)
-  const poolSize = Math.max(input.finalCount ?? 3, input.poolSize ?? 40)
+  const poolSize = Math.max(
+    input.finalCount ?? COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
+    input.poolSize ?? COUNTER_CANDIDATE_CONFIG.candidatePoolSize,
+  )
   const orderedStylePlans = [...STYLE_PLANS].sort((left, right) => {
     const score = (plan: StylePlan) =>
       techniquePreferenceWeight(
@@ -918,7 +926,7 @@ export function generateCounterCandidates(
   )
   return selectDiverseCandidates(
     pool,
-    input.finalCount ?? 3,
+    input.finalCount ?? COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
     input.techniqueFitSelectionWeight,
   )
 }
@@ -931,8 +939,8 @@ export function regenerateCounterCandidate(
   const generated = generateCounterCandidates({
     ...input,
     seed: (current.seed + 1_000_003) >>> 0,
-    poolSize: 40,
-    finalCount: 3,
+    poolSize: COUNTER_CANDIDATE_CONFIG.candidatePoolSize,
+    finalCount: COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
   })
   const alternatives = generated
     .filter((candidate) => candidate.generatorStyle !== current.generatorStyle)

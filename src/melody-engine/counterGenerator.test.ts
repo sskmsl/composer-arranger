@@ -52,7 +52,7 @@ const input = {
 }
 
 describe("Issue #70 / Counter Generator MVP", () => {
-  it("拡張候補プールから品質と多様性を考慮した独立3候補を選ぶ", () => {
+  it("120件の候補プールから品質と多様性を考慮した独立10候補を選ぶ", () => {
     const candidates = generateCounterCandidates(input)
     expect(
       candidates,
@@ -68,9 +68,9 @@ describe("Issue #70 / Counter Generator MVP", () => {
           ]),
         })),
       ),
-    ).toHaveLength(3)
-    expect(new Set(candidates.map((candidate) => candidate.generatorStyle)).size).toBeGreaterThanOrEqual(2)
-    expect(new Set(candidates.map((candidate) => candidate.role)).size).toBeGreaterThanOrEqual(2)
+    ).toHaveLength(10)
+    expect(new Set(candidates.map((candidate) => candidate.generatorStyle)).size).toBeGreaterThanOrEqual(4)
+    expect(new Set(candidates.map((candidate) => candidate.role)).size).toBeGreaterThanOrEqual(4)
     expect(
       new Set(
         candidates.map((candidate) =>
@@ -82,7 +82,7 @@ describe("Issue #70 / Counter Generator MVP", () => {
             .join("|"),
         ),
       ).size,
-    ).toBe(3)
+    ).toBe(10)
     expect(candidates[0].selectionReason).toBe("highest-quality")
     expect(candidates.slice(1).every((candidate) => candidate.selectionReason === "quality-diversity-balance")).toBe(true)
     expect(candidates.every((candidate) => candidate.notes.length > 0)).toBe(true)
@@ -144,7 +144,7 @@ describe("Issue #70 / Counter Generator MVP", () => {
   it("異なるseedでも単音候補へ退行しない", () => {
     for (const seed of [1, 7, 42, 99, 2026]) {
       const candidates = generateCounterCandidates({ ...input, seed })
-      expect(candidates).toHaveLength(3)
+      expect(candidates).toHaveLength(10)
       expect(candidates.every((candidate) => candidate.notes.length >= 3)).toBe(true)
     }
   })
@@ -159,7 +159,12 @@ describe("Issue #70 / Counter Generator MVP", () => {
       "string-answer": new Set(),
     }
     for (let seed = 1; seed <= 150; seed++) {
-      const candidates = generateCounterCandidates({ ...input, seed })
+      const candidates = generateCounterCandidates({
+        ...input,
+        seed,
+        poolSize: 40,
+        finalCount: 3,
+      })
       for (const candidate of candidates) {
         const style = candidate.generatorStyle!
         if (!(style in shapesByStyle)) continue
