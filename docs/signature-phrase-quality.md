@@ -66,6 +66,15 @@ Block ChordとBroken Chordは全音符へ機械的に適用しない。1小節�
 
 テンションは全和音へ常時追加せず、`register-lift`または`decorated-return`などの構造点だけで候補化する。Block ChordとBroken Chordは同じVoicing Frameを共有するため、同じ候補を同時和音とアルペジオのどちらで鳴らしても和声設計は一致する。
 
+### Pitch / Timing Alignment
+
+- 核MotifのLead Noteは、Voicing適用後もPitch、Onset、Durationを変更しない。
+- Broken ChordはLeadをアルペジオ終端へ移動せず、Lead発音後に支援声部だけを展開する。
+- Rhythm Skeletonは16分音符単位へ揃え、次のLead Onsetを越えるDurationを短縮する。
+- 統合Decorationは既存Leadの発音区間へ重ねず、実際のGapへ入る場合だけ採用する。
+- 暗黙のDominant ColorはNatural 9th / 13thへ限定する。Altered Tensionはコード記号へ明示された場合だけ使用する。
+- Pedal Toneは全対象コードでChord Toneとして成立する場合だけ計画し、成立しない場合はInner Motionへ切り替える。
+
 ## 評価
 
 既存のIdentity、Opening Impact、Rhythmic Identity、Contour Identity、Development Potential、Standalone Strengthに加え、4〜8小節では次を評価する。

@@ -3,6 +3,7 @@ import {
   chordTonePitchClasses,
   isChordTone,
   isTensionTone,
+  type ParsedChord,
 } from "@/core/chord"
 import type { MelodyNote, PhraseContour } from "@/core/melody"
 import { pitchClass } from "@/core/note"
@@ -354,6 +355,20 @@ function roundQuarter(value: number): number {
   return Math.round(value * 4) / 4
 }
 
+function safeVoicingColorPitchClasses(chord: ParsedChord): number[] {
+  const explicit = chord.tensions.map((tone) => tone.pitchClass)
+  const implicit = chord.isDiminished
+    ? []
+    : chord.isDominant
+      ? [(chord.rootPc + 2) % 12, (chord.rootPc + 9) % 12]
+      : chord.isSus
+        ? [(chord.rootPc + 2) % 12]
+        : chord.isMinor
+          ? [(chord.rootPc + 2) % 12, (chord.rootPc + 5) % 12]
+          : [(chord.rootPc + 2) % 12, (chord.rootPc + 9) % 12]
+  return [...new Set([...explicit, ...implicit])]
+}
+
 function commonPedalPitchClass(
   input: GenerateSignaturePhrasesInput,
 ): number | undefined {
@@ -362,7 +377,7 @@ function commonPedalPitchClass(
   const first = chordTonePitchClasses(entries[0].parsed)
   return first.find((pc) =>
     entries.every((entry) =>
-      allUsablePitchClasses(entry.parsed).includes(pc),
+      chordTonePitchClasses(entry.parsed).includes(pc),
     ),
   )
 }
@@ -382,10 +397,14 @@ function voiceLeadingPlanFor(
     "obsessive-motor": ["close-position", "inner-motion", "pedal-tone"],
     "kinetic-hook": ["drop-2", "open-spread", "close-position"],
   }
-  const style =
+  let style =
     poolIndex < VOICING_STYLES.length
       ? VOICING_STYLES[poolIndex]
       : rng.pick(preferredStyles[archetype])
+  const pedalPitchClass = commonPedalPitchClass(input)
+  if (style === "pedal-tone" && pedalPitchClass === undefined) {
+    style = "inner-motion"
+  }
   const motion =
     architecture === "slow-burn-return"
       ? rng.pick<SignatureVoiceMotion>(["oblique", "smooth"])
@@ -411,7 +430,7 @@ function voiceLeadingPlanFor(
         : archetype === "kinetic-hook"
           ? "color-on-lift"
           : "chord-tones-only",
-    pedalPitchClass: style === "pedal-tone" ? commonPedalPitchClass(input) : undefined,
+    pedalPitchClass: style === "pedal-tone" ? pedalPitchClass : undefined,
   }
 }
 
@@ -658,6 +677,57 @@ function integratedDecorationEvents(
   return [event(barEnd - 0.75, 0.75, 0.64, 0)]
 }
 
+function fitDecorationsIntoGaps(
+  baseEvents: readonly RhythmEvent[],
+  decorations: readonly RhythmEvent[],
+): RhythmEvent[] {
+  const accepted: RhythmEvent[] = []
+  for (const decoration of decorations) {
+    const occupied = [...baseEvents, ...accepted].sort(
+      (left, right) => left.start - right.start,
+    )
+    const startsInsideSound = occupied.some(
+      (event) =>
+        decoration.start >= event.start &&
+        decoration.start < event.start + event.duration,
+    )
+    if (startsInsideSound) continue
+    const nextStart = occupied
+      .map((event) => event.start)
+      .filter((start) => start > decoration.start)
+      .sort((left, right) => left - right)[0]
+    const duration = roundQuarter(
+      Math.min(
+        decoration.duration,
+        nextStart === undefined
+          ? decoration.duration
+          : nextStart - decoration.start,
+      ),
+    )
+    if (duration < 0.25) continue
+    accepted.push({ ...decoration, duration })
+  }
+  return accepted
+}
+
+function normalizeMonophonicRhythm(
+  events: readonly RhythmEvent[],
+): RhythmEvent[] {
+  const ordered = [...events].sort((left, right) => left.start - right.start)
+  return ordered
+    .map((event, index) => {
+      const next = ordered[index + 1]
+      if (!next) return event
+      return {
+        ...event,
+        duration: roundQuarter(
+          Math.min(event.duration, Math.max(0, next.start - event.start)),
+        ),
+      }
+    })
+    .filter((event) => event.duration >= 0.25)
+}
+
 function shapeStatementForArchetype(
   source: readonly RhythmEvent[],
   plan: SignaturePhrasePlan,
@@ -748,15 +818,12 @@ export function buildSignatureRhythmSkeleton(
           barEvents,
         )
       : []
-    const occupied = new Set(barEvents.map((event) => event.start.toFixed(3)))
     events.push(
       ...barEvents,
-      ...decorated.filter(
-        (event) => !occupied.has(event.start.toFixed(3)),
-      ),
+      ...fitDecorationsIntoGaps(barEvents, decorated),
     )
   }
-  return events.sort((left, right) => left.start - right.start)
+  return normalizeMonophonicRhythm(events)
 }
 
 function phraseChords(
@@ -1157,7 +1224,7 @@ function chooseVoicingFrame(
   const allowed = [
     ...new Set([
       ...chordTones,
-      ...(addColor ? allUsablePitchClasses(entry.parsed) : []),
+      ...(addColor ? safeVoicingColorPitchClasses(entry.parsed) : []),
       ...(voicePlan.style === "pedal-tone" &&
       voicePlan.pedalPitchClass !== undefined
         ? [voicePlan.pedalPitchClass]
@@ -1341,14 +1408,15 @@ function arpeggioOrder(
   style: SignatureVoicingStyle,
   maximumNotes: number,
 ): number[] {
-  const source = [...frame.pitches]
+  const source = frame.pitches.slice(0, -1)
   let ordered = source
-  if (style === "drop-2" && source.length >= 4) {
-    ordered = [source[0], source[2], source[1], source.at(-1)!]
+  if (style === "drop-2" && source.length >= 3) {
+    ordered = [source[0], source[2], source[1]]
   } else if (style === "inner-motion" && source.length >= 3) {
-    ordered = [source[0], source.at(-2)!, source.at(-1)!]
+    ordered = [source[0], source.at(-1)!, source.at(-2)!]
   }
   if (ordered.length <= maximumNotes) return ordered
+  if (maximumNotes === 1) return [ordered[0]]
   if (maximumNotes === 2) return [ordered[0], ordered.at(-1)!]
   return [ordered[0], ordered[Math.floor(ordered.length / 2)], ordered.at(-1)!]
 }
@@ -1368,6 +1436,9 @@ function applyBrokenChordVoicing(
   const voicedBars = new Set<number>()
   let previousFrame: SignatureVoicingFrame | null = null
   leadNotes.forEach((note, index) => {
+    // 核MotifのPitch / Onset / Durationは必ずそのまま残し、
+    // Broken Chordは後続する支援声部としてだけ加える。
+    result.push(note)
     const barIndex = Math.floor(note.startBeat / beatsPerBar)
     const stage = plan.developmentStages[barIndex] ?? "repeat"
     const entry = chordAtBeat(map as HarmonicMapEntry[], note.startBeat)
@@ -1375,7 +1446,6 @@ function applyBrokenChordVoicing(
       !entry ||
       !canVoiceNote(note, index, barIndex, stage, voicedBars, "broken-chord")
     ) {
-      result.push(note)
       return
     }
     const frame = chooseVoicingFrame(
@@ -1387,29 +1457,31 @@ function applyBrokenChordVoicing(
       previousFrame,
     )
     if (frame.pitches.length < 2) {
-      result.push(note)
       return
     }
     voicedBars.add(barIndex)
     frames.push(frame)
     previousFrame = frame
-    const maximumNotes = Math.max(2, Math.floor(note.durationBeats / 0.25))
+    const arpeggioOffset = Math.min(0.25, note.durationBeats / 2)
+    const availableDuration = note.durationBeats - arpeggioOffset
+    const maximumNotes = Math.max(1, Math.floor(availableDuration / 0.25))
     const ordered = arpeggioOrder(
       frame,
       plan.voiceLeading.style,
       maximumNotes,
     )
-    const subDuration = note.durationBeats / ordered.length
+    const subDuration = availableDuration / ordered.length
     for (let step = 0; step < ordered.length; step++) {
-      const startBeat = roundQuarter(note.startBeat + step * subDuration)
+      const startBeat = roundQuarter(
+        note.startBeat + arpeggioOffset + step * subDuration,
+      )
       const nextBeat =
         step === ordered.length - 1
           ? note.startBeat + note.durationBeats
-          : roundQuarter(note.startBeat + (step + 1) * subDuration)
-      const label =
-        step === ordered.length - 1
-          ? "lead"
-          : voiceLabel(step, ordered.length - 1)
+          : roundQuarter(
+              note.startBeat + arpeggioOffset + (step + 1) * subDuration,
+            )
+      const label = voiceLabel(step, ordered.length)
       result.push({
         id: `${note.id}-voice-${label}-arp${step}`,
         startBeat,

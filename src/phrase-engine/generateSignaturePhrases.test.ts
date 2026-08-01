@@ -43,6 +43,18 @@ function eightBarInput(seed = 424242): GenerateSignaturePhrasesInput {
   }
 }
 
+function pedalEightBarInput(seed = 424242): GenerateSignaturePhrasesInput {
+  return {
+    ...eightBarInput(seed),
+    chords: parseChordInputText(
+      "Am(add9) | Fmaj7 | Cmaj7 | G6 | Am(add9) | Fmaj7 | Cmaj7 | G6",
+      "s1",
+      4,
+      "signature-pedal-8",
+    ),
+  }
+}
+
 function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCandidates>[number]) {
   return candidate.notes
     .map((note) => `${note.startBeat}:${note.durationBeats}`)
@@ -413,10 +425,12 @@ describe("Signature Phrase Generator", () => {
     const styles = new Set<string>()
     const motions = new Set<string>()
     const chordCandidates = []
-    for (let seed = 1; seed <= 12; seed++) {
-      for (const candidate of generateSignaturePhraseCandidates(
-        eightBarInput(seed * 3571),
-      )) {
+    for (let seed = 1; seed <= 10; seed++) {
+      const generated = [
+        ...generateSignaturePhraseCandidates(eightBarInput(seed * 3571)),
+        ...generateSignaturePhraseCandidates(pedalEightBarInput(seed * 4513)),
+      ]
+      for (const candidate of generated) {
         if (candidate.plan.voicingMode === "single-line") continue
         styles.add(candidate.plan.voiceLeading.style)
         motions.add(candidate.plan.voiceLeading.motion)
@@ -523,6 +537,63 @@ describe("Signature Phrase Generator", () => {
     expect(tensionCandidates).toBeLessThan(totalChordCandidates)
   })
 
+  it("Leadの音程・Onset・Durationを和音化後も単声かつ16分音符グリッドで保持する", () => {
+    for (const sourceInput of [input(7301), eightBarInput(9109)]) {
+      const candidates = generateSignaturePhraseCandidates(sourceInput)
+      for (const candidate of candidates) {
+        const leadNotes = candidate.notes
+          .filter((note) => !note.id.includes("-voice-"))
+          .sort((left, right) => left.startBeat - right.startBeat)
+        expect(leadNotes.length).toBeGreaterThan(0)
+        expect(
+          leadNotes.every(
+            (note) =>
+              Number.isInteger(note.startBeat * 4) &&
+              Number.isInteger(note.durationBeats * 4),
+          ),
+        ).toBe(true)
+        expect(
+          leadNotes.slice(1).every(
+            (note, index) =>
+              leadNotes[index].startBeat + leadNotes[index].durationBeats <=
+              note.startBeat + 0.001,
+          ),
+        ).toBe(true)
+      }
+    }
+  })
+
+  it("暗黙のDominant Voicingへ強い変化テンションを混入しない", () => {
+    const sourceInput = eightBarInput(44119)
+    for (let seed = 1; seed <= 16; seed++) {
+      const candidates = generateSignaturePhraseCandidates({
+        ...sourceInput,
+        seed: seed * 4099,
+      })
+      for (const candidate of candidates) {
+        const dominantColors = candidate.notes.filter((note) => {
+          if (
+            !note.id.includes("-voice-") ||
+            note.plannedToneRole !== "tension-hold"
+          ) {
+            return false
+          }
+          const chord = sourceInput.chords.find(
+            (item) =>
+              note.startBeat >= item.startBeat &&
+              note.startBeat < item.startBeat + item.durationBeats,
+          )
+          return chord?.symbol === "E7"
+        })
+        expect(
+          dominantColors.every((note) =>
+            [1, 6].includes(((note.pitch % 12) + 12) % 12),
+          ),
+        ).toBe(true)
+      }
+    }
+  })
+
   it("broken-chordは単音を短いアルペジオへ分解し、音数がleadより増える", () => {
     const candidates = generateSignaturePhraseCandidates(input(3)).filter(
       (candidate) => candidate.plan.voicingMode === "broken-chord",
@@ -540,6 +611,12 @@ describe("Signature Phrase Generator", () => {
       const arpeggios = new Map<string, typeof candidate.notes>()
       for (const note of candidate.notes.filter((item) => item.id.includes("-arp"))) {
         const sourceId = note.id.replace(/-voice-.*-arp\d+$/, "")
+        const lead = candidate.notes.find((item) => item.id === sourceId)
+        expect(lead).toBeDefined()
+        expect(note.startBeat).toBeGreaterThan(lead!.startBeat)
+        expect(note.startBeat + note.durationBeats).toBeLessThanOrEqual(
+          lead!.startBeat + lead!.durationBeats + 0.001,
+        )
         const notes = arpeggios.get(sourceId) ?? []
         notes.push(note)
         arpeggios.set(sourceId, notes)
