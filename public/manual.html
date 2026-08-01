@@ -348,8 +348,8 @@
     <a href="#rightpanel">生成設定パネル</a>
     <a href="#bottombar">再生・書き出し・履歴</a>
     <a href="#phrase">Phraseワークスペース</a>
+    <a href="#signature">Signatureワークスペース</a>
     <a href="#counter">Counterワークスペース</a>
-    <a href="#decoration">Decorationワークスペース</a>
     <a href="#arrangement">Arrangementワークスペース</a>
     <a href="#audition">Auditionワークスペース</a>
   </nav>
@@ -358,13 +358,13 @@
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Counter / Decoration / Arrangement / Audition</strong> の6タブを切り替えて使います。</p>
+      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Signature / Counter / Arrangement / Audition</strong> の6タブを切り替えて使います。</p>
 
       <div class="tab-pill-row">
         <span class="tab-pill active">Melody</span>
         <span class="tab-pill">Phrase</span>
+        <span class="tab-pill">Signature</span>
         <span class="tab-pill">Counter</span>
-        <span class="tab-pill">Decor</span>
         <span class="tab-pill">Arrangement</span>
         <span class="tab-pill">Audition</span>
       </div>
@@ -375,8 +375,8 @@
           <tbody>
             <tr><td>Melody</td><td>セクション1つ分の旋律・モチーフ・伴奏を作り込む主画面</td></tr>
             <tr><td>Phrase</td><td>2〜8小節の短いフレーズだけを、意図つきで作って聴き比べる</td></tr>
+            <tr><td>Signature</td><td>曲の顔になる短い核を作り、装飾を統合しながら最大8小節へ展開する</td></tr>
             <tr><td>Counter</td><td>Active Melodyの隙間へ、合いの手・応答フレーズを提案させる</td></tr>
-            <tr><td>Decoration</td><td>セクションの構造とコードから、装飾・移行・終止のフィルを提案させる</td></tr>
             <tr><td>Arrangement</td><td>セクションを並べ替えて曲全体を組み立てる</td></tr>
             <tr><td>Audition</td><td>候補をA/B/Cで切り替えながら判定する</td></tr>
           </tbody>
@@ -403,7 +403,7 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>Melody / Phrase / Counter / Decoration / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
+            <tr><td>Melody / Phrase / Signature / Counter / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
           </tbody>
         </table>
       </div>
@@ -806,27 +806,25 @@
       <p>試聴モードは Counter Only / Melody + Counter / Chords + Melody + Counter から選べます。Favorite / Reject / Set Active、個別のMIDI書き出しにも対応しています。</p>
     </section>
 
-    <section class="chapter" id="decoration">
+    <section class="chapter" id="signature">
       <span class="chapter-num">13</span>
-      <h2>Decorationワークスペース</h2>
-      <p class="chapter-intro">セクションの構造(前後セクション・終止位置)とコード進行から、装飾フレーズを提案させるタブです。<strong>Active Melodyが無くても</strong>使えます。</p>
+      <h2>Signatureワークスペース</h2>
+      <p class="chapter-intro">曲の冒頭や間奏で「その曲の顔」になる短い核を作り、反復・応答・断片化・音域移動・余白・装飾によって最大8小節へ育てるタブです。Decoration GeneratorのPickup、Response、Transition、Swell、Pedal、Endingは、この生成計画へ統合されています。</p>
 
       <h3>生成設定</h3>
       <div class="kv-table-wrap">
         <table>
           <thead><tr><th>項目</th><th>選択肢</th></tr></thead>
           <tbody>
-            <tr><td>Type</td><td>Auto / Decorative Fill(装飾) / Transition Fill(移行) / Ending Fill(終止)</td></tr>
-            <tr><td>Character</td><td>Auto / Strings / Bell / Piano / Generic</td></tr>
-            <tr><td>Length</td><td>2拍 / 4拍 / 1小節</td></tr>
-            <tr><td>Density</td><td>Sparse / Normal / Rich</td></tr>
-            <tr><td>Direction</td><td>Auto / Rising / Falling / Mixed</td></tr>
-            <tr><td>Random Seed</td><td>固定値を指定すると同じ条件で再現できる</td></tr>
+            <tr><td>Length</td><td>1 / 2 / 4 / 8小節。選択中セクションより長い値は選べません。</td></tr>
+            <tr><td>Archetype</td><td>余白と残響 / 反復と不穏な運動 / リズムと強い輪郭を、曲設定に合わせて配分します。</td></tr>
+            <tr><td>Voicing</td><td>Single Line / Block Chord / Broken Chord。和音は全音へ付けず、構造上重要な位置だけへ配置します。</td></tr>
+            <tr><td>Phrase Architecture</td><td>Identity Return / Question &amp; Answer / Slow Burn。8小節では小節ごとの発展段階も表示します。</td></tr>
           </tbody>
         </table>
       </div>
-      <p><strong>Generate Decorations</strong>を実行すると、24候補のプールから品質・多様性で選ばれた10案が並びます。各候補には型・輪郭の形・リズムの性格・生成意図の説明が添えられ、主旋律との衝突がある場合は警告が表示されます。</p>
-      <p>試聴モードは Decoration Only / Chords + Decoration / (Active Melodyがあれば)Chords + Melody + Decoration から選べます。Favorite / Reject / Set Active、個別のMIDI書き出しにも対応しています。</p>
+      <p><strong>12案を生成</strong>すると、内部の多数候補から、識別性・冒頭の強さ・リズム・輪郭・発展可能性・単独での強さ・長期整合性・変化量・和音品質を評価した候補が並びます。同じコードを機械的に連打せず、最初の核が後半で意味を持って戻る構成を優先します。</p>
+      <p>候補ごとに個別試聴とMIDI書き出しができます。統合Decorationも同じMIDIへ含まれるため、別タブでFillを後付けする必要はありません。以前のプロジェクトに保存されたDecorationデータは互換性のため保持されます。</p>
     </section>
 
     <section class="chapter" id="arrangement">

@@ -66,7 +66,10 @@ import {
 } from "@/melody-engine/leadWindow"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
 import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
-import type { SignaturePhraseCandidate } from "@/core/signaturePhrase"
+import type {
+  SignaturePhraseCandidate,
+  SignaturePhraseLengthBars,
+} from "@/core/signaturePhrase"
 import {
   generatePhraseCandidates,
   phraseTechniqueFitScore,
@@ -195,7 +198,7 @@ interface ProjectState {
   regeneratePhrase: (candidateId: string) => void
   generateSignaturePhrasesForSection: (
     sectionId: string,
-    lengthBars?: 1 | 2,
+    lengthBars?: SignaturePhraseLengthBars,
   ) => void
   setActiveSignaturePhraseCandidateIndex: (index: number) => void
   regenerateSignaturePhrase: (candidateId: string) => void
@@ -285,7 +288,7 @@ function signaturePhraseGenerationInput(
   sectionId: string,
   settings: GenerationSettings,
   seed: number,
-  lengthBars?: 1 | 2,
+  lengthBars?: SignaturePhraseLengthBars,
 ): GenerateSignaturePhrasesInput | null {
   const section = project.sections.find(
     (candidate) => candidate.id === sectionId,
@@ -1423,8 +1426,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       (candidate) => candidate.id === candidateId,
     )
     if (!current) return
-    const requestedLength: 1 | 2 =
-      current.plan.lengthBars === 1 ? 1 : 2
+    const requestedLength = current.plan.lengthBars
     const input = signaturePhraseGenerationInput(
       prev,
       current.sectionId,

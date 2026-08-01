@@ -10,6 +10,8 @@ import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import type {
   SignaturePhraseCandidate,
   SignaturePhraseArchetype,
+  SignaturePhraseArchitecture,
+  SignaturePhraseLengthBars,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
   SignatureVoicingMode,
@@ -42,6 +44,12 @@ const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
   "atmospheric-gateway": "Atmospheric Gateway",
   "obsessive-motor": "Obsessive Motor",
   "kinetic-hook": "Kinetic Hook",
+}
+
+const ARCHITECTURE_LABELS: Record<SignaturePhraseArchitecture, string> = {
+  "identity-return": "Identity → Return",
+  "question-answer-return": "Question → Answer → Return",
+  "slow-burn-return": "Slow Burn → Return",
 }
 
 const VOICING_MODE_LABELS: Record<SignatureVoicingMode, string> = {
@@ -77,7 +85,8 @@ export function SignaturePhraseWorkspace() {
     (state) => state.regenerateSignaturePhrase,
   )
   const workflowNotice = useProjectStore((state) => state.workflowNotice)
-  const [lengthBars, setLengthBars] = useState<1 | 2>(2)
+  const [lengthBars, setLengthBars] =
+    useState<SignaturePhraseLengthBars>(2)
   const [previewMode, setPreviewMode] =
     useState<PreviewMode>("chords-melody")
   const [playingId, setPlayingId] = useState<string | null>(null)
@@ -126,6 +135,14 @@ export function SignaturePhraseWorkspace() {
     },
     [],
   )
+
+  useEffect(() => {
+    if (!section || lengthBars <= section.lengthBars) return
+    const supported = ([8, 4, 2, 1] as const).find(
+      (bars) => bars <= section.lengthBars,
+    )
+    setLengthBars(supported ?? 1)
+  }, [lengthBars, section])
 
   if (!section) {
     return (
@@ -193,7 +210,7 @@ export function SignaturePhraseWorkspace() {
             Signature Phrase Generator
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            リズムから先に設計し、曲の冒頭で世界観を提示できる1〜2小節の原石を12案生成します
+            1〜2小節の固有Motifを、反復・変形・統合Decorationで最大8小節へ発展させます
           </p>
         </div>
         <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
@@ -201,13 +218,21 @@ export function SignaturePhraseWorkspace() {
           <Select
             value={String(lengthBars)}
             onChange={(event) =>
-              setLengthBars(Number(event.target.value) as 1 | 2)
+              setLengthBars(
+                Number(event.target.value) as SignaturePhraseLengthBars,
+              )
             }
             className="!py-1"
           >
             <option value="1">1小節</option>
             <option value="2" disabled={section.lengthBars < 2}>
               2小節
+            </option>
+            <option value="4" disabled={section.lengthBars < 4}>
+              4小節
+            </option>
+            <option value="8" disabled={section.lengthBars < 8}>
+              8小節
             </option>
           </Select>
         </label>
@@ -262,6 +287,11 @@ export function SignaturePhraseWorkspace() {
                     <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
                       {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
                     </span>
+                    {candidate.plan.architecture && (
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        {ARCHITECTURE_LABELS[candidate.plan.architecture]}
+                      </span>
+                    )}
                     {candidate.plan.voicingMode !== "single-line" && (
                       <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">
                         {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
@@ -286,6 +316,16 @@ export function SignaturePhraseWorkspace() {
                     <span>
                       Memory {Math.round((candidate.score.motifMemorability ?? 0) * 100)}
                     </span>
+                    {candidate.plan.lengthBars >= 4 && (
+                      <>
+                        <span>
+                          Coherence {Math.round((candidate.score.longRangeCoherence ?? 0) * 100)}
+                        </span>
+                        <span>
+                          Variation {Math.round((candidate.score.variationBalance ?? 0) * 100)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </button>
                 <div className="mt-3 flex gap-1.5">
@@ -341,21 +381,34 @@ export function SignaturePhraseWorkspace() {
       )}
 
       {activeCandidate ? (
-        <ReadOnlyPianoRoll
-          notes={activeCandidate.notes}
-          chords={allChords.filter(
-            (chord) => chord.startBeat < activeCandidate.phraseLengthBeats,
+        <>
+          {activeCandidate.plan.developmentStages && (
+            <div className="rounded-lg border border-hairline bg-surface-tile-1 px-3 py-2 text-[11px] text-body-muted">
+              <span className="text-ink-muted-48">Phrase展開: </span>
+              {activeCandidate.plan.developmentStages.join(" → ")}
+              {(activeCandidate.plan.decorationIntents?.length ?? 0) > 0 && (
+                <span className="ml-3 text-primary-light">
+                  Decoration統合 {activeCandidate.plan.decorationIntents.length} Gesture
+                </span>
+              )}
+            </div>
           )}
-          totalBeats={activeCandidate.phraseLengthBeats}
-          timeSignature={project.song.timeSignature}
-          songKey={project.song.key}
-          title={activeCandidate.name}
-          subtitle="表示専用 · MIDI出力と同一"
-          accentColor="#c084fc"
-          accentStroke="#e9d5ff"
-          ariaLabel="Signature Phrase Piano Roll"
-          noteLabel="Signature Phrase"
-        />
+          <ReadOnlyPianoRoll
+            notes={activeCandidate.notes}
+            chords={allChords.filter(
+              (chord) => chord.startBeat < activeCandidate.phraseLengthBeats,
+            )}
+            totalBeats={activeCandidate.phraseLengthBeats}
+            timeSignature={project.song.timeSignature}
+            songKey={project.song.key}
+            title={activeCandidate.name}
+            subtitle="表示専用 · 統合Decorationを含むMIDI出力と同一"
+            accentColor="#c084fc"
+            accentStroke="#e9d5ff"
+            ariaLabel="Signature Phrase Piano Roll"
+            noteLabel="Signature Phrase"
+          />
+        </>
       ) : (
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>

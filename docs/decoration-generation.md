@@ -1,5 +1,7 @@
 # Decoration Generator（Issue #71）
 
+> 現在の新規生成UIでは、本GeneratorのGesture / Shape / Rhythm語彙をSignature Phrase Generatorへ統合している。既存候補と採用状態のデータ構造は保存済みプロジェクトとの互換性のため維持する。本書以下は旧独立Generatorの設計記録である。
+
 Decoration GeneratorはActive Melodyではなく、現在・前・次のSection、コード、終端を主要ContextとするStructure Driven Generatorである。
 
 ## MVP

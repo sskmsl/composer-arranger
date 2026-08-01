@@ -29,6 +29,20 @@ function input(seed = 424242): GenerateSignaturePhrasesInput {
   }
 }
 
+function eightBarInput(seed = 424242): GenerateSignaturePhrasesInput {
+  return {
+    ...input(seed),
+    chords: parseChordInputText(
+      "Am(add9) | D#dim | Fmaj7 | E7 | Am(add9) | Fmaj7 | Dm9 | E7",
+      "s1",
+      4,
+      "signature-8",
+    ),
+    totalBeats: 32,
+    lengthBars: 8,
+  }
+}
+
 function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCandidates>[number]) {
   return candidate.notes
     .map((note) => `${note.startBeat}:${note.durationBeats}`)
@@ -89,6 +103,8 @@ describe("Signature Phrase Generator", () => {
       expect(candidate.score.motifMemorability).toBeGreaterThanOrEqual(0)
       expect(candidate.score.motifIntegrity).toBeGreaterThanOrEqual(0)
       expect(candidate.score.repetitionDrive).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.longRangeCoherence).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.variationBalance).toBeGreaterThanOrEqual(0)
       expect(candidate.score.silenceUse).toBeGreaterThanOrEqual(0)
       expect(candidate.score.arpeggioPenalty).toBeLessThanOrEqual(1)
       expect(candidate.score.mechanicalPenalty).toBeLessThanOrEqual(1)
@@ -96,6 +112,76 @@ describe("Signature Phrase Generator", () => {
     expect(
       candidates.filter((candidate) => candidate.score.overall >= 70).length,
     ).toBeGreaterThanOrEqual(2)
+  })
+
+  it("8小節を同一Motifの階層的な反復・変形・回帰として生成する", () => {
+    const candidates = generateSignaturePhraseCandidates(eightBarInput(24081))
+    expect(candidates).toHaveLength(12)
+    for (const candidate of candidates) {
+      expect(candidate.plan.lengthBars).toBe(8)
+      expect(candidate.phraseLengthBeats).toBe(32)
+      expect(candidate.plan.developmentStages).toHaveLength(8)
+      expect(candidate.plan.developmentStages[0]).toBe("establish")
+      expect(candidate.plan.developmentStages).toContain("decorated-return")
+      expect(candidate.plan.developmentStages).toContain("open-tail")
+      expect(new Set(candidate.plan.developmentStages).size).toBeGreaterThanOrEqual(6)
+      expect(candidate.plan.decorationIntents).toHaveLength(3)
+      expect(candidate.score.longRangeCoherence).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.variationBalance).toBeGreaterThanOrEqual(0)
+      expect(
+        candidate.notes.every(
+          (note) =>
+            note.startBeat >= 0 &&
+            note.startBeat + note.durationBeats <= 32.001,
+        ),
+      ).toBe(true)
+    }
+    expect(
+      candidates.filter(
+        (candidate) =>
+          candidate.score.longRangeCoherence >= 0.42 &&
+          candidate.score.variationBalance >= 0.38,
+      ).length,
+    ).toBeGreaterThanOrEqual(8)
+  })
+
+  it("複数seedの8小節生成でも採用候補となる長期品質を最低2案維持する", () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      const candidates = generateSignaturePhraseCandidates(
+        eightBarInput(seed * 7919),
+      )
+      expect(
+        candidates.filter(
+          (candidate) =>
+            candidate.score.overall >= 68 &&
+            candidate.score.mechanicalPenalty <= 0.5 &&
+            candidate.score.longRangeCoherence >= 0.42 &&
+            candidate.score.variationBalance >= 0.38,
+        ).length,
+      ).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it("旧DecorationのGesture語彙を独立レイヤーではなくSignature実音へ統合する", () => {
+    const candidates = generateSignaturePhraseCandidates(eightBarInput(97123))
+    const gestureRoles = new Set(
+      candidates.flatMap((candidate) =>
+        candidate.plan.decorationIntents.map((intent) => intent.gestureRole),
+      ),
+    )
+    expect(gestureRoles.size).toBeGreaterThanOrEqual(4)
+    expect(
+      candidates.some((candidate) =>
+        candidate.notes.some((note) =>
+          [
+            "approach-tone",
+            "neighbor-tone",
+            "suspension",
+            "common-tone",
+          ].includes(note.plannedToneRole ?? ""),
+        ),
+      ),
+    ).toBe(true)
   })
 
   it("入口戦略ごとに余白・反復・身体的輪郭の異なる音楽的IDを持つ", () => {
@@ -109,9 +195,26 @@ describe("Signature Phrase Generator", () => {
     const kinetic = candidates.filter(
       (candidate) => candidate.plan.archetype === "kinetic-hook",
     )
-    const soundingRatio = (candidate: (typeof candidates)[number]) =>
-      candidate.notes.reduce((sum, note) => sum + note.durationBeats, 0) /
-      candidate.phraseLengthBeats
+    // 和音化で同時発音する声部を「時間の密度」として重複加算しない。
+    // 余白の品質は、声部数ではなくフレーズ中に音が存在する時間で評価する。
+    const soundingRatio = (candidate: (typeof candidates)[number]) => {
+      const merged = [...candidate.notes]
+        .sort((left, right) => left.startBeat - right.startBeat)
+        .reduce<{ start: number; end: number }[]>((ranges, note) => {
+          const end = note.startBeat + note.durationBeats
+          const last = ranges[ranges.length - 1]
+          if (last && note.startBeat <= last.end) {
+            last.end = Math.max(last.end, end)
+          } else {
+            ranges.push({ start: note.startBeat, end })
+          }
+          return ranges
+        }, [])
+      return (
+        merged.reduce((sum, range) => sum + range.end - range.start, 0) /
+        candidate.phraseLengthBeats
+      )
+    }
     const maximumInterval = (candidate: (typeof candidates)[number]) =>
       Math.max(
         0,
@@ -280,6 +383,30 @@ describe("Signature Phrase Generator", () => {
     expect(totalGroups).toBeGreaterThan(0)
     expect(cleanGroups / totalGroups).toBeGreaterThan(0.9)
     expect(qualityScores.reduce((sum, value) => sum + value, 0) / qualityScores.length).toBeGreaterThan(0.9)
+  })
+
+  it("8小節の和音化は構造点だけに限定し、全ノートを機械的に厚くしない", () => {
+    const candidates = generateSignaturePhraseCandidates(eightBarInput(60213))
+    for (const candidate of candidates) {
+      if (candidate.plan.voicingMode === "block-chord") {
+        const supportNotes = candidate.notes.filter((note) =>
+          note.id.includes("-chord"),
+        )
+        const voicedBars = new Set(
+          supportNotes.map((note) => Math.floor(note.startBeat / 4)),
+        )
+        expect(voicedBars.size).toBeLessThanOrEqual(8)
+        expect(supportNotes.length).toBeLessThanOrEqual(16)
+      }
+      if (candidate.plan.voicingMode === "broken-chord") {
+        const arpeggiatedSources = new Set(
+          candidate.notes
+            .filter((note) => note.id.includes("-arp"))
+            .map((note) => note.id.replace(/-arp\d+$/, "")),
+        )
+        expect(arpeggiatedSources.size).toBeLessThanOrEqual(4)
+      }
+    }
   })
 
   it("broken-chordは単音を短いアルペジオへ分解し、音数がleadより増える", () => {

@@ -1,4 +1,9 @@
 import type { MelodyNote, PhraseContour } from "./melody"
+import type {
+  DecorationGestureRole,
+  DecorationRhythmStyle,
+  DecorationShape,
+} from "./reactiveLayer"
 
 export type SignaturePhraseRole =
   | "intro"
@@ -7,7 +12,31 @@ export type SignaturePhraseRole =
   | "transition"
   | "instrumental-hook"
 
-export type SignaturePhraseLengthBars = 1 | 2 | 4
+export type SignaturePhraseLengthBars = 1 | 2 | 4 | 8
+
+export type SignaturePhraseArchitecture =
+  | "identity-return"
+  | "question-answer-return"
+  | "slow-burn-return"
+
+export type SignatureDevelopmentStage =
+  | "establish"
+  | "repeat"
+  | "answer"
+  | "fragment"
+  | "register-lift"
+  | "sparse-recall"
+  | "decorated-return"
+  | "open-tail"
+
+/** 旧Decoration Generatorの語彙を、独立レイヤーではなくPhrase展開へ統合する。 */
+export interface SignatureDecorationIntent {
+  barIndex: number
+  gestureRole: DecorationGestureRole
+  shape: DecorationShape
+  rhythmStyle: DecorationRhythmStyle
+  strength: "subtle" | "clear"
+}
 
 /** 固有曲を参照せず、曲の入口を作る方法だけを抽象化した上位設計。 */
 export type SignaturePhraseArchetype =
@@ -43,6 +72,9 @@ export interface SignaturePhrasePlan {
   role: SignaturePhraseRole
   lengthBars: SignaturePhraseLengthBars
   archetype: SignaturePhraseArchetype
+  architecture: SignaturePhraseArchitecture
+  developmentStages: SignatureDevelopmentStage[]
+  decorationIntents: SignatureDecorationIntent[]
   rhythmIdentity: SignatureRhythmIdentity
   contour: PhraseContour
   variationStrategy: SignatureVariationStrategy
@@ -72,6 +104,8 @@ export interface SignaturePhraseScore {
   motifMemorability: number
   motifIntegrity: number
   repetitionDrive: number
+  longRangeCoherence: number
+  variationBalance: number
   silenceUse: number
   arpeggioPenalty: number
   mechanicalPenalty: number
