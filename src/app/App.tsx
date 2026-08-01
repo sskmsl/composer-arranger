@@ -11,10 +11,12 @@ import { AuditionWorkspace } from "./AuditionWorkspace"
 import { PhraseWorkspace } from "./PhraseWorkspace"
 import { CounterWorkspace } from "./CounterWorkspace"
 import { DecorationWorkspace } from "./DecorationWorkspace"
+import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
 
 export type MainTab =
   | "melody"
   | "phrase"
+  | "signature"
   | "counter"
   | "decoration"
   | "arrangement"
@@ -81,6 +83,26 @@ export function App() {
             )}
           </>
         )}
+        {tab === "signature" && (
+          <>
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <SignaturePhraseWorkspace />
+            <RightPanel
+              open={rightOpen}
+              onClose={() => setRightOpen(false)}
+              mode="signature"
+            />
+            {(leftOpen || rightOpen) && (
+              <div
+                className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                onClick={() => {
+                  setLeftOpen(false)
+                  setRightOpen(false)
+                }}
+              />
+            )}
+          </>
+        )}
         {tab === "counter" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
@@ -116,7 +138,10 @@ export function App() {
         {tab === "arrangement" && <ArrangementWorkspace />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
-      {tab !== "phrase" && tab !== "counter" && tab !== "decoration" && (
+      {tab !== "phrase" &&
+        tab !== "signature" &&
+        tab !== "counter" &&
+        tab !== "decoration" && (
         <BottomBar />
       )}
     </div>

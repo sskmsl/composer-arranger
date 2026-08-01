@@ -1,6 +1,7 @@
 import type { Section } from "./section"
 import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
 import type { PhraseCandidate } from "./phrase"
+import type { SignaturePhraseCandidate } from "./signaturePhrase"
 import { normalizeSectionTimeline } from "./sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, partRoleFor, type SectionContentSettings } from "./sectionContent"
 import { fallbackPlanFor, replaceVariantNotes } from "./sectionLayers"
@@ -86,6 +87,8 @@ export interface ComposerProject {
   melodyVariants: MelodyVariant[]
   /** 短い着想素材。完成Melodyとは独立して保存し、Active Melody割り当てには使わない。 */
   phraseCandidates: PhraseCandidate[]
+  /** 曲の顔となる1〜2小節の原石。通常Phraseとは独立して保存する。 */
+  signaturePhraseCandidates: SignaturePhraseCandidate[]
   arrangementVariants: unknown[]
   audioReferences: unknown[]
   activeMelodyId: string | null
@@ -111,8 +114,8 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-/** 1.8: Counterとは独立して採用できるDecoration割り当てを追加 */
-export const CURRENT_SCHEMA_VERSION = "1.8"
+/** 1.9: 通常Phraseと独立したSignature Phrase候補を追加 */
+export const CURRENT_SCHEMA_VERSION = "1.9"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -131,6 +134,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     chords: [],
     melodyVariants: [],
     phraseCandidates: [],
+    signaturePhraseCandidates: [],
     arrangementVariants: [],
     audioReferences: [],
     activeMelodyId: null,
@@ -211,6 +215,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     chords: r.chords ?? [],
     melodyVariants: (r.melodyVariants ?? []).map(normalizeVariantLayers),
     phraseCandidates: r.phraseCandidates ?? [],
+    signaturePhraseCandidates: r.signaturePhraseCandidates ?? [],
     arrangementVariants: r.arrangementVariants ?? [],
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,

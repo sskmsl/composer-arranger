@@ -73,7 +73,7 @@ export function RightPanel({
 }: {
   open: boolean
   onClose: () => void
-  mode?: "melody" | "phrase" | "counter" | "decoration"
+  mode?: "melody" | "phrase" | "signature" | "counter" | "decoration"
 }) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
@@ -326,7 +326,7 @@ export function RightPanel({
         </SectionCard>
       )}
 
-      {(mode === "melody" || mode === "phrase") && (
+      {(mode === "melody" || mode === "phrase" || mode === "signature") && (
       <SectionCard title="生成パラメータ" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
@@ -393,8 +393,8 @@ export function RightPanel({
             {mode === "melody" && <IgnoredNote setting="drama" selected={selected} />}
           </div>
           <p className="mt-1 border-t border-hairline pt-2 text-[10px] text-ink-muted-48">
-            {mode === "phrase"
-              ? "PhraseではDensity / Range / Dramaを利用します。Generator ProfileはMelody専用です。"
+            {mode === "phrase" || mode === "signature"
+              ? `${mode === "signature" ? "Signature Phrase" : "Phrase"}ではDensity / Range / Dramaを利用します。Generator ProfileはMelody専用です。`
               : "生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。"}
           </p>
         </div>

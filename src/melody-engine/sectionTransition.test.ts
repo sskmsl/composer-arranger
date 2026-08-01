@@ -86,6 +86,7 @@ function projectWithAssignments(assignments: Record<string, string>): ComposerPr
     ],
     melodyVariants: [variant("va", "a", 69), variant("va2", "a", 64)],
     phraseCandidates: [],
+    signaturePhraseCandidates: [],
     arrangementVariants: [],
     audioReferences: [],
     activeMelodyId: assignments.a ?? null,

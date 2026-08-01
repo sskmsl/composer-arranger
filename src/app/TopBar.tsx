@@ -6,6 +6,7 @@ import type { MainTab } from "./App"
 const TABS: { id: MainTab; label: string }[] = [
   { id: "melody", label: "Melody" },
   { id: "phrase", label: "Phrase" },
+  { id: "signature", label: "Signature" },
   { id: "counter", label: "Counter" },
   { id: "decoration", label: "Decor" },
   { id: "arrangement", label: "Arrangement" },

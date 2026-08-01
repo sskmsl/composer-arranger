@@ -66,12 +66,18 @@ import {
 } from "@/melody-engine/leadWindow"
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
 import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
+import type { SignaturePhraseCandidate } from "@/core/signaturePhrase"
 import {
   generatePhraseCandidates,
   phraseTechniqueFitScore,
   regeneratePhraseCandidate as buildRegeneratedPhrase,
   type GeneratePhrasesInput,
 } from "@/phrase-engine/generatePhrases"
+import {
+  generateSignaturePhraseCandidates,
+  regenerateSignaturePhraseCandidate as buildRegeneratedSignaturePhrase,
+  type GenerateSignaturePhrasesInput,
+} from "@/phrase-engine/generateSignaturePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import { evaluateReactiveLayerCompatibility } from "@/melody-engine/reactiveLayerAnalysis"
@@ -123,6 +129,8 @@ interface ProjectState {
   activeCandidateIndex: number
   activePhraseBatchId: string | null
   activePhraseCandidateIndex: number
+  activeSignaturePhraseBatchId: string | null
+  activeSignaturePhraseCandidateIndex: number
   activeReactiveBatchId: string | null
   activeReactiveCandidateIndex: number
   generationSettings: GenerationSettings
@@ -185,6 +193,12 @@ interface ProjectState {
   generatePhrasesForSection: (sectionId: string, lengthBars?: PhraseLengthBars) => void
   setActivePhraseCandidateIndex: (index: number) => void
   regeneratePhrase: (candidateId: string) => void
+  generateSignaturePhrasesForSection: (
+    sectionId: string,
+    lengthBars?: 1 | 2,
+  ) => void
+  setActiveSignaturePhraseCandidateIndex: (index: number) => void
+  regenerateSignaturePhrase: (candidateId: string) => void
   generateCounterForSection: (sectionId: string) => void
   setActiveReactiveCandidateIndex: (index: number) => void
   regenerateCounter: (candidateId: string) => void
@@ -263,6 +277,51 @@ function phraseGenerationInput(
       generatorTarget: "phrase",
       sectionRole: section.role,
     }),
+  }
+}
+
+function signaturePhraseGenerationInput(
+  project: ComposerProject,
+  sectionId: string,
+  settings: GenerationSettings,
+  seed: number,
+  lengthBars?: 1 | 2,
+): GenerateSignaturePhrasesInput | null {
+  const section = project.sections.find(
+    (candidate) => candidate.id === sectionId,
+  )
+  if (!section) return null
+  const { beatsPerBar } = parseTimeSignature(
+    project.song.timeSignature,
+  )
+  const totalBeats = section.lengthBars * beatsPerBar
+  const chords = project.chords
+    .filter((chord) => chord.sectionId === sectionId)
+    .sort((left, right) => left.startBeat - right.startBeat)
+  const resolvedLength =
+    lengthBars ?? (section.lengthBars >= 2 ? 2 : 1)
+  if (
+    chords.length === 0 ||
+    section.lengthBars < resolvedLength ||
+    diagnoseChordInput(chords, totalBeats).hasError
+  ) {
+    return null
+  }
+  return {
+    chords,
+    sectionId,
+    sectionRole: section.role,
+    songProfile: effectiveSongProfile(project, sectionId),
+    density: settings.density,
+    drama: settings.drama,
+    range: resolveRange(settings),
+    key: project.song.key,
+    beatsPerBar,
+    totalBeats,
+    seed,
+    lengthBars: resolvedLength,
+    finalCandidateCount: 12,
+    candidatePoolSize: 48,
   }
 }
 
@@ -468,6 +527,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeCandidateIndex: 0,
   activePhraseBatchId: null,
   activePhraseCandidateIndex: 0,
+  activeSignaturePhraseBatchId: null,
+  activeSignaturePhraseCandidateIndex: 0,
   activeReactiveBatchId: null,
   activeReactiveCandidateIndex: 0,
   generationSettings: {
@@ -512,6 +573,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeSignaturePhraseBatchId: null,
+      activeSignaturePhraseCandidateIndex: 0,
       activeReactiveBatchId: null,
       activeReactiveCandidateIndex: 0,
       history: [],
@@ -531,6 +594,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeSignaturePhraseBatchId: null,
+      activeSignaturePhraseCandidateIndex: 0,
       activeReactiveBatchId: null,
       activeReactiveCandidateIndex: 0,
       history: [],
@@ -714,6 +779,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         chords: prev.chords.filter((c) => c.sectionId !== sectionId),
         melodyVariants: prev.melodyVariants.filter((v) => v.sectionId !== sectionId),
         phraseCandidates: prev.phraseCandidates.filter((candidate) => candidate.sectionId !== sectionId),
+        signaturePhraseCandidates: prev.signaturePhraseCandidates.filter(
+          (candidate) => candidate.sectionId !== sectionId,
+        ),
         reactiveLayerCandidates: (prev.reactiveLayerCandidates ?? []).filter(
           (candidate) => candidate.sectionId !== sectionId,
         ),
@@ -727,6 +795,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       selectedSectionId: prev.sections.find((s) => s.id !== sectionId)?.id ?? null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeSignaturePhraseBatchId: null,
+      activeSignaturePhraseCandidateIndex: 0,
       activeReactiveBatchId: null,
       activeReactiveCandidateIndex: 0,
     })
@@ -767,6 +837,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeCandidateIndex: 0,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeSignaturePhraseBatchId: null,
+      activeSignaturePhraseCandidateIndex: 0,
       activeReactiveBatchId: null,
       activeReactiveCandidateIndex: 0,
     })
@@ -789,6 +861,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
+      activeSignaturePhraseBatchId: null,
+      activeSignaturePhraseCandidateIndex: 0,
       activeReactiveBatchId: null,
       activeReactiveCandidateIndex: 0,
     }),
@@ -1289,6 +1363,102 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         phraseCandidates: prev.phraseCandidates.map((candidate) =>
           candidate.id === candidateId ? replacement : candidate,
         ),
+      },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
+  generateSignaturePhrasesForSection: (sectionId, lengthBars) => {
+    const prev = get().project
+    const input = signaturePhraseGenerationInput(
+      prev,
+      sectionId,
+      get().generationSettings,
+      createSeed(),
+      lengthBars,
+    )
+    if (!input) {
+      set({
+        workflowNotice:
+          "Signature Phrase生成には、選択した長さを収められるセクションと有効なコード進行が必要です。",
+      })
+      return
+    }
+    const generated = generateSignaturePhraseCandidates(input)
+    const batchId = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    const candidates: SignaturePhraseCandidate[] = generated.map(
+      (candidate, index) => ({
+        ...candidate,
+        id: crypto.randomUUID(),
+        batchId,
+        name: `Signature ${index + 1}`,
+        createdAt,
+      }),
+    )
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        signaturePhraseCandidates: [
+          ...prev.signaturePhraseCandidates,
+          ...candidates,
+        ],
+      },
+      activeSignaturePhraseBatchId: batchId,
+      activeSignaturePhraseCandidateIndex: 0,
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
+  setActiveSignaturePhraseCandidateIndex: (index) =>
+    set({ activeSignaturePhraseCandidateIndex: Math.max(0, index) }),
+
+  regenerateSignaturePhrase: (candidateId) => {
+    const prev = get().project
+    const current = prev.signaturePhraseCandidates.find(
+      (candidate) => candidate.id === candidateId,
+    )
+    if (!current) return
+    const requestedLength: 1 | 2 =
+      current.plan.lengthBars === 1 ? 1 : 2
+    const input = signaturePhraseGenerationInput(
+      prev,
+      current.sectionId,
+      get().generationSettings,
+      current.seed + 104729,
+      requestedLength,
+    )
+    if (!input) return
+    const siblings = prev.signaturePhraseCandidates.filter(
+      (candidate) =>
+        candidate.batchId === current.batchId &&
+        candidate.id !== current.id,
+    )
+    const regenerated = buildRegeneratedSignaturePhrase(
+      input,
+      current.seed,
+      siblings,
+    )
+    const replacement: SignaturePhraseCandidate = {
+      ...regenerated,
+      id: crypto.randomUUID(),
+      batchId: current.batchId,
+      name: current.name,
+      createdAt: new Date().toISOString(),
+    }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        signaturePhraseCandidates:
+          prev.signaturePhraseCandidates.map((candidate) =>
+            candidate.id === candidateId ? replacement : candidate,
+          ),
       },
       workflowNotice: null,
     })

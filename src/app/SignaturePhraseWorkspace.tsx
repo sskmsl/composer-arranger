@@ -1,0 +1,335 @@
+import { useEffect, useMemo, useState } from "react"
+import {
+  Download,
+  Play,
+  RefreshCw,
+  Sparkles,
+  Square,
+} from "lucide-react"
+import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
+import type {
+  SignaturePhraseCandidate,
+  SignatureRhythmIdentity,
+  SignatureVariationStrategy,
+} from "@/core/signaturePhrase"
+import { diagnoseChordInput } from "@/core/chordDiagnostics"
+import { parseTimeSignature } from "@/core/section"
+import { downloadMidi, exportMelodyMidi } from "@/midi/exportMelody"
+import { useProjectStore } from "@/store/useProjectStore"
+import { Button, Select } from "@/ui/primitives"
+import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
+
+const RHYTHM_LABELS: Record<SignatureRhythmIdentity, string> = {
+  "opening-stamp": "Opening Stamp",
+  "pickup-hook": "Pickup Hook",
+  "syncopated-cell": "Syncopated Cell",
+  "call-gap-answer": "Call / Gap / Answer",
+  "long-short-signal": "Long–Short Signal",
+  "broken-pulse": "Broken Pulse",
+}
+
+const VARIATION_LABELS: Record<SignatureVariationStrategy, string> = {
+  displacement: "位置変形",
+  fragmentation: "断片化",
+  augmentation: "拡張",
+  answer: "応答形",
+  "delayed-return": "遅延回帰",
+}
+
+export function SignaturePhraseWorkspace() {
+  const project = useProjectStore((state) => state.project)
+  const selectedSectionId = useProjectStore(
+    (state) => state.selectedSectionId,
+  )
+  const activeBatchId = useProjectStore(
+    (state) => state.activeSignaturePhraseBatchId,
+  )
+  const activeIndex = useProjectStore(
+    (state) => state.activeSignaturePhraseCandidateIndex,
+  )
+  const generate = useProjectStore(
+    (state) => state.generateSignaturePhrasesForSection,
+  )
+  const setActiveIndex = useProjectStore(
+    (state) => state.setActiveSignaturePhraseCandidateIndex,
+  )
+  const regenerate = useProjectStore(
+    (state) => state.regenerateSignaturePhrase,
+  )
+  const workflowNotice = useProjectStore((state) => state.workflowNotice)
+  const [lengthBars, setLengthBars] = useState<1 | 2>(2)
+  const [previewMode, setPreviewMode] =
+    useState<PreviewMode>("chords-melody")
+  const [playingId, setPlayingId] = useState<string | null>(null)
+
+  const section = project.sections.find(
+    (candidate) => candidate.id === selectedSectionId,
+  )
+  const { beatsPerBar } = parseTimeSignature(project.song.timeSignature)
+  const sectionBeats = section ? section.lengthBars * beatsPerBar : 0
+  const allChords = project.chords
+    .filter((chord) => chord.sectionId === selectedSectionId)
+    .sort((left, right) => left.startBeat - right.startBeat)
+  const chordHasError =
+    allChords.length > 0 &&
+    diagnoseChordInput(allChords, sectionBeats).hasError
+
+  const sectionCandidates = useMemo(
+    () =>
+      project.signaturePhraseCandidates
+        .filter((candidate) => candidate.sectionId === selectedSectionId)
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    [project.signaturePhraseCandidates, selectedSectionId],
+  )
+  const effectiveBatchId =
+    activeBatchId &&
+    sectionCandidates.some(
+      (candidate) => candidate.batchId === activeBatchId,
+    )
+      ? activeBatchId
+      : sectionCandidates[0]?.batchId ?? null
+  const batch = useMemo(
+    () =>
+      sectionCandidates
+        .filter((candidate) => candidate.batchId === effectiveBatchId)
+        .sort((left, right) =>
+          left.name.localeCompare(right.name, undefined, { numeric: true }),
+        ),
+    [effectiveBatchId, sectionCandidates],
+  )
+  const activeCandidate =
+    batch[Math.min(activeIndex, Math.max(0, batch.length - 1))]
+
+  useEffect(
+    () => () => {
+      previewPlayer.stop()
+    },
+    [],
+  )
+
+  if (!section) {
+    return (
+      <main className="flex flex-1 items-center justify-center text-ink-muted-48">
+        左のパネルからセクションを選択してください
+      </main>
+    )
+  }
+
+  const stop = () => {
+    previewPlayer.stop()
+    setPlayingId(null)
+  }
+
+  const play = (candidate: SignaturePhraseCandidate) => {
+    if (playingId === candidate.id) {
+      stop()
+      return
+    }
+    setActiveIndex(
+      batch.findIndex((item) => item.id === candidate.id),
+    )
+    setPlayingId(candidate.id)
+    previewPlayer.play({
+      bpm: project.song.tempo,
+      chords: allChords.filter(
+        (chord) => chord.startBeat < candidate.phraseLengthBeats,
+      ),
+      melody: candidate.notes,
+      mode: previewMode,
+      range: { startBeat: 0, endBeat: candidate.phraseLengthBeats },
+      onEnded: () => setPlayingId(null),
+    })
+  }
+
+  const exportCandidate = (candidate: SignaturePhraseCandidate) => {
+    const bytes = exportMelodyMidi({
+      title: project.title,
+      sectionName: `${section.name} Signature Phrase`,
+      tempo: project.song.tempo,
+      timeSignature: project.song.timeSignature,
+      chords: allChords,
+      melodyNotes: candidate.notes,
+      leadTrackName: "Signature Phrase",
+      includeChords: previewMode !== "melody-only",
+      range: { startBeat: 0, endBeat: candidate.phraseLengthBeats },
+    })
+    downloadMidi(
+      bytes,
+      `${project.title}-${section.name}-${candidate.name}`,
+    )
+  }
+
+  return (
+    <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+      <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+        <div className="mr-auto max-w-3xl">
+          <h2 className="text-[15px] font-semibold text-body-on-dark">
+            Signature Phrase Generator
+          </h2>
+          <p className="mt-0.5 text-[11px] text-ink-muted-48">
+            リズムから先に設計し、曲の冒頭で世界観を提示できる1〜2小節の原石を12案生成します
+          </p>
+        </div>
+        <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+          長さ
+          <Select
+            value={String(lengthBars)}
+            onChange={(event) =>
+              setLengthBars(Number(event.target.value) as 1 | 2)
+            }
+            className="!py-1"
+          >
+            <option value="1">1小節</option>
+            <option value="2" disabled={section.lengthBars < 2}>
+              2小節
+            </option>
+          </Select>
+        </label>
+        <Button
+          onClick={() => generate(section.id, lengthBars)}
+          disabled={
+            section.lengthBars < lengthBars ||
+            allChords.length === 0 ||
+            chordHasError
+          }
+        >
+          <Sparkles size={14} /> Generate 12 Ideas
+        </Button>
+      </section>
+
+      {chordHasError && (
+        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
+          無効なコードがあります。左のパネルで修正してください。
+        </p>
+      )}
+      {workflowNotice && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          {workflowNotice}
+        </p>
+      )}
+
+      {batch.length > 0 && (
+        <>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {batch.map((candidate, index) => (
+              <article
+                key={candidate.id}
+                className={`rounded-lg border p-3 transition ${
+                  candidate.id === activeCandidate?.id
+                    ? "border-primary-focus bg-primary/10"
+                    : "border-hairline bg-surface-tile-1"
+                }`}
+              >
+                <button
+                  className="w-full text-left"
+                  onClick={() => setActiveIndex(index)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-[13px] font-semibold text-body-on-dark">
+                      {candidate.name}
+                    </h3>
+                    <span className="shrink-0 text-[10px] text-ink-muted-48">
+                      {candidate.plan.lengthBars}小節 · {Math.round(candidate.score.overall)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      {RHYTHM_LABELS[candidate.plan.rhythmIdentity]}
+                    </span>
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      {candidate.plan.contour}
+                    </span>
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      {VARIATION_LABELS[candidate.plan.variationStrategy]}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-ink-muted-48">
+                    <span>Identity {Math.round(candidate.score.identity * 100)}</span>
+                    <span>Opening {Math.round(candidate.score.openingImpact * 100)}</span>
+                    <span>Rhythm {Math.round(candidate.score.rhythmicIdentity * 100)}</span>
+                    <span>Develop {Math.round(candidate.score.developmentPotential * 100)}</span>
+                  </div>
+                </button>
+                <div className="mt-3 flex gap-1.5">
+                  <Button
+                    variant="dark"
+                    className="min-w-0 flex-1 !px-2 !text-[11px]"
+                    onClick={() => play(candidate)}
+                  >
+                    {playingId === candidate.id ? (
+                      <Square size={12} />
+                    ) : (
+                      <Play size={12} />
+                    )}
+                    試聴
+                  </Button>
+                  <Button
+                    variant="dark"
+                    className="min-w-0 flex-1 !px-2 !text-[11px]"
+                    onClick={() => {
+                      if (playingId === candidate.id) stop()
+                      regenerate(candidate.id)
+                    }}
+                  >
+                    <RefreshCw size={12} /> 再生成
+                  </Button>
+                  <Button
+                    variant="dark"
+                    className="min-w-0 flex-1 !px-2 !text-[11px]"
+                    onClick={() => exportCandidate(candidate)}
+                  >
+                    <Download size={12} /> MIDI
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-ink-muted-48">試聴:</span>
+            <Select
+              value={previewMode}
+              onChange={(event) => {
+                stop()
+                setPreviewMode(event.target.value as PreviewMode)
+              }}
+              className="!py-1"
+            >
+              <option value="melody-only">Signature Only</option>
+              <option value="chords-melody">Chords + Signature</option>
+            </Select>
+          </div>
+        </>
+      )}
+
+      {activeCandidate ? (
+        <ReadOnlyPianoRoll
+          notes={activeCandidate.notes}
+          chords={allChords.filter(
+            (chord) => chord.startBeat < activeCandidate.phraseLengthBeats,
+          )}
+          totalBeats={activeCandidate.phraseLengthBeats}
+          timeSignature={project.song.timeSignature}
+          songKey={project.song.key}
+          title={activeCandidate.name}
+          subtitle="表示専用 · MIDI出力と同一"
+          accentColor="#c084fc"
+          accentStroke="#e9d5ff"
+          ariaLabel="Signature Phrase Piano Roll"
+          noteLabel="Signature Phrase"
+        />
+      ) : (
+        <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
+          <div>
+            <p className="text-[13px] text-body-muted">
+              まだSignature Phrase候補がありません
+            </p>
+            <p className="mt-1 text-[11px] text-ink-muted-48">
+              コードの並びではなく、記憶に残るリズムと輪郭を持つ12案を生成します
+            </p>
+          </div>
+        </div>
+      )}
+    </main>
+  )
+}
