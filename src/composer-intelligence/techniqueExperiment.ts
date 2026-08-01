@@ -11,6 +11,7 @@ export type TechniqueExperimentPresetId =
   | "negative-space-groove"
   | "stable-loop-local-mutation"
   | "slow-burn-escalation"
+  | "motif-economy-reframing"
 
 export interface TechniqueExperimentPreset {
   id: TechniqueExperimentPresetId
@@ -96,6 +97,35 @@ const SLOW_BURN_ESCALATION_RULE: ComposerRule = {
   },
 }
 
+const MOTIF_ECONOMY_REFRAMING_RULE: ComposerRule = {
+  id: "experiment:draft:motif-economy-reframing",
+  origin: "experimental",
+  // Knowledge remains Draft. The session-only experiment wrapper is marked
+  // executable so the resolver can A/B-test it without lifecycle promotion.
+  status: "validated",
+  priority: 20,
+  confidence: 0.84,
+  when: { generatorTargets: ["melody"] },
+  prefer: {
+    motifIdentity: [
+      { value: "turn-cell", weight: 0.55 },
+      { value: "repeated-cell", weight: 0.45 },
+    ],
+    phraseArchitecture: [
+      { value: "asymmetric", weight: 0.55 },
+      { value: "call-response", weight: 0.45 },
+    ],
+    developmentStrategy: [
+      { value: "delayed-return", weight: 0.6 },
+      { value: "fragmentation", weight: 0.4 },
+    ],
+    climaxPlacement: [
+      { value: "middle", weight: 0.6 },
+      { value: "late", weight: 0.4 },
+    ],
+  },
+}
+
 const NEGATIVE_SPACE_GROOVE_PHRASE_RULE: ComposerRule = {
   ...NEGATIVE_SPACE_GROOVE_RULE,
   id: "experiment:draft:negative-space-groove:phrase",
@@ -148,6 +178,31 @@ const SLOW_BURN_ESCALATION_PHRASE_RULE: ComposerRule = {
   },
 }
 
+const MOTIF_ECONOMY_REFRAMING_PHRASE_RULE: ComposerRule = {
+  ...MOTIF_ECONOMY_REFRAMING_RULE,
+  id: "experiment:draft:motif-economy-reframing:phrase",
+  when: { generatorTargets: ["phrase"] },
+  prefer: {
+    phraseContour: [
+      { value: "arch", weight: 0.5 },
+      { value: "ascending", weight: 0.25 },
+      { value: "descending", weight: 0.25 },
+    ],
+    rhythmCharacter: [
+      { value: "breathing", weight: 0.5 },
+      { value: "flowing", weight: 0.5 },
+    ],
+    developmentStrategy: [
+      { value: "delayed-return", weight: 0.6 },
+      { value: "fragmentation", weight: 0.4 },
+    ],
+    cadenceType: [
+      { value: "open", weight: 0.5 },
+      { value: "carry-forward", weight: 0.5 },
+    ],
+  },
+}
+
 const NEGATIVE_SPACE_GROOVE_COUNTER_RULE: ComposerRule = {
   ...NEGATIVE_SPACE_GROOVE_RULE,
   id: "experiment:draft:negative-space-groove:counter",
@@ -192,6 +247,22 @@ const SLOW_BURN_ESCALATION_COUNTER_RULE: ComposerRule = {
     registerRelation: [
       { value: "above", weight: 0.7 },
       { value: "below", weight: 0.3 },
+    ],
+  },
+}
+
+const MOTIF_ECONOMY_REFRAMING_COUNTER_RULE: ComposerRule = {
+  ...MOTIF_ECONOMY_REFRAMING_RULE,
+  id: "experiment:draft:motif-economy-reframing:counter",
+  when: { generatorTargets: ["counter"] },
+  prefer: {
+    partRole: [
+      { value: "motif-echo", weight: 0.55 },
+      { value: "counterline", weight: 0.45 },
+    ],
+    registerRelation: [
+      { value: "above", weight: 0.5 },
+      { value: "below", weight: 0.5 },
     ],
   },
 }
@@ -257,6 +328,26 @@ const SLOW_BURN_ESCALATION_DECORATION_RULE: ComposerRule = {
     phraseDensity: [
       { value: "sparse", weight: 0.55 },
       { value: "normal", weight: 0.45 },
+    ],
+  },
+}
+
+const MOTIF_ECONOMY_REFRAMING_DECORATION_RULE: ComposerRule = {
+  ...MOTIF_ECONOMY_REFRAMING_RULE,
+  id: "experiment:draft:motif-economy-reframing:decoration",
+  when: { generatorTargets: ["decoration"] },
+  prefer: {
+    decorationGestureRole: [
+      { value: "response", weight: 0.55 },
+      { value: "transition", weight: 0.45 },
+    ],
+    decorationShape: [
+      { value: "repeated-sequence", weight: 0.5 },
+      { value: "sequence", weight: 0.5 },
+    ],
+    decorationRhythmStyle: [
+      { value: "syncopation", weight: 0.5 },
+      { value: "dotted", weight: 0.5 },
     ],
   },
 }
@@ -381,6 +472,40 @@ export const TECHNIQUE_EXPERIMENT_PRESETS: readonly TechniqueExperimentPreset[] 
         phrase: [SLOW_BURN_ESCALATION_PHRASE_RULE],
         counter: [SLOW_BURN_ESCALATION_COUNTER_RULE],
         decoration: [SLOW_BURN_ESCALATION_DECORATION_RULE],
+      },
+    },
+    {
+      id: "motif-economy-reframing",
+      label: "Motif Economy + Reframing",
+      description:
+        "短いMotifを断片化・遅延回帰・役割交替で再利用し、少ない音数から長い感情的因果を作れるか確認します。",
+      techniqueNames: [
+        "Motif Economy",
+        "Fragment before Full Statement",
+        "Theme Reframing",
+      ],
+      validationLevel: "exploratory",
+      targetValidationLevels: {
+        melody: "exploratory",
+        phrase: "exploratory",
+        counter: "exploratory",
+        decoration: "confirmed",
+      },
+      recommendedProfiles: [],
+      recommendedSectionRolesByTarget: {
+        decoration: [
+          "intro",
+          "verse",
+          "pre-chorus",
+          "chorus",
+          "bridge",
+        ],
+      },
+      rules: [MOTIF_ECONOMY_REFRAMING_RULE],
+      rulesByTarget: {
+        phrase: [MOTIF_ECONOMY_REFRAMING_PHRASE_RULE],
+        counter: [MOTIF_ECONOMY_REFRAMING_COUNTER_RULE],
+        decoration: [MOTIF_ECONOMY_REFRAMING_DECORATION_RULE],
       },
     },
   ]
