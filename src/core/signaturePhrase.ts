@@ -59,6 +59,40 @@ export type SignatureVariationStrategy =
   | "answer"
   | "delayed-return"
 
+/** 安全性ではなく、意図した逸脱をどこまで前面に出すか。 */
+export type SignatureCreativeRisk = "focused" | "bold" | "radical"
+
+export type SignatureRhythmicDisruption =
+  | "none"
+  | "metric-displacement"
+  | "asymmetric-cycle"
+  | "silence-fracture"
+  | "cross-bar-attack"
+
+export type SignaturePitchDisruption =
+  | "none"
+  | "interval-signature"
+  | "chromatic-side-step"
+  | "register-rupture"
+  | "pedal-tension"
+
+export type SignatureStructuralSurprise =
+  | "none"
+  | "false-start"
+  | "interruption"
+  | "false-return"
+  | "abrupt-open-tail"
+
+export interface SignatureCreativeRiskPlan {
+  risk: SignatureCreativeRisk
+  rhythmicDevice: SignatureRhythmicDisruption
+  pitchDevice: SignaturePitchDisruption
+  structuralDevice: SignatureStructuralSurprise
+  targetAudacity: number
+  /** 逸脱後にMotifまたは和声音へ回収する必要があるか。 */
+  recoveryRequired: boolean
+}
+
 /**
  * 単音の旋律線だけでなく、和音由来の質感も候補として提案できるようにする軸。
  * single-line: 従来通りの単音Motif。
@@ -100,6 +134,7 @@ export interface SignaturePhrasePlan {
   rhythmIdentity: SignatureRhythmIdentity
   contour: PhraseContour
   variationStrategy: SignatureVariationStrategy
+  creativeRisk: SignatureCreativeRiskPlan
   motifSize: number
   motifVariant: 0 | 1 | 2 | 3
   pickupBeats: number
@@ -137,6 +172,12 @@ export interface SignaturePhraseScore {
   voicingQuality: number
   /** 声部交差、急な跳躍、平行移動、共通音保持を総合評価する。 */
   voiceLeadingQuality: number
+  /** 計画された逸脱が、実音・実リズムへ現れた強さ。 */
+  audacity: number
+  /** 大跳躍・非和声音・休止が回収され、単なるズレになっていない度合い。 */
+  controlledRisk: number
+  /** 驚きの後にMotifの因果関係が戻る度合い。 */
+  surpriseCoherence: number
   overall: number
 }
 

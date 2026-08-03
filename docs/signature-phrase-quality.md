@@ -23,14 +23,27 @@ Signature Phrase Generatorは、短い識別可能な核を作るだけでなく
 ## 生成パイプライン
 
 1. Archetypeと1〜2小節のRhythm Identityを決める。
-2. Motif PathとContourを決める。
-3. 1 / 2 / 4 / 8小節のPhrase Architectureを選ぶ。
-4. 各小節へDevelopment Stageを割り当てる。
-5. Decoration Intentを構造上の必要箇所へ配置する。
-6. Rhythm Skeletonへ反復・応答・断片化・余白を反映する。
-7. Pitch Pathを配置し、意図的な非和声音と解決関係を保持する。
-8. 必要な構造点だけをBlock ChordまたはBroken Chordへ展開する。
-9. Quality GateとDiversity Selectionで12候補を選ぶ。
+2. Focused / Bold / RadicalのCreative Risk Planを決める。
+3. Motif PathとContourを決める。
+4. 1 / 2 / 4 / 8小節のPhrase Architectureを選ぶ。
+5. 各小節へDevelopment Stageを割り当てる。
+6. Decoration Intentを構造上の必要箇所へ配置する。
+7. Rhythm Skeletonへ反復・応答・断片化・余白と計画的な破調を反映する。
+8. Pitch Pathを配置し、意図的な非和声音・跳躍と解決関係を保持する。
+9. 必要な構造点だけをBlock ChordまたはBroken Chordへ展開する。
+10. Quality GateとCreative Riskを含むDiversity Selectionで12候補を選ぶ。
+
+## Creative Risk
+
+12候補を「安全な良案」だけへ収束させず、次の3段階を同じ候補セットへ残す。
+
+- `focused`: 核の識別性を優先する比較基準。意図的な破調は加えない。
+- `bold`: 一つの明確な違和感を作り、直後に音程またはMotifで回収する。
+- `radical`: リズム、音程、構成の複数軸で予想を外しながら、後続の回帰でPhraseとして成立させる。
+
+Rhythm DeviceはMetric Displacement、Asymmetric Cycle、Silence Fracture、Cross-bar Attackを使う。Pitch DeviceはInterval Signature、Chromatic Side-step、Register Rupture、Pedal Tensionを使う。Structural SurpriseはFalse Start、Interruption、False Return、Abrupt Open Tailを使う。
+
+大胆さはアウトスケール音やランダムなタイミングの量では判定しない。`audacity`で逸脱の実現度、`controlledRisk`で跳躍後の反行回収・非和声音の解決・音域とグリッドの安全性、`surpriseCoherence`で驚きの後のMotif回帰を評価する。最終12案ではFocused / Bold / Radicalの配分と各Deviceの重複も選抜条件に含める。
 
 ## Phrase Architecture
 
@@ -83,6 +96,9 @@ Block ChordとBroken Chordは全音符へ機械的に適用しない。1小節�
 - `variationBalance`: 完全反復と無関係な変化の中間にあるか。
 - `voicingQuality`: 和音化で主旋律の明瞭さを失っていないか。
 - `voiceLeadingQuality`: 急な低声移動、全声部の同方向移動、共通音保持、Motion方針との一致を評価する。
+- `audacity`: 計画した跳躍、破調、余白、構成上の断絶が実音へ現れたか。
+- `controlledRisk`: 大胆な音程や非和声音が局所的に回収され、単なるズレになっていないか。
+- `surpriseCoherence`: 予想を外した後に核Motifとの因果関係が戻るか。
 
 候補プールから最低品質を満たすものを選び、Archetype、Rhythm、Contour、Voicing、候補間類似度を同時に評価して12案へ絞る。固定Seedでは同じ候補を再現する。
 

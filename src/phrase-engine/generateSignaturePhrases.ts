@@ -14,6 +14,8 @@ import type {
   SignaturePhraseCandidate,
   SignaturePhraseArchetype,
   SignaturePhraseArchitecture,
+  SignatureCreativeRisk,
+  SignatureCreativeRiskPlan,
   SignaturePhraseLengthBars,
   SignatureDevelopmentStage,
   SignatureDecorationIntent,
@@ -74,6 +76,56 @@ interface BuiltSignaturePhrase {
 const DEFAULT_FINAL_COUNT = 12
 const DEFAULT_POOL_SIZE = 72
 const QUALITY_FLOOR = 58
+
+const CREATIVE_RISK_CYCLE: readonly SignatureCreativeRisk[] = [
+  "focused", "focused", "focused",
+  "bold", "bold", "bold", "bold", "bold",
+  "radical", "radical", "radical", "radical",
+]
+
+function creativeRiskPlanFor(
+  poolIndex: number,
+  rng: SeededRandom,
+): SignatureCreativeRiskPlan {
+  const risk = CREATIVE_RISK_CYCLE[poolIndex % CREATIVE_RISK_CYCLE.length]
+  if (risk === "focused") {
+    return {
+      risk,
+      rhythmicDevice: "none",
+      pitchDevice: "none",
+      structuralDevice: "none",
+      targetAudacity: 0.28,
+      recoveryRequired: false,
+    }
+  }
+  const rhythmicDevices = [
+    "metric-displacement",
+    "asymmetric-cycle",
+    "silence-fracture",
+    "cross-bar-attack",
+  ] as const
+  const pitchDevices = [
+    "interval-signature",
+    "chromatic-side-step",
+    "register-rupture",
+    "pedal-tension",
+  ] as const
+  const structuralDevices = [
+    "false-start",
+    "interruption",
+    "false-return",
+    "abrupt-open-tail",
+  ] as const
+  const deviceIndex = (poolIndex + rng.intBetween(0, 3)) % 4
+  return {
+    risk,
+    rhythmicDevice: rhythmicDevices[deviceIndex],
+    pitchDevice: pitchDevices[(deviceIndex + poolIndex) % 4],
+    structuralDevice: structuralDevices[(deviceIndex + poolIndex * 2) % 4],
+    targetAudacity: risk === "radical" ? 0.82 : 0.6,
+    recoveryRequired: true,
+  }
+}
 
 const VOICING_MODES: SignatureVoicingMode[] = [
   "single-line",
@@ -351,6 +403,17 @@ function mean(values: readonly number[]): number {
     : 0
 }
 
+function creativeRiskOf(plan: SignaturePhrasePlan): SignatureCreativeRiskPlan {
+  return plan.creativeRisk ?? {
+    risk: "focused",
+    rhythmicDevice: "none",
+    pitchDevice: "none",
+    structuralDevice: "none",
+    targetAudacity: 0.28,
+    recoveryRequired: false,
+  }
+}
+
 function roundQuarter(value: number): number {
   return Math.round(value * 4) / 4
 }
@@ -493,6 +556,7 @@ function planSignaturePhrase(
     VOICING_MODES,
     VOICING_MODE_WEIGHTS[archetype],
   )
+  const creativeRisk = creativeRiskPlanFor(poolIndex, rng)
   return {
     role: "intro",
     lengthBars,
@@ -507,6 +571,7 @@ function planSignaturePhrase(
     rhythmIdentity,
     contour,
     variationStrategy,
+    creativeRisk,
     motifSize: motifOptions[motifVariant].length,
     motifVariant,
     pickupBeats: RHYTHM_BLUEPRINTS[rhythmIdentity][0]?.start ?? 0,
@@ -779,6 +844,88 @@ function shapeStatementForArchetype(
   }))
 }
 
+/**
+ * Creative Risk Planを実リズムへ変換する。すべてをランダムに崩すのではなく、
+ * 一箇所の異物感と、その後のMotif回帰が両立する範囲に限定する。
+ */
+function applyCreativeRhythm(
+  source: readonly RhythmEvent[],
+  plan: SignaturePhrasePlan,
+  barIndex: number,
+): RhythmEvent[] {
+  if (plan.creativeRisk.risk === "focused") return [...source]
+  let events = source.map((event) => ({ ...event }))
+  const focalBar = plan.lengthBars === 1 ? 0 : Math.min(1, plan.lengthBars - 1)
+
+  if (barIndex === focalBar) {
+    switch (plan.creativeRisk.rhythmicDevice) {
+      case "metric-displacement":
+        events = events
+          .map((event, index) => ({
+            ...event,
+            start: Math.min(3.75, event.start + (index % 2 === 0 ? 0.5 : 0.25)),
+          }))
+          .filter((event) => event.start < 3.75)
+        break
+      case "asymmetric-cycle":
+        events = events.map((event, index) => ({
+          ...event,
+          start: Math.min(3.75, event.start + [0, 0.25, -0.25, 0.5][index % 4]),
+          duration: index % 3 === 1 ? Math.min(0.5, event.duration) : event.duration,
+        }))
+        break
+      case "silence-fracture":
+        events = events.filter((_, index) => index < 2 || index === events.length - 1)
+        if (events.at(-1)) events[events.length - 1].start = Math.max(3, events.at(-1)!.start)
+        break
+      case "cross-bar-attack":
+        if (events.at(-1)) {
+          events[events.length - 1] = {
+            ...events.at(-1)!,
+            start: 3.5,
+            duration: 0.5,
+            accent: 1,
+          }
+        }
+        break
+      case "none":
+        break
+    }
+  }
+
+  switch (plan.creativeRisk.structuralDevice) {
+    case "false-start":
+      if (barIndex === 0) {
+        events = events.slice(0, Math.min(2, events.length)).map((event, index) => ({
+          ...event,
+          duration: Math.min(event.duration, index === 0 ? 0.5 : 0.25),
+        }))
+      }
+      break
+    case "interruption":
+      if (barIndex === Math.floor(plan.lengthBars / 2)) {
+        events = events.filter((_, index) => index === 0 || index === events.length - 1)
+      }
+      break
+    case "false-return":
+      if (barIndex === plan.lengthBars - 1) {
+        events = events.map((event, index) => ({
+          ...event,
+          start: Math.min(3.75, event.start + (index < 2 ? 0.5 : 0)),
+        }))
+      }
+      break
+    case "abrupt-open-tail":
+      if (barIndex === plan.lengthBars - 1) {
+        events = events.filter((event) => event.start < 2.75)
+      }
+      break
+    case "none":
+      break
+  }
+  return events.sort((left, right) => left.start - right.start)
+}
+
 /** Pitchより先に、休符を含むRhythm Skeletonを完成させる。 */
 export function buildSignatureRhythmSkeleton(
   plan: SignaturePhrasePlan,
@@ -794,7 +941,11 @@ export function buildSignatureRhythmSkeleton(
       bar,
       stage,
     )
-    const statement = shapeStatementForArchetype(transformed, plan, bar)
+    const statement = applyCreativeRhythm(
+      shapeStatementForArchetype(transformed, plan, bar),
+      plan,
+      bar,
+    )
     const barEvents: RhythmEvent[] = []
     for (const event of statement) {
       const scale = beatsPerBar / 4
@@ -956,6 +1107,34 @@ function developmentStep(
   return baseStep
 }
 
+function motifPathForCreativeRisk(
+  source: readonly number[],
+  plan: SignaturePhrasePlan,
+): number[] {
+  if (plan.creativeRisk.risk === "focused") return [...source]
+  if (plan.creativeRisk.risk === "bold") {
+    return source.map((step, index) =>
+      index === 1 && step !== 0
+        ? step + Math.sign(step) * 2
+        : step,
+    )
+  }
+  const direction = source.find((step) => step !== 0 && Math.sign(step)) ?? 1
+  const sign = Math.sign(direction) || 1
+  switch (plan.creativeRisk.pitchDevice) {
+    case "interval-signature":
+      return [0, sign * 7, -sign * 2, -sign * 6, sign * 3]
+    case "chromatic-side-step":
+      return [0, sign, sign * 6, -sign, -sign * 5]
+    case "register-rupture":
+      return [0, sign * 5, -sign * 9, sign * 4]
+    case "pedal-tension":
+      return [0, 0, sign * 6, 0, -sign * 5]
+    case "none":
+      return [...source]
+  }
+}
+
 function integratedDecorationStep(
   intent: SignatureDecorationIntent,
   decorationIndex: number,
@@ -992,6 +1171,8 @@ function placePitchPath(
   let repeatedPitchCount = 0
   let previousStatement = -1
   let statementEventIndex = 0
+  const creativePitchIndex = Math.max(1, Math.floor(events.length * 0.24))
+  let pendingRecoveryPitch: number | undefined
 
   return events.map((event, index) => {
     const entry = chordAtBeat(map, event.start) ?? map[map.length - 1]
@@ -1055,7 +1236,7 @@ function placePitchPath(
     if (Math.abs(previousInterval) >= 5 && plan.archetype !== "kinetic-hook") {
       step = -Math.sign(previousInterval) * rng.pick([1, 2])
     }
-    const desired =
+    let desired =
       !event.integratedDecoration && statement === 0 && indexInMotif === 0
         ? motifRoot
         : previous + step
@@ -1066,18 +1247,63 @@ function placePitchPath(
       index === events.length - 1 ||
       (plan.harmonicAnchorPolicy === "structural-only" &&
         Math.abs(event.start % input.beatsPerBar) < 0.05)
-    const allowed = structural
+    let allowed = structural
       ? plan.harmonicAnchorPolicy === "tension-led"
         ? [...new Set([...usable, ...keyScale])]
         : chordTones
       : [...new Set([...keyScale, ...usable])]
+    let forcedRole: MelodyNote["plannedToneRole"] | undefined
+    if (pendingRecoveryPitch !== undefined) {
+      desired = pendingRecoveryPitch
+      allowed = chordTones
+      pendingRecoveryPitch = undefined
+      forcedRole = "chord-tone"
+    } else if (
+      plan.creativeRisk.risk !== "focused" &&
+      index === creativePitchIndex &&
+      !event.integratedDecoration
+    ) {
+      const recoveryTarget = nearestAllowedPitch(desired, chordTones, input.range)
+      switch (plan.creativeRisk.pitchDevice) {
+        case "interval-signature": {
+          const leap = contourDirection(
+            plan.contour,
+            event.start / Math.max(1, phraseLengthBeats),
+          ) * (plan.creativeRisk.risk === "radical" ? 9 : 7)
+          desired = previous + leap
+          allowed = [...new Set([...keyScale, ...usable])]
+          pendingRecoveryPitch = recoveryTarget
+          break
+        }
+        case "chromatic-side-step":
+          desired = recoveryTarget + (previous <= recoveryTarget ? -1 : 1)
+          allowed = [pitchClass(desired)]
+          pendingRecoveryPitch = recoveryTarget
+          forcedRole = "approach-tone"
+          break
+        case "register-rupture":
+          desired = previous + (previous < (input.range.low + input.range.high) / 2 ? 12 : -12)
+          allowed = [...new Set([...keyScale, ...usable])]
+          pendingRecoveryPitch = recoveryTarget
+          break
+        case "pedal-tension":
+          desired = motifRoot
+          allowed = [pitchClass(motifRoot)]
+          forcedRole = isChordTone(entry.parsed, pitchClass(motifRoot))
+            ? "common-tone"
+            : "tension-hold"
+          break
+        case "none":
+          break
+      }
+    }
     let placed = nearestAllowedPitch(desired, allowed, input.range)
     repeatedPitchCount = placed === previous ? repeatedPitchCount + 1 : 0
     if (repeatedPitchCount >= 2) {
       placed = nearestAllowedPitch(desired + direction * 2, allowed, input.range)
       repeatedPitchCount = placed === previous ? repeatedPitchCount : 0
     }
-    const role = event.integratedDecoration
+    const role = forcedRole ?? (event.integratedDecoration
       ? event.integratedDecoration.gestureRole === "pickup" ||
         event.integratedDecoration.gestureRole === "transition"
         ? "approach-tone"
@@ -1090,7 +1316,7 @@ function placePitchPath(
         ? "chord-tone"
         : isTensionTone(entry.parsed, pitchClass(placed))
           ? "tension-hold"
-          : "passing-tone"
+          : "passing-tone")
     const note: MelodyNote = {
       id: `signature-${seed}-${index}`,
       startBeat: event.start,
@@ -1109,10 +1335,13 @@ function placePitchPath(
       locks: [],
       plannedToneRole: role,
       plannedResolution:
-        role === "chord-tone"
+        role === "chord-tone" || role === "common-tone"
           ? undefined
           : {
-              targetPitchClass: entry.parsed.rootPc,
+              targetPitchClass:
+                pendingRecoveryPitch === undefined
+                  ? entry.parsed.rootPc
+                  : pitchClass(pendingRecoveryPitch),
               targetBeat: Math.min(
                 phraseLengthBeats,
                 event.start + event.duration + 0.5,
@@ -1673,6 +1902,9 @@ function scoreSignaturePhrase(
       mechanicalPenalty: 1,
       voicingQuality: 1,
       voiceLeadingQuality: 1,
+      audacity: 0,
+      controlledRisk: 0,
+      surpriseCoherence: 0,
       overall: 0,
     }
   }
@@ -1913,6 +2145,54 @@ function scoreSignaturePhrase(
     plan.voicingMode === "single-line"
       ? 1
       : computeVoiceLeadingQuality(voicingFrames, plan.voiceLeading)
+  const largestLeap = Math.max(0, ...intervals.map((interval) => Math.abs(interval)))
+  const largestGap = Math.max(0, ...gaps)
+  const intentionalTensions = notes.filter(
+    (note) =>
+      note.plannedToneRole === "approach-tone" ||
+      note.plannedToneRole === "suspension" ||
+      note.plannedToneRole === "tension-hold",
+  ).length
+  const audacity = clamp01(
+    Math.min(1, largestLeap / 9) * 0.34 +
+      Math.min(1, syncopated / 0.3) * 0.2 +
+      Math.min(1, largestGap / 2.5) * 0.2 +
+      Math.min(1, intentionalTensions / 2) * 0.14 +
+      (plan.creativeRisk.structuralDevice !== "none" ? 0.12 : 0),
+  )
+  const recoveredLeaps = intervals.filter((interval, index) => {
+    const next = intervals[index + 1]
+    return (
+      Math.abs(interval) >= 6 &&
+      next !== undefined &&
+      Math.sign(next) === -Math.sign(interval) &&
+      Math.abs(next) <= 5
+    )
+  }).length
+  const leapCount = intervals.filter((interval) => Math.abs(interval) >= 6).length
+  const resolutionControl = leapCount === 0
+    ? 0.72
+    : Math.min(1, recoveredLeaps / leapCount)
+  const controlledRisk = clamp01(
+    harmonicFit * 0.34 +
+      resolutionControl * 0.32 +
+      (mechanicalPenalty <= 0.45 ? 0.16 : 0.05) +
+      (pitchRange <= 19 ? 0.08 : 0.03) +
+      (notes.every((note) => note.durationBeats >= 0.25) ? 0.1 : 0),
+  )
+  const surpriseCoherence = clamp01(
+    motifIntegrity * 0.35 +
+      recurrence * 0.3 +
+      longRangeCoherence * 0.2 +
+      (finalReturnSimilarity >= 0.38 ? 0.15 : 0.05),
+  )
+  const riskTargetFit = clamp01(
+    1 - Math.abs(audacity - plan.creativeRisk.targetAudacity),
+  )
+  const creativeBonus =
+    plan.creativeRisk.risk === "focused"
+      ? 0
+      : riskTargetFit * 0.035 + controlledRisk * 0.035 + surpriseCoherence * 0.025
   return {
     identity,
     openingImpact,
@@ -1931,6 +2211,9 @@ function scoreSignaturePhrase(
     mechanicalPenalty,
     voicingQuality,
     voiceLeadingQuality,
+    audacity,
+    controlledRisk,
+    surpriseCoherence,
     overall:
       Math.round(
         clamp01(
@@ -1938,7 +2221,8 @@ function scoreSignaturePhrase(
             arpeggioPenalty * 0.18 -
             mechanicalPenalty * 0.22 -
             (1 - voicingQuality) * 0.1 -
-            (1 - voiceLeadingQuality) * 0.1,
+            (1 - voiceLeadingQuality) * 0.1 +
+            creativeBonus,
         ) * 10000,
       ) / 100,
   }
@@ -1965,7 +2249,7 @@ function buildSignaturePhrase(
       : baseEvents
   const motifOptions = MOTIF_PATHS[plan.archetype]
   const baseMotifPath = motifOptions[plan.motifVariant]
-  const motifPath = baseMotifPath.map((step) => {
+  const profiledMotifPath = baseMotifPath.map((step) => {
     if (input.drama === "restrained") {
       return Math.sign(step) * Math.min(3, Math.abs(step))
     }
@@ -1974,6 +2258,7 @@ function buildSignaturePhrase(
     }
     return step
   })
+  const motifPath = motifPathForCreativeRisk(profiledMotifPath, plan)
   const leadNotes = placePitchPath(
     input,
     plan,
@@ -2044,19 +2329,25 @@ export function signaturePhraseSimilarity(
   const rightIntervals = intervalSequence(rightMelodic)
   const leftContour = leftIntervals.map(Math.sign)
   const rightContour = rightIntervals.map(Math.sign)
+  const leftRisk = creativeRiskOf(left.plan)
+  const rightRisk = creativeRiskOf(right.plan)
   const rhythmSimilarity = sequenceSimilarity(leftOnsets, rightOnsets, 0.01)
   const intervalSimilarity = sequenceSimilarity(leftIntervals, rightIntervals, 1)
   const contourSimilarity = sequenceSimilarity(leftContour, rightContour)
   const durationSimilarity = sequenceSimilarity(leftDurations, rightDurations, 0.01)
   const planSimilarity =
-    (left.plan.archetype === right.plan.archetype ? 0.24 : 0) +
-    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.24 : 0) +
-    (left.plan.contour === right.plan.contour ? 0.14 : 0) +
-    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.1 : 0) +
-    (left.plan.lengthBars === right.plan.lengthBars ? 0.08 : 0) +
-    (left.plan.voicingMode === right.plan.voicingMode ? 0.08 : 0) +
-    (left.plan.voiceLeading?.style === right.plan.voiceLeading?.style ? 0.07 : 0) +
-    (left.plan.voiceLeading?.motion === right.plan.voiceLeading?.motion ? 0.05 : 0)
+    (left.plan.archetype === right.plan.archetype ? 0.18 : 0) +
+    (left.plan.rhythmIdentity === right.plan.rhythmIdentity ? 0.18 : 0) +
+    (left.plan.contour === right.plan.contour ? 0.1 : 0) +
+    (left.plan.variationStrategy === right.plan.variationStrategy ? 0.08 : 0) +
+    (left.plan.lengthBars === right.plan.lengthBars ? 0.06 : 0) +
+    (left.plan.voicingMode === right.plan.voicingMode ? 0.07 : 0) +
+    (left.plan.voiceLeading?.style === right.plan.voiceLeading?.style ? 0.05 : 0) +
+    (left.plan.voiceLeading?.motion === right.plan.voiceLeading?.motion ? 0.04 : 0) +
+    (leftRisk.risk === rightRisk.risk ? 0.1 : 0) +
+    (leftRisk.rhythmicDevice === rightRisk.rhythmicDevice ? 0.05 : 0) +
+    (leftRisk.pitchDevice === rightRisk.pitchDevice ? 0.05 : 0) +
+    (leftRisk.structuralDevice === rightRisk.structuralDevice ? 0.04 : 0)
   return {
     rhythmSimilarity,
     intervalSimilarity,
@@ -2090,13 +2381,18 @@ function selectDiversePool(
   )
   const hookEligible = qualityEligible.filter(
     (candidate) =>
-      candidate.score.openingImpact >= 0.55 &&
-      candidate.score.motifMemorability >= 0.55 &&
-      candidate.score.motifIntegrity >= 0.4 &&
-      candidate.score.worldBuilding >= 0.5 &&
-      (candidate.plan.lengthBars < 4 ||
-        (candidate.score.longRangeCoherence >= 0.42 &&
-          candidate.score.variationBalance >= 0.38)),
+      (candidate.score.openingImpact >= 0.55 &&
+        candidate.score.motifMemorability >= 0.55 &&
+        candidate.score.motifIntegrity >= 0.4 &&
+        candidate.score.worldBuilding >= 0.5 &&
+        (candidate.plan.lengthBars < 4 ||
+          (candidate.score.longRangeCoherence >= 0.42 &&
+            candidate.score.variationBalance >= 0.38))) ||
+      (candidate.plan.creativeRisk.risk !== "focused" &&
+        candidate.score.openingImpact >= 0.5 &&
+        candidate.score.motifMemorability >= 0.48 &&
+        candidate.score.controlledRisk >= 0.55 &&
+        candidate.score.surpriseCoherence >= 0.38),
   )
   const source =
     hookEligible.length >= finalCount
@@ -2110,6 +2406,9 @@ function selectDiversePool(
     similarities: SignaturePhraseSimilarity[]
   }[] = []
   const remaining = [...source]
+  const radicalTarget = Math.max(1, Math.round(finalCount / 3))
+  const boldTarget = Math.max(1, Math.round(finalCount * 0.42))
+  const focusedTarget = Math.max(1, finalCount - radicalTarget - boldTarget)
 
   while (selected.length < finalCount && remaining.length > 0) {
     let bestIndex = 0
@@ -2143,6 +2442,20 @@ function selectDiversePool(
           item.candidate.plan.voiceLeading.style ===
           candidate.plan.voiceLeading.style,
       ).length
+      const sameRiskCount = selected.filter(
+        (item) =>
+          item.candidate.plan.creativeRisk.risk ===
+          candidate.plan.creativeRisk.risk,
+      ).length
+      const selectedRadical = selected.filter(
+        (item) => item.candidate.plan.creativeRisk.risk === "radical",
+      ).length
+      const selectedBold = selected.filter(
+        (item) => item.candidate.plan.creativeRisk.risk === "bold",
+      ).length
+      const selectedFocused = selected.filter(
+        (item) => item.candidate.plan.creativeRisk.risk === "focused",
+      ).length
       const archetypeAlreadyRepresented = sameArchetypeCount > 0
       const voicingAlreadyRepresented = sameVoicingCount > 0
       const sparseAtmosphereAlreadyRepresented = selected.some(
@@ -2158,6 +2471,7 @@ function selectDiversePool(
         sameArchetypeCount * 2.5 +
         sameVoicingCount * 1.5 +
         sameVoicingStyleCount * 1.25 +
+        sameRiskCount * 1.25 +
         (maximumSimilarity > 0.78 ? 18 : 0)
       const archetypeCoverageBonus =
         selected.length < 6 && !archetypeAlreadyRepresented ? 18 : 0
@@ -2176,13 +2490,32 @@ function selectDiversePool(
         soundingTimeRatio(candidate.leadNotes, candidate.phraseLengthBeats) < 0.62
           ? 12
           : 0
+      const creativeRiskCoverageBonus =
+        candidate.plan.creativeRisk.risk === "radical" &&
+        selectedRadical < radicalTarget
+          ? 34
+          : candidate.plan.creativeRisk.risk === "bold" &&
+              selectedBold < boldTarget
+            ? 24
+            : candidate.plan.creativeRisk.risk === "focused" &&
+                selectedFocused < focusedTarget
+              ? 20
+            : 0
+      const controlledAdventureBonus =
+        candidate.plan.creativeRisk.risk === "focused"
+          ? 0
+          : candidate.score.audacity * 8 +
+            candidate.score.controlledRisk * 8 +
+            candidate.score.surpriseCoherence * 6
       const score =
         candidate.score.overall * 0.62 +
         diversity * 100 * 0.38 -
         redundancyPenalty +
         archetypeCoverageBonus +
         voicingCoverageBonus +
-        sparseAtmosphereCoverageBonus
+        sparseAtmosphereCoverageBonus +
+        creativeRiskCoverageBonus +
+        controlledAdventureBonus
       if (score > bestScore) {
         bestIndex = index
         bestScore = score
