@@ -4,6 +4,7 @@ import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import {
   evaluateCounterpointFit,
   generateCounterCandidates,
+  regenerateCounterCandidate,
 } from "./counterGenerator"
 import { unresolvedReactiveToneNoteIds } from "./reactiveLayerAnalysis"
 
@@ -114,6 +115,91 @@ describe("Issue #70 / Counter Generator MVP", () => {
       ),
     ).toBe(true)
     expect(candidates.every((candidate) => candidate.quality.overallQuality >= 68)).toBe(true)
+    expect(candidates.every((candidate) => candidate.counterPlan)).toBe(true)
+    expect(candidates.every((candidate) => candidate.counterQuality)).toBe(true)
+    expect(
+      candidates.every(
+        (candidate) =>
+          candidate.counterQuality!.overall >= 62 &&
+          candidate.counterQuality!.controlledRisk >= 72 &&
+          candidate.counterQuality!.emotionalNecessity >= 68,
+      ),
+    ).toBe(true)
+  })
+
+  it("10案をFocusedへ収束させず、異なる対話・リズム・輪郭・Endingとして選ぶ", () => {
+    for (const seed of [42, 701, 2197]) {
+      const candidates = generateCounterCandidates({ ...input, seed })
+      const plans = candidates.map((candidate) => candidate.counterPlan!)
+      const risks = plans.map((plan) => plan.creativeRisk)
+      expect(risks.filter((risk) => risk === "radical").length).toBeGreaterThanOrEqual(2)
+      expect(risks.filter((risk) => risk === "bold").length).toBeGreaterThanOrEqual(3)
+      expect(new Set(risks)).toEqual(new Set(["focused", "bold", "radical"]))
+      expect(new Set(plans.map((plan) => plan.dialogueIntent)).size).toBeGreaterThanOrEqual(4)
+      expect(new Set(plans.map((plan) => plan.rhythmGrammar)).size).toBeGreaterThanOrEqual(4)
+      expect(new Set(plans.map((plan) => plan.contour)).size).toBeGreaterThanOrEqual(4)
+      expect(new Set(plans.map((plan) => plan.ending)).size).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it("RadicalはFocusedより大胆だが、実休符・16分グリッド・非重複・解決を守る", () => {
+    const candidates = generateCounterCandidates({ ...input, seed: 9017 })
+    const radical = candidates.filter(
+      (candidate) => candidate.counterPlan?.creativeRisk === "radical",
+    )
+    const focused = candidates.filter(
+      (candidate) => candidate.counterPlan?.creativeRisk === "focused",
+    )
+    const average = (values: number[]) =>
+      values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length)
+    expect(
+      average(radical.map((candidate) => candidate.counterQuality!.audacity)),
+    ).toBeGreaterThan(
+      average(focused.map((candidate) => candidate.counterQuality!.audacity)),
+    )
+    for (const candidate of candidates) {
+      const ordered = [...candidate.notes].sort(
+        (left, right) => left.startBeat - right.startBeat,
+      )
+      expect(
+        ordered.every(
+          (counterNote) =>
+            Math.floor(counterNote.startBeat) % 2 === 1 &&
+            Number.isInteger(counterNote.startBeat * 4) &&
+            Number.isInteger(counterNote.durationBeats * 4),
+        ),
+      ).toBe(true)
+      expect(
+        ordered.slice(1).every(
+          (counterNote, index) =>
+            ordered[index].startBeat + ordered[index].durationBeats <=
+            counterNote.startBeat + 0.001,
+        ),
+      ).toBe(true)
+      expect(unresolvedReactiveToneNoteIds(ordered)).toHaveLength(0)
+      expect(candidate.collisions.hasBlockingCollision).toBe(false)
+    }
+  })
+
+  it("階段・折り返し・跳躍回収を固定カテゴリではなく同じ候補セットへ共存させる", () => {
+    const candidates = generateCounterCandidates({ ...input, seed: 38117 })
+    const plans = candidates.map((candidate) => candidate.counterPlan!)
+    expect(
+      plans.some((plan) => plan.contour.includes("staircase")),
+    ).toBe(true)
+    expect(
+      plans.some((plan) => plan.contour === "arch" || plan.contour === "inverted-arch"),
+    ).toBe(true)
+    expect(plans.some((plan) => plan.contour === "leap-recovery")).toBe(true)
+    expect(
+      candidates.some(
+        (candidate) =>
+          candidate.counterPlan?.creativeRisk !== "focused" &&
+          new Set(
+            candidate.notes.map((counterNote) => Math.floor(counterNote.startBeat / 2)),
+          ).size >= 2,
+      ),
+    ).toBe(true)
   })
 
   it("主旋律の休符へ配置し、Blocking Collisionを作らない", () => {
@@ -131,6 +217,7 @@ describe("Issue #70 / Counter Generator MVP", () => {
     const signature = (candidate: (typeof first)[number]) => ({
       style: candidate.generatorStyle,
       role: candidate.role,
+      plan: candidate.counterPlan,
       notes: candidate.notes.map((item) => [
         item.startBeat,
         item.durationBeats,
@@ -139,6 +226,29 @@ describe("Issue #70 / Counter Generator MVP", () => {
       ]),
     })
     expect(second.map(signature)).toEqual(first.map(signature))
+  })
+
+  it("個別再生成はStyleだけでなく作曲計画を最低3軸変更する", () => {
+    const candidates = generateCounterCandidates(input)
+    const current = candidates[0]
+    const regenerated = regenerateCounterCandidate(
+      input,
+      current,
+      candidates.slice(1),
+    )
+    expect(regenerated).not.toBeNull()
+    const changedAxes = [
+      regenerated!.counterPlan!.dialogueIntent !== current.counterPlan!.dialogueIntent,
+      regenerated!.counterPlan!.rhythmGrammar !== current.counterPlan!.rhythmGrammar,
+      regenerated!.counterPlan!.contour !== current.counterPlan!.contour,
+      regenerated!.counterPlan!.development !== current.counterPlan!.development,
+      regenerated!.counterPlan!.ending !== current.counterPlan!.ending,
+      regenerated!.counterPlan!.creativeRisk !== current.counterPlan!.creativeRisk,
+    ].filter(Boolean).length
+    expect(regenerated!.generatorStyle).not.toBe(current.generatorStyle)
+    expect(changedAxes).toBeGreaterThanOrEqual(3)
+    expect(regenerated!.collisions.hasBlockingCollision).toBe(false)
+    expect(regenerated!.counterQuality!.controlledRisk).toBeGreaterThanOrEqual(72)
   })
 
   it("異なるseedでも単音候補へ退行しない", () => {
