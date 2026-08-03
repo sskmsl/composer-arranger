@@ -11,6 +11,10 @@ import type {
   SignaturePhraseCandidate,
   SignaturePhraseArchetype,
   SignaturePhraseArchitecture,
+  SignatureCreativeRisk,
+  SignaturePitchDisruption,
+  SignatureRhythmicDisruption,
+  SignatureStructuralSurprise,
   SignaturePhraseLengthBars,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
@@ -72,6 +76,36 @@ const VOICE_MOTION_LABELS: Record<SignatureVoiceMotion, string> = {
   smooth: "Smooth",
   contrary: "Contrary",
   oblique: "Oblique",
+}
+
+const RISK_LABELS: Record<SignatureCreativeRisk, string> = {
+  focused: "Focused",
+  bold: "Bold",
+  radical: "Radical",
+}
+
+const RHYTHMIC_DISRUPTION_LABELS: Record<SignatureRhythmicDisruption, string> = {
+  none: "Stable Rhythm",
+  "metric-displacement": "Metric Shift",
+  "asymmetric-cycle": "Asymmetric Cycle",
+  "silence-fracture": "Silence Fracture",
+  "cross-bar-attack": "Cross-bar Attack",
+}
+
+const PITCH_DISRUPTION_LABELS: Record<SignaturePitchDisruption, string> = {
+  none: "Stable Pitch",
+  "interval-signature": "Interval Signature",
+  "chromatic-side-step": "Chromatic Side-step",
+  "register-rupture": "Register Rupture",
+  "pedal-tension": "Pedal Tension",
+}
+
+const STRUCTURAL_SURPRISE_LABELS: Record<SignatureStructuralSurprise, string> = {
+  none: "Linear Form",
+  "false-start": "False Start",
+  interruption: "Interruption",
+  "false-return": "False Return",
+  "abrupt-open-tail": "Abrupt Open Tail",
 }
 
 function candidateArchetype(
@@ -303,6 +337,28 @@ export function SignaturePhraseWorkspace() {
                     <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
                       {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
                     </span>
+                    {candidate.plan.creativeRisk && (
+                      <>
+                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                          candidate.plan.creativeRisk.risk === "radical"
+                            ? "bg-fuchsia-400/20 text-fuchsia-200"
+                            : candidate.plan.creativeRisk.risk === "bold"
+                              ? "bg-orange-400/20 text-orange-200"
+                              : "bg-white/6 text-body-muted"
+                        }`}>
+                          {RISK_LABELS[candidate.plan.creativeRisk.risk]}
+                        </span>
+                        {candidate.plan.creativeRisk.risk !== "focused" && (
+                          <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                            {RHYTHMIC_DISRUPTION_LABELS[candidate.plan.creativeRisk.rhythmicDevice]}
+                            {" · "}
+                            {PITCH_DISRUPTION_LABELS[candidate.plan.creativeRisk.pitchDevice]}
+                            {" · "}
+                            {STRUCTURAL_SURPRISE_LABELS[candidate.plan.creativeRisk.structuralDevice]}
+                          </span>
+                        )}
+                      </>
+                    )}
                     {candidate.plan.architecture && (
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {ARCHITECTURE_LABELS[candidate.plan.architecture]}
@@ -341,6 +397,12 @@ export function SignaturePhraseWorkspace() {
                     <span>
                       Memory {Math.round((candidate.score.motifMemorability ?? 0) * 100)}
                     </span>
+                    {candidate.plan.creativeRisk?.risk !== "focused" && (
+                      <>
+                        <span>Audacity {Math.round((candidate.score.audacity ?? 0) * 100)}</span>
+                        <span>Control {Math.round((candidate.score.controlledRisk ?? 0) * 100)}</span>
+                      </>
+                    )}
                     {candidate.plan.voicingMode !== "single-line" && (
                       <span>
                         Voice Lead {Math.round((candidate.score.voiceLeadingQuality ?? 0) * 100)}

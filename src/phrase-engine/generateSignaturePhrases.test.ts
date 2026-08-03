@@ -120,10 +120,83 @@ describe("Signature Phrase Generator", () => {
       expect(candidate.score.silenceUse).toBeGreaterThanOrEqual(0)
       expect(candidate.score.arpeggioPenalty).toBeLessThanOrEqual(1)
       expect(candidate.score.mechanicalPenalty).toBeLessThanOrEqual(1)
+      expect(candidate.score.audacity).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.controlledRisk).toBeGreaterThanOrEqual(0)
+      expect(candidate.score.surpriseCoherence).toBeGreaterThanOrEqual(0)
     }
     expect(
       candidates.filter((candidate) => candidate.score.overall >= 70).length,
     ).toBeGreaterThanOrEqual(2)
+  })
+
+  it("Focusedだけへ収束せず、BoldとRadicalを計画的に最終12案へ残す", () => {
+    for (const seed of [81237, 44021, 73091]) {
+      const candidates = generateSignaturePhraseCandidates(input(seed))
+      const risks = candidates.map((candidate) => candidate.plan.creativeRisk.risk)
+
+      expect(risks.filter((risk) => risk === "radical").length).toBeGreaterThanOrEqual(3)
+      expect(risks.filter((risk) => risk === "bold").length).toBeGreaterThanOrEqual(4)
+      expect(new Set(risks)).toEqual(new Set(["focused", "bold", "radical"]))
+      expect(
+        new Set(
+          candidates
+            .filter((candidate) => candidate.plan.creativeRisk.risk !== "focused")
+            .map((candidate) => candidate.plan.creativeRisk.rhythmicDevice),
+        ).size,
+      ).toBeGreaterThanOrEqual(3)
+      expect(
+        new Set(
+          candidates
+            .filter((candidate) => candidate.plan.creativeRisk.risk !== "focused")
+            .map((candidate) => candidate.plan.creativeRisk.pitchDevice),
+        ).size,
+      ).toBeGreaterThanOrEqual(3)
+      expect(
+        new Set(
+          candidates
+            .filter((candidate) => candidate.plan.creativeRisk.risk !== "focused")
+            .map((candidate) => candidate.plan.creativeRisk.structuralDevice),
+        ).size,
+      ).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it("RadicalはFocusedより大胆だが、音域・16分グリッド・単旋律を壊さない", () => {
+    const candidates = generateSignaturePhraseCandidates(input(99371))
+    const radical = candidates.filter(
+      (candidate) => candidate.plan.creativeRisk.risk === "radical",
+    )
+    const focused = candidates.filter(
+      (candidate) => candidate.plan.creativeRisk.risk === "focused",
+    )
+    const average = (values: number[]) =>
+      values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length)
+
+    expect(average(radical.map((candidate) => candidate.score.audacity))).toBeGreaterThan(
+      average(focused.map((candidate) => candidate.score.audacity)),
+    )
+    for (const candidate of candidates) {
+      const lead = candidate.notes
+        .filter((note) => !note.id.includes("-voice-"))
+        .sort((left, right) => left.startBeat - right.startBeat)
+      expect(candidate.score.controlledRisk).toBeGreaterThanOrEqual(0.5)
+      expect(
+        candidate.notes.every(
+          (note) =>
+            note.pitch >= 60 &&
+            note.pitch <= 79 &&
+            Number.isInteger(note.startBeat * 4) &&
+            Number.isInteger(note.durationBeats * 4),
+        ),
+      ).toBe(true)
+      expect(
+        lead.slice(1).every(
+          (note, index) =>
+            lead[index].startBeat + lead[index].durationBeats <=
+            note.startBeat + 0.001,
+        ),
+      ).toBe(true)
+    }
   })
 
   it("8小節を同一Motifの階層的な反復・変形・回帰として生成する", () => {
