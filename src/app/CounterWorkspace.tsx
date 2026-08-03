@@ -14,7 +14,14 @@ import {
   resolveReactivePreviewRange,
   type PreviewMode,
 } from "@/audio/previewPlayer"
-import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
+import type {
+  CounterContourPlan,
+  CounterCreativeRisk,
+  CounterDialogueIntent,
+  CounterEndingStrategy,
+  CounterRhythmGrammar,
+  ReactiveLayerCandidate,
+} from "@/core/reactiveLayer"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
@@ -36,6 +43,48 @@ const ROLE_LABELS: Record<string, string> = {
   counterline: "Counterline",
   "motif-echo": "Motif Echo",
   "suspension-layer": "Suspension",
+}
+
+const RISK_LABELS: Record<CounterCreativeRisk, string> = {
+  focused: "Focused",
+  bold: "Bold",
+  radical: "Radical",
+}
+
+const INTENT_LABELS: Record<CounterDialogueIntent, string> = {
+  answer: "Answer",
+  "echo-transform": "Echo Transform",
+  "counter-current": "Counter-current",
+  shadow: "Shadow",
+  "suspended-halo": "Suspended Halo",
+  "strategic-silence": "Strategic Silence",
+}
+
+const RHYTHM_LABELS: Record<CounterRhythmGrammar, string> = {
+  "breath-answer": "Breath Answer",
+  "long-short": "Long–Short",
+  "syncopated-reply": "Syncopated Reply",
+  "displaced-cell": "Displaced Cell",
+  "broken-pulse": "Broken Pulse",
+  "sparse-signal": "Sparse Signal",
+}
+
+const CONTOUR_LABELS: Record<CounterContourPlan, string> = {
+  "ascending-staircase": "Ascending Steps",
+  "descending-staircase": "Descending Steps",
+  arch: "Arch",
+  "inverted-arch": "Inverted Arch",
+  wave: "Wave",
+  "leap-recovery": "Leap & Recovery",
+  "pedal-break": "Pedal Break",
+}
+
+const ENDING_LABELS: Record<CounterEndingStrategy, string> = {
+  resolved: "Resolved",
+  "open-fifth": "Open Fifth",
+  suspended: "Suspended",
+  "motif-return": "Motif Return",
+  "silence-cut": "Silence Cut",
 }
 
 export function CounterWorkspace() {
@@ -167,7 +216,7 @@ export function CounterWorkspace() {
             Counter Generator
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            休符と低活動区間へ、主旋律を引き立てる独立した対旋律を10案提案します
+            主旋律へ何を返し、どこで黙るかまで設計した独立Counterを10案提案します
           </p>
         </div>
         <Button
@@ -245,6 +294,33 @@ export function CounterWorkspace() {
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       {ROLE_LABELS[candidate.role] ?? candidate.role}
                     </span>
+                    {candidate.counterPlan && (
+                      <>
+                        <span
+                          className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                            candidate.counterPlan.creativeRisk === "radical"
+                              ? "bg-fuchsia-400/20 text-fuchsia-200"
+                              : candidate.counterPlan.creativeRisk === "bold"
+                                ? "bg-orange-400/20 text-orange-200"
+                                : "bg-white/6 text-body-muted"
+                          }`}
+                        >
+                          {RISK_LABELS[candidate.counterPlan.creativeRisk]}
+                        </span>
+                        <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
+                          {INTENT_LABELS[candidate.counterPlan.dialogueIntent]}
+                        </span>
+                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                          {RHYTHM_LABELS[candidate.counterPlan.rhythmGrammar]}
+                        </span>
+                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                          {CONTOUR_LABELS[candidate.counterPlan.contour]}
+                        </span>
+                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                          {ENDING_LABELS[candidate.counterPlan.ending]}
+                        </span>
+                      </>
+                    )}
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       Gap {Math.round(candidate.quality.gapUsage)}%
                     </span>
@@ -277,8 +353,18 @@ export function CounterWorkspace() {
                   <p className="mt-2 truncate text-[10px] text-ink-muted-48">
                     Target: {activeMelody?.name ?? candidate.targetMelodyVariantId}
                   </p>
+                  {candidate.counterQuality && (
+                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-ink-muted-48">
+                      <span>Dialogue {Math.round(candidate.counterQuality.dialogueClarity)}</span>
+                      <span>Independent {Math.round(candidate.counterQuality.independence)}</span>
+                      <span>Rhythm {Math.round(candidate.counterQuality.rhythmicCharacter)}</span>
+                      <span>Necessity {Math.round(candidate.counterQuality.emotionalNecessity)}</span>
+                      <span>Audacity {Math.round(candidate.counterQuality.audacity)}</span>
+                      <span>Control {Math.round(candidate.counterQuality.controlledRisk)}</span>
+                    </div>
+                  )}
                 </button>
-                <div className="mt-3 grid grid-cols-3 gap-1.5">
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
                   <Button
                     variant="dark"
                     className="!px-2 !text-[11px]"

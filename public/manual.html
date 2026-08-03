@@ -778,7 +778,7 @@
     <section class="chapter" id="counter">
       <span class="chapter-num">12</span>
       <h2>Counterワークスペース</h2>
-      <p class="chapter-intro">主旋律(Active Melody)には手を加えず、その<strong>休符・隙間</strong>へ合いの手や応答フレーズを提案させるタブです。主旋律を変更したくない場合の対旋律づくりに使います。</p>
+      <p class="chapter-intro">主旋律(Active Melody)には手を加えず、その意味を強める第二声部を提案するタブです。空白を機械的に埋めず、主旋律へ何を返すか、どこで黙るか、どの緊張を残すかを先に計画します。</p>
 
       <div class="note warn">
         <p>Melodyタブで、このセクションの<strong>Active Melodyを設定してから</strong>使います。Active Melodyが無い状態では生成できません。</p>
@@ -798,7 +798,13 @@
           <tbody>
             <tr><td>スタイル</td><td>Bell / Piano / Strings / Guitar / Synthの5種類から生成された性格</td></tr>
             <tr><td>Role</td><td>Answer(応答) / Gap Fill(隙間埋め) / Counterline(対旋律) / Motif Echo(モチーフの反復) / Suspension(掛留)</td></tr>
-            <tr><td>Gap</td><td>主旋律の隙間をどれだけ活用しているか(%)</td></tr>
+            <tr><td>Creative Risk</td><td>Focused / Bold / Radical。Radicalも衝突回避・音域・解決条件を維持します。</td></tr>
+            <tr><td>Dialogue</td><td>Answer / Echo Transform / Counter-current / Shadow / Suspended Halo / Strategic Silence</td></tr>
+            <tr><td>Rhythm / Contour</td><td>リズム骨格と、階段進行・折り返し・Wave・Leap &amp; Recoveryなどの輪郭</td></tr>
+            <tr><td>Ending</td><td>Resolved / Open Fifth / Suspended / Motif Return / Silence Cut</td></tr>
+            <tr><td>Gap</td><td>実際の主旋律休符または安全な低活動区間をどれだけ活用しているか(%)</td></tr>
+            <tr><td>Dialogue / Independent</td><td>主旋律との対話が明確か、単なる複製になっていないか</td></tr>
+            <tr><td>Necessity / Control</td><td>その音が本当に必要か、大胆な動きが音楽的に回収されているか</td></tr>
             <tr><td>Collision</td><td>主旋律との音の衝突を検知した場合は警告表示</td></tr>
           </tbody>
         </table>

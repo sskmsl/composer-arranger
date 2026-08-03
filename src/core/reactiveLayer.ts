@@ -13,6 +13,74 @@ export type CounterGeneratorStyle =
   | "guitar-fill"
   | "synth-whisper"
 
+export type CounterCreativeRisk = "focused" | "bold" | "radical"
+
+export type CounterDialogueIntent =
+  | "answer"
+  | "echo-transform"
+  | "counter-current"
+  | "shadow"
+  | "suspended-halo"
+  | "strategic-silence"
+
+export type CounterRhythmGrammar =
+  | "breath-answer"
+  | "long-short"
+  | "syncopated-reply"
+  | "displaced-cell"
+  | "broken-pulse"
+  | "sparse-signal"
+
+export type CounterContourPlan =
+  | "ascending-staircase"
+  | "descending-staircase"
+  | "arch"
+  | "inverted-arch"
+  | "wave"
+  | "leap-recovery"
+  | "pedal-break"
+
+export type CounterDevelopmentStrategy =
+  | "inversion"
+  | "fragmentation"
+  | "augmentation"
+  | "delayed-return"
+  | "register-exchange"
+  | "local-mutation"
+
+export type CounterEndingStrategy =
+  | "resolved"
+  | "open-fifth"
+  | "suspended"
+  | "motif-return"
+  | "silence-cut"
+
+/** Counterを音符より先に設計し、主旋律との関係を候補ごとに変える。 */
+export interface CounterCompositionPlan {
+  creativeRisk: CounterCreativeRisk
+  dialogueIntent: CounterDialogueIntent
+  rhythmGrammar: CounterRhythmGrammar
+  contour: CounterContourPlan
+  development: CounterDevelopmentStrategy
+  ending: CounterEndingStrategy
+  registerRelation: "below" | "above" | "exchange"
+  phraseCount: 1 | 2 | 3
+  targetSilenceRatio: number
+}
+
+export interface CounterMusicalQuality {
+  dialogueClarity: number
+  independence: number
+  rhythmicCharacter: number
+  contourPurpose: number
+  breathAndRestraint: number
+  development: number
+  emotionalNecessity: number
+  audacity: number
+  controlledRisk: number
+  overall: number
+}
+
 export type DecorationType = "decorative-fill" | "transition-fill" | "ending-fill"
 export type DecorationCharacter = "strings" | "bell" | "piano" | "generic"
 export type DecorationShape =
@@ -158,6 +226,8 @@ export interface ReactiveLayerCandidate {
   role: ReactiveLayerRole
   /** Counter Generatorの音楽的キャラクター。Decorationでは未指定。 */
   generatorStyle?: CounterGeneratorStyle
+  counterPlan?: CounterCompositionPlan
+  counterQuality?: CounterMusicalQuality
   decorationPlan?: DecorationPlan
   /** Decoration生成時に参照したSection構造。構成変更時のstale判定に使う。 */
   structureFingerprint?: string

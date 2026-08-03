@@ -8,7 +8,15 @@ import {
   type ResolvedComposerRules,
 } from "@/composer-intelligence"
 import type {
+  CounterCompositionPlan,
+  CounterContourPlan,
+  CounterCreativeRisk,
+  CounterDevelopmentStrategy,
+  CounterDialogueIntent,
+  CounterEndingStrategy,
   CounterGeneratorStyle,
+  CounterMusicalQuality,
+  CounterRhythmGrammar,
   ReactiveLayerCandidate,
   ReactiveLayerRole,
 } from "@/core/reactiveLayer"
@@ -16,6 +24,7 @@ import { keyScalePitchClasses } from "@/core/scale"
 import {
   analyzeMelodyActivity,
   evaluateReactiveLayerQuality,
+  unresolvedReactiveToneNoteIds,
   type MelodyActivityAnalysis,
   type MelodyGap,
 } from "./reactiveLayerAnalysis"
@@ -44,6 +53,12 @@ interface StylePlan {
   velocity: readonly [number, number]
   preferredSide: "analysis" | "below" | "above"
   gapCount: readonly [number, number]
+}
+
+interface CounterRhythmEvent {
+  offset: number
+  duration: number
+  accent: number
 }
 
 export const COUNTER_CANDIDATE_CONFIG = {
@@ -105,6 +120,136 @@ const STYLE_LABELS: Record<CounterGeneratorStyle, string> = {
   "string-answer": "String Answer",
   "guitar-fill": "Guitar Fill",
   "synth-whisper": "Synth Whisper",
+}
+
+const CREATIVE_RISK_CYCLE: readonly CounterCreativeRisk[] = [
+  "focused",
+  "focused",
+  "focused",
+  "bold",
+  "bold",
+  "bold",
+  "bold",
+  "radical",
+  "radical",
+  "radical",
+]
+
+const DIALOGUE_INTENTS: readonly CounterDialogueIntent[] = [
+  "answer",
+  "echo-transform",
+  "counter-current",
+  "shadow",
+  "suspended-halo",
+  "strategic-silence",
+]
+
+const RHYTHM_GRAMMARS: readonly CounterRhythmGrammar[] = [
+  "breath-answer",
+  "long-short",
+  "syncopated-reply",
+  "displaced-cell",
+  "broken-pulse",
+  "sparse-signal",
+]
+
+const COUNTER_CONTOURS: readonly CounterContourPlan[] = [
+  "ascending-staircase",
+  "descending-staircase",
+  "arch",
+  "inverted-arch",
+  "wave",
+  "leap-recovery",
+  "pedal-break",
+]
+
+const DEVELOPMENT_STRATEGIES: readonly CounterDevelopmentStrategy[] = [
+  "inversion",
+  "fragmentation",
+  "augmentation",
+  "delayed-return",
+  "register-exchange",
+  "local-mutation",
+]
+
+const ENDING_STRATEGIES: readonly CounterEndingStrategy[] = [
+  "resolved",
+  "open-fifth",
+  "suspended",
+  "motif-return",
+  "silence-cut",
+]
+
+function planCounterComposition(
+  input: GenerateCounterInput,
+  stylePlan: StylePlan,
+  poolIndex: number,
+  availableWindowCount: number,
+  rng: SeededRandom,
+): CounterCompositionPlan {
+  const creativeRisk =
+    CREATIVE_RISK_CYCLE[poolIndex % CREATIVE_RISK_CYCLE.length]
+  const styleIntent: Record<CounterGeneratorStyle, CounterDialogueIntent> = {
+    "bell-response": "answer",
+    "piano-echo": "echo-transform",
+    "string-answer": "counter-current",
+    "guitar-fill": "shadow",
+    "synth-whisper": "suspended-halo",
+  }
+  const dialogueIntent =
+    poolIndex < DIALOGUE_INTENTS.length
+      ? DIALOGUE_INTENTS[poolIndex]
+      : rng.chance(0.68)
+        ? styleIntent[stylePlan.style]
+        : rng.pick(DIALOGUE_INTENTS)
+  const rhythmGrammar =
+    RHYTHM_GRAMMARS[(poolIndex * 5 + rng.intBetween(0, 5)) % RHYTHM_GRAMMARS.length]
+  const contour =
+    COUNTER_CONTOURS[(poolIndex * 3 + rng.intBetween(0, 6)) % COUNTER_CONTOURS.length]
+  const development =
+    DEVELOPMENT_STRATEGIES[
+      (poolIndex * 5 + rng.intBetween(0, 5)) % DEVELOPMENT_STRATEGIES.length
+    ]
+  const ending =
+    ENDING_STRATEGIES[(poolIndex * 3 + rng.intBetween(0, 4)) % ENDING_STRATEGIES.length]
+  const preferredPhraseCount =
+    dialogueIntent === "strategic-silence"
+      ? 1
+      : creativeRisk === "focused"
+        ? 1
+        : creativeRisk === "bold"
+          ? 2
+          : 3
+  const phraseCount = Math.max(
+    1,
+    Math.min(3, preferredPhraseCount, availableWindowCount),
+  ) as 1 | 2 | 3
+  const registerRelation =
+    development === "register-exchange"
+      ? "exchange"
+      : stylePlan.preferredSide === "analysis"
+        ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"
+          ? "above"
+          : "below"
+        : stylePlan.preferredSide
+  return {
+    creativeRisk,
+    dialogueIntent,
+    rhythmGrammar,
+    contour,
+    development,
+    ending,
+    registerRelation,
+    phraseCount,
+    targetSilenceRatio:
+      dialogueIntent === "strategic-silence"
+        ? 0.82
+        : creativeRisk === "focused"
+          ? 0.7
+          : creativeRisk === "bold"
+            ? 0.58
+            : 0.48,
+  }
 }
 
 function clampMidi(value: number): number {
@@ -170,58 +315,72 @@ function melodicSourceBefore(
 }
 
 function contourSteps(
-  rng: SeededRandom,
-  plan: StylePlan,
+  plan: CounterCompositionPlan,
   source: MelodyNote[],
   count: number,
   inverseDirection: number,
+  phraseIndex: number,
 ): number[] {
-  if (
-    plan.style === "bell-response" ||
-    plan.style === "string-answer" ||
-    plan.style === "synth-whisper"
-  ) {
-    // 4音以上の応答は、直線的な音階だけに偏らないよう一定確率で折り返し
-    // (アーチ型の輪郭)を許容する。3音以下の短い応答は単純な順次進行のままにする。
-    const turnAt =
-      count >= 4 && rng.chance(0.45) ? rng.intBetween(2, count - 1) : -1
-    return Array.from({ length: count }, (_, index) => {
-      if (index === 0) return 0
-      return turnAt >= 0 && index >= turnAt ? -inverseDirection : inverseDirection
-    })
-  }
   const sourceIntervals = source
     .slice(1)
     .map((note, index) => note.pitch - source[index].pitch)
-  if (sourceIntervals.length === 0) {
-    return Array.from({ length: count }, (_, index) =>
-      index === 0 ? 0 : inverseDirection,
+  const direction = inverseDirection || 1
+  const vocab: Record<CounterContourPlan, readonly number[]> = {
+    "ascending-staircase": [0, 1, 1, 1, 1],
+    "descending-staircase": [0, -1, -1, -1, -1],
+    arch: [0, 1, 1, -1, -1],
+    "inverted-arch": [0, -1, -1, 1, 1],
+    wave: [0, 2, -1, 2, -2],
+    "leap-recovery": [0, 3, -1, -1, 1],
+    "pedal-break": [0, 0, 2, -2, 0],
+  }
+  let steps = Array.from({ length: count }, (_, index) =>
+    vocab[plan.contour][index % vocab[plan.contour].length] * direction,
+  )
+  if (plan.dialogueIntent === "echo-transform" && sourceIntervals.length > 0) {
+    steps = steps.map((_, index) =>
+      index === 0
+        ? 0
+        : Math.sign(sourceIntervals[(index - 1) % sourceIntervals.length]) *
+          Math.max(1, Math.min(3, Math.round(Math.abs(sourceIntervals[(index - 1) % sourceIntervals.length]) / 2))),
     )
   }
-  const transformed =
-    plan.style === "piano-echo"
-      ? [...sourceIntervals].reverse()
-      : sourceIntervals.map((interval, index) =>
-          index % 2 === 0 ? -interval : interval,
-        )
-  return Array.from({ length: count }, (_, index) => {
-    if (index === 0) return 0
-    const interval = transformed[(index - 1) % transformed.length]
-    return Math.sign(interval) || inverseDirection
-  })
+  if (phraseIndex > 0) {
+    if (plan.development === "inversion") steps = steps.map((step) => -step)
+    if (plan.development === "fragmentation") {
+      steps = steps.map((step, index) => (index >= Math.ceil(count * 0.65) ? 0 : step))
+    }
+    if (plan.development === "augmentation") {
+      steps = steps.map((step) => Math.sign(step) * Math.min(4, Math.max(1, Math.abs(step) * 2)))
+    }
+    if (plan.development === "delayed-return") {
+      steps = steps.map((step, index) => (index < 2 ? 0 : step))
+    }
+    if (plan.development === "local-mutation") {
+      steps = steps.map((step, index) => (index === 2 ? -step || direction * 2 : step))
+    }
+  }
+  return steps
 }
 
 function registerForPlan(
-  plan: StylePlan,
+  composition: CounterCompositionPlan,
   analysis: MelodyActivityAnalysis,
+  phraseIndex: number,
 ): { low: number; high: number } {
-  if (plan.preferredSide === "below") {
+  const relation =
+    composition.registerRelation === "exchange"
+      ? phraseIndex % 2 === 0
+        ? "below"
+        : "above"
+      : composition.registerRelation
+  if (relation === "below") {
     return {
       low: Math.max(36, analysis.registerBudget.melodyLow - 17),
       high: Math.max(40, analysis.registerBudget.melodyLow - 4),
     }
   }
-  if (plan.preferredSide === "above") {
+  if (relation === "above") {
     return {
       low: Math.min(92, analysis.registerBudget.melodyHigh + 4),
       high: Math.min(96, analysis.registerBudget.melodyHigh + 16),
@@ -231,6 +390,90 @@ function registerForPlan(
     low: analysis.registerBudget.low,
     high: analysis.registerBudget.high,
   }
+}
+
+function roundQuarter(value: number): number {
+  return Math.round(value * 4) / 4
+}
+
+function rhythmEventsForWindow(
+  grammar: CounterRhythmGrammar,
+  durationBeats: number,
+  risk: CounterCreativeRisk,
+): CounterRhythmEvent[] {
+  const blueprints: Record<CounterRhythmGrammar, readonly CounterRhythmEvent[]> = {
+    "breath-answer": [
+      { offset: 0, duration: 0.5, accent: 0.72 },
+      { offset: 0.75, duration: 0.25, accent: 1 },
+      { offset: 1.5, duration: 0.75, accent: 0.82 },
+      { offset: 2.75, duration: 0.5, accent: 0.9 },
+    ],
+    "long-short": [
+      { offset: 0, duration: 0.75, accent: 1 },
+      { offset: 0.75, duration: 0.25, accent: 0.64 },
+      { offset: 1.25, duration: 0.5, accent: 0.82 },
+      { offset: 2.5, duration: 0.25, accent: 0.7 },
+    ],
+    "syncopated-reply": [
+      { offset: 0.25, duration: 0.5, accent: 0.68 },
+      { offset: 0.75, duration: 0.25, accent: 1 },
+      { offset: 1.5, duration: 0.5, accent: 0.78 },
+      { offset: 2.25, duration: 0.75, accent: 0.92 },
+    ],
+    "displaced-cell": [
+      { offset: 0.25, duration: 0.25, accent: 0.62 },
+      { offset: 0.5, duration: 0.5, accent: 1 },
+      { offset: 1.25, duration: 0.25, accent: 0.72 },
+      { offset: 2, duration: 0.75, accent: 0.9 },
+    ],
+    "broken-pulse": [
+      { offset: 0, duration: 0.25, accent: 0.88 },
+      { offset: 0.5, duration: 0.25, accent: 0.62 },
+      { offset: 0.75, duration: 0.25, accent: 1 },
+      { offset: 1.75, duration: 0.5, accent: 0.76 },
+      { offset: 2.75, duration: 0.25, accent: 0.94 },
+    ],
+    "sparse-signal": [
+      { offset: 0, duration: 0.5, accent: 1 },
+      { offset: 0.75, duration: 0.25, accent: 0.72 },
+      { offset: 2.25, duration: 0.75, accent: 0.86 },
+    ],
+  }
+  const maximumNotes = risk === "focused" ? 4 : risk === "bold" ? 5 : 6
+  const windowNoteLimit =
+    durationBeats <= 1 && risk !== "focused" ? 2 : maximumNotes
+  const available = blueprints[grammar]
+    .filter((event) => event.offset < durationBeats - 0.01)
+    .slice(0, windowNoteLimit)
+    .map((event) => ({
+      ...event,
+      offset: roundQuarter(event.offset),
+      duration: Math.max(
+        0.25,
+        roundQuarter(Math.min(event.duration, durationBeats - event.offset)),
+      ),
+    }))
+  // Focusedは1フレーズ内で識別できる3音、複数フレーズを持つBold/Radicalは
+  // 2音の呼びかけを離れたGapへ配置し、総密度を上げずに対話を作る。
+  const minimumNotes = risk === "focused" ? 3 : 2
+  for (const offset of [0, 0.5, 0.75]) {
+    if (available.length >= minimumNotes || offset >= durationBeats) break
+    if (!available.some((event) => event.offset === offset)) {
+      available.push({ offset, duration: 0.25, accent: offset === 0 ? 0.9 : 0.7 })
+    }
+  }
+  return available
+    .sort((left, right) => left.offset - right.offset)
+    .map((event, index, events) => ({
+      ...event,
+      duration: Math.max(
+        0.25,
+        Math.min(
+          event.duration,
+          (events[index + 1]?.offset ?? durationBeats) - event.offset,
+        ),
+      ),
+    }))
 }
 
 function melodyDirectionBefore(melody: MelodyNote[], beat: number): number {
@@ -265,17 +508,12 @@ function counterOpportunityWindows(
     .map((moment) => moment.startBeat)
     .sort((a, b) => a - b)
   const fromRests = availableGaps(analysis, minimumDuration).map((gap) => {
-    const desiredEnd = Math.min(
-      input.totalBeats,
-      gap.startBeat + Math.max(2, Math.min(4, gap.durationBeats + 1.5)),
-    )
     const nextCritical = criticalStarts.find(
       (beat) => beat >= gap.endBeat - 0.001 && beat > gap.startBeat + 0.5,
     )
-    const endBeat = Math.max(
-      gap.endBeat,
-      Math.min(desiredEnd, nextCritical ?? desiredEnd),
-    )
+    // 実際の休符を「生成可能なGap」として水増ししない。Protected Momentまで
+    // 伸ばす旧処理は、Gap Usageを実態より高く見せるため廃止する。
+    const endBeat = Math.min(gap.endBeat, nextCritical ?? gap.endBeat)
     return {
       startBeat: gap.startBeat,
       endBeat,
@@ -317,21 +555,24 @@ function counterOpportunityWindows(
 }
 
 function generatePhraseInGap(
-  plan: StylePlan,
+  stylePlan: StylePlan,
+  composition: CounterCompositionPlan,
   gap: MelodyGap,
   phraseIndex: number,
+  isFinalPhrase: boolean,
   input: GenerateCounterInput,
   analysis: MelodyActivityAnalysis,
   rng: SeededRandom,
 ): MelodyNote[] {
-  const register = registerForPlan(plan, analysis)
-  const requestedCount = rng.intBetween(plan.noteCount[0], plan.noteCount[1])
-  const count = Math.max(1, Math.min(requestedCount, Math.floor(gap.durationBeats / 0.25)))
-  const pickupOffset =
-    plan.style === "guitar-fill" && gap.durationBeats >= 1 ? 0.25 : 0
-  const phraseStart = gap.startBeat + pickupOffset
+  const register = registerForPlan(composition, analysis, phraseIndex)
+  const rhythmEvents = rhythmEventsForWindow(
+    composition.rhythmGrammar,
+    Math.min(4, gap.durationBeats),
+    composition.creativeRisk,
+  )
+  const count = rhythmEvents.length
+  const phraseStart = gap.startBeat
   const endBeat = Math.min(gap.endBeat, gap.startBeat + 4)
-  const slotBeats = Math.max(0.25, (endBeat - phraseStart) / count)
   const inverseDirection = -melodyDirectionBefore(input.melody.notes, gap.startBeat)
   const source = melodicSourceBefore(input.melody.notes, gap.startBeat)
   const ladder = scaleLadder(input.key, register.low, register.high)
@@ -340,16 +581,23 @@ function generatePhraseInGap(
     ladder,
     (register.low + register.high) / 2,
   )
-  const steps = contourSteps(rng, plan, source, count, inverseDirection)
+  const steps = contourSteps(
+    composition,
+    source,
+    count,
+    inverseDirection,
+    phraseIndex,
+  )
   const usesStepwiseContour =
-    plan.style === "bell-response" ||
-    plan.style === "string-answer" ||
-    plan.style === "synth-whisper"
+    composition.contour === "ascending-staircase" ||
+    composition.contour === "descending-staircase" ||
+    composition.contour === "arch" ||
+    composition.contour === "inverted-arch"
   if (usesStepwiseContour) {
     // 折り返し(アーチ型)を許容するようになったため、始点から終点までの純移動量は
     // 単純なinverseDirection * (count - 1)ではなく、実際のsteps合計から求める。
     const netDisplacement = steps.slice(1).reduce((sum, step) => sum + step, 0)
-    const finalBeat = phraseStart + (count - 1) * slotBeats
+    const finalBeat = phraseStart + (rhythmEvents.at(-1)?.offset ?? 0)
     const finalChord = chordForBeat(input.chords, finalBeat)
     const finalParsed = finalChord
       ? parseChordSymbol(finalChord.symbol, finalChord.bass ?? undefined)
@@ -385,9 +633,14 @@ function generatePhraseInGap(
     if (alignedTarget) ladderIndex = alignedTarget.startIndex
   }
   const notes: MelodyNote[] = []
+  if (composition.development === "register-exchange" && phraseIndex > 0) {
+    const target = (register.low + register.high) / 2
+    ladderIndex = nearestLadderIndex(ladder, target)
+  }
 
   for (let index = 0; index < count; index++) {
-    const beat = phraseStart + index * slotBeats
+    const rhythmEvent = rhythmEvents[index]
+    const beat = roundQuarter(phraseStart + rhythmEvent.offset)
     if (beat >= endBeat - 0.1) break
     const chord = chordForBeat(input.chords, beat)
     const parsed = chord
@@ -402,9 +655,20 @@ function generatePhraseInGap(
     let pitch = ladder[ladderIndex]
     let pitchClass = ((pitch % 12) + 12) % 12
     const isLast = index === count - 1
-    if (isLast && parsed) {
+    if (
+      isLast &&
+      isFinalPhrase &&
+      parsed &&
+      composition.ending !== "silence-cut"
+    ) {
       const chordPitchClasses = parsed.tones.map((tone) => tone.pitchClass)
-      const nearestChordPitchClass = chordPitchClasses.reduce((best, current) => {
+      const endingPitchClasses =
+        composition.ending === "suspended" && parsed.tensions.length > 0
+          ? parsed.tensions.map((tone) => tone.pitchClass)
+          : composition.ending === "open-fifth"
+            ? chordPitchClasses.slice(0, Math.min(3, chordPitchClasses.length))
+            : chordPitchClasses
+      const nearestChordPitchClass = endingPitchClasses.reduce((best, current) => {
         const bestPitch = pitchInRegister(best, register.low, register.high, pitch)
         const currentPitch = pitchInRegister(
           current,
@@ -424,30 +688,44 @@ function generatePhraseInGap(
       )
       const previous = notes.at(-1)?.pitch
       if (
-        previous === undefined ||
-        (Math.abs(resolvedPitch - previous) >= 1 &&
-          Math.abs(resolvedPitch - previous) <= 3)
+        composition.ending !== "motif-return" &&
+        (previous === undefined ||
+          (Math.abs(resolvedPitch - previous) >= 1 &&
+            Math.abs(resolvedPitch - previous) <= 3))
       ) {
         pitchClass = nearestChordPitchClass
         pitch = resolvedPitch
       }
     }
 
+    if (
+      isLast &&
+      isFinalPhrase &&
+      composition.ending === "motif-return" &&
+      notes.length > 0
+    ) {
+      pitch = pitchInRegister(
+        ((notes[0].pitch % 12) + 12) % 12,
+        register.low,
+        register.high,
+        pitch,
+      )
+      pitchClass = ((pitch % 12) + 12) % 12
+    }
+
     const echoedDuration =
-      plan.style === "piano-echo"
+      stylePlan.style === "piano-echo"
         ? source[index % Math.max(1, source.length)]?.durationBeats
         : undefined
     const desiredDuration =
-      echoedDuration && plan.durations.includes(echoedDuration)
+      echoedDuration && stylePlan.durations.includes(echoedDuration)
         ? echoedDuration
-        : rng.pick(plan.durations)
+        : rhythmEvent.duration
     const remaining = endBeat - beat
-    const articulatedSlot =
-      plan.style === "synth-whisper"
-        ? slotBeats
-        : plan.style === "piano-echo"
-          ? slotBeats * 0.72
-          : slotBeats * 0.82
+    const nextBeat = rhythmEvents[index + 1]
+      ? phraseStart + rhythmEvents[index + 1].offset
+      : endBeat
+    const articulatedSlot = Math.max(0.25, nextBeat - beat)
     const durationBeats = Math.max(
       0.25,
       Math.min(desiredDuration, articulatedSlot, remaining),
@@ -457,11 +735,24 @@ function generatePhraseInGap(
       startBeat: beat,
       durationBeats,
       pitch,
-      velocity: rng.intBetween(plan.velocity[0], plan.velocity[1]),
+      velocity: Math.max(
+        stylePlan.velocity[0],
+        Math.min(
+          stylePlan.velocity[1],
+          Math.round(
+            stylePlan.velocity[0] +
+              (stylePlan.velocity[1] - stylePlan.velocity[0]) *
+                rhythmEvent.accent +
+              rng.intBetween(-2, 2),
+          ),
+        ),
+      ),
       locks: [],
       plannedToneRole: parsed?.tones.some((tone) => tone.pitchClass === pitchClass)
         ? "chord-tone"
-        : plan.style === "synth-whisper"
+        : composition.ending === "suspended" && isLast
+          ? "tension-hold"
+          : stylePlan.style === "synth-whisper"
           ? "tension-hold"
           : "passing-tone",
     })
@@ -514,6 +805,170 @@ function motifRelationship(melody: MelodyNote[], notes: MelodyNote[]): number {
     melodyIntervals.some((melodyInterval) => Math.abs(melodyInterval - interval) <= 1),
   ).length
   return 55 + (related / Math.max(1, counterIntervals.length)) * 35
+}
+
+function counterIntervals(notes: readonly MelodyNote[]): number[] {
+  return notes.slice(1).map((note, index) => note.pitch - notes[index].pitch)
+}
+
+function counterOnsetGaps(notes: readonly MelodyNote[]): number[] {
+  return notes
+    .slice(1)
+    .map((note, index) => roundQuarter(note.startBeat - notes[index].startBeat))
+}
+
+function evaluateCounterMusicalQuality(
+  plan: CounterCompositionPlan,
+  input: GenerateCounterInput,
+  notes: MelodyNote[],
+  baseQuality: ReactiveLayerCandidate["quality"],
+  collisions: ReactiveLayerCandidate["collisions"],
+  counterpointFit: number,
+  relationship: number,
+): CounterMusicalQuality {
+  if (notes.length < 2) {
+    return {
+      dialogueClarity: 0,
+      independence: 0,
+      rhythmicCharacter: 0,
+      contourPurpose: 0,
+      breathAndRestraint: 0,
+      development: 0,
+      emotionalNecessity: 0,
+      audacity: 0,
+      controlledRisk: 0,
+      overall: 0,
+    }
+  }
+  const intervals = counterIntervals(notes)
+  const onsetGaps = counterOnsetGaps(notes)
+  const durations = notes.map((note) => roundQuarter(note.durationBeats))
+  const directions = intervals.map(Math.sign).filter((value) => value !== 0)
+  const directionChanges = directions.slice(1).filter(
+    (direction, index) => direction !== directions[index],
+  ).length
+  const largestLeap = Math.max(0, ...intervals.map(Math.abs))
+  const recoveredLeaps = intervals.filter((interval, index) => {
+    const next = intervals[index + 1]
+    return (
+      Math.abs(interval) >= 5 &&
+      next !== undefined &&
+      Math.sign(next) === -Math.sign(interval) &&
+      Math.abs(next) <= 4
+    )
+  }).length
+  const leapCount = intervals.filter((interval) => Math.abs(interval) >= 5).length
+  const melodyIntervals = counterIntervals(input.melody.notes)
+  const copiedIntervals = intervals.filter((interval) =>
+    melodyIntervals.some((melodyInterval) => melodyInterval === interval),
+  ).length / Math.max(1, intervals.length)
+  const syncopatedRatio = notes.filter(
+    (note) => Math.abs(note.startBeat - Math.round(note.startBeat)) >= 0.24,
+  ).length / notes.length
+  const sounded = notes.reduce((sum, note) => sum + note.durationBeats, 0)
+  const silenceRatio = Math.max(0, 1 - sounded / Math.max(1, input.totalBeats))
+  const phraseStarts = notes.filter(
+    (note, index) => index === 0 || note.startBeat - notes[index - 1].startBeat >= 1,
+  ).length
+  const dialogueClarity = Math.min(
+    100,
+    relationship * 0.35 +
+      counterpointFit * 0.4 +
+      baseQuality.melodyRespect * 0.25,
+  )
+  const independence = Math.max(
+    0,
+    Math.min(
+      100,
+      (1 - copiedIntervals) * 55 +
+        Math.min(1, directionChanges / 2) * 20 +
+        Math.min(1, new Set(intervals).size / 4) * 25,
+    ),
+  )
+  const rhythmicCharacter = Math.min(
+    100,
+    Math.min(1, new Set(onsetGaps).size / 3) * 35 +
+      Math.min(1, new Set(durations).size / 3) * 25 +
+      Math.min(1, syncopatedRatio / 0.45) * 25 +
+      (new Set(onsetGaps).size > 1 ? 15 : 4),
+  )
+  const contourPurpose = Math.min(
+    100,
+    Math.min(1, largestLeap / 7) * 28 +
+      Math.min(1, directionChanges / 2) * 32 +
+      (plan.contour.includes("staircase")
+        ? intervals.every((interval) => interval !== 0 && Math.abs(interval) <= 3)
+          ? 32
+          : 12
+        : 24) +
+      (plan.contour === "leap-recovery" && recoveredLeaps > 0 ? 16 : 6),
+  )
+  const breathAndRestraint = Math.max(
+    0,
+    Math.min(
+      100,
+      (1 - Math.abs(silenceRatio - plan.targetSilenceRatio)) * 65 +
+        (notes.length <= Math.max(5, input.totalBeats * 0.55) ? 20 : 6) +
+        (plan.dialogueIntent === "strategic-silence" ? 15 : 10),
+    ),
+  )
+  const development = Math.min(
+    100,
+    phraseStarts * 18 +
+      Math.min(1, new Set(intervals.map(Math.abs)).size / 4) * 28 +
+      (plan.development !== "local-mutation" ? 22 : 16) +
+      (phraseStarts >= plan.phraseCount ? 20 : 8),
+  )
+  const emotionalNecessity = Math.min(
+    100,
+    baseQuality.melodyRespect * 0.42 +
+      breathAndRestraint * 0.28 +
+      dialogueClarity * 0.2 +
+      (collisions.simultaneousAttackCount === 0 ? 10 : 3),
+  )
+  const audacity = Math.min(
+    100,
+    Math.min(1, largestLeap / 9) * 30 +
+      Math.min(1, syncopatedRatio / 0.45) * 22 +
+      (plan.ending === "resolved" ? 5 : 17) +
+      (plan.registerRelation === "exchange" ? 16 : 5) +
+      (plan.creativeRisk === "radical" ? 15 : plan.creativeRisk === "bold" ? 9 : 2),
+  )
+  const unresolved = unresolvedReactiveToneNoteIds(notes).length
+  const resolutionControl =
+    leapCount === 0 ? 90 : (recoveredLeaps / leapCount) * 100
+  const controlledRisk = Math.max(
+    0,
+    Math.min(
+      100,
+      baseQuality.harmonicFit * 0.3 +
+        baseQuality.melodyRespect * 0.35 +
+        resolutionControl * 0.2 +
+        (unresolved === 0 ? 15 : 0) -
+        (collisions.hasBlockingCollision ? 40 : 0),
+    ),
+  )
+  const overall =
+    dialogueClarity * 0.18 +
+    independence * 0.13 +
+    rhythmicCharacter * 0.13 +
+    contourPurpose * 0.1 +
+    breathAndRestraint * 0.12 +
+    development * 0.1 +
+    emotionalNecessity * 0.14 +
+    controlledRisk * 0.1
+  return {
+    dialogueClarity,
+    independence,
+    rhythmicCharacter,
+    contourPurpose,
+    breathAndRestraint,
+    development,
+    emotionalNecessity,
+    audacity,
+    controlledRisk,
+    overall,
+  }
 }
 
 function overlappingMelodyNote(
@@ -623,8 +1078,14 @@ export function evaluateCounterpointFit(
 }
 
 function candidateSimilarity(
-  left: Pick<ReactiveLayerCandidate, "notes" | "generatorStyle" | "role">,
-  right: Pick<ReactiveLayerCandidate, "notes" | "generatorStyle" | "role">,
+  left: Pick<
+    ReactiveLayerCandidate,
+    "notes" | "generatorStyle" | "role" | "counterPlan"
+  >,
+  right: Pick<
+    ReactiveLayerCandidate,
+    "notes" | "generatorStyle" | "role" | "counterPlan"
+  >,
 ): number {
   const startsLeft = new Set(left.notes.map((note) => Math.round(note.startBeat * 4)))
   const startsRight = new Set(right.notes.map((note) => Math.round(note.startBeat * 4)))
@@ -641,9 +1102,51 @@ function candidateSimilarity(
     if (a === b) contourMatches++
   }
   const contourSimilarity = contourLength > 0 ? contourMatches / contourLength : 0
+  const intervalLeft = counterIntervals(left.notes)
+  const intervalRight = counterIntervals(right.notes)
+  const intervalLength = Math.min(intervalLeft.length, intervalRight.length)
+  const intervalSimilarity =
+    intervalLength === 0
+      ? 0
+      : intervalLeft
+          .slice(0, intervalLength)
+          .filter(
+            (interval, index) =>
+              Math.abs(interval - intervalRight[index]) <= 1,
+          ).length / Math.max(intervalLeft.length, intervalRight.length)
+  const durationLeft = left.notes.map((note) => roundQuarter(note.durationBeats))
+  const durationRight = right.notes.map((note) => roundQuarter(note.durationBeats))
+  const durationLength = Math.min(durationLeft.length, durationRight.length)
+  const durationSimilarity =
+    durationLength === 0
+      ? 0
+      : durationLeft
+          .slice(0, durationLength)
+          .filter((duration, index) => duration === durationRight[index]).length /
+        Math.max(durationLeft.length, durationRight.length)
   const styleSimilarity = left.generatorStyle === right.generatorStyle ? 1 : 0
   const roleSimilarity = left.role === right.role ? 1 : 0
-  return onsetSimilarity * 0.4 + contourSimilarity * 0.3 + styleSimilarity * 0.2 + roleSimilarity * 0.1
+  const planSimilarity = left.counterPlan && right.counterPlan
+    ? (left.counterPlan.dialogueIntent === right.counterPlan.dialogueIntent ? 0.25 : 0) +
+      (left.counterPlan.rhythmGrammar === right.counterPlan.rhythmGrammar ? 0.2 : 0) +
+      (left.counterPlan.contour === right.counterPlan.contour ? 0.2 : 0) +
+      (left.counterPlan.development === right.counterPlan.development ? 0.15 : 0) +
+      (left.counterPlan.ending === right.counterPlan.ending ? 0.1 : 0) +
+      (left.counterPlan.creativeRisk === right.counterPlan.creativeRisk ? 0.1 : 0)
+    : 0
+  const detailedSimilarity =
+    onsetSimilarity * 0.2 +
+    intervalSimilarity * 0.2 +
+    contourSimilarity * 0.14 +
+    durationSimilarity * 0.12 +
+    planSimilarity * 0.18 +
+    styleSimilarity * 0.1 +
+    roleSimilarity * 0.06
+  // Plan名が違っても、聴こえるOnset・Contour・Roleが同じなら近い案として扱う。
+  // Technique Fitが特定Roleへ寄せる場合も、音として同型の候補が並ぶのを防ぐ。
+  const audibleSimilarity =
+    onsetSimilarity * 0.45 + contourSimilarity * 0.35 + roleSimilarity * 0.2
+  return Math.max(detailedSimilarity, audibleSimilarity * 0.94)
 }
 
 function normalizedPreferenceWeight(
@@ -706,10 +1209,19 @@ function selectDiverseCandidates(
   finalCount: number,
   techniqueFitSelectionWeight = 0,
 ): ReactiveLayerCandidate[] {
+  // Techniqueは候補の方向を補助するが、聴感多様性を上書きしない。
+  // 外部指定値をそのまま支配力にせず、Counter固有品質の中へ穏やかに統合する。
+  const effectiveTechniqueWeight = Math.min(
+    0.025,
+    techniqueFitSelectionWeight * 0.3,
+  )
   const structuralWeight = Math.max(
     0,
-    1 - techniqueFitSelectionWeight,
+    1 - effectiveTechniqueWeight,
   )
+  const musicalScore = (candidate: ReactiveLayerCandidate) =>
+    candidate.quality.overallQuality * 0.52 +
+    (candidate.counterQuality?.overall ?? 0) * 0.48
   const eligibleWithDuplicates = pool
     .filter(
       (candidate) =>
@@ -717,19 +1229,22 @@ function selectDiverseCandidates(
         candidate.quality.melodyRespect >= 80 &&
         candidate.quality.harmonicFit >= 60 &&
         candidate.quality.motifRelationship >= 55 &&
+        (candidate.counterQuality?.overall ?? 0) >= 62 &&
+        (candidate.counterQuality?.controlledRisk ?? 0) >= 72 &&
+        (candidate.counterQuality?.emotionalNecessity ?? 0) >= 68 &&
         !candidate.collisions.hasBlockingCollision &&
         candidate.notes.length >= 3,
     )
     .sort(
       (a, b) =>
-        b.quality.overallQuality * structuralWeight +
+        musicalScore(b) * structuralWeight +
         (b.techniqueFitScore ?? 0) *
           100 *
-          techniqueFitSelectionWeight -
-        (a.quality.overallQuality * structuralWeight +
+          effectiveTechniqueWeight -
+        (musicalScore(a) * structuralWeight +
           (a.techniqueFitScore ?? 0) *
             100 *
-            techniqueFitSelectionWeight),
+            effectiveTechniqueWeight),
     )
   const eligible = eligibleWithDuplicates.filter(
     (candidate, index, candidates) =>
@@ -751,6 +1266,9 @@ function selectDiverseCandidates(
   )
   const source = eligible
   const selected: ReactiveLayerCandidate[] = []
+  const radicalTarget = Math.max(1, Math.round(finalCount * 0.3))
+  const boldTarget = Math.max(1, Math.round(finalCount * 0.4))
+  const focusedTarget = Math.max(1, finalCount - radicalTarget - boldTarget)
   while (selected.length < finalCount && selected.length < source.length) {
     if (selected.length === 0) {
       selected.push({ ...source[0], selectionReason: "highest-quality" })
@@ -762,18 +1280,102 @@ function selectDiverseCandidates(
     const needsStepwise =
       !selected.some((candidate) => isStepwiseCandidate(candidate)) &&
       remaining.some((candidate) => isStepwiseCandidate(candidate))
-    const selectionPool = needsStepwise
-      ? remaining.filter((candidate) => isStepwiseCandidate(candidate))
-      : remaining
+    const selectedRiskCounts: Record<CounterCreativeRisk, number> = {
+      focused: selected.filter(
+        (candidate) =>
+          (candidate.counterPlan?.creativeRisk ?? "focused") === "focused",
+      ).length,
+      bold: selected.filter(
+        (candidate) => candidate.counterPlan?.creativeRisk === "bold",
+      ).length,
+      radical: selected.filter(
+        (candidate) => candidate.counterPlan?.creativeRisk === "radical",
+      ).length,
+    }
+    const riskTargets: Record<CounterCreativeRisk, number> = {
+      focused: focusedTarget,
+      bold: boldTarget,
+      radical: radicalTarget,
+    }
+    const availableRisks = (["focused", "bold", "radical"] as const).filter(
+      (risk) =>
+        selectedRiskCounts[risk] < riskTargets[risk] &&
+        remaining.some(
+          (candidate) =>
+            (candidate.counterPlan?.creativeRisk ?? "focused") === risk,
+        ),
+    )
+    const highestDeficitRatio = Math.max(
+      0,
+      ...availableRisks.map(
+        (risk) =>
+          (riskTargets[risk] - selectedRiskCounts[risk]) /
+          riskTargets[risk],
+      ),
+    )
+    const quotaPool = remaining.filter((candidate) => {
+      const risk = candidate.counterPlan?.creativeRisk ?? "focused"
+      return (
+        availableRisks.includes(risk) &&
+        (riskTargets[risk] - selectedRiskCounts[risk]) /
+          riskTargets[risk] >=
+          highestDeficitRatio - 0.001
+      )
+    })
+    const riskBalancedPool = quotaPool.length > 0 ? quotaPool : remaining
+    const selectionPool =
+      needsStepwise && riskBalancedPool.some(isStepwiseCandidate)
+        ? riskBalancedPool.filter((candidate) => isStepwiseCandidate(candidate))
+        : riskBalancedPool
     const next = selectionPool
       .map((candidate) => {
         const maximumSimilarity = Math.max(
           ...selected.map((item) => candidateSimilarity(candidate, item)),
         )
+        const risk = candidate.counterPlan?.creativeRisk ?? "focused"
+        const selectedRiskCount = selected.filter(
+          (item) => (item.counterPlan?.creativeRisk ?? "focused") === risk,
+        ).length
+        const riskTarget =
+          risk === "radical"
+            ? radicalTarget
+            : risk === "bold"
+              ? boldTarget
+              : focusedTarget
+        const intentAlreadySelected = selected.some(
+          (item) =>
+            item.counterPlan?.dialogueIntent ===
+            candidate.counterPlan?.dialogueIntent,
+        )
+        const rhythmAlreadySelected = selected.some(
+          (item) =>
+            item.counterPlan?.rhythmGrammar ===
+            candidate.counterPlan?.rhythmGrammar,
+        )
+        const contourAlreadySelected = selected.some(
+          (item) => item.counterPlan?.contour === candidate.counterPlan?.contour,
+        )
+        const endingAlreadySelected = selected.some(
+          (item) => item.counterPlan?.ending === candidate.counterPlan?.ending,
+        )
+        const roleAlreadySelected = selected.some(
+          (item) => item.role === candidate.role,
+        )
+        const styleAlreadySelected = selected.some(
+          (item) => item.generatorStyle === candidate.generatorStyle,
+        )
+        const coverageBonus =
+          (!intentAlreadySelected ? 8 : 0) +
+          (!rhythmAlreadySelected ? 6 : 0) +
+          (!contourAlreadySelected ? 5 : 0) +
+          (!endingAlreadySelected ? 4 : 0) +
+          (!roleAlreadySelected ? 18 : 0) +
+          (!styleAlreadySelected ? 8 : 0) +
+          (selectedRiskCount < riskTarget ? 22 : 0)
         return {
           candidate,
           score:
-            candidate.quality.overallQuality *
+            musicalScore(candidate) *
               0.65 *
               structuralWeight +
             (1 - maximumSimilarity) *
@@ -782,7 +1384,8 @@ function selectDiverseCandidates(
               structuralWeight +
             (candidate.techniqueFitScore ?? 0) *
               100 *
-              techniqueFitSelectionWeight,
+              effectiveTechniqueWeight +
+            coverageBonus,
         }
       })
       .sort((a, b) => b.score - a.score)[0]?.candidate
@@ -813,7 +1416,14 @@ function buildPoolCandidate(
     analysis,
     plan.style === "synth-whisper" ? 0.75 : 0.5,
   )
-  const gapCount = Math.min(gaps.length, rng.intBetween(plan.gapCount[0], plan.gapCount[1]))
+  const composition = planCounterComposition(
+    input,
+    plan,
+    poolIndex,
+    gaps.length,
+    rng,
+  )
+  const gapCount = Math.min(gaps.length, composition.phraseCount)
   const selectedGaps = gaps
     .map((gap) => ({
       gap,
@@ -836,7 +1446,16 @@ function buildPoolCandidate(
     .map(({ gap }) => gap)
     .sort((a, b) => a.startBeat - b.startBeat)
   const notes = selectedGaps.flatMap((gap, index) =>
-    generatePhraseInGap(plan, gap, index, { ...input, seed: candidateSeed }, analysis, rng),
+    generatePhraseInGap(
+      plan,
+      composition,
+      gap,
+      index,
+      index === selectedGaps.length - 1,
+      { ...input, seed: candidateSeed },
+      analysis,
+      rng,
+    ),
   )
   const opportunityAnalysis = { ...analysis, gaps }
   const relationship = motifRelationship(input.melody.notes, notes)
@@ -851,6 +1470,15 @@ function buildPoolCandidate(
     sectionFit: sectionFit(input.sectionRole, notes.length),
     transitionValue: input.sectionRole === "pre-chorus" || input.sectionRole === "bridge" ? 78 : 65,
   })
+  const counterQuality = evaluateCounterMusicalQuality(
+    composition,
+    input,
+    notes,
+    evaluated.quality,
+    evaluated.collisions,
+    counterpointFit,
+    relationship,
+  )
   return {
     id: `counter-${candidateSeed}-${poolIndex}`,
     batchId: `counter-batch-${input.seed}`,
@@ -859,6 +1487,8 @@ function buildPoolCandidate(
     kind: "counter",
     role: plan.role,
     generatorStyle: plan.style,
+    counterPlan: composition,
+    counterQuality,
     name: STYLE_LABELS[plan.style],
     notes,
     seed: candidateSeed,
@@ -943,19 +1573,43 @@ export function regenerateCounterCandidate(
     finalCount: COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
   })
   const alternatives = generated
-    .filter((candidate) => candidate.generatorStyle !== current.generatorStyle)
+    .filter((candidate) => {
+      const currentPlan = current.counterPlan
+      const nextPlan = candidate.counterPlan
+      const changedPlanAxes =
+        currentPlan && nextPlan
+          ? [
+              currentPlan.dialogueIntent !== nextPlan.dialogueIntent,
+              currentPlan.rhythmGrammar !== nextPlan.rhythmGrammar,
+              currentPlan.contour !== nextPlan.contour,
+              currentPlan.development !== nextPlan.development,
+              currentPlan.ending !== nextPlan.ending,
+              currentPlan.creativeRisk !== nextPlan.creativeRisk,
+            ].filter(Boolean).length
+          : 0
+      return (
+        candidate.generatorStyle !== current.generatorStyle &&
+        changedPlanAxes >= 3
+      )
+    })
     .map((candidate) => ({
       candidate,
       similarity: Math.max(
         0,
         ...siblings.map((sibling) => candidateSimilarity(candidate, sibling)),
       ),
+      score:
+        (candidate.counterQuality?.overall ?? 0) * 0.55 +
+        candidate.quality.overallQuality * 0.15 +
+        (1 -
+          Math.max(
+            0,
+            ...siblings.map((sibling) => candidateSimilarity(candidate, sibling)),
+          )) *
+          100 *
+          0.3,
     }))
-    .sort(
-      (a, b) =>
-        a.similarity - b.similarity ||
-        b.candidate.quality.overallQuality - a.candidate.quality.overallQuality,
-    )
+    .sort((a, b) => b.score - a.score || a.similarity - b.similarity)
   const selected = alternatives[0]?.candidate ?? generated[0]
   return selected ? { ...selected, selectionReason: "regenerated" } : null
 }
