@@ -1,6 +1,8 @@
 import type { MelodyNote } from "@/core/melody"
-import type { ComposerProject } from "@/core/project"
+import { parseChordSymbol } from "@/core/chord"
+import type { ChordEvent, ComposerProject } from "@/core/project"
 import type {
+  CounterOpportunityKind,
   ReactiveLayerCandidate,
   ReactiveLayerCollisionSummary,
   ReactiveLayerCompatibility,
@@ -41,6 +43,49 @@ export interface MelodyActivityAnalysis {
   /** セクション全体に許容するReactive Layerの最大発音数。 */
   maximumNoteCount: number
   melodyDensity: number
+}
+
+export interface HarmonicCounterRegion {
+  startBeat: number
+  endBeat: number
+  chordSymbol: string
+  chordTonePitchClasses: number[]
+  guideTonePitchClasses: number[]
+  tensionPitchClasses: number[]
+  commonTonePitchClasses: number[]
+  harmonicTension: number
+  rootMotion: number
+}
+
+export interface MelodyPhraseAnalysis {
+  startBeat: number
+  endBeat: number
+  direction: -1 | 0 | 1
+  density: number
+  motifPitches: number[]
+  motifDurations: number[]
+  motifOnsetGaps: number[]
+  endingPitch: number
+}
+
+export interface CounterOpportunity extends MelodyGap {
+  kind: CounterOpportunityKind
+  needScore: number
+  preferredMotion: "contrary" | "oblique" | "independent"
+  sourceMotifPitches: number[]
+  sourceMotifDurations: number[]
+  sourceMotifOnsetGaps: number[]
+  targetTonePitchClasses: number[]
+  avoidAttackBeats: number[]
+  rationale: string
+}
+
+export interface CounterContextAnalysis extends MelodyActivityAnalysis {
+  harmonicRegions: HarmonicCounterRegion[]
+  melodyPhrases: MelodyPhraseAnalysis[]
+  opportunities: CounterOpportunity[]
+  counterNeedScore: number
+  silenceRecommended: boolean
 }
 
 function overlapDuration(
@@ -175,6 +220,290 @@ export function analyzeMelodyActivity(
     registerBudget: registerBudget(notes),
     maximumNoteCount: Math.max(2, Math.floor(totalBeats * availableRatio * 0.75)),
     melodyDensity,
+  }
+}
+
+function normalizedPitchClass(pitch: number): number {
+  return ((pitch % 12) + 12) % 12
+}
+
+function signedRootMotion(from: number, to: number): number {
+  const upward = (to - from + 12) % 12
+  return upward > 6 ? upward - 12 : upward
+}
+
+function analyzeHarmonyForCounter(chords: ChordEvent[]): HarmonicCounterRegion[] {
+  const ordered = [...chords].sort((left, right) => left.startBeat - right.startBeat)
+  return ordered.map((chord, index) => {
+    const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+    const nextChord = ordered[index + 1]
+    const nextParsed = nextChord
+      ? parseChordSymbol(nextChord.symbol, nextChord.bass ?? undefined)
+      : null
+    const chordTonePitchClasses = parsed?.tones.map((tone) => tone.pitchClass) ?? []
+    const tensionPitchClasses = parsed?.tensions.map((tone) => tone.pitchClass) ?? []
+    const guideTonePitchClasses = parsed
+      ? [
+          ...parsed.tones.filter(
+            (tone) => tone.role === "third" || tone.role === "seventh",
+          ),
+          ...parsed.tensions,
+        ].map((tone) => tone.pitchClass)
+      : []
+    const nextPitchClasses = new Set(
+      nextParsed
+        ? [...nextParsed.tones, ...nextParsed.tensions].map(
+            (tone) => tone.pitchClass,
+          )
+        : chordTonePitchClasses,
+    )
+    return {
+      startBeat: chord.startBeat,
+      endBeat: chord.startBeat + chord.durationBeats,
+      chordSymbol: chord.symbol,
+      chordTonePitchClasses,
+      guideTonePitchClasses,
+      tensionPitchClasses,
+      commonTonePitchClasses: chordTonePitchClasses.filter((pitchClass) =>
+        nextPitchClasses.has(pitchClass),
+      ),
+      harmonicTension: Math.min(
+        100,
+        (parsed?.isDominant ? 36 : 0) +
+          (parsed?.isDiminished ? 32 : 0) +
+          tensionPitchClasses.length * 12 +
+          (parsed?.isSus ? 12 : 0) +
+          24,
+      ),
+      rootMotion:
+        parsed && nextParsed
+          ? signedRootMotion(parsed.rootPc, nextParsed.rootPc)
+          : 0,
+    }
+  })
+}
+
+function analyzeMelodyPhrases(
+  notes: MelodyNote[],
+  totalBeats: number,
+): MelodyPhraseAnalysis[] {
+  const ordered = [...notes].sort((left, right) => left.startBeat - right.startBeat)
+  if (ordered.length === 0) return []
+  const groups: MelodyNote[][] = []
+  for (const note of ordered) {
+    const group = groups.at(-1)
+    const previous = group?.at(-1)
+    if (
+      !group ||
+      !previous ||
+      note.startBeat - (previous.startBeat + previous.durationBeats) >= 0.75
+    ) {
+      groups.push([note])
+    } else {
+      group.push(note)
+    }
+  }
+  return groups.map((group) => {
+    const first = group[0]
+    const last = group.at(-1)!
+    const startBeat = first.startBeat
+    const endBeat = Math.min(
+      totalBeats,
+      last.startBeat + last.durationBeats,
+    )
+    const sounded = group.reduce(
+      (sum, note) => sum + note.durationBeats,
+      0,
+    )
+    return {
+      startBeat,
+      endBeat,
+      direction: Math.sign(last.pitch - first.pitch) as -1 | 0 | 1,
+      density: Math.min(1, sounded / Math.max(0.25, endBeat - startBeat)),
+      motifPitches: group.slice(-4).map((note) => note.pitch),
+      motifDurations: group.slice(-4).map((note) => note.durationBeats),
+      motifOnsetGaps: group
+        .slice(-4)
+        .slice(1)
+        .map((note, index) =>
+          note.startBeat - group.slice(-4)[index].startBeat,
+        ),
+      endingPitch: last.pitch,
+    }
+  })
+}
+
+function harmonicRegionAt(
+  regions: HarmonicCounterRegion[],
+  beat: number,
+): HarmonicCounterRegion | undefined {
+  return (
+    regions.find(
+      (region) => beat >= region.startBeat && beat < region.endBeat,
+    ) ?? regions.at(-1)
+  )
+}
+
+function targetPitchClassesForOpportunity(
+  regions: HarmonicCounterRegion[],
+  startBeat: number,
+  endBeat: number,
+): number[] {
+  const start = harmonicRegionAt(regions, startBeat)
+  const end = harmonicRegionAt(regions, Math.max(startBeat, endBeat - 0.01))
+  const ordered = [
+    ...(start?.commonTonePitchClasses ?? []),
+    ...(end?.guideTonePitchClasses ?? []),
+    ...(start?.guideTonePitchClasses ?? []),
+    ...(end?.chordTonePitchClasses ?? []),
+    ...(start?.tensionPitchClasses ?? []),
+    ...(start?.chordTonePitchClasses ?? []),
+  ]
+  return [...new Set(ordered)].slice(0, 6)
+}
+
+/**
+ * コード進行とActive Melodyを同じ時間軸で読み、Counterを置く理由・場所・
+ * target toneを先に決める。Genreや候補番号には依存しない。
+ */
+export function analyzeCounterContext(
+  melodyNotes: MelodyNote[],
+  chords: ChordEvent[],
+  totalBeats: number,
+): CounterContextAnalysis {
+  const activity = analyzeMelodyActivity(melodyNotes, totalBeats)
+  const orderedNotes = [...melodyNotes].sort(
+    (left, right) => left.startBeat - right.startBeat,
+  )
+  const harmonicRegions = analyzeHarmonyForCounter(chords)
+  const melodyPhrases = analyzeMelodyPhrases(orderedNotes, totalBeats)
+  const phraseForBeat = (beat: number) =>
+    [...melodyPhrases]
+      .reverse()
+      .find((phrase) => phrase.endBeat <= beat + 0.001) ?? melodyPhrases[0]
+  const chordBoundaries = harmonicRegions.slice(1).map((region) => region.startBeat)
+  const melodyAttacks = orderedNotes.map((note) => note.startBeat)
+
+  const gapOpportunities: CounterOpportunity[] = activity.gaps.map((gap) => {
+    const preceding = phraseForBeat(gap.startBeat)
+    const boundary = chordBoundaries.find(
+      (beat) => beat >= gap.startBeat && beat <= gap.endBeat,
+    )
+    const region = harmonicRegionAt(harmonicRegions, gap.startBeat)
+    const isEnding = gap.endBeat >= totalBeats - 0.01
+    const kind: CounterOpportunityKind = boundary
+      ? "transition-support"
+      : isEnding
+        ? "continuation-needed"
+        : (preceding?.motifPitches.length ?? 0) >= 2
+          ? "answer-needed"
+          : (region?.harmonicTension ?? 0) >= 58
+            ? "tension-support"
+            : "harmonic-colour-needed"
+    const phraseDirection = preceding?.direction ?? 0
+    const needScore = Math.min(
+      100,
+      52 +
+        Math.min(22, gap.durationBeats * 9) +
+        (boundary ? 12 : 0) +
+        ((region?.harmonicTension ?? 0) >= 58 ? 8 : 0) -
+        (isEnding && preceding?.density && preceding.density > 0.8 ? 8 : 0),
+    )
+    return {
+      ...gap,
+      kind,
+      needScore,
+      preferredMotion: phraseDirection === 0 ? "oblique" : "contrary",
+      sourceMotifPitches: preceding?.motifPitches ?? [],
+      sourceMotifDurations: preceding?.motifDurations ?? [],
+      sourceMotifOnsetGaps: preceding?.motifOnsetGaps ?? [],
+      targetTonePitchClasses: targetPitchClassesForOpportunity(
+        harmonicRegions,
+        gap.startBeat,
+        gap.endBeat,
+      ),
+      avoidAttackBeats: melodyAttacks.filter(
+        (beat) => beat >= gap.startBeat - 0.25 && beat <= gap.endBeat + 0.25,
+      ),
+      rationale: boundary
+        ? "コード境界を含むメロディ休符を次の和声へ接続する"
+        : isEnding
+          ? "主旋律終端の余韻を次へ渡す"
+          : "直前の旋律発言へ独立した応答を返す",
+    }
+  })
+
+  const highestPitch = orderedNotes.length > 0
+    ? Math.max(...orderedNotes.map((note) => note.pitch))
+    : 0
+  const sustainedOpportunities: CounterOpportunity[] = orderedNotes
+    .filter(
+      (note) =>
+        note.durationBeats >= 1.75 &&
+        note.pitch < highestPitch &&
+        !note.plannedResolution,
+    )
+    .map((note) => {
+      const startBeat = note.startBeat + Math.min(0.75, note.durationBeats * 0.4)
+      const endBeat = Math.min(
+        totalBeats,
+        note.startBeat + note.durationBeats - 0.25,
+      )
+      const region = harmonicRegionAt(harmonicRegions, startBeat)
+      return {
+        startBeat,
+        endBeat,
+        durationBeats: endBeat - startBeat,
+        kind:
+          (region?.harmonicTension ?? 0) >= 58
+            ? "tension-support" as const
+            : "harmonic-colour-needed" as const,
+        needScore: Math.min(
+          92,
+          54 + note.durationBeats * 7 + (region?.harmonicTension ?? 0) * 0.12,
+        ),
+        preferredMotion: "oblique" as const,
+        sourceMotifPitches: [note.pitch],
+        sourceMotifDurations: [note.durationBeats],
+        sourceMotifOnsetGaps: [],
+        targetTonePitchClasses: targetPitchClassesForOpportunity(
+          harmonicRegions,
+          startBeat,
+          endBeat,
+        ).filter((pitchClass) => pitchClass !== normalizedPitchClass(note.pitch)),
+        avoidAttackBeats: melodyAttacks.filter(
+          (beat) => beat >= startBeat - 0.25 && beat <= endBeat + 0.25,
+        ),
+        rationale: "主旋律の長音下で和声の内声を動かす",
+      }
+    })
+    .filter((opportunity) => opportunity.durationBeats >= 0.75)
+
+  const opportunities = [...gapOpportunities, ...sustainedOpportunities]
+    .sort(
+      (left, right) =>
+        right.needScore - left.needScore || left.startBeat - right.startBeat,
+    )
+    .filter(
+      (opportunity, index, all) =>
+        all.findIndex(
+          (other) =>
+            Math.abs(other.startBeat - opportunity.startBeat) <= 0.125 &&
+            Math.abs(other.endBeat - opportunity.endBeat) <= 0.125,
+        ) === index,
+    )
+  const counterNeedScore = Math.round(
+    Math.max(0, ...opportunities.map((opportunity) => opportunity.needScore)),
+  )
+  return {
+    ...activity,
+    harmonicRegions,
+    melodyPhrases,
+    opportunities,
+    counterNeedScore,
+    silenceRecommended:
+      opportunities.length === 0 ||
+      (activity.melodyDensity >= 0.88 && counterNeedScore < 72),
   }
 }
 

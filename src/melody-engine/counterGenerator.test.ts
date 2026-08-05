@@ -6,7 +6,10 @@ import {
   generateCounterCandidates,
   regenerateCounterCandidate,
 } from "./counterGenerator"
-import { unresolvedReactiveToneNoteIds } from "./reactiveLayerAnalysis"
+import {
+  analyzeCounterContext,
+  unresolvedReactiveToneNoteIds,
+} from "./reactiveLayerAnalysis"
 
 function note(id: string, startBeat: number, durationBeats: number, pitch: number): MelodyNote {
   return { id, startBeat, durationBeats, pitch, velocity: 80, locks: [] }
@@ -351,5 +354,127 @@ describe("Issue #70 / Counter Generator MVP", () => {
     expect(
       evaluateCounterpointFit(lead, independent, chords),
     ).toBeGreaterThan(evaluateCounterpointFit(lead, colliding, chords))
+  })
+
+  it("コードとActive Melodyを統合解析し、Counterを置く理由とtarget toneを先に計画する", () => {
+    const analysis = analyzeCounterContext(
+      input.melody.notes,
+      input.chords,
+      input.totalBeats,
+    )
+    expect(analysis.harmonicRegions).toHaveLength(4)
+    expect(analysis.melodyPhrases.length).toBeGreaterThan(0)
+    expect(analysis.opportunities.length).toBeGreaterThan(0)
+    expect(analysis.counterNeedScore).toBeGreaterThanOrEqual(60)
+    expect(analysis.silenceRecommended).toBe(false)
+    expect(
+      analysis.opportunities.every(
+        (opportunity) =>
+          opportunity.rationale.length > 0 &&
+          opportunity.targetTonePitchClasses.length > 0,
+      ),
+    ).toBe(true)
+
+    const candidates = generateCounterCandidates(input)
+    expect(candidates.every((candidate) => candidate.counterPlan?.sourceDriven)).toBe(true)
+    expect(
+      candidates.every(
+        (candidate) =>
+          candidate.counterPlan!.opportunityKinds.length > 0 &&
+          candidate.counterPlan!.targetTonePitchClasses.length > 0 &&
+          candidate.counterPlan!.counterNeedScore >= 60,
+      ),
+    ).toBe(true)
+  })
+
+  it("同じメロディでもコード進行が変わればtarget tone pathと生成音が変わる", () => {
+    const alternateChords = parseChordInputText(
+      "Dm7 | Bbmaj7 | Gm7 | A7",
+      "s1",
+      4,
+      "alternate",
+    )
+    const original = generateCounterCandidates({
+      ...input,
+      seed: 711,
+      poolSize: 40,
+      finalCount: 3,
+    })
+    const alternate = generateCounterCandidates({
+      ...input,
+      chords: alternateChords,
+      seed: 711,
+      poolSize: 40,
+      finalCount: 3,
+    })
+    const targets = (candidates: typeof original) =>
+      candidates.map((candidate) => candidate.counterPlan!.targetTonePitchClasses)
+    const pitches = (candidates: typeof original) =>
+      candidates.map((candidate) => candidate.notes.map((item) => item.pitch))
+    expect(targets(alternate)).not.toEqual(targets(original))
+    expect(pitches(alternate)).not.toEqual(pitches(original))
+  })
+
+  it("同じコードでもメロディのフレーズ構造が変わればOpportunityと応答リズムが変わる", () => {
+    const alternateMelody: MelodyVariant = {
+      ...input.melody,
+      id: "melody-b",
+      notes: [
+        note("b1", 0, 0.5, 69),
+        note("b2", 0.75, 0.5, 71),
+        note("b3", 1.5, 2.5, 72),
+        note("b4", 4.5, 0.5, 67),
+        note("b5", 5.25, 0.5, 65),
+        note("b6", 6, 2, 64),
+        note("b7", 9, 3, 62),
+        note("b8", 13, 2, 64),
+      ],
+    }
+    const originalAnalysis = analyzeCounterContext(
+      input.melody.notes,
+      input.chords,
+      input.totalBeats,
+    )
+    const alternateAnalysis = analyzeCounterContext(
+      alternateMelody.notes,
+      input.chords,
+      input.totalBeats,
+    )
+    expect(
+      alternateAnalysis.opportunities.map((opportunity) => [
+        opportunity.startBeat,
+        opportunity.endBeat,
+        opportunity.kind,
+      ]),
+    ).not.toEqual(
+      originalAnalysis.opportunities.map((opportunity) => [
+        opportunity.startBeat,
+        opportunity.endBeat,
+        opportunity.kind,
+      ]),
+    )
+
+    const original = generateCounterCandidates({
+      ...input,
+      seed: 912,
+      poolSize: 40,
+      finalCount: 3,
+    })
+    const alternate = generateCounterCandidates({
+      ...input,
+      melody: alternateMelody,
+      seed: 912,
+      poolSize: 40,
+      finalCount: 3,
+    })
+    expect(
+      alternate.map((candidate) =>
+        candidate.notes.map((item) => item.startBeat),
+      ),
+    ).not.toEqual(
+      original.map((candidate) =>
+        candidate.notes.map((item) => item.startBeat),
+      ),
+    )
   })
 })

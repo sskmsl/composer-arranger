@@ -19,6 +19,7 @@ import type {
   CounterCreativeRisk,
   CounterDialogueIntent,
   CounterEndingStrategy,
+  CounterOpportunityKind,
   CounterRhythmGrammar,
   ReactiveLayerCandidate,
 } from "@/core/reactiveLayer"
@@ -85,6 +86,16 @@ const ENDING_LABELS: Record<CounterEndingStrategy, string> = {
   suspended: "Suspended",
   "motif-return": "Motif Return",
   "silence-cut": "Silence Cut",
+}
+
+const OPPORTUNITY_LABELS: Record<CounterOpportunityKind, string> = {
+  "answer-needed": "Answer Needed",
+  "continuation-needed": "Continuation",
+  "harmonic-colour-needed": "Harmonic Colour",
+  "tension-support": "Tension Support",
+  "motif-recall": "Motif Recall",
+  "transition-support": "Transition",
+  "silence-preferred": "Silence Preferred",
 }
 
 export function CounterWorkspace() {
@@ -319,6 +330,13 @@ export function CounterWorkspace() {
                         <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                           {ENDING_LABELS[candidate.counterPlan.ending]}
                         </span>
+                        {candidate.counterPlan.opportunityKinds?.[0] && (
+                          <span className="rounded-pill bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-200">
+                            {OPPORTUNITY_LABELS[
+                              candidate.counterPlan.opportunityKinds[0]
+                            ]}
+                          </span>
+                        )}
                       </>
                     )}
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
@@ -361,6 +379,15 @@ export function CounterWorkspace() {
                       <span>Necessity {Math.round(candidate.counterQuality.emotionalNecessity)}</span>
                       <span>Audacity {Math.round(candidate.counterQuality.audacity)}</span>
                       <span>Control {Math.round(candidate.counterQuality.controlledRisk)}</span>
+                      {candidate.counterQuality.harmonicNarrative !== undefined && (
+                        <span>Harmony {Math.round(candidate.counterQuality.harmonicNarrative)}</span>
+                      )}
+                      {candidate.counterQuality.melodicComplement !== undefined && (
+                        <span>Complement {Math.round(candidate.counterQuality.melodicComplement)}</span>
+                      )}
+                      {candidate.counterQuality.placementPurpose !== undefined && (
+                        <span>Purpose {Math.round(candidate.counterQuality.placementPurpose)}</span>
+                      )}
                     </div>
                   )}
                 </button>

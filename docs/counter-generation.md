@@ -6,14 +6,17 @@ Counter Generatorは、Active Melodyを置き換えず、その意味を強め�
 
 ## 生成パイプライン
 
-1. セクションのActive Melodyから実休符、Protected Moment、ロングトーン後半、音域、密度予算を抽出する。
-2. `CounterCompositionPlan`でCreative Risk、Dialogue Intent、Rhythm Grammar、Contour、Development、Ending、Register Relation、Phrase Count、Silence Ratioを決める。
-3. 実休符を水増しせず、複数の離れたOpportunityへ呼びかけと応答を配置する。Bold / Radicalは音数を詰めず、複数箇所の因果関係で発展させる。
-4. 16分音符グリッド上のRhythm Grammarを先に作り、その後でPitch Pathを配置する。
-5. 階段上行・階段下降・Arch・Inverted Arch・Wave・Leap & Recovery・Pedal Breakを候補化し、Inversion、Fragmentation、Augmentation、Delayed Return、Register Exchange、Local Mutationで発展させる。
-6. EndingはResolved、Open Fifth、Suspended、Motif Return、Silence Cutから選ぶ。各Gapで同じ終止を繰り返さず、最後のPhraseだけにEnding Strategyを適用する。
-7. Melody Respect、Harmonic Fit、実Opportunityの利用、Register Separation、Counterpoint Fitに加えて、Dialogue、Independence、Rhythm、Contour、Breath、Development、Emotional Necessity、Audacity、Controlled Riskを評価する。
-8. Blocking Collision、未解決の非和声音、品質下限を確認し、Risk配分と計画差を含むMMR型選抜で10候補を返す。
+1. コード進行からChord Tone、Guide Tone、Tension、次コードとのCommon Tone、Root Motion、Harmonic Tensionを抽出する。
+2. Active MelodyからPhrase、Motif、実休符、Protected Moment、ロングトーン後半、方向、Accent、音域、密度予算を抽出する。
+3. 両者を同じ時間軸へ統合し、Answer Needed、Continuation、Harmonic Colour、Tension Support、Motif Recall、Transition、Silence Preferredの`CounterOpportunity`を作る。
+4. `CounterCompositionPlan`は候補番号から固定的に決めず、Opportunityの種類・必要度・旋律方向・Target Tone PathからDialogue Intent、Rhythm Grammar、Contour、Endingを決める。
+5. 実休符を水増しせず、複数の離れたOpportunityへ呼びかけと応答を配置する。Bold / Radicalは音数を詰めず、複数箇所の因果関係で発展させる。
+6. Active MelodyのOnsetとMotif Rhythmを参照した補完リズムを先に作り、その後でPitch Pathを配置する。同時Attackが音楽的理由なく重なる場合は16分音符単位でずらす。
+7. Pitchは各コードへ個別に着地させず、Common Tone、3rd、7th、Tensionを含むTarget Tone Pathを先に評価する。主旋律との縦の音程、前音からのvoice leading、計画輪郭を同時に満たす音を選ぶ。
+8. 階段上行・階段下降・Arch・Inverted Arch・Wave・Leap & Recovery・Pedal Breakを候補化し、Inversion、Fragmentation、Augmentation、Delayed Return、Register Exchange、Local Mutationで発展させる。
+9. EndingはResolved、Open Fifth、Suspended、Motif Return、Silence Cutから選ぶ。各Opportunityで同じ終止を繰り返さず、最後のPhraseだけにEnding Strategyを適用する。
+10. 従来の品質軸に加え、Harmonic Narrative、Melodic Complement、Placement Purposeを評価する。
+11. Blocking Collision、未解決の非和声音、品質下限を確認し、Risk配分と計画差を含むMMR型選抜で10候補を返す。
 
 ## Counter Composition Plan
 
@@ -23,6 +26,9 @@ Counter Generatorは、Active Melodyを置き換えず、その意味を強め�
 - `Contour`: Ascending / Descending Staircase、Arch、Inverted Arch、Wave、Leap & Recovery、Pedal Break
 - `Development`: Inversion、Fragmentation、Augmentation、Delayed Return、Register Exchange、Local Mutation
 - `Ending`: Resolved / Open Fifth / Suspended / Motif Return / Silence Cut
+- `Opportunity`: コードとActive Melodyから導出した、Counterを置く音楽的理由
+- `Counter Need Score`: その区間で第二声部を必要とする度合い
+- `Target Tone Pitch Classes`: Common Tone、Guide Tone、Tensionを含む中期的な到達音計画
 
 音楽的な大胆さは、衝突やタイミングのズレではなく、予想外の輪郭、配置、終止、音域交換として実装する。大跳躍は反対方向へ回収し、解決が必要な非和声音には実音のTargetを持たせる。
 
