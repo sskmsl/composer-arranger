@@ -44,6 +44,32 @@ export type SignaturePhraseArchetype =
   | "obsessive-motor"
   | "kinetic-hook"
 
+export type SignatureOpportunityKind =
+  | "motif-foreshadowing"
+  | "rhythmic-counter-identity"
+  | "harmonic-identity"
+  | "tension-premonition"
+  | "register-contrast"
+  | "section-threshold"
+
+export interface SignatureTargetTone {
+  beat: number
+  pitchClasses: number[]
+  function: "common-tone" | "guide-tone" | "tension" | "arrival"
+}
+
+export interface SignatureCompositionContext {
+  source: "chords-and-melody" | "chords-only"
+  opportunity: SignatureOpportunityKind
+  opportunityScore: number
+  rationale: string
+  targetTonePath: SignatureTargetTone[]
+  referenceMotifIntervals: number[]
+  referenceRhythmGaps: number[]
+  referenceRegisterCenter?: number
+  preferredRegisterRelation: "below" | "above" | "independent"
+}
+
 export type SignatureRhythmIdentity =
   | "opening-stamp"
   | "pickup-hook"
@@ -150,6 +176,8 @@ export interface SignaturePhrasePlan {
   voicingMode: SignatureVoicingMode
   /** 転回・開離配置・内声移動と、声部間の運動方針。 */
   voiceLeading: SignatureVoiceLeadingPlan
+  /** コードとActive Melodyから導出した、このSignatureが曲中で担う役割。 */
+  compositionContext?: SignatureCompositionContext
 }
 
 export interface SignaturePhraseScore {
@@ -178,6 +206,14 @@ export interface SignaturePhraseScore {
   controlledRisk: number
   /** 驚きの後にMotifの因果関係が戻る度合い。 */
   surpriseCoherence: number
+  /** コード進行の長期的なTarget Tone Pathへの適合。 */
+  harmonicNarrative?: number
+  /** Active MelodyのDNAを複製せず予告できている度合い。 */
+  thematicForeshadowing?: number
+  /** Active Melodyと異なるリズム上の顔を持つ度合い。 */
+  rhythmicComplement?: number
+  /** 選択されたSignature Opportunityを実音で実現した度合い。 */
+  compositionPurpose?: number
   overall: number
 }
 

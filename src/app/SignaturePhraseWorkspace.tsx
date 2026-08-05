@@ -16,6 +16,7 @@ import type {
   SignatureRhythmicDisruption,
   SignatureStructuralSurprise,
   SignaturePhraseLengthBars,
+  SignatureOpportunityKind,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
   SignatureVoiceMotion,
@@ -106,6 +107,15 @@ const STRUCTURAL_SURPRISE_LABELS: Record<SignatureStructuralSurprise, string> = 
   interruption: "Interruption",
   "false-return": "False Return",
   "abrupt-open-tail": "Abrupt Open Tail",
+}
+
+const OPPORTUNITY_LABELS: Record<SignatureOpportunityKind, string> = {
+  "motif-foreshadowing": "Motif Foreshadow",
+  "rhythmic-counter-identity": "Rhythmic Counter",
+  "harmonic-identity": "Harmonic Identity",
+  "tension-premonition": "Tension Premonition",
+  "register-contrast": "Register Contrast",
+  "section-threshold": "Section Threshold",
 }
 
 function candidateArchetype(
@@ -334,6 +344,20 @@ export function SignaturePhraseWorkspace() {
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
+                    {candidate.plan.compositionContext && (
+                      <span
+                        className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[10px] text-emerald-200"
+                        title={candidate.plan.compositionContext.rationale}
+                      >
+                        {OPPORTUNITY_LABELS[
+                          candidate.plan.compositionContext.opportunity
+                        ]}
+                        {candidate.plan.compositionContext.source ===
+                        "chords-and-melody"
+                          ? " · Melody Linked"
+                          : " · Chord Driven"}
+                      </span>
+                    )}
                     <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
                       {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
                     </span>
@@ -394,6 +418,26 @@ export function SignaturePhraseWorkspace() {
                     </span>
                     <span>Opening {Math.round(candidate.score.openingImpact * 100)}</span>
                     <span>Rhythm {Math.round(candidate.score.rhythmicIdentity * 100)}</span>
+                    {candidate.score.compositionPurpose !== undefined && (
+                      <span>
+                        Purpose {Math.round(candidate.score.compositionPurpose * 100)}
+                      </span>
+                    )}
+                    {candidate.score.harmonicNarrative !== undefined && (
+                      <span>
+                        Harmony {Math.round(candidate.score.harmonicNarrative * 100)}
+                      </span>
+                    )}
+                    {candidate.score.thematicForeshadowing !== undefined && (
+                      <span>
+                        Theme {Math.round(candidate.score.thematicForeshadowing * 100)}
+                      </span>
+                    )}
+                    {candidate.score.rhythmicComplement !== undefined && (
+                      <span>
+                        Complement {Math.round(candidate.score.rhythmicComplement * 100)}
+                      </span>
+                    )}
                     <span>
                       Memory {Math.round((candidate.score.motifMemorability ?? 0) * 100)}
                     </span>
