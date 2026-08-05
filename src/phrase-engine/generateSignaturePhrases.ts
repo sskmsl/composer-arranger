@@ -22,6 +22,7 @@ import type {
   SignaturePhrasePlan,
   SignaturePhraseScore,
   SignaturePhraseSimilarity,
+  SignatureOpportunityKind,
   SignatureRhythmIdentity,
   SignatureVariationStrategy,
   SignatureVoiceLeadingPlan,
@@ -37,9 +38,16 @@ import {
   type HarmonicMapEntry,
 } from "@/melody-engine/harmonicMap"
 import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
+import {
+  analyzeSignaturePhraseContext,
+  signatureCompositionContextFor,
+  type SignaturePhraseContextAnalysis,
+} from "./signaturePhraseAnalysis"
 
 export interface GenerateSignaturePhrasesInput {
   chords: ChordEvent[]
+  /** 曲中でSignatureが担う役割を判断するためのActive Melody。未設定時はコードのみで生成する。 */
+  referenceMelody?: MelodyNote[]
   sectionId: string
   sectionRole: SectionRole
   songProfile: SongProfileId
@@ -168,6 +176,78 @@ const ARCHETYPES: SignaturePhraseArchetype[] = [
   "obsessive-motor",
   "kinetic-hook",
 ]
+
+const OPPORTUNITY_ARCHETYPES: Record<
+  SignatureOpportunityKind,
+  readonly SignaturePhraseArchetype[]
+> = {
+  "motif-foreshadowing": [
+    "obsessive-motor",
+    "kinetic-hook",
+    "atmospheric-gateway",
+  ],
+  "rhythmic-counter-identity": [
+    "kinetic-hook",
+    "atmospheric-gateway",
+    "obsessive-motor",
+  ],
+  "harmonic-identity": [
+    "atmospheric-gateway",
+    "obsessive-motor",
+    "kinetic-hook",
+  ],
+  "tension-premonition": [
+    "atmospheric-gateway",
+    "kinetic-hook",
+    "obsessive-motor",
+  ],
+  "register-contrast": [
+    "atmospheric-gateway",
+    "kinetic-hook",
+    "obsessive-motor",
+  ],
+  "section-threshold": [
+    "kinetic-hook",
+    "atmospheric-gateway",
+    "obsessive-motor",
+  ],
+}
+
+const OPPORTUNITY_RHYTHMS: Record<
+  SignatureOpportunityKind,
+  readonly SignatureRhythmIdentity[]
+> = {
+  "motif-foreshadowing": [
+    "call-gap-answer",
+    "long-short-signal",
+    "opening-stamp",
+  ],
+  "rhythmic-counter-identity": [
+    "syncopated-cell",
+    "broken-pulse",
+    "pickup-hook",
+  ],
+  "harmonic-identity": [
+    "opening-stamp",
+    "long-short-signal",
+    "call-gap-answer",
+  ],
+  "tension-premonition": [
+    "long-short-signal",
+    "call-gap-answer",
+    "pickup-hook",
+  ],
+  "register-contrast": [
+    "pickup-hook",
+    "call-gap-answer",
+    "syncopated-cell",
+  ],
+  "section-threshold": [
+    "opening-stamp",
+    "pickup-hook",
+    "broken-pulse",
+  ],
+}
 
 const ARCHETYPE_RHYTHMS: Record<
   SignaturePhraseArchetype,
@@ -501,8 +581,14 @@ function planSignaturePhrase(
   input: GenerateSignaturePhrasesInput,
   seed: number,
   poolIndex: number,
+  analysis: SignaturePhraseContextAnalysis,
 ): SignaturePhrasePlan {
   const rng = new SeededRandom(seed ^ 0x6a09e667)
+  const compositionContext = signatureCompositionContextFor(
+    analysis,
+    poolIndex,
+    seed,
+  )
   const lengthBars = (input.lengthBars ?? (poolIndex % 3 === 0 ? 1 : 2)) as
     SignaturePhraseLengthBars
   const profileWeights: Record<SongProfileId, readonly number[]> = {
@@ -512,13 +598,26 @@ function planSignaturePhrase(
     "dramatic-synth-pop": [0.75, 1.4, 1.55],
     "original-custom": [1, 1, 1],
   }
+  const opportunityArchetypes =
+    OPPORTUNITY_ARCHETYPES[compositionContext.opportunity]
+  const profileChoice = rng.weightedPick(
+    ARCHETYPES,
+    profileWeights[input.songProfile],
+  )
+  // 曲中の必要性を主判断にしつつ、Song Profileは候補内の色として残す。
   const archetype =
-    poolIndex < ARCHETYPES.length
-      ? ARCHETYPES[poolIndex]
-      : rng.weightedPick(ARCHETYPES, profileWeights[input.songProfile])
+    poolIndex % 4 === 3 && opportunityArchetypes.includes(profileChoice)
+      ? profileChoice
+      : opportunityArchetypes[poolIndex % opportunityArchetypes.length]
+  const opportunityRhythms =
+    OPPORTUNITY_RHYTHMS[compositionContext.opportunity]
   const archetypeRhythms = ARCHETYPE_RHYTHMS[archetype]
   const rhythmIdentity =
-    archetypeRhythms[(poolIndex + rng.intBetween(0, 1)) % archetypeRhythms.length]
+    poolIndex % 4 === 0
+      ? archetypeRhythms[(poolIndex + rng.intBetween(0, 1)) % archetypeRhythms.length]
+      : opportunityRhythms[
+          (poolIndex + rng.intBetween(0, 2)) % opportunityRhythms.length
+        ]
   const contour = CONTOURS[(poolIndex * 3 + rng.intBetween(0, 2)) % CONTOURS.length]
   const preferredVariations: Record<
     SignaturePhraseArchetype,
@@ -600,6 +699,7 @@ function planSignaturePhrase(
       poolIndex,
       rng,
     ),
+    compositionContext,
   }
 }
 
@@ -974,6 +1074,43 @@ export function buildSignatureRhythmSkeleton(
       ...fitDecorationsIntoGaps(barEvents, decorated),
     )
   }
+  const context = plan.compositionContext
+  if (context && context.referenceRhythmGaps.length > 0) {
+    const opening = events
+      .filter(
+        (event) =>
+          !event.integratedDecoration && event.start < beatsPerBar,
+      )
+      .sort((left, right) => left.start - right.start)
+    if (context.opportunity === "motif-foreshadowing") {
+      let cursor = opening[0]?.start ?? 0
+      opening.slice(1).forEach((event, index) => {
+        const sourceGap =
+          context.referenceRhythmGaps[
+            index % context.referenceRhythmGaps.length
+          ]
+        // 原型を引用せず、伸縮と局所変位で「同じ曲の別の顔」にする。
+        const factor = (index + plan.rhythmVariant) % 2 === 0 ? 0.75 : 1.25
+        cursor += Math.max(0.25, roundQuarter(sourceGap * factor))
+        event.start = Math.min(beatsPerBar - 0.25, roundQuarter(cursor))
+      })
+    } else if (context.opportunity === "rhythmic-counter-identity") {
+      opening.slice(1).forEach((event, index) => {
+        const previous = opening[index]
+        const candidateGap = event.start - previous.start
+        const sourceGap =
+          context.referenceRhythmGaps[
+            index % context.referenceRhythmGaps.length
+          ]
+        if (Math.abs(candidateGap - sourceGap) <= 0.25) {
+          event.start = Math.min(
+            beatsPerBar - 0.25,
+            roundQuarter(event.start + (index % 2 === 0 ? 0.25 : -0.25)),
+          )
+        }
+      })
+    }
+  }
   return normalizeMonophonicRhythm(events)
 }
 
@@ -1021,15 +1158,25 @@ function startPitch(
       : plan.archetype === "kinetic-hook"
         ? 0.5
         : 0.58
-  const center =
+  let center =
     range.low +
     (range.high - range.low) *
       (plan.contour === "descending"
         ? Math.min(0.72, registerPosition + 0.12)
         : registerPosition)
+  const referenceCenter = plan.compositionContext?.referenceRegisterCenter
+  if (referenceCenter !== undefined) {
+    const relation = plan.compositionContext?.preferredRegisterRelation
+    if (relation === "below") center = referenceCenter - 9
+    if (relation === "above") center = referenceCenter + 9
+  }
+  const firstTarget = plan.compositionContext?.targetTonePath[0]
+  const contextualPool = firstTarget?.pitchClasses.length
+    ? firstTarget.pitchClasses
+    : pool
   return nearestAllowedPitch(
     Math.round(center) + rng.pick([-4, -2, 0, 2, 5]),
-    pool,
+    contextualPool,
     range,
   )
 }
@@ -1133,6 +1280,42 @@ function motifPathForCreativeRisk(
     case "none":
       return [...source]
   }
+}
+
+function contextualMotifPath(
+  source: readonly number[],
+  plan: SignaturePhrasePlan,
+): number[] {
+  const context = plan.compositionContext
+  if (
+    context?.opportunity !== "motif-foreshadowing" ||
+    context.referenceMotifIntervals.length < 2
+  ) {
+    return [...source]
+  }
+  const invert = plan.motifVariant % 2 === 1
+  const transformed = context.referenceMotifIntervals
+    .slice(0, 4)
+    .map((interval, index) => {
+      const sign = Math.sign(interval) || (index % 2 === 0 ? 1 : -1)
+      const compressed = Math.max(
+        1,
+        Math.min(5, Math.round(Math.abs(interval) * 0.65)),
+      )
+      const displaced = index === plan.motifVariant % 3 ? compressed + 1 : compressed
+      return sign * displaced * (invert ? -1 : 1)
+    })
+  // 元旋律の音程列をそのまま移高することはなく、方向反転・圧縮・一点変形を必ず含む。
+  return [0, ...transformed]
+}
+
+function targetToneAtBeat(
+  plan: SignaturePhrasePlan,
+  beat: number,
+) {
+  return plan.compositionContext?.targetTonePath
+    .filter((target) => target.beat <= beat + 0.001)
+    .at(-1)
 }
 
 function integratedDecorationStep(
@@ -1247,7 +1430,13 @@ function placePitchPath(
       index === events.length - 1 ||
       (plan.harmonicAnchorPolicy === "structural-only" &&
         Math.abs(event.start % input.beatsPerBar) < 0.05)
-    let allowed = structural
+    const targetTone = targetToneAtBeat(plan, event.start)
+    const structuralTargets = targetTone?.pitchClasses.filter((value) =>
+      [...new Set([...usable, ...keyScale])].includes(value),
+    ) ?? []
+    let allowed = structural && structuralTargets.length > 0
+      ? structuralTargets
+      : structural
       ? plan.harmonicAnchorPolicy === "tension-led"
         ? [...new Set([...usable, ...keyScale])]
         : chordTones
@@ -1711,14 +1900,32 @@ function applyBrokenChordVoicing(
               note.startBeat + arpeggioOffset + (step + 1) * subDuration,
             )
       const label = voiceLabel(step, ordered.length)
+      // 分散音がコード境界を越えた場合、元leadのコードではなく実際の発音位置で
+      // 音楽的役割を判定する。MIDI上は正しいコードトーンを誤ってtension扱いしない。
+      const soundingEntry =
+        chordAtBeat(map as HarmonicMapEntry[], startBeat) ?? entry
+      const soundingAllowed = [
+        ...new Set([
+          ...chordTonePitchClasses(soundingEntry.parsed),
+          ...safeVoicingColorPitchClasses(soundingEntry.parsed),
+        ]),
+      ]
+      const soundingPitch = soundingAllowed.includes(
+        pitchClass(ordered[step]),
+      )
+        ? ordered[step]
+        : nearestAllowedPitch(ordered[step], soundingAllowed, range)
       result.push({
         id: `${note.id}-voice-${label}-arp${step}`,
         startBeat,
         durationBeats: Math.max(0.25, roundQuarter(nextBeat - startBeat)),
-        pitch: ordered[step],
+        pitch: soundingPitch,
         velocity: Math.max(20, note.velocity - step * 3 + rng.intBetween(-2, 2)),
         locks: [],
-        plannedToneRole: isChordTone(entry.parsed, pitchClass(ordered[step]))
+        plannedToneRole: isChordTone(
+          soundingEntry.parsed,
+          pitchClass(soundingPitch),
+        )
           ? "chord-tone"
           : "tension-hold",
       })
@@ -1905,6 +2112,10 @@ function scoreSignaturePhrase(
       audacity: 0,
       controlledRisk: 0,
       surpriseCoherence: 0,
+      harmonicNarrative: 0,
+      thematicForeshadowing: 0,
+      rhythmicComplement: 0,
+      compositionPurpose: 0,
       overall: 0,
     }
   }
@@ -2120,7 +2331,67 @@ function scoreSignaturePhrase(
         ? 0.18
         : 0),
   )
-  const weighted =
+  const structuralNotes = notes.filter(
+    (note, index) =>
+      index === 0 ||
+      index === notes.length - 1 ||
+      Math.abs(note.startBeat % Math.max(1, beatsPerStatement)) < 0.05,
+  )
+  const targetMatches = structuralNotes.filter((note) => {
+    const target = targetToneAtBeat(plan, note.startBeat)
+    return target?.pitchClasses.includes(pitchClass(note.pitch)) ?? false
+  }).length
+  const harmonicNarrative = clamp01(
+    harmonicFit * 0.45 +
+      targetMatches / Math.max(1, structuralNotes.length) * 0.55,
+  )
+  const referenceIntervals =
+    plan.compositionContext?.referenceMotifIntervals ?? []
+  const candidateIdentityCell = intervals.slice(0, referenceIntervals.length)
+  const transformedRelation = referenceIntervals.length >= 2
+    ? sequenceSimilarity(
+        candidateIdentityCell.map(Math.abs),
+        referenceIntervals.map(Math.abs),
+        2,
+      )
+    : 0.65
+  const exactMelodyCopy = referenceIntervals.length >= 2
+    ? sequenceSimilarity(candidateIdentityCell, referenceIntervals, 0)
+    : 0
+  const thematicForeshadowing = clamp01(
+    transformedRelation * 0.58 +
+      (1 - exactMelodyCopy) * 0.3 +
+      (candidateIdentityCell.some(
+        (interval, index) =>
+          Math.sign(interval) !== Math.sign(referenceIntervals[index] ?? interval),
+      )
+        ? 0.12
+        : 0.05),
+  )
+  const referenceGaps = plan.compositionContext?.referenceRhythmGaps ?? []
+  const rhythmRelation = referenceGaps.length >= 2
+    ? sequenceSimilarity(gaps.slice(0, referenceGaps.length), referenceGaps, 0.25)
+    : 0.35
+  // 完全一致でも無関係でもなく、旋律と認識可能な対話をする距離を高く評価する。
+  const rhythmicComplement = clamp01(
+    1 - Math.abs(rhythmRelation - 0.42) / 0.58,
+  )
+  const opportunity = plan.compositionContext?.opportunity
+  const opportunityFit = opportunity === "motif-foreshadowing"
+    ? thematicForeshadowing
+    : opportunity === "rhythmic-counter-identity"
+      ? rhythmicComplement
+      : opportunity === "harmonic-identity" ||
+          opportunity === "tension-premonition"
+        ? harmonicNarrative
+        : opportunity === "register-contrast"
+          ? clamp01(pitchRange / 10 * 0.4 + standaloneStrength * 0.6)
+          : openingImpact
+  const compositionPurpose = clamp01(
+    opportunityFit * 0.72 +
+      ((plan.compositionContext?.opportunityScore ?? 70) / 100) * 0.28,
+  )
+  const baseWeighted =
     identity * 0.07 +
     openingImpact * 0.1 +
     rhythmicIdentity * 0.11 +
@@ -2134,6 +2405,12 @@ function scoreSignaturePhrase(
     longRangeCoherence * 0.08 +
     variationBalance * 0.06 +
     silenceUse * 0.03
+  const weighted =
+    baseWeighted * 0.82 +
+    harmonicNarrative * 0.07 +
+    thematicForeshadowing * 0.04 +
+    rhythmicComplement * 0.03 +
+    compositionPurpose * 0.04
   const voicingExpansion = fullNotes.length / Math.max(1, notes.length)
   const voicingDensityQuality =
     plan.voicingMode === "single-line"
@@ -2214,6 +2491,10 @@ function scoreSignaturePhrase(
     audacity,
     controlledRisk,
     surpriseCoherence,
+    harmonicNarrative,
+    thematicForeshadowing,
+    rhythmicComplement,
+    compositionPurpose,
     overall:
       Math.round(
         clamp01(
@@ -2232,8 +2513,9 @@ function buildSignaturePhrase(
   input: GenerateSignaturePhrasesInput,
   seed: number,
   poolIndex: number,
+  analysis: SignaturePhraseContextAnalysis,
 ): BuiltSignaturePhrase {
-  const plan = planSignaturePhrase(input, seed, poolIndex)
+  const plan = planSignaturePhrase(input, seed, poolIndex, analysis)
   const phraseLengthBeats = Math.min(
     input.totalBeats,
     plan.lengthBars * input.beatsPerBar,
@@ -2258,7 +2540,10 @@ function buildSignaturePhrase(
     }
     return step
   })
-  const motifPath = motifPathForCreativeRisk(profiledMotifPath, plan)
+  const motifPath = motifPathForCreativeRisk(
+    contextualMotifPath(profiledMotifPath, plan),
+    plan,
+  )
   const leadNotes = placePitchPath(
     input,
     plan,
@@ -2347,7 +2632,11 @@ export function signaturePhraseSimilarity(
     (leftRisk.risk === rightRisk.risk ? 0.1 : 0) +
     (leftRisk.rhythmicDevice === rightRisk.rhythmicDevice ? 0.05 : 0) +
     (leftRisk.pitchDevice === rightRisk.pitchDevice ? 0.05 : 0) +
-    (leftRisk.structuralDevice === rightRisk.structuralDevice ? 0.04 : 0)
+    (leftRisk.structuralDevice === rightRisk.structuralDevice ? 0.04 : 0) +
+    (left.plan.compositionContext?.opportunity ===
+    right.plan.compositionContext?.opportunity
+      ? 0.08
+      : 0)
   return {
     rhythmSimilarity,
     intervalSimilarity,
@@ -2377,7 +2666,9 @@ function selectDiversePool(
       candidate.score.overall >= QUALITY_FLOOR &&
       candidate.score.mechanicalPenalty <= 0.5 &&
       candidate.score.voicingQuality >= 0.5 &&
-      candidate.score.voiceLeadingQuality >= 0.58,
+      candidate.score.voiceLeadingQuality >= 0.58 &&
+      (candidate.score.compositionPurpose ?? 0.7) >= 0.48 &&
+      (candidate.score.harmonicNarrative ?? 0.7) >= 0.42,
   )
   const hookEligible = qualityEligible.filter(
     (candidate) =>
@@ -2447,6 +2738,11 @@ function selectDiversePool(
           item.candidate.plan.creativeRisk.risk ===
           candidate.plan.creativeRisk.risk,
       ).length
+      const sameOpportunityCount = selected.filter(
+        (item) =>
+          item.candidate.plan.compositionContext?.opportunity ===
+          candidate.plan.compositionContext?.opportunity,
+      ).length
       const selectedRadical = selected.filter(
         (item) => item.candidate.plan.creativeRisk.risk === "radical",
       ).length
@@ -2472,6 +2768,7 @@ function selectDiversePool(
         sameVoicingCount * 1.5 +
         sameVoicingStyleCount * 1.25 +
         sameRiskCount * 1.25 +
+        sameOpportunityCount * 3.5 +
         (maximumSimilarity > 0.78 ? 18 : 0)
       const archetypeCoverageBonus =
         selected.length < 6 && !archetypeAlreadyRepresented ? 18 : 0
@@ -2501,6 +2798,8 @@ function selectDiversePool(
                 selectedFocused < focusedTarget
               ? 20
             : 0
+      const opportunityCoverageBonus =
+        selected.length < 8 && sameOpportunityCount === 0 ? 14 : 0
       const controlledAdventureBonus =
         candidate.plan.creativeRisk.risk === "focused"
           ? 0
@@ -2515,6 +2814,7 @@ function selectDiversePool(
         voicingCoverageBonus +
         sparseAtmosphereCoverageBonus +
         creativeRiskCoverageBonus +
+        opportunityCoverageBonus +
         controlledAdventureBonus
       if (score > bestScore) {
         bestIndex = index
@@ -2539,11 +2839,17 @@ export function generateSignaturePhraseCandidates(
     input.candidatePoolSize ?? DEFAULT_POOL_SIZE,
     finalCount,
   )
+  const analysis = analyzeSignaturePhraseContext({
+    chords: input.chords,
+    referenceMelody: input.referenceMelody,
+    totalBeats: input.totalBeats,
+  })
   const pool = Array.from({ length: poolSize }, (_, poolIndex) =>
     buildSignaturePhrase(
       input,
       (input.seed + poolIndex * 16127) >>> 0,
       poolIndex,
+      analysis,
     ),
   )
   return selectDiversePool(pool, finalCount).map(
@@ -2566,11 +2872,17 @@ export function regenerateSignaturePhraseCandidate(
   current: Pick<SignaturePhraseCandidate, "seed" | "notes" | "plan">,
   avoid: Pick<SignaturePhraseCandidate, "notes" | "plan">[],
 ): Omit<SignaturePhraseCandidate, "id" | "batchId" | "createdAt"> {
+  const analysis = analyzeSignaturePhraseContext({
+    chords: input.chords,
+    referenceMelody: input.referenceMelody,
+    totalBeats: input.totalBeats,
+  })
   const pool = Array.from({ length: 24 }, (_, index) =>
     buildSignaturePhrase(
       input,
       (current.seed + 104729 + index * 16127) >>> 0,
       index + 7,
+      analysis,
     ),
   )
   const ranked = pool

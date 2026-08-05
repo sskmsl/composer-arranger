@@ -1,11 +1,31 @@
 import { describe, expect, it } from "vitest"
 import { parseChordInputText } from "@/core/chordInput"
+import type { MelodyNote } from "@/core/melody"
 import {
   generateSignaturePhraseCandidates,
   regenerateSignaturePhraseCandidate,
   signaturePhraseSimilarity,
   type GenerateSignaturePhrasesInput,
 } from "./generateSignaturePhrases"
+import { analyzeSignaturePhraseContext } from "./signaturePhraseAnalysis"
+
+function referenceMelody(offset = 0): MelodyNote[] {
+  return [
+    [0, 1, 69],
+    [1.5, 0.5, 72],
+    [2.25, 0.75, 71],
+    [3.5, 1, 76],
+    [5, 0.5, 74],
+    [6, 1.5, 72],
+  ].map(([startBeat, durationBeats, pitch], index) => ({
+    id: `reference-${offset}-${index}`,
+    startBeat,
+    durationBeats,
+    pitch: pitch + offset,
+    velocity: 84,
+    locks: [],
+  }))
+}
 
 function input(seed = 424242): GenerateSignaturePhrasesInput {
   return {
@@ -62,6 +82,87 @@ function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCan
 }
 
 describe("Signature Phrase Generator", () => {
+  it("コードとActive MelodyからSignature Opportunityと長期Target Toneを先に計画する", () => {
+    const analysis = analyzeSignaturePhraseContext({
+      chords: input().chords,
+      referenceMelody: referenceMelody(),
+      totalBeats: 16,
+    })
+
+    expect(analysis.source).toBe("chords-and-melody")
+    expect(analysis.referenceMotifIntervals.length).toBeGreaterThanOrEqual(2)
+    expect(analysis.referenceRhythmGaps.length).toBeGreaterThanOrEqual(2)
+    expect(analysis.targetTonePath).toHaveLength(4)
+    expect(new Set(analysis.opportunities.map((item) => item.kind))).toEqual(
+      new Set([
+        "motif-foreshadowing",
+        "rhythmic-counter-identity",
+        "harmonic-identity",
+        "tension-premonition",
+        "register-contrast",
+        "section-threshold",
+      ]),
+    )
+  })
+
+  it("Active Melodyがあれば曲中の役割を持つ候補を選び、なければコード主導へ戻る", () => {
+    const linked = generateSignaturePhraseCandidates({
+      ...input(8317),
+      referenceMelody: referenceMelody(),
+    })
+    const chordDriven = generateSignaturePhraseCandidates(input(8317))
+
+    expect(
+      linked.every(
+        (candidate) =>
+          candidate.plan.compositionContext?.source === "chords-and-melody",
+      ),
+    ).toBe(true)
+    expect(
+      new Set(
+        linked.map(
+          (candidate) => candidate.plan.compositionContext?.opportunity,
+        ),
+      ).size,
+    ).toBeGreaterThanOrEqual(4)
+    expect(
+      chordDriven.every(
+        (candidate) =>
+          candidate.plan.compositionContext?.source === "chords-only",
+      ),
+    ).toBe(true)
+  })
+
+  it("Active MelodyのIdentity Cellをそのまま移高コピーせず、変形した予告として使う", () => {
+    const sourceMelody = referenceMelody()
+    const sourceIntervals = sourceMelody
+      .slice(1, 5)
+      .map((note, index) => note.pitch - sourceMelody[index].pitch)
+      .join(",")
+    const candidates = generateSignaturePhraseCandidates({
+      ...input(19423),
+      referenceMelody: sourceMelody,
+    }).filter(
+      (candidate) =>
+        candidate.plan.compositionContext?.opportunity ===
+        "motif-foreshadowing",
+    )
+
+    expect(candidates.length).toBeGreaterThan(0)
+    for (const candidate of candidates) {
+      const lead = candidate.notes
+        .filter((note) => !note.id.includes("-voice-"))
+        .sort((left, right) => left.startBeat - right.startBeat)
+      const candidateIntervals = lead
+        .slice(1, 5)
+        .map((note, index) => note.pitch - lead[index].pitch)
+        .join(",")
+      expect(candidateIntervals).not.toBe(sourceIntervals)
+      expect(candidate.score.thematicForeshadowing).toBeGreaterThan(0.35)
+      expect(candidate.score.compositionPurpose).toBeGreaterThan(0.45)
+    }
+  })
+
   it("リズム先行の独立した1〜2小節候補を12案返す", () => {
     const candidates = generateSignaturePhraseCandidates(input())
 
@@ -657,7 +758,7 @@ describe("Signature Phrase Generator", () => {
               note.startBeat < item.startBeat + item.durationBeats,
           )
           return chord?.symbol === "E7"
-        })
+          })
         expect(
           dominantColors.every((note) =>
             [1, 6].includes(((note.pitch % 12) + 12) % 12),

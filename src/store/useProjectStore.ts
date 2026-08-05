@@ -305,6 +305,11 @@ function signaturePhraseGenerationInput(
   const chords = project.chords
     .filter((chord) => chord.sectionId === sectionId)
     .sort((left, right) => left.startBeat - right.startBeat)
+  const activeMelodyId = project.sectionMelodyAssignments[sectionId]
+  const activeMelody = project.melodyVariants.find(
+    (candidate) =>
+      candidate.id === activeMelodyId && candidate.sectionId === sectionId,
+  )
   const resolvedLength =
     lengthBars ?? (section.lengthBars >= 2 ? 2 : 1)
   if (
@@ -316,6 +321,7 @@ function signaturePhraseGenerationInput(
   }
   return {
     chords,
+    referenceMelody: activeMelody?.notes ?? [],
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),

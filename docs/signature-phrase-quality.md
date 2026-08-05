@@ -22,16 +22,32 @@ Signature Phrase Generatorは、短い識別可能な核を作るだけでなく
 
 ## 生成パイプライン
 
-1. Archetypeと1〜2小節のRhythm Identityを決める。
-2. Focused / Bold / RadicalのCreative Risk Planを決める。
-3. Motif PathとContourを決める。
-4. 1 / 2 / 4 / 8小節のPhrase Architectureを選ぶ。
-5. 各小節へDevelopment Stageを割り当てる。
-6. Decoration Intentを構造上の必要箇所へ配置する。
-7. Rhythm Skeletonへ反復・応答・断片化・余白と計画的な破調を反映する。
-8. Pitch Pathを配置し、意図的な非和声音・跳躍と解決関係を保持する。
-9. 必要な構造点だけをBlock ChordまたはBroken Chordへ展開する。
-10. Quality GateとCreative Riskを含むDiversity Selectionで12候補を選ぶ。
+1. コード進行とActive Melodyを解析し、Signature OpportunityとTarget Tone Pathを決める。
+2. Opportunityに合うArchetypeと1〜2小節のRhythm Identityを決める。
+3. Focused / Bold / RadicalのCreative Risk Planを決める。
+4. Active MelodyのIdentity Cellを複製せず、反転・圧縮・局所変形したMotif PathとContourを決める。
+5. 1 / 2 / 4 / 8小節のPhrase Architectureを選ぶ。
+6. 各小節へDevelopment Stageを割り当てる。
+7. Decoration Intentを構造上の必要箇所へ配置する。
+8. Rhythm Skeletonへ反復・応答・断片化・余白と計画的な破調を反映する。
+9. Pitch Pathを長期Target Toneへ接続し、意図的な非和声音・跳躍と解決関係を保持する。
+10. 必要な構造点だけをBlock ChordまたはBroken Chordへ展開する。
+11. 構成上の目的、品質、Creative Risk、候補間差を含むDiversity Selectionで12候補を選ぶ。
+
+## Composition-aware Signature
+
+Active Melodyが設定済みなら、冒頭数音をコピーするのではなく、3〜5音のIdentity Cell、Onset Gap、音域中心、密度を抽出する。コードからは共通音、3rd / 7th、明示テンション、最終到達音を小節をまたぐTarget Tone Pathとして計画する。
+
+候補は次のSignature Opportunityを分担する。
+
+- `motif-foreshadowing`: MelodyのIdentity Cellを反転・圧縮し、後の主旋律を予告する。
+- `rhythmic-counter-identity`: Melodyと異なるAccent Mapで第二の識別リズムを作る。
+- `harmonic-identity`: 共通音とGuide Toneを曲固有の音として定着させる。
+- `tension-premonition`: 後続コードの緊張を早めに提示する。
+- `register-contrast`: Melodyが入る音域を空けた入口を作る。
+- `section-threshold`: セクション開始そのものを識別可能な演出にする。
+
+Active Melodyが未設定でも停止せず、`harmonic-identity`、`tension-premonition`、`section-threshold`を使うChord Driven生成へ戻る。候補カードではOpportunityと `Melody Linked / Chord Driven` を表示する。
 
 ## Creative Risk
 
@@ -99,8 +115,12 @@ Block ChordとBroken Chordは全音符へ機械的に適用しない。1小節�
 - `audacity`: 計画した跳躍、破調、余白、構成上の断絶が実音へ現れたか。
 - `controlledRisk`: 大胆な音程や非和声音が局所的に回収され、単なるズレになっていないか。
 - `surpriseCoherence`: 予想を外した後に核Motifとの因果関係が戻るか。
+- `harmonicNarrative`: 構造音が長期Target Tone Pathへ接続しているか。
+- `thematicForeshadowing`: Active Melodyをコピーせず、関連するIdentityを予告しているか。
+- `rhythmicComplement`: Melodyと認識可能な関係を保ちつつ別のAccent Mapを持つか。
+- `compositionPurpose`: 選択されたSignature Opportunityが実音へ現れたか。
 
-候補プールから最低品質を満たすものを選び、Archetype、Rhythm、Contour、Voicing、候補間類似度を同時に評価して12案へ絞る。固定Seedでは同じ候補を再現する。
+候補プールから最低品質とComposition Purposeを満たすものを選び、Opportunity、Archetype、Rhythm、Contour、Voicing、候補間類似度を同時に評価して12案へ絞る。固定Seedでは同じ候補を再現する。
 
 ## 互換性
 

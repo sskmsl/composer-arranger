@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { createEmptyProject, normalizeProject } from "@/core/project"
 import { parseChordInputText } from "@/core/chordInput"
 import { DEFAULT_SECTION_CONTENT } from "@/core/sectionContent"
+import type { MelodyVariant } from "@/core/melody"
 import { useProjectStore } from "./useProjectStore"
 
 function projectWithSection() {
@@ -27,6 +28,39 @@ function projectWithSection() {
   }
 }
 
+function activeMelody(): MelodyVariant {
+  return {
+    id: "active-signature-reference",
+    name: "Active Melody",
+    sectionId: "s1",
+    sourceMode: "generate",
+    notes: [
+      [0, 1, 69],
+      [1.5, 0.5, 72],
+      [2.25, 0.75, 71],
+      [3.5, 1, 76],
+      [5, 0.5, 74],
+    ].map(([startBeat, durationBeats, pitch], index) => ({
+      id: `active-note-${index}`,
+      startBeat,
+      durationBeats,
+      pitch,
+      velocity: 82,
+      locks: [],
+    })),
+    phrasePlans: [],
+    lockedBars: [],
+    motifLocked: false,
+    features: null,
+    generatorVersion: "test",
+    seed: 1,
+    songProfile: "original-custom",
+    parentMelodyId: null,
+    batchId: "active-batch",
+    createdAt: "2026-08-06T00:00:00.000Z",
+  }
+}
+
 beforeEach(() => {
   useProjectStore.setState({
     project: projectWithSection(),
@@ -41,6 +75,33 @@ beforeEach(() => {
 })
 
 describe("Signature Phrase store", () => {
+  it("セクションのActive MelodyをSignature Contextへ渡す", () => {
+    const project = projectWithSection()
+    const melody = activeMelody()
+    project.melodyVariants = [melody]
+    project.sectionMelodyAssignments = { s1: melody.id }
+    useProjectStore.setState({ project })
+
+    useProjectStore.getState().generateSignaturePhrasesForSection("s1", 2)
+    const candidates =
+      useProjectStore.getState().project.signaturePhraseCandidates
+
+    expect(candidates).toHaveLength(12)
+    expect(
+      candidates.every(
+        (candidate) =>
+          candidate.plan.compositionContext?.source === "chords-and-melody",
+      ),
+    ).toBe(true)
+    expect(
+      new Set(
+        candidates.map(
+          (candidate) => candidate.plan.compositionContext?.opportunity,
+        ),
+      ).size,
+    ).toBeGreaterThanOrEqual(4)
+  })
+
   it("通常PhraseやMelodyへ混ぜず専用batchへ12案保存する", () => {
     useProjectStore
       .getState()
