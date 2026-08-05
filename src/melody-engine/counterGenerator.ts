@@ -22,11 +22,12 @@ import type {
 } from "@/core/reactiveLayer"
 import { keyScalePitchClasses } from "@/core/scale"
 import {
-  analyzeMelodyActivity,
+  analyzeCounterContext,
   evaluateReactiveLayerQuality,
   unresolvedReactiveToneNoteIds,
+  type CounterContextAnalysis,
+  type CounterOpportunity,
   type MelodyActivityAnalysis,
-  type MelodyGap,
 } from "./reactiveLayerAnalysis"
 
 export interface GenerateCounterInput {
@@ -135,34 +136,6 @@ const CREATIVE_RISK_CYCLE: readonly CounterCreativeRisk[] = [
   "radical",
 ]
 
-const DIALOGUE_INTENTS: readonly CounterDialogueIntent[] = [
-  "answer",
-  "echo-transform",
-  "counter-current",
-  "shadow",
-  "suspended-halo",
-  "strategic-silence",
-]
-
-const RHYTHM_GRAMMARS: readonly CounterRhythmGrammar[] = [
-  "breath-answer",
-  "long-short",
-  "syncopated-reply",
-  "displaced-cell",
-  "broken-pulse",
-  "sparse-signal",
-]
-
-const COUNTER_CONTOURS: readonly CounterContourPlan[] = [
-  "ascending-staircase",
-  "descending-staircase",
-  "arch",
-  "inverted-arch",
-  "wave",
-  "leap-recovery",
-  "pedal-break",
-]
-
 const DEVELOPMENT_STRATEGIES: readonly CounterDevelopmentStrategy[] = [
   "inversion",
   "fragmentation",
@@ -184,28 +157,62 @@ function planCounterComposition(
   input: GenerateCounterInput,
   stylePlan: StylePlan,
   poolIndex: number,
-  availableWindowCount: number,
+  context: CounterContextAnalysis,
+  primaryOpportunity: CounterOpportunity,
   rng: SeededRandom,
 ): CounterCompositionPlan {
   const creativeRisk =
     CREATIVE_RISK_CYCLE[poolIndex % CREATIVE_RISK_CYCLE.length]
-  const styleIntent: Record<CounterGeneratorStyle, CounterDialogueIntent> = {
-    "bell-response": "answer",
-    "piano-echo": "echo-transform",
-    "string-answer": "counter-current",
-    "guitar-fill": "shadow",
-    "synth-whisper": "suspended-halo",
+  const intentsByOpportunity: Record<
+    CounterOpportunity["kind"],
+    readonly CounterDialogueIntent[]
+  > = {
+    "answer-needed": ["answer", "echo-transform", "shadow"],
+    "continuation-needed": ["counter-current", "answer", "strategic-silence"],
+    "harmonic-colour-needed": ["suspended-halo", "shadow", "counter-current"],
+    "tension-support": ["suspended-halo", "counter-current", "strategic-silence"],
+    "motif-recall": ["echo-transform", "shadow", "answer"],
+    "transition-support": ["counter-current", "answer", "suspended-halo"],
+    "silence-preferred": ["strategic-silence"],
   }
-  const dialogueIntent =
-    poolIndex < DIALOGUE_INTENTS.length
-      ? DIALOGUE_INTENTS[poolIndex]
-      : rng.chance(0.68)
-        ? styleIntent[stylePlan.style]
-        : rng.pick(DIALOGUE_INTENTS)
-  const rhythmGrammar =
-    RHYTHM_GRAMMARS[(poolIndex * 5 + rng.intBetween(0, 5)) % RHYTHM_GRAMMARS.length]
-  const contour =
-    COUNTER_CONTOURS[(poolIndex * 3 + rng.intBetween(0, 6)) % COUNTER_CONTOURS.length]
+  const rhythmsByOpportunity: Record<
+    CounterOpportunity["kind"],
+    readonly CounterRhythmGrammar[]
+  > = {
+    "answer-needed": ["breath-answer", "long-short", "syncopated-reply"],
+    "continuation-needed": ["displaced-cell", "breath-answer", "sparse-signal"],
+    "harmonic-colour-needed": ["sparse-signal", "long-short", "broken-pulse"],
+    "tension-support": ["sparse-signal", "displaced-cell", "long-short"],
+    "motif-recall": ["long-short", "syncopated-reply", "breath-answer"],
+    "transition-support": ["syncopated-reply", "displaced-cell", "broken-pulse"],
+    "silence-preferred": ["sparse-signal"],
+  }
+  const contoursByOpportunity: Record<
+    CounterOpportunity["kind"],
+    readonly CounterContourPlan[]
+  > = {
+    "answer-needed": ["arch", "inverted-arch", "leap-recovery"],
+    "continuation-needed": ["ascending-staircase", "descending-staircase", "wave"],
+    "harmonic-colour-needed": ["pedal-break", "wave", "arch"],
+    "tension-support": ["pedal-break", "descending-staircase", "leap-recovery"],
+    "motif-recall": ["arch", "wave", "inverted-arch"],
+    "transition-support": ["ascending-staircase", "leap-recovery", "wave"],
+    "silence-preferred": ["pedal-break"],
+  }
+  const chooseContextual = <T>(values: readonly T[], offset: number): T =>
+    values[(poolIndex + offset + rng.intBetween(0, values.length - 1)) % values.length]
+  const dialogueIntent = chooseContextual(
+    intentsByOpportunity[primaryOpportunity.kind],
+    stylePlan.style === "piano-echo" ? 1 : 0,
+  )
+  const rhythmGrammar = chooseContextual(
+    rhythmsByOpportunity[primaryOpportunity.kind],
+    poolIndex % 3,
+  )
+  const contour = chooseContextual(
+    contoursByOpportunity[primaryOpportunity.kind],
+    primaryOpportunity.preferredMotion === "contrary" ? 1 : 0,
+  )
   const development =
     DEVELOPMENT_STRATEGIES[
       (poolIndex * 5 + rng.intBetween(0, 5)) % DEVELOPMENT_STRATEGIES.length
@@ -222,7 +229,7 @@ function planCounterComposition(
           : 3
   const phraseCount = Math.max(
     1,
-    Math.min(3, preferredPhraseCount, availableWindowCount),
+    Math.min(3, preferredPhraseCount, context.opportunities.length),
   ) as 1 | 2 | 3
   const registerRelation =
     development === "register-exchange"
@@ -248,7 +255,11 @@ function planCounterComposition(
           ? 0.7
           : creativeRisk === "bold"
             ? 0.58
-            : 0.48,
+          : 0.48,
+    opportunityKinds: [primaryOpportunity.kind],
+    counterNeedScore: primaryOpportunity.needScore,
+    targetTonePitchClasses: primaryOpportunity.targetTonePitchClasses,
+    sourceDriven: true,
   }
 }
 
@@ -400,6 +411,7 @@ function rhythmEventsForWindow(
   grammar: CounterRhythmGrammar,
   durationBeats: number,
   risk: CounterCreativeRisk,
+  opportunity: CounterOpportunity,
 ): CounterRhythmEvent[] {
   const blueprints: Record<CounterRhythmGrammar, readonly CounterRhythmEvent[]> = {
     "breath-answer": [
@@ -442,7 +454,7 @@ function rhythmEventsForWindow(
   const maximumNotes = risk === "focused" ? 4 : risk === "bold" ? 5 : 6
   const windowNoteLimit =
     durationBeats <= 1 && risk !== "focused" ? 2 : maximumNotes
-  const available = blueprints[grammar]
+  let available = blueprints[grammar]
     .filter((event) => event.offset < durationBeats - 0.01)
     .slice(0, windowNoteLimit)
     .map((event) => ({
@@ -453,6 +465,60 @@ function rhythmEventsForWindow(
         roundQuarter(Math.min(event.duration, durationBeats - event.offset)),
       ),
     }))
+  if (
+    opportunity.kind === "answer-needed" &&
+    opportunity.sourceMotifOnsetGaps.length >= 2 &&
+    risk !== "radical"
+  ) {
+    let offset = grammar === "syncopated-reply" ? 0.25 : 0
+    available = opportunity.sourceMotifOnsetGaps
+      .slice(0, risk === "focused" ? 3 : 4)
+      .map((onsetGap, index) => {
+        const duration = Math.max(
+          0.25,
+          Math.min(
+            1,
+            opportunity.sourceMotifDurations[index] ?? onsetGap * 0.75,
+          ),
+        )
+        const event = {
+          offset: roundQuarter(offset),
+          duration: roundQuarter(duration),
+          accent: index === 0 ? 0.92 : index % 2 === 0 ? 0.76 : 1,
+        }
+        offset += Math.max(0.25, Math.min(1.5, onsetGap))
+        return event
+      })
+      .filter((event) => event.offset < durationBeats - 0.01)
+  }
+  if (opportunity.kind === "transition-support" && available.length > 0) {
+    const lastEnd = Math.max(
+      ...available.map((event) => event.offset + event.duration),
+    )
+    const shift = Math.max(0, roundQuarter(durationBeats - lastEnd - 0.25))
+    available = available.map((event) => ({
+      ...event,
+      offset: roundQuarter(event.offset + shift),
+    }))
+  }
+  if (
+    opportunity.kind === "harmonic-colour-needed" ||
+    opportunity.kind === "tension-support"
+  ) {
+    available = available.slice(0, risk === "radical" ? 4 : 3)
+  }
+  available = available.map((event) => {
+    const absoluteBeat = opportunity.startBeat + event.offset
+    const conflictsWithMelodyAttack = opportunity.avoidAttackBeats.some(
+      (beat) => Math.abs(beat - absoluteBeat) <= 0.08,
+    )
+    const shiftedOffset = conflictsWithMelodyAttack
+      ? event.offset + 0.25 < durationBeats
+        ? event.offset + 0.25
+        : Math.max(0, event.offset - 0.25)
+      : event.offset
+    return { ...event, offset: roundQuarter(shiftedOffset) }
+  })
   // Focusedは1フレーズ内で識別できる3音、複数フレーズを持つBold/Radicalは
   // 2音の呼びかけを離れたGapへ配置し、総密度を上げずに対話を作る。
   const minimumNotes = risk === "focused" ? 3 : 2
@@ -485,79 +551,123 @@ function melodyDirectionBefore(melody: MelodyNote[], beat: number): number {
   return Math.sign(prior[1].pitch - prior[0].pitch) || 1
 }
 
-function availableGaps(
-  analysis: MelodyActivityAnalysis,
-  minimumDuration: number,
-): MelodyGap[] {
-  return analysis.gaps.filter((gap) => gap.durationBeats >= minimumDuration)
+function pitchClass(value: number): number {
+  return ((value % 12) + 12) % 12
 }
 
-function counterOpportunityWindows(
+function contextualPitchForEvent(
+  desiredPitch: number,
+  previousPitch: number | undefined,
+  beat: number,
+  accent: number,
+  isLast: boolean,
+  register: { low: number; high: number },
+  opportunity: CounterOpportunity,
   input: GenerateCounterInput,
-  analysis: MelodyActivityAnalysis,
-  minimumDuration: number,
-): MelodyGap[] {
-  const criticalStarts = analysis.protectedMoments
-    .filter((moment) =>
-      moment.reasons.some(
-        (reason) =>
-          reason === "highest-note" ||
-          reason === "non-chord-resolution",
-      ),
-    )
-    .map((moment) => moment.startBeat)
-    .sort((a, b) => a - b)
-  const fromRests = availableGaps(analysis, minimumDuration).map((gap) => {
-    const nextCritical = criticalStarts.find(
-      (beat) => beat >= gap.endBeat - 0.001 && beat > gap.startBeat + 0.5,
-    )
-    // 実際の休符を「生成可能なGap」として水増ししない。Protected Momentまで
-    // 伸ばす旧処理は、Gap Usageを実態より高く見せるため廃止する。
-    const endBeat = Math.min(gap.endBeat, nextCritical ?? gap.endBeat)
-    return {
-      startBeat: gap.startBeat,
-      endBeat,
-      durationBeats: endBeat - gap.startBeat,
-    }
-  })
+): { pitch: number; role: MelodyNote["plannedToneRole"] } {
+  const chord = chordForBeat(input.chords, beat)
+  const parsed = chord
+    ? parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+    : null
+  if (!parsed) return { pitch: desiredPitch, role: "passing-tone" }
+  const chordToneSet = new Set(parsed.tones.map((tone) => tone.pitchClass))
+  const tensionSet = new Set(parsed.tensions.map((tone) => tone.pitchClass))
+  const guideToneSet = new Set(
+    parsed.tones
+      .filter((tone) => tone.role === "third" || tone.role === "seventh")
+      .map((tone) => tone.pitchClass),
+  )
+  const melodyNote = overlappingMelodyNote(input.melody.notes, beat)
+  const desiredPitchClass = pitchClass(desiredPitch)
+  const desiredVerticalInterval = melodyNote
+    ? Math.abs(desiredPitch - melodyNote.pitch) % 12
+    : null
+  const weakPosition = accent < 0.84 && !isLast
+  const safePassingTone =
+    weakPosition &&
+    (previousPitch === undefined || Math.abs(desiredPitch - previousPitch) <= 4) &&
+    desiredVerticalInterval !== 0 &&
+    desiredVerticalInterval !== 1 &&
+    desiredVerticalInterval !== 11
+  if (
+    safePassingTone &&
+    !chordToneSet.has(desiredPitchClass) &&
+    !tensionSet.has(desiredPitchClass)
+  ) {
+    return { pitch: desiredPitch, role: "passing-tone" }
+  }
 
-  const highestPitch = Math.max(...input.melody.notes.map((note) => note.pitch))
-  const sustainTails = input.melody.notes
-    .filter(
-      (note) =>
-        note.durationBeats >= 2 &&
-        note.pitch < highestPitch &&
-        !note.plannedResolution,
-    )
-    .map((note) => {
-      const startBeat = note.startBeat + Math.min(0.75, note.durationBeats * 0.4)
-      const endBeat = Math.min(
-        input.totalBeats,
-        note.startBeat + note.durationBeats - 0.25,
+  const candidatePitchClasses = [
+    ...opportunity.targetTonePitchClasses,
+    ...parsed.tones.map((tone) => tone.pitchClass),
+    ...parsed.tensions.map((tone) => tone.pitchClass),
+  ].filter(
+    (candidate, index, values) => values.indexOf(candidate) === index,
+  )
+  const consonantClasses = new Set([3, 4, 5, 7, 8, 9])
+  const selected = candidatePitchClasses
+    .map((candidatePitchClass, targetIndex) => {
+      const pitch = pitchInRegister(
+        candidatePitchClass,
+        register.low,
+        register.high,
+        desiredPitch,
       )
+      const verticalInterval = melodyNote
+        ? Math.abs(pitch - melodyNote.pitch) % 12
+        : null
+      const verticalScore =
+        verticalInterval === null
+          ? 4
+          : verticalInterval === 0 || verticalInterval === 1 || verticalInterval === 11
+            ? -60
+            : consonantClasses.has(verticalInterval)
+              ? 18
+              : verticalInterval === 2 || verticalInterval === 10
+                ? weakPosition
+                  ? 2
+                  : -14
+                : -5
+      const melodicDistance = previousPitch === undefined
+        ? 0
+        : Math.abs(pitch - previousPitch)
+      const leapScore = melodicDistance <= 4
+        ? 10
+        : melodicDistance <= 7
+          ? 2
+          : -18
       return {
-        startBeat,
-        endBeat,
-        durationBeats: endBeat - startBeat,
+        pitch,
+        pitchClass: candidatePitchClass,
+        score:
+          -Math.abs(pitch - desiredPitch) * 2.2 +
+          verticalScore +
+          leapScore +
+          (guideToneSet.has(candidatePitchClass) ? 12 : 0) +
+          (opportunity.targetTonePitchClasses.includes(candidatePitchClass)
+            ? Math.max(2, 12 - targetIndex * 2)
+            : 0) +
+          (tensionSet.has(candidatePitchClass) && weakPosition ? 5 : 0),
       }
     })
-    .filter((window) => window.durationBeats >= minimumDuration)
-
-  return [...fromRests, ...sustainTails]
-    .filter((window) => window.durationBeats >= minimumDuration)
-    .sort((a, b) => a.startBeat - b.startBeat)
-    .filter(
-      (window, index, windows) =>
-        index === 0 ||
-        Math.abs(window.startBeat - windows[index - 1].startBeat) > 0.125 ||
-        Math.abs(window.endBeat - windows[index - 1].endBeat) > 0.125,
-    )
+    .sort((left, right) => right.score - left.score)[0]
+  if (!selected) return { pitch: desiredPitch, role: "passing-tone" }
+  return {
+    pitch: selected.pitch,
+    role: chordToneSet.has(selected.pitchClass)
+      ? "chord-tone"
+      : tensionSet.has(selected.pitchClass)
+        ? isLast
+          ? "tension-hold"
+          : "appoggiatura"
+        : "passing-tone",
+  }
 }
 
 function generatePhraseInGap(
   stylePlan: StylePlan,
   composition: CounterCompositionPlan,
-  gap: MelodyGap,
+  gap: CounterOpportunity,
   phraseIndex: number,
   isFinalPhrase: boolean,
   input: GenerateCounterInput,
@@ -569,6 +679,7 @@ function generatePhraseInGap(
     composition.rhythmGrammar,
     Math.min(4, gap.durationBeats),
     composition.creativeRisk,
+    gap,
   )
   const count = rhythmEvents.length
   const phraseStart = gap.startBeat
@@ -653,8 +764,18 @@ function generatePhraseInGap(
       )
     }
     let pitch = ladder[ladderIndex]
-    let pitchClass = ((pitch % 12) + 12) % 12
     const isLast = index === count - 1
+    const contextualPitch = contextualPitchForEvent(
+      pitch,
+      notes.at(-1)?.pitch,
+      beat,
+      rhythmEvent.accent,
+      isLast && isFinalPhrase,
+      register,
+      gap,
+      input,
+    )
+    pitch = contextualPitch.pitch
     if (
       isLast &&
       isFinalPhrase &&
@@ -693,7 +814,6 @@ function generatePhraseInGap(
           (Math.abs(resolvedPitch - previous) >= 1 &&
             Math.abs(resolvedPitch - previous) <= 3))
       ) {
-        pitchClass = nearestChordPitchClass
         pitch = resolvedPitch
       }
     }
@@ -710,7 +830,6 @@ function generatePhraseInGap(
         register.high,
         pitch,
       )
-      pitchClass = ((pitch % 12) + 12) % 12
     }
 
     const echoedDuration =
@@ -748,13 +867,11 @@ function generatePhraseInGap(
         ),
       ),
       locks: [],
-      plannedToneRole: parsed?.tones.some((tone) => tone.pitchClass === pitchClass)
-        ? "chord-tone"
-        : composition.ending === "suspended" && isLast
+      plannedToneRole: composition.ending === "suspended" && isLast
           ? "tension-hold"
-          : stylePlan.style === "synth-whisper"
+          : stylePlan.style === "synth-whisper" && contextualPitch.role !== "chord-tone"
           ? "tension-hold"
-          : "passing-tone",
+          : contextualPitch.role,
     })
   }
   return notes.map((note, index) => {
@@ -837,6 +954,9 @@ function evaluateCounterMusicalQuality(
       emotionalNecessity: 0,
       audacity: 0,
       controlledRisk: 0,
+      harmonicNarrative: 0,
+      melodicComplement: 0,
+      placementPurpose: 0,
       overall: 0,
     }
   }
@@ -948,15 +1068,45 @@ function evaluateCounterMusicalQuality(
         (collisions.hasBlockingCollision ? 40 : 0),
     ),
   )
+  const targetToneRatio = notes.filter((note) =>
+    plan.targetTonePitchClasses.includes(pitchClass(note.pitch)),
+  ).length / notes.length
+  const harmonicNarrative = Math.min(
+    100,
+    baseQuality.harmonicFit * 0.38 +
+      targetToneRatio * 34 +
+      counterpointFit * 0.28,
+  )
+  const simultaneousAttackControl = Math.max(
+    0,
+    100 - collisions.simultaneousAttackCount * 18,
+  )
+  const melodicComplement = Math.min(
+    100,
+    counterpointFit * 0.34 +
+      independence * 0.24 +
+      rhythmicCharacter * 0.2 +
+      simultaneousAttackControl * 0.22,
+  )
+  const placementPurpose = Math.min(
+    100,
+    plan.counterNeedScore * 0.42 +
+      baseQuality.gapUsage * 0.24 +
+      dialogueClarity * 0.2 +
+      breathAndRestraint * 0.14,
+  )
   const overall =
-    dialogueClarity * 0.18 +
-    independence * 0.13 +
-    rhythmicCharacter * 0.13 +
-    contourPurpose * 0.1 +
-    breathAndRestraint * 0.12 +
-    development * 0.1 +
-    emotionalNecessity * 0.14 +
-    controlledRisk * 0.1
+    dialogueClarity * 0.12 +
+    independence * 0.1 +
+    rhythmicCharacter * 0.1 +
+    contourPurpose * 0.07 +
+    breathAndRestraint * 0.08 +
+    development * 0.07 +
+    emotionalNecessity * 0.1 +
+    controlledRisk * 0.1 +
+    harmonicNarrative * 0.1 +
+    melodicComplement * 0.09 +
+    placementPurpose * 0.07
   return {
     dialogueClarity,
     independence,
@@ -967,6 +1117,9 @@ function evaluateCounterMusicalQuality(
     emotionalNecessity,
     audacity,
     controlledRisk,
+    harmonicNarrative,
+    melodicComplement,
+    placementPurpose,
     overall,
   }
 }
@@ -1407,24 +1560,32 @@ function buildPoolCandidate(
   input: GenerateCounterInput,
   plan: StylePlan,
   poolIndex: number,
-  analysis: MelodyActivityAnalysis,
+  analysis: CounterContextAnalysis,
 ): ReactiveLayerCandidate {
   const candidateSeed = (input.seed + (poolIndex + 1) * 104_729) >>> 0
   const rng = new SeededRandom(candidateSeed)
-  const gaps = counterOpportunityWindows(
-    input,
-    analysis,
-    plan.style === "synth-whisper" ? 0.75 : 0.5,
+  const minimumDuration = plan.style === "synth-whisper" ? 0.75 : 0.5
+  const filteredOpportunities = analysis.opportunities.filter(
+    (opportunity) => opportunity.durationBeats >= minimumDuration,
   )
-  const composition = planCounterComposition(
+  const opportunities =
+    filteredOpportunities.length > 0
+      ? filteredOpportunities
+      : analysis.opportunities
+  const primaryOpportunity =
+    opportunities[
+      (poolIndex * 7 + input.seed) % Math.max(1, opportunities.length)
+    ]
+  const plannedComposition = planCounterComposition(
     input,
     plan,
     poolIndex,
-    gaps.length,
+    analysis,
+    primaryOpportunity,
     rng,
   )
-  const gapCount = Math.min(gaps.length, composition.phraseCount)
-  const selectedGaps = gaps
+  const gapCount = Math.min(opportunities.length, plannedComposition.phraseCount)
+  const selectedGaps = opportunities
     .map((gap) => ({
       gap,
       score: (() => {
@@ -1436,15 +1597,37 @@ function buildPoolCandidate(
           ? Math.min(1.5, preceding.durationBeats) * 0.35
           : 0
         const usableSpace = Math.min(2, gap.durationBeats) * 0.35
+        const contextualPriority =
+          gap.kind === primaryOpportunity.kind ? 0.45 : 0
         const sectionalVariety =
           ((poolIndex + Math.round(gap.startBeat)) % 5) * 0.06
-        return phraseRelease + usableSpace + sectionalVariety + rng.next() * 0.2
+        return (
+          gap.needScore / 100 +
+          contextualPriority +
+          phraseRelease +
+          usableSpace +
+          sectionalVariety +
+          rng.next() * 0.2
+        )
       })(),
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, gapCount)
     .map(({ gap }) => gap)
     .sort((a, b) => a.startBeat - b.startBeat)
+  const composition: CounterCompositionPlan = {
+    ...plannedComposition,
+    opportunityKinds: [...new Set(selectedGaps.map((gap) => gap.kind))],
+    counterNeedScore: Math.round(
+      selectedGaps.reduce((sum, gap) => sum + gap.needScore, 0) /
+        Math.max(1, selectedGaps.length),
+    ),
+    targetTonePitchClasses: [
+      ...new Set(
+        selectedGaps.flatMap((gap) => gap.targetTonePitchClasses),
+      ),
+    ].slice(0, 8),
+  }
   const notes = selectedGaps.flatMap((gap, index) =>
     generatePhraseInGap(
       plan,
@@ -1457,7 +1640,7 @@ function buildPoolCandidate(
       rng,
     ),
   )
-  const opportunityAnalysis = { ...analysis, gaps }
+  const opportunityAnalysis = { ...analysis, gaps: opportunities }
   const relationship = motifRelationship(input.melody.notes, notes)
   const counterpointFit = evaluateCounterpointFit(
     input.melody.notes,
@@ -1508,7 +1691,14 @@ function buildPoolCandidate(
 export function generateCounterCandidates(
   input: GenerateCounterInput,
 ): ReactiveLayerCandidate[] {
-  const analysis = analyzeMelodyActivity(input.melody.notes, input.totalBeats)
+  const analysis = analyzeCounterContext(
+    input.melody.notes,
+    input.chords,
+    input.totalBeats,
+  )
+  if (analysis.silenceRecommended || analysis.opportunities.length === 0) {
+    return []
+  }
   const poolSize = Math.max(
     input.finalCount ?? COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
     input.poolSize ?? COUNTER_CANDIDATE_CONFIG.candidatePoolSize,

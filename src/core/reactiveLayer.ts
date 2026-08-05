@@ -55,6 +55,15 @@ export type CounterEndingStrategy =
   | "motif-return"
   | "silence-cut"
 
+export type CounterOpportunityKind =
+  | "answer-needed"
+  | "continuation-needed"
+  | "harmonic-colour-needed"
+  | "tension-support"
+  | "motif-recall"
+  | "transition-support"
+  | "silence-preferred"
+
 /** Counterを音符より先に設計し、主旋律との関係を候補ごとに変える。 */
 export interface CounterCompositionPlan {
   creativeRisk: CounterCreativeRisk
@@ -66,6 +75,14 @@ export interface CounterCompositionPlan {
   registerRelation: "below" | "above" | "exchange"
   phraseCount: 1 | 2 | 3
   targetSilenceRatio: number
+  /** コード進行とActive Melodyの統合解析から選ばれた、Counterを置く理由。 */
+  opportunityKinds: CounterOpportunityKind[]
+  /** この候補が対象とする区間でCounterが必要な度合い(0–100)。 */
+  counterNeedScore: number
+  /** コード間のvoice leadingから先に計画した主要到達音。 */
+  targetTonePitchClasses: number[]
+  /** 候補番号ではなく入力構成から計画されたことを示す診断値。 */
+  sourceDriven: true
 }
 
 export interface CounterMusicalQuality {
@@ -78,6 +95,12 @@ export interface CounterMusicalQuality {
   emotionalNecessity: number
   audacity: number
   controlledRisk: number
+  /** コードの緊張・解決とguide tone pathへの適合。 */
+  harmonicNarrative: number
+  /** 主旋律の動き・アクセント・余白を補完できている度合い。 */
+  melodicComplement: number
+  /** 各フレーズが解析済みOpportunityへ配置された必然性。 */
+  placementPurpose: number
   overall: number
 }
 
