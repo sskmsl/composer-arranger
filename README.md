@@ -40,7 +40,7 @@ DAW を目指すアプリではありません。ノート編集や細かな打�
 - **候補の比較・採用**: 複数候補をブラインドで聴き比べ、Star/却下などで評価しながらセクションごとに採用案を決定
 - **曲全体のプレビュー**: 採用したセクションを繋げて曲全体を試聴。セクション境界だけを前後1小節ずつ再生して繋がりを確認する機能もある
 - **MIDI Export**: セクション単位・曲全体単位で SMF 書き出し。セクション名をマーカーとして出力し、Logic Pro 側で構成を確認できる。Counter/Decorationは専用トラックとして分離
-- **プロジェクト保存**: ブラウザ内(IndexedDB)への自動保存、プロジェクト一覧からの再開・複製・削除、JSON ファイルでの書き出し・読み込み
+- **プロジェクト保存・同期**: ブラウザ内(IndexedDB)への自動保存、Supabaseによる端末間同期、プロジェクト一覧からの再開・複製・削除、JSON ファイルでの書き出し・読み込み
 - **Undo/Redo**: 生成・編集操作の履歴管理
 
 ## ワークフロー
@@ -67,10 +67,19 @@ Logic Pro で編曲・ミックス
 - Tailwind CSS v4
 - zustand(状態管理)
 - idb(IndexedDB によるローカル永続化)
+- Supabase Auth / Database(設定時のみ有効な端末間同期)
 - Web Audio API(プレビュー再生)
 - ビルド出力を GitHub Pages へデプロイ
 
-外部サーバーは持たず、すべてブラウザ内で完結します。
+生成・試聴・MIDI出力はブラウザ内で完結します。Supabase設定時だけ、保存プロジェクトの認証・端末間同期にクラウドを利用します。環境変数が無いローカル開発では従来どおりローカル専用で動作します。
+
+## Cloud同期の設定
+
+1. コードジェネレーターと同じSupabase projectのSQL Editorで `supabase/arranger-projects.sql` を実行する。
+2. ローカルでは `.env.local` に `VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` を設定する。
+3. GitHub Pagesでは同名のRepository Secretsを設定する。
+
+公開版はSupabase設定時にログイン必須となる。同じアカウントでログインすると、全Composer Arranger projectが更新日時を基準に統合される。別端末での削除はtombstoneとして同期され、古い端末から削除済みprojectが復活しない。
 
 ## 開発状況
 

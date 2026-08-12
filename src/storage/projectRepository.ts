@@ -1,14 +1,81 @@
 import type { ComposerProject } from "@/core/project"
 import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectBrowser"
 import { getDb, PROJECT_STORE, META_STORE } from "./db"
+import {
+  deleteProjectRemote,
+  scheduleProjectPush,
+  shouldResetLocalForOwner,
+  syncPullAndReconcile,
+  type StoredComposerProject,
+} from "@/features/sync/projectSync"
 
 const LAST_OPENED_KEY = "lastOpenedProjectId"
+const CLOUD_OWNER_KEY = "cloudSyncOwnerId"
+
+interface PendingCloudDeletion {
+  projectId: string
+  deletedAt: string
+}
+
+function pendingDeletionKey(ownerId: string): string {
+  return `cloudPendingDeletions:${ownerId}`
+}
+
+async function readPendingDeletions(
+  ownerId: string,
+): Promise<PendingCloudDeletion[]> {
+  const db = await getDb()
+  const raw = await db.get(META_STORE, pendingDeletionKey(ownerId))
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw) as PendingCloudDeletion[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+async function writePendingDeletions(
+  ownerId: string,
+  pending: PendingCloudDeletion[],
+): Promise<void> {
+  const db = await getDb()
+  const key = pendingDeletionKey(ownerId)
+  if (pending.length === 0) await db.delete(META_STORE, key)
+  else await db.put(META_STORE, JSON.stringify(pending), key)
+}
+
+async function queueCloudDeletion(
+  ownerId: string,
+  projectId: string,
+): Promise<PendingCloudDeletion> {
+  const pending = await readPendingDeletions(ownerId)
+  const existing = pending.find((item) => item.projectId === projectId)
+  if (existing) return existing
+  const deletion = { projectId, deletedAt: new Date().toISOString() }
+  await writePendingDeletions(ownerId, [...pending, deletion])
+  return deletion
+}
+
+async function flushCloudDeletion(
+  ownerId: string,
+  deletion: PendingCloudDeletion,
+): Promise<void> {
+  await deleteProjectRemote(deletion.projectId, deletion.deletedAt)
+  const pending = await readPendingDeletions(ownerId)
+  await writePendingDeletions(
+    ownerId,
+    pending.filter((item) => item.projectId !== deletion.projectId),
+  )
+}
 
 /** 17章「保存中のアプリ終了でも直前状態を復元できる」を満たすための自動保存 */
 export async function saveProject(project: ComposerProject): Promise<void> {
   const db = await getDb()
-  await db.put(PROJECT_STORE, { ...project, savedAt: new Date().toISOString() })
+  const record = { ...project, savedAt: new Date().toISOString() }
+  await db.put(PROJECT_STORE, record)
   await db.put(META_STORE, project.projectId, LAST_OPENED_KEY)
+  scheduleProjectPush(record)
 }
 
 export async function loadProject(projectId: string): Promise<ComposerProject | undefined> {
@@ -35,7 +102,9 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
  */
 export async function putProjectRecord(project: ComposerProject): Promise<void> {
   const db = await getDb()
-  await db.put(PROJECT_STORE, { ...project, savedAt: new Date().toISOString() })
+  const record = { ...project, savedAt: new Date().toISOString() }
+  await db.put(PROJECT_STORE, record)
+  scheduleProjectPush(record)
 }
 
 /**
@@ -47,6 +116,11 @@ export async function deleteProject(projectId: string): Promise<void> {
   const lastOpened = (await db.get(META_STORE, LAST_OPENED_KEY)) ?? null
   const allIds = (await db.getAllKeys(PROJECT_STORE)) as string[]
   await db.delete(PROJECT_STORE, projectId)
+  const cloudOwnerId = await db.get(META_STORE, CLOUD_OWNER_KEY)
+  if (cloudOwnerId) {
+    const deletion = await queueCloudDeletion(cloudOwnerId, projectId)
+    void flushCloudDeletion(cloudOwnerId, deletion).catch(() => undefined)
+  }
   const nextLast = nextLastOpenedAfterDelete(projectId, lastOpened, allIds)
   if (nextLast) await db.put(META_STORE, nextLast, LAST_OPENED_KEY)
   else await db.delete(META_STORE, LAST_OPENED_KEY)
@@ -88,4 +162,47 @@ export async function backupProjectTimingSnapshot(raw: unknown): Promise<void> {
   const db = await getDb()
   const key = `timingBackup:${projectId}:${Date.now()}`
   await db.put(META_STORE, JSON.stringify(raw), key)
+}
+
+async function replaceAllLocalProjects(
+  projects: StoredComposerProject[],
+): Promise<void> {
+  const db = await getDb()
+  const transaction = db.transaction(PROJECT_STORE, "readwrite")
+  await transaction.store.clear()
+  await Promise.all(projects.map((project) => transaction.store.put(project)))
+  await transaction.done
+}
+
+/** AuthGateから呼ばれる、全保存projectの端末間同期。 */
+export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
+  const db = await getDb()
+  const previousOwnerId =
+    (await db.get(META_STORE, CLOUD_OWNER_KEY)) ?? null
+  if (shouldResetLocalForOwner(previousOwnerId, ownerId)) {
+    const transaction = db.transaction(
+      [PROJECT_STORE, META_STORE],
+      "readwrite",
+    )
+    await transaction.objectStore(PROJECT_STORE).clear()
+    await transaction.objectStore(META_STORE).delete(LAST_OPENED_KEY)
+    await transaction.done
+  }
+  await db.put(META_STORE, ownerId, CLOUD_OWNER_KEY)
+
+  const pending = await readPendingDeletions(ownerId)
+  for (const deletion of pending) {
+    try {
+      await flushCloudDeletion(ownerId, deletion)
+    } catch {
+      // Cloudが復旧するまでpending tombstoneを維持し、pullでも復活させない。
+    }
+  }
+  const remainingDeletedIds = (await readPendingDeletions(ownerId)).map(
+    (item) => item.projectId,
+  )
+  await syncPullAndReconcile({
+    listLocal: listProjects,
+    replaceLocal: replaceAllLocalProjects,
+  }, remainingDeletedIds)
 }

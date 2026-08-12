@@ -5,7 +5,8 @@ import { listProjects, getLastOpenedId, putProjectRecord } from "@/storage/proje
 import type { ComposerProject } from "@/core/project"
 import { summarizeProject, sortSummariesByRecency, filterSummaries, type ProjectSummary } from "@/core/projectBrowser"
 import { Button, TextInput } from "@/ui/primitives"
-import { X, FolderOpen, Copy, Pencil, Trash2, AlertTriangle, Check } from "lucide-react"
+import { X, FolderOpen, Copy, Pencil, Trash2, AlertTriangle, Check, Cloud } from "lucide-react"
+import { isCloudSyncConfigured } from "@/features/sync/projectSync"
 
 /**
  * Issue #14: IndexedDBへ自動保存したプロジェクトを一覧・整理するブラウザー。
@@ -101,7 +102,14 @@ export function ProjectBrowser({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-          <h2 className="text-[15px] font-semibold text-body-on-dark">保存済みプロジェクト</h2>
+          <div>
+            <h2 className="text-[15px] font-semibold text-body-on-dark">保存済みプロジェクト</h2>
+            {isCloudSyncConfigured() && (
+              <p className="mt-0.5 flex items-center gap-1 text-[10px] text-primary-on-dark">
+                <Cloud size={10} /> Cloud同期有効
+              </p>
+            )}
+          </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-body-muted hover:bg-white/10 hover:text-body-on-dark" aria-label="閉じる">
             <X size={16} />
           </button>
