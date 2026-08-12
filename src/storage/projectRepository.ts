@@ -1,14 +1,22 @@
 import type { ComposerProject } from "@/core/project"
 import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectBrowser"
 import { getDb, PROJECT_STORE, META_STORE } from "./db"
+import {
+  deleteProjectRemote,
+  scheduleProjectPush,
+  syncPullAndReconcile,
+  type StoredComposerProject,
+} from "@/features/sync/projectSync"
 
 const LAST_OPENED_KEY = "lastOpenedProjectId"
 
 /** 17章「保存中のアプリ終了でも直前状態を復元できる」を満たすための自動保存 */
 export async function saveProject(project: ComposerProject): Promise<void> {
   const db = await getDb()
-  await db.put(PROJECT_STORE, { ...project, savedAt: new Date().toISOString() })
+  const record = { ...project, savedAt: new Date().toISOString() }
+  await db.put(PROJECT_STORE, record)
   await db.put(META_STORE, project.projectId, LAST_OPENED_KEY)
+  scheduleProjectPush(record)
 }
 
 export async function loadProject(projectId: string): Promise<ComposerProject | undefined> {
@@ -35,7 +43,9 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
  */
 export async function putProjectRecord(project: ComposerProject): Promise<void> {
   const db = await getDb()
-  await db.put(PROJECT_STORE, { ...project, savedAt: new Date().toISOString() })
+  const record = { ...project, savedAt: new Date().toISOString() }
+  await db.put(PROJECT_STORE, record)
+  scheduleProjectPush(record)
 }
 
 /**
@@ -47,6 +57,7 @@ export async function deleteProject(projectId: string): Promise<void> {
   const lastOpened = (await db.get(META_STORE, LAST_OPENED_KEY)) ?? null
   const allIds = (await db.getAllKeys(PROJECT_STORE)) as string[]
   await db.delete(PROJECT_STORE, projectId)
+  void deleteProjectRemote(projectId).catch(() => undefined)
   const nextLast = nextLastOpenedAfterDelete(projectId, lastOpened, allIds)
   if (nextLast) await db.put(META_STORE, nextLast, LAST_OPENED_KEY)
   else await db.delete(META_STORE, LAST_OPENED_KEY)
@@ -88,4 +99,22 @@ export async function backupProjectTimingSnapshot(raw: unknown): Promise<void> {
   const db = await getDb()
   const key = `timingBackup:${projectId}:${Date.now()}`
   await db.put(META_STORE, JSON.stringify(raw), key)
+}
+
+async function replaceAllLocalProjects(
+  projects: StoredComposerProject[],
+): Promise<void> {
+  const db = await getDb()
+  const transaction = db.transaction(PROJECT_STORE, "readwrite")
+  await transaction.store.clear()
+  await Promise.all(projects.map((project) => transaction.store.put(project)))
+  await transaction.done
+}
+
+/** AuthGateから呼ばれる、全保存projectの端末間同期。 */
+export async function syncProjectsFromCloud(): Promise<void> {
+  await syncPullAndReconcile({
+    listLocal: listProjects,
+    replaceLocal: replaceAllLocalProjects,
+  })
 }
