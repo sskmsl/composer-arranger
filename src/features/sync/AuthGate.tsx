@@ -37,7 +37,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     void syncProjectsFromCloud(userId)
       .catch((reason: unknown) => {
         lastSyncedUserId.current = null
-        setError(reason instanceof Error ? reason.message : "同期に失敗しました")
+        setError(syncErrorMessage(reason))
       })
       .finally(() => setSyncing(false))
   }, [userId])
@@ -62,6 +62,20 @@ export function AuthGate({ children }: { children: ReactNode }) {
       {children}
     </>
   )
+}
+
+function syncErrorMessage(reason: unknown): string {
+  if (reason instanceof Error && reason.message) return reason.message
+  if (
+    typeof reason === "object" &&
+    reason !== null &&
+    "message" in reason &&
+    typeof reason.message === "string" &&
+    reason.message
+  ) {
+    return reason.message
+  }
+  return "同期に失敗しました"
 }
 
 function LoginForm() {
