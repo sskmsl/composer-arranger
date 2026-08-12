@@ -118,6 +118,26 @@ export function reconcileProjectRows(
   )
 }
 
+/** Cloudと同じか新しいprojectは再送せず、大容量projectの不要な同時通信を避ける。 */
+export function projectsNeedingUpload(
+  localProjects: StoredComposerProject[],
+  remoteRows: RemoteProjectRow[],
+  locallyDeletedIds: Iterable<string> = [],
+): StoredComposerProject[] {
+  const deletedIds = new Set(locallyDeletedIds)
+  const remoteById = new Map<string, RemoteProjectRow>()
+  for (const row of remoteRows) {
+    remoteById.set(row.id, row)
+    if (row.deleted_at !== null) deletedIds.add(row.id)
+  }
+  return localProjects.filter((project) => {
+    if (deletedIds.has(project.projectId)) return false
+    const remote = remoteById.get(project.projectId)
+    if (!remote || !remote.data || remote.deleted_at !== null) return true
+    return project.savedAt.localeCompare(remote.data.savedAt) > 0
+  })
+}
+
 /** 初回導入時は既存ローカルprojectを採用し、別accountへの切替時だけ端末データを隔離する。 */
 export function shouldResetLocalForOwner(
   previousOwnerId: string | null,
@@ -141,13 +161,20 @@ export async function syncPullAndReconcile(
   ])
   if (error) throw error
 
+  const rows = (remoteRows ?? []) as RemoteProjectRow[]
   const projects = reconcileProjectRows(
     localProjects,
-    (remoteRows ?? []) as RemoteProjectRow[],
+    rows,
+    locallyDeletedIds,
+  )
+  const uploadProjects = projectsNeedingUpload(
+    localProjects,
+    rows,
     locallyDeletedIds,
   )
   await adapter.replaceLocal(projects)
-  await Promise.all(projects.map(pushProject))
+  // 大きいprojectを並列送信するとブラウザ/Supabase側で一時失敗しやすいため順次送る。
+  for (const project of uploadProjects) await pushProject(project)
   return projects
 }
 

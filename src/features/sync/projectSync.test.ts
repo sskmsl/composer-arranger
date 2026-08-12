@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import {
   mergeProjectCollections,
+  projectsNeedingUpload,
   reconcileProjectRows,
   shouldResetLocalForOwner,
   type StoredComposerProject,
@@ -76,5 +77,25 @@ describe("Composer Arranger cloud sync merge", () => {
     expect(shouldResetLocalForOwner(null, "owner-a")).toBe(false)
     expect(shouldResetLocalForOwner("owner-a", "owner-a")).toBe(false)
     expect(shouldResetLocalForOwner("owner-a", "owner-b")).toBe(true)
+  })
+
+  it("Cloudと同じ保存状態のprojectをログイン時に再送しない", () => {
+    const project = stored("Already synced", "2026-08-12T01:00:00.000Z")
+    expect(
+      projectsNeedingUpload([project], [
+        { id: project.projectId, data: project, deleted_at: null },
+      ]),
+    ).toEqual([])
+  })
+
+  it("Cloudより新しいローカルprojectだけを送信対象にする", () => {
+    const id = crypto.randomUUID()
+    const remote = stored("Remote", "2026-08-12T01:00:00.000Z", id)
+    const local = stored("Local", "2026-08-12T02:00:00.000Z", id)
+    expect(
+      projectsNeedingUpload([local], [
+        { id, data: remote, deleted_at: null },
+      ]),
+    ).toEqual([local])
   })
 })
