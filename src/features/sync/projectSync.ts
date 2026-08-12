@@ -2,6 +2,7 @@ import type { ComposerProject } from "@/core/project"
 import { supabase } from "@/lib/supabase"
 
 const PROJECTS_TABLE = "arranger_projects"
+const UPSERT_PROJECT_RPC = "upsert_arranger_project"
 const PUSH_DELAY_MS = 800
 
 export type StoredComposerProject = ComposerProject & { savedAt: string }
@@ -41,35 +42,33 @@ export function scheduleProjectPush(project: StoredComposerProject): void {
 
 export async function pushProject(project: StoredComposerProject): Promise<void> {
   if (!supabase) return
-  const owner_id = await ownerId()
-  if (!owner_id) return
-  const { error } = await supabase.from(PROJECTS_TABLE).upsert({
-    id: project.projectId,
-    owner_id,
-    data: project,
-    updated_at: project.savedAt,
-    deleted_at: null,
+  if (!(await ownerId())) return
+  const { error } = await supabase.rpc(UPSERT_PROJECT_RPC, {
+    p_id: project.projectId,
+    p_data: project,
+    p_updated_at: project.savedAt,
+    p_deleted_at: null,
   })
   if (error) throw error
 }
 
-export async function deleteProjectRemote(projectId: string): Promise<void> {
+export async function deleteProjectRemote(
+  projectId: string,
+  deletedAt = new Date().toISOString(),
+): Promise<void> {
   if (!supabase) return
   const pending = pendingPushes.get(projectId)
   if (pending) {
     clearTimeout(pending)
     pendingPushes.delete(projectId)
   }
-  const owner_id = await ownerId()
-  if (!owner_id) return
-  const deletedAt = new Date().toISOString()
+  if (!(await ownerId())) return
   // 物理削除せずtombstoneを残し、別端末の古いIndexedDBから復活するのを防ぐ。
-  const { error } = await supabase.from(PROJECTS_TABLE).upsert({
-    id: projectId,
-    owner_id,
-    data: null,
-    updated_at: deletedAt,
-    deleted_at: deletedAt,
+  const { error } = await supabase.rpc(UPSERT_PROJECT_RPC, {
+    p_id: projectId,
+    p_data: null,
+    p_updated_at: deletedAt,
+    p_deleted_at: deletedAt,
   })
   if (error) throw error
 }
@@ -100,21 +99,31 @@ export function mergeProjectCollections(
 export function reconcileProjectRows(
   localProjects: StoredComposerProject[],
   remoteRows: RemoteProjectRow[],
+  locallyDeletedIds: Iterable<string> = [],
 ): StoredComposerProject[] {
-  const deletedIds = new Set(
-    remoteRows
-      .filter((row) => row.deleted_at !== null)
-      .map((row) => row.id),
-  )
+  const deletedIds = new Set(locallyDeletedIds)
+  for (const row of remoteRows) {
+    if (row.deleted_at !== null) deletedIds.add(row.id)
+  }
   return mergeProjectCollections(
     localProjects.filter((project) => !deletedIds.has(project.projectId)),
     remoteRows
       .filter(
         (row): row is RemoteProjectRow & { data: StoredComposerProject } =>
-          row.data !== null && row.deleted_at === null,
+          row.data !== null &&
+          row.deleted_at === null &&
+          !deletedIds.has(row.id),
       )
       .map((row) => row.data),
   )
+}
+
+/** 初回導入時は既存ローカルprojectを採用し、別accountへの切替時だけ端末データを隔離する。 */
+export function shouldResetLocalForOwner(
+  previousOwnerId: string | null,
+  nextOwnerId: string,
+): boolean {
+  return previousOwnerId !== null && previousOwnerId !== nextOwnerId
 }
 
 /**
@@ -123,6 +132,7 @@ export function reconcileProjectRows(
  */
 export async function syncPullAndReconcile(
   adapter: ProjectSyncAdapter,
+  locallyDeletedIds: Iterable<string> = [],
 ): Promise<StoredComposerProject[]> {
   if (!supabase) return adapter.listLocal()
   const [{ data: remoteRows, error }, localProjects] = await Promise.all([
@@ -134,6 +144,7 @@ export async function syncPullAndReconcile(
   const projects = reconcileProjectRows(
     localProjects,
     (remoteRows ?? []) as RemoteProjectRow[],
+    locallyDeletedIds,
   )
   await adapter.replaceLocal(projects)
   await Promise.all(projects.map(pushProject))

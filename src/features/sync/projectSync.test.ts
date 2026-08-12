@@ -3,6 +3,7 @@ import { createEmptyProject } from "@/core/project"
 import {
   mergeProjectCollections,
   reconcileProjectRows,
+  shouldResetLocalForOwner,
   type StoredComposerProject,
 } from "./projectSync"
 
@@ -58,5 +59,22 @@ describe("Composer Arranger cloud sync merge", () => {
         },
       ]),
     ).toEqual([])
+  })
+
+  it("送信待ちのローカル削除もCloudから復活させない", () => {
+    const remote = stored("Pending deletion", "2026-08-12T01:00:00.000Z")
+    expect(
+      reconcileProjectRows(
+        [],
+        [{ id: remote.projectId, data: remote, deleted_at: null }],
+        [remote.projectId],
+      ),
+    ).toEqual([])
+  })
+
+  it("別accountへ切り替えた場合だけローカルprojectを隔離する", () => {
+    expect(shouldResetLocalForOwner(null, "owner-a")).toBe(false)
+    expect(shouldResetLocalForOwner("owner-a", "owner-a")).toBe(false)
+    expect(shouldResetLocalForOwner("owner-a", "owner-b")).toBe(true)
   })
 })

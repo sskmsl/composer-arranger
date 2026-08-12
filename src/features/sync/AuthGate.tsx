@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { Session } from "@supabase/supabase-js"
 import { Cloud, LoaderCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
@@ -12,6 +12,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   )
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const lastSyncedUserId = useRef<string | null>(null)
 
   useEffect(() => {
     if (!supabase) return
@@ -22,16 +23,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe()
   }, [])
 
+  const userId = session?.user.id ?? null
+
   useEffect(() => {
-    if (!supabase || !session) return
+    if (!supabase || !userId) {
+      lastSyncedUserId.current = null
+      return
+    }
+    if (lastSyncedUserId.current === userId) return
+    lastSyncedUserId.current = userId
     setSyncing(true)
     setError(null)
-    void syncProjectsFromCloud()
+    void syncProjectsFromCloud(userId)
       .catch((reason: unknown) => {
+        lastSyncedUserId.current = null
         setError(reason instanceof Error ? reason.message : "同期に失敗しました")
       })
       .finally(() => setSyncing(false))
-  }, [session])
+  }, [userId])
 
   if (!supabase) return <>{children}</>
   if (session === undefined || syncing) {
