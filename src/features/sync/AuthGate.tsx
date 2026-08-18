@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { Session } from "@supabase/supabase-js"
-import { Cloud, LoaderCircle } from "lucide-react"
+import { Cloud, LoaderCircle, RefreshCw, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { syncProjectsFromCloud } from "@/storage/projectRepository"
 import { Button, TextInput } from "@/ui/primitives"
@@ -12,6 +12,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   )
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [syncAttempt, setSyncAttempt] = useState(0)
   const lastSyncedUserId = useRef<string | null>(null)
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setError(syncErrorMessage(reason))
       })
       .finally(() => setSyncing(false))
-  }, [userId])
+  }, [syncAttempt, userId])
 
   if (!supabase) return <>{children}</>
   if (session === undefined || syncing) {
@@ -55,8 +56,39 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <>
       {error && (
-        <div className="fixed inset-x-0 top-0 z-[100] bg-amber-500/90 px-3 py-1 text-center text-[12px] text-black">
-          Cloud同期に失敗しました。ローカルデータで続行します: {error}
+        <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-3 z-[100] flex w-[calc(100%-1.5rem)] max-w-[28rem] justify-end sm:bottom-3">
+          <div
+            role="alert"
+            className="pointer-events-auto w-full rounded-lg border border-amber-200/50 bg-amber-500/95 p-3 text-[12px] text-black shadow-xl"
+          >
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">Cloud同期を一時停止しました</p>
+                <p className="mt-0.5 leading-5">
+                  ローカルデータで続行できます。{error}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-full p-1 hover:bg-black/10"
+                aria-label="同期エラーを閉じる"
+                onClick={() => setError(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <button
+              type="button"
+              className="mt-2 inline-flex items-center gap-1 rounded-sm bg-black/15 px-2.5 py-1 font-medium hover:bg-black/25"
+              onClick={() => {
+                setError(null)
+                lastSyncedUserId.current = null
+                setSyncAttempt((attempt) => attempt + 1)
+              }}
+            >
+              <RefreshCw size={13} /> 再試行
+            </button>
+          </div>
         </div>
       )}
       {children}

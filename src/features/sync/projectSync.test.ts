@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import {
   mergeProjectCollections,
+  projectIdsNeedingDownload,
   projectsNeedingUpload,
   reconcileProjectRows,
   shouldResetLocalForOwner,
@@ -88,6 +89,20 @@ describe("Composer Arranger cloud sync merge", () => {
     ).toEqual([])
   })
 
+  it("data未取得のmetadataだけでも同じ保存状態を再送しない", () => {
+    const project = stored("Metadata only", "2026-08-12T01:00:00.000Z")
+    expect(
+      projectsNeedingUpload([project], [
+        {
+          id: project.projectId,
+          data: null,
+          updated_at: project.savedAt,
+          deleted_at: null,
+        },
+      ]),
+    ).toEqual([])
+  })
+
   it("Cloudより新しいローカルprojectだけを送信対象にする", () => {
     const id = crypto.randomUUID()
     const remote = stored("Remote", "2026-08-12T01:00:00.000Z", id)
@@ -97,5 +112,57 @@ describe("Composer Arranger cloud sync merge", () => {
         { id, data: remote, deleted_at: null },
       ]),
     ).toEqual([local])
+  })
+
+  it("端末にないprojectとCloud側が新しいprojectだけを本体取得対象にする", () => {
+    const same = stored("Same", "2026-08-12T01:00:00.000Z")
+    const remoteNewer = stored("Remote newer", "2026-08-12T01:00:00.000Z")
+    const localOnly = stored("Cloud missing", "2026-08-12T02:00:00.000Z")
+    const cloudOnlyId = crypto.randomUUID()
+
+    expect(
+      projectIdsNeedingDownload(
+        [same, remoteNewer, localOnly],
+        [
+          {
+            id: same.projectId,
+            updated_at: same.savedAt,
+            deleted_at: null,
+          },
+          {
+            id: remoteNewer.projectId,
+            updated_at: "2026-08-12T03:00:00.000Z",
+            deleted_at: null,
+          },
+          {
+            id: cloudOnlyId,
+            updated_at: "2026-08-12T04:00:00.000Z",
+            deleted_at: null,
+          },
+        ],
+      ),
+    ).toEqual([remoteNewer.projectId, cloudOnlyId])
+  })
+
+  it("Cloud tombstoneと送信待ち削除は本体取得しない", () => {
+    const pendingId = crypto.randomUUID()
+    expect(
+      projectIdsNeedingDownload(
+        [],
+        [
+          {
+            id: "deleted",
+            updated_at: "2026-08-12T01:00:00.000Z",
+            deleted_at: "2026-08-12T01:00:00.000Z",
+          },
+          {
+            id: pendingId,
+            updated_at: "2026-08-12T01:00:00.000Z",
+            deleted_at: null,
+          },
+        ],
+        [pendingId],
+      ),
+    ).toEqual([])
   })
 })
