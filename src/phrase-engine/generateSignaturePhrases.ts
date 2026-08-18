@@ -29,6 +29,7 @@ import type {
   SignatureVoiceMotion,
   SignatureVoicingMode,
   SignatureVoicingStyle,
+  SignatureGenerationDirection,
 } from "@/core/signaturePhrase"
 import type { SectionRole } from "@/core/section"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
@@ -61,6 +62,8 @@ export interface GenerateSignaturePhrasesInput {
   lengthBars?: SignaturePhraseLengthBars
   finalCandidateCount?: number
   candidatePoolSize?: number
+  /** 上位のArrangement Intent。候補を固定せず、プール内の分布だけを寄せる。 */
+  direction?: SignatureGenerationDirection
 }
 
 interface RhythmEvent {
@@ -605,20 +608,33 @@ function planSignaturePhrase(
     profileWeights[input.songProfile],
   )
   // 曲中の必要性を主判断にしつつ、Song Profileは候補内の色として残す。
-  const archetype =
+  const contextualArchetype =
     poolIndex % 4 === 3 && opportunityArchetypes.includes(profileChoice)
       ? profileChoice
       : opportunityArchetypes[poolIndex % opportunityArchetypes.length]
+  const archetype =
+    input.direction && poolIndex % 4 !== 3
+      ? input.direction.archetype
+      : contextualArchetype
   const opportunityRhythms =
     OPPORTUNITY_RHYTHMS[compositionContext.opportunity]
   const archetypeRhythms = ARCHETYPE_RHYTHMS[archetype]
-  const rhythmIdentity =
+  const contextualRhythm =
     poolIndex % 4 === 0
       ? archetypeRhythms[(poolIndex + rng.intBetween(0, 1)) % archetypeRhythms.length]
       : opportunityRhythms[
           (poolIndex + rng.intBetween(0, 2)) % opportunityRhythms.length
         ]
-  const contour = CONTOURS[(poolIndex * 3 + rng.intBetween(0, 2)) % CONTOURS.length]
+  const rhythmIdentity =
+    input.direction && poolIndex % 3 !== 2
+      ? input.direction.rhythmIdentity
+      : contextualRhythm
+  const contextualContour =
+    CONTOURS[(poolIndex * 3 + rng.intBetween(0, 2)) % CONTOURS.length]
+  const contour =
+    input.direction && poolIndex % 3 !== 2
+      ? input.direction.contour
+      : contextualContour
   const preferredVariations: Record<
     SignaturePhraseArchetype,
     readonly SignatureVariationStrategy[]
@@ -656,6 +672,41 @@ function planSignaturePhrase(
     VOICING_MODE_WEIGHTS[archetype],
   )
   const creativeRisk = creativeRiskPlanFor(poolIndex, rng)
+  if (input.direction && poolIndex % 3 !== 2) {
+    creativeRisk.risk = input.direction.creativeRisk
+    creativeRisk.targetAudacity =
+      input.direction.creativeRisk === "radical"
+        ? 0.82
+        : input.direction.creativeRisk === "bold"
+          ? 0.6
+          : 0.28
+    creativeRisk.recoveryRequired = input.direction.creativeRisk !== "focused"
+    if (input.direction.creativeRisk === "focused") {
+      creativeRisk.rhythmicDevice = "none"
+      creativeRisk.pitchDevice = "none"
+      creativeRisk.structuralDevice = "none"
+    } else {
+      const deviceIndex = poolIndex % 4
+      creativeRisk.rhythmicDevice = [
+        "metric-displacement",
+        "asymmetric-cycle",
+        "silence-fracture",
+        "cross-bar-attack",
+      ][deviceIndex] as SignatureCreativeRiskPlan["rhythmicDevice"]
+      creativeRisk.pitchDevice = [
+        "interval-signature",
+        "chromatic-side-step",
+        "register-rupture",
+        "pedal-tension",
+      ][deviceIndex] as SignatureCreativeRiskPlan["pitchDevice"]
+      creativeRisk.structuralDevice = [
+        "false-start",
+        "interruption",
+        "false-return",
+        "abrupt-open-tail",
+      ][deviceIndex] as SignatureCreativeRiskPlan["structuralDevice"]
+    }
+  }
   return {
     role: "intro",
     lengthBars,
@@ -682,11 +733,13 @@ function planSignaturePhrase(
           ? 0.7
           : 0.52,
     targetSilenceRatio:
-      archetype === "atmospheric-gateway"
-        ? 0.5
-        : archetype === "kinetic-hook"
-          ? 0.3
-          : 0.22,
+      input.direction && poolIndex % 3 !== 2
+        ? input.direction.targetSilenceRatio
+        : archetype === "atmospheric-gateway"
+          ? 0.5
+          : archetype === "kinetic-hook"
+            ? 0.3
+            : 0.22,
     harmonicAnchorPolicy:
       rng.next() < 0.72
         ? archetypePolicy[archetype]

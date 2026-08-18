@@ -68,6 +68,7 @@ import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine
 import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
 import type {
   SignaturePhraseCandidate,
+  SignatureGenerationDirection,
   SignaturePhraseLengthBars,
 } from "@/core/signaturePhrase"
 import {
@@ -203,6 +204,7 @@ interface ProjectState {
   generateSignaturePhrasesForSection: (
     sectionId: string,
     lengthBars?: SignaturePhraseLengthBars,
+    direction?: SignatureGenerationDirection,
   ) => void
   setActiveSignaturePhraseCandidateIndex: (index: number) => void
   regenerateSignaturePhrase: (candidateId: string) => void
@@ -293,6 +295,7 @@ function signaturePhraseGenerationInput(
   settings: GenerationSettings,
   seed: number,
   lengthBars?: SignaturePhraseLengthBars,
+  direction?: SignatureGenerationDirection,
 ): GenerateSignaturePhrasesInput | null {
   const section = project.sections.find(
     (candidate) => candidate.id === sectionId,
@@ -335,6 +338,7 @@ function signaturePhraseGenerationInput(
     lengthBars: resolvedLength,
     finalCandidateCount: 12,
     candidatePoolSize: 72,
+    direction,
   }
 }
 
@@ -1382,7 +1386,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
-  generateSignaturePhrasesForSection: (sectionId, lengthBars) => {
+  generateSignaturePhrasesForSection: (sectionId, lengthBars, direction) => {
     const prev = get().project
     const input = signaturePhraseGenerationInput(
       prev,
@@ -1390,6 +1394,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       get().generationSettings,
       createSeed(),
       lengthBars,
+      direction,
     )
     if (!input) {
       set({

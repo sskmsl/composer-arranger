@@ -11,12 +11,14 @@ import { AuditionWorkspace } from "./AuditionWorkspace"
 import { PhraseWorkspace } from "./PhraseWorkspace"
 import { CounterWorkspace } from "./CounterWorkspace"
 import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
+import { AiPartnerWorkspace } from "./AiPartnerWorkspace"
 
 export type MainTab =
   | "melody"
   | "phrase"
   | "signature"
   | "counter"
+  | "ai-partner"
   | "arrangement"
   | "audition"
 
@@ -117,12 +119,14 @@ export function App() {
             )}
           </>
         )}
+        {tab === "ai-partner" && <AiPartnerWorkspace onNavigate={setTab} />}
         {tab === "arrangement" && <ArrangementWorkspace />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
       {tab !== "phrase" &&
         tab !== "signature" &&
-        tab !== "counter" && (
+        tab !== "counter" &&
+        tab !== "ai-partner" && (
         <BottomBar />
       )}
     </div>

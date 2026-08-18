@@ -82,6 +82,27 @@ function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCan
 }
 
 describe("Signature Phrase Generator", () => {
+  it("上位Arrangement Intentを候補固定ではなく分布バイアスとして反映する", () => {
+    const candidates = generateSignaturePhraseCandidates({
+      ...input(90210),
+      direction: {
+        archetype: "atmospheric-gateway",
+        rhythmIdentity: "call-gap-answer",
+        contour: "descending",
+        creativeRisk: "radical",
+        targetSilenceRatio: 0.52,
+      },
+    })
+    const aligned = candidates.filter(
+      (candidate) =>
+        candidate.plan.archetype === "atmospheric-gateway" &&
+        candidate.plan.contour === "descending" &&
+        candidate.plan.creativeRisk.risk === "radical",
+    )
+    expect(aligned.length).toBeGreaterThanOrEqual(2)
+    expect(candidates.some((candidate) => candidate.plan.archetype !== "atmospheric-gateway")).toBe(true)
+  })
+
   it("コードとActive MelodyからSignature Opportunityと長期Target Toneを先に計画する", () => {
     const analysis = analyzeSignaturePhraseContext({
       chords: input().chords,
