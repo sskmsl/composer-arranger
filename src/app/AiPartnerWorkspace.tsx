@@ -28,6 +28,7 @@ import type {
   AiAudioPayload,
 } from "@/ai-arranger/types"
 import { SECTION_ROLE_LABELS } from "@/core/section"
+import type { ComposerProject } from "@/core/project"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Pill, SectionCard, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
@@ -44,6 +45,8 @@ const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
   signature: "Signature",
   counter: "Counter",
   decoration: "Decoration",
+  accompaniment: "Rhythm Pattern",
+  rhythm: "Drum Rhythm",
   none: "追加しない",
 }
 
@@ -70,6 +73,9 @@ export function AiPartnerWorkspace({
   )
   const generateDecorations = useProjectStore(
     (state) => state.generateDecorationsForSection,
+  )
+  const setSectionAccompanimentPattern = useProjectStore(
+    (state) => state.setSectionAccompanimentPattern,
   )
   const [prompt, setPrompt] = useState("")
   const [response, setResponse] = useState<AiArrangementResponse | null>(null)
@@ -160,6 +166,14 @@ export function AiPartnerWorkspace({
       generateCounter(section.id)
     } else if (intent.generator === "decoration") {
       generateDecorations(section.id, decorationSettingsForIntent(intent))
+    } else if (
+      intent.generator === "accompaniment" &&
+      intent.accompanimentPatternId !== "none"
+    ) {
+      setSectionAccompanimentPattern(
+        section.id,
+        intent.accompanimentPatternId,
+      )
     }
     const target = targetTabForIntent(intent)
     if (target) onNavigate(target)
@@ -318,12 +332,18 @@ export function AiPartnerWorkspace({
                     {response.diagnosis.primaryOpportunity}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-ink-muted-48">
-                  <Coins size={14} />
-                  {response.cached
-                    ? "キャッシュ · 追加費用なし"
-                    : `概算 $${response.usage.estimatedCostUsd.toFixed(4)}`}
-                  <span>· {response.model}</span>
+                <div className="w-full rounded-sm border border-primary/20 bg-primary/8 px-3 py-2 sm:w-auto sm:min-w-[15rem]">
+                  <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                    <Coins size={13} /> 今回のAI利用料
+                  </div>
+                  <div className="mt-1 text-[13px] font-semibold text-body-on-dark">
+                    {response.cached
+                      ? "キャッシュ利用・追加費用なし"
+                      : `概算 $${response.usage.estimatedCostUsd.toFixed(4)}`}
+                  </div>
+                  <div className="mt-0.5 break-words text-[10px] text-ink-muted-48">
+                    {response.model}
+                  </div>
                 </div>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -355,6 +375,7 @@ export function AiPartnerWorkspace({
                 const counterUnavailable =
                   intent.generator === "counter" && !activeMelodyId
                 const noGenerator = intent.generator === "none"
+                const proposalOnly = intent.generator === "rhythm"
                 return (
                   <SectionCard key={intent.id} className="flex h-full flex-col">
                     <div className="flex items-start justify-between gap-3">
@@ -383,6 +404,30 @@ export function AiPartnerWorkspace({
                     <p className="mt-3 text-[12px] leading-5 text-body-on-dark">
                       {intent.generationBrief}
                     </p>
+                    {intent.generator === "accompaniment" &&
+                      intent.accompanimentPatternId !== "none" && (
+                        <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-body-muted">
+                          <strong className="text-primary">提案するリズム：</strong>
+                          {accompanimentPatternName(
+                            project,
+                            intent.accompanimentPatternId,
+                          )}
+                        </div>
+                      )}
+                    {intent.generator === "rhythm" && intent.rhythmPlan.enabled && (
+                      <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] leading-5 text-body-muted">
+                        <div className="font-medium text-primary">
+                          {intent.rhythmPlan.subdivision} · {intent.rhythmPlan.feel}
+                        </div>
+                        <div className="mt-1"><strong className="text-body-on-dark">Kick：</strong>{intent.rhythmPlan.kickPattern}</div>
+                        <div><strong className="text-body-on-dark">Snare：</strong>{intent.rhythmPlan.snarePattern}</div>
+                        <div><strong className="text-body-on-dark">Hat：</strong>{intent.rhythmPlan.hatPattern}</div>
+                        {intent.rhythmPlan.percussionPattern && (
+                          <div><strong className="text-body-on-dark">Perc：</strong>{intent.rhythmPlan.percussionPattern}</div>
+                        )}
+                        <div className="mt-1 text-ink-muted-48">{intent.rhythmPlan.variation}</div>
+                      </div>
+                    )}
                     <div className="mt-3 rounded-sm bg-white/[0.04] p-3 text-[11px] leading-5 text-body-muted">
                       <strong className="text-body-on-dark">音色：</strong>
                       {intent.soundPalette}
@@ -406,7 +451,7 @@ export function AiPartnerWorkspace({
                       {intent.why}
                     </p>
                     <div className="mt-auto pt-4">
-                      {!noGenerator && (
+                      {!noGenerator && !proposalOnly && (
                         <Button
                           variant="secondary"
                           className="w-full !whitespace-normal text-center"
@@ -415,6 +460,11 @@ export function AiPartnerWorkspace({
                         >
                           <Music2 size={14} /> この方向を音の候補にする
                         </Button>
+                      )}
+                      {proposalOnly && (
+                        <p className="rounded-sm bg-white/[0.04] px-3 py-2 text-center text-[10px] leading-4 text-body-muted">
+                          Logic Proで打ち込める具体的なリズム設計として提示しています。
+                        </p>
                       )}
                       {counterUnavailable && (
                         <p className="mt-2 text-[10px] text-amber-200">
@@ -451,6 +501,14 @@ function formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   const remainder = Math.round(seconds % 60)
   return `${minutes}:${remainder.toString().padStart(2, "0")}`
+}
+
+function accompanimentPatternName(
+  project: ComposerProject,
+  patternId: string,
+): string {
+  return project.accompanimentPatterns.find((pattern) => pattern.id === patternId)?.name
+    ?? patternId
 }
 
 function ContextStat({ label, value }: { label: string; value: string }) {

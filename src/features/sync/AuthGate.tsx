@@ -3,9 +3,10 @@ import type { Session } from "@supabase/supabase-js"
 import { Cloud, LoaderCircle, RefreshCw, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { syncProjectsFromCloud } from "@/storage/projectRepository"
+import { CLOUD_SYNC_COMPLETED_EVENT } from "./projectSync"
 import { Button, TextInput } from "@/ui/primitives"
 
-/** Supabase設定時だけログインを要求し、App hydrateより先に全projectを同期する。 */
+/** Supabase設定時だけログインを要求し、ローカル表示を妨げずCloud同期する。 */
 export function AuthGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(
     supabase ? undefined : null,
@@ -36,6 +37,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSyncing(true)
     setError(null)
     void syncProjectsFromCloud(userId)
+      .then(() => {
+        window.dispatchEvent(new CustomEvent(CLOUD_SYNC_COMPLETED_EVENT))
+      })
       .catch((reason: unknown) => {
         lastSyncedUserId.current = null
         setError(syncErrorMessage(reason))
@@ -44,17 +48,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }, [syncAttempt, userId])
 
   if (!supabase) return <>{children}</>
-  if (session === undefined || syncing) {
+  if (session === undefined) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-surface-black text-body-muted">
         <LoaderCircle className="mr-2 animate-spin" size={17} />
-        {syncing ? "プロジェクトを同期中…" : "ログイン状態を確認中…"}
+        ログイン状態を確認中…
       </div>
     )
   }
   if (!session) return <LoginForm />
   return (
     <>
+      {syncing && (
+        <div className="pointer-events-none fixed right-3 top-[4.25rem] z-[90] flex items-center gap-1.5 rounded-pill border border-primary/20 bg-surface-tile-1/95 px-3 py-1.5 text-[11px] text-body-muted shadow-lg backdrop-blur">
+          <LoaderCircle className="animate-spin" size={13} /> Cloud同期中
+        </div>
+      )}
       {error && (
         <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-3 z-[100] flex w-[calc(100%-1.5rem)] max-w-[28rem] justify-end sm:bottom-3">
           <div

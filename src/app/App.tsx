@@ -12,6 +12,7 @@ import { PhraseWorkspace } from "./PhraseWorkspace"
 import { CounterWorkspace } from "./CounterWorkspace"
 import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
 import { AiPartnerWorkspace } from "./AiPartnerWorkspace"
+import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
 
 export type MainTab =
   | "melody"
@@ -31,6 +32,15 @@ export function App() {
 
   useEffect(() => {
     void hydrate()
+  }, [hydrate])
+
+  useEffect(() => {
+    const refreshAfterCloudSync = () => void hydrate()
+    window.addEventListener(CLOUD_SYNC_COMPLETED_EVENT, refreshAfterCloudSync)
+    return () => window.removeEventListener(
+      CLOUD_SYNC_COMPLETED_EVENT,
+      refreshAfterCloudSync,
+    )
   }, [hydrate])
 
   if (!hydrated) {

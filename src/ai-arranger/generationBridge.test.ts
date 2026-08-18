@@ -30,6 +30,17 @@ function intent(
     why: "protects the melody",
     generationBrief: "short motif with long gaps",
     soundSourceSuggestions: [],
+    accompanimentPatternId: "none",
+    rhythmPlan: {
+      enabled: false,
+      subdivision: "eighth",
+      feel: "straight",
+      kickPattern: "",
+      snarePattern: "",
+      hatPattern: "",
+      percussionPattern: "",
+      variation: "",
+    },
     ...patch,
   }
 }
@@ -55,6 +66,7 @@ describe("AI Intent generation bridge", () => {
   it("Intentを対応する比較試聴画面へ送る", () => {
     expect(targetTabForIntent(intent({ generator: "signature" }))).toBe("signature")
     expect(targetTabForIntent(intent({ generator: "counter" }))).toBe("counter")
+    expect(targetTabForIntent(intent({ generator: "accompaniment" }))).toBe("melody")
     expect(targetTabForIntent(intent({ generator: "none" }))).toBeNull()
   })
 
