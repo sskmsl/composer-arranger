@@ -44,6 +44,7 @@ returns void
 language sql
 security invoker
 set search_path = public
+set statement_timeout = '60s'
 as $$
   insert into public.arranger_projects (
     id,
@@ -80,3 +81,49 @@ grant execute on function public.upsert_arranger_project(
   timestamptz,
   timestamptz
 ) to authenticated;
+
+-- 大容量JSONBを全件返さず、同期判断に必要な軽量情報だけを取得する。
+create or replace function public.list_arranger_project_metadata()
+returns table (
+  id text,
+  updated_at timestamptz,
+  deleted_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = public
+set statement_timeout = '15s'
+as $$
+  select
+    project.id,
+    project.updated_at,
+    project.deleted_at
+  from public.arranger_projects as project
+  where project.owner_id = auth.uid()
+  order by project.updated_at desc;
+$$;
+
+revoke all on function public.list_arranger_project_metadata() from public;
+grant execute on function public.list_arranger_project_metadata()
+  to authenticated;
+
+-- 必要と判定したprojectだけを個別取得する。同期専用に最大60秒まで許可する。
+create or replace function public.get_arranger_project(p_id text)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+set statement_timeout = '60s'
+as $$
+  select project.data
+  from public.arranger_projects as project
+  where project.id = p_id
+    and project.owner_id = auth.uid()
+    and project.deleted_at is null;
+$$;
+
+revoke all on function public.get_arranger_project(text) from public;
+grant execute on function public.get_arranger_project(text)
+  to authenticated;

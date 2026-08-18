@@ -1,8 +1,9 @@
 import type { ComposerProject } from "@/core/project"
 import { supabase } from "@/lib/supabase"
 
-const PROJECTS_TABLE = "arranger_projects"
 const UPSERT_PROJECT_RPC = "upsert_arranger_project"
+const LIST_PROJECT_METADATA_RPC = "list_arranger_project_metadata"
+const GET_PROJECT_RPC = "get_arranger_project"
 const PUSH_DELAY_MS = 800
 
 export type StoredComposerProject = ComposerProject & { savedAt: string }
@@ -27,6 +28,10 @@ interface RemoteProjectMetadata {
 }
 
 const pendingPushes = new Map<string, ReturnType<typeof setTimeout>>()
+
+function syncStageError(stage: string, reason: { message?: string }): Error {
+  return new Error(`Cloud同期(${stage}): ${reason.message ?? "不明なエラー"}`)
+}
 
 async function ownerId(): Promise<string | null> {
   if (!supabase) return null
@@ -57,7 +62,7 @@ export async function pushProject(project: StoredComposerProject): Promise<void>
     p_updated_at: project.savedAt,
     p_deleted_at: null,
   })
-  if (error) throw error
+  if (error) throw syncStageError("アップロード", error)
 }
 
 export async function deleteProjectRemote(
@@ -78,7 +83,7 @@ export async function deleteProjectRemote(
     p_updated_at: deletedAt,
     p_deleted_at: deletedAt,
   })
-  if (error) throw error
+  if (error) throw syncStageError("削除反映", error)
 }
 
 function newerProject(
@@ -186,12 +191,11 @@ export async function syncPullAndReconcile(
 ): Promise<StoredComposerProject[]> {
   if (!supabase) return adapter.listLocal()
   const [{ data: remoteMetadata, error }, localProjects] = await Promise.all([
-    // data(JSONB)を全件同時に返すと、大きいprojectが増えた際にDBのstatement
-    // timeoutへ到達する。まず軽量metadataだけを取得する。
-    supabase.from(PROJECTS_TABLE).select("id,updated_at,deleted_at"),
+    // 専用RPCはmetadataだけを返し、一般authenticated roleより長い同期専用timeoutを持つ。
+    supabase.rpc(LIST_PROJECT_METADATA_RPC),
     adapter.listLocal(),
   ])
-  if (error) throw error
+  if (error) throw syncStageError("一覧取得", error)
 
   const metadata = (remoteMetadata ?? []) as RemoteProjectMetadata[]
   const downloadIds = projectIdsNeedingDownload(
@@ -202,13 +206,12 @@ export async function syncPullAndReconcile(
   const downloadedById = new Map<string, StoredComposerProject>()
   // 大容量projectを同時取得せず、必要な最新版だけを順次取得する。
   for (const id of downloadIds) {
-    const { data: remote, error: downloadError } = await supabase
-      .from(PROJECTS_TABLE)
-      .select("id,data")
-      .eq("id", id)
-      .maybeSingle()
-    if (downloadError) throw downloadError
-    const project = remote?.data as StoredComposerProject | null | undefined
+    const { data: remote, error: downloadError } = await supabase.rpc(
+      GET_PROJECT_RPC,
+      { p_id: id },
+    )
+    if (downloadError) throw syncStageError("ダウンロード", downloadError)
+    const project = remote as StoredComposerProject | null | undefined
     if (project) downloadedById.set(id, project)
   }
   const rows: RemoteProjectRow[] = metadata.map((row) => ({
