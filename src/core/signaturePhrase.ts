@@ -180,6 +180,15 @@ export interface SignaturePhrasePlan {
   compositionContext?: SignatureCompositionContext
 }
 
+/** AI等の上位判断を、既存Signature生成器の音楽語彙へ安全に渡すための任意バイアス。 */
+export interface SignatureGenerationDirection {
+  archetype: SignaturePhraseArchetype
+  rhythmIdentity: SignatureRhythmIdentity
+  contour: PhraseContour
+  creativeRisk: SignatureCreativeRisk
+  targetSilenceRatio: number
+}
+
 export interface SignaturePhraseScore {
   identity: number
   openingImpact: number
