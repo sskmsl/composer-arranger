@@ -7,6 +7,18 @@ export type AiArrangementGenerator =
   | "signature"
   | "counter"
   | "decoration"
+  | "accompaniment"
+  | "rhythm"
+  | "none"
+
+export type AiAccompanimentPatternId =
+  | "pulse-root-fifth"
+  | "arpeggio-up"
+  | "chord-entry"
+  | "arpeggio-five"
+  | "arpeggio-six"
+  | "broken-ninth"
+  | "syncopated"
   | "none"
 
 export type AiRegister = "low" | "middle" | "high"
@@ -25,6 +37,17 @@ export interface AiSoundSourceSuggestion {
   character: string
   searchTerms: string[]
   reason: string
+}
+
+export interface AiRhythmPatternProposal {
+  enabled: boolean
+  subdivision: "eighth" | "sixteenth" | "triplet" | "mixed"
+  feel: "straight" | "swing" | "laid-back" | "driving" | "broken"
+  kickPattern: string
+  snarePattern: string
+  hatPattern: string
+  percussionPattern: string
+  variation: string
 }
 
 export interface AiArrangementIntent {
@@ -46,6 +69,8 @@ export interface AiArrangementIntent {
   why: string
   generationBrief: string
   soundSourceSuggestions: AiSoundSourceSuggestion[]
+  accompanimentPatternId: AiAccompanimentPatternId
+  rhythmPlan: AiRhythmPatternProposal
 }
 
 export interface AiArrangementDiagnosis {
@@ -131,6 +156,14 @@ export interface AiArrangementContext {
   arrangement: {
     settings: Record<string, number | string>
     accompanimentPatternAssigned: boolean
+    assignedAccompanimentPatternId: string | null
+    availableAccompanimentPatterns: Array<{
+      id: string
+      name: string
+      lengthBeats: number
+      onsetBeats: number[]
+      degreeSequence: number[]
+    }>
     counterAssigned: boolean
     decorationAssigned: boolean
   }

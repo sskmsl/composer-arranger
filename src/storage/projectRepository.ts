@@ -3,6 +3,7 @@ import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectB
 import { getDb, PROJECT_STORE, META_STORE } from "./db"
 import {
   deleteProjectRemote,
+  mergeProjectCollections,
   scheduleProjectPush,
   shouldResetLocalForOwner,
   syncPullAndReconcile,
@@ -166,11 +167,20 @@ export async function backupProjectTimingSnapshot(raw: unknown): Promise<void> {
 
 async function replaceAllLocalProjects(
   projects: StoredComposerProject[],
+  deletedProjectIds: ReadonlySet<string>,
 ): Promise<void> {
   const db = await getDb()
   const transaction = db.transaction(PROJECT_STORE, "readwrite")
+  // 同期中にも編集を続けられるよう、同期開始後に保存されたローカル版を
+  // savedAtで再統合する。Cloud tombstoneだけは復活させない。
+  const liveLocalProjects = (await transaction.store.getAll()).filter(
+    (project) => !deletedProjectIds.has(project.projectId),
+  )
+  const latestProjects = mergeProjectCollections(projects, liveLocalProjects)
   await transaction.store.clear()
-  await Promise.all(projects.map((project) => transaction.store.put(project)))
+  await Promise.all(
+    latestProjects.map((project) => transaction.store.put(project)),
+  )
   await transaction.done
 }
 

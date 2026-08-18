@@ -102,6 +102,17 @@ export function buildAiArrangementContext(
       accompanimentPatternAssigned: Boolean(
         project.sectionAccompanimentPatternAssignments[sectionId],
       ),
+      assignedAccompanimentPatternId:
+        project.sectionAccompanimentPatternAssignments[sectionId] ?? null,
+      availableAccompanimentPatterns: project.accompanimentPatterns.map(
+        (pattern) => ({
+          id: pattern.id,
+          name: pattern.name,
+          lengthBeats: pattern.lengthBeats,
+          onsetBeats: [...new Set(pattern.events.map((event) => event.offsetBeats))],
+          degreeSequence: pattern.events.map((event) => event.degree),
+        }),
+      ),
       counterAssigned: Boolean(reactiveAssignment),
       decorationAssigned: Boolean(decorationAssignment),
     },

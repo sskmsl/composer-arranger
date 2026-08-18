@@ -22,7 +22,7 @@ const intentProperties = {
   title: { type: "string", minLength: 1, maxLength: 80 },
   generator: {
     type: "string",
-    enum: ["melody", "phrase", "signature", "counter", "decoration", "none"],
+    enum: ["melody", "phrase", "signature", "counter", "decoration", "accompaniment", "rhythm", "none"],
   },
   emotionalFunction: { type: "string", minLength: 1, maxLength: 240 },
   density: { type: "string", enum: ["sparse", "balanced", "active"] },
@@ -69,6 +69,43 @@ const intentProperties = {
       },
       required: ["family", "character", "searchTerms", "reason"],
     },
+  },
+  accompanimentPatternId: {
+    type: "string",
+    enum: [
+      "pulse-root-fifth",
+      "arpeggio-up",
+      "chord-entry",
+      "arpeggio-five",
+      "arpeggio-six",
+      "broken-ninth",
+      "syncopated",
+      "none",
+    ],
+  },
+  rhythmPlan: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      enabled: { type: "boolean" },
+      subdivision: { type: "string", enum: ["eighth", "sixteenth", "triplet", "mixed"] },
+      feel: { type: "string", enum: ["straight", "swing", "laid-back", "driving", "broken"] },
+      kickPattern: { type: "string", maxLength: 240 },
+      snarePattern: { type: "string", maxLength: 240 },
+      hatPattern: { type: "string", maxLength: 240 },
+      percussionPattern: { type: "string", maxLength: 240 },
+      variation: { type: "string", maxLength: 300 },
+    },
+    required: [
+      "enabled",
+      "subdivision",
+      "feel",
+      "kickPattern",
+      "snarePattern",
+      "hatPattern",
+      "percussionPattern",
+      "variation",
+    ],
   },
 }
 
@@ -136,6 +173,10 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 - 3案は密度、音域、リズム、余白、役割、感情的入口のうち最低4軸で異ならせる。
 - 音を増やすことを正解にせず、不要ならgenerator=noneを含める。
 - コードとActive Melodyの衝突、機械的なコード追従、全拍の充填を避ける。
+- リズムや伴奏の推進力が課題ならgenerator=accompanimentを選び、musicalContext.arrangement.availableAccompanimentPatternsから適切なIDをaccompanimentPatternIdへ指定する。コードの羅列ではなく、オンセット、休符、アクセント、反復周期とActive Melodyの隙間を判断する。
+- generator=accompaniment以外ではaccompanimentPatternId=noneにする。
+- ドラム／パーカッションのリズムそのものが課題ならgenerator=rhythmを選ぶ。rhythmPlanに1〜2小節の再現可能な配置（拍・裏拍・休符・アクセント・2周目の変化）を記述し、単なるジャンル名だけで済ませない。
+- generator=rhythmの場合だけrhythmPlan.enabled=trueにし、それ以外ではfalse・各パターン文字列は空にする。
 - 実音は後段の決定論的Generatorが作るため、generationBriefは実装可能な音楽語彙で書く。
 - 固有曲や固有アーティストが相談文に含まれても、既存フレーズを再現しない。余白、輪郭、反復、音色、残響、演奏意図などの抽象属性へ変換する。
 - 日本語で簡潔に書く。Technique名と音源検索語は一般的・抽象的な名称にする。
@@ -147,6 +188,8 @@ generatorの意味:
 - signature: 曲の顔となる1〜8小節の入口・フック
 - counter: Active Melodyの隙間に置く対旋律
 - decoration: セクション境界や呼吸点の装飾
+- accompaniment: コードへ適用する伴奏リズム骨格。既存Accompaniment Patternを選択する
+- rhythm: Logic Proでドラム／パーカッションを組むための具体的なリズムパターン提案（今回はMIDI自動生成を行わない）
 - phrase: 2〜8小節の独立素材
 - melody: セクションの主旋律候補
 - none: 音を追加せず、演奏・空間・引き算だけを提案

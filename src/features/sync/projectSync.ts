@@ -5,12 +5,16 @@ const UPSERT_PROJECT_RPC = "upsert_arranger_project"
 const LIST_PROJECT_METADATA_RPC = "list_arranger_project_metadata"
 const GET_PROJECT_RPC = "get_arranger_project"
 const PUSH_DELAY_MS = 800
+export const CLOUD_SYNC_COMPLETED_EVENT = "composer-arranger:cloud-sync-completed"
 
 export type StoredComposerProject = ComposerProject & { savedAt: string }
 
 interface ProjectSyncAdapter {
   listLocal(): Promise<StoredComposerProject[]>
-  replaceLocal(projects: StoredComposerProject[]): Promise<void>
+  replaceLocal(
+    projects: StoredComposerProject[],
+    deletedProjectIds: ReadonlySet<string>,
+  ): Promise<void>
 }
 
 export interface RemoteProjectRow {
@@ -228,7 +232,11 @@ export async function syncPullAndReconcile(
     rows,
     locallyDeletedIds,
   )
-  await adapter.replaceLocal(projects)
+  const deletedProjectIds = new Set(locallyDeletedIds)
+  for (const row of metadata) {
+    if (row.deleted_at !== null) deletedProjectIds.add(row.id)
+  }
+  await adapter.replaceLocal(projects, deletedProjectIds)
   // 大きいprojectを並列送信するとブラウザ/Supabase側で一時失敗しやすいため順次送る。
   for (const project of uploadProjects) await pushProject(project)
   return projects

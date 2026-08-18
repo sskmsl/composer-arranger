@@ -56,6 +56,10 @@ describe("AI Arrangement context", () => {
     expect(context?.activeMelody.noteCount).toBe(3)
     expect(context?.activeMelody.features?.restRatio).toBeGreaterThan(0)
     expect(context?.arrangement.accompanimentPatternAssigned).toBe(true)
+    expect(context?.arrangement.assignedAccompanimentPatternId).toBe("pattern-1")
+    expect(context?.arrangement.availableAccompanimentPatterns).toContainEqual(
+      expect.objectContaining({ id: "syncopated" }),
+    )
     expect(context?.activeMelody.notes[0]).not.toHaveProperty("id")
     expect(context?.activeMelody.notes[0]).not.toHaveProperty("locks")
   })
