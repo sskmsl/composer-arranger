@@ -100,7 +100,7 @@ function LoginForm() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-black px-4 text-body-on-dark">
       <form
-        className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-hairline bg-surface-tile-1 p-6"
+        className="flex w-full max-w-[24rem] flex-col gap-4 rounded-lg border border-hairline bg-surface-tile-1 p-6"
         onSubmit={(event) => void submit(event)}
       >
         <div className="text-center">
