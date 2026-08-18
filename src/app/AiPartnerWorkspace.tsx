@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import {
+  AudioLines,
   Bot,
   Coins,
   Lightbulb,
@@ -8,7 +9,10 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Upload,
+  X,
 } from "lucide-react"
+import { AI_AUDIO_ACCEPT, prepareAiAudio } from "@/ai-arranger/audioAnalysis"
 import { buildAiArrangementContext } from "@/ai-arranger/context"
 import { requestArrangementAdvice } from "@/ai-arranger/client"
 import {
@@ -21,6 +25,7 @@ import {
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
+  AiAudioPayload,
 } from "@/ai-arranger/types"
 import { SECTION_ROLE_LABELS } from "@/core/section"
 import { useProjectStore } from "@/store/useProjectStore"
@@ -71,6 +76,8 @@ export function AiPartnerWorkspace({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatingIntentId, setGeneratingIntentId] = useState<string | null>(null)
+  const [audio, setAudio] = useState<AiAudioPayload | null>(null)
+  const [preparingAudio, setPreparingAudio] = useState(false)
 
   const effectiveSectionId =
     selectedSectionId ?? project.sections[0]?.id ?? null
@@ -104,7 +111,7 @@ export function AiPartnerWorkspace({
     try {
       setResponse(
         await requestArrangementAdvice(
-          { prompt, context },
+          { prompt, context, ...(audio ? { audio } : {}) },
           { bypassCache },
         ),
       )
@@ -112,6 +119,21 @@ export function AiPartnerWorkspace({
       setError(reason instanceof Error ? reason.message : "AI相談に失敗しました。")
     } finally {
       setBusy(false)
+    }
+  }
+
+  const selectAudio = async (file: File | undefined) => {
+    if (!file) return
+    setPreparingAudio(true)
+    setError(null)
+    try {
+      setAudio(await prepareAiAudio(file))
+      setResponse(null)
+    } catch (reason) {
+      setAudio(null)
+      setError(reason instanceof Error ? reason.message : "音源を読み込めませんでした。")
+    } finally {
+      setPreparingAudio(false)
     }
   }
 
@@ -216,13 +238,59 @@ export function AiPartnerWorkspace({
               </Pill>
             ))}
           </div>
+          <div className="mt-4 rounded-lg border border-dashed border-hairline bg-white/[0.025] p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
+                  <AudioLines size={15} className="text-primary" /> 音源を聴かせる（第二弾）
+                </div>
+                <p className="mt-1 text-[10px] leading-4 text-ink-muted-48">
+                  Logic Pro等から書き出したMP3/WAV・12MB以下。解析時だけ送信し、保存しません。
+                </p>
+              </div>
+              {!audio && (
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-pill border border-primary px-3.5 py-2 text-[12px] text-primary transition hover:bg-primary/10">
+                  <Upload size={14} /> {preparingAudio ? "音源を準備中…" : "音源を選択"}
+                  <input
+                    type="file"
+                    accept={AI_AUDIO_ACCEPT}
+                    disabled={preparingAudio || busy}
+                    className="sr-only"
+                    onChange={(event) => void selectAudio(event.target.files?.[0])}
+                  />
+                </label>
+              )}
+            </div>
+            {audio && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-sm bg-primary/8 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] text-body-on-dark">{audio.fileName}</p>
+                  <p className="text-[10px] text-body-muted">
+                    {formatDuration(audio.localFeatures.durationSeconds)} · {(audio.sizeBytes / 1024 / 1024).toFixed(1)}MB
+                    {" · "}実音を含めて分析
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="添付音源を外す"
+                  className="shrink-0 rounded-full p-1.5 text-body-muted hover:bg-white/10 hover:text-body-on-dark"
+                  onClick={() => {
+                    setAudio(null)
+                    setResponse(null)
+                  }}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            )}
+          </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button
               onClick={() => void submit(false)}
-              disabled={busy || prompt.trim().length < 3 || !context}
+              disabled={busy || preparingAudio || prompt.trim().length < 3 || !context}
             >
               {busy ? <LoaderCircle className="animate-spin" size={15} /> : <Bot size={15} />}
-              {busy ? "楽曲を分析中…" : "AIに3案を相談"}
+              {busy ? "楽曲を分析中…" : audio ? "音源を聴いて3案を相談" : "AIに3案を相談"}
             </Button>
             <span className="text-[11px] text-ink-muted-48">
               同じ楽曲状態・同じ相談は24時間キャッシュされます
@@ -266,6 +334,19 @@ export function AiPartnerWorkspace({
                 <p className="mt-3 rounded-sm bg-amber-300/10 px-3 py-2 text-[12px] text-amber-100">
                   このセクションは、音を追加しない案も有力と診断されています。
                 </p>
+              )}
+              {(response.diagnosis.audioEvidence ?? []).length > 0 && (
+                <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-primary">
+                    <AudioLines size={13} /> 音源から聴き取った根拠
+                  </div>
+                  <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
+                    {(response.diagnosis.audioEvidence ?? []).map((item) => <li key={item}>• {item}</li>)}
+                  </ul>
+                  <p className="mt-1 text-[10px] text-ink-muted-48">
+                    {response.diagnosis.audioConfidenceNote ?? "音源解析は編曲判断の補助情報です。"}
+                  </p>
+                </div>
               )}
             </SectionCard>
 
@@ -364,6 +445,12 @@ export function AiPartnerWorkspace({
       </div>
     </main>
   )
+}
+
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainder = Math.round(seconds % 60)
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`
 }
 
 function ContextStat({ label, value }: { label: string; value: string }) {

@@ -15,7 +15,14 @@ interface CachedAdvice {
 }
 
 function cacheKey(request: AiArrangementRequest): string {
-  return `${CACHE_PREFIX}${aiContextFingerprint(request.prompt, request.context)}`
+  const audioFingerprint = request.audio
+    ? JSON.stringify({
+        fileName: request.audio.fileName,
+        sizeBytes: request.audio.sizeBytes,
+        localFeatures: request.audio.localFeatures,
+      })
+    : "no-audio"
+  return `${CACHE_PREFIX}${aiContextFingerprint(`${request.prompt}\n${audioFingerprint}`, request.context)}`
 }
 
 function cachedAdvice(request: AiArrangementRequest): AiArrangementResponse | null {

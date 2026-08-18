@@ -54,6 +54,28 @@ export interface AiArrangementDiagnosis {
   protect: string[]
   avoid: string[]
   noAdditionRecommended: boolean
+  audioEvidence: string[]
+  audioConfidenceNote: string
+}
+
+export interface AiAudioLocalFeatures {
+  durationSeconds: number
+  sampleRate: number
+  channelCount: number
+  energyCurve: number[]
+  silenceRatio: number
+  dynamicRange: number
+  transientDensity: number
+  peakPosition: number
+}
+
+export interface AiAudioPayload {
+  fileName: string
+  mimeType: string
+  format: "mp3" | "wav"
+  sizeBytes: number
+  dataBase64: string
+  localFeatures: AiAudioLocalFeatures
 }
 
 export interface AiUsage {
@@ -118,4 +140,5 @@ export interface AiArrangementContext {
 export interface AiArrangementRequest {
   prompt: string
   context: AiArrangementContext
+  audio?: AiAudioPayload
 }

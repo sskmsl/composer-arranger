@@ -7,10 +7,12 @@ const ALLOWED_ORIGINS = new Set([
 ])
 
 const MODEL = Deno.env.get("COMPOSER_ARRANGER_OPENAI_MODEL") ?? "gpt-5.6-luna"
+const AUDIO_MODEL = Deno.env.get("COMPOSER_ARRANGER_OPENAI_AUDIO_MODEL") ?? "gpt-audio-1.5"
 const API_KEY = Deno.env.get("COMPOSER_ARRANGER_OPENAI_API_KEY")
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")
-const MAX_BODY_BYTES = 120_000
+const MAX_BODY_BYTES = 18_000_000
+const MAX_AUDIO_BYTES = 12 * 1024 * 1024
 const MAX_REQUESTS_PER_WINDOW = 10
 const RATE_WINDOW_MS = 10 * 60 * 1000
 const recentRequests = new Map<string, number[]>()
@@ -93,6 +95,13 @@ const responseSchema = {
           items: { type: "string", minLength: 1, maxLength: 160 },
         },
         noAdditionRecommended: { type: "boolean" },
+        audioEvidence: {
+          type: "array",
+          minItems: 0,
+          maxItems: 6,
+          items: { type: "string", minLength: 1, maxLength: 200 },
+        },
+        audioConfidenceNote: { type: "string", minLength: 1, maxLength: 240 },
       },
       required: [
         "currentStrength",
@@ -100,6 +109,8 @@ const responseSchema = {
         "protect",
         "avoid",
         "noAdditionRecommended",
+        "audioEvidence",
+        "audioConfidenceNote",
       ],
     },
     intents: {
@@ -129,6 +140,8 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 - 固有曲や固有アーティストが相談文に含まれても、既存フレーズを再現しない。余白、輪郭、反復、音色、残響、演奏意図などの抽象属性へ変換する。
 - 日本語で簡潔に書く。Technique名と音源検索語は一般的・抽象的な名称にする。
 - 3案に優先順位を付けない。
+- audioAnalysisがある場合は、実際の音源から確認できた編曲上の証拠をaudioEvidenceへ記録する。推測を断定せず、確信度や限界をaudioConfidenceNoteへ書く。
+- audioAnalysisがない場合、audioEvidenceは空配列、audioConfidenceNoteは「音源未添付のためプロジェクトデータから判断」とする。
 
 generatorの意味:
 - signature: 曲の顔となる1〜8小節の入口・フック
@@ -171,12 +184,12 @@ async function authenticatedUserId(authorization: string): Promise<string | null
   return typeof user.id === "string" ? user.id : null
 }
 
-function rateLimitExceeded(userId: string): boolean {
+function rateLimitExceeded(userId: string, limit = MAX_REQUESTS_PER_WINDOW): boolean {
   const now = Date.now()
   const active = (recentRequests.get(userId) ?? []).filter(
     (timestamp) => now - timestamp < RATE_WINDOW_MS,
   )
-  if (active.length >= MAX_REQUESTS_PER_WINDOW) {
+  if (active.length >= limit) {
     recentRequests.set(userId, active)
     return true
   }
@@ -208,6 +221,111 @@ function openAiOutputText(payload: Record<string, unknown>): string | null {
   return null
 }
 
+function chatOutputText(payload: Record<string, unknown>): string | null {
+  const choices = payload.choices
+  if (!Array.isArray(choices)) return null
+  const first = choices[0]
+  if (!first || typeof first !== "object") return null
+  const message = (first as { message?: unknown }).message
+  if (!message || typeof message !== "object") return null
+  const content = (message as { content?: unknown }).content
+  return typeof content === "string" ? content : null
+}
+
+interface AudioInput {
+  fileName: string
+  format: "mp3" | "wav"
+  sizeBytes: number
+  dataBase64: string
+  localFeatures: Record<string, unknown>
+}
+
+function validAudioInput(value: unknown): value is AudioInput {
+  if (!value || typeof value !== "object") return false
+  const candidate = value as Partial<AudioInput>
+  return (
+    typeof candidate.fileName === "string" &&
+    (candidate.format === "mp3" || candidate.format === "wav") &&
+    typeof candidate.sizeBytes === "number" &&
+    candidate.sizeBytes > 0 &&
+    candidate.sizeBytes <= MAX_AUDIO_BYTES &&
+    typeof candidate.dataBase64 === "string" &&
+    candidate.dataBase64.length > 0 &&
+    Boolean(candidate.localFeatures) &&
+    typeof candidate.localFeatures === "object"
+  )
+}
+
+async function analyzeAudio(
+  audio: AudioInput,
+  prompt: string,
+  context: Record<string, unknown>,
+): Promise<{ text: string; costUsd: number; inputTokens: number; outputTokens: number }> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: AUDIO_MODEL,
+      modalities: ["text"],
+      max_completion_tokens: 2200,
+      messages: [
+        {
+          role: "system",
+          content: `あなたは音楽音源を聴いて編曲上の事実を抽出する分析者です。曲名当て、既存曲との同定、歌詞の転記は行いません。
+音量推移、密度、余白、リズムの押し引き、音域配置、前景と背景、反復、セクション変化、衝突、未活用の空間を観察してください。
+聴き取れない音高・楽器・拍位置を断定せず、観察と推測を分けます。出力は日本語で、後段のアレンジャーが使える簡潔な分析にしてください。`,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                consultation: prompt,
+                projectContext: context,
+                browserMeasuredFeatures: audio.localFeatures,
+                requestedOutput: {
+                  observations: "音源から直接確認できる事実を6件以内",
+                  opportunities: "編曲上の余地を4件以内",
+                  uncertainties: "断定できない点",
+                },
+              }),
+            },
+            {
+              type: "input_audio",
+              input_audio: { data: audio.dataBase64, format: audio.format },
+            },
+          ],
+        },
+      ],
+    }),
+  })
+  const payload = await response.json() as Record<string, unknown>
+  if (!response.ok) {
+    const error = payload.error as { code?: unknown } | undefined
+    console.error("OpenAI audio request failed", response.status, error?.code)
+    throw new Error("音源解析サービスへ接続できませんでした。")
+  }
+  const text = chatOutputText(payload)
+  if (!text) throw new Error("音源解析結果が不完全でした。")
+  const usage = (payload.usage ?? {}) as {
+    prompt_tokens?: number
+    completion_tokens?: number
+    prompt_tokens_details?: { audio_tokens?: number }
+  }
+  const inputTokens = usage.prompt_tokens ?? 0
+  const outputTokens = usage.completion_tokens ?? 0
+  const audioTokens = usage.prompt_tokens_details?.audio_tokens ?? 0
+  const textInputTokens = Math.max(0, inputTokens - audioTokens)
+  const costUsd = textInputTokens * 2.5 / 1_000_000
+    + audioTokens * 32 / 1_000_000
+    + outputTokens * 10 / 1_000_000
+  return { text: text.slice(0, 8_000), costUsd, inputTokens, outputTokens }
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders(request) })
@@ -221,15 +339,12 @@ Deno.serve(async (request) => {
   }
   const userId = await authenticatedUserId(authorization)
   if (!userId) return json(request, { error: "Invalid session" }, 401)
-  if (rateLimitExceeded(userId)) {
-    return json(request, { error: "相談回数が一時上限に達しました。10分後に再試行してください。" }, 429)
-  }
 
   const rawBody = await request.text()
   if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
     return json(request, { error: "Request is too large" }, 413)
   }
-  let body: { prompt?: unknown; context?: unknown }
+  let body: { prompt?: unknown; context?: unknown; audio?: unknown }
   try {
     body = JSON.parse(rawBody)
   } catch {
@@ -238,6 +353,22 @@ Deno.serve(async (request) => {
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : ""
   if (prompt.length < 3 || prompt.length > 1500 || !body.context || typeof body.context !== "object") {
     return json(request, { error: "相談内容または楽曲コンテキストが不正です。" }, 400)
+  }
+  const audio = body.audio === undefined ? null : validAudioInput(body.audio) ? body.audio : undefined
+  if (audio === undefined) return json(request, { error: "添付音源の形式またはサイズが不正です。" }, 400)
+  const rateLimitKey = `${userId}:${audio ? "audio" : "text"}`
+  if (rateLimitExceeded(rateLimitKey, audio ? 3 : MAX_REQUESTS_PER_WINDOW)) {
+    return json(request, { error: "相談回数が一時上限に達しました。10分後に再試行してください。" }, 429)
+  }
+
+  let audioAnalysis: { text: string; costUsd: number; inputTokens: number; outputTokens: number } | null = null
+  if (audio) {
+    try {
+      audioAnalysis = await analyzeAudio(audio, prompt, body.context as Record<string, unknown>)
+    } catch (error) {
+      console.error("Audio analysis failed", error instanceof Error ? error.message : "unknown")
+      return json(request, { error: error instanceof Error ? error.message : "音源解析に失敗しました。" }, 502)
+    }
   }
 
   const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
@@ -255,7 +386,12 @@ Deno.serve(async (request) => {
         { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
-          content: JSON.stringify({ consultation: prompt, musicalContext: body.context }),
+          content: JSON.stringify({
+            consultation: prompt,
+            musicalContext: body.context,
+            audioAnalysis: audioAnalysis?.text ?? null,
+            browserMeasuredAudioFeatures: audio?.localFeatures ?? null,
+          }),
         },
       ],
       text: {
@@ -298,16 +434,18 @@ Deno.serve(async (request) => {
   const outputTokens = usage.output_tokens ?? 0
   const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0
   // 2026-08-18時点のGPT-5.6 Luna標準価格。UIでは必ず「概算」と表示する。
-  const estimatedCostUsd = inputTokens * 0.2 / 1_000_000 + outputTokens * 1.2 / 1_000_000
+  const estimatedCostUsd = inputTokens * 0.2 / 1_000_000
+    + outputTokens * 1.2 / 1_000_000
+    + (audioAnalysis?.costUsd ?? 0)
 
   return json(request, {
     requestId: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
-    model: MODEL,
+    model: audioAnalysis ? `${AUDIO_MODEL} + ${MODEL}` : MODEL,
     ...advice,
     usage: {
-      inputTokens,
-      outputTokens,
+      inputTokens: inputTokens + (audioAnalysis?.inputTokens ?? 0),
+      outputTokens: outputTokens + (audioAnalysis?.outputTokens ?? 0),
       reasoningTokens,
       estimatedCostUsd,
     },
