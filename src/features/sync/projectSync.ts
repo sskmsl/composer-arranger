@@ -16,6 +16,14 @@ export interface RemoteProjectRow {
   id: string
   data: StoredComposerProject | null
   deleted_at: string | null
+  /** metadata-first pullではdata本体を取得せず、この時刻だけで転送要否を判定する。 */
+  updated_at?: string
+}
+
+interface RemoteProjectMetadata {
+  id: string
+  updated_at: string
+  deleted_at: string | null
 }
 
 const pendingPushes = new Map<string, ReturnType<typeof setTimeout>>()
@@ -133,9 +141,31 @@ export function projectsNeedingUpload(
   return localProjects.filter((project) => {
     if (deletedIds.has(project.projectId)) return false
     const remote = remoteById.get(project.projectId)
-    if (!remote || !remote.data || remote.deleted_at !== null) return true
-    return project.savedAt.localeCompare(remote.data.savedAt) > 0
+    if (!remote || remote.deleted_at !== null) return true
+    const remoteUpdatedAt = remote.updated_at ?? remote.data?.savedAt
+    if (!remoteUpdatedAt) return true
+    return project.savedAt.localeCompare(remoteUpdatedAt) > 0
   })
+}
+
+/** Cloud本体を取得する必要があるprojectだけを抽出し、大容量JSONの全件selectを避ける。 */
+export function projectIdsNeedingDownload(
+  localProjects: StoredComposerProject[],
+  remoteRows: RemoteProjectMetadata[],
+  locallyDeletedIds: Iterable<string> = [],
+): string[] {
+  const localById = new Map(
+    localProjects.map((project) => [project.projectId, project]),
+  )
+  const deletedIds = new Set(locallyDeletedIds)
+  return remoteRows
+    .filter((row) => {
+      if (row.deleted_at !== null) return false
+      if (deletedIds.has(row.id)) return false
+      const local = localById.get(row.id)
+      return !local || row.updated_at.localeCompare(local.savedAt) > 0
+    })
+    .map((row) => row.id)
 }
 
 /** 初回導入時は既存ローカルprojectを採用し、別accountへの切替時だけ端末データを隔離する。 */
@@ -155,13 +185,36 @@ export async function syncPullAndReconcile(
   locallyDeletedIds: Iterable<string> = [],
 ): Promise<StoredComposerProject[]> {
   if (!supabase) return adapter.listLocal()
-  const [{ data: remoteRows, error }, localProjects] = await Promise.all([
-    supabase.from(PROJECTS_TABLE).select("id,data,deleted_at"),
+  const [{ data: remoteMetadata, error }, localProjects] = await Promise.all([
+    // data(JSONB)を全件同時に返すと、大きいprojectが増えた際にDBのstatement
+    // timeoutへ到達する。まず軽量metadataだけを取得する。
+    supabase.from(PROJECTS_TABLE).select("id,updated_at,deleted_at"),
     adapter.listLocal(),
   ])
   if (error) throw error
 
-  const rows = (remoteRows ?? []) as RemoteProjectRow[]
+  const metadata = (remoteMetadata ?? []) as RemoteProjectMetadata[]
+  const downloadIds = projectIdsNeedingDownload(
+    localProjects,
+    metadata,
+    locallyDeletedIds,
+  )
+  const downloadedById = new Map<string, StoredComposerProject>()
+  // 大容量projectを同時取得せず、必要な最新版だけを順次取得する。
+  for (const id of downloadIds) {
+    const { data: remote, error: downloadError } = await supabase
+      .from(PROJECTS_TABLE)
+      .select("id,data")
+      .eq("id", id)
+      .maybeSingle()
+    if (downloadError) throw downloadError
+    const project = remote?.data as StoredComposerProject | null | undefined
+    if (project) downloadedById.set(id, project)
+  }
+  const rows: RemoteProjectRow[] = metadata.map((row) => ({
+    ...row,
+    data: downloadedById.get(row.id) ?? null,
+  }))
   const projects = reconcileProjectRows(
     localProjects,
     rows,
