@@ -57,6 +57,31 @@ const intentProperties = {
       type: "object",
       additionalProperties: false,
       properties: {
+        library: {
+          type: "string",
+          enum: ["Native Instruments Komplete 15 Ultimate", "u-he Repro"],
+        },
+        product: {
+          type: "string",
+          enum: [
+            "Battery 4",
+            "Session Percussionist",
+            "Studio Drummer",
+            "Abbey Road 60s Drummer",
+            "Abbey Road 70s Drummer",
+            "Abbey Road 80s Drummer",
+            "Abbey Road Modern Drummer",
+            "Butch Vig Drums",
+            "Drumlab",
+            "Damage",
+            "Noire",
+            "Una Corda",
+            "Playbox",
+            "Massive X",
+            "Repro-1",
+            "Repro-5",
+          ],
+        },
         family: { type: "string", minLength: 1, maxLength: 80 },
         character: { type: "string", minLength: 1, maxLength: 120 },
         searchTerms: {
@@ -67,7 +92,7 @@ const intentProperties = {
         },
         reason: { type: "string", minLength: 1, maxLength: 240 },
       },
-      required: ["family", "character", "searchTerms", "reason"],
+      required: ["library", "product", "family", "character", "searchTerms", "reason"],
     },
   },
   accompanimentPatternId: {
@@ -95,6 +120,35 @@ const intentProperties = {
       hatPattern: { type: "string", maxLength: 240 },
       percussionPattern: { type: "string", maxLength: 240 },
       variation: { type: "string", maxLength: 300 },
+      bars: { type: "integer", enum: [1, 2] },
+      events: {
+        type: "array",
+        minItems: 0,
+        maxItems: 64,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            instrument: {
+              type: "string",
+              enum: [
+                "kick",
+                "snare",
+                "closed-hat",
+                "open-hat",
+                "clap",
+                "rim",
+                "low-percussion",
+                "high-percussion",
+              ],
+            },
+            onsetBeat: { type: "number", minimum: 0, maximum: 32 },
+            durationBeats: { type: "number", minimum: 0.03, maximum: 4 },
+            velocity: { type: "integer", minimum: 1, maximum: 127 },
+          },
+          required: ["instrument", "onsetBeat", "durationBeats", "velocity"],
+        },
+      },
     },
     required: [
       "enabled",
@@ -105,6 +159,8 @@ const intentProperties = {
       "hatPattern",
       "percussionPattern",
       "variation",
+      "bars",
+      "events",
     ],
   },
 }
@@ -176,7 +232,8 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 - リズムや伴奏の推進力が課題ならgenerator=accompanimentを選び、musicalContext.arrangement.availableAccompanimentPatternsから適切なIDをaccompanimentPatternIdへ指定する。コードの羅列ではなく、オンセット、休符、アクセント、反復周期とActive Melodyの隙間を判断する。
 - generator=accompaniment以外ではaccompanimentPatternId=noneにする。
 - ドラム／パーカッションのリズムそのものが課題ならgenerator=rhythmを選ぶ。rhythmPlanに1〜2小節の再現可能な配置（拍・裏拍・休符・アクセント・2周目の変化）を記述し、単なるジャンル名だけで済ませない。
-- generator=rhythmの場合だけrhythmPlan.enabled=trueにし、それ以外ではfalse・各パターン文字列は空にする。
+- generator=rhythmではbarsを1または2にし、eventsへ実際にMIDI化する全打点を入れる。onsetBeatはループ先頭=0とする四分音符単位（例: 1拍目=0、1拍目裏=0.5、2拍目=1）。velocityで主従・アクセントを表し、全ステップを埋めず呼吸を残す。
+- generator=rhythmの場合だけrhythmPlan.enabled=trueにし、それ以外ではfalse・各パターン文字列は空、bars=1、events=[]にする。
 - 実音は後段の決定論的Generatorが作るため、generationBriefは実装可能な音楽語彙で書く。
 - 固有曲や固有アーティストが相談文に含まれても、既存フレーズを再現しない。余白、輪郭、反復、音色、残響、演奏意図などの抽象属性へ変換する。
 - 日本語で簡潔に書く。Technique名と音源検索語は一般的・抽象的な名称にする。
@@ -189,12 +246,15 @@ generatorの意味:
 - counter: Active Melodyの隙間に置く対旋律
 - decoration: セクション境界や呼吸点の装飾
 - accompaniment: コードへ適用する伴奏リズム骨格。既存Accompaniment Patternを選択する
-- rhythm: Logic Proでドラム／パーカッションを組むための具体的なリズムパターン提案（今回はMIDI自動生成を行わない）
+- rhythm: Logic Proでドラム／パーカッションを組むための具体的なリズムパターン提案。rhythmPlan.eventsからMIDIを直接書き出す
 - phrase: 2〜8小節の独立素材
 - melody: セクションの主旋律候補
 - none: 音を追加せず、演奏・空間・引き算だけを提案
 
-soundSourceSuggestionsは特定製品を断定せず、音源ブラウザで探せるfamily、character、searchTermsと選定理由を返してください。`
+soundSourceSuggestionsはユーザー所有音源だけから選ぶ。libraryとproductは必ず次の実在候補を使い、用途に合う検索語と理由を返す。
+- Native Instruments Komplete 15 Ultimate: Battery 4（電子・加工ドラム）、Session Percussionist（有機的パーカッション）、Studio Drummer / Abbey Road Drummer（生ドラム）、Butch Vig Drums / Drumlab（加工・ハイブリッドドラム）、Damage（シネマティック打撃）、Noire / Una Corda（ピアノ）、Playbox（レイヤー音色）、Massive X（デジタル／モダンシンセ）
+- u-he Repro: Repro-1（モノフォニックのベース、シーケンス、リード）、Repro-5（ポリフォニックのコード、パッド、プラック）
+候補名だけでなく、どの音の役割に使うかをreasonへ明記する。所有リスト外の製品は提案しない。`
 
 function corsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get("origin") ?? ""

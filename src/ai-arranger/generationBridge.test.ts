@@ -40,6 +40,8 @@ function intent(
       hatPattern: "",
       percussionPattern: "",
       variation: "",
+      bars: 1,
+      events: [],
     },
     ...patch,
   }
