@@ -137,10 +137,49 @@ export interface AiArrangementResponse {
   requestId: string
   createdAt: string
   model: string
+  /** 最新の相談へ直接答える、会話表示用の短い返答。 */
+  partnerReply: string
+  /** 後続ターンでも維持する、現在有効な制約の完全な一覧。 */
+  confirmedConstraints: string[]
   diagnosis: AiArrangementDiagnosis
   intents: [AiArrangementIntent, AiArrangementIntent, AiArrangementIntent]
   usage: AiUsage
   cached?: boolean
+}
+
+export interface AiPartnerConversationTurn {
+  id: string
+  createdAt: string
+  userMessage: string
+  partnerReply: string
+  confirmedConstraints: string[]
+  directions: AiConversationContextTurn["directions"]
+}
+
+export interface AiPartnerSession {
+  sectionId: string
+  updatedAt: string
+  confirmedConstraints: string[]
+  turns: AiPartnerConversationTurn[]
+  /** 画面復元に必要な最新案だけを保持し、過去ターンは要約して同期容量を抑える。 */
+  latestResponse?: AiArrangementResponse
+}
+
+export interface AiConversationContextTurn {
+  userMessage: string
+  partnerReply: string
+  confirmedConstraints: string[]
+  directions: Array<{
+    title: string
+    generator: AiArrangementGenerator
+    emotionalFunction: string
+    generationBrief: string
+  }>
+}
+
+export interface AiConversationContext {
+  confirmedConstraints: string[]
+  turns: AiConversationContextTurn[]
 }
 
 export interface AiArrangementContext {
@@ -196,5 +235,6 @@ export interface AiArrangementContext {
 export interface AiArrangementRequest {
   prompt: string
   context: AiArrangementContext
+  conversation?: AiConversationContext
   audio?: AiAudioPayload
 }

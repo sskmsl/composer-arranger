@@ -169,6 +169,13 @@ const responseSchema = {
   type: "object",
   additionalProperties: false,
   properties: {
+    partnerReply: { type: "string", minLength: 1, maxLength: 700 },
+    confirmedConstraints: {
+      type: "array",
+      minItems: 0,
+      maxItems: 12,
+      items: { type: "string", minLength: 1, maxLength: 120 },
+    },
     diagnosis: {
       type: "object",
       additionalProperties: false,
@@ -218,7 +225,7 @@ const responseSchema = {
       },
     },
   },
-  required: ["diagnosis", "intents"],
+  required: ["partnerReply", "confirmedConstraints", "diagnosis", "intents"],
 }
 
 const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟練アレンジャーです。
@@ -238,6 +245,11 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 - 固有曲や固有アーティストが相談文に含まれても、既存フレーズを再現しない。余白、輪郭、反復、音色、残響、演奏意図などの抽象属性へ変換する。
 - 日本語で簡潔に書く。Technique名と音源検索語は一般的・抽象的な名称にする。
 - 3案に優先順位を付けない。
+- conversationHistoryがある場合、最新相談へpartnerReplyで直接答え、過去の合意と変更経緯を踏まえて3案を更新する。同じ説明を最初から繰り返さない。
+- conversationHistory.confirmedConstraintsを現在有効な制約の正とする。過去turnにだけ残り、現在一覧から外れた制約はUIで解除済みなので復活させない。
+- confirmedConstraintsは今回だけの提案ではなく、ユーザーが明示的に確定した制約の「現在有効な完全一覧」にする。既存制約はユーザーが明示的に解除・変更しない限り維持する。
+- 「メロディは変えない」「音数を増やさない」「もっと不穏」「ベルは使わない」等を、後続Directionのdensity、register、silenceStrategy、soundPalette、generationBriefへ実際に反映する。
+- AI相談だけでGeneratorを実行したように書かない。実音化にはユーザーが「この案を生成」を押す必要があることを守る。
 - audioAnalysisがある場合は、実際の音源から確認できた編曲上の証拠をaudioEvidenceへ記録する。推測を断定せず、確信度や限界をaudioConfidenceNoteへ書く。
 - audioAnalysisがない場合、audioEvidenceは空配列、audioConfidenceNoteは「音源未添付のためプロジェクトデータから判断」とする。
 
@@ -299,6 +311,71 @@ function rateLimitExceeded(userId: string, limit = MAX_REQUESTS_PER_WINDOW): boo
   active.push(now)
   recentRequests.set(userId, active)
   return false
+}
+
+interface ConversationInput {
+  confirmedConstraints: string[]
+  turns: Array<{
+    userMessage: string
+    partnerReply: string
+    confirmedConstraints: string[]
+    directions: Array<{
+      title: string
+      generator: string
+      emotionalFunction: string
+      generationBrief: string
+    }>
+  }>
+}
+
+function normalizedConversation(value: unknown): ConversationInput | null {
+  if (!value || typeof value !== "object") return null
+  const candidate = value as { confirmedConstraints?: unknown; turns?: unknown }
+  if (!Array.isArray(candidate.confirmedConstraints) || !Array.isArray(candidate.turns)) {
+    return null
+  }
+  const constraints = candidate.confirmedConstraints
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim().slice(0, 120))
+    .filter(Boolean)
+    .slice(-12)
+  const turns = candidate.turns.slice(-10).flatMap((raw) => {
+    if (!raw || typeof raw !== "object") return []
+    const turn = raw as Record<string, unknown>
+    if (typeof turn.userMessage !== "string" || typeof turn.partnerReply !== "string") {
+      return []
+    }
+    const directions = Array.isArray(turn.directions)
+      ? turn.directions.slice(0, 3).flatMap((rawDirection) => {
+          if (!rawDirection || typeof rawDirection !== "object") return []
+          const direction = rawDirection as Record<string, unknown>
+          if (
+            typeof direction.title !== "string" ||
+            typeof direction.generator !== "string" ||
+            typeof direction.emotionalFunction !== "string" ||
+            typeof direction.generationBrief !== "string"
+          ) return []
+          return [{
+            title: direction.title.slice(0, 80),
+            generator: direction.generator.slice(0, 24),
+            emotionalFunction: direction.emotionalFunction.slice(0, 240),
+            generationBrief: direction.generationBrief.slice(0, 500),
+          }]
+        })
+      : []
+    return [{
+      userMessage: turn.userMessage.slice(0, 1500),
+      partnerReply: turn.partnerReply.slice(0, 700),
+      confirmedConstraints: Array.isArray(turn.confirmedConstraints)
+        ? turn.confirmedConstraints
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.slice(0, 120))
+            .slice(-12)
+        : [],
+      directions,
+    }]
+  })
+  return { confirmedConstraints: [...new Set(constraints)], turns }
 }
 
 function openAiOutputText(payload: Record<string, unknown>): string | null {
@@ -447,7 +524,7 @@ Deno.serve(async (request) => {
   if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
     return json(request, { error: "Request is too large" }, 413)
   }
-  let body: { prompt?: unknown; context?: unknown; audio?: unknown }
+  let body: { prompt?: unknown; context?: unknown; conversation?: unknown; audio?: unknown }
   try {
     body = JSON.parse(rawBody)
   } catch {
@@ -459,6 +536,12 @@ Deno.serve(async (request) => {
   }
   const audio = body.audio === undefined ? null : validAudioInput(body.audio) ? body.audio : undefined
   if (audio === undefined) return json(request, { error: "添付音源の形式またはサイズが不正です。" }, 400)
+  const conversation = body.conversation === undefined
+    ? null
+    : normalizedConversation(body.conversation)
+  if (body.conversation !== undefined && conversation === null) {
+    return json(request, { error: "会話履歴の形式が不正です。" }, 400)
+  }
   const rateLimitKey = `${userId}:${audio ? "audio" : "text"}`
   if (rateLimitExceeded(rateLimitKey, audio ? 3 : MAX_REQUESTS_PER_WINDOW)) {
     return json(request, { error: "相談回数が一時上限に達しました。10分後に再試行してください。" }, 429)
@@ -492,6 +575,7 @@ Deno.serve(async (request) => {
           content: JSON.stringify({
             consultation: prompt,
             musicalContext: body.context,
+            conversationHistory: conversation,
             audioAnalysis: audioAnalysis?.text ?? null,
             browserMeasuredAudioFeatures: audio?.localFeatures ?? null,
           }),

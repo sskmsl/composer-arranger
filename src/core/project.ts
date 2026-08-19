@@ -10,6 +10,7 @@ import {
   type AccompanimentPatternTemplate,
 } from "./accompanimentPattern"
 import type { ReactiveLayerCandidate } from "./reactiveLayer"
+import type { AiPartnerSession } from "@/ai-arranger/types"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -110,12 +111,14 @@ export interface ComposerProject {
   generatorProfileRoles?: Partial<Record<MelodyGeneratorProfile, GeneratorProfileRole>>
   /** セクションをまたいだ旋律の同一性を保つための共有データ(将来拡張の土台) */
   songMotifDNA?: SongMotifDNA
+  /** AI Partnerの同一曲・同一Section単位の継続相談。音源データ自体は保存しない。 */
+  aiPartnerSessions?: Record<string, AiPartnerSession>
   /** Issue #16: 時間値の単位マーカー。付与済みプロジェクトは再変換の判定対象から除外する */
   timeBase?: TimeBase
 }
 
-/** 1.9: 通常Phraseと独立したSignature Phrase候補を追加 */
-export const CURRENT_SCHEMA_VERSION = "1.9"
+/** 2.0: AI PartnerのSection単位継続会話を追加 */
+export const CURRENT_SCHEMA_VERSION = "2.0"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -146,6 +149,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     sectionDecorationLayerAssignments: {},
     activeArrangementId: null,
     notes: "",
+    aiPartnerSessions: {},
     timeBase: TIME_BASE,
   }
 }
@@ -236,6 +240,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     notes: r.notes ?? "",
     generatorProfileRoles: r.generatorProfileRoles,
     songMotifDNA: r.songMotifDNA,
+    aiPartnerSessions: r.aiPartnerSessions ?? {},
     timeBase: r.timeBase,
   }
 }

@@ -84,6 +84,7 @@ import {
 } from "@/phrase-engine/generateSignaturePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
+import type { AiPartnerSession } from "@/ai-arranger/types"
 import { evaluateReactiveLayerCompatibility } from "@/melody-engine/reactiveLayerAnalysis"
 import {
   COUNTER_CANDIDATE_CONFIG,
@@ -173,6 +174,7 @@ interface ProjectState {
   setSectionContent: (sectionId: string, patch: Partial<SectionContentSettings>) => void
   /** Issue #45: セクションへ独立Accompaniment Pattern Templateを割り当てる。 */
   setSectionAccompanimentPattern: (sectionId: string, patternId: string | null) => void
+  setAiPartnerSession: (sectionId: string, session: AiPartnerSession | null) => void
   removeSection: (sectionId: string) => void
   duplicateSection: (sectionId: string) => void
   moveSection: (sectionId: string, targetIndex: number) => void
@@ -750,6 +752,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
+  setAiPartnerSession: (sectionId, session) => {
+    const prev = get().project
+    if (!prev.sections.some((section) => section.id === sectionId)) return
+    const aiPartnerSessions = { ...(prev.aiPartnerSessions ?? {}) }
+    if (session) aiPartnerSessions[sectionId] = session
+    else delete aiPartnerSessions[sectionId]
+    set({ project: { ...prev, aiPartnerSessions } })
+    get().persist()
+  },
+
   updateSection: (sectionId, patch) => {
     const prev = get().project
     const sections = prev.sections.map((s) =>
@@ -780,10 +792,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       [sectionId]: _removedDecorationAssignment,
       ...sectionDecorationLayerAssignments
     } = prev.sectionDecorationLayerAssignments ?? {}
+    const {
+      [sectionId]: _removedAiPartnerSession,
+      ...aiPartnerSessions
+    } = prev.aiPartnerSessions ?? {}
     void _removedAssignment
     void _removedPatternAssignment
     void _removedReactiveAssignment
     void _removedDecorationAssignment
+    void _removedAiPartnerSession
     const removedVariantIds = new Set(
       prev.melodyVariants.filter((variant) => variant.sectionId === sectionId).map((variant) => variant.id),
     )
@@ -806,6 +823,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         sectionAccompanimentPatternAssignments,
         sectionReactiveLayerAssignments,
         sectionDecorationLayerAssignments,
+        aiPartnerSessions,
         activeMelodyId:
           prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
