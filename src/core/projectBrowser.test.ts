@@ -84,6 +84,22 @@ describe("duplicateProjectData: 新しいprojectIdと全データ保持", () => 
     const dup = duplicateProjectData(richProject())
     expect(dup.timeBase).toBe(TIME_BASE)
   })
+
+  it("AI PartnerのSection別会話をProject複製でも保持する", () => {
+    const src = richProject()
+    src.aiPartnerSessions = {
+      s1: {
+        sectionId: "s1",
+        updatedAt: "2026-08-19T00:00:00.000Z",
+        confirmedConstraints: ["メロディは変えない"],
+        turns: [],
+      },
+    }
+    const dup = duplicateProjectData(src)
+    expect(dup.aiPartnerSessions?.s1?.confirmedConstraints).toEqual([
+      "メロディは変えない",
+    ])
+  })
 })
 
 describe("summarizeProject: 生JSONと保存レコードの両方を同じく扱う", () => {

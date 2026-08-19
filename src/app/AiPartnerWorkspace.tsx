@@ -6,6 +6,7 @@ import {
   Download,
   Lightbulb,
   LoaderCircle,
+  MessageCircle,
   Music2,
   RefreshCw,
   ShieldCheck,
@@ -16,6 +17,11 @@ import {
 import { AI_AUDIO_ACCEPT, prepareAiAudio } from "@/ai-arranger/audioAnalysis"
 import { buildAiArrangementContext } from "@/ai-arranger/context"
 import { requestArrangementAdvice } from "@/ai-arranger/client"
+import {
+  appendConversationTurn,
+  conversationContextForSession,
+  removeConversationConstraint,
+} from "@/ai-arranger/conversation"
 import { exportAiRhythmMidi } from "@/ai-arranger/rhythmMidi"
 import {
   decorationSettingsForIntent,
@@ -80,6 +86,9 @@ export function AiPartnerWorkspace({
   const setSectionAccompanimentPattern = useProjectStore(
     (state) => state.setSectionAccompanimentPattern,
   )
+  const setAiPartnerSession = useProjectStore(
+    (state) => state.setAiPartnerSession,
+  )
   const [prompt, setPrompt] = useState("")
   const [response, setResponse] = useState<AiArrangementResponse | null>(null)
   const [busy, setBusy] = useState(false)
@@ -100,13 +109,16 @@ export function AiPartnerWorkspace({
         : null,
     [effectiveSectionId, project],
   )
+  const session = effectiveSectionId
+    ? project.aiPartnerSessions?.[effectiveSectionId]
+    : undefined
 
   useEffect(() => {
-    setResponse(null)
+    setResponse(session?.latestResponse ?? null)
     setError(null)
-  }, [effectiveSectionId, project.projectId])
+  }, [effectiveSectionId, project.projectId, session?.latestResponse, session?.updatedAt])
 
-  const submit = async (bypassCache = false) => {
+  const submit = async (bypassCache = false, overridePrompt?: string) => {
     if (!context) {
       setError("先にコード進行を持つセクションを選択してください。")
       return
@@ -115,15 +127,37 @@ export function AiPartnerWorkspace({
       setError("選択セクションにコード進行がありません。")
       return
     }
+    const message = (overridePrompt ?? prompt).trim()
+    if (message.length < 3) {
+      setError("相談内容を3文字以上入力してください。")
+      return
+    }
     setBusy(true)
     setError(null)
     try {
-      setResponse(
-        await requestArrangementAdvice(
-          { prompt, context, ...(audio ? { audio } : {}) },
+      const conversation = conversationContextForSession(session)
+      const nextResponse = await requestArrangementAdvice(
+          {
+            prompt: message,
+            context,
+            ...(conversation ? { conversation } : {}),
+            ...(!session?.turns.length && audio ? { audio } : {}),
+          },
           { bypassCache },
-        ),
       )
+      setResponse(nextResponse)
+      if (effectiveSectionId) {
+        setAiPartnerSession(
+          effectiveSectionId,
+          appendConversationTurn(
+            effectiveSectionId,
+            session,
+            message,
+            nextResponse,
+          ),
+        )
+      }
+      setPrompt("")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "AI相談に失敗しました。")
     } finally {
@@ -253,25 +287,60 @@ export function AiPartnerWorkspace({
             </div>
           </div>
 
+          {session && session.turns.length > 0 && (
+            <div className="mt-4 rounded-lg border border-hairline bg-white/[0.025] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-body-on-dark">
+                  <MessageCircle size={14} className="text-primary" /> このセクションの相談履歴
+                </div>
+                <button
+                  type="button"
+                  className="text-[10px] text-ink-muted-48 hover:text-body-on-dark"
+                  onClick={() => {
+                    if (effectiveSectionId) setAiPartnerSession(effectiveSectionId, null)
+                    setResponse(null)
+                    setPrompt("")
+                  }}
+                >
+                  履歴をリセット
+                </button>
+              </div>
+              <div className="mt-3 max-h-72 space-y-3 overflow-y-auto pr-1">
+                {session.turns.slice(-6).map((turn) => (
+                  <div key={turn.id} className="space-y-1.5">
+                    <div className="ml-auto max-w-[90%] rounded-lg bg-primary/12 px-3 py-2 text-[11px] leading-5 text-body-on-dark">
+                      {turn.userMessage}
+                    </div>
+                    <div className="mr-auto max-w-[92%] rounded-lg bg-white/[0.06] px-3 py-2 text-[11px] leading-5 text-body-muted">
+                      {turn.partnerReply}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <label className="mt-4 flex flex-col gap-1.5 text-[11px] text-body-muted">
-            何を相談しますか？
+            {session?.turns.length ? "追加質問・方向修正" : "何を相談しますか？"}
             <textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               maxLength={1500}
               rows={4}
-              placeholder="例：このイントロに、余白を残しながら曲の顔になるピアノフレーズがほしい"
+              placeholder={session?.turns.length
+                ? "例：メロディは変えず、Direction 2をもっと不穏に。ベルは使わないで"
+                : "例：このイントロに、余白を残しながら曲の顔になるピアノフレーズがほしい"}
               className="resize-y rounded-lg border border-hairline bg-surface-tile-2 px-3 py-2.5 text-[14px] leading-6 text-body-on-dark outline-none placeholder:text-ink-muted-48 focus:border-primary-focus"
             />
           </label>
-          <div className="mt-2 flex flex-wrap gap-2">
+          {!session?.turns.length && <div className="mt-2 flex flex-wrap gap-2">
             {EXAMPLE_PROMPTS.map((example) => (
               <Pill key={example} onClick={() => setPrompt(example)} className="!text-[11px]">
                 {example}
               </Pill>
             ))}
-          </div>
-          <div className="mt-4 rounded-lg border border-dashed border-hairline bg-white/[0.025] p-3">
+          </div>}
+          {!session?.turns.length && <div className="mt-4 rounded-lg border border-dashed border-hairline bg-white/[0.025] p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
@@ -316,14 +385,20 @@ export function AiPartnerWorkspace({
                 </button>
               </div>
             )}
-          </div>
+          </div>}
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button
               onClick={() => void submit(false)}
               disabled={busy || preparingAudio || prompt.trim().length < 3 || !context}
             >
               {busy ? <LoaderCircle className="animate-spin" size={15} /> : <Bot size={15} />}
-              {busy ? "楽曲を分析中…" : audio ? "音源を聴いて3案を相談" : "AIに3案を相談"}
+              {busy
+                ? "楽曲を分析中…"
+                : session?.turns.length
+                  ? "続きを相談"
+                  : audio
+                    ? "音源を聴いて3案を相談"
+                    : "AIに3案を相談"}
             </Button>
             <span className="text-[11px] text-ink-muted-48">
               同じ楽曲状態・同じ相談は24時間キャッシュされます
@@ -369,6 +444,34 @@ export function AiPartnerWorkspace({
                 <DiagnosisList title="守るもの" items={response.diagnosis.protect} />
                 <DiagnosisList title="避けるもの" items={response.diagnosis.avoid} />
               </div>
+              {(session?.confirmedConstraints.length ?? 0) > 0 && (
+                <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2">
+                  <div className="text-[10px] font-medium uppercase tracking-wide text-primary">
+                    会話で確定した制約
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {session?.confirmedConstraints.map((constraint) => (
+                      <span key={constraint} className="inline-flex items-center gap-1 rounded-pill bg-white/8 px-2.5 py-1 text-[10px] text-body-muted">
+                        {constraint}
+                        <button
+                          type="button"
+                          aria-label={`${constraint}を解除`}
+                          className="rounded-full p-0.5 hover:bg-white/10 hover:text-body-on-dark"
+                          onClick={() => {
+                            if (!effectiveSectionId || !session) return
+                            setAiPartnerSession(
+                              effectiveSectionId,
+                              removeConversationConstraint(session, constraint),
+                            )
+                          }}
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               {response.diagnosis.noAdditionRecommended && (
                 <p className="mt-3 rounded-sm bg-amber-300/10 px-3 py-2 text-[12px] text-amber-100">
                   このセクションは、音を追加しない案も有力と診断されています。
@@ -480,7 +583,7 @@ export function AiPartnerWorkspace({
                           disabled={counterUnavailable || generatingIntentId === intent.id}
                           onClick={() => generateFromIntent(intent)}
                         >
-                          <Music2 size={14} /> この方向を音の候補にする
+                          <Music2 size={14} /> この案を生成
                         </Button>
                       )}
                       {proposalOnly && (
@@ -512,7 +615,10 @@ export function AiPartnerWorkspace({
             <div className="flex justify-center">
               <Button
                 variant="ghost"
-                onClick={() => void submit(true)}
+                onClick={() => void submit(
+                  true,
+                  session?.turns.at(-1)?.userMessage,
+                )}
                 disabled={busy}
               >
                 <RefreshCw size={14} /> キャッシュを使わず別の3案を相談

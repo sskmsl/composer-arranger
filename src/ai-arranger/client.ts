@@ -6,7 +6,7 @@ import type {
 } from "./types"
 
 const FUNCTION_NAME = "composer-arranger-ai"
-const CACHE_PREFIX = "composer-arranger:ai-advice:v2:"
+const CACHE_PREFIX = "composer-arranger:ai-advice:v3:"
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 interface CachedAdvice {
@@ -22,7 +22,8 @@ function cacheKey(request: AiArrangementRequest): string {
         localFeatures: request.audio.localFeatures,
       })
     : "no-audio"
-  return `${CACHE_PREFIX}${aiContextFingerprint(`${request.prompt}\n${audioFingerprint}`, request.context)}`
+  const conversationFingerprint = JSON.stringify(request.conversation ?? null)
+  return `${CACHE_PREFIX}${aiContextFingerprint(`${request.prompt}\n${audioFingerprint}\n${conversationFingerprint}`, request.context)}`
 }
 
 function cachedAdvice(request: AiArrangementRequest): AiArrangementResponse | null {
@@ -57,6 +58,8 @@ function isArrangementResponse(value: unknown): value is AiArrangementResponse {
     typeof candidate.model === "string" &&
     Array.isArray(candidate.intents) &&
     candidate.intents.length === 3 &&
+    typeof candidate.partnerReply === "string" &&
+    Array.isArray(candidate.confirmedConstraints) &&
     Boolean(candidate.diagnosis) &&
     Boolean(candidate.usage)
   )
