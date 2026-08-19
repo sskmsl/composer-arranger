@@ -3,6 +3,7 @@ import {
   AudioLines,
   Bot,
   Coins,
+  Download,
   Lightbulb,
   LoaderCircle,
   Music2,
@@ -15,6 +16,7 @@ import {
 import { AI_AUDIO_ACCEPT, prepareAiAudio } from "@/ai-arranger/audioAnalysis"
 import { buildAiArrangementContext } from "@/ai-arranger/context"
 import { requestArrangementAdvice } from "@/ai-arranger/client"
+import { exportAiRhythmMidi } from "@/ai-arranger/rhythmMidi"
 import {
   decorationSettingsForIntent,
   phraseLengthForIntent,
@@ -31,6 +33,7 @@ import { SECTION_ROLE_LABELS } from "@/core/section"
 import type { ComposerProject } from "@/core/project"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Pill, SectionCard, Select } from "@/ui/primitives"
+import { downloadMidi } from "@/midi/exportMelody"
 import type { MainTab } from "./App"
 
 const EXAMPLE_PROMPTS = [
@@ -178,6 +181,22 @@ export function AiPartnerWorkspace({
     const target = targetTabForIntent(intent)
     if (target) onNavigate(target)
     setGeneratingIntentId(null)
+  }
+
+  const downloadRhythm = (intent: AiArrangementIntent) => {
+    if (!section || !intent.rhythmPlan.enabled) return
+    const bytes = exportAiRhythmMidi({
+      title: project.title,
+      sectionName: section.name,
+      tempo: project.song.tempo,
+      timeSignature: project.song.timeSignature,
+      sectionLengthBars: section.lengthBars,
+      rhythmPlan: intent.rhythmPlan,
+    })
+    downloadMidi(
+      bytes,
+      `${project.title}-${section.name}-${intent.title}-drums.mid`,
+    )
   }
 
   const activeMelodyId = section
@@ -436,14 +455,17 @@ export function AiPartnerWorkspace({
                       {intent.performanceDirection}
                     </div>
                     {intent.soundSourceSuggestions.length > 0 && (
-                      <div className="mt-3">
-                        <span className="text-[10px] uppercase tracking-wide text-ink-muted-48">
-                          音源検索の手掛かり
+                      <div className="mt-3 rounded-sm border border-white/8 bg-white/[0.025] p-3">
+                        <span className="text-[10px] uppercase tracking-wide text-primary">
+                          おすすめ音源（手持ちライブラリ）
                         </span>
                         {intent.soundSourceSuggestions.slice(0, 2).map((source) => (
-                          <p key={`${source.family}-${source.character}`} className="mt-1 text-[11px] leading-5 text-body-muted">
-                            {source.family} · {source.character} — {source.searchTerms.join(" / ")}
-                          </p>
+                          <div key={`${source.product}-${source.character}`} className="mt-2 text-[11px] leading-5 text-body-muted">
+                            <div className="font-medium text-body-on-dark">{source.product}</div>
+                            <div>{source.family} · {source.character}</div>
+                            <div className="text-ink-muted-48">検索語：{source.searchTerms.join(" / ")}</div>
+                            <div className="text-ink-muted-48">{source.reason}</div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -462,9 +484,19 @@ export function AiPartnerWorkspace({
                         </Button>
                       )}
                       {proposalOnly && (
-                        <p className="rounded-sm bg-white/[0.04] px-3 py-2 text-center text-[10px] leading-4 text-body-muted">
-                          Logic Proで打ち込める具体的なリズム設計として提示しています。
-                        </p>
+                        <>
+                          <Button
+                            variant="secondary"
+                            className="w-full"
+                            disabled={intent.rhythmPlan.events.length === 0}
+                            onClick={() => downloadRhythm(intent)}
+                          >
+                            <Download size={14} /> ドラムMIDIを書き出す
+                          </Button>
+                          <p className="mt-2 text-center text-[10px] leading-4 text-body-muted">
+                            セクション長まで反復し、Logic ProでSoftware Instrumentへ割り当てられるChannel 1で出力します。
+                          </p>
+                        </>
                       )}
                       {counterUnavailable && (
                         <p className="mt-2 text-[10px] text-amber-200">

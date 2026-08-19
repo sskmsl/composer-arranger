@@ -33,10 +33,30 @@ export type AiSilenceStrategy = "minimal" | "breathing" | "structural"
 export type AiCreativeRisk = "focused" | "bold" | "radical"
 
 export interface AiSoundSourceSuggestion {
+  library: "Native Instruments Komplete 15 Ultimate" | "u-he Repro"
+  product: string
   family: string
   character: string
   searchTerms: string[]
   reason: string
+}
+
+export type AiRhythmInstrument =
+  | "kick"
+  | "snare"
+  | "closed-hat"
+  | "open-hat"
+  | "clap"
+  | "rim"
+  | "low-percussion"
+  | "high-percussion"
+
+export interface AiRhythmStepEvent {
+  instrument: AiRhythmInstrument
+  /** ループ先頭を0とする四分音符単位の位置。 */
+  onsetBeat: number
+  durationBeats: number
+  velocity: number
 }
 
 export interface AiRhythmPatternProposal {
@@ -48,6 +68,9 @@ export interface AiRhythmPatternProposal {
   hatPattern: string
   percussionPattern: string
   variation: string
+  /** 構造化イベントを繰り返す基本単位。 */
+  bars: 1 | 2
+  events: AiRhythmStepEvent[]
 }
 
 export interface AiArrangementIntent {
