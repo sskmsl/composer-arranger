@@ -127,4 +127,13 @@ describe("preview layer modes", () => {
       reactive: true,
     })
   })
+
+  it("Full Active Contextでは全レイヤーを同じ時間軸で鳴らす", () => {
+    expect(previewLayersForMode("active-context-reactive")).toEqual({
+      chords: true,
+      melody: true,
+      accompaniment: true,
+      reactive: true,
+    })
+  })
 })

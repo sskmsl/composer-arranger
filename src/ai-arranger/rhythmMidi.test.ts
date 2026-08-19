@@ -67,4 +67,18 @@ describe("AI Rhythm MIDI", () => {
     expect(new TextDecoder().decode(bytes.slice(0, 4))).toBe("MThd")
     expect(bytes.length).toBeGreaterThan(100)
   })
+
+  it("Orchestrationのpulse演奏意図をDrum MIDIにも適用する", () => {
+    const original = rhythmNotesForPlan(plan(), "4/4", 2)
+    const performed = rhythmNotesForPlan(plan(), "4/4", 2, {
+      role: "pulse-foundation",
+      velocityRange: [44, 66],
+      articulation: "detached",
+      timing: "slightly-behind",
+    })
+    expect(performed.map((note) => note.pitch)).toEqual(original.map((note) => note.pitch))
+    expect(performed.every((note) => note.velocity >= 44 && note.velocity <= 66)).toBe(true)
+    expect(performed[0].start).toBe(0)
+    expect(performed[1].start).toBeGreaterThan(original[1].start)
+  })
 })

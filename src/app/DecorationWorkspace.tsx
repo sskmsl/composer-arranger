@@ -17,6 +17,7 @@ import {
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
+import { buildReactiveContextAuditionMaterial } from "@/core/reactiveContextAudition"
 import {
   DEFAULT_DECORATION_SETTINGS,
   type DecorationSettings,
@@ -25,6 +26,10 @@ import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select, TextInput } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
+import {
+  DirectorRecommendationBadge,
+  PerformanceReviewBadge,
+} from "./PerformanceReviewBadge"
 
 const TYPE_LABELS: Record<string, string> = {
   "decorative-fill": "Decorative",
@@ -76,7 +81,7 @@ export function DecorationWorkspace() {
     DEFAULT_DECORATION_SETTINGS,
   )
   const [previewMode, setPreviewMode] =
-    useState<PreviewMode>("chords-reactive")
+    useState<PreviewMode>("active-context-reactive")
   const [playingId, setPlayingId] = useState<string | null>(null)
 
   const section = project.sections.find(
@@ -133,9 +138,7 @@ export function DecorationWorkspace() {
   )
 
   useEffect(() => {
-    setPreviewMode(
-      activeMelody ? "chords-melody-reactive" : "chords-reactive",
-    )
+    setPreviewMode("active-context-reactive")
   }, [activeMelody, selectedSectionId])
 
   if (!section) {
@@ -167,11 +170,24 @@ export function DecorationWorkspace() {
       candidate.notes,
       totalBeats,
     )
+    const contextMaterial = buildReactiveContextAuditionMaterial(
+      project,
+      section.id,
+      candidate,
+    )
+    const useActiveContext = previewMode === "active-context-reactive"
     previewPlayer.play({
       bpm: project.song.tempo,
       chords,
-      melody: activeMelody?.notes ?? [],
-      reactive: candidate.notes,
+      melody: useActiveContext
+        ? contextMaterial.melody
+        : activeMelody?.notes ?? [],
+      accompaniment: useActiveContext
+        ? contextMaterial.accompaniment
+        : [],
+      reactive: useActiveContext
+        ? contextMaterial.reactive
+        : candidate.notes,
       mode: previewMode,
       range: previewRange,
       onEnded: () => setPlayingId(null),
@@ -179,7 +195,9 @@ export function DecorationWorkspace() {
   }
 
   const exportCandidate = (candidate: ReactiveLayerCandidate) => {
-    const includeMelody = previewMode === "chords-melody-reactive"
+    const includeMelody =
+      previewMode === "chords-melody-reactive" ||
+      previewMode === "active-context-reactive"
     const bytes = exportMelodyMidi({
       title: project.title,
       sectionName: `${section.name} Decoration`,
@@ -192,7 +210,8 @@ export function DecorationWorkspace() {
       reactiveTrackName: "Decoration",
       includeChords:
         previewMode === "chords-reactive" ||
-        previewMode === "chords-melody-reactive",
+        previewMode === "chords-melody-reactive" ||
+        previewMode === "active-context-reactive",
       range: { startBeat: 0, endBeat: totalBeats },
     })
     downloadMidi(bytes, `${project.title}-${section.name}-${candidate.name}`)
@@ -360,6 +379,16 @@ export function DecorationWorkspace() {
                         {Math.round(candidate.quality.overallQuality)}
                       </span>
                     </div>
+                    <div className="mt-1.5">
+                      <PerformanceReviewBadge
+                        review={project.candidatePerformanceReviews?.[candidate.id]}
+                        compact
+                      />
+                      <DirectorRecommendationBadge
+                        recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
+                        candidateId={candidate.id}
+                      />
+                    </div>
                     {candidate.techniqueExperiment && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
                         <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
@@ -401,6 +430,21 @@ export function DecorationWorkspace() {
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         {NEED_LABELS[plan?.needLevel ?? ""] ?? "Optional"}
                       </span>
+                      {candidate.activeContextFit && (
+                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
+                          Active共存 {candidate.activeContextFit.fitScore}
+                        </span>
+                      )}
+                      {candidate.negativeSpaceFit && (
+                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
+                          余白 {candidate.negativeSpaceFit.fitScore}
+                        </span>
+                      )}
+                      {candidate.roleComplementarityFit && (
+                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
+                          役割差 {candidate.roleComplementarityFit.fitScore}
+                        </span>
+                      )}
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                         MIDI{" "}
                         {candidate.notes.length > 0
@@ -498,7 +542,9 @@ export function DecorationWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-ink-muted-48">試聴:</span>
             <span className="text-[10px] text-ink-muted-48">
-              候補の前後だけを自動再生
+              {previewMode === "active-context-reactive"
+                ? "現在のPattern・Active Counterを含む"
+                : "候補の前後だけを自動再生"}
             </span>
             <Select
               value={previewMode}
@@ -508,6 +554,9 @@ export function DecorationWorkspace() {
               }}
               className="!py-1"
             >
+              <option value="active-context-reactive">
+                Full Active Context
+              </option>
               <option value="reactive-only">Decoration Only</option>
               <option value="chords-reactive">Chords + Decoration</option>
               {activeMelody && (

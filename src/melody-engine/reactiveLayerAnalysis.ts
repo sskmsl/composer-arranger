@@ -4,8 +4,11 @@ import type { ChordEvent, ComposerProject } from "@/core/project"
 import type {
   CounterOpportunityKind,
   ReactiveLayerCandidate,
+  ReactiveLayerActiveContextFit,
   ReactiveLayerCollisionSummary,
   ReactiveLayerCompatibility,
+  ReactiveLayerNegativeSpaceFit,
+  ReactiveLayerRoleComplementarityFit,
   ReactiveLayerQualityBreakdown,
 } from "@/core/reactiveLayer"
 
@@ -20,6 +23,272 @@ export interface ProtectedMoment {
   endBeat: number
   pitch: number
   reasons: ProtectedMomentReason[]
+}
+
+export function assessReactiveActiveContextFit(
+  existingNotes: readonly MelodyNote[],
+  candidateNotes: readonly MelodyNote[],
+): ReactiveLayerActiveContextFit {
+  let samePitchOverlapBeats = 0
+  let minorSecondOverlapBeats = 0
+  let simultaneousAttackCount = 0
+  for (const existing of existingNotes) {
+    for (const candidate of candidateNotes) {
+      const overlap = overlapDuration(existing, candidate)
+      if (overlap > 0.03) {
+        const interval = Math.abs(existing.pitch - candidate.pitch)
+        if (interval === 0) samePitchOverlapBeats += overlap
+        if (interval === 1) minorSecondOverlapBeats += overlap
+      }
+      if (Math.abs(existing.startBeat - candidate.startBeat) <= 0.08) {
+        simultaneousAttackCount += 1
+      }
+    }
+  }
+  samePitchOverlapBeats = Math.round(samePitchOverlapBeats * 100) / 100
+  minorSecondOverlapBeats = Math.round(minorSecondOverlapBeats * 100) / 100
+  const fitScore = Math.max(
+    0,
+    Math.round(
+      100 -
+      samePitchOverlapBeats * 32 -
+      minorSecondOverlapBeats * 38 -
+      simultaneousAttackCount * 2,
+    ),
+  )
+  return {
+    samePitchOverlapBeats,
+    minorSecondOverlapBeats,
+    simultaneousAttackCount,
+    fitScore,
+    hasBlockingConflict:
+      samePitchOverlapBeats > 0.75 || minorSecondOverlapBeats > 0.5,
+  }
+}
+
+function occupiedWithinGap(
+  notes: readonly MelodyNote[],
+  gap: MelodyGap,
+): number {
+  const ranges = notes
+    .map((note) => ({
+      start: Math.max(gap.startBeat, note.startBeat),
+      end: Math.min(gap.endBeat, note.startBeat + note.durationBeats),
+    }))
+    .filter((range) => range.end > range.start)
+    .sort((left, right) => left.start - right.start)
+  if (ranges.length === 0) return 0
+  let occupied = 0
+  let start = ranges[0].start
+  let end = ranges[0].end
+  for (const range of ranges.slice(1)) {
+    if (range.start <= end + 0.001) {
+      end = Math.max(end, range.end)
+    } else {
+      occupied += end - start
+      start = range.start
+      end = range.end
+    }
+  }
+  return occupied + end - start
+}
+
+export function assessReactiveNegativeSpaceFit(
+  melodyNotes: readonly MelodyNote[],
+  existingSupportNotes: readonly MelodyNote[],
+  candidateNotes: readonly MelodyNote[],
+  totalBeats: number,
+): ReactiveLayerNegativeSpaceFit {
+  const gaps = analyzeMelodyActivity([...melodyNotes], totalBeats).gaps
+  const melodyGapBeats = gaps.reduce(
+    (sum, gap) => sum + gap.durationBeats,
+    0,
+  )
+  if (melodyGapBeats <= 0) {
+    return {
+      melodyGapBeats: 0,
+      baselineAvailableBeats: 0,
+      remainingBreathBeats: 0,
+      consumedAvailableRatio: 0,
+      newlyFilledGapCount: 0,
+      fitScore: 100,
+      hasBlockingConflict: false,
+    }
+  }
+  const combined = [...existingSupportNotes, ...candidateNotes]
+  const baselineOccupied = gaps.reduce(
+    (sum, gap) => sum + occupiedWithinGap(existingSupportNotes, gap),
+    0,
+  )
+  const combinedOccupied = gaps.reduce(
+    (sum, gap) => sum + occupiedWithinGap(combined, gap),
+    0,
+  )
+  const baselineAvailableBeats = Math.max(
+    0,
+    melodyGapBeats - baselineOccupied,
+  )
+  const remainingBreathBeats = Math.max(
+    0,
+    melodyGapBeats - combinedOccupied,
+  )
+  const consumedBeats = Math.max(
+    0,
+    baselineAvailableBeats - remainingBreathBeats,
+  )
+  const consumedAvailableRatio = baselineAvailableBeats > 0
+    ? Math.min(1, consumedBeats / baselineAvailableBeats)
+    : 0
+  const newlyFilledGapCount = gaps.filter((gap) => {
+    const duration = Math.max(0.001, gap.durationBeats)
+    const before = occupiedWithinGap(existingSupportNotes, gap) / duration
+    const after = occupiedWithinGap(combined, gap) / duration
+    return before < 0.8 && after >= 0.8
+  }).length
+  const remainingRatio = remainingBreathBeats / melodyGapBeats
+  const fitScore = Math.max(
+    0,
+    Math.round(
+      100 - consumedAvailableRatio * 55 - newlyFilledGapCount * 8,
+    ),
+  )
+  return {
+    melodyGapBeats: Math.round(melodyGapBeats * 100) / 100,
+    baselineAvailableBeats:
+      Math.round(baselineAvailableBeats * 100) / 100,
+    remainingBreathBeats:
+      Math.round(remainingBreathBeats * 100) / 100,
+    consumedAvailableRatio:
+      Math.round(consumedAvailableRatio * 1000) / 1000,
+    newlyFilledGapCount,
+    fitScore,
+    hasBlockingConflict:
+      (baselineAvailableBeats >= 1 && consumedAvailableRatio > 0.85) ||
+      (remainingRatio < 0.08 && consumedBeats > 0.5),
+  }
+}
+
+type ComplementarityLayer = Pick<
+  ReactiveLayerCandidate,
+  "kind" | "role" | "notes"
+>
+
+function attackSimilarity(
+  left: readonly MelodyNote[],
+  right: readonly MelodyNote[],
+): number {
+  if (left.length === 0 || right.length === 0) return 0
+  const matches = left.filter((leftNote) =>
+    right.some(
+      (rightNote) =>
+        Math.abs(leftNote.startBeat - rightNote.startBeat) <= 0.08,
+    ),
+  ).length
+  return matches / Math.max(1, Math.min(left.length, right.length))
+}
+
+function temporalOverlapRatio(
+  left: readonly MelodyNote[],
+  right: readonly MelodyNote[],
+): number {
+  const leftDuration = left.reduce(
+    (sum, note) => sum + note.durationBeats,
+    0,
+  )
+  const rightDuration = right.reduce(
+    (sum, note) => sum + note.durationBeats,
+    0,
+  )
+  if (leftDuration <= 0 || rightDuration <= 0) return 0
+  const overlap = left.reduce(
+    (sum, leftNote) =>
+      sum + right.reduce(
+        (inner, rightNote) => inner + overlapDuration(leftNote, rightNote),
+        0,
+      ),
+    0,
+  )
+  return Math.min(1, overlap / Math.min(leftDuration, rightDuration))
+}
+
+function averagePitch(notes: readonly MelodyNote[]): number | null {
+  if (notes.length === 0) return null
+  return notes.reduce((sum, note) => sum + note.pitch, 0) / notes.length
+}
+
+export function assessReactiveRoleComplementarity(
+  existingLayers: readonly ComplementarityLayer[],
+  candidate: ComplementarityLayer,
+): ReactiveLayerRoleComplementarityFit {
+  if (existingLayers.length === 0) {
+    return {
+      duplicateRoleCount: 0,
+      maximumAttackSimilarity: 0,
+      maximumTemporalOverlapRatio: 0,
+      minimumRegisterDistance: 24,
+      fitScore: 100,
+      hasBlockingConflict: false,
+    }
+  }
+  const candidateCenter = averagePitch(candidate.notes)
+  const comparisons = existingLayers.map((existing) => {
+    const existingCenter = averagePitch(existing.notes)
+    return {
+      duplicateRole: existing.role === candidate.role,
+      attack: attackSimilarity(existing.notes, candidate.notes),
+      temporal: temporalOverlapRatio(existing.notes, candidate.notes),
+      registerDistance:
+        candidateCenter === null || existingCenter === null
+          ? 24
+          : Math.abs(candidateCenter - existingCenter),
+    }
+  })
+  const duplicateRoleCount = comparisons.filter(
+    (comparison) => comparison.duplicateRole,
+  ).length
+  const maximumAttackSimilarity = Math.max(
+    0,
+    ...comparisons.map((comparison) => comparison.attack),
+  )
+  const maximumTemporalOverlapRatio = Math.max(
+    0,
+    ...comparisons.map((comparison) => comparison.temporal),
+  )
+  const minimumRegisterDistance = Math.min(
+    24,
+    ...comparisons.map((comparison) => comparison.registerDistance),
+  )
+  const closeRegisterPenalty = minimumRegisterDistance < 5
+    ? maximumTemporalOverlapRatio * 22
+    : minimumRegisterDistance < 9
+      ? maximumTemporalOverlapRatio * 10
+      : 0
+  const fitScore = Math.max(
+    0,
+    Math.round(
+      100 -
+      duplicateRoleCount * 24 -
+      maximumAttackSimilarity * 28 -
+      closeRegisterPenalty,
+    ),
+  )
+  const hasBlockingConflict = comparisons.some(
+    (comparison) =>
+      (comparison.duplicateRole && comparison.attack > 0.6) ||
+      (comparison.attack > 0.85 && comparison.registerDistance < 5) ||
+      (comparison.temporal > 0.8 && comparison.registerDistance < 3),
+  )
+  return {
+    duplicateRoleCount,
+    maximumAttackSimilarity:
+      Math.round(maximumAttackSimilarity * 1000) / 1000,
+    maximumTemporalOverlapRatio:
+      Math.round(maximumTemporalOverlapRatio * 1000) / 1000,
+    minimumRegisterDistance:
+      Math.round(minimumRegisterDistance * 10) / 10,
+    fitScore,
+    hasBlockingConflict,
+  }
 }
 
 export interface MelodyGap {

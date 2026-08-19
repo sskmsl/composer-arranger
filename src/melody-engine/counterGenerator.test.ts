@@ -120,12 +120,37 @@ describe("Issue #70 / Counter Generator MVP", () => {
     expect(candidates.every((candidate) => candidate.quality.overallQuality >= 68)).toBe(true)
     expect(candidates.every((candidate) => candidate.counterPlan)).toBe(true)
     expect(candidates.every((candidate) => candidate.counterQuality)).toBe(true)
+    expect(candidates.every((candidate) => candidate.activeContextFit?.fitScore === 100)).toBe(true)
+    expect(candidates.every((candidate) => !candidate.negativeSpaceFit?.hasBlockingConflict)).toBe(true)
+    expect(candidates.every((candidate) => candidate.roleComplementarityFit?.fitScore === 100)).toBe(true)
     expect(
       candidates.every(
         (candidate) =>
           candidate.counterQuality!.overall >= 62 &&
           candidate.counterQuality!.controlledRisk >= 72 &&
           candidate.counterQuality!.emotionalNecessity >= 68,
+      ),
+    ).toBe(true)
+  })
+
+  it("既存伴奏とBlocking衝突する案を候補プールから除外する", () => {
+    const baseline = generateCounterCandidates(input)
+    const aware = generateCounterCandidates({
+      ...input,
+      existingSupportNotes: baseline[0].notes,
+    })
+    expect(aware.length).toBeGreaterThan(0)
+    expect(
+      aware.every(
+        (candidate) => !candidate.activeContextFit?.hasBlockingConflict,
+      ),
+    ).toBe(true)
+    expect(
+      aware.every((candidate) => candidate.activeContextFit !== undefined),
+    ).toBe(true)
+    expect(
+      aware.every(
+        (candidate) => !candidate.negativeSpaceFit?.hasBlockingConflict,
       ),
     ).toBe(true)
   })

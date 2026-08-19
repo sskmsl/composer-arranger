@@ -3,6 +3,7 @@ import type { MelodyNote } from "./melody"
 import type { ChordEvent, ComposerProject } from "./project"
 import { parseTimeSignature } from "./section"
 import { notesByPartRole } from "./sectionLayers"
+import { applyPerformanceExecution } from "./performanceExecution"
 
 export type AccompanimentDegree = 1 | 3 | 5 | 7 | 9 | 11 | 13
 
@@ -410,10 +411,23 @@ export function accompanimentPatternNotesForSection(
   const resolvedMelodyNotes =
     melodyNotes ??
     (assignedVariant ? notesByPartRole(assignedVariant, "lead") : [])
-  return applyAccompanimentPattern(
+  const notes = applyAccompanimentPattern(
     pattern,
     project.chords.filter((chord) => chord.sectionId === sectionId),
     section.lengthBars * parseTimeSignature(project.song.timeSignature).beatsPerBar,
     { melodyNotes: resolvedMelodyNotes },
   )
+  const performancePlan =
+    project.sectionPerformancePlans?.[sectionId]?.["pulse-foundation"] ??
+    project.sectionPerformancePlans?.[sectionId]?.["harmonic-space"]
+  if (!performancePlan) return notes
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  return applyPerformanceExecution(notes, performancePlan, {
+    totalBeats: section.lengthBars * beatsPerBar,
+    beatsPerBar,
+    chordBoundaryBeats: project.chords
+      .filter((chord) => chord.sectionId === sectionId)
+      .map((chord) => chord.startBeat),
+    melodyNotes: resolvedMelodyNotes,
+  }).notes
 }

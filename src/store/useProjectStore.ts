@@ -2,6 +2,8 @@ import { create } from "zustand"
 import {
   createEmptyProject,
   effectiveSongProfile,
+  type ArrangementDirectorSectionOverride,
+  type OrchestrationPartOverride,
   type ComposerProject,
   type SongProfileId,
 } from "@/core/project"
@@ -48,9 +50,11 @@ import {
   chorusPeakMidi,
   fallbackPlanFor,
   flattenLayerNotes,
+  notesByPartRole,
   replaceVariantNotes,
   resolvedLeadContent,
 } from "@/core/sectionLayers"
+import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import {
   generateMelodyPickupNotes,
   generateSectionContent,
@@ -84,8 +88,18 @@ import {
 } from "@/phrase-engine/generateSignaturePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
-import type { AiPartnerSession } from "@/ai-arranger/types"
-import { evaluateReactiveLayerCompatibility } from "@/melody-engine/reactiveLayerAnalysis"
+import type { AiPartnerSession, OrchestrationRole } from "@/ai-arranger/types"
+import {
+  analyzeMelodyActivity,
+  assessReactiveLayerCollisions,
+  evaluateReactiveLayerCompatibility,
+} from "@/melody-engine/reactiveLayerAnalysis"
+import {
+  applyPerformanceExecution,
+  reviewPerformanceExecution,
+  type PerformanceExecutionPlan,
+} from "@/core/performanceExecution"
+import { recommendPerformedCandidate } from "@/core/performanceCandidateSelection"
 import {
   COUNTER_CANDIDATE_CONFIG,
   counterTechniqueFitScore,
@@ -167,6 +181,21 @@ interface ProjectState {
 
   updateSongField: <K extends keyof ComposerProject["song"]>(key: K, value: ComposerProject["song"][K]) => void
   setSectionProfileOverride: (sectionId: string, profile: SongProfileId | null) => void
+  setArrangementDirectorClimax: (sectionId: string | null) => void
+  setArrangementDirectorSectionOverride: (
+    sectionId: string,
+    patch: {
+      targetEnergy?: ArrangementDirectorSectionOverride["targetEnergy"] | null
+      densityCeiling?: number | null
+    },
+  ) => void
+  setSectionOrchestrationOverride: (
+    sectionId: string,
+    role: OrchestrationRole,
+    patch: Partial<{
+      [K in keyof OrchestrationPartOverride]: OrchestrationPartOverride[K] | null
+    }> | null,
+  ) => void
 
   addSection: (name: string, role: SectionRole, lengthBars: number) => void
   updateSection: (sectionId: string, patch: Partial<Section>) => void
@@ -216,6 +245,12 @@ interface ProjectState {
   generateDecorationsForSection: (
     sectionId: string,
     settings?: DecorationSettings,
+  ) => void
+  /** AI Partnerで選んだDirectionの演奏意図を、直前に生成した候補へ安全に反映する。 */
+  applyPerformanceToLatestGeneration: (
+    sectionId: string,
+    generator: "melody" | "phrase" | "signature" | "counter" | "decoration" | "accompaniment",
+    plan: PerformanceExecutionPlan,
   ) => void
   regenerateDecoration: (candidateId: string) => void
   setReactiveLayerReviewState: (
@@ -361,6 +396,14 @@ function counterGenerationInput(
     .filter((chord) => chord.sectionId === sectionId)
     .sort((a, b) => a.startBeat - b.startBeat)
   if (chords.length === 0 || diagnoseChordInput(chords, totalBeats).hasError) return null
+  const activeDecorationId =
+    project.sectionDecorationLayerAssignments?.[sectionId]
+  const activeDecoration = project.reactiveLayerCandidates?.find(
+    (candidate) =>
+      candidate.id === activeDecorationId &&
+      candidate.sectionId === sectionId &&
+      candidate.kind === "decoration",
+  )
   return {
     sectionId,
     sectionRole: section.role,
@@ -370,6 +413,16 @@ function counterGenerationInput(
     melody,
     totalBeats,
     seed,
+    existingSupportNotes: [
+      ...notesByPartRole(melody, "accompaniment"),
+      ...accompanimentPatternNotesForSection(
+        project,
+        sectionId,
+        notesByPartRole(melody, "lead"),
+      ),
+      ...(activeDecoration?.notes ?? []),
+    ],
+    existingReactiveLayers: activeDecoration ? [activeDecoration] : [],
     composerRules: resolvePublicComposerRules({
       generatorTarget: "counter",
       sectionRole: section.role,
@@ -405,6 +458,14 @@ function decorationGenerationInput(
     (variant) => variant.id === activeMelodyId && variant.sectionId === sectionId,
   )
   const reactiveCandidates = project.reactiveLayerCandidates ?? []
+  const activeCounterId = project.sectionReactiveLayerAssignments?.[sectionId]
+  const activeCounter = reactiveCandidates.find(
+    (candidate) =>
+      candidate.id === activeCounterId &&
+      candidate.sectionId === sectionId &&
+      candidate.kind === "counter" &&
+      candidate.targetMelodyVariantId === activeMelody?.id,
+  )
   const sectionArrangementNoteCount = (
     targetSectionId: string | undefined,
   ): number => {
@@ -453,6 +514,18 @@ function decorationGenerationInput(
     seed,
     settings,
     melodyNotes: activeMelody?.notes,
+    existingSupportNotes: [
+      ...(activeMelody
+        ? notesByPartRole(activeMelody, "accompaniment")
+        : []),
+      ...accompanimentPatternNotesForSection(
+        project,
+        sectionId,
+        activeMelody ? notesByPartRole(activeMelody, "lead") : [],
+      ),
+      ...(activeCounter?.notes ?? []),
+    ],
+    existingReactiveLayers: activeCounter ? [activeCounter] : [],
     previousSectionRole: previousSection?.role,
     nextSectionRole: nextSection?.role,
     nextSectionFirstChord,
@@ -689,6 +762,79 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
+  setArrangementDirectorClimax: (sectionId) => {
+    const prev = get().project
+    if (sectionId && !prev.sections.some((section) => section.id === sectionId)) return
+    const overrides = {
+      sections: { ...(prev.arrangementDirectorOverrides?.sections ?? {}) },
+      ...(sectionId ? { climaxSectionId: sectionId } : {}),
+    }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, arrangementDirectorOverrides: overrides },
+    })
+    get().persist()
+  },
+
+  setArrangementDirectorSectionOverride: (sectionId, patch) => {
+    const prev = get().project
+    if (!prev.sections.some((section) => section.id === sectionId)) return
+    const sections = { ...(prev.arrangementDirectorOverrides?.sections ?? {}) }
+    const current = { ...(sections[sectionId] ?? {}) }
+    if (patch.targetEnergy === null) delete current.targetEnergy
+    else if (patch.targetEnergy !== undefined) current.targetEnergy = patch.targetEnergy
+    if (patch.densityCeiling === null) delete current.densityCeiling
+    else if (patch.densityCeiling !== undefined) current.densityCeiling = Math.max(
+      1,
+      Math.min(prev.arrangementSettings.maximumParts, Math.round(patch.densityCeiling)),
+    )
+    if (Object.keys(current).length > 0) sections[sectionId] = current
+    else delete sections[sectionId]
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        arrangementDirectorOverrides: {
+          ...(prev.arrangementDirectorOverrides?.climaxSectionId
+            ? { climaxSectionId: prev.arrangementDirectorOverrides.climaxSectionId }
+            : {}),
+          sections,
+        },
+      },
+    })
+    get().persist()
+  },
+
+  setSectionOrchestrationOverride: (sectionId, role, patch) => {
+    const prev = get().project
+    if (!prev.sections.some((section) => section.id === sectionId)) return
+    const allSections = { ...(prev.sectionOrchestrationOverrides ?? {}) }
+    const sectionOverrides = { ...(allSections[sectionId] ?? {}) }
+    if (patch === null) {
+      delete sectionOverrides[role]
+    } else {
+      const current: OrchestrationPartOverride = { ...(sectionOverrides[role] ?? {}) }
+      for (const [key, value] of Object.entries(patch) as Array<
+        [keyof OrchestrationPartOverride, OrchestrationPartOverride[keyof OrchestrationPartOverride] | null]
+      >) {
+        if (value === null) delete current[key]
+        else if (value !== undefined) Object.assign(current, { [key]: value })
+      }
+      if (Object.keys(current).length > 0) sectionOverrides[role] = current
+      else delete sectionOverrides[role]
+    }
+    if (Object.keys(sectionOverrides).length > 0) allSections[sectionId] = sectionOverrides
+    else delete allSections[sectionId]
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, sectionOrchestrationOverrides: allSections },
+    })
+    get().persist()
+  },
+
   addSection: (name, role, lengthBars) => {
     const prev = get().project
     const section: Section = {
@@ -796,14 +942,38 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       [sectionId]: _removedAiPartnerSession,
       ...aiPartnerSessions
     } = prev.aiPartnerSessions ?? {}
+    const {
+      [sectionId]: _removedPerformancePlan,
+      ...sectionPerformancePlans
+    } = prev.sectionPerformancePlans ?? {}
     void _removedAssignment
     void _removedPatternAssignment
     void _removedReactiveAssignment
     void _removedDecorationAssignment
     void _removedAiPartnerSession
+    void _removedPerformancePlan
     const removedVariantIds = new Set(
       prev.melodyVariants.filter((variant) => variant.sectionId === sectionId).map((variant) => variant.id),
     )
+    const removedCandidateIds = new Set([
+      ...removedVariantIds,
+      ...prev.phraseCandidates.filter((candidate) => candidate.sectionId === sectionId).map((candidate) => candidate.id),
+      ...prev.signaturePhraseCandidates.filter((candidate) => candidate.sectionId === sectionId).map((candidate) => candidate.id),
+      ...(prev.reactiveLayerCandidates ?? [])
+        .filter((candidate) => candidate.sectionId === sectionId)
+        .map((candidate) => candidate.id),
+    ])
+    const directorSectionOverrides = {
+      ...(prev.arrangementDirectorOverrides?.sections ?? {}),
+    }
+    delete directorSectionOverrides[sectionId]
+    const arrangementDirectorOverrides = {
+      sections: directorSectionOverrides,
+      ...(prev.arrangementDirectorOverrides?.climaxSectionId &&
+      prev.arrangementDirectorOverrides.climaxSectionId !== sectionId
+        ? { climaxSectionId: prev.arrangementDirectorOverrides.climaxSectionId }
+        : {}),
+    }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -824,6 +994,26 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         sectionReactiveLayerAssignments,
         sectionDecorationLayerAssignments,
         aiPartnerSessions,
+        sectionPerformancePlans,
+        arrangementDirectorOverrides,
+        sectionOrchestrationOverrides: Object.fromEntries(
+          Object.entries(prev.sectionOrchestrationOverrides ?? {}).filter(
+            ([candidateSectionId]) => candidateSectionId !== sectionId,
+          ),
+        ),
+        candidatePerformanceReviews: Object.fromEntries(
+          Object.entries(prev.candidatePerformanceReviews ?? {}).filter(
+            ([candidateId]) => !removedCandidateIds.has(candidateId),
+          ),
+        ),
+        performanceBatchRecommendations: Object.fromEntries(
+          Object.entries(prev.performanceBatchRecommendations ?? {}).filter(
+            ([, recommendation]) =>
+              !recommendation.consideredCandidateIds.some((candidateId) =>
+                removedCandidateIds.has(candidateId),
+              ),
+          ),
+        ),
         activeMelodyId:
           prev.activeMelodyId && removedVariantIds.has(prev.activeMelodyId) ? null : prev.activeMelodyId,
       },
@@ -851,6 +1041,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       : undefined
     const variantCopy = assignedVariant ? duplicateVariantForSection(assignedVariant, newId) : undefined
     const sourcePatternId = prev.sectionAccompanimentPatternAssignments[sectionId]
+    const sourcePerformancePlans = prev.sectionPerformancePlans?.[sectionId]
+    const sourceDirectorOverride = prev.arrangementDirectorOverrides?.sections[sectionId]
+    const sourceOrchestrationOverrides = prev.sectionOrchestrationOverrides?.[sectionId]
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -865,6 +1058,27 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         sectionAccompanimentPatternAssignments: sourcePatternId
           ? { ...prev.sectionAccompanimentPatternAssignments, [newId]: sourcePatternId }
           : prev.sectionAccompanimentPatternAssignments,
+        sectionPerformancePlans: sourcePerformancePlans
+          ? {
+              ...(prev.sectionPerformancePlans ?? {}),
+              [newId]: structuredClone(sourcePerformancePlans),
+            }
+          : prev.sectionPerformancePlans,
+        arrangementDirectorOverrides: sourceDirectorOverride
+          ? {
+              ...(prev.arrangementDirectorOverrides ?? { sections: {} }),
+              sections: {
+                ...(prev.arrangementDirectorOverrides?.sections ?? {}),
+                [newId]: { ...sourceDirectorOverride },
+              },
+            }
+          : prev.arrangementDirectorOverrides,
+        sectionOrchestrationOverrides: sourceOrchestrationOverrides
+          ? {
+              ...(prev.sectionOrchestrationOverrides ?? {}),
+              [newId]: structuredClone(sourceOrchestrationOverrides),
+            }
+          : prev.sectionOrchestrationOverrides,
         activeMelodyId: variantCopy?.id ?? prev.activeMelodyId,
       },
       selectedSectionId: newId,
@@ -1855,6 +2069,178 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
+  applyPerformanceToLatestGeneration: (sectionId, generator, plan) => {
+    const state = get()
+    const prev = state.project
+    const section = prev.sections.find((candidate) => candidate.id === sectionId)
+    if (!section) return
+    const beatsPerBar = parseTimeSignature(prev.song.timeSignature).beatsPerBar
+    const totalBeats = section.lengthBars * beatsPerBar
+    const sectionChords = prev.chords
+      .filter((chord) => chord.sectionId === sectionId)
+      .sort((left, right) => left.startBeat - right.startBeat)
+    const assignedMelodyId = prev.sectionMelodyAssignments[sectionId]
+    const assignedMelody = assignedMelodyId
+      ? prev.melodyVariants.find(
+          (variant) => variant.id === assignedMelodyId && variant.sectionId === sectionId,
+        )
+      : undefined
+    const executionContext = {
+      totalBeats,
+      beatsPerBar,
+      chordBoundaryBeats: sectionChords.map((chord) => chord.startBeat),
+      melodyNotes: assignedMelody?.notes,
+    }
+    const execute = (notes: MelodyNote[]) =>
+      applyPerformanceExecution(notes, plan, executionContext)
+    const candidatePerformanceReviews = { ...(prev.candidatePerformanceReviews ?? {}) }
+    const executeAndReview = (
+      candidateId: string,
+      notes: MelodyNote[],
+      options: { hasBlockingCollision?: boolean } = {},
+    ) => {
+      const result = execute(notes)
+      candidatePerformanceReviews[candidateId] = reviewPerformanceExecution(
+        candidateId,
+        notes,
+        result,
+        plan,
+        executionContext,
+        options,
+      )
+      return result.notes
+    }
+
+    let melodyVariants = prev.melodyVariants
+    let phraseCandidates = prev.phraseCandidates
+    let signaturePhraseCandidates = prev.signaturePhraseCandidates
+    let reactiveLayerCandidates = prev.reactiveLayerCandidates ?? []
+    let recommendationBatchId: string | null = null
+    let recommendationCandidates: Array<{ candidateId: string; qualityScore: number }> = []
+
+    if (generator === "melody" && state.activeBatchId) {
+      recommendationBatchId = state.activeBatchId
+      const harmonicMap = buildHarmonicMap(sectionChords)
+      melodyVariants = prev.melodyVariants.map((variant) => {
+        if (variant.sectionId !== sectionId || variant.batchId !== state.activeBatchId) return variant
+        const replaced = replaceVariantNotes(
+          variant,
+          executeAndReview(variant.id, variant.notes),
+        )
+        return {
+          ...replaced,
+          features: computeMelodyFeatures(replaced.notes, harmonicMap, 0, totalBeats),
+        }
+      })
+      recommendationCandidates = melodyVariants
+        .filter((variant) => variant.sectionId === sectionId && variant.batchId === state.activeBatchId)
+        .map((variant) => ({
+          candidateId: variant.id,
+          qualityScore:
+            variant.generationDiagnostics?.qualityScore ??
+            variant.contentQuality?.overallQuality ??
+            70,
+        }))
+    } else if (generator === "phrase" && state.activePhraseBatchId) {
+      recommendationBatchId = state.activePhraseBatchId
+      phraseCandidates = prev.phraseCandidates.map((candidate) =>
+        candidate.sectionId === sectionId && candidate.batchId === state.activePhraseBatchId
+          ? { ...candidate, notes: executeAndReview(candidate.id, candidate.notes) }
+          : candidate,
+      )
+      recommendationCandidates = phraseCandidates
+        .filter((candidate) => candidate.sectionId === sectionId && candidate.batchId === state.activePhraseBatchId)
+        .map((candidate) => ({ candidateId: candidate.id, qualityScore: candidate.qualityScore }))
+    } else if (generator === "signature" && state.activeSignaturePhraseBatchId) {
+      recommendationBatchId = state.activeSignaturePhraseBatchId
+      signaturePhraseCandidates = prev.signaturePhraseCandidates.map((candidate) =>
+        candidate.sectionId === sectionId && candidate.batchId === state.activeSignaturePhraseBatchId
+          ? { ...candidate, notes: executeAndReview(candidate.id, candidate.notes) }
+          : candidate,
+      )
+      recommendationCandidates = signaturePhraseCandidates
+        .filter(
+          (candidate) =>
+            candidate.sectionId === sectionId &&
+            candidate.batchId === state.activeSignaturePhraseBatchId,
+        )
+        .map((candidate) => ({ candidateId: candidate.id, qualityScore: candidate.score.overall }))
+    } else if (
+      (generator === "counter" || generator === "decoration") &&
+      state.activeReactiveBatchId
+    ) {
+      const kind = generator === "counter" ? "counter" : "decoration"
+      recommendationBatchId = state.activeReactiveBatchId
+      const melodyNotes = assignedMelody?.notes ?? []
+      const analysis = analyzeMelodyActivity(melodyNotes, totalBeats)
+      reactiveLayerCandidates = reactiveLayerCandidates.map((candidate) => {
+        if (
+          candidate.sectionId !== sectionId ||
+          candidate.batchId !== state.activeReactiveBatchId ||
+          candidate.kind !== kind
+        ) return candidate
+        const execution = execute(candidate.notes)
+        const notes = execution.notes
+        const collisions = assessReactiveLayerCollisions(melodyNotes, notes, analysis)
+        candidatePerformanceReviews[candidate.id] = reviewPerformanceExecution(
+          candidate.id,
+          candidate.notes,
+          execution,
+          plan,
+          executionContext,
+          { hasBlockingCollision: collisions.hasBlockingCollision },
+        )
+        return {
+          ...candidate,
+          notes,
+          collisions,
+        }
+      })
+      recommendationCandidates = reactiveLayerCandidates
+        .filter(
+          (candidate) =>
+            candidate.sectionId === sectionId &&
+            candidate.batchId === state.activeReactiveBatchId &&
+            candidate.kind === kind,
+        )
+        .map((candidate) => ({
+          candidateId: candidate.id,
+          qualityScore: candidate.quality.overallQuality,
+        }))
+    }
+
+    const sectionPlans = { ...(prev.sectionPerformancePlans?.[sectionId] ?? {}) }
+    sectionPlans[plan.role] = { ...plan, velocityRange: [...plan.velocityRange] as [number, number] }
+    const performanceBatchRecommendations = {
+      ...(prev.performanceBatchRecommendations ?? {}),
+    }
+    if (recommendationBatchId && recommendationCandidates.length > 0) {
+      performanceBatchRecommendations[recommendationBatchId] = recommendPerformedCandidate(
+        recommendationBatchId,
+        recommendationCandidates.flatMap((candidate) => {
+          const review = candidatePerformanceReviews[candidate.candidateId]
+          return review ? [{ ...candidate, review }] : []
+        }),
+      )
+    }
+    set({
+      project: {
+        ...prev,
+        melodyVariants,
+        phraseCandidates,
+        signaturePhraseCandidates,
+        reactiveLayerCandidates,
+        sectionPerformancePlans: {
+          ...(prev.sectionPerformancePlans ?? {}),
+          [sectionId]: sectionPlans,
+        },
+        candidatePerformanceReviews,
+        performanceBatchRecommendations,
+      },
+    })
+    get().persist()
+  },
+
   regenerateDecoration: (candidateId) => {
     const prev = get().project
     const current = (prev.reactiveLayerCandidates ?? []).find(
@@ -2204,6 +2590,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           (candidate) => candidate.targetMelodyVariantId !== variantId,
         ),
         sectionReactiveLayerAssignments,
+        candidatePerformanceReviews: Object.fromEntries(
+          Object.entries(prev.candidatePerformanceReviews ?? {}).filter(
+            ([candidateId]) => candidateId !== variantId && !removedReactiveIds.has(candidateId),
+          ),
+        ),
+        performanceBatchRecommendations: Object.fromEntries(
+          Object.entries(prev.performanceBatchRecommendations ?? {}).filter(
+            ([, recommendation]) =>
+              !recommendation.consideredCandidateIds.some(
+                (candidateId) => candidateId === variantId || removedReactiveIds.has(candidateId),
+              ),
+          ),
+        ),
       },
     })
     get().persist()
@@ -2247,6 +2646,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateNote: (variantId, noteId, patch) => {
     const prev = get().project
+    const editedVariant = prev.melodyVariants.find((variant) => variant.id === variantId)
+    const candidatePerformanceReviews = { ...(prev.candidatePerformanceReviews ?? {}) }
+    delete candidatePerformanceReviews[variantId]
+    const performanceBatchRecommendations = { ...(prev.performanceBatchRecommendations ?? {}) }
+    if (editedVariant?.batchId) delete performanceBatchRecommendations[editedVariant.batchId]
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -2257,6 +2661,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             ? replaceVariantNotes(v, v.notes.map((n) => (n.id === noteId ? { ...n, ...patch } : n)))
             : v,
         ),
+        candidatePerformanceReviews,
+        performanceBatchRecommendations,
       },
     })
     get().persist()
@@ -2264,6 +2670,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   deleteNote: (variantId, noteId) => {
     const prev = get().project
+    const editedVariant = prev.melodyVariants.find((variant) => variant.id === variantId)
+    const candidatePerformanceReviews = { ...(prev.candidatePerformanceReviews ?? {}) }
+    delete candidatePerformanceReviews[variantId]
+    const performanceBatchRecommendations = { ...(prev.performanceBatchRecommendations ?? {}) }
+    if (editedVariant?.batchId) delete performanceBatchRecommendations[editedVariant.batchId]
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -2272,6 +2683,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         melodyVariants: prev.melodyVariants.map((v) =>
           v.id === variantId ? replaceVariantNotes(v, v.notes.filter((n) => n.id !== noteId)) : v,
         ),
+        candidatePerformanceReviews,
+        performanceBatchRecommendations,
       },
     })
     get().persist()

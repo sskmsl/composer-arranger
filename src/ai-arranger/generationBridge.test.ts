@@ -6,6 +6,7 @@ import {
   signatureLengthForIntent,
   signatureDirectionForIntent,
   targetTabForIntent,
+  performancePartForIntent,
 } from "./generationBridge"
 
 function intent(
@@ -80,5 +81,34 @@ describe("AI Intent generation bridge", () => {
       creativeRisk: "focused",
       targetSilenceRatio: 0.52,
     })
+  })
+
+  it("Generatorを同Sectionの具体的な演奏役へ接続する", () => {
+    const pulse = {
+      id: "pulse",
+      role: "pulse-foundation" as const,
+      family: "percussion" as const,
+      sourceState: "recommended" as const,
+      register: "low" as const,
+      distance: "near" as const,
+      articulation: "pulsed" as const,
+      dynamic: "mp" as const,
+      velocityRange: [48, 72] as const,
+      timing: "slightly-behind" as const,
+      entry: "beat 1",
+      exit: "section end",
+      purpose: "support motion",
+    }
+    const orchestration = {
+      sectionId: "s1",
+      maxSimultaneousParts: 3,
+      performanceArc: "restrained",
+      parts: [pulse],
+      withheldGestures: [],
+    }
+    expect(
+      performancePartForIntent(intent({ generator: "accompaniment" }), orchestration),
+    ).toBe(pulse)
+    expect(performancePartForIntent(intent({ generator: "none" }), orchestration)).toBeNull()
   })
 })

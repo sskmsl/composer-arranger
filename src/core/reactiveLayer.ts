@@ -239,6 +239,34 @@ export interface ReactiveLayerCompatibility {
   reasons: string[]
 }
 
+/** 現在Set Activeされている伴奏・別Reactive Layerとの実音適合。 */
+export interface ReactiveLayerActiveContextFit {
+  samePitchOverlapBeats: number
+  minorSecondOverlapBeats: number
+  simultaneousAttackCount: number
+  fitScore: number
+  hasBlockingConflict: boolean
+}
+
+export interface ReactiveLayerNegativeSpaceFit {
+  melodyGapBeats: number
+  baselineAvailableBeats: number
+  remainingBreathBeats: number
+  consumedAvailableRatio: number
+  newlyFilledGapCount: number
+  fitScore: number
+  hasBlockingConflict: boolean
+}
+
+export interface ReactiveLayerRoleComplementarityFit {
+  duplicateRoleCount: number
+  maximumAttackSimilarity: number
+  maximumTemporalOverlapRatio: number
+  minimumRegisterDistance: number
+  fitScore: number
+  hasBlockingConflict: boolean
+}
+
 export interface ReactiveLayerCandidate {
   id: string
   batchId: string
@@ -259,6 +287,12 @@ export interface ReactiveLayerCandidate {
   seed: number
   quality: ReactiveLayerQualityBreakdown
   collisions: ReactiveLayerCollisionSummary
+  /** 候補単体ではなく、現在鳴っている他レイヤーとの適合を生成時に再計算する。 */
+  activeContextFit?: ReactiveLayerActiveContextFit
+  /** 既存レイヤーが残した主旋律の休符を、候補が埋め尽くさないための余白評価。 */
+  negativeSpaceFit?: ReactiveLayerNegativeSpaceFit
+  /** CounterとDecorationが別の仕事を担っているかを評価する。 */
+  roleComplementarityFit?: ReactiveLayerRoleComplementarityFit
   selectionReason?: "highest-quality" | "quality-diversity-balance" | "regenerated"
   /** Technique実験が指定された場合の生成意図適合度(0–1)。 */
   techniqueFitScore?: number

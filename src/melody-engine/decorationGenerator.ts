@@ -23,6 +23,9 @@ import { decorationStructureFingerprint } from "@/core/reactiveLayer"
 import { keyScalePitchClasses } from "@/core/scale"
 import {
   analyzeMelodyActivity,
+  assessReactiveActiveContextFit,
+  assessReactiveNegativeSpaceFit,
+  assessReactiveRoleComplementarity,
   evaluateReactiveLayerQuality,
 } from "./reactiveLayerAnalysis"
 
@@ -62,6 +65,12 @@ export interface GenerateDecorationInput {
   seed: number
   settings: DecorationSettings
   melodyNotes?: MelodyNote[]
+  /** 現在鳴っているAccompaniment / Counter。候補選抜時の衝突回避に使う。 */
+  existingSupportNotes?: MelodyNote[]
+  existingReactiveLayers?: Pick<
+    ReactiveLayerCandidate,
+    "kind" | "role" | "notes"
+  >[]
   previousSectionRole?: SectionRole
   nextSectionRole?: SectionRole
   nextSectionFirstChord?: string
@@ -1763,18 +1772,33 @@ function buildCandidate(
           },
           collisions: zeroCollisions(),
         }
+  const activeContextFit = assessReactiveActiveContextFit(
+    input.existingSupportNotes ?? [],
+    notes,
+  )
+  const negativeSpaceFit = assessReactiveNegativeSpaceFit(
+    melodyNotes,
+    input.existingSupportNotes ?? [],
+    notes,
+    input.totalBeats,
+  )
+  const candidateRole =
+    plan.type === "transition-fill"
+      ? "transition"
+      : plan.type === "ending-fill"
+        ? "cadential-fill"
+        : "gap-fill"
+  const roleComplementarityFit = assessReactiveRoleComplementarity(
+    input.existingReactiveLayers ?? [],
+    { kind: "decoration", role: candidateRole, notes },
+  )
   return {
     id: `decoration-${seed}-${poolIndex}`,
     batchId: `decoration-batch-${input.seed}`,
     sectionId: input.sectionId,
     targetMelodyVariantId: null,
     kind: "decoration",
-    role:
-      plan.type === "transition-fill"
-        ? "transition"
-        : plan.type === "ending-fill"
-          ? "cadential-fill"
-          : "gap-fill",
+    role: candidateRole,
     decorationPlan: plan,
     structureFingerprint: fingerprint,
     name: `${plan.gestureRole ?? "gesture"} · ${plan.character} · ${plan.shape}`,
@@ -1782,6 +1806,9 @@ function buildCandidate(
     seed,
     quality: evaluated.quality,
     collisions: evaluated.collisions,
+    activeContextFit,
+    negativeSpaceFit,
+    roleComplementarityFit,
     techniqueFitScore: decorationTechniqueFitScore(
       plan,
       input.composerRules,
@@ -1814,19 +1841,28 @@ export function generateDecorationCandidates(
         candidate.quality.melodyRespect >= 78 &&
         candidate.quality.motifRelationship >= 70 &&
         candidate.quality.transitionValue >= 78 &&
+        !candidate.activeContextFit?.hasBlockingConflict &&
+        !candidate.negativeSpaceFit?.hasBlockingConflict &&
+        !candidate.roleComplementarityFit?.hasBlockingConflict &&
         candidate.notes.length >=
           minimumGestureNotes(candidate.decorationPlan) &&
         !candidate.collisions.hasBlockingCollision,
     )
     .sort(
       (a, b) =>
-        (b.quality.overallQuality +
+        (b.quality.overallQuality * 0.76 +
+          (b.activeContextFit?.fitScore ?? 100) * 0.08 +
+          (b.negativeSpaceFit?.fitScore ?? 100) * 0.08 +
+          (b.roleComplementarityFit?.fitScore ?? 100) * 0.08 +
           (b.decorationPlan?.preferenceMatch ?? 50) * 0.08) *
           structuralWeight +
           (b.techniqueFitScore ?? 0) *
             100 *
             techniqueFitSelectionWeight -
-        ((a.quality.overallQuality +
+        ((a.quality.overallQuality * 0.76 +
+          (a.activeContextFit?.fitScore ?? 100) * 0.08 +
+          (a.negativeSpaceFit?.fitScore ?? 100) * 0.08 +
+          (a.roleComplementarityFit?.fitScore ?? 100) * 0.08 +
           (a.decorationPlan?.preferenceMatch ?? 50) * 0.08) *
           structuralWeight +
           (a.techniqueFitScore ?? 0) *
@@ -1908,7 +1944,10 @@ export function generateDecorationCandidates(
         return {
           candidate,
           score:
-            candidate.quality.overallQuality *
+            (candidate.quality.overallQuality * 0.76 +
+              (candidate.activeContextFit?.fitScore ?? 100) * 0.08 +
+              (candidate.negativeSpaceFit?.fitScore ?? 100) * 0.08 +
+              (candidate.roleComplementarityFit?.fitScore ?? 100) * 0.08) *
               0.55 *
               structuralWeight +
             (1 - maximumSimilarity) *

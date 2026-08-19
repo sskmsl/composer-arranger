@@ -478,3 +478,129 @@ describe("Issue #45 / セクション別Accompaniment Pattern割り当て", () =
     expect(useProjectStore.getState().project.sectionAccompanimentPatternAssignments.s1).toBeUndefined()
   })
 })
+
+describe("AI Partner / Performance Execution Bridge", () => {
+  it("直前のMelody候補全体へ強弱と奏法を反映し、PitchとLayer同期を守る", () => {
+    useProjectStore.getState().generateForSection("s1")
+    const before = useProjectStore.getState().project.melodyVariants.map((variant) => ({
+      id: variant.id,
+      pitches: variant.notes.map((note) => note.pitch),
+    }))
+
+    useProjectStore.getState().applyPerformanceToLatestGeneration("s1", "melody", {
+      role: "lead-focus",
+      velocityRange: [52, 68],
+      articulation: "detached",
+      timing: "strict",
+    })
+
+    const state = useProjectStore.getState()
+    for (const variant of state.project.melodyVariants) {
+      expect(variant.notes.map((note) => note.pitch)).toEqual(
+        before.find((candidate) => candidate.id === variant.id)?.pitches,
+      )
+      expect(variant.notes.every((note) => note.velocity >= 52 && note.velocity <= 68)).toBe(true)
+      expect(notesByPartRole(variant, "lead")).toEqual(variant.notes)
+      expect(state.project.candidatePerformanceReviews?.[variant.id]?.status)
+        .toMatch(/strong|watch/)
+    }
+    expect(state.project.sectionPerformancePlans?.s1?.["lead-focus"]?.articulation)
+      .toBe("detached")
+    const batchId = state.activeBatchId!
+    const recommendation = state.project.performanceBatchRecommendations?.[batchId]
+    expect(recommendation?.candidateId).toBeTruthy()
+    expect(
+      state.project.candidatePerformanceReviews?.[recommendation!.candidateId!]?.status,
+    ).not.toBe("revise")
+
+    const recommendedVariant = state.project.melodyVariants.find(
+      (candidate) => candidate.id === recommendation!.candidateId,
+    )!
+    useProjectStore.getState().updateNote(
+      recommendedVariant.id,
+      recommendedVariant.notes[0].id,
+      { velocity: 50 },
+    )
+    expect(useProjectStore.getState().project.performanceBatchRecommendations?.[batchId])
+      .toBeUndefined()
+    expect(useProjectStore.getState().project.candidatePerformanceReviews?.[recommendedVariant.id])
+      .toBeUndefined()
+  })
+
+  it("伴奏Performance Planはセクション複製で継承し、削除時に除去する", () => {
+    useProjectStore.getState().applyPerformanceToLatestGeneration("s1", "accompaniment", {
+      role: "pulse-foundation",
+      velocityRange: [44, 62],
+      articulation: "pulsed",
+      timing: "slightly-behind",
+    })
+    useProjectStore.getState().duplicateSection("s1")
+    const copiedId = useProjectStore.getState().selectedSectionId!
+    expect(useProjectStore.getState().project.sectionPerformancePlans?.[copiedId])
+      .toEqual(useProjectStore.getState().project.sectionPerformancePlans?.s1)
+
+    useProjectStore.getState().removeSection(copiedId)
+    expect(useProjectStore.getState().project.sectionPerformancePlans?.[copiedId]).toBeUndefined()
+  })
+})
+
+describe("Arrangement Director Override", () => {
+  it("Climax・Energy・密度の固定値を保存し、Autoへ戻せる", () => {
+    useProjectStore.getState().setArrangementDirectorClimax("s1")
+    useProjectStore.getState().setArrangementDirectorSectionOverride("s1", {
+      targetEnergy: 3,
+      densityCeiling: 2,
+    })
+    expect(useProjectStore.getState().project.arrangementDirectorOverrides).toEqual({
+      climaxSectionId: "s1",
+      sections: { s1: { targetEnergy: 3, densityCeiling: 2 } },
+    })
+
+    useProjectStore.getState().setArrangementDirectorClimax(null)
+    useProjectStore.getState().setArrangementDirectorSectionOverride("s1", {
+      targetEnergy: null,
+      densityCeiling: null,
+    })
+    expect(useProjectStore.getState().project.arrangementDirectorOverrides).toEqual({ sections: {} })
+  })
+
+  it("Section複製では局所固定値を継承し、削除時はClimax指定も除去する", () => {
+    useProjectStore.getState().setArrangementDirectorClimax("s1")
+    useProjectStore.getState().setArrangementDirectorSectionOverride("s1", {
+      targetEnergy: 2,
+      densityCeiling: 2,
+    })
+    useProjectStore.getState().duplicateSection("s1")
+    const copiedId = useProjectStore.getState().selectedSectionId!
+    expect(useProjectStore.getState().project.arrangementDirectorOverrides?.sections[copiedId])
+      .toEqual({ targetEnergy: 2, densityCeiling: 2 })
+
+    useProjectStore.getState().removeSection("s1")
+    expect(useProjectStore.getState().project.arrangementDirectorOverrides?.climaxSectionId)
+      .toBeUndefined()
+  })
+
+  it("Role別Orchestration固定値を保存・解除でき、Section複製へ継承する", () => {
+    useProjectStore.getState().setSectionOrchestrationOverride("s1", "lead-focus", {
+      family: "analog-synth",
+      articulation: "detached",
+      dynamic: "mp",
+    })
+    expect(useProjectStore.getState().project.sectionOrchestrationOverrides?.s1?.["lead-focus"])
+      .toEqual({ family: "analog-synth", articulation: "detached", dynamic: "mp" })
+
+    useProjectStore.getState().duplicateSection("s1")
+    const copiedId = useProjectStore.getState().selectedSectionId!
+    expect(useProjectStore.getState().project.sectionOrchestrationOverrides?.[copiedId]?.["lead-focus"])
+      .toEqual({ family: "analog-synth", articulation: "detached", dynamic: "mp" })
+
+    useProjectStore.getState().setSectionOrchestrationOverride(copiedId, "lead-focus", {
+      articulation: null,
+    })
+    expect(useProjectStore.getState().project.sectionOrchestrationOverrides?.[copiedId]?.["lead-focus"])
+      .toEqual({ family: "analog-synth", dynamic: "mp" })
+    useProjectStore.getState().setSectionOrchestrationOverride(copiedId, "lead-focus", null)
+    expect(useProjectStore.getState().project.sectionOrchestrationOverrides?.[copiedId])
+      .toBeUndefined()
+  })
+})

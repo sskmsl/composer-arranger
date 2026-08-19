@@ -69,6 +69,10 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
     expect(candidates.every((candidate) => unresolvedReactiveToneNoteIds(candidate.notes).length === 0)).toBe(true)
     expect(candidates.every((candidate) => candidate.quality.overallQuality >= 68)).toBe(true)
     expect(candidates.every((candidate) => candidate.quality.transitionValue >= 78)).toBe(true)
+    expect(candidates.every((candidate) => candidate.activeContextFit?.fitScore === 100)).toBe(true)
+    expect(candidates.every((candidate) => candidate.negativeSpaceFit !== undefined)).toBe(true)
+    expect(candidates.every((candidate) => !candidate.negativeSpaceFit?.hasBlockingConflict)).toBe(true)
+    expect(candidates.every((candidate) => candidate.roleComplementarityFit?.fitScore === 100)).toBe(true)
     expect(candidates.every(hasRoleAppropriateLength)).toBe(true)
     expect(
       new Set(
@@ -112,6 +116,19 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
           )
         return new Set(intervals).size >= 2
       }),
+    ).toBe(true)
+  })
+
+  it("既存CounterとBlocking衝突するDecorationを選抜しない", () => {
+    const baseline = generateDecorationCandidates(input())
+    const candidates = generateDecorationCandidates(
+      input({ existingSupportNotes: baseline[0].notes }),
+    )
+    expect(candidates.length).toBeGreaterThan(0)
+    expect(
+      candidates.every(
+        (candidate) => !candidate.activeContextFit?.hasBlockingConflict,
+      ),
     ).toBe(true)
   })
 

@@ -3,7 +3,38 @@ import type { SignaturePhraseLengthBars } from "@/core/signaturePhrase"
 import type { SignatureGenerationDirection } from "@/core/signaturePhrase"
 import type { MainTab } from "@/app/App"
 import type { DecorationSettings } from "@/melody-engine/decorationGenerator"
-import type { AiArrangementIntent } from "./types"
+import type {
+  AiArrangementIntent,
+  OrchestrationPartPlan,
+  SectionOrchestrationPlan,
+} from "./types"
+
+const ROLE_BY_GENERATOR: Partial<
+  Record<AiArrangementIntent["generator"], OrchestrationPartPlan["role"]>
+> = {
+  melody: "lead-focus",
+  phrase: "lead-focus",
+  signature: "lead-focus",
+  counter: "counter-voice",
+  decoration: "transition-color",
+  accompaniment: "pulse-foundation",
+  rhythm: "pulse-foundation",
+}
+
+/** AIのDirectionを、そのSection用Orchestrationの具体的な演奏役へ接続する。 */
+export function performancePartForIntent(
+  intent: AiArrangementIntent,
+  orchestration: SectionOrchestrationPlan | undefined,
+): OrchestrationPartPlan | null {
+  const role = ROLE_BY_GENERATOR[intent.generator]
+  if (!role || !orchestration) return null
+  const exact = orchestration.parts.find((part) => part.role === role)
+  if (exact) return exact
+  if (role === "pulse-foundation") {
+    return orchestration.parts.find((part) => part.role === "harmonic-space") ?? null
+  }
+  return null
+}
 
 export function targetTabForIntent(intent: AiArrangementIntent): MainTab | null {
   if (intent.generator === "signature") return "signature"

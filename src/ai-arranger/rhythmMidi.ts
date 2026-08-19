@@ -1,5 +1,9 @@
 import { parseTimeSignature } from "@/core/section"
 import { buildSmf, TICKS_PER_QUARTER, type MidiNote } from "@/midi/smf"
+import {
+  applyPerformanceExecution,
+  type PerformanceExecutionPlan,
+} from "@/core/performanceExecution"
 import type {
   AiRhythmInstrument,
   AiRhythmPatternProposal,
@@ -27,6 +31,7 @@ export interface ExportAiRhythmMidiOptions {
   timeSignature: string
   sectionLengthBars: number
   rhythmPlan: AiRhythmPatternProposal
+  performancePlan?: PerformanceExecutionPlan
 }
 
 function beatsToTicks(beats: number): number {
@@ -41,6 +46,7 @@ export function rhythmNotesForPlan(
   rhythmPlan: AiRhythmPatternProposal,
   timeSignature: string,
   sectionLengthBars: number,
+  performancePlan?: PerformanceExecutionPlan,
 ): MidiNote[] {
   if (!rhythmPlan.enabled || rhythmPlan.events.length === 0) return []
   const { beatsPerBar } = parseTimeSignature(timeSignature)
@@ -69,7 +75,34 @@ export function rhythmNotesForPlan(
       })
     }
   }
-  return notes.sort((a, b) => a.start - b.start || a.pitch - b.pitch)
+  const sorted = notes.sort((a, b) => a.start - b.start || a.pitch - b.pitch)
+  if (!performancePlan) return sorted
+  const performed = applyPerformanceExecution(
+    sorted.map((note, index) => ({
+      id: `rhythm:${index}`,
+      pitch: note.pitch,
+      startBeat: note.start / TICKS_PER_QUARTER,
+      durationBeats: note.duration / TICKS_PER_QUARTER,
+      velocity: note.velocity,
+      locks: [],
+    })),
+    performancePlan,
+    {
+      totalBeats: sectionBeats,
+      beatsPerBar,
+      chordBoundaryBeats: Array.from(
+        { length: Math.max(1, sectionLengthBars) },
+        (_, index) => index * beatsPerBar,
+      ),
+    },
+  ).notes
+  return performed.map((note) => ({
+    pitch: note.pitch,
+    start: beatsToTicks(note.startBeat),
+    duration: Math.max(1, beatsToTicks(note.durationBeats)),
+    velocity: note.velocity,
+    channel: 0,
+  }))
 }
 
 export function exportAiRhythmMidi(
@@ -88,6 +121,7 @@ export function exportAiRhythmMidi(
           options.rhythmPlan,
           options.timeSignature,
           options.sectionLengthBars,
+          options.performancePlan,
         ),
       },
     ],
