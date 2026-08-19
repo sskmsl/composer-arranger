@@ -4,6 +4,9 @@ import type { MelodyNote } from "@/core/melody"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import {
   analyzeMelodyActivity,
+  assessReactiveActiveContextFit,
+  assessReactiveNegativeSpaceFit,
+  assessReactiveRoleComplementarity,
   assessReactiveLayerCollisions,
   evaluateReactiveLayerQuality,
   evaluateReactiveLayerCompatibility,
@@ -60,6 +63,100 @@ describe("Issue #42 / Active Melody activity analysis", () => {
 })
 
 describe("Issue #42 / collision and quality", () => {
+  it("現在鳴っている補助レイヤーとの同音・短2度・同時Attackを別軸で測る", () => {
+    const fit = assessReactiveActiveContextFit(
+      [note("existing-a", 1, 1, 60), note("existing-b", 3, 1, 65)],
+      [note("candidate-a", 1, 1, 60), note("candidate-b", 3, 1, 66)],
+    )
+    expect(fit).toMatchObject({
+      samePitchOverlapBeats: 1,
+      minorSecondOverlapBeats: 1,
+      simultaneousAttackCount: 2,
+      hasBlockingConflict: true,
+    })
+    expect(fit.fitScore).toBeLessThan(40)
+  })
+
+  it("時間と音域が分かれた補助レイヤーは満点を維持する", () => {
+    expect(
+      assessReactiveActiveContextFit(
+        [note("existing", 0, 1, 48)],
+        [note("candidate", 2, 0.5, 72)],
+      ),
+    ).toEqual({
+      samePitchOverlapBeats: 0,
+      minorSecondOverlapBeats: 0,
+      simultaneousAttackCount: 0,
+      fitScore: 100,
+      hasBlockingConflict: false,
+    })
+  })
+
+  it("既存レイヤーが残した呼吸区間を候補が埋め尽くす場合はBlockingにする", () => {
+    const lead = [
+      note("m-a", 0, 1, 64),
+      note("m-b", 2, 1, 67),
+      note("m-c", 4, 1, 69),
+    ]
+    const fit = assessReactiveNegativeSpaceFit(
+      lead,
+      [note("existing", 1, 0.8, 48)],
+      [note("candidate-a", 3, 1, 72), note("candidate-b", 5, 1, 74)],
+      6,
+    )
+    expect(fit.melodyGapBeats).toBe(3)
+    expect(fit.consumedAvailableRatio).toBeGreaterThan(0.85)
+    expect(fit.newlyFilledGapCount).toBe(2)
+    expect(fit.hasBlockingConflict).toBe(true)
+  })
+
+  it("一部だけ応答し、後続の休符を残す候補は許可する", () => {
+    const fit = assessReactiveNegativeSpaceFit(
+      [note("m-a", 0, 1, 64), note("m-b", 2, 1, 67)],
+      [],
+      [note("candidate", 1, 0.25, 72)],
+      4,
+    )
+    expect(fit.remainingBreathBeats).toBeGreaterThan(1)
+    expect(fit.fitScore).toBeGreaterThan(80)
+    expect(fit.hasBlockingConflict).toBe(false)
+  })
+
+  it("同じRoleとAttackを別音域で複製しても役割重複として止める", () => {
+    const fit = assessReactiveRoleComplementarity(
+      [{
+        kind: "counter",
+        role: "gap-fill",
+        notes: [note("counter-a", 1, 0.5, 48), note("counter-b", 3, 0.5, 50)],
+      }],
+      {
+        kind: "decoration",
+        role: "gap-fill",
+        notes: [note("dec-a", 1, 0.5, 72), note("dec-b", 3, 0.5, 74)],
+      },
+    )
+    expect(fit.duplicateRoleCount).toBe(1)
+    expect(fit.maximumAttackSimilarity).toBe(1)
+    expect(fit.hasBlockingConflict).toBe(true)
+  })
+
+  it("異なるRole・発音位置・音域なら補完関係として扱う", () => {
+    const fit = assessReactiveRoleComplementarity(
+      [{
+        kind: "counter",
+        role: "answer-phrase",
+        notes: [note("counter", 1, 0.5, 48)],
+      }],
+      {
+        kind: "decoration",
+        role: "transition",
+        notes: [note("dec", 6, 1, 76)],
+      },
+    )
+    expect(fit.fitScore).toBe(100)
+    expect(fit.hasBlockingConflict).toBe(false)
+  })
+
   it("休符内・別音域の候補を高く評価する", () => {
     const analysis = analyzeMelodyActivity(melody, 8)
     const candidate = [

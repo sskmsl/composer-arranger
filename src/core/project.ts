@@ -10,7 +10,16 @@ import {
   type AccompanimentPatternTemplate,
 } from "./accompanimentPattern"
 import type { ReactiveLayerCandidate } from "./reactiveLayer"
-import type { AiPartnerSession } from "@/ai-arranger/types"
+import type {
+  AiPartnerSession,
+  OrchestrationPartPlan,
+  OrchestrationRole,
+} from "@/ai-arranger/types"
+import type {
+  PerformanceCandidateReview,
+  PerformanceExecutionPlan,
+} from "./performanceExecution"
+import type { PerformanceBatchRecommendation } from "./performanceCandidateSelection"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -53,6 +62,29 @@ export interface ArrangementSettings {
   asymmetryIntent: number
 }
 
+export interface ArrangementDirectorSectionOverride {
+  targetEnergy?: 1 | 2 | 3 | 4 | 5
+  densityCeiling?: number
+}
+
+export interface ArrangementDirectorOverrides {
+  /** 未指定時は最後の大サビ/サビを自動選択する。 */
+  climaxSectionId?: string
+  sections: Record<string, ArrangementDirectorSectionOverride>
+}
+
+export type OrchestrationPartOverride = Partial<
+  Pick<
+    OrchestrationPartPlan,
+    "family" | "register" | "distance" | "articulation" | "dynamic" | "timing"
+  >
+>
+
+export type SectionOrchestrationOverrides = Record<
+  string,
+  Partial<Record<OrchestrationRole, OrchestrationPartOverride>>
+>
+
 export const DEFAULT_ARRANGEMENT_SETTINGS: ArrangementSettings = {
   maximumParts: 5,
   spacePriority: 0.5,
@@ -83,6 +115,10 @@ export interface ComposerProject {
     sectionProfileOverrides: SectionProfileOverride[]
   }
   arrangementSettings: ArrangementSettings
+  /** 作曲者が明示的に確定したDirector判断。未指定項目は自動設計を使う。 */
+  arrangementDirectorOverrides?: ArrangementDirectorOverrides
+  /** Role自体はDirectorが決め、作曲者は音色・距離・奏法等だけを固定する。 */
+  sectionOrchestrationOverrides?: SectionOrchestrationOverrides
   sections: Section[]
   chords: ChordEvent[]
   melodyVariants: MelodyVariant[]
@@ -113,12 +149,21 @@ export interface ComposerProject {
   songMotifDNA?: SongMotifDNA
   /** AI Partnerの同一曲・同一Section単位の継続相談。音源データ自体は保存しない。 */
   aiPartnerSessions?: Record<string, AiPartnerSession>
+  /** AI Partnerが選んだ伴奏Performance Plan。動的生成される伴奏へ試聴/MIDI時に適用する。 */
+  sectionPerformancePlans?: Record<
+    string,
+    Partial<Record<PerformanceExecutionPlan["role"], PerformanceExecutionPlan>>
+  >
+  /** AI Partner生成候補の演奏適合レビュー。候補IDをキーに保持する。 */
+  candidatePerformanceReviews?: Record<string, PerformanceCandidateReview>
+  /** AI Partner生成バッチごとの、非破壊的なDirector推奨候補。 */
+  performanceBatchRecommendations?: Record<string, PerformanceBatchRecommendation>
   /** Issue #16: 時間値の単位マーカー。付与済みプロジェクトは再変換の判定対象から除外する */
   timeBase?: TimeBase
 }
 
-/** 2.0: AI PartnerのSection単位継続会話を追加 */
-export const CURRENT_SCHEMA_VERSION = "2.0"
+/** 2.5: Section/Role単位のOrchestration Overrideを追加 */
+export const CURRENT_SCHEMA_VERSION = "2.5"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -133,6 +178,8 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
       sectionProfileOverrides: [],
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS },
+    arrangementDirectorOverrides: { sections: {} },
+    sectionOrchestrationOverrides: {},
     sections: [],
     chords: [],
     melodyVariants: [],
@@ -150,6 +197,9 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     activeArrangementId: null,
     notes: "",
     aiPartnerSessions: {},
+    sectionPerformancePlans: {},
+    candidatePerformanceReviews: {},
+    performanceBatchRecommendations: {},
     timeBase: TIME_BASE,
   }
 }
@@ -215,6 +265,11 @@ export function normalizeProject(raw: unknown): ComposerProject {
       sectionProfileOverrides: r.song?.sectionProfileOverrides ?? [],
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS, ...r.arrangementSettings },
+    arrangementDirectorOverrides: {
+      climaxSectionId: r.arrangementDirectorOverrides?.climaxSectionId,
+      sections: r.arrangementDirectorOverrides?.sections ?? {},
+    },
+    sectionOrchestrationOverrides: r.sectionOrchestrationOverrides ?? {},
     sections: normalizeSectionTimeline(r.sections ?? []).map(normalizeSectionContent),
     chords: r.chords ?? [],
     melodyVariants: (r.melodyVariants ?? []).map(normalizeVariantLayers),
@@ -241,6 +296,9 @@ export function normalizeProject(raw: unknown): ComposerProject {
     generatorProfileRoles: r.generatorProfileRoles,
     songMotifDNA: r.songMotifDNA,
     aiPartnerSessions: r.aiPartnerSessions ?? {},
+    sectionPerformancePlans: r.sectionPerformancePlans ?? {},
+    candidatePerformanceReviews: r.candidatePerformanceReviews ?? {},
+    performanceBatchRecommendations: r.performanceBatchRecommendations ?? {},
     timeBase: r.timeBase,
   }
 }

@@ -6,6 +6,13 @@ import { effectiveSongProfile, type ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import type { AiArrangementContext } from "./types"
+import { reviewAudibleLayerCollisions } from "./audibleLayerReview"
+import { arrangementConstitutionContext } from "./arrangementConstitution"
+import { buildArrangementDirectorBlueprint } from "./arrangementDirector"
+import { reviewArrangementSection } from "./arrangementReview"
+import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
+import { reviewOrchestrationMasking } from "./orchestrationReview"
+import { reviewWholeSongArrangement } from "./wholeSongArrangementReview"
 
 const MAX_MELODY_NOTES = 160
 
@@ -61,7 +68,30 @@ export function buildAiArrangementContext(
   const totalBeats =
     section.lengthBars * parseTimeSignature(project.song.timeSignature).beatsPerBar
 
+  const arrangementDirector = buildArrangementDirectorBlueprint(project)
+  const orchestration = buildOrchestrationBlueprint(project, arrangementDirector)
+  const arrangementReviews = arrangementDirector.sections.map((plan) =>
+    reviewArrangementSection(project, arrangementDirector, plan.sectionId),
+  )
+  const arrangementReview = arrangementReviews.find(
+    (review) => review.sectionId === sectionId,
+  ) ?? reviewArrangementSection(project, arrangementDirector, sectionId)
+  const currentOrchestrationPlan = orchestration.sections.find(
+    (plan) => plan.sectionId === sectionId,
+  )
+
   return {
+    arrangementConstitution: arrangementConstitutionContext(),
+    arrangementDirector,
+    arrangementReview,
+    wholeSongArrangementReview: reviewWholeSongArrangement(
+      project,
+      arrangementDirector,
+      arrangementReviews,
+    ),
+    orchestration,
+    orchestrationReview: reviewOrchestrationMasking(currentOrchestrationPlan),
+    audibleLayerReview: reviewAudibleLayerCollisions(project, sectionId),
     project: {
       title: project.title,
       key: project.song.key,

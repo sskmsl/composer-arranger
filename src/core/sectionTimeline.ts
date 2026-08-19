@@ -6,6 +6,7 @@ import { layersOf } from "./sectionLayers"
 import { accompanimentEnabled } from "./sectionContent"
 import { applyAccompanimentPattern } from "./accompanimentPattern"
 import { decorationStructureFingerprint } from "./reactiveLayer"
+import { applyPerformanceExecution } from "./performanceExecution"
 
 /** 配列順を曲順として扱い、startBarを1始まりで隙間なく再計算する。 */
 export function normalizeSectionTimeline(sections: Section[]): Section[] {
@@ -123,12 +124,23 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
       ? project.accompanimentPatterns?.find((candidate) => candidate.id === patternId)
       : undefined
     if (pattern) {
-      const patternNotes = applyAccompanimentPattern(
+      const generatedPatternNotes = applyAccompanimentPattern(
         pattern,
         sectionChords,
         section.lengthBars * beatsPerBar,
         { melodyNotes: sectionLeadNotes },
       )
+      const performancePlan =
+        project.sectionPerformancePlans?.[section.id]?.["pulse-foundation"] ??
+        project.sectionPerformancePlans?.[section.id]?.["harmonic-space"]
+      const patternNotes = performancePlan
+        ? applyPerformanceExecution(generatedPatternNotes, performancePlan, {
+            totalBeats: section.lengthBars * beatsPerBar,
+            beatsPerBar,
+            chordBoundaryBeats: sectionChords.map((chord) => chord.startBeat),
+            melodyNotes: sectionLeadNotes,
+          }).notes
+        : generatedPatternNotes
       for (const note of patternNotes) {
         accompanimentPattern.push({
           ...note,

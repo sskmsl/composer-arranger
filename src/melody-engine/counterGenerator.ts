@@ -23,6 +23,9 @@ import type {
 import { keyScalePitchClasses } from "@/core/scale"
 import {
   analyzeCounterContext,
+  assessReactiveActiveContextFit,
+  assessReactiveNegativeSpaceFit,
+  assessReactiveRoleComplementarity,
   evaluateReactiveLayerQuality,
   unresolvedReactiveToneNoteIds,
   type CounterContextAnalysis,
@@ -39,6 +42,12 @@ export interface GenerateCounterInput {
   melody: MelodyVariant
   totalBeats: number
   seed: number
+  /** 現在鳴っているAccompaniment / Decoration。候補選抜時の衝突回避に使う。 */
+  existingSupportNotes?: MelodyNote[]
+  existingReactiveLayers?: Pick<
+    ReactiveLayerCandidate,
+    "kind" | "role" | "notes"
+  >[]
   poolSize?: number
   finalCount?: number
   composerRules?: ResolvedComposerRules
@@ -1373,8 +1382,11 @@ function selectDiverseCandidates(
     1 - effectiveTechniqueWeight,
   )
   const musicalScore = (candidate: ReactiveLayerCandidate) =>
-    candidate.quality.overallQuality * 0.52 +
-    (candidate.counterQuality?.overall ?? 0) * 0.48
+    (candidate.quality.overallQuality * 0.52 +
+      (candidate.counterQuality?.overall ?? 0) * 0.48) * 0.76 +
+    (candidate.activeContextFit?.fitScore ?? 100) * 0.08 +
+    (candidate.negativeSpaceFit?.fitScore ?? 100) * 0.08 +
+    (candidate.roleComplementarityFit?.fitScore ?? 100) * 0.08
   const eligibleWithDuplicates = pool
     .filter(
       (candidate) =>
@@ -1386,6 +1398,9 @@ function selectDiverseCandidates(
         (candidate.counterQuality?.controlledRisk ?? 0) >= 72 &&
         (candidate.counterQuality?.emotionalNecessity ?? 0) >= 68 &&
         !candidate.collisions.hasBlockingCollision &&
+        !candidate.activeContextFit?.hasBlockingConflict &&
+        !candidate.negativeSpaceFit?.hasBlockingConflict &&
+        !candidate.roleComplementarityFit?.hasBlockingConflict &&
         candidate.notes.length >= 3,
     )
     .sort(
@@ -1662,6 +1677,20 @@ function buildPoolCandidate(
     counterpointFit,
     relationship,
   )
+  const activeContextFit = assessReactiveActiveContextFit(
+    input.existingSupportNotes ?? [],
+    notes,
+  )
+  const negativeSpaceFit = assessReactiveNegativeSpaceFit(
+    input.melody.notes,
+    input.existingSupportNotes ?? [],
+    notes,
+    input.totalBeats,
+  )
+  const roleComplementarityFit = assessReactiveRoleComplementarity(
+    input.existingReactiveLayers ?? [],
+    { kind: "counter", role: plan.role, notes },
+  )
   return {
     id: `counter-${candidateSeed}-${poolIndex}`,
     batchId: `counter-batch-${input.seed}`,
@@ -1677,6 +1706,9 @@ function buildPoolCandidate(
     seed: candidateSeed,
     quality: evaluated.quality,
     collisions: evaluated.collisions,
+    activeContextFit,
+    negativeSpaceFit,
+    roleComplementarityFit,
     techniqueFitScore: counterTechniqueFitScore(
       { notes, role: plan.role },
       input.melody.notes,

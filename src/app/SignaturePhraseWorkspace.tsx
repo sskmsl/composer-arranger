@@ -29,6 +29,10 @@ import { downloadMidi, exportMelodyMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
+import {
+  DirectorRecommendationBadge,
+  PerformanceReviewBadge,
+} from "./PerformanceReviewBadge"
 
 const RHYTHM_LABELS: Record<SignatureRhythmIdentity, string> = {
   "opening-stamp": "Opening Stamp",
@@ -342,6 +346,16 @@ export function SignaturePhraseWorkspace() {
                     <span className="shrink-0 text-[10px] text-ink-muted-48">
                       {candidate.plan.lengthBars}小節 · {Math.round(candidate.score.overall)}
                     </span>
+                  </div>
+                  <div className="mt-1.5">
+                    <PerformanceReviewBadge
+                      review={project.candidatePerformanceReviews?.[candidate.id]}
+                      compact
+                    />
+                    <DirectorRecommendationBadge
+                      recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
+                      candidateId={candidate.id}
+                    />
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {candidate.plan.compositionContext && (

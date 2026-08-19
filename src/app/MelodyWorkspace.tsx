@@ -15,6 +15,10 @@ import type { SeedOperation } from "@/melody-engine/developSeed"
 import { Sparkles, Star } from "lucide-react"
 import type { MelodyVariant, RangeRegenerationLocks } from "@/core/melody"
 import { isTransitionContextStale } from "@/melody-engine/sectionTransition"
+import {
+  DirectorRecommendationBadge,
+  PerformanceReviewBadge,
+} from "./PerformanceReviewBadge"
 
 const TRANSITION_LABELS = {
   resolved: "Resolved",
@@ -152,6 +156,15 @@ export function MelodyWorkspace() {
           >
             <Star size={13} /> {project.activeMelodyId === variant.id ? "Active Melody" : "Set as Active Melody"}
           </Button>
+        )}
+        <PerformanceReviewBadge
+          review={variant ? project.candidatePerformanceReviews?.[variant.id] : undefined}
+        />
+        {variant && (
+          <DirectorRecommendationBadge
+            recommendation={project.performanceBatchRecommendations?.[variant.batchId]}
+            candidateId={variant.id}
+          />
         )}
         {variant?.transitionPlan && (
           <Pill>

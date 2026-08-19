@@ -46,6 +46,47 @@ describe("AI Arrangement context", () => {
   it("コード・Active Melody・Section関係を個人情報を増やさず圧縮する", () => {
     const context = buildAiArrangementContext(project(), "intro")
     expect(context).not.toBeNull()
+    expect(context?.arrangementConstitution).toMatchObject({
+      version: "1.0.0",
+      principles: expect.arrayContaining([
+        expect.objectContaining({ id: "melody-sovereignty" }),
+        expect.objectContaining({ id: "meaningful-silence" }),
+        expect.objectContaining({ id: "delayed-payoff" }),
+      ]),
+    })
+    expect(context?.arrangementDirector).toMatchObject({
+      version: "1.0.0",
+      climaxSectionId: null,
+      sections: expect.arrayContaining([
+        expect.objectContaining({ sectionId: "intro", climaxPolicy: "reserve" }),
+      ]),
+    })
+    expect(context?.arrangementReview).toMatchObject({
+      version: "1.0.0",
+      sectionId: "intro",
+      status: "strong",
+    })
+    expect(context?.wholeSongArrangementReview).toMatchObject({
+      version: "1.0.0",
+      metrics: expect.objectContaining({ pendingSectionCount: 1 }),
+    })
+    expect(context?.orchestration).toMatchObject({
+      version: "1.0.0",
+      sections: expect.arrayContaining([
+        expect.objectContaining({ sectionId: "intro" }),
+      ]),
+    })
+    expect(context?.orchestrationReview).toMatchObject({
+      version: "1.0.0",
+      sectionId: "intro",
+      status: expect.stringMatching(/strong|watch|revise/),
+    })
+    expect(context?.audibleLayerReview).toMatchObject({
+      version: "1.0.0",
+      sectionId: "intro",
+      status: "strong",
+      score: 100,
+    })
     expect(context?.section).toMatchObject({
       role: "intro",
       previousRole: null,
@@ -69,6 +110,12 @@ describe("AI Arrangement context", () => {
     const first = aiContextFingerprint("余白を活かしたい", context)
     expect(aiContextFingerprint("余白を活かしたい", context)).toBe(first)
     expect(aiContextFingerprint("反復を活かしたい", context)).not.toBe(first)
+  })
+
+  it("公開コンテキストには固有人物・作品名を含めない", () => {
+    const context = buildAiArrangementContext(project(), "intro")!
+    const serialized = JSON.stringify(context.arrangementConstitution)
+    expect(serialized).not.toMatch(/Myl.ne|Farmer|Boutonnat|Laurent/i)
   })
 
   it("存在しないSectionは送信対象にしない", () => {

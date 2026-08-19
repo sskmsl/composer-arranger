@@ -8,6 +8,10 @@ import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
+import {
+  DirectorRecommendationBadge,
+  PerformanceReviewBadge,
+} from "./PerformanceReviewBadge"
 
 const RHYTHM_LABELS: Record<PhraseCandidate["intent"]["rhythmCharacter"], string> = {
   flowing: "流れるリズム",
@@ -198,6 +202,16 @@ export function PhraseWorkspace() {
                     <span className="text-[10px] text-ink-muted-48">
                       {candidate.intent.lengthBars}小節 · Quality {Math.round(candidate.qualityScore)}
                     </span>
+                  </div>
+                  <div className="mt-1.5">
+                    <PerformanceReviewBadge
+                      review={project.candidatePerformanceReviews?.[candidate.id]}
+                      compact
+                    />
+                    <DirectorRecommendationBadge
+                      recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
+                      candidateId={candidate.id}
+                    />
                   </div>
                   {candidate.techniqueExperiment && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">

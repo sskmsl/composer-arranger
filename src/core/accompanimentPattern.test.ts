@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { parseChordSymbol } from "./chord"
 import {
   applyAccompanimentPattern,
+  accompanimentPatternNotesForSection,
   createDefaultAccompanimentPatterns,
   resolveAccompanimentDegree,
   type AccompanimentPatternTemplate,
@@ -201,5 +202,32 @@ describe("Accompaniment Pattern / コード度数解決", () => {
     const restored = normalizeProject(JSON.parse(JSON.stringify(project)))
     expect(restored.accompanimentPatterns).toEqual(project.accompanimentPatterns)
     expect(restored.sectionAccompanimentPatternAssignments).toEqual({ s: "syncopated" })
+  })
+
+  it("AI PartnerのPerformance Planを動的伴奏の試聴・MIDI材料へ反映する", () => {
+    const project = createEmptyProject("performance")
+    project.sections = [{ id: "s", name: "A", role: "verse", startBar: 1, lengthBars: 1 }]
+    project.chords = [chord("C", 0, 4)]
+    project.accompanimentPatterns = [...project.accompanimentPatterns, sustainedRoot]
+    project.sectionAccompanimentPatternAssignments = { s: sustainedRoot.id }
+    const original = accompanimentPatternNotesForSection(project, "s")
+    project.sectionPerformancePlans = {
+      s: {
+        "pulse-foundation": {
+          role: "pulse-foundation",
+          velocityRange: [42, 58],
+          articulation: "detached",
+          timing: "strict",
+        },
+      },
+    }
+    const performed = accompanimentPatternNotesForSection(project, "s")
+
+    expect(performed.map((note) => note.pitch)).toEqual(original.map((note) => note.pitch))
+    expect(performed[0].durationBeats).toBeLessThan(original[0].durationBeats)
+    expect(performed[0].velocity).toBeGreaterThanOrEqual(42)
+    expect(performed[0].velocity).toBeLessThanOrEqual(58)
+    expect(normalizeProject(JSON.parse(JSON.stringify(project))).sectionPerformancePlans)
+      .toEqual(project.sectionPerformancePlans)
   })
 })

@@ -13,6 +13,7 @@ export type PreviewMode =
   | "chords-reactive"
   | "melody-reactive"
   | "chords-melody-reactive"
+  | "active-context-reactive"
 
 export interface PreviewLayers {
   chords: boolean
@@ -38,18 +39,24 @@ export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
       mode === "chords-melody" ||
       mode === "chords-only" ||
       mode === "chords-reactive" ||
-      mode === "chords-melody-reactive",
+      mode === "chords-melody-reactive" ||
+      mode === "active-context-reactive",
     melody:
       mode === "chords-melody" ||
       mode === "melody-only" ||
       mode === "melody-reactive" ||
-      mode === "chords-melody-reactive",
-    accompaniment: mode === "chords-melody" || mode === "accompaniment-only",
+      mode === "chords-melody-reactive" ||
+      mode === "active-context-reactive",
+    accompaniment:
+      mode === "chords-melody" ||
+      mode === "accompaniment-only" ||
+      mode === "active-context-reactive",
     reactive:
       mode === "reactive-only" ||
       mode === "chords-reactive" ||
       mode === "melody-reactive" ||
-      mode === "chords-melody-reactive",
+      mode === "chords-melody-reactive" ||
+      mode === "active-context-reactive",
   }
 }
 

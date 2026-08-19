@@ -25,10 +25,15 @@ import type {
 } from "@/core/reactiveLayer"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
+import { buildReactiveContextAuditionMaterial } from "@/core/reactiveContextAudition"
 import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
+import {
+  DirectorRecommendationBadge,
+  PerformanceReviewBadge,
+} from "./PerformanceReviewBadge"
 
 const STYLE_LABELS: Record<string, string> = {
   "bell-response": "Bell",
@@ -112,7 +117,7 @@ export function CounterWorkspace() {
   const assign = useProjectStore((state) => state.assignReactiveLayer)
   const workflowNotice = useProjectStore((state) => state.workflowNotice)
   const [previewMode, setPreviewMode] =
-    useState<PreviewMode>("chords-melody-reactive")
+    useState<PreviewMode>("active-context-reactive")
   const [playingId, setPlayingId] = useState<string | null>(null)
 
   const section = project.sections.find(
@@ -193,11 +198,24 @@ export function CounterWorkspace() {
       candidate.notes,
       totalBeats,
     )
+    const contextMaterial = buildReactiveContextAuditionMaterial(
+      project,
+      section.id,
+      candidate,
+    )
+    const useActiveContext = previewMode === "active-context-reactive"
     previewPlayer.play({
       bpm: project.song.tempo,
       chords,
-      melody: activeMelody?.notes ?? [],
-      reactive: candidate.notes,
+      melody: useActiveContext
+        ? contextMaterial.melody
+        : activeMelody?.notes ?? [],
+      accompaniment: useActiveContext
+        ? contextMaterial.accompaniment
+        : [],
+      reactive: useActiveContext
+        ? contextMaterial.reactive
+        : candidate.notes,
       mode: previewMode,
       range: previewRange,
       onEnded: () => setPlayingId(null),
@@ -213,7 +231,9 @@ export function CounterWorkspace() {
       chords,
       melody: activeMelody,
       reactiveNotes: candidate.notes,
-      includeChords: previewMode === "chords-melody-reactive",
+      includeChords:
+        previewMode === "chords-melody-reactive" ||
+        previewMode === "active-context-reactive",
       range: { startBeat: 0, endBeat: totalBeats },
     })
     downloadMidi(bytes, `${project.title}-${section.name}-${candidate.name}`)
@@ -277,6 +297,16 @@ export function CounterWorkspace() {
                     <span className="shrink-0 text-[10px] text-ink-muted-48">
                       Quality {Math.round(candidate.quality.overallQuality)}
                     </span>
+                  </div>
+                  <div className="mt-1.5">
+                    <PerformanceReviewBadge
+                      review={project.candidatePerformanceReviews?.[candidate.id]}
+                      compact
+                    />
+                    <DirectorRecommendationBadge
+                      recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
+                      candidateId={candidate.id}
+                    />
                   </div>
                   {candidate.techniqueExperiment && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
@@ -342,6 +372,21 @@ export function CounterWorkspace() {
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       Gap {Math.round(candidate.quality.gapUsage)}%
                     </span>
+                    {candidate.activeContextFit && (
+                      <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
+                        Active共存 {candidate.activeContextFit.fitScore}
+                      </span>
+                    )}
+                    {candidate.negativeSpaceFit && (
+                      <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
+                        余白 {candidate.negativeSpaceFit.fitScore}
+                      </span>
+                    )}
+                    {candidate.roleComplementarityFit && (
+                      <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
+                        役割差 {candidate.roleComplementarityFit.fitScore}
+                      </span>
+                    )}
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
                       MIDI{" "}
                       {candidate.notes.length > 0
@@ -457,7 +502,9 @@ export function CounterWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-ink-muted-48">試聴:</span>
             <span className="text-[10px] text-ink-muted-48">
-              候補の前後だけを自動再生
+              {previewMode === "active-context-reactive"
+                ? "現在のPattern・Active Decorationを含む"
+                : "候補の前後だけを自動再生"}
             </span>
             <Select
               value={previewMode}
@@ -467,6 +514,9 @@ export function CounterWorkspace() {
               }}
               className="!py-1"
             >
+              <option value="active-context-reactive">
+                Full Active Context
+              </option>
               <option value="reactive-only">Counter Only</option>
               <option value="melody-reactive">Melody + Counter</option>
               <option value="chords-melody-reactive">
