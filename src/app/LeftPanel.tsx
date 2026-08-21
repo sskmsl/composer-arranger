@@ -7,6 +7,7 @@ import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput, type ChordDiagnosis } from "@/core/chordDiagnostics"
 import { CONTENT_PRESETS, DEFAULT_SECTION_CONTENT, presetById, presetIdFor } from "@/core/sectionContent"
 import { prepareImportedProject } from "@/core/composerSongExchange"
+import { MIDI_IMPORT_ACCEPT, readMidiProjectFile } from "@/midi/importMidi"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { ProjectBrowser } from "./ProjectBrowser"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
@@ -25,6 +26,7 @@ import {
   MoveRight,
   FolderOpen,
   GripVertical,
+  Music2,
 } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
@@ -94,6 +96,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const loadProject = useProjectStore((s) => s.loadProject)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const midiInputRef = useRef<HTMLInputElement>(null)
   const [browserOpen, setBrowserOpen] = useState(false)
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const ts = parseTimeSignature(project.song.timeSignature)
@@ -139,7 +142,10 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             <Download size={13} /> Export
           </Button>
           <Button variant="dark" onClick={() => fileInputRef.current?.click()}>
-            <Upload size={13} /> Import
+            <Upload size={13} /> Project JSON
+          </Button>
+          <Button variant="dark" onClick={() => midiInputRef.current?.click()}>
+            <Music2 size={13} /> MIDI解析
           </Button>
           <input
             ref={fileInputRef}
@@ -159,7 +165,38 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
               }
             }}
           />
+          <input
+            ref={midiInputRef}
+            type="file"
+            accept={MIDI_IMPORT_ACCEPT}
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              try {
+                const { project: imported } = await readMidiProjectFile(file)
+                loadProject(imported)
+              } catch (error) {
+                window.alert(error instanceof Error ? error.message : "MIDIの読み込みに失敗しました")
+              } finally {
+                e.target.value = ""
+              }
+            }}
+          />
         </div>
+        {project.sourceImport?.type === "midi" && (
+          <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[10px] leading-relaxed text-body-muted">
+            <p className="font-medium text-body-on-dark">MIDI解析プロジェクト</p>
+            <p className="mt-1 break-all">{project.sourceImport.fileName}</p>
+            <p>
+              Melody: {project.sourceImport.melodyTrackName} · 信頼度 {Math.round(project.sourceImport.melodyTrackConfidence * 100)}%
+            </p>
+            <p>コード推定: {Math.round(project.sourceImport.chordInferenceConfidence * 100)}%</p>
+            {project.sourceImport.warnings.map((warning) => (
+              <p key={warning} className="mt-1 text-amber-300">・{warning}</p>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard title="セクション">

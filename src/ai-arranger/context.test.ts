@@ -43,6 +43,35 @@ function project() {
 }
 
 describe("AI Arrangement context", () => {
+  it("MIDIインポートの推定信頼度と注意点をAIへ渡す", () => {
+    const imported = createEmptyProject("Imported")
+    const sectionId = "section-imported"
+    imported.sections = [{ id: sectionId, name: "Imported", role: "instrumental", startBar: 1, lengthBars: 4 }]
+    imported.sourceImport = {
+      type: "midi",
+      fileName: "song.mid",
+      importedAt: "2026-08-20T00:00:00.000Z",
+      format: 1,
+      ppq: 480,
+      trackCount: 4,
+      melodyTrackName: "Lead",
+      melodyTrackConfidence: 0.82,
+      chordInferenceConfidence: 0.66,
+      sectionsFromMarkers: false,
+      warnings: ["セクションは推定です。"],
+    }
+    const context = buildAiArrangementContext(imported, sectionId)
+    expect(context?.project.sourceImport).toEqual({
+      type: "midi",
+      fileName: "song.mid",
+      melodyTrackName: "Lead",
+      melodyTrackConfidence: 0.82,
+      chordInferenceConfidence: 0.66,
+      sectionsFromMarkers: false,
+      warnings: ["セクションは推定です。"],
+    })
+  })
+
   it("コード・Active Melody・Section関係を個人情報を増やさず圧縮する", () => {
     const context = buildAiArrangementContext(project(), "intro")
     expect(context).not.toBeNull()

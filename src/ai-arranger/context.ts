@@ -98,6 +98,19 @@ export function buildAiArrangementContext(
       tempo: project.song.tempo,
       timeSignature: project.song.timeSignature,
       songProfile: effectiveSongProfile(project, sectionId),
+      ...(project.sourceImport
+        ? {
+            sourceImport: {
+              type: project.sourceImport.type,
+              fileName: project.sourceImport.fileName,
+              melodyTrackName: project.sourceImport.melodyTrackName,
+              melodyTrackConfidence: project.sourceImport.melodyTrackConfidence,
+              chordInferenceConfidence: project.sourceImport.chordInferenceConfidence,
+              sectionsFromMarkers: project.sourceImport.sectionsFromMarkers,
+              warnings: [...project.sourceImport.warnings],
+            },
+          }
+        : {}),
     },
     section: {
       id: section.id,

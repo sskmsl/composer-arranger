@@ -417,6 +417,15 @@ export interface AiArrangementContext {
     tempo: number
     timeSignature: string
     songProfile: string
+    sourceImport?: {
+      type: "midi"
+      fileName: string
+      melodyTrackName: string
+      melodyTrackConfidence: number
+      chordInferenceConfidence: number
+      sectionsFromMarkers: boolean
+      warnings: string[]
+    }
   }
   section: {
     id: string
