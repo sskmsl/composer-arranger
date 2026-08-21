@@ -62,6 +62,20 @@ export interface ArrangementSettings {
   asymmetryIntent: number
 }
 
+export interface ProjectSourceImport {
+  type: "midi"
+  fileName: string
+  importedAt: string
+  format: number
+  ppq: number
+  trackCount: number
+  melodyTrackName: string
+  melodyTrackConfidence: number
+  chordInferenceConfidence: number
+  sectionsFromMarkers: boolean
+  warnings: string[]
+}
+
 export interface ArrangementDirectorSectionOverride {
   targetEnergy?: 1 | 2 | 3 | 4 | 5
   densityCeiling?: number
@@ -158,12 +172,14 @@ export interface ComposerProject {
   candidatePerformanceReviews?: Record<string, PerformanceCandidateReview>
   /** AI Partner生成バッチごとの、非破壊的なDirector推奨候補。 */
   performanceBatchRecommendations?: Record<string, PerformanceBatchRecommendation>
+  /** 外部素材から自動作成したプロジェクトの出典と、推定値を過信しないための診断情報。 */
+  sourceImport?: ProjectSourceImport
   /** Issue #16: 時間値の単位マーカー。付与済みプロジェクトは再変換の判定対象から除外する */
   timeBase?: TimeBase
 }
 
-/** 2.5: Section/Role単位のOrchestration Overrideを追加 */
-export const CURRENT_SCHEMA_VERSION = "2.5"
+/** 2.6: MIDIインポート元と推定信頼度を保持 */
+export const CURRENT_SCHEMA_VERSION = "2.6"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -200,6 +216,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     sectionPerformancePlans: {},
     candidatePerformanceReviews: {},
     performanceBatchRecommendations: {},
+    sourceImport: undefined,
     timeBase: TIME_BASE,
   }
 }
@@ -299,6 +316,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     sectionPerformancePlans: r.sectionPerformancePlans ?? {},
     candidatePerformanceReviews: r.candidatePerformanceReviews ?? {},
     performanceBatchRecommendations: r.performanceBatchRecommendations ?? {},
+    sourceImport: r.sourceImport,
     timeBase: r.timeBase,
   }
 }

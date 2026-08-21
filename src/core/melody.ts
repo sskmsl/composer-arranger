@@ -137,7 +137,12 @@ export interface MelodyFeatures {
   leapRecoveryRatio: number
 }
 
-export type MelodySourceMode = "generate" | "develop-seed" | "improve" | "regenerate-range"
+export type MelodySourceMode =
+  | "generate"
+  | "develop-seed"
+  | "improve"
+  | "regenerate-range"
+  | "import-midi"
 
 export interface RangeRegenerationLocks {
   pitch: boolean
