@@ -73,6 +73,12 @@ export interface ProjectSourceImport {
   melodyTrackConfidence: number
   chordInferenceConfidence: number
   sectionsFromMarkers: boolean
+  /** トラック・Section・コードの確認画面を通して作成されたか。 */
+  reviewConfirmed?: boolean
+  trackAssignments?: Array<{
+    trackName: string
+    role: "melody" | "harmony" | "bass" | "drums" | "other" | "ignore"
+  }>
   warnings: string[]
 }
 

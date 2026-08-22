@@ -107,6 +107,7 @@ export function buildAiArrangementContext(
               melodyTrackConfidence: project.sourceImport.melodyTrackConfidence,
               chordInferenceConfidence: project.sourceImport.chordInferenceConfidence,
               sectionsFromMarkers: project.sourceImport.sectionsFromMarkers,
+              reviewConfirmed: project.sourceImport.reviewConfirmed ?? false,
               warnings: [...project.sourceImport.warnings],
             },
           }

@@ -46,6 +46,53 @@ export interface MidiProjectImportResult {
   }
 }
 
+export type MidiImportTrackRole = "melody" | "harmony" | "bass" | "drums" | "other" | "ignore"
+
+export interface MidiImportTrackSummary {
+  index: number
+  name: string
+  noteCount: number
+  averagePitch: number | null
+  channelNumbers: number[]
+  recommendedRole: MidiImportTrackRole
+}
+
+export interface MidiImportSectionDraft {
+  id: string
+  name: string
+  role: SectionRole
+  startBar: number
+}
+
+export interface MidiImportAnalysis {
+  fileName: string
+  title: string
+  tempo: number
+  key: string
+  timeSignature: string
+  totalBars: number
+  tracks: MidiImportTrackSummary[]
+  sections: MidiImportSectionDraft[]
+  melodyTrackIndex: number
+  melodyTrackConfidence: number
+  sectionsFromMarkers: boolean
+  warnings: string[]
+  /** UIから隠す必要はないが、編集対象ではない解析済みイベント。再パースせず確定へ進むため保持する。 */
+  source: ParsedMidiSong
+}
+
+export interface MidiImportReviewOptions {
+  melodyTrackIndex?: number
+  trackRoles?: Record<number, Exclude<MidiImportTrackRole, "melody">>
+  sections?: MidiImportSectionDraft[]
+  chordSymbolOverrides?: Record<string, string>
+  title?: string
+  tempo?: number
+  key?: string
+  /** 人が解析結果を確認・編集して確定した場合のみ true。 */
+  reviewConfirmed?: boolean
+}
+
 class MidiReader {
   private offset = 0
   private readonly bytes: Uint8Array
@@ -349,6 +396,17 @@ function chooseMelodyTrack(tracks: ParsedMidiTrack[]): { track: ParsedMidiTrack;
   return { track: ranked[0].track, index: ranked[0].index, confidence: Number(Math.min(0.98, 0.58 + gap * 0.1).toFixed(2)) }
 }
 
+function recommendedTrackRole(track: ParsedMidiTrack, index: number, melodyIndex: number): MidiImportTrackRole {
+  if (index === melodyIndex) return "melody"
+  if (track.notes.length === 0) return "ignore"
+  if (isDrumTrack(track)) return "drums"
+  const pitched = track.notes.filter((note) => note.channel !== 9)
+  const averagePitch = pitched.reduce((sum, note) => sum + note.pitch, 0) / Math.max(1, pitched.length)
+  if (/(bass|sub|低音|ベース)/i.test(track.name) || averagePitch < 49) return "bass"
+  if (/(chord|pad|piano|keys|string|guitar|伴奏|コード)/i.test(track.name)) return "harmony"
+  return "other"
+}
+
 function sectionRoleFromName(name: string): SectionRole {
   if (/(intro|イントロ)/i.test(name)) return "intro"
   if (/(pre.?chorus|bメロ)/i.test(name)) return "pre-chorus"
@@ -403,6 +461,46 @@ function buildSections(song: ParsedMidiSong): { windows: SectionWindow[]; fromMa
     return { section, startBeat: marker.bar * beatsPerBar, endBeat: (marker.bar + lengthBars) * beatsPerBar }
   })
   return { windows, fromMarkers: true }
+}
+
+function windowsFromSectionDrafts(
+  song: ParsedMidiSong,
+  drafts: MidiImportSectionDraft[],
+): SectionWindow[] {
+  const beatsPerBar = song.timeSignature.numerator * 4 / song.timeSignature.denominator
+  const totalBars = Math.max(1, Math.ceil(Math.max(beatsPerBar, song.endTick / song.ppq) / beatsPerBar))
+  const normalized = drafts
+    .map((draft, index) => ({
+      ...draft,
+      name: draft.name.trim() || `Section ${index + 1}`,
+      startBar: Math.max(1, Math.min(totalBars, Math.round(draft.startBar))),
+    }))
+    .sort((left, right) => left.startBar - right.startBar)
+    .filter((draft, index, values) => index === 0 || draft.startBar !== values[index - 1].startBar)
+  if (normalized.length === 0 || normalized[0].startBar !== 1) {
+    normalized.unshift({ id: "import-section-1", name: "Imported Intro", role: "intro", startBar: 1 })
+  }
+  return normalized.map((draft, index) => {
+    const nextStartBar = normalized[index + 1]?.startBar ?? totalBars + 1
+    const lengthBars = Math.max(1, nextStartBar - draft.startBar)
+    const section: Section = {
+      id: crypto.randomUUID(),
+      name: draft.name,
+      role: draft.role,
+      startBar: draft.startBar,
+      lengthBars,
+      content: { ...DEFAULT_SECTION_CONTENT },
+    }
+    return {
+      section,
+      startBeat: (draft.startBar - 1) * beatsPerBar,
+      endBeat: (draft.startBar - 1 + lengthBars) * beatsPerBar,
+    }
+  })
+}
+
+export function midiChordOverrideKey(sectionStartBar: number, chordStartBeat: number): string {
+  return `${sectionStartBar}:${Number(chordStartBeat.toFixed(4))}`
 }
 
 const CHORD_TEMPLATES = [
@@ -511,27 +609,93 @@ function cleanFileName(fileName: string): string {
   return fileName.replace(/\.(mid|midi)$/i, "").trim() || "Imported MIDI"
 }
 
-export function midiToComposerProject(bytes: Uint8Array, fileName: string): MidiProjectImportResult {
+export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImportAnalysis {
   const song = parseMidi(bytes)
   const pitchedTracks = song.tracks.filter((track) => track.notes.some((note) => note.channel !== 9))
   const allPitchedNotes = pitchedTracks.flatMap((track) => track.notes.filter((note) => note.channel !== 9))
   if (allPitchedNotes.length === 0) throw new Error("MIDIに音程を持つノートがありません。")
-
   const melody = chooseMelodyTrack(song.tracks)
-  const { windows, fromMarkers } = buildSections(song)
   const key = song.keySignature ? keyFromSignature(song.keySignature) : inferKey(allPitchedNotes)
-  const accompanimentTracks = song.tracks.filter((track, index) => index !== melody.index && !isDrumTrack(track))
-  const accompanimentNotes = accompanimentTracks.flatMap((track) => track.notes)
+  const { windows, fromMarkers } = buildSections(song)
+  const beatsPerBar = song.timeSignature.numerator * 4 / song.timeSignature.denominator
+  const totalBars = Math.max(1, Math.ceil(Math.max(beatsPerBar, song.endTick / song.ppq) / beatsPerBar))
+  const warnings: string[] = []
+  if (!fromMarkers) warnings.push("セクションマーカーがないため、曲全体を1セクションとして候補化しました。")
+  if (!song.keySignature) warnings.push("キー情報がないため、ノート分布から推定しました。")
+  if (melody.confidence < 0.72) warnings.push("メロディトラックの判定候補が拮抗しています。主旋律トラックを確認してください。")
+  return {
+    fileName,
+    title: song.title || cleanFileName(fileName),
+    tempo: Math.max(20, Math.min(300, Math.round(song.tempoBpm * 10) / 10)),
+    key,
+    timeSignature: `${song.timeSignature.numerator}/${song.timeSignature.denominator}`,
+    totalBars,
+    tracks: song.tracks.map((track, index) => {
+      const pitched = track.notes.filter((note) => note.channel !== 9)
+      return {
+        index,
+        name: track.name,
+        noteCount: track.notes.length,
+        averagePitch: pitched.length > 0
+          ? Number((pitched.reduce((sum, note) => sum + note.pitch, 0) / pitched.length).toFixed(1))
+          : null,
+        channelNumbers: [...new Set(track.notes.map((note) => note.channel + 1))].sort((left, right) => left - right),
+        recommendedRole: recommendedTrackRole(track, index, melody.index),
+      }
+    }),
+    sections: windows.map((window, index) => ({
+      id: `import-section-${index + 1}`,
+      name: window.section.name,
+      role: window.section.role,
+      startBar: window.section.startBar,
+    })),
+    melodyTrackIndex: melody.index,
+    melodyTrackConfidence: melody.confidence,
+    sectionsFromMarkers: fromMarkers,
+    warnings,
+    source: song,
+  }
+}
+
+export function createMidiProjectFromAnalysis(
+  analysis: MidiImportAnalysis,
+  options: MidiImportReviewOptions = {},
+): MidiProjectImportResult {
+  const song = analysis.source
+  const melodyIndex = options.melodyTrackIndex ?? analysis.melodyTrackIndex
+  const melodyTrack = song.tracks[melodyIndex]
+  if (!melodyTrack || melodyTrack.notes.every((note) => note.channel === 9)) {
+    throw new Error("主旋律として利用できるトラックを選択してください。")
+  }
+  const roles = Object.fromEntries(
+    analysis.tracks.map((track) => [
+      track.index,
+      track.index === melodyIndex
+        ? "melody"
+        : options.trackRoles?.[track.index] ?? (track.recommendedRole === "melody" ? "other" : track.recommendedRole),
+    ]),
+  ) as Record<number, MidiImportTrackRole>
+  const windows = windowsFromSectionDrafts(song, options.sections ?? analysis.sections)
+  const allPitchedNotes = song.tracks.flatMap((track) => track.notes.filter((note) => note.channel !== 9))
+  const accompanimentTracks = song.tracks.filter((_track, index) => roles[index] === "harmony" || roles[index] === "bass")
+  const accompanimentNotes = accompanimentTracks.flatMap((track) => track.notes.filter((note) => note.channel !== 9))
   const chordSource = accompanimentNotes.length > 0 ? accompanimentNotes : allPitchedNotes
+  const key = options.key?.trim() || analysis.key
   const harmony = inferChords(song, chordSource, windows, key)
-  const project = createEmptyProject(song.title || cleanFileName(fileName))
+  const overrides = options.chordSymbolOverrides ?? {}
+  const chords = harmony.chords.map((chord) => {
+    const section = windows.find((window) => window.section.id === chord.sectionId)?.section
+    const override = section ? overrides[midiChordOverrideKey(section.startBar, chord.startBeat)]?.trim() : ""
+    return override ? { ...chord, symbol: override } : chord
+  })
+  const project = createEmptyProject(options.title?.trim() || analysis.title)
   const batchId = crypto.randomUUID()
   const variants: MelodyVariant[] = windows.flatMap((window, index) => {
-    const notes = notesForSection(melody.track, song, window)
+    const notes = notesForSection(melodyTrack, song, window)
     if (notes.length === 0) return []
     return [{
       id: crypto.randomUUID(),
-      name: `${window.section.name} · ${melody.track.name}`,
+      name: `${window.section.name} · ${melodyTrack.name}`,
       sectionId: window.section.id,
       sourceMode: "import-midi",
       notes,
@@ -549,11 +713,8 @@ export function midiToComposerProject(bytes: Uint8Array, fileName: string): Midi
     }]
   })
   const assignments = Object.fromEntries(variants.map((variant) => [variant.sectionId, variant.id]))
-  const warnings: string[] = []
-  if (!fromMarkers) warnings.push("セクションマーカーがないため、曲全体を1セクションとして読み込みました。")
-  if (!song.keySignature) warnings.push("キー情報がないため、ノート分布から推定しました。")
-  if (accompanimentNotes.length === 0) warnings.push("伴奏トラックがないため、コード推定の信頼度は低めです。")
-  if (melody.confidence < 0.72) warnings.push("メロディトラックの判定候補が拮抗しています。読み込み後に音符を確認してください。")
+  const warnings = [...analysis.warnings]
+  if (accompanimentNotes.length === 0) warnings.push("Harmony/Bassトラックがないため、コード推定の信頼度は低めです。")
 
   const importedAt = new Date().toISOString()
   const resultProject: ComposerProject = {
@@ -561,26 +722,31 @@ export function midiToComposerProject(bytes: Uint8Array, fileName: string): Midi
     song: {
       ...project.song,
       key,
-      tempo: Math.max(20, Math.min(300, Math.round(song.tempoBpm * 10) / 10)),
+      tempo: Math.max(20, Math.min(300, Number(options.tempo) || analysis.tempo)),
       timeSignature: `${song.timeSignature.numerator}/${song.timeSignature.denominator}`,
     },
     sections: windows.map((window) => window.section),
-    chords: harmony.chords,
+    chords,
     melodyVariants: variants,
     activeMelodyId: variants[0]?.id ?? null,
     sectionMelodyAssignments: assignments,
-    notes: `MIDIから自動作成 (${fileName})。コード・メロディ・キーは推定を含みます。`,
+    notes: `MIDIから自動作成 (${analysis.fileName})。コード・メロディ・キーは推定を含みます。`,
     sourceImport: {
       type: "midi",
-      fileName,
+      fileName: analysis.fileName,
       importedAt,
       format: song.format,
       ppq: song.ppq,
       trackCount: song.tracks.length,
-      melodyTrackName: melody.track.name,
-      melodyTrackConfidence: melody.confidence,
+      melodyTrackName: melodyTrack.name,
+      melodyTrackConfidence: melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1,
       chordInferenceConfidence: harmony.confidence,
-      sectionsFromMarkers: fromMarkers,
+      sectionsFromMarkers: analysis.sectionsFromMarkers,
+      reviewConfirmed: options.reviewConfirmed ?? false,
+      trackAssignments: analysis.tracks.map((track) => ({
+        trackName: track.name,
+        role: roles[track.index],
+      })),
       warnings,
     },
     timeBase: TIME_BASE,
@@ -588,13 +754,17 @@ export function midiToComposerProject(bytes: Uint8Array, fileName: string): Midi
   return {
     project: resultProject,
     report: {
-      melodyTrackName: melody.track.name,
-      melodyTrackConfidence: melody.confidence,
+      melodyTrackName: melodyTrack.name,
+      melodyTrackConfidence: melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1,
       chordInferenceConfidence: harmony.confidence,
       sectionCount: windows.length,
       warnings,
     },
   }
+}
+
+export function midiToComposerProject(bytes: Uint8Array, fileName: string): MidiProjectImportResult {
+  return createMidiProjectFromAnalysis(analyzeMidiImport(bytes, fileName))
 }
 
 export async function readMidiProjectFile(file: File): Promise<MidiProjectImportResult> {
@@ -603,4 +773,12 @@ export async function readMidiProjectFile(file: File): Promise<MidiProjectImport
     throw new Error(".mid または .midi ファイルを選択してください。")
   }
   return midiToComposerProject(new Uint8Array(await file.arrayBuffer()), file.name)
+}
+
+export async function analyzeMidiProjectFile(file: File): Promise<MidiImportAnalysis> {
+  const lower = file.name.toLowerCase()
+  if (!lower.endsWith(".mid") && !lower.endsWith(".midi") && !file.type.includes("midi")) {
+    throw new Error(".mid または .midi ファイルを選択してください。")
+  }
+  return analyzeMidiImport(new Uint8Array(await file.arrayBuffer()), file.name)
 }
