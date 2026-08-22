@@ -7,9 +7,10 @@ import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput, type ChordDiagnosis } from "@/core/chordDiagnostics"
 import { CONTENT_PRESETS, DEFAULT_SECTION_CONTENT, presetById, presetIdFor } from "@/core/sectionContent"
 import { prepareImportedProject } from "@/core/composerSongExchange"
-import { MIDI_IMPORT_ACCEPT, readMidiProjectFile } from "@/midi/importMidi"
+import { MIDI_IMPORT_ACCEPT, analyzeMidiProjectFile, type MidiImportAnalysis } from "@/midi/importMidi"
 import { downloadProjectFile, readProjectFile } from "@/storage/projectFile"
 import { ProjectBrowser } from "./ProjectBrowser"
+import { MidiImportReviewDialog } from "./MidiImportReviewDialog"
 import { Button, FieldGroup, Select, TextInput, SectionCard, IconButton } from "@/ui/primitives"
 import {
   Plus,
@@ -98,6 +99,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const fileInputRef = useRef<HTMLInputElement>(null)
   const midiInputRef = useRef<HTMLInputElement>(null)
   const [browserOpen, setBrowserOpen] = useState(false)
+  const [midiImportAnalysis, setMidiImportAnalysis] = useState<MidiImportAnalysis | null>(null)
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const ts = parseTimeSignature(project.song.timeSignature)
   const sectionContent = section?.content ?? DEFAULT_SECTION_CONTENT
@@ -174,8 +176,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
               const file = e.target.files?.[0]
               if (!file) return
               try {
-                const { project: imported } = await readMidiProjectFile(file)
-                loadProject(imported)
+                setMidiImportAnalysis(await analyzeMidiProjectFile(file))
               } catch (error) {
                 window.alert(error instanceof Error ? error.message : "MIDIの読み込みに失敗しました")
               } finally {
@@ -189,7 +190,9 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             <p className="font-medium text-body-on-dark">MIDI解析プロジェクト</p>
             <p className="mt-1 break-all">{project.sourceImport.fileName}</p>
             <p>
-              Melody: {project.sourceImport.melodyTrackName} · 信頼度 {Math.round(project.sourceImport.melodyTrackConfidence * 100)}%
+              Melody: {project.sourceImport.melodyTrackName} · {project.sourceImport.reviewConfirmed
+                ? "確認済み"
+                : `自動推定 ${Math.round(project.sourceImport.melodyTrackConfidence * 100)}%`}
             </p>
             <p>コード推定: {Math.round(project.sourceImport.chordInferenceConfidence * 100)}%</p>
             {project.sourceImport.warnings.map((warning) => (
@@ -402,6 +405,16 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
       )}
 
       {browserOpen && <ProjectBrowser onClose={() => setBrowserOpen(false)} />}
+      {midiImportAnalysis && (
+        <MidiImportReviewDialog
+          analysis={midiImportAnalysis}
+          onCancel={() => setMidiImportAnalysis(null)}
+          onConfirm={(imported) => {
+            loadProject(imported)
+            setMidiImportAnalysis(null)
+          }}
+        />
+      )}
     </aside>
   )
 }

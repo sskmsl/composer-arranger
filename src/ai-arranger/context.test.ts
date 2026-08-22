@@ -58,6 +58,7 @@ describe("AI Arrangement context", () => {
       melodyTrackConfidence: 0.82,
       chordInferenceConfidence: 0.66,
       sectionsFromMarkers: false,
+      reviewConfirmed: false,
       warnings: ["セクションは推定です。"],
     }
     const context = buildAiArrangementContext(imported, sectionId)
@@ -68,6 +69,7 @@ describe("AI Arrangement context", () => {
       melodyTrackConfidence: 0.82,
       chordInferenceConfidence: 0.66,
       sectionsFromMarkers: false,
+      reviewConfirmed: false,
       warnings: ["セクションは推定です。"],
     })
   })

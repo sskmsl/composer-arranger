@@ -424,6 +424,7 @@ export interface AiArrangementContext {
       melodyTrackConfidence: number
       chordInferenceConfidence: number
       sectionsFromMarkers: boolean
+      reviewConfirmed: boolean
       warnings: string[]
     }
   }

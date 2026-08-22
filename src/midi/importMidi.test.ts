@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { buildSmf, TICKS_PER_QUARTER } from "./smf"
-import { midiToComposerProject, parseMidi } from "./importMidi"
+import {
+  analyzeMidiImport,
+  createMidiProjectFromAnalysis,
+  midiChordOverrideKey,
+  midiToComposerProject,
+  parseMidi,
+} from "./importMidi"
 
 function fixture(withMarkers = true): Uint8Array {
   const beat = TICKS_PER_QUARTER
@@ -65,6 +71,7 @@ describe("MIDI project import", () => {
     expect(report.melodyTrackName).toBe("Lead Melody")
     expect(report.melodyTrackConfidence).toBeGreaterThan(0.7)
     expect(project.sourceImport?.sectionsFromMarkers).toBe(true)
+    expect(project.sourceImport?.reviewConfirmed).toBe(false)
   })
 
   it("マーカーがないMIDIは曲全体を1セクションにし、推定上の注意を保持する", () => {
@@ -73,6 +80,38 @@ describe("MIDI project import", () => {
     expect(project.sections[0].name).toBe("Imported Song")
     expect(project.sections[0].lengthBars).toBe(8)
     expect(report.warnings.some((warning) => warning.includes("1セクション"))).toBe(true)
+  })
+
+  it("確認画面のMelody選択・Section境界・コード修正を確定プロジェクトへ反映する", () => {
+    const analysis = analyzeMidiImport(fixture(), "review.mid")
+    expect(analysis.tracks.find((track) => track.name === "Lead Melody")?.recommendedRole).toBe("melody")
+    expect(analysis.tracks.find((track) => track.name === "Piano Chords")?.recommendedRole).toBe("harmony")
+
+    const pianoIndex = analysis.tracks.find((track) => track.name === "Piano Chords")?.index
+    expect(pianoIndex).toBeTypeOf("number")
+    const { project } = createMidiProjectFromAnalysis(analysis, {
+      melodyTrackIndex: pianoIndex,
+      sections: [
+        { id: "s1", name: "Opening", role: "intro", startBar: 1 },
+        { id: "s2", name: "Hook", role: "chorus", startBar: 3 },
+      ],
+      chordSymbolOverrides: { [midiChordOverrideKey(1, 0)]: "Dm(add9)" },
+      title: "Reviewed MIDI",
+      tempo: 112,
+      key: "Dm",
+      reviewConfirmed: true,
+    })
+    expect(project.title).toBe("Reviewed MIDI")
+    expect(project.song).toMatchObject({ tempo: 112, key: "Dm" })
+    expect(project.sections.map((section) => [section.name, section.role, section.lengthBars])).toEqual([
+      ["Opening", "intro", 2],
+      ["Hook", "chorus", 6],
+    ])
+    expect(project.chords.find((chord) => chord.sectionId === project.sections[0].id && chord.startBeat === 0)?.symbol).toBe("Dm(add9)")
+    expect(project.sourceImport).toMatchObject({
+      reviewConfirmed: true,
+      melodyTrackName: "Piano Chords",
+    })
   })
 
   it("壊れたファイルをMIDIとして受理しない", () => {
