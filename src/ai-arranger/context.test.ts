@@ -43,6 +43,18 @@ function project() {
 }
 
 describe("AI Arrangement context", () => {
+  it("全曲で確定した世界観とDirectionをSection相談にも渡す", () => {
+    const value = project()
+    value.arrangementDirectorWorkspace = {
+      brief: "Aメロは近く、サビで空間を開く。主旋律は変えない。",
+      selectedDirectionId: "controlled-escalation",
+    }
+    expect(buildAiArrangementContext(value, "intro")?.project.arrangementIntent).toEqual({
+      brief: "Aメロは近く、サビで空間を開く。主旋律は変えない。",
+      selectedDirectionId: "controlled-escalation",
+    })
+  })
+
   it("MIDIインポートの推定信頼度と注意点をAIへ渡す", () => {
     const imported = createEmptyProject("Imported")
     const sectionId = "section-imported"

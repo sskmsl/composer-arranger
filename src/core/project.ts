@@ -93,6 +93,12 @@ export interface ArrangementDirectorOverrides {
   sections: Record<string, ArrangementDirectorSectionOverride>
 }
 
+export interface ArrangementDirectorWorkspaceState {
+  /** 曲全体で実現したい景色・制約。Section単位の会話より上位に保持する。 */
+  brief: string
+  selectedDirectionId: "preserve-space" | "controlled-escalation" | "motif-relay" | null
+}
+
 export type OrchestrationPartOverride = Partial<
   Pick<
     OrchestrationPartPlan,
@@ -137,6 +143,8 @@ export interface ComposerProject {
   arrangementSettings: ArrangementSettings
   /** 作曲者が明示的に確定したDirector判断。未指定項目は自動設計を使う。 */
   arrangementDirectorOverrides?: ArrangementDirectorOverrides
+  /** 第3弾: 全曲の世界観と選択中のArrangement Direction。 */
+  arrangementDirectorWorkspace?: ArrangementDirectorWorkspaceState
   /** Role自体はDirectorが決め、作曲者は音色・距離・奏法等だけを固定する。 */
   sectionOrchestrationOverrides?: SectionOrchestrationOverrides
   sections: Section[]
@@ -185,7 +193,7 @@ export interface ComposerProject {
 }
 
 /** 2.6: MIDIインポート元と推定信頼度を保持 */
-export const CURRENT_SCHEMA_VERSION = "2.6"
+export const CURRENT_SCHEMA_VERSION = "2.7"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -201,6 +209,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS },
     arrangementDirectorOverrides: { sections: {} },
+    arrangementDirectorWorkspace: { brief: "", selectedDirectionId: null },
     sectionOrchestrationOverrides: {},
     sections: [],
     chords: [],
@@ -291,6 +300,10 @@ export function normalizeProject(raw: unknown): ComposerProject {
     arrangementDirectorOverrides: {
       climaxSectionId: r.arrangementDirectorOverrides?.climaxSectionId,
       sections: r.arrangementDirectorOverrides?.sections ?? {},
+    },
+    arrangementDirectorWorkspace: {
+      brief: r.arrangementDirectorWorkspace?.brief ?? "",
+      selectedDirectionId: r.arrangementDirectorWorkspace?.selectedDirectionId ?? null,
     },
     sectionOrchestrationOverrides: r.sectionOrchestrationOverrides ?? {},
     sections: normalizeSectionTimeline(r.sections ?? []).map(normalizeSectionContent),

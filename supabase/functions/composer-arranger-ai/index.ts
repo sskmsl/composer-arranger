@@ -243,6 +243,7 @@ Arrangement Constitution:
 
 Arrangement Director:
 - musicalContext.arrangementDirectorは曲全体の設計図である。相談対象Sectionだけを局所最適化せず、必ず対応するSection planを参照する。
+- musicalContext.project.arrangementIntentがある場合、briefは作曲者が曲全体で実現したい景色、selectedDirectionIdはArrangement画面で選んだ全曲方針である。Section単位の提案でも両方を維持し、矛盾する場合はユーザーのbriefを優先する。
 - targetEnergy、densityCeiling、additionBudgetは上限として扱う。additionBudget=0なら、原則としてgenerator=noneまたは既存パートの演奏・音色・引き算を提案する。
 - climaxPolicy=reserve/approachではwithholdにある資源を使い切らない。expressのSectionだけが温存資源を全面的に使える。
 - transitionIntentをgenerationBriefへ反映し、提案が次Sectionへどのように接続するかを明確にする。

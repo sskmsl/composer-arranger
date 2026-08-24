@@ -98,6 +98,14 @@ export function buildAiArrangementContext(
       tempo: project.song.tempo,
       timeSignature: project.song.timeSignature,
       songProfile: effectiveSongProfile(project, sectionId),
+      ...(project.arrangementDirectorWorkspace?.brief
+        ? {
+            arrangementIntent: {
+              brief: project.arrangementDirectorWorkspace.brief,
+              selectedDirectionId: project.arrangementDirectorWorkspace.selectedDirectionId,
+            },
+          }
+        : {}),
       ...(project.sourceImport
         ? {
             sourceImport: {
