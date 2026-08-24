@@ -604,3 +604,16 @@ describe("Arrangement Director Override", () => {
       .toBeUndefined()
   })
 })
+
+describe("Arrangement Director Workspace", () => {
+  it("全曲Briefと選択Directionをプロジェクトへ保持する", () => {
+    useProjectStore.getState().setArrangementDirectorWorkspace({
+      brief: "主旋律を守り、余白からサビへ段階的に開く",
+      selectedDirectionId: "controlled-escalation",
+    })
+    expect(useProjectStore.getState().project.arrangementDirectorWorkspace).toEqual({
+      brief: "主旋律を守り、余白からサビへ段階的に開く",
+      selectedDirectionId: "controlled-escalation",
+    })
+  })
+})

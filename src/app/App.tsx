@@ -130,7 +130,7 @@ export function App() {
           </>
         )}
         {tab === "ai-partner" && <AiPartnerWorkspace onNavigate={setTab} />}
-        {tab === "arrangement" && <ArrangementWorkspace />}
+        {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
       {tab !== "phrase" &&

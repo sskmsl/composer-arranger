@@ -3,6 +3,7 @@ import {
   createEmptyProject,
   effectiveSongProfile,
   type ArrangementDirectorSectionOverride,
+  type ArrangementDirectorWorkspaceState,
   type OrchestrationPartOverride,
   type ComposerProject,
   type SongProfileId,
@@ -189,6 +190,10 @@ interface ProjectState {
       densityCeiling?: number | null
     },
   ) => void
+  setArrangementDirectorWorkspace: (patch: {
+    brief?: string
+    selectedDirectionId?: ArrangementDirectorWorkspaceState["selectedDirectionId"]
+  }) => void
   setSectionOrchestrationOverride: (
     sectionId: string,
     role: OrchestrationRole,
@@ -801,6 +806,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             ? { climaxSectionId: prev.arrangementDirectorOverrides.climaxSectionId }
             : {}),
           sections,
+        },
+      },
+    })
+    get().persist()
+  },
+
+  setArrangementDirectorWorkspace: (patch) => {
+    const prev = get().project
+    const current = prev.arrangementDirectorWorkspace ?? { brief: "", selectedDirectionId: null }
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...prev,
+        arrangementDirectorWorkspace: {
+          brief: patch.brief === undefined ? current.brief : patch.brief.slice(0, 1500),
+          selectedDirectionId: patch.selectedDirectionId === undefined
+            ? current.selectedDirectionId
+            : patch.selectedDirectionId,
         },
       },
     })

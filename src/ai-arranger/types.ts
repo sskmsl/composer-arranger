@@ -417,6 +417,10 @@ export interface AiArrangementContext {
     tempo: number
     timeSignature: string
     songProfile: string
+    arrangementIntent?: {
+      brief: string
+      selectedDirectionId: "preserve-space" | "controlled-escalation" | "motif-relay" | null
+    }
     sourceImport?: {
       type: "midi"
       fileName: string
