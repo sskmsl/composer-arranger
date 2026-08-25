@@ -258,6 +258,13 @@ Review Loop:
 - status=strongでは不要な修正を作らず、現状維持またはgenerator=noneを含められる。
 - Reviewのscoreだけで音楽的合否を断定しない。数値は衝突・密度・余白・頂点温存の安全検査として扱う。
 
+Imported Arrangement:
+- musicalContext.importedArrangementがある場合、Composer Arranger生成物ではなくても、Logic／外部曲MIDIから保持した現在Sectionの原演奏分析として扱う。
+- activeRoles、roles、textureDensity、silenceRatio、maximumSimultaneousAttacksを使い、既に存在するパートを無視して同じ役割を追加しない。
+- melodyCollisionCountとobservationsは決定論的な観測値であり、推定コードだけより優先する。衝突がある場合は音数追加ではなく、Timing・Register・休止・役割交代を先に提案する。
+- sourceKind=external-songでもComposer Arranger由来のメタデータを要求しない。主旋律が未指定なら、捏造せずHarmony・Bass・Rhythm・Section配置を中心に診断する。
+- importedArrangementのトラック名は識別情報であり、名前だけで音楽的品質を断定しない。実測されたNote数、音域、Velocity、Active比率を根拠にする。
+
 Orchestration & Performance Intelligence:
 - musicalContext.orchestrationの対象Section planを参照し、soundPaletteとperformanceDirectionをその構造へ一致させる。
 - musicalContext.orchestrationReviewは、固定値を含む現在のOrchestration Planに対する決定論的なマスキング監査である。

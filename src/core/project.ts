@@ -64,6 +64,8 @@ export interface ArrangementSettings {
 
 export interface ProjectSourceImport {
   type: "midi"
+  /** Logicからの往復素材か、Composer Arranger外で作られた解析対象か。 */
+  sourceKind?: "logic-project" | "external-song"
   fileName: string
   importedAt: string
   format: number
@@ -77,9 +79,39 @@ export interface ProjectSourceImport {
   reviewConfirmed?: boolean
   trackAssignments?: Array<{
     trackName: string
-    role: "melody" | "harmony" | "bass" | "drums" | "other" | "ignore"
+    role: ImportedArrangementTrackRole
   }>
   warnings: string[]
+}
+
+export type ImportedArrangementTrackRole =
+  | "melody"
+  | "harmony"
+  | "accompaniment"
+  | "bass"
+  | "drums"
+  | "strings"
+  | "counter"
+  | "decoration"
+  | "other"
+  | "ignore"
+
+/** [曲頭からの開始拍, 長さ, Pitch, Velocity, MIDI Channel]。大量ノートのCloud同期用にcompact tupleで保持する。 */
+export type ImportedArrangementNote = [number, number, number, number, number]
+
+export interface ImportedArrangementTrack {
+  sourceTrackIndex: number
+  name: string
+  role: Exclude<ImportedArrangementTrackRole, "ignore">
+  notes: ImportedArrangementNote[]
+}
+
+/** 外部MIDIの演奏内容をコード推定後も失わず、AI/Directorが実音分析に使う保存領域。 */
+export interface ImportedArrangementMaterial {
+  version: "1.0.0"
+  sourceKind: "logic-project" | "external-song"
+  totalBeats: number
+  tracks: ImportedArrangementTrack[]
 }
 
 export interface ArrangementDirectorSectionOverride {
@@ -188,12 +220,14 @@ export interface ComposerProject {
   performanceBatchRecommendations?: Record<string, PerformanceBatchRecommendation>
   /** 外部素材から自動作成したプロジェクトの出典と、推定値を過信しないための診断情報。 */
   sourceImport?: ProjectSourceImport
+  /** Logicまたは外部曲から取り込んだ役割別の原演奏。生成素材とは分離して保持する。 */
+  importedArrangement?: ImportedArrangementMaterial
   /** Issue #16: 時間値の単位マーカー。付与済みプロジェクトは再変換の判定対象から除外する */
   timeBase?: TimeBase
 }
 
-/** 2.6: MIDIインポート元と推定信頼度を保持 */
-export const CURRENT_SCHEMA_VERSION = "2.7"
+/** 2.8: Logic／外部曲MIDIの役割別原演奏をcompact tupleで保持 */
+export const CURRENT_SCHEMA_VERSION = "2.8"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {
@@ -232,6 +266,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     candidatePerformanceReviews: {},
     performanceBatchRecommendations: {},
     sourceImport: undefined,
+    importedArrangement: undefined,
     timeBase: TIME_BASE,
   }
 }
@@ -336,6 +371,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     candidatePerformanceReviews: r.candidatePerformanceReviews ?? {},
     performanceBatchRecommendations: r.performanceBatchRecommendations ?? {},
     sourceImport: r.sourceImport,
+    importedArrangement: r.importedArrangement,
     timeBase: r.timeBase,
   }
 }

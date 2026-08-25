@@ -73,9 +73,21 @@ describe("AI Arrangement context", () => {
       reviewConfirmed: false,
       warnings: ["セクションは推定です。"],
     }
+    imported.importedArrangement = {
+      version: "1.0.0",
+      sourceKind: "external-song",
+      totalBeats: 16,
+      tracks: [{
+        sourceTrackIndex: 1,
+        name: "Bass",
+        role: "bass",
+        notes: [[0, 2, 40, 72, 1]],
+      }],
+    }
     const context = buildAiArrangementContext(imported, sectionId)
     expect(context?.project.sourceImport).toEqual({
       type: "midi",
+      sourceKind: "external-song",
       fileName: "song.mid",
       melodyTrackName: "Lead",
       melodyTrackConfidence: 0.82,
@@ -83,6 +95,12 @@ describe("AI Arrangement context", () => {
       sectionsFromMarkers: false,
       reviewConfirmed: false,
       warnings: ["セクションは推定です。"],
+    })
+    expect(context?.importedArrangement).toMatchObject({
+      sourceKind: "external-song",
+      totalNotes: 1,
+      activeRoles: ["bass"],
+      textureDensity: "sparse",
     })
   })
 

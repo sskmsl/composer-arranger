@@ -423,6 +423,7 @@ export interface AiArrangementContext {
     }
     sourceImport?: {
       type: "midi"
+      sourceKind: "logic-project" | "external-song"
       fileName: string
       melodyTrackName: string
       melodyTrackConfidence: number
@@ -470,6 +471,26 @@ export interface AiArrangementContext {
     }>
     counterAssigned: boolean
     decorationAssigned: boolean
+  }
+  /** Logic／外部曲MIDIから保持した原演奏の、現在Sectionにおける分析結果。 */
+  importedArrangement?: {
+    sourceKind: "logic-project" | "external-song"
+    totalNotes: number
+    activeRoles: string[]
+    textureDensity: "sparse" | "balanced" | "dense"
+    silenceRatio: number
+    maximumSimultaneousAttacks: number
+    melodyCollisionCount: number
+    roles: Array<{
+      role: string
+      trackNames: string[]
+      noteCount: number
+      pitchRange: { lowest: number; highest: number } | null
+      averageVelocity: number
+      notesPerBar: number
+      activeBeatRatio: number
+    }>
+    observations: string[]
   }
   techniquePreferences: Record<string, string[]>
 }

@@ -1,4 +1,11 @@
-import { createEmptyProject, TIME_BASE, type ChordEvent, type ComposerProject } from "@/core/project"
+import {
+  createEmptyProject,
+  TIME_BASE,
+  type ChordEvent,
+  type ComposerProject,
+  type ImportedArrangementMaterial,
+  type ImportedArrangementTrackRole,
+} from "@/core/project"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import type { Section, SectionRole } from "@/core/section"
 import { DEFAULT_SECTION_CONTENT } from "@/core/sectionContent"
@@ -46,7 +53,7 @@ export interface MidiProjectImportResult {
   }
 }
 
-export type MidiImportTrackRole = "melody" | "harmony" | "bass" | "drums" | "other" | "ignore"
+export type MidiImportTrackRole = ImportedArrangementTrackRole
 
 export interface MidiImportTrackSummary {
   index: number
@@ -77,6 +84,7 @@ export interface MidiImportAnalysis {
   melodyTrackConfidence: number
   sectionsFromMarkers: boolean
   warnings: string[]
+  suggestedSourceKind: "logic-project" | "external-song"
   /** UIから隠す必要はないが、編集対象ではない解析済みイベント。再パースせず確定へ進むため保持する。 */
   source: ParsedMidiSong
 }
@@ -91,6 +99,7 @@ export interface MidiImportReviewOptions {
   key?: string
   /** 人が解析結果を確認・編集して確定した場合のみ true。 */
   reviewConfirmed?: boolean
+  sourceKind?: "logic-project" | "external-song"
 }
 
 class MidiReader {
@@ -402,9 +411,21 @@ function recommendedTrackRole(track: ParsedMidiTrack, index: number, melodyIndex
   if (isDrumTrack(track)) return "drums"
   const pitched = track.notes.filter((note) => note.channel !== 9)
   const averagePitch = pitched.reduce((sum, note) => sum + note.pitch, 0) / Math.max(1, pitched.length)
+  if (/(decoration|transition|fx|effect|riser|reverse|装飾)/i.test(track.name)) return "decoration"
+  if (/(counter|response|answer|対旋律)/i.test(track.name)) return "counter"
+  if (/(string|violin|viola|cello|ensemble|ストリング)/i.test(track.name)) return "strings"
+  if (/(pulse|percussion|perc|rhythm|beat)/i.test(track.name)) return "drums"
   if (/(bass|sub|低音|ベース)/i.test(track.name) || averagePitch < 49) return "bass"
   if (/(chord|pad|piano|keys|string|guitar|伴奏|コード)/i.test(track.name)) return "harmony"
+  if (/(accompaniment|arpeggio|ostinato|pattern)/i.test(track.name)) return "accompaniment"
   return "other"
+}
+
+function suggestedSourceKind(song: ParsedMidiSong): "logic-project" | "external-song" {
+  const names = song.tracks.map((track) => track.name).join(" ")
+  return /(logic production package|active melody|bass guide|chord guide|accompaniment pulse|decoration and transition)/i.test(names)
+    ? "logic-project"
+    : "external-song"
 }
 
 function sectionRoleFromName(name: string): SectionRole {
@@ -653,6 +674,7 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
     melodyTrackConfidence: melody.confidence,
     sectionsFromMarkers: fromMarkers,
     warnings,
+    suggestedSourceKind: suggestedSourceKind(song),
     source: song,
   }
 }
@@ -663,8 +685,8 @@ export function createMidiProjectFromAnalysis(
 ): MidiProjectImportResult {
   const song = analysis.source
   const melodyIndex = options.melodyTrackIndex ?? analysis.melodyTrackIndex
-  const melodyTrack = song.tracks[melodyIndex]
-  if (!melodyTrack || melodyTrack.notes.every((note) => note.channel === 9)) {
+  const melodyTrack = melodyIndex >= 0 ? song.tracks[melodyIndex] : undefined
+  if (melodyIndex >= 0 && (!melodyTrack || melodyTrack.notes.every((note) => note.channel === 9))) {
     throw new Error("主旋律として利用できるトラックを選択してください。")
   }
   const roles = Object.fromEntries(
@@ -690,7 +712,7 @@ export function createMidiProjectFromAnalysis(
   })
   const project = createEmptyProject(options.title?.trim() || analysis.title)
   const batchId = crypto.randomUUID()
-  const variants: MelodyVariant[] = windows.flatMap((window, index) => {
+  const variants: MelodyVariant[] = melodyTrack ? windows.flatMap((window, index) => {
     const notes = notesForSection(melodyTrack, song, window)
     if (notes.length === 0) return []
     return [{
@@ -711,12 +733,34 @@ export function createMidiProjectFromAnalysis(
       createdAt: new Date().toISOString(),
       leadContent: "melody",
     }]
-  })
+  }) : []
   const assignments = Object.fromEntries(variants.map((variant) => [variant.sectionId, variant.id]))
   const warnings = [...analysis.warnings]
   if (accompanimentNotes.length === 0) warnings.push("Harmony/Bassトラックがないため、コード推定の信頼度は低めです。")
 
   const importedAt = new Date().toISOString()
+  const sourceKind = options.sourceKind ?? analysis.suggestedSourceKind
+  const importedArrangement: ImportedArrangementMaterial = {
+    version: "1.0.0",
+    sourceKind,
+    totalBeats: Number((song.endTick / song.ppq).toFixed(4)),
+    tracks: song.tracks.flatMap((track, trackIndex) => {
+      const role = roles[trackIndex]
+      if (role === "ignore" || track.notes.length === 0) return []
+      return [{
+        sourceTrackIndex: trackIndex,
+        name: track.name,
+        role,
+        notes: track.notes.map((note) => [
+          Number((note.startTick / song.ppq).toFixed(4)),
+          Number((Math.max(1, note.durationTicks) / song.ppq).toFixed(4)),
+          note.pitch,
+          note.velocity,
+          note.channel + 1,
+        ]),
+      }]
+    }),
+  }
   const resultProject: ComposerProject = {
     ...project,
     song: {
@@ -730,16 +774,17 @@ export function createMidiProjectFromAnalysis(
     melodyVariants: variants,
     activeMelodyId: variants[0]?.id ?? null,
     sectionMelodyAssignments: assignments,
-    notes: `MIDIから自動作成 (${analysis.fileName})。コード・メロディ・キーは推定を含みます。`,
+    notes: `${sourceKind === "logic-project" ? "Logic Pro" : "外部曲"}のMIDIから作成 (${analysis.fileName})。コード・メロディ・キーは推定を含みます。`,
     sourceImport: {
       type: "midi",
+      sourceKind,
       fileName: analysis.fileName,
       importedAt,
       format: song.format,
       ppq: song.ppq,
       trackCount: song.tracks.length,
-      melodyTrackName: melodyTrack.name,
-      melodyTrackConfidence: melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1,
+      melodyTrackName: melodyTrack?.name ?? "主旋律なし",
+      melodyTrackConfidence: melodyTrack ? (melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1) : 0,
       chordInferenceConfidence: harmony.confidence,
       sectionsFromMarkers: analysis.sectionsFromMarkers,
       reviewConfirmed: options.reviewConfirmed ?? false,
@@ -749,13 +794,14 @@ export function createMidiProjectFromAnalysis(
       })),
       warnings,
     },
+    importedArrangement,
     timeBase: TIME_BASE,
   }
   return {
     project: resultProject,
     report: {
-      melodyTrackName: melodyTrack.name,
-      melodyTrackConfidence: melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1,
+      melodyTrackName: melodyTrack?.name ?? "主旋律なし",
+      melodyTrackConfidence: melodyTrack ? (melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1) : 0,
       chordInferenceConfidence: harmony.confidence,
       sectionCount: windows.length,
       warnings,

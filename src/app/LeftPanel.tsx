@@ -147,7 +147,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             <Upload size={13} /> Project JSON
           </Button>
           <Button variant="dark" onClick={() => midiInputRef.current?.click()}>
-            <Music2 size={13} /> MIDI解析
+            <Music2 size={13} /> Logic／外部曲 MIDI
           </Button>
           <input
             ref={fileInputRef}
@@ -185,9 +185,14 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             }}
           />
         </div>
+        <p className="mt-2 text-[9px] leading-4 text-ink-muted-48">
+          Logic Proでは「ファイル ＞ 書き出す ＞ 選択範囲をMIDIファイルとして」でSMFを書き出してください。.logicx／MP3はこの入口ではなく、標準MIDIを使用します。
+        </p>
         {project.sourceImport?.type === "midi" && (
           <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[10px] leading-relaxed text-body-muted">
-            <p className="font-medium text-body-on-dark">MIDI解析プロジェクト</p>
+            <p className="font-medium text-body-on-dark">
+              {project.sourceImport.sourceKind === "logic-project" ? "Logic Pro往復プロジェクト" : "外部曲MIDI解析プロジェクト"}
+            </p>
             <p className="mt-1 break-all">{project.sourceImport.fileName}</p>
             <p>
               Melody: {project.sourceImport.melodyTrackName} · {project.sourceImport.reviewConfirmed
@@ -195,6 +200,9 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
                 : `自動推定 ${Math.round(project.sourceImport.melodyTrackConfidence * 100)}%`}
             </p>
             <p>コード推定: {Math.round(project.sourceImport.chordInferenceConfidence * 100)}%</p>
+            <p>
+              原演奏保持: {project.importedArrangement?.tracks.length ?? 0} tracks · {project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0} notes
+            </p>
             {project.sourceImport.warnings.map((warning) => (
               <p key={warning} className="mt-1 text-amber-300">・{warning}</p>
             ))}
