@@ -105,7 +105,7 @@ function activeForRole(
   return false
 }
 
-function actionStatus(
+export function resolveWholeSongActionStatus(
   project: ComposerProject,
   sectionId: string,
   generator: WholeSongActionGenerator,
@@ -134,7 +134,7 @@ function action(
   return {
     ...value,
     id: `${directionId}:${value.sectionId}:${value.generator}`,
-    ...actionStatus(project, value.sectionId, value.generator, value.role),
+    ...resolveWholeSongActionStatus(project, value.sectionId, value.generator, value.role),
   }
 }
 
