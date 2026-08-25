@@ -13,6 +13,7 @@ import { reviewArrangementSection } from "./arrangementReview"
 import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
 import { reviewOrchestrationMasking } from "./orchestrationReview"
 import { reviewWholeSongArrangement } from "./wholeSongArrangementReview"
+import { analyzeImportedArrangementSection } from "./importedArrangementAnalysis"
 
 const MAX_MELODY_NOTES = 160
 
@@ -79,6 +80,7 @@ export function buildAiArrangementContext(
   const currentOrchestrationPlan = orchestration.sections.find(
     (plan) => plan.sectionId === sectionId,
   )
+  const importedArrangement = analyzeImportedArrangementSection(project, sectionId)
 
   return {
     arrangementConstitution: arrangementConstitutionContext(),
@@ -110,6 +112,7 @@ export function buildAiArrangementContext(
         ? {
             sourceImport: {
               type: project.sourceImport.type,
+              sourceKind: project.sourceImport.sourceKind ?? "external-song",
               fileName: project.sourceImport.fileName,
               melodyTrackName: project.sourceImport.melodyTrackName,
               melodyTrackConfidence: project.sourceImport.melodyTrackConfidence,
@@ -168,6 +171,29 @@ export function buildAiArrangementContext(
       counterAssigned: Boolean(reactiveAssignment),
       decorationAssigned: Boolean(decorationAssignment),
     },
+    ...(importedArrangement
+      ? {
+          importedArrangement: {
+            sourceKind: importedArrangement.sourceKind,
+            totalNotes: importedArrangement.totalNotes,
+            activeRoles: importedArrangement.activeRoles,
+            textureDensity: importedArrangement.textureDensity,
+            silenceRatio: importedArrangement.silenceRatio,
+            maximumSimultaneousAttacks: importedArrangement.maximumSimultaneousAttacks,
+            melodyCollisionCount: importedArrangement.melodyCollisionCount,
+            roles: importedArrangement.roles.map((role) => ({
+              role: role.role,
+              trackNames: role.trackNames,
+              noteCount: role.noteCount,
+              pitchRange: role.pitchRange,
+              averageVelocity: role.averageVelocity,
+              notesPerBar: role.notesPerBar,
+              activeBeatRatio: role.activeBeatRatio,
+            })),
+            observations: importedArrangement.observations,
+          },
+        }
+      : {}),
     techniquePreferences: techniquePreferences(project, sectionId),
   }
 }

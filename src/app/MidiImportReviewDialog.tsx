@@ -17,16 +17,24 @@ import { Button, Select, TextInput } from "@/ui/primitives"
 const SECTION_ROLES = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 const SUPPORT_ROLES: Array<Exclude<MidiImportTrackRole, "melody">> = [
   "harmony",
+  "accompaniment",
   "bass",
   "drums",
+  "strings",
+  "counter",
+  "decoration",
   "other",
   "ignore",
 ]
 const ROLE_LABELS: Record<MidiImportTrackRole, string> = {
   melody: "Melody",
   harmony: "Harmony / Chords",
+  accompaniment: "Accompaniment / Pattern",
   bass: "Bass",
   drums: "Drums",
+  strings: "Strings",
+  counter: "Counter",
+  decoration: "Decoration / FX",
   other: "Other",
   ignore: "読み込まない",
 }
@@ -56,6 +64,7 @@ export function MidiImportReviewDialog({
   const [title, setTitle] = useState(analysis.title)
   const [tempo, setTempo] = useState(analysis.tempo)
   const [key, setKey] = useState(analysis.key)
+  const [sourceKind, setSourceKind] = useState(analysis.suggestedSourceKind)
   const [melodyTrackIndex, setMelodyTrackIndex] = useState(analysis.melodyTrackIndex)
   const [trackRoles, setTrackRoles] = useState(() => supportingRoles(analysis))
   const [sections, setSections] = useState(() => analysis.sections.map((section) => ({ ...section })))
@@ -86,8 +95,9 @@ export function MidiImportReviewDialog({
       tempo,
       key,
       reviewConfirmed: true,
+      sourceKind,
     }),
-    [analysis, chordOverrides, key, melodyTrackIndex, sortedSections, tempo, title, trackRoles],
+    [analysis, chordOverrides, key, melodyTrackIndex, sortedSections, sourceKind, tempo, title, trackRoles],
   )
   const previewSection = result.project.sections[selectedSectionIndex] ?? result.project.sections[0]
   const previewVariantId = previewSection
@@ -143,7 +153,7 @@ export function MidiImportReviewDialog({
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-hairline px-4 py-3">
           <div className="min-w-0">
             <h2 className="flex items-center gap-2 text-[16px] font-semibold text-body-on-dark">
-              <Music2 size={17} className="text-primary" /> MIDIインポート確認
+              <Music2 size={17} className="text-primary" /> Logic／外部曲 MIDIインポート確認
             </h2>
             <p className="mt-1 truncate text-[11px] text-ink-muted-48">{analysis.fileName}</p>
           </div>
@@ -175,6 +185,13 @@ export function MidiImportReviewDialog({
                     {analysis.timeSignature} · {analysis.totalBars}小節
                   </p>
                 </div>
+                <label className="col-span-2 flex flex-col gap-1 sm:col-span-3">
+                  <span className="text-[10px] text-ink-muted-48">読み込み目的</span>
+                  <Select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as typeof sourceKind)}>
+                    <option value="logic-project">Logic Proから戻した制作中データ</option>
+                    <option value="external-song">Composer Arranger外で作られた曲を解析</option>
+                  </Select>
+                </label>
               </div>
               {analysis.warnings.map((warning) => (
                 <p key={warning} className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-300">
@@ -188,6 +205,7 @@ export function MidiImportReviewDialog({
               <label className="mt-3 flex flex-col gap-1">
                 <span className="text-[10px] text-ink-muted-48">主旋律トラック</span>
                 <Select value={melodyTrackIndex} onChange={(event) => setMelodyTrackIndex(Number(event.target.value))}>
+                  <option value={-1}>主旋律なし（伴奏・構成だけ解析）</option>
                   {analysis.tracks.filter((track) => track.averagePitch !== null).map((track) => (
                     <option key={track.index} value={track.index}>{track.name} ({track.noteCount} notes)</option>
                   ))}
@@ -218,7 +236,10 @@ export function MidiImportReviewDialog({
                 ))}
               </div>
               <p className="mt-2 text-[10px] text-ink-muted-48">
-                自動選択信頼度 {Math.round(analysis.melodyTrackConfidence * 100)}%。MelodyはActive Melody、Harmony/Bassはコード推定へ使います。
+                自動選択信頼度 {Math.round(analysis.melodyTrackConfidence * 100)}%。MelodyはActive Melodyへ変換し、読み込む全Roleの原ノートは解析素材として独立保存します。
+              </p>
+              <p className="mt-1 text-[10px] text-cyan-200">
+                保存対象 {result.project.importedArrangement?.tracks.length ?? 0}トラック · {result.project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0}ノート
               </p>
             </section>
 
@@ -314,7 +335,7 @@ export function MidiImportReviewDialog({
 
         <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-hairline px-4 py-3">
           <p className="flex items-center gap-1.5 text-[10px] text-body-muted">
-            <Check size={12} className="text-emerald-400" /> 確定後も通常画面でコード・Section・ノートを編集できます
+            <Check size={12} className="text-emerald-400" /> 外部曲でも全パートを保持し、確定後にAI Partner／Arrangementで解析できます
           </p>
           <div className="ml-auto flex gap-2">
             <Button variant="dark" onClick={onCancel}>キャンセル</Button>

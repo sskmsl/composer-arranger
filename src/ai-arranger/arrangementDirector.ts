@@ -7,6 +7,7 @@ import type {
   ArrangementDirectorFunction,
   ArrangementDirectorSectionPlan,
 } from "./types"
+import { importedRolesInSection } from "./importedArrangementAnalysis"
 
 const ENERGY_BY_ROLE: Record<SectionRole, 1 | 2 | 3 | 4 | 5> = {
   intro: 2,
@@ -48,6 +49,10 @@ function existingLayerCount(project: ComposerProject, sectionId: string): number
   if (project.sectionAccompanimentPatternAssignments[sectionId]) count += 1
   if (project.sectionReactiveLayerAssignments?.[sectionId]) count += 1
   if (project.sectionDecorationLayerAssignments?.[sectionId]) count += 1
+  const importedSupportingRoles = [...importedRolesInSection(project, sectionId)].filter(
+    (role) => role !== "melody" && role !== "harmony",
+  )
+  count += importedSupportingRoles.length
   return count
 }
 

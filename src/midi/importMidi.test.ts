@@ -72,6 +72,47 @@ describe("MIDI project import", () => {
     expect(report.melodyTrackConfidence).toBeGreaterThan(0.7)
     expect(project.sourceImport?.sectionsFromMarkers).toBe(true)
     expect(project.sourceImport?.reviewConfirmed).toBe(false)
+    expect(project.sourceImport?.sourceKind).toBe("external-song")
+    expect(project.importedArrangement?.tracks.map((track) => track.role)).toEqual(["melody", "harmony"])
+    expect(project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0)).toBe(32)
+  })
+
+  it("主旋律のない外部曲でも全トラックを解析素材として保持する", () => {
+    const analysis = analyzeMidiImport(fixture(), "instrumental.mid")
+    const { project, report } = createMidiProjectFromAnalysis(analysis, {
+      melodyTrackIndex: -1,
+      sourceKind: "external-song",
+      trackRoles: { 0: "other", 1: "harmony" },
+      reviewConfirmed: true,
+    })
+    expect(project.melodyVariants).toEqual([])
+    expect(project.sectionMelodyAssignments).toEqual({})
+    expect(project.importedArrangement?.tracks).toHaveLength(2)
+    expect(project.importedArrangement?.sourceKind).toBe("external-song")
+    expect(report.melodyTrackName).toBe("主旋律なし")
+  })
+
+  it("Logic Production Packageのトラック名から往復素材と役割を判定する", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Logic Production Package",
+      tempoBpm: 96,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [{ tick: 0, text: "Intro" }],
+      tracks: [
+        { name: "01 Bass Guide", notes: [{ pitch: 36, start: 0, duration: beat * 4, velocity: 70, channel: 0 }] },
+        { name: "03 Active Melody", notes: [{ pitch: 69, start: 0, duration: beat, velocity: 80, channel: 0 }] },
+        { name: "04 Melody Accompaniment", notes: [{ pitch: 60, start: beat, duration: beat, velocity: 64, channel: 0 }] },
+        { name: "05 Accompaniment Pulse", notes: [{ pitch: 48, start: 0, duration: beat / 2, velocity: 68, channel: 0 }] },
+        { name: "06 Counter", notes: [{ pitch: 57, start: beat * 2, duration: beat, velocity: 64, channel: 0 }] },
+        { name: "07 Decoration and Transition", notes: [{ pitch: 84, start: beat * 3, duration: beat, velocity: 58, channel: 0 }] },
+      ],
+    })
+    const analysis = analyzeMidiImport(bytes, "logic-return.mid")
+    expect(analysis.suggestedSourceKind).toBe("logic-project")
+    expect(analysis.tracks.filter((track) => track.noteCount > 0).map((track) => track.recommendedRole)).toEqual([
+      "bass", "melody", "accompaniment", "drums", "counter", "decoration",
+    ])
   })
 
   it("マーカーがないMIDIは曲全体を1セクションにし、推定上の注意を保持する", () => {

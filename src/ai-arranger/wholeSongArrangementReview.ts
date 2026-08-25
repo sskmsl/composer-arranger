@@ -6,6 +6,7 @@ import type {
   WholeSongArrangementReview,
 } from "./types"
 import { reviewArrangementSection } from "./arrangementReview"
+import { importedRolesInSection } from "./importedArrangementAnalysis"
 
 function activeLayerCount(project: ComposerProject, sectionId: string): number {
   const section = project.sections.find((candidate) => candidate.id === sectionId)
@@ -16,6 +17,9 @@ function activeLayerCount(project: ComposerProject, sectionId: string): number {
   if (project.sectionAccompanimentPatternAssignments[sectionId]) count += 1
   if (project.sectionReactiveLayerAssignments?.[sectionId]) count += 1
   if (project.sectionDecorationLayerAssignments?.[sectionId]) count += 1
+  count += [...importedRolesInSection(project, sectionId)].filter(
+    (role) => role !== "melody" && role !== "harmony",
+  ).length
   return count
 }
 

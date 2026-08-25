@@ -79,6 +79,23 @@ describe("Arrangement Director", () => {
     )
   })
 
+  it("Logic／外部曲から保持したBass・Drums・Stringsを既存レイヤーとして数える", () => {
+    const project = projectWithRoles(["verse"])
+    project.importedArrangement = {
+      version: "1.0.0",
+      sourceKind: "external-song",
+      totalBeats: 16,
+      tracks: [
+        { sourceTrackIndex: 0, name: "Bass", role: "bass", notes: [[0, 1, 40, 70, 1]] },
+        { sourceTrackIndex: 1, name: "Drums", role: "drums", notes: [[0, 0.25, 36, 90, 10]] },
+        { sourceTrackIndex: 2, name: "Strings", role: "strings", notes: [[0, 4, 60, 58, 1]] },
+      ],
+    }
+    const verse = buildArrangementDirectorBlueprint(project).sections[0]
+    expect(verse.existingLayerCount).toBe(3)
+    expect(verse.additionBudget).toBe(0)
+  })
+
   it("サビ系Sectionが未設定の制作途中では、勝手に頂点を決めない", () => {
     const project = projectWithRoles(["intro", "verse", "verse"])
     const blueprint = buildArrangementDirectorBlueprint(project)
