@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowRight, Check, CircleAlert, MessageCircle, Sparkles, WandSparkles } from "lucide-react"
-import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
-import {
-  decorationSettingsForIntent,
-  performancePartForIntent,
-  signatureDirectionForIntent,
-  signatureLengthForIntent,
-  targetTabForIntent,
-} from "@/ai-arranger/generationBridge"
-import { buildOrchestrationBlueprint } from "@/ai-arranger/orchestrationIntelligence"
+import { executeArrangementAction } from "@/ai-arranger/arrangementActionExecution"
 import {
   buildWholeSongDirectionProgram,
-  intentForWholeSongAction,
   type WholeSongArrangementAction,
   type WholeSongDirectionId,
 } from "@/ai-arranger/wholeSongDirectionPlan"
@@ -37,13 +28,6 @@ const STATUS_LABELS: Record<WholeSongArrangementAction["status"], string> = {
 export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
   const project = useProjectStore((state) => state.project)
   const setWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
-  const selectSection = useProjectStore((state) => state.selectSection)
-  const setGenerationSettings = useProjectStore((state) => state.setGenerationSettings)
-  const generateSignature = useProjectStore((state) => state.generateSignaturePhrasesForSection)
-  const generateCounter = useProjectStore((state) => state.generateCounterForSection)
-  const generateDecorations = useProjectStore((state) => state.generateDecorationsForSection)
-  const setAccompaniment = useProjectStore((state) => state.setSectionAccompanimentPattern)
-  const applyPerformance = useProjectStore((state) => state.applyPerformanceToLatestGeneration)
   const savedBrief = project.arrangementDirectorWorkspace?.brief ?? ""
   const [briefDraft, setBriefDraft] = useState(savedBrief)
   const program = useMemo(
@@ -90,50 +74,11 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
   }
 
   const execute = (action: WholeSongArrangementAction): MainTab | null => {
-    if (action.status !== "available" || action.generator === "none") return null
-    const intent = intentForWholeSongAction(action)
-    const before = useProjectStore.getState()
-    selectSection(action.sectionId)
-    setGenerationSettings({
-      density: intent.density,
-      rangePreset: intent.register,
-      drama: intent.drama,
-    })
-    if (intent.generator === "signature") {
-      const section = project.sections.find((candidate) => candidate.id === action.sectionId)
-      if (section) {
-        generateSignature(
-          action.sectionId,
-          signatureLengthForIntent(intent, section.lengthBars),
-          signatureDirectionForIntent(intent),
-        )
-      }
-    } else if (intent.generator === "counter") {
-      generateCounter(action.sectionId)
-    } else if (intent.generator === "decoration") {
-      generateDecorations(action.sectionId, decorationSettingsForIntent(intent))
-    } else if (intent.generator === "accompaniment" && intent.accompanimentPatternId !== "none") {
-      setAccompaniment(action.sectionId, intent.accompanimentPatternId)
-    }
-    const after = useProjectStore.getState()
-    const generatedNewBatch = intent.generator === "signature"
-      ? after.activeSignaturePhraseBatchId !== before.activeSignaturePhraseBatchId
-      : intent.generator === "counter" || intent.generator === "decoration"
-        ? after.activeReactiveBatchId !== before.activeReactiveBatchId
-        : intent.generator === "accompaniment"
-    if (generatedNewBatch) {
-      const director = buildArrangementDirectorBlueprint(after.project)
-      const orchestration = buildOrchestrationBlueprint(after.project, director)
-      const part = performancePartForIntent(
-        intent,
-        orchestration.sections.find((candidate) => candidate.sectionId === action.sectionId),
-      )
-      if (part) {
-        applyPerformance(action.sectionId, action.generator, part)
-      }
+    const result = executeArrangementAction(action)
+    if (result.generated) {
       setGeneratedActionIds((current) => new Set(current).add(action.id))
     }
-    return targetTabForIntent(intent)
+    return result.target
   }
 
   const generateSelected = () => {

@@ -8,6 +8,7 @@ import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
 import { WholeSongDirectorPanel } from "./WholeSongDirectorPanel"
+import { MultiPartArrangementPanel } from "./MultiPartArrangementPanel"
 
 export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
   const project = useProjectStore((state) => state.project)
@@ -87,7 +88,12 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         セクションをドラッグして曲順を変更し、各セクションで採用するMelody Variantを指定します。
       </p>
 
-      {project.sections.length > 0 && <WholeSongDirectorPanel onNavigate={onNavigate} />}
+      {project.sections.length > 0 && (
+        <>
+          <WholeSongDirectorPanel onNavigate={onNavigate} />
+          <MultiPartArrangementPanel onNavigate={onNavigate} />
+        </>
+      )}
 
       <div className="flex flex-col gap-2">
         {project.sections.map((section, index) => {
