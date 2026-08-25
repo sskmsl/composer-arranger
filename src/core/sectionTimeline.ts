@@ -39,6 +39,8 @@ export interface SongPlaybackMaterial {
   accompanimentPattern: MelodyNote[]
   /** Issue #42: 採用中のCounter / Decoration独立レイヤー。 */
   reactiveLayers: MelodyNote[]
+  counterLayers: MelodyNote[]
+  decorationLayers: MelodyNote[]
   totalBeats: number
 }
 
@@ -50,6 +52,8 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const accompaniment: MelodyNote[] = []
   const accompanimentPattern: MelodyNote[] = []
   const reactiveLayers: MelodyNote[] = []
+  const counterLayers: MelodyNote[] = []
+  const decorationLayers: MelodyNote[] = []
   const sections = normalizeSectionTimeline(project.sections)
 
   for (const [sectionIndex, section] of sections.entries()) {
@@ -187,12 +191,15 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
           candidate.structureFingerprint === currentDecorationFingerprint,
       )
     for (const reactive of reactiveCandidates) {
+      const roleTarget = reactive.kind === "decoration" ? decorationLayers : counterLayers
       for (const note of reactive.notes) {
-        reactiveLayers.push({
+        const absoluteNote = {
           ...note,
           id: `${section.id}:reactive:${note.id}`,
           startBeat: offset + note.startBeat,
-        })
+        }
+        reactiveLayers.push(absoluteNote)
+        roleTarget.push(absoluteNote)
       }
     }
     if (!variant) continue
@@ -214,6 +221,8 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
     accompaniment: accompaniment.sort(byBeat),
     accompanimentPattern: accompanimentPattern.sort(byBeat),
     reactiveLayers: reactiveLayers.sort(byBeat),
+    counterLayers: counterLayers.sort(byBeat),
+    decorationLayers: decorationLayers.sort(byBeat),
     totalBeats: totalBars * beatsPerBar,
   }
 }

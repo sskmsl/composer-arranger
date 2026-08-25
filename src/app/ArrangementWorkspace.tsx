@@ -9,6 +9,7 @@ import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
 import { WholeSongDirectorPanel } from "./WholeSongDirectorPanel"
 import { MultiPartArrangementPanel } from "./MultiPartArrangementPanel"
+import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
 
 export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
   const project = useProjectStore((state) => state.project)
@@ -92,6 +93,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         <>
           <WholeSongDirectorPanel onNavigate={onNavigate} />
           <MultiPartArrangementPanel onNavigate={onNavigate} />
+          <LogicProductionPackagePanel />
         </>
       )}
 

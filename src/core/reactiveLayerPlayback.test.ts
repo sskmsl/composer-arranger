@@ -95,6 +95,10 @@ describe("Issue #42 / Reactive Layer playback and persistence", () => {
     expect(material.reactiveLayers.map((note) => note.id)).toEqual([
       "s1:reactive:counter-note",
     ])
+    expect(material.counterLayers.map((note) => note.id)).toEqual([
+      "s1:reactive:counter-note",
+    ])
+    expect(material.decorationLayers).toEqual([])
     expect(material.melody).toHaveLength(2)
   })
 
