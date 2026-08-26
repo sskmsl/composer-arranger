@@ -2,7 +2,7 @@ import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
 import type { MelodyGeneratorProfile } from "@/core/melody"
-import { SECTION_ROLE_LABELS } from "@/core/section"
+import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { noteName, parseNoteName } from "@/core/note"
 import { Select, FieldGroup, SectionCard, IconButton, Button, TextInput, Label } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
@@ -16,11 +16,13 @@ import {
 import { GENERATION_SETTING_LABELS, profilesIgnoring, type GenerationSettingKey } from "@/melody-engine/settingsApplicability"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
-import { X, Dna, AlertCircle } from "lucide-react"
+import { X, Dna, AlertCircle, Play } from "lucide-react"
 import {
   TECHNIQUE_EXPERIMENT_PRESETS,
   type TechniqueExperimentPresetId,
 } from "@/composer-intelligence"
+import { explainMelodyCandidate } from "@/melody-engine/melodyEvidence"
+import { previewPlayer } from "@/audio/previewPlayer"
 
 const PROFILE_OPTIONS = Object.keys(SONG_PROFILE_LABELS) as SongProfileId[]
 
@@ -91,6 +93,19 @@ export function RightPanel({
   )
   const selected = generationSettings.selectedGeneratorProfiles
   const custom = generationSettings.customRange
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sectionChords = project.chords
+    .filter((chord) => chord.sectionId === selectedSectionId)
+    .sort((a, b) => a.startBeat - b.startBeat)
+  const candidateEvidence =
+    mode === "melody" && variant && selectedSection
+      ? explainMelodyCandidate(
+          variant,
+          sectionChords,
+          beatsPerBar,
+          selectedSection.lengthBars * beatsPerBar,
+        )
+      : null
 
   const setCustomBound = (which: "low" | "high", raw: string) => {
     const midi = parseNoteName(raw)
@@ -473,6 +488,64 @@ export function RightPanel({
         )}
         {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">Song Motif DNA保存済み(他セクション生成へ軽く反映されます)</p>}
       </SectionCard>}
+
+      {mode === "melody" && variant && candidateEvidence && (
+        <SectionCard title="候補の根拠" className="w-full min-w-0">
+          <p className="mb-3 text-[10px] leading-4 text-ink-muted-48">
+            AIの感想ではなく、表示中のMIDI・コード・生成計画から確認できる事実です。
+          </p>
+          {candidateEvidence.items.length > 0 ? (
+            <div className="flex flex-col gap-2.5">
+              {candidateEvidence.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-sm border border-hairline bg-surface-tile-2 p-2.5"
+                >
+                  <p className="text-[11px] font-semibold text-body-on-dark">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-[10px] leading-4 text-body-muted">
+                    {item.observation}
+                  </p>
+                  <p className="mt-1.5 border-t border-hairline pt-1.5 text-[10px] leading-4 text-ink-muted-48">
+                    {item.interpretation}
+                  </p>
+                  <Button
+                    variant="dark"
+                    className="mt-2 h-7 px-2 text-[10px]"
+                    onClick={() =>
+                      previewPlayer.play({
+                        bpm: project.song.tempo,
+                        chords: sectionChords,
+                        melody: variant.notes,
+                        mode: "chords-melody",
+                        startBeat: item.range.startBeat,
+                        range: item.range,
+                      })
+                    }
+                  >
+                    <Play size={11} /> 該当箇所を聴く
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-ink-muted-48">
+              現在の候補から、十分に具体的な根拠を抽出できませんでした。
+            </p>
+          )}
+          {candidateEvidence.cautions.length > 0 && (
+            <div className="mt-3 rounded-sm border border-amber-400/25 bg-amber-400/5 p-2.5">
+              <p className="text-[10px] font-semibold text-amber-300">採用前の確認点</p>
+              <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-[10px] leading-4 text-body-muted">
+                {candidateEvidence.cautions.map((caution) => (
+                  <li key={caution}>{caution}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </SectionCard>
+      )}
     </aside>
   )
 }
