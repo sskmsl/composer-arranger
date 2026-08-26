@@ -339,6 +339,7 @@
     <a href="#intro">アプリの全体像</a>
     <a href="#topbar">上部バーと曲の基本情報</a>
     <a href="#project">プロジェクトの管理</a>
+    <a href="#midi-import-start">MIDI読込後の開始ガイド</a>
     <a href="#sections">セクションの管理</a>
     <a href="#content">Content（鳴らす内容）</a>
     <a href="#accompaniment">伴奏パターン</a>
@@ -358,13 +359,14 @@
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Signature / Counter / Arrangement / Audition</strong> の6タブを切り替えて使います。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
+      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Signature / Counter / AI Partner / Arrangement / Audition</strong> の7タブを切り替えて使います。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
 
       <div class="tab-pill-row">
         <span class="tab-pill active">Melody</span>
         <span class="tab-pill">Phrase</span>
         <span class="tab-pill">Signature</span>
         <span class="tab-pill">Counter</span>
+        <span class="tab-pill">AI Partner</span>
         <span class="tab-pill">Arrangement</span>
         <span class="tab-pill">Audition</span>
       </div>
@@ -377,6 +379,7 @@
             <tr><td>Phrase</td><td>2〜8小節の短いフレーズだけを、意図つきで作って聴き比べる</td></tr>
             <tr><td>Signature</td><td>曲の顔になる短い核を作り、装飾を統合しながら最大8小節へ展開する</td></tr>
             <tr><td>Counter</td><td>Active Melodyの隙間へ、合いの手・応答フレーズを提案させる</td></tr>
+            <tr><td>AI Partner</td><td>コード・Active Melody・読み込んだパートを踏まえ、次の一手を相談してDirectionから実音生成へ進む</td></tr>
             <tr><td>Arrangement</td><td>セクションを並べ替えて曲全体を組み立てる</td></tr>
             <tr><td>Audition</td><td>候補をA/B/Cで切り替えながら判定する</td></tr>
           </tbody>
@@ -403,7 +406,7 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>Melody / Phrase / Signature / Counter / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
+            <tr><td>Melody / Phrase / Signature / Counter / AI Partner / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
           </tbody>
         </table>
       </div>
@@ -429,8 +432,12 @@
           <p>現在のプロジェクトをJSONファイルとしてダウンロードします。バックアップや他端末への移動に使えます。</p>
         </div>
         <div class="card">
-          <h4>Import</h4>
+          <h4>Project JSON</h4>
           <p>JSONファイルを選択してプロジェクトを読み込みます。古いスキーマのファイルも自動的に現行仕様へ変換されます。</p>
+        </div>
+        <div class="card">
+          <h4>Logic／外部曲 MIDI</h4>
+          <p>Logic Proなどから書き出した標準MIDIを解析し、Melody、コード、Section、役割別の原演奏を持つプロジェクトを作成します。</p>
         </div>
       </div>
 
@@ -441,6 +448,23 @@
         <li><strong>名前変更</strong> — 保存済みプロジェクトのタイトルのみを変更(最終編集日時は変わりません)。</li>
         <li><strong>削除</strong> — 一覧から削除します。誤操作時は「元に戻す」で復元可能。今まさに編集中のプロジェクトを削除した場合のみ編集画面へ復元され、それ以外のプロジェクトを復元した場合は現在の編集セッションに影響しません。</li>
       </ul>
+    </section>
+
+    <section class="chapter" id="midi-import-start">
+      <span class="chapter-num">02A</span>
+      <h2>MIDI読込後の開始ガイド</h2>
+      <p class="chapter-intro">「Logic／外部曲 MIDI」で内容を確定すると、読み込み直後に3ステップの開始ガイドが開きます。機能を全部試す必要はなく、ここに表示された順番だけでアレンジを始められます。</p>
+
+      <ol>
+        <li><strong>読み込み結果を確認</strong> — 「Arrangementで確認」からSection、コード、Melody、各トラックの役割を確認します。</li>
+        <li><strong>最優先の次パートを相談</strong> — 読み込んだ役割を調べ、主旋律、リズム、Bass、第二の顔、曲全体整理のうち、最初に検討すべき一つだけを表示します。</li>
+        <li><strong>Directionを選び、実音を生成</strong> — AI Partnerへ相談文を自動入力します。AIの提案を確認し、採用したいDirectionの「この案を生成」を押すと既存GeneratorがMIDIを作ります。</li>
+      </ol>
+
+      <div class="note">
+        <p><strong>コードとMelodyだけを読み込んだ場合</strong>は、通常「リズム設計」が最優先として表示されます。音を増やす前に曲の呼吸と推進力を決めるためです。DrumsがあればBass、主要パートが揃っていればCounter／Decorationの必要性、さらに揃っていれば曲全体の密度整理へ進みます。</p>
+      </div>
+      <p>開始ガイドを閉じても、左パネルの読み込み情報にある<strong>「開始ガイド」</strong>からいつでも再表示できます。AI Partnerへ移動しただけではGeneratorは実行されず、APIへの相談も送信されません。相談文を確認して「AIに3案を相談」を押した時点で初めてAI分析が始まります。</p>
     </section>
 
     <section class="chapter" id="sections">

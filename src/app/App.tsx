@@ -13,6 +13,7 @@ import { CounterWorkspace } from "./CounterWorkspace"
 import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
 import { AiPartnerWorkspace } from "./AiPartnerWorkspace"
 import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
+import { ImportStartGuide } from "./ImportStartGuide"
 
 export type MainTab =
   | "melody"
@@ -24,11 +25,14 @@ export type MainTab =
   | "audition"
 
 export function App() {
+  const project = useProjectStore((s) => s.project)
   const hydrate = useProjectStore((s) => s.hydrate)
   const hydrated = useProjectStore((s) => s.hydrated)
   const [tab, setTab] = useState<MainTab>("melody")
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
+  const [importGuideOpen, setImportGuideOpen] = useState(false)
+  const [aiPartnerInitialPrompt, setAiPartnerInitialPrompt] = useState<string | null>(null)
 
   useEffect(() => {
     void hydrate()
@@ -63,7 +67,7 @@ export function App() {
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {tab === "melody" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
             <MelodyWorkspace />
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} />
             {(leftOpen || rightOpen) && (
@@ -79,7 +83,7 @@ export function App() {
         )}
         {tab === "phrase" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
             <PhraseWorkspace />
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="phrase" />
             {(leftOpen || rightOpen) && (
@@ -95,7 +99,7 @@ export function App() {
         )}
         {tab === "signature" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
             <SignaturePhraseWorkspace />
             <RightPanel
               open={rightOpen}
@@ -115,7 +119,7 @@ export function App() {
         )}
         {tab === "counter" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
             <CounterWorkspace />
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="counter" />
             {(leftOpen || rightOpen) && (
@@ -129,7 +133,13 @@ export function App() {
             )}
           </>
         )}
-        {tab === "ai-partner" && <AiPartnerWorkspace onNavigate={setTab} />}
+        {tab === "ai-partner" && (
+          <AiPartnerWorkspace
+            onNavigate={setTab}
+            initialPrompt={aiPartnerInitialPrompt}
+            onInitialPromptConsumed={() => setAiPartnerInitialPrompt(null)}
+          />
+        )}
         {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
@@ -138,6 +148,25 @@ export function App() {
         tab !== "counter" &&
         tab !== "ai-partner" && (
         <BottomBar />
+      )}
+      {importGuideOpen && project.sourceImport?.type === "midi" && (
+        <ImportStartGuide
+          project={project}
+          onClose={() => setImportGuideOpen(false)}
+          onReview={() => {
+            setTab("arrangement")
+            setLeftOpen(false)
+            setRightOpen(false)
+            setImportGuideOpen(false)
+          }}
+          onConsult={(prompt) => {
+            setAiPartnerInitialPrompt(prompt)
+            setTab("ai-partner")
+            setLeftOpen(false)
+            setRightOpen(false)
+            setImportGuideOpen(false)
+          }}
+        />
       )}
     </div>
   )
