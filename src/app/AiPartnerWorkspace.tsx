@@ -70,8 +70,12 @@ const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
 
 export function AiPartnerWorkspace({
   onNavigate,
+  initialPrompt,
+  onInitialPromptConsumed,
 }: {
   onNavigate: (tab: MainTab) => void
+  initialPrompt?: string | null
+  onInitialPromptConsumed?: () => void
 }) {
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
@@ -117,6 +121,12 @@ export function AiPartnerWorkspace({
   const [generatingIntentId, setGeneratingIntentId] = useState<string | null>(null)
   const [audio, setAudio] = useState<AiAudioPayload | null>(null)
   const [preparingAudio, setPreparingAudio] = useState(false)
+
+  useEffect(() => {
+    if (!initialPrompt) return
+    setPrompt(initialPrompt)
+    onInitialPromptConsumed?.()
+  }, [initialPrompt, onInitialPromptConsumed])
 
   const effectiveSectionId =
     selectedSectionId ?? project.sections[0]?.id ?? null

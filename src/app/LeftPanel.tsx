@@ -28,6 +28,7 @@ import {
   FolderOpen,
   GripVertical,
   Music2,
+  Route,
 } from "lucide-react"
 
 const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
@@ -78,7 +79,15 @@ function ChordDiagnosisRow({ d }: { d: ChordDiagnosis }) {
   )
 }
 
-export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function LeftPanel({
+  open,
+  onClose,
+  onOpenImportGuide,
+}: {
+  open: boolean
+  onClose: () => void
+  onOpenImportGuide?: () => void
+}) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const selectSection = useProjectStore((s) => s.selectSection)
@@ -206,6 +215,11 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
             {project.sourceImport.warnings.map((warning) => (
               <p key={warning} className="mt-1 text-amber-300">・{warning}</p>
             ))}
+            {onOpenImportGuide && (
+              <Button variant="secondary" className="mt-2 !px-3 !py-1.5 !text-[11px]" onClick={onOpenImportGuide}>
+                <Route size={12} /> 開始ガイド
+              </Button>
+            )}
           </div>
         )}
       </SectionCard>
@@ -420,6 +434,7 @@ export function LeftPanel({ open, onClose }: { open: boolean; onClose: () => voi
           onConfirm={(imported) => {
             loadProject(imported)
             setMidiImportAnalysis(null)
+            onOpenImportGuide?.()
           }}
         />
       )}
