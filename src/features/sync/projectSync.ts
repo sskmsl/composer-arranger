@@ -121,10 +121,11 @@ export function scheduleProjectPush(project: StoredComposerProject): void {
 }
 
 export async function pushProject(project: StoredComposerProject): Promise<void> {
-  if (!supabase) return
+  const client = supabase
+  if (!client) return
   if (!(await ownerId())) return
   await runCloudRpc("アップロード", () =>
-    supabase.rpc(UPSERT_PROJECT_RPC, {
+    client.rpc(UPSERT_PROJECT_RPC, {
       p_id: project.projectId,
       p_data: project,
       p_updated_at: project.savedAt,
@@ -137,7 +138,8 @@ export async function deleteProjectRemote(
   projectId: string,
   deletedAt = new Date().toISOString(),
 ): Promise<void> {
-  if (!supabase) return
+  const client = supabase
+  if (!client) return
   const pending = pendingPushes.get(projectId)
   if (pending) {
     clearTimeout(pending)
@@ -146,7 +148,7 @@ export async function deleteProjectRemote(
   if (!(await ownerId())) return
   // 物理削除せずtombstoneを残し、別端末の古いIndexedDBから復活するのを防ぐ。
   await runCloudRpc("削除反映", () =>
-    supabase.rpc(UPSERT_PROJECT_RPC, {
+    client.rpc(UPSERT_PROJECT_RPC, {
       p_id: projectId,
       p_data: null,
       p_updated_at: deletedAt,
@@ -258,10 +260,11 @@ export async function syncPullAndReconcile(
   adapter: ProjectSyncAdapter,
   locallyDeletedIds: Iterable<string> = [],
 ): Promise<StoredComposerProject[]> {
-  if (!supabase) return adapter.listLocal()
+  const client = supabase
+  if (!client) return adapter.listLocal()
   const [remoteMetadata, localProjects] = await Promise.all([
     // 専用RPCはmetadataだけを返し、一般authenticated roleより長い同期専用timeoutを持つ。
-    runCloudRpc("一覧取得", () => supabase.rpc(LIST_PROJECT_METADATA_RPC)),
+    runCloudRpc("一覧取得", () => client.rpc(LIST_PROJECT_METADATA_RPC)),
     adapter.listLocal(),
   ])
 
@@ -275,7 +278,7 @@ export async function syncPullAndReconcile(
   // 大容量projectを同時取得せず、必要な最新版だけを順次取得する。
   for (const id of downloadIds) {
     const remote = await runCloudRpc("ダウンロード", () =>
-      supabase.rpc(GET_PROJECT_RPC, { p_id: id }),
+      client.rpc(GET_PROJECT_RPC, { p_id: id }),
     )
     const project = remote as StoredComposerProject | null | undefined
     if (project) downloadedById.set(id, project)
