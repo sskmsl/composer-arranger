@@ -234,11 +234,11 @@ export function AiPartnerWorkspace({
             <div className="mb-1 flex items-center gap-2 text-primary">
               <Sparkles size={18} />
               <span className="text-[11px] font-medium uppercase tracking-[0.18em]">
-                AI Arrangement Partner · Preview
+                AI Arrangement Partner
               </span>
             </div>
             <p className="mt-1 max-w-3xl text-[12px] leading-5 text-body-muted">
-              AIは音楽的な判断を3案へ整理し、実音は既存GeneratorがコードとActive Melodyを検証して生成します。
+              曲を診断し、5つの方針から選んだ案だけを生成して試聴できます。
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-pill bg-emerald-400/10 px-3 py-1.5 text-[11px] text-emerald-200">
@@ -248,7 +248,12 @@ export function AiPartnerWorkspace({
 
         <AiPartnerControlCenter onNavigate={onNavigate} />
 
-        {director && director.sections.length > 0 && (
+        <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
+          <summary className="cursor-pointer text-[11px] font-medium text-body-muted hover:text-body-on-dark">
+            詳細設定・分析を開く
+          </summary>
+          <div className="mt-3 flex flex-col gap-4">
+          {director && director.sections.length > 0 && (
           <SectionCard>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -507,7 +512,7 @@ export function AiPartnerWorkspace({
           </SectionCard>
         )}
 
-        {orchestrationPlan && (
+          {orchestrationPlan && (
           <SectionCard>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -735,9 +740,19 @@ export function AiPartnerWorkspace({
               </div>
             )}
           </SectionCard>
-        )}
+          )}
+          </div>
+        </details>
 
         <SectionCard>
+          <div className="mb-4">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
+              <MessageCircle size={15} className="text-primary" /> 必要ならAIへ追加相談
+            </div>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">
+              選んだ方針の修正や、守りたい条件を会話で伝えられます。
+            </p>
+          </div>
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <label className="flex flex-col gap-1.5 text-[11px] text-body-muted">
               対象セクション
