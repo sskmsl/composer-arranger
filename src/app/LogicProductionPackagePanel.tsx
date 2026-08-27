@@ -32,15 +32,15 @@ function TrackCard({ track }: { track: LogicProductionTrackPlan }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h4 className="break-words text-[11px] font-semibold text-body-on-dark">{track.trackName}</h4>
-          <p className="mt-0.5 text-[9px] text-cyan-200">{track.role}</p>
+          <p className="mt-0.5 text-[11px] text-cyan-200">{track.role}</p>
         </div>
-        <span className={`shrink-0 rounded-pill px-2 py-0.5 text-[8px] ${STATUS_CLASSES[track.status]}`}>
+        <span className={`shrink-0 rounded-pill px-2 py-0.5 text-[11px] ${STATUS_CLASSES[track.status]}`}>
           {STATUS_LABELS[track.status]} · {track.noteCount} notes
         </span>
       </div>
 
-      <p className="mt-2 text-[9px] leading-4 text-body-muted">{track.purpose}</p>
-      <div className="mt-2 grid gap-1 text-[9px] leading-4 text-body-muted">
+      <p className="mt-2 text-[11px] leading-4 text-body-muted">{track.purpose}</p>
+      <div className="mt-2 grid gap-1 text-[11px] leading-4 text-body-muted">
         <p><span className="text-ink-muted-48">Range</span> {track.pitchRange}</p>
         <p><span className="text-ink-muted-48">演奏</span> {track.performance}</p>
         <p><span className="text-ink-muted-48">定位</span> {track.panorama}</p>
@@ -50,9 +50,9 @@ function TrackCard({ track }: { track: LogicProductionTrackPlan }) {
       <div className="mt-3 space-y-1.5">
         {track.recommendations.map((recommendation) => (
           <div key={`${track.id}:${recommendation.product}`} className="rounded-sm border border-cyan-300/10 bg-cyan-300/[0.035] px-2.5 py-2">
-            <p className="break-words text-[9px] font-medium text-cyan-100">{recommendation.product}</p>
-            <p className="mt-0.5 break-words text-[8px] leading-4 text-body-muted">{recommendation.reason}</p>
-            <p className="mt-1 break-words text-[8px] text-ink-muted-48">検索: {recommendation.searchTerms.join(" / ")}</p>
+            <p className="break-words text-[11px] font-medium text-cyan-100">{recommendation.product}</p>
+            <p className="mt-0.5 break-words text-[11px] leading-4 text-body-muted">{recommendation.reason}</p>
+            <p className="mt-1 break-words text-[11px] text-ink-muted-48">検索: {recommendation.searchTerms.join(" / ")}</p>
           </div>
         ))}
       </div>
@@ -93,9 +93,9 @@ export function LogicProductionPackagePanel() {
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             曲の小節位置を保った役割別MIDIと、Komplete 15 Ultimate／Repro-1・5だけで実行できる制作指示書をまとめます。
           </p>
-          <p className="mt-1 break-words text-[10px] text-cyan-200">{productionPackage.directionTitle}</p>
+          <p className="mt-1 break-words text-[11px] text-cyan-200">{productionPackage.directionTitle}</p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-emerald-400/10 px-3 py-1 text-[9px] text-emerald-200">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-emerald-400/10 px-3 py-1 text-[11px] text-emerald-200">
           <Check size={11} /> SMF Type 1 · Logic Software Instrument互換
         </span>
       </div>
@@ -108,7 +108,7 @@ export function LogicProductionPackagePanel() {
           ["MIDI Channel", "全Track Ch.1"],
         ].map(([label, value]) => (
           <div key={label} className="min-w-0 rounded-sm border border-white/5 bg-black/10 px-3 py-2">
-            <p className="text-[8px] text-ink-muted-48">{label}</p>
+            <p className="text-[11px] text-ink-muted-48">{label}</p>
             <p className="mt-0.5 break-words text-[11px] font-semibold text-body-on-dark">{value}</p>
           </div>
         ))}
@@ -126,10 +126,10 @@ export function LogicProductionPackagePanel() {
             <FileText size={14} /> 制作指示書のみ
           </Button>
         </div>
-        <p className="mt-2 text-[9px] leading-4 text-body-muted">
+        <p className="mt-2 text-[11px] leading-4 text-body-muted">
           一括書き出しは <strong className="text-body-on-dark">.mid と .md の2ファイル</strong>です。LogicではMIDIを新規プロジェクトへ読み込み、テンポ情報を使用してください。Section Markerと曲中位置を維持します。
         </p>
-        <p className="mt-1 text-[9px] leading-4 text-amber-100">
+        <p className="mt-1 text-[11px] leading-4 text-amber-100">
           Bass Guide／Chord Guideは完成演奏ではありません。構成確認後、各Roleの推奨音源と演奏指示に沿って置換してください。
         </p>
       </div>

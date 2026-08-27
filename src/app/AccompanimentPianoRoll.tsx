@@ -62,14 +62,14 @@ export function ReadOnlyPianoRoll({
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: accentColor }} />
         <h3 className="text-[12px] font-medium text-body-on-dark">{title}</h3>
-        <span className="text-[10px] text-ink-muted-48">{subtitle}</span>
+        <span className="text-[11px] text-ink-muted-48">{subtitle}</span>
       </div>
       {/* Issue #59: 固定260pxは Chord Voicing(Bass+Upper Notes)のような広い音域だと
           常に内部スクロールを強制していた。viewport高に応じた可変上限へ変え、
           呼び出し側(ChordPianoRoll)がcontentの典型的な音域に合わせて広げられるようにする。 */}
       <div className="w-full min-w-0 overflow-auto no-scrollbar" style={{ maxHeight }}>
         <div
-          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[10px] text-ink-muted-48"
+          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[11px] text-ink-muted-48"
           style={{ width }}
         >
           {Array.from({ length: bars }).map((_, index) => (
@@ -96,7 +96,7 @@ export function ReadOnlyPianoRoll({
               <text
                 x={chord.startBeat * PX_PER_BEAT + 4}
                 y={12}
-                fontSize={10}
+                fontSize={11}
                 fill="rgba(255,255,255,0.4)"
               >
                 {chord.symbol}

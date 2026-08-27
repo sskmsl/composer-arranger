@@ -200,7 +200,8 @@ function partsForSection(
         ? plan.targetEnergy >= 3 || isIntro
         : plan.targetEnergy >= 3
   )
-  const counterWanted = hasMelody && !isIntro && !isOutro && (
+  const stringsWanted = hasMelody && !isIntro && !isOutro && (approach || express)
+  const counterWanted = hasMelody && !stringsWanted && !isIntro && !isOutro && (
     directionId === "motif-relay"
       ? ["develop", "declare", "transform"].includes(plan.narrativeFunction)
       : plan.targetEnergy >= 3 && plan.targetEnergy <= 4
@@ -263,13 +264,29 @@ function partsForSection(
     implementation: hasCounter ? "active" : counterExecution ? "generator" : "withheld",
   }))
 
+  const stringsExecution = stringsWanted
+    ? executionAction(
+        project,
+        directionId,
+        plan,
+        "counter",
+        "counter-voice",
+        "strings",
+        "movement",
+        express
+          ? "温存した弦の上声を一度だけ開き、主旋律の長音を支える"
+          : "長音と限定された上昇内声で、次Sectionへの方向を作る",
+      )
+    : null
   parts.push(planPart({
     id: `${plan.sectionId}:strings`, sectionId: plan.sectionId, sectionName: plan.sectionName,
     partRole: "strings",
-    state: express ? "enter" : approach ? "transform" : recovery ? "withdraw" : "hold",
+    state: stringsWanted ? (express ? "enter" : "transform") : recovery ? "withdraw" : "hold",
     purpose: express ? "温存した上声と幅を一度だけ開く" : approach ? "長音または内声の上昇で次Sectionへ方向を作る" : "高域を使い切らず背景の持続へ留める",
     register: express ? "wide" : approach ? "high" : "middle", distance: express ? "near" : "distant", intensity: express ? 5 : Math.max(1, plan.targetEnergy - 1) as 1 | 2 | 3 | 4 | 5,
-    stage: null, execution: null, implementation: "design-only",
+    stage: stringsExecution ? "movement" : null,
+    execution: stringsExecution,
+    implementation: hasCounter ? "active" : stringsExecution ? "generator" : "design-only",
   }))
 
   const colorGenerator: WholeSongActionGenerator = isIntro ? "signature" : "decoration"

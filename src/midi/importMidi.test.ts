@@ -75,6 +75,32 @@ describe("MIDI project import", () => {
     expect(project.sourceImport?.sourceKind).toBe("external-song")
     expect(project.importedArrangement?.tracks.map((track) => track.role)).toEqual(["melody", "harmony"])
     expect(project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0)).toBe(32)
+    expect(project.sourceImport?.keyInferenceConfidence).toBeGreaterThan(0.35)
+    expect(project.sourceImport?.keyInferenceSource).toBe("pitch-profile")
+    expect(project.sourceImport?.keyAlternatives?.length).toBeGreaterThan(0)
+  })
+
+  it("MIDI Key Signatureがある場合は音分布推定より優先する", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Key Signature Fixture",
+      tempoBpm: 100,
+      timeSignature: { numerator: 4, denominator: 4 },
+      keySignature: { sharpsFlats: -3, minor: false },
+      markers: [],
+      tracks: [{
+        name: "Lead",
+        notes: [{ pitch: 60, start: 0, duration: beat * 4, velocity: 80, channel: 0 }],
+      }],
+    })
+    const analysis = analyzeMidiImport(bytes, "key-signature.mid")
+    expect(analysis.key).toBe("Eb")
+    expect(analysis.keyInference).toMatchObject({
+      key: "Eb",
+      confidence: 1,
+      source: "midi-signature",
+      alternatives: [],
+    })
   })
 
   it("主旋律のない外部曲でも全トラックを解析素材として保持する", () => {
@@ -152,6 +178,8 @@ describe("MIDI project import", () => {
     expect(project.sourceImport).toMatchObject({
       reviewConfirmed: true,
       melodyTrackName: "Piano Chords",
+      keyInferenceSource: "user-confirmed",
+      keyInferenceConfidence: 1,
     })
   })
 

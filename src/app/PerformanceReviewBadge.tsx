@@ -25,7 +25,7 @@ export function PerformanceReviewBadge({
   const details = [review.summary, ...review.findings].join("\n")
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[9px] font-medium ${CLASSES[review.status]}`}
+      className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${CLASSES[review.status]}`}
       title={details}
     >
       {compact ? review.status.toUpperCase() : LABELS[review.status]} · {review.score}
@@ -43,7 +43,7 @@ export function DirectorRecommendationBadge({
   if (recommendation?.candidateId !== candidateId) return null
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary"
+      className="inline-flex shrink-0 items-center rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
       title={recommendation.reason}
     >
       Director推奨 · {recommendation.compositeScore}

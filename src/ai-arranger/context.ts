@@ -117,6 +117,15 @@ export function buildAiArrangementContext(
               melodyTrackName: project.sourceImport.melodyTrackName,
               melodyTrackConfidence: project.sourceImport.melodyTrackConfidence,
               chordInferenceConfidence: project.sourceImport.chordInferenceConfidence,
+              ...(project.sourceImport.keyInferenceConfidence !== undefined
+                ? { keyInferenceConfidence: project.sourceImport.keyInferenceConfidence }
+                : {}),
+              ...(project.sourceImport.keyInferenceSource
+                ? { keyInferenceSource: project.sourceImport.keyInferenceSource }
+                : {}),
+              ...(project.sourceImport.keyAlternatives?.length
+                ? { keyAlternatives: [...project.sourceImport.keyAlternatives] }
+                : {}),
               sectionsFromMarkers: project.sourceImport.sectionsFromMarkers,
               reviewConfirmed: project.sourceImport.reviewConfirmed ?? false,
               warnings: [...project.sourceImport.warnings],

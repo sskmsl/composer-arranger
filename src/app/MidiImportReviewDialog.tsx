@@ -168,25 +168,32 @@ export function MidiImportReviewDialog({
               <h3 className="text-[13px] font-semibold text-body-on-dark">1. 基本情報</h3>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <label className="col-span-2 flex flex-col gap-1 sm:col-span-3">
-                  <span className="text-[10px] text-ink-muted-48">タイトル</span>
+                  <span className="text-[11px] text-ink-muted-48">タイトル</span>
                   <TextInput value={title} onChange={(event) => setTitle(event.target.value)} />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] text-ink-muted-48">Key</span>
+                  <span className="text-[11px] text-ink-muted-48">Key</span>
                   <TextInput value={key} onChange={(event) => setKey(event.target.value)} />
+                  <span className="text-[11px] leading-4 text-cyan-200">
+                    {key.trim() !== analysis.key
+                      ? "手動確認済み"
+                      : analysis.keyInference.source === "midi-signature"
+                        ? "MIDI Key Signature"
+                        : `自動推定 ${Math.round(analysis.keyInference.confidence * 100)}%`}
+                  </span>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] text-ink-muted-48">Tempo</span>
+                  <span className="text-[11px] text-ink-muted-48">Tempo</span>
                   <TextInput type="number" min={20} max={300} value={tempo} onChange={(event) => setTempo(Number(event.target.value))} />
                 </label>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-ink-muted-48">拍子 / 長さ</span>
+                  <span className="text-[11px] text-ink-muted-48">拍子 / 長さ</span>
                   <p className="rounded-sm border border-hairline px-2.5 py-1.5 text-[13px] text-body-on-dark">
                     {analysis.timeSignature} · {analysis.totalBars}小節
                   </p>
                 </div>
                 <label className="col-span-2 flex flex-col gap-1 sm:col-span-3">
-                  <span className="text-[10px] text-ink-muted-48">読み込み目的</span>
+                  <span className="text-[11px] text-ink-muted-48">読み込み目的</span>
                   <Select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as typeof sourceKind)}>
                     <option value="logic-project">Logic Proから戻した制作中データ</option>
                     <option value="external-song">Composer Arranger外で作られた曲を解析</option>
@@ -198,12 +205,23 @@ export function MidiImportReviewDialog({
                   <AlertTriangle size={12} className="mt-0.5 shrink-0" /> {warning}
                 </p>
               ))}
+              {analysis.keyInference.alternatives.length > 0 && key.trim() === analysis.key && (
+                <div className="mt-2 rounded-sm border border-cyan-300/15 bg-cyan-300/5 px-2.5 py-2">
+                  <p className="text-[11px] text-body-on-dark">
+                    Key候補: <strong>{analysis.keyInference.key}</strong>
+                    {analysis.keyInference.alternatives.map((candidate) => ` / ${candidate.key}`).join("")}
+                  </p>
+                  {analysis.keyInference.evidence.map((item) => (
+                    <p key={item} className="mt-1 text-[11px] leading-4 text-body-muted">{item}</p>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="rounded-lg border border-hairline bg-surface-tile-2 p-3">
               <h3 className="text-[13px] font-semibold text-body-on-dark">2. トラック役割</h3>
               <label className="mt-3 flex flex-col gap-1">
-                <span className="text-[10px] text-ink-muted-48">主旋律トラック</span>
+                <span className="text-[11px] text-ink-muted-48">主旋律トラック</span>
                 <Select value={melodyTrackIndex} onChange={(event) => setMelodyTrackIndex(Number(event.target.value))}>
                   <option value={-1}>主旋律なし（伴奏・構成だけ解析）</option>
                   {analysis.tracks.filter((track) => track.averagePitch !== null).map((track) => (
@@ -216,10 +234,10 @@ export function MidiImportReviewDialog({
                   <div key={track.index} className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-2 rounded-sm bg-white/4 px-2 py-1.5">
                     <div className="min-w-0">
                       <p className="truncate text-[11px] text-body-on-dark">{track.name}</p>
-                      <p className="text-[9px] text-ink-muted-48">{track.noteCount} notes · Ch {track.channelNumbers.join(", ") || "—"}</p>
+                      <p className="text-[11px] text-ink-muted-48">{track.noteCount} notes · Ch {track.channelNumbers.join(", ") || "—"}</p>
                     </div>
                     {track.index === melodyTrackIndex ? (
-                      <span className="rounded-sm bg-primary/20 px-2 py-1 text-center text-[10px] text-primary-on-dark">Melody</span>
+                      <span className="rounded-sm bg-primary/20 px-2 py-1 text-center text-[11px] text-primary-on-dark">Melody</span>
                     ) : (
                       <Select
                         className="w-full !py-1 text-[11px]"
@@ -235,10 +253,10 @@ export function MidiImportReviewDialog({
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-[10px] text-ink-muted-48">
+              <p className="mt-2 text-[11px] text-ink-muted-48">
                 自動選択信頼度 {Math.round(analysis.melodyTrackConfidence * 100)}%。MelodyはActive Melodyへ変換し、読み込む全Roleの原ノートは解析素材として独立保存します。
               </p>
-              <p className="mt-1 text-[10px] text-cyan-200">
+              <p className="mt-1 text-[11px] text-cyan-200">
                 保存対象 {result.project.importedArrangement?.tracks.length ?? 0}トラック · {result.project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0}ノート
               </p>
             </section>
@@ -254,7 +272,7 @@ export function MidiImportReviewDialog({
                 {sortedSections.map((section, index) => (
                   <div key={section.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)_7rem_2rem] items-end gap-1.5">
                     <label className="flex flex-col gap-1">
-                      <span className="text-[9px] text-ink-muted-48">開始小節</span>
+                      <span className="text-[11px] text-ink-muted-48">開始小節</span>
                       <TextInput
                         type="number"
                         min={1}
@@ -265,11 +283,11 @@ export function MidiImportReviewDialog({
                       />
                     </label>
                     <label className="flex min-w-0 flex-col gap-1">
-                      <span className="text-[9px] text-ink-muted-48">名前 ({sectionLengthAt(sortedSections, index, analysis.totalBars)}小節)</span>
+                      <span className="text-[11px] text-ink-muted-48">名前 ({sectionLengthAt(sortedSections, index, analysis.totalBars)}小節)</span>
                       <TextInput value={section.name} onChange={(event) => updateSection(section.id, { name: event.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1">
-                      <span className="text-[9px] text-ink-muted-48">Role</span>
+                      <span className="text-[11px] text-ink-muted-48">Role</span>
                       <Select className="w-full" value={section.role} onChange={(event) => updateSection(section.id, { role: event.target.value as SectionRole })}>
                         {SECTION_ROLES.map((role) => <option key={role} value={role}>{SECTION_ROLE_LABELS[role]}</option>)}
                       </Select>
@@ -286,10 +304,10 @@ export function MidiImportReviewDialog({
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-[10px] text-ink-muted-48">
+              <p className="mt-2 text-[11px] text-ink-muted-48">
                 {analysis.sectionsFromMarkers ? "MIDIマーカーを初期値に使用しています。" : "マーカーがないため、必要に応じて開始小節を追加してください。"}
               </p>
-              {duplicateSectionStarts && <p className="mt-1 text-[10px] text-red-300">同じ開始小節を複数のSectionへ設定できません。</p>}
+              {duplicateSectionStarts && <p className="mt-1 text-[11px] text-red-300">同じ開始小節を複数のSectionへ設定できません。</p>}
             </section>
 
             <section className="rounded-lg border border-hairline bg-surface-tile-2 p-3">
@@ -315,7 +333,7 @@ export function MidiImportReviewDialog({
                   const overrideKey = midiChordOverrideKey(previewSection.startBar, chord.startBeat)
                   return (
                     <label key={`${chord.startBeat}:${chord.durationBeats}`} className="flex items-center gap-1 rounded-sm bg-white/4 px-2 py-1">
-                      <span className="shrink-0 text-[9px] text-ink-muted-48">{Number((chord.startBeat + 1).toFixed(2))}拍</span>
+                      <span className="shrink-0 text-[11px] text-ink-muted-48">{Number((chord.startBeat + 1).toFixed(2))}拍</span>
                       <TextInput
                         className="min-w-0 flex-1 !py-1"
                         value={chordOverrides[overrideKey] ?? chord.symbol}
@@ -325,16 +343,16 @@ export function MidiImportReviewDialog({
                   )
                 })}
               </div>
-              <p className="mt-2 text-[10px] text-ink-muted-48">
+              <p className="mt-2 text-[11px] text-ink-muted-48">
                 コード推定 {Math.round(result.report.chordInferenceConfidence * 100)}%。修正値は確定プロジェクトとAI Partnerへ渡されます。
               </p>
-              {invalidChordCount > 0 && <p className="mt-1 text-[10px] text-red-300">解釈できないコードが{invalidChordCount}件あります。</p>}
+              {invalidChordCount > 0 && <p className="mt-1 text-[11px] text-red-300">解釈できないコードが{invalidChordCount}件あります。</p>}
             </section>
           </div>
         </div>
 
         <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-hairline px-4 py-3">
-          <p className="flex items-center gap-1.5 text-[10px] text-body-muted">
+          <p className="flex items-center gap-1.5 text-[11px] text-body-muted">
             <Check size={12} className="text-emerald-400" /> 外部曲でも全パートを保持し、確定後にAI Partner／Arrangementで解析できます
           </p>
           <div className="ml-auto flex gap-2">

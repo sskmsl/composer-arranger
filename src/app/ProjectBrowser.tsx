@@ -105,7 +105,7 @@ export function ProjectBrowser({ onClose }: { onClose: () => void }) {
           <div>
             <h2 className="text-[15px] font-semibold text-body-on-dark">保存済みプロジェクト</h2>
             {isCloudSyncConfigured() && (
-              <p className="mt-0.5 flex items-center gap-1 text-[10px] text-primary-on-dark">
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-primary-on-dark">
                 <Cloud size={10} /> Cloud同期有効
               </p>
             )}
@@ -158,9 +158,9 @@ export function ProjectBrowser({ onClose }: { onClose: () => void }) {
                       ) : (
                         <p className="flex items-center gap-1.5 truncate text-[13px] font-medium text-body-on-dark">
                           {s.title}
-                          {s.projectId === currentId && <span className="rounded-sm bg-primary/20 px-1 text-[10px] text-primary-on-dark">編集中</span>}
+                          {s.projectId === currentId && <span className="rounded-sm bg-primary/20 px-1 text-[11px] text-primary-on-dark">編集中</span>}
                           {s.timingAmbiguous && (
-                            <span className="flex items-center gap-0.5 rounded-sm bg-amber-500/20 px-1 text-[10px] text-amber-400" title="時間単位を自動判定できません。開いた際に確認できます">
+                            <span className="flex items-center gap-0.5 rounded-sm bg-amber-500/20 px-1 text-[11px] text-amber-400" title="時間単位を自動判定できません。開いた際に確認できます">
                               <AlertTriangle size={9} /> 移行要確認
                             </span>
                           )}

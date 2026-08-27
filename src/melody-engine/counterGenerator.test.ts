@@ -56,6 +56,15 @@ const input = {
 }
 
 describe("Issue #70 / Counter Generator MVP", () => {
+  it("Full Song Strings指定時はString Answerだけで候補を構成する", () => {
+    const candidates = generateCounterCandidates({
+      ...input,
+      preferredStyles: ["string-answer"],
+    })
+    expect(candidates.length).toBeGreaterThan(0)
+    expect(candidates.every((candidate) => candidate.generatorStyle === "string-answer")).toBe(true)
+  })
+
   it("120件の候補プールから品質と多様性を考慮した独立10候補を選ぶ", () => {
     const candidates = generateCounterCandidates(input)
     expect(

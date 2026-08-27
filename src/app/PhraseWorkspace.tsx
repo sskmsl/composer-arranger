@@ -199,7 +199,7 @@ export function PhraseWorkspace() {
                 <button className="w-full text-left" onClick={() => setActiveIndex(index)}>
                   <div className="flex items-center justify-between">
                     <h3 className="text-[13px] font-semibold text-body-on-dark">{candidate.name}</h3>
-                    <span className="text-[10px] text-ink-muted-48">
+                    <span className="text-[11px] text-ink-muted-48">
                       {candidate.intent.lengthBars}小節 · Quality {Math.round(candidate.qualityScore)}
                     </span>
                   </div>
@@ -214,7 +214,7 @@ export function PhraseWorkspace() {
                     />
                   </div>
                   {candidate.techniqueExperiment && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
                       <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
                         A/B:{" "}
                         {candidate.techniqueExperiment.mode ===
@@ -234,16 +234,16 @@ export function PhraseWorkspace() {
                     </div>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {candidate.intent.contour}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {RHYTHM_LABELS[candidate.intent.rhythmCharacter]}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {HARMONY_LABELS[candidate.intent.harmonicApproach]}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {CADENCE_LABELS[candidate.intent.cadence]}
                     </span>
                   </div>

@@ -32,11 +32,11 @@ export function ImportedArrangementAnalysisPanel() {
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
             <AudioLines size={16} className="text-primary" /> Imported Arrangement Analysis
           </div>
-          <p className="mt-1 max-w-3xl text-[10px] leading-5 text-body-muted">
+          <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             推定コードだけでなく、Logic／外部曲MIDIの原演奏を使って、役割・密度・余白・音域・主旋律衝突をSection単位で解析します。
           </p>
         </div>
-        <span className="rounded-pill bg-primary/10 px-3 py-1 text-[9px] text-primary-on-dark">
+        <span className="rounded-pill bg-primary/10 px-3 py-1 text-[11px] text-primary-on-dark">
           {project.importedArrangement.sourceKind === "logic-project" ? "Logic Pro" : "External Song"} · {totalTracks} tracks · {totalNotes} notes
         </span>
       </div>
@@ -47,11 +47,11 @@ export function ImportedArrangementAnalysisPanel() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="text-[11px] font-semibold text-body-on-dark">{analysis.sectionName}</p>
-                <p className="mt-0.5 text-[9px] text-body-muted">
+                <p className="mt-0.5 text-[11px] text-body-muted">
                   {analysis.totalBars}小節 · {analysis.totalNotes} notes · {analysis.textureDensity}
                 </p>
               </div>
-              <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[8px] ${analysis.melodyCollisionCount > 0 ? "bg-amber-300/10 text-amber-100" : "bg-emerald-400/10 text-emerald-200"}`}>
+              <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] ${analysis.melodyCollisionCount > 0 ? "bg-amber-300/10 text-amber-100" : "bg-emerald-400/10 text-emerald-200"}`}>
                 {analysis.melodyCollisionCount > 0 ? <AlertTriangle size={9} /> : <CheckCircle2 size={9} />}
                 Melody衝突 {analysis.melodyCollisionCount}
               </span>
@@ -59,7 +59,7 @@ export function ImportedArrangementAnalysisPanel() {
 
             <div className="mt-2 flex flex-wrap gap-1">
               {analysis.activeRoles.map((role) => (
-                <span key={role} className="rounded-pill bg-white/5 px-2 py-0.5 text-[8px] text-body-muted">
+                <span key={role} className="rounded-pill bg-white/5 px-2 py-0.5 text-[11px] text-body-muted">
                   {ROLE_LABELS[role] ?? role}
                 </span>
               ))}
@@ -67,22 +67,22 @@ export function ImportedArrangementAnalysisPanel() {
 
             <div className="mt-2 grid grid-cols-3 gap-1.5">
               <div className="rounded-sm bg-black/10 px-2 py-1.5">
-                <p className="text-[8px] text-ink-muted-48">余白</p>
-                <p className="text-[10px] text-body-on-dark">{Math.round(analysis.silenceRatio * 100)}%</p>
+                <p className="text-[11px] text-ink-muted-48">余白</p>
+                <p className="text-[11px] text-body-on-dark">{Math.round(analysis.silenceRatio * 100)}%</p>
               </div>
               <div className="rounded-sm bg-black/10 px-2 py-1.5">
-                <p className="text-[8px] text-ink-muted-48">同時Attack</p>
-                <p className="text-[10px] text-body-on-dark">最大 {analysis.maximumSimultaneousAttacks}</p>
+                <p className="text-[11px] text-ink-muted-48">同時Attack</p>
+                <p className="text-[11px] text-body-on-dark">最大 {analysis.maximumSimultaneousAttacks}</p>
               </div>
               <div className="rounded-sm bg-black/10 px-2 py-1.5">
-                <p className="text-[8px] text-ink-muted-48">Active Role</p>
-                <p className="text-[10px] text-body-on-dark">{analysis.activeRoles.length}</p>
+                <p className="text-[11px] text-ink-muted-48">Active Role</p>
+                <p className="text-[11px] text-body-on-dark">{analysis.activeRoles.length}</p>
               </div>
             </div>
 
             <div className="mt-2 space-y-1">
               {analysis.roles.map((role) => (
-                <div key={role.role} className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)_4rem] gap-2 text-[8px] leading-4 text-body-muted">
+                <div key={role.role} className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)_4rem] gap-2 text-[11px] leading-4 text-body-muted">
                   <span className="text-primary-on-dark">{ROLE_LABELS[role.role] ?? role.role}</span>
                   <span className="truncate">{role.trackNames.join(" / ")}</span>
                   <span className="text-right">{role.notesPerBar}/bar</span>
@@ -91,7 +91,7 @@ export function ImportedArrangementAnalysisPanel() {
             </div>
 
             {analysis.observations.map((observation) => (
-              <p key={observation} className="mt-2 text-[9px] leading-4 text-cyan-100">・{observation}</p>
+              <p key={observation} className="mt-2 text-[11px] leading-4 text-cyan-100">・{observation}</p>
             ))}
           </article>
         ))}

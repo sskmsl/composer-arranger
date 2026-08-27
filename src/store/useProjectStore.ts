@@ -88,7 +88,7 @@ import {
   type GenerateSignaturePhrasesInput,
 } from "@/phrase-engine/generateSignaturePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
-import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
+import type { CounterGeneratorStyle, ReactiveLayerCandidate } from "@/core/reactiveLayer"
 import type { AiPartnerSession, OrchestrationRole } from "@/ai-arranger/types"
 import {
   analyzeMelodyActivity,
@@ -244,7 +244,7 @@ interface ProjectState {
   ) => void
   setActiveSignaturePhraseCandidateIndex: (index: number) => void
   regenerateSignaturePhrase: (candidateId: string) => void
-  generateCounterForSection: (sectionId: string) => void
+  generateCounterForSection: (sectionId: string, preferredStyle?: CounterGeneratorStyle) => void
   setActiveReactiveCandidateIndex: (index: number) => void
   regenerateCounter: (candidateId: string) => void
   generateDecorationsForSection: (
@@ -1738,9 +1738,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
-  generateCounterForSection: (sectionId) => {
+  generateCounterForSection: (sectionId, preferredStyle) => {
     const prev = get().project
-    const input = counterGenerationInput(prev, sectionId, createSeed())
+    const baseInput = counterGenerationInput(prev, sectionId, createSeed())
+    const input = baseInput && preferredStyle
+      ? { ...baseInput, preferredStyles: [preferredStyle] }
+      : baseInput
     if (!input) {
       set({
         workflowNotice:
