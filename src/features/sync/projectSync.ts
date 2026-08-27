@@ -5,6 +5,7 @@ const UPSERT_PROJECT_RPC = "upsert_arranger_project"
 const LIST_PROJECT_METADATA_RPC = "list_arranger_project_metadata"
 const GET_PROJECT_RPC = "get_arranger_project"
 const PUSH_DELAY_MS = 800
+const TRANSIENT_RETRY_DELAYS_MS = [250, 750] as const
 export const CLOUD_SYNC_COMPLETED_EVENT = "composer-arranger:cloud-sync-completed"
 
 export type StoredComposerProject = ComposerProject & { savedAt: string }
@@ -33,8 +34,70 @@ interface RemoteProjectMetadata {
 
 const pendingPushes = new Map<string, ReturnType<typeof setTimeout>>()
 
-function syncStageError(stage: string, reason: { message?: string }): Error {
-  return new Error(`Cloud同期(${stage}): ${reason.message ?? "不明なエラー"}`)
+function errorMessage(reason: unknown): string {
+  if (reason instanceof Error && reason.message) return reason.message
+  if (
+    typeof reason === "object" &&
+    reason !== null &&
+    "message" in reason &&
+    typeof reason.message === "string" &&
+    reason.message
+  ) {
+    return reason.message
+  }
+  return String(reason || "不明なエラー")
+}
+
+/** fetch自体が成立しなかった一時的なブラウザ/ネットワーク障害だけを再試行対象にする。 */
+export function isTransientCloudSyncError(reason: unknown): boolean {
+  const message = errorMessage(reason)
+  return (
+    reason instanceof TypeError ||
+    /failed to fetch|fetch failed|networkerror|network request failed|load failed/i.test(
+      message,
+    )
+  )
+}
+
+export async function retryTransientCloudOperation<T>(
+  operation: () => Promise<T>,
+  delaysMs: readonly number[] = TRANSIENT_RETRY_DELAYS_MS,
+  wait: (delayMs: number) => Promise<void> = (delayMs) =>
+    new Promise((resolve) => setTimeout(resolve, delayMs)),
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation()
+    } catch (reason) {
+      const delayMs = delaysMs[attempt]
+      if (!isTransientCloudSyncError(reason) || delayMs === undefined) {
+        throw reason
+      }
+      await wait(delayMs)
+    }
+  }
+}
+
+function syncStageError(stage: string, reason: unknown): Error {
+  const detail = isTransientCloudSyncError(reason)
+    ? "Cloudへ接続できませんでした。Chromeの広告・追跡防止拡張、VPN、DNS設定を確認して再試行してください。"
+    : errorMessage(reason)
+  return new Error(`Cloud同期(${stage}): ${detail}`)
+}
+
+async function runCloudRpc<T>(
+  stage: string,
+  operation: () => PromiseLike<{ data: T; error: unknown | null }>,
+): Promise<T> {
+  try {
+    return await retryTransientCloudOperation(async () => {
+      const { data, error } = await operation()
+      if (error) throw error
+      return data
+    })
+  } catch (reason) {
+    throw syncStageError(stage, reason)
+  }
 }
 
 async function ownerId(): Promise<string | null> {
@@ -60,13 +123,14 @@ export function scheduleProjectPush(project: StoredComposerProject): void {
 export async function pushProject(project: StoredComposerProject): Promise<void> {
   if (!supabase) return
   if (!(await ownerId())) return
-  const { error } = await supabase.rpc(UPSERT_PROJECT_RPC, {
-    p_id: project.projectId,
-    p_data: project,
-    p_updated_at: project.savedAt,
-    p_deleted_at: null,
-  })
-  if (error) throw syncStageError("アップロード", error)
+  await runCloudRpc("アップロード", () =>
+    supabase.rpc(UPSERT_PROJECT_RPC, {
+      p_id: project.projectId,
+      p_data: project,
+      p_updated_at: project.savedAt,
+      p_deleted_at: null,
+    }),
+  )
 }
 
 export async function deleteProjectRemote(
@@ -81,13 +145,14 @@ export async function deleteProjectRemote(
   }
   if (!(await ownerId())) return
   // 物理削除せずtombstoneを残し、別端末の古いIndexedDBから復活するのを防ぐ。
-  const { error } = await supabase.rpc(UPSERT_PROJECT_RPC, {
-    p_id: projectId,
-    p_data: null,
-    p_updated_at: deletedAt,
-    p_deleted_at: deletedAt,
-  })
-  if (error) throw syncStageError("削除反映", error)
+  await runCloudRpc("削除反映", () =>
+    supabase.rpc(UPSERT_PROJECT_RPC, {
+      p_id: projectId,
+      p_data: null,
+      p_updated_at: deletedAt,
+      p_deleted_at: deletedAt,
+    }),
+  )
 }
 
 function newerProject(
@@ -194,12 +259,11 @@ export async function syncPullAndReconcile(
   locallyDeletedIds: Iterable<string> = [],
 ): Promise<StoredComposerProject[]> {
   if (!supabase) return adapter.listLocal()
-  const [{ data: remoteMetadata, error }, localProjects] = await Promise.all([
+  const [remoteMetadata, localProjects] = await Promise.all([
     // 専用RPCはmetadataだけを返し、一般authenticated roleより長い同期専用timeoutを持つ。
-    supabase.rpc(LIST_PROJECT_METADATA_RPC),
+    runCloudRpc("一覧取得", () => supabase.rpc(LIST_PROJECT_METADATA_RPC)),
     adapter.listLocal(),
   ])
-  if (error) throw syncStageError("一覧取得", error)
 
   const metadata = (remoteMetadata ?? []) as RemoteProjectMetadata[]
   const downloadIds = projectIdsNeedingDownload(
@@ -210,11 +274,9 @@ export async function syncPullAndReconcile(
   const downloadedById = new Map<string, StoredComposerProject>()
   // 大容量projectを同時取得せず、必要な最新版だけを順次取得する。
   for (const id of downloadIds) {
-    const { data: remote, error: downloadError } = await supabase.rpc(
-      GET_PROJECT_RPC,
-      { p_id: id },
+    const remote = await runCloudRpc("ダウンロード", () =>
+      supabase.rpc(GET_PROJECT_RPC, { p_id: id }),
     )
-    if (downloadError) throw syncStageError("ダウンロード", downloadError)
     const project = remote as StoredComposerProject | null | undefined
     if (project) downloadedById.set(id, project)
   }

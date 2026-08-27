@@ -237,9 +237,6 @@ export function AiPartnerWorkspace({
                 AI Arrangement Partner · Preview
               </span>
             </div>
-            <h1 className="text-xl font-semibold text-body-on-dark">
-              楽曲を見ながら、次の一手を相談する
-            </h1>
             <p className="mt-1 max-w-3xl text-[12px] leading-5 text-body-muted">
               AIは音楽的な判断を3案へ整理し、実音は既存GeneratorがコードとActive Melodyを検証して生成します。
             </p>

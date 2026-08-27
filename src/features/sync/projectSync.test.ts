@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import {
   mergeProjectCollections,
+  isTransientCloudSyncError,
   projectIdsNeedingDownload,
   projectsNeedingUpload,
   reconcileProjectRows,
+  retryTransientCloudOperation,
   shouldResetLocalForOwner,
   type StoredComposerProject,
 } from "./projectSync"
@@ -164,5 +166,56 @@ describe("Composer Arranger cloud sync merge", () => {
         [pendingId],
       ),
     ).toEqual([])
+  })
+})
+
+describe("Composer Arranger cloud sync network retry", () => {
+  it("ChromeのFailed to fetchを一時的な通信失敗として判定する", () => {
+    expect(isTransientCloudSyncError(new TypeError("Failed to fetch"))).toBe(
+      true,
+    )
+    expect(
+      isTransientCloudSyncError({ message: "TypeError: Failed to fetch" }),
+    ).toBe(true)
+    expect(isTransientCloudSyncError({ message: "permission denied" })).toBe(
+      false,
+    )
+  })
+
+  it("一時的な失敗だけを短く再試行して成功する", async () => {
+    let attempts = 0
+    const waits: number[] = []
+
+    const result = await retryTransientCloudOperation(
+      async () => {
+        attempts += 1
+        if (attempts < 3) throw new TypeError("Failed to fetch")
+        return "synced"
+      },
+      [250, 750],
+      async (delayMs) => {
+        waits.push(delayMs)
+      },
+    )
+
+    expect(result).toBe("synced")
+    expect(attempts).toBe(3)
+    expect(waits).toEqual([250, 750])
+  })
+
+  it("権限エラーなど恒久的な失敗は再試行しない", async () => {
+    let attempts = 0
+
+    await expect(
+      retryTransientCloudOperation(
+        async () => {
+          attempts += 1
+          throw new Error("permission denied")
+        },
+        [250, 750],
+        async () => undefined,
+      ),
+    ).rejects.toThrow("permission denied")
+    expect(attempts).toBe(1)
   })
 })
