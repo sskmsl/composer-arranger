@@ -144,7 +144,7 @@
   }
   .toc-label {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 10.5px;
+    font-size: 11px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted-2);
@@ -351,6 +351,7 @@
     <a href="#phrase">Phraseワークスペース</a>
     <a href="#signature">Signatureワークスペース</a>
     <a href="#counter">Counterワークスペース</a>
+    <a href="#ai-partner">AI Partnerワークスペース</a>
     <a href="#arrangement">Arrangementワークスペース</a>
     <a href="#audition">Auditionワークスペース</a>
   </nav>
@@ -456,7 +457,7 @@
       <p class="chapter-intro">「Logic／外部曲 MIDI」で内容を確定すると、読み込み直後に3ステップの開始ガイドが開きます。機能を全部試す必要はなく、ここに表示された順番だけでアレンジを始められます。</p>
 
       <ol>
-        <li><strong>読み込み結果を確認</strong> — 「Arrangementで確認」からSection、コード、Melody、各トラックの役割を確認します。</li>
+        <li><strong>読み込み結果を確認</strong> — 「Arrangementで確認」からSection、コード、Melody、Key、各トラックの役割を確認します。Key Signatureがない場合は音価加重のPitch Class分布からKey・信頼度・代替候補を表示します。</li>
         <li><strong>最優先の次パートを相談</strong> — 読み込んだ役割を調べ、主旋律、リズム、Bass、第二の顔、曲全体整理のうち、最初に検討すべき一つだけを表示します。</li>
         <li><strong>Directionを選び、実音を生成</strong> — AI Partnerへ相談文を自動入力します。AIの提案を確認し、採用したいDirectionの「この案を生成」を押すと既存GeneratorがMIDIを作ります。</li>
       </ol>
@@ -881,6 +882,23 @@
       <p><strong>12案を生成</strong>すると、内部の多数候補から、識別性・冒頭の強さ・リズム・輪郭・発展可能性・単独での強さ・長期整合性・変化量・和音品質・声部進行に加え、Harmony / Theme / Complement / Purposeを評価した候補が並びます。Active Melodyがある候補はMelody Linked、ない場合はChord Drivenと表示されます。候補はFocusedだけに偏らず、BoldとRadicalを計画的に含みます。Radicalは単なるランダム音ではなく、Metric Shift、Silence Fracture、Interval Signature、Chromatic Side-step、False Start、False Returnなどの意図をカードへ表示し、AudacityとControlを別々に評価します。同じコードを機械的に連打せず、最初の核が後半で意味を持って戻る構成を優先します。</p>
       <p>Block ChordやBroken Chordを選んでも、核となるLeadの音程・開始位置・音価は変わりません。Broken ChordはLeadを後ろへ移動せず、その後ろで支援声部だけを展開します。装飾音はLeadと重ならない実際の余白へ配置されます。</p>
       <p>候補ごとに個別試聴とMIDI書き出しができます。統合Decorationも同じMIDIへ含まれるため、別タブでFillを後付けする必要はありません。以前のプロジェクトに保存されたDecorationデータは互換性のため保持されます。</p>
+    </section>
+
+    <section class="chapter" id="ai-partner">
+      <span class="chapter-num">13A</span>
+      <h2>AI Partnerワークスペース</h2>
+      <p class="chapter-intro">AI Partnerは、曲全体・選択中Section・会話で確定した制約・Favorite／Rejectを見て、既存Generatorの中から効果の大きい「次の一手」を一つ提案する統括画面です。</p>
+      <ol>
+        <li><strong>AI Partnerの次の一手</strong>で、全曲診断、選ばれたSectionとGenerator、守る条件を確認する</li>
+        <li><strong>この作業を実行</strong>を押し、既存Generatorで候補を生成する</li>
+        <li>移動先のGenerator画面で試聴し、Favorite／Reject／Set Activeを判断する</li>
+        <li>必要に応じて<strong>曲全体の実行計画</strong>から、Sectionをまたぐ作業順を確認する</li>
+      </ol>
+      <div class="note">
+        <p>AI Partnerは確認なしにGeneratorを実行せず、生成候補を自動採用しません。会話で確定した「メロディは変えない」「音数を増やさない」等の制約は、以降の全曲判断でも保護対象として維持されます。</p>
+      </div>
+      <h3>Full Song Arrangement</h3>
+      <p>「全曲の候補を段階生成」は、Foundation → Movement → Colorの順で、必要なSectionだけにAccompaniment、Counter／Strings、Signature／Decoration候補を生成します。Stringsは既存Counter GeneratorのString Answer設計を利用し、主旋律の休符・長音・衝突回避を維持します。BassとSpaceは専用Generatorがないため、低品質な仮MIDIへ置き換えず設計指示として保持します。</p>
     </section>
 
     <section class="chapter" id="arrangement">

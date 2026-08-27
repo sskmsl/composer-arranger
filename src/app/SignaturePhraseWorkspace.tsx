@@ -343,7 +343,7 @@ export function SignaturePhraseWorkspace() {
                     <h3 className="text-[13px] font-semibold text-body-on-dark">
                       {candidate.name}
                     </h3>
-                    <span className="shrink-0 text-[10px] text-ink-muted-48">
+                    <span className="shrink-0 text-[11px] text-ink-muted-48">
                       {candidate.plan.lengthBars}小節 · {Math.round(candidate.score.overall)}
                     </span>
                   </div>
@@ -360,7 +360,7 @@ export function SignaturePhraseWorkspace() {
                   <div className="mt-2 flex flex-wrap gap-1">
                     {candidate.plan.compositionContext && (
                       <span
-                        className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[10px] text-emerald-200"
+                        className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-200"
                         title={candidate.plan.compositionContext.rationale}
                       >
                         {OPPORTUNITY_LABELS[
@@ -372,12 +372,12 @@ export function SignaturePhraseWorkspace() {
                           : " · Chord Driven"}
                       </span>
                     )}
-                    <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
+                    <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-light">
                       {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
                     </span>
                     {candidate.plan.creativeRisk && (
                       <>
-                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${
                           candidate.plan.creativeRisk.risk === "radical"
                             ? "bg-fuchsia-400/20 text-fuchsia-200"
                             : candidate.plan.creativeRisk.risk === "bold"
@@ -387,7 +387,7 @@ export function SignaturePhraseWorkspace() {
                           {RISK_LABELS[candidate.plan.creativeRisk.risk]}
                         </span>
                         {candidate.plan.creativeRisk.risk !== "focused" && (
-                          <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                          <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                             {RHYTHMIC_DISRUPTION_LABELS[candidate.plan.creativeRisk.rhythmicDevice]}
                             {" · "}
                             {PITCH_DISRUPTION_LABELS[candidate.plan.creativeRisk.pitchDevice]}
@@ -398,17 +398,17 @@ export function SignaturePhraseWorkspace() {
                       </>
                     )}
                     {candidate.plan.architecture && (
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {ARCHITECTURE_LABELS[candidate.plan.architecture]}
                       </span>
                     )}
                     {candidate.plan.voicingMode !== "single-line" && (
                       <>
-                        <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[10px] text-amber-200">
+                        <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[11px] text-amber-200">
                           {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
                         </span>
                         {candidate.plan.voiceLeading && (
-                          <span className="rounded-pill bg-sky-400/15 px-2 py-0.5 text-[10px] text-sky-200">
+                          <span className="rounded-pill bg-sky-400/15 px-2 py-0.5 text-[11px] text-sky-200">
                             {VOICING_STYLE_LABELS[candidate.plan.voiceLeading.style]}
                             {" · "}
                             {VOICE_MOTION_LABELS[candidate.plan.voiceLeading.motion]}
@@ -416,17 +416,17 @@ export function SignaturePhraseWorkspace() {
                         )}
                       </>
                     )}
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {RHYTHM_LABELS[candidate.plan.rhythmIdentity]}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {candidate.plan.contour}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {VARIATION_LABELS[candidate.plan.variationStrategy]}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-ink-muted-48">
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-ink-muted-48">
                     <span>
                       World {Math.round((candidate.score.worldBuilding ?? 0) * 100)}
                     </span>

@@ -77,7 +77,7 @@ export function PianoRoll({
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
         <h3 className="text-[12px] font-medium text-body-on-dark">Melody</h3>
-        <span className="text-[10px] text-ink-muted-48">編集可能</span>
+        <span className="text-[11px] text-ink-muted-48">編集可能</span>
       </div>
       <div
         ref={containerRef}
@@ -102,7 +102,7 @@ export function PianoRoll({
       >
         {/* 小節ヘッダー: クリックでBar Lock。水平スクロールは本体と連動し、縦スクロール時は上部に固定する */}
         <div
-          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[10px] text-ink-muted-48"
+          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[11px] text-ink-muted-48"
           style={{ width }}
         >
           {Array.from({ length: bars }).map((_, i) => (
@@ -132,7 +132,7 @@ export function PianoRoll({
                 height={height}
                 fill={i % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.045)"}
               />
-              <text x={c.startBeat * PX_PER_BEAT + 4} y={12} fontSize={10} fill="rgba(255,255,255,0.4)">
+              <text x={c.startBeat * PX_PER_BEAT + 4} y={12} fontSize={11} fill="rgba(255,255,255,0.4)">
                 {c.symbol}
               </text>
             </g>

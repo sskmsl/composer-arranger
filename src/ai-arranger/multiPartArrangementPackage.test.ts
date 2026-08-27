@@ -54,13 +54,27 @@ describe("Multi-Part Arrangement Package", () => {
     expect(result.stages[2].actions.every((action) => ["signature", "decoration"].includes(action.generator))).toBe(true)
   })
 
-  it("専用GeneratorがないBass・Strings・Spaceを設計として保持し、偽のMIDIを生成しない", () => {
+  it("専用GeneratorがないBass・Spaceを設計として保持し、偽のMIDIを生成しない", () => {
     const result = buildMultiPartArrangementPackage(project(), "preserve-space")
     const designOnly = result.sections.flatMap((section) => section.parts).filter(
-      (part) => ["bass", "strings", "space"].includes(part.partRole),
+      (part) => ["bass", "space"].includes(part.partRole),
     )
     expect(designOnly.every((part) => part.execution === null)).toBe(true)
     expect(designOnly.every((part) => part.implementation === "design-only")).toBe(true)
+  })
+
+  it("Climax接近・表現SectionのStringsをString Counter候補へ接続する", () => {
+    const result = buildMultiPartArrangementPackage(project(), "controlled-escalation")
+    const strings = result.sections.flatMap((section) => section.parts).filter(
+      (part) => part.partRole === "strings" && part.execution,
+    )
+    expect(strings.length).toBeGreaterThanOrEqual(1)
+    expect(strings.every((part) =>
+      part.execution?.generator === "counter" && part.execution.family === "strings",
+    )).toBe(true)
+    expect(result.stages.find((stage) => stage.id === "movement")?.actions.some(
+      (action) => action.family === "strings",
+    )).toBe(true)
   })
 
   it("Active Melody不足を実行不能としてQuality Gateへ記録する", () => {

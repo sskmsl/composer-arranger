@@ -69,6 +69,8 @@ export interface SmfSong {
   tempoBpm: number
   /** MIDIの拍子メタイベントに書き出す表記上の分子・分母(例: 6/8ならnumerator:6, denominator:8) */
   timeSignature: { numerator: number; denominator: number }
+  /** MIDI Key Signature: -7(flat)〜+7(sharp), minor=falseでmajor。 */
+  keySignature?: { sharpsFlats: number; minor: boolean }
   markers: MidiMarker[]
   tracks: SmfTrack[]
 }
@@ -88,6 +90,16 @@ export function buildSmf(song: SmfSong): Uint8Array {
         microsecPerQuarter & 0xff,
       ]),
     },
+    ...(song.keySignature
+      ? [{
+          tick: 0,
+          order: 0,
+          data: metaEvent(0x59, [
+            Math.max(-7, Math.min(7, song.keySignature.sharpsFlats)) & 0xff,
+            song.keySignature.minor ? 1 : 0,
+          ]),
+        }]
+      : []),
     ...song.markers.map((m) => ({ tick: m.tick, order: 0, data: metaEvent(0x06, textBytes(m.text)) })),
   ]
 

@@ -101,9 +101,9 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             {arrangementPackage.summary}
           </p>
-          <p className="mt-1 text-[10px] text-violet-200">{arrangementPackage.title}</p>
+          <p className="mt-1 text-[11px] text-violet-200">{arrangementPackage.title}</p>
         </div>
-        <div className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[10px] ${arrangementPackage.qualityGate.status === "ready"
+        <div className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[11px] ${arrangementPackage.qualityGate.status === "ready"
           ? "bg-emerald-400/10 text-emerald-200"
           : arrangementPackage.qualityGate.status === "blocked"
             ? "bg-red-400/10 text-red-200"
@@ -120,19 +120,19 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span className="text-[12px] font-semibold text-body-on-dark">{section.sectionName}</span>
-                <span className="ml-2 text-[9px] text-ink-muted-48">Energy {section.targetEnergy} · 上限 {section.densityCeiling} Role</span>
+                <span className="ml-2 text-[11px] text-ink-muted-48">Energy {section.targetEnergy} · 上限 {section.densityCeiling} Role</span>
               </div>
-              <span className="rounded-pill bg-white/5 px-2 py-0.5 text-[9px] text-body-muted">{section.climaxPolicy}</span>
+              <span className="rounded-pill bg-white/5 px-2 py-0.5 text-[11px] text-body-muted">{section.climaxPolicy}</span>
             </div>
             <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
               {section.parts.map((part) => (
                 <div key={part.id} className={`min-w-0 rounded-sm border px-2 py-2 ${STATE_CLASS[part.state]}`}>
                   <div className="flex items-center justify-between gap-1">
-                    <span className="truncate text-[9px] font-semibold uppercase tracking-wide">{PART_LABELS[part.partRole]}</span>
-                    <span className="shrink-0 text-[8px] opacity-70">{STATE_LABELS[part.state]}</span>
+                    <span className="truncate text-[11px] font-semibold uppercase tracking-wide">{PART_LABELS[part.partRole]}</span>
+                    <span className="shrink-0 text-[11px] opacity-70">{STATE_LABELS[part.state]}</span>
                   </div>
-                  <p className="mt-1 line-clamp-3 text-[9px] leading-4 opacity-80">{part.purpose}</p>
-                  <p className="mt-1 text-[8px] opacity-55">{part.register} · {part.distance}</p>
+                  <p className="mt-1 line-clamp-3 text-[11px] leading-4 opacity-80">{part.purpose}</p>
+                  <p className="mt-1 text-[11px] opacity-55">{part.register} · {part.distance}</p>
                 </div>
               ))}
             </div>
@@ -142,7 +142,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
 
       <div className="mt-4 rounded-lg border border-hairline bg-white/[0.025] p-3">
         <div className="text-[12px] font-semibold text-body-on-dark">段階的に生成</div>
-        <p className="mt-1 text-[10px] leading-4 text-body-muted">
+        <p className="mt-1 text-[11px] leading-4 text-body-muted">
           Foundation → Movement → Colorの順に確認します。Bass・Strings・Spaceは現段階では設計指示として保持し、低品質な仮MIDIは作りません。
         </p>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
@@ -161,8 +161,8 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
                 className={`rounded-lg border p-3 text-left ${active ? "border-violet-400/50 bg-violet-400/10" : "border-hairline bg-white/[0.02]"}`}
               >
                 <span className="text-[11px] font-semibold text-body-on-dark">{candidate.title}</span>
-                <p className="mt-1 text-[9px] leading-4 text-body-muted">{candidate.purpose}</p>
-                <p className="mt-2 text-[9px] text-ink-muted-48">生成可能 {available}件</p>
+                <p className="mt-1 text-[11px] leading-4 text-body-muted">{candidate.purpose}</p>
+                <p className="mt-2 text-[11px] text-ink-muted-48">生成可能 {available}件</p>
               </button>
             )
           })}
@@ -170,7 +170,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
 
         <div className="mt-3 space-y-1.5">
           {stage.actions.length === 0 && (
-            <p className="rounded-sm bg-white/[0.025] px-3 py-2 text-[10px] text-ink-muted-48">この段階で追加生成すべきRoleはありません。</p>
+            <p className="rounded-sm bg-white/[0.025] px-3 py-2 text-[11px] text-ink-muted-48">この段階で追加生成すべきRoleはありません。</p>
           )}
           {stage.actions.map((action) => {
             const available = action.status === "available"
@@ -188,9 +188,9 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
                   })}
                   className="accent-violet-400"
                 />
-                <span className="text-[10px] font-medium text-body-on-dark">{action.sectionName}</span>
-                <span className="text-[9px] text-violet-200">{action.generator}</span>
-                <span className="text-[9px] leading-4 text-body-muted">{action.purpose} · {action.statusReason}</span>
+                <span className="text-[11px] font-medium text-body-on-dark">{action.sectionName}</span>
+                <span className="text-[11px] text-violet-200">{action.generator}</span>
+                <span className="text-[11px] leading-4 text-body-muted">{action.purpose} · {action.statusReason}</span>
               </label>
             )
           })}
@@ -207,21 +207,21 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
             </Button>
           )}
           {generatedIds.size > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-200"><Check size={12} /> {generatedIds.size}件生成済み</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-200"><Check size={12} /> {generatedIds.size}件生成済み</span>
           )}
         </div>
         {stage.id === "foundation" && availableActions.length > 0 && (
-          <p className="mt-2 text-[9px] leading-4 text-amber-100">FoundationのAccompanimentはSectionへ直接適用されます。必要なSectionだけ選び、Undoで戻せます。</p>
+          <p className="mt-2 text-[11px] leading-4 text-amber-100">FoundationのAccompanimentはSectionへ直接適用されます。必要なSectionだけ選び、Undoで戻せます。</p>
         )}
       </div>
 
       <div className="mt-3 space-y-1.5">
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-white/5 bg-black/10 px-3 py-2">
           <div>
-            <p className="text-[10px] font-medium text-body-on-dark">実音 Quality Gate</p>
-            <p className="mt-0.5 text-[9px] text-body-muted">現在Set ActiveのPreview／MIDI材料を段階生成のたびに再評価します。</p>
+            <p className="text-[11px] font-medium text-body-on-dark">実音 Quality Gate</p>
+            <p className="mt-0.5 text-[11px] text-body-muted">現在Set ActiveのPreview／MIDI材料を段階生成のたびに再評価します。</p>
           </div>
-          <span className={`rounded-pill px-2.5 py-1 text-[9px] ${arrangementPackage.executionGate.status === "ready"
+          <span className={`rounded-pill px-2.5 py-1 text-[11px] ${arrangementPackage.executionGate.status === "ready"
             ? "bg-emerald-400/10 text-emerald-200"
             : arrangementPackage.executionGate.status === "blocked"
               ? "bg-red-400/10 text-red-200"
@@ -234,20 +234,20 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
         </div>
         {arrangementPackage.executionGate.findings.map((finding) => (
           <div key={`execution:${finding.id}`} className="rounded-sm border border-white/5 bg-black/10 px-3 py-2">
-            <p className="text-[10px] font-medium text-body-on-dark">{finding.title}</p>
-            <p className="mt-1 text-[9px] leading-4 text-body-muted">{finding.evidence}</p>
-            <p className="mt-1 text-[9px] leading-4 text-cyan-200">{finding.recommendation}</p>
+            <p className="text-[11px] font-medium text-body-on-dark">{finding.title}</p>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">{finding.evidence}</p>
+            <p className="mt-1 text-[11px] leading-4 text-cyan-200">{finding.recommendation}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-3 space-y-1.5">
-        <p className="text-[10px] font-medium text-body-on-dark">Plan Quality Gate</p>
+        <p className="text-[11px] font-medium text-body-on-dark">Plan Quality Gate</p>
         {arrangementPackage.qualityGate.findings.map((finding) => (
           <div key={finding.id} className="rounded-sm border border-white/5 bg-black/10 px-3 py-2">
-            <p className="text-[10px] font-medium text-body-on-dark">{finding.title}</p>
-            <p className="mt-1 text-[9px] leading-4 text-body-muted">{finding.evidence}</p>
-            <p className="mt-1 text-[9px] leading-4 text-violet-200">{finding.recommendation}</p>
+            <p className="text-[11px] font-medium text-body-on-dark">{finding.title}</p>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">{finding.evidence}</p>
+            <p className="mt-1 text-[11px] leading-4 text-violet-200">{finding.recommendation}</p>
           </div>
         ))}
       </div>

@@ -375,7 +375,7 @@ export function DecorationWorkspace() {
                       <h3 className="truncate text-[12px] font-semibold text-body-on-dark">
                         {candidate.name}
                       </h3>
-                      <span className="shrink-0 text-[10px] text-ink-muted-48">
+                      <span className="shrink-0 text-[11px] text-ink-muted-48">
                         {Math.round(candidate.quality.overallQuality)}
                       </span>
                     </div>
@@ -390,7 +390,7 @@ export function DecorationWorkspace() {
                       />
                     </div>
                     {candidate.techniqueExperiment && (
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
                         <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
                           A/B:{" "}
                           {candidate.techniqueExperiment.mode ===
@@ -411,48 +411,48 @@ export function DecorationWorkspace() {
                       </div>
                     )}
                     <div className="mt-2 flex flex-wrap gap-1">
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {TYPE_LABELS[plan?.type ?? ""] ?? "Decoration"}
                       </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {SHAPE_LABELS[plan?.shape ?? ""] ?? plan?.shape}
                       </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {plan?.rhythmStyle}
                       </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {GESTURE_LABELS[plan?.gestureRole ?? ""] ??
                           "Gesture"}
                       </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {plan?.lengthBeats ?? 0} beats
                       </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {NEED_LABELS[plan?.needLevel ?? ""] ?? "Optional"}
                       </span>
                       {candidate.activeContextFit && (
-                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
+                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
                           Active共存 {candidate.activeContextFit.fitScore}
                         </span>
                       )}
                       {candidate.negativeSpaceFit && (
-                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
+                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
                           余白 {candidate.negativeSpaceFit.fitScore}
                         </span>
                       )}
                       {candidate.roleComplementarityFit && (
-                        <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
+                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
                           役割差 {candidate.roleComplementarityFit.fitScore}
                         </span>
                       )}
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         MIDI{" "}
                         {candidate.notes.length > 0
                           ? `${Math.min(...candidate.notes.map((note) => note.pitch))}–${Math.max(...candidate.notes.map((note) => note.pitch))}`
                           : "—"}
                       </span>
                       <span
-                        className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                        className={`rounded-pill px-2 py-0.5 text-[11px] ${
                           candidate.collisions.hasBlockingCollision
                             ? "bg-red-400/15 text-red-300"
                             : "bg-emerald-400/10 text-emerald-200"
@@ -463,19 +463,19 @@ export function DecorationWorkspace() {
                           : `${candidate.notes.length} notes`}
                       </span>
                       {assignedId === candidate.id && (
-                        <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[10px] text-primary">
+                        <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary">
                           Active
                         </span>
                       )}
                     </div>
-                    <p className="mt-2 line-clamp-2 text-[10px] leading-4 text-ink-muted-48">
+                    <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-ink-muted-48">
                       {plan?.intention}
                     </p>
                   </button>
                   <div className="mt-3 grid grid-cols-2 gap-1">
                     <Button
                       variant="dark"
-                      className="!px-2 !text-[10px]"
+                      className="!px-2 !text-[11px]"
                       onClick={() => play(candidate)}
                     >
                       {playingId === candidate.id ? (
@@ -487,21 +487,21 @@ export function DecorationWorkspace() {
                     </Button>
                     <Button
                       variant="dark"
-                      className="!px-2 !text-[10px]"
+                      className="!px-2 !text-[11px]"
                       onClick={() => regenerate(candidate.id)}
                     >
                       <RefreshCw size={11} /> 再生成
                     </Button>
                     <Button
                       variant="dark"
-                      className="!px-2 !text-[10px]"
+                      className="!px-2 !text-[11px]"
                       onClick={() => exportCandidate(candidate)}
                     >
                       <Download size={11} /> MIDI
                     </Button>
                     <Button
                       variant="dark"
-                      className="!px-2 !text-[10px]"
+                      className="!px-2 !text-[11px]"
                       onClick={() =>
                         setReview(
                           candidate.id,
@@ -515,7 +515,7 @@ export function DecorationWorkspace() {
                     </Button>
                     <Button
                       variant="dark"
-                      className="!px-2 !text-[10px]"
+                      className="!px-2 !text-[11px]"
                       onClick={() =>
                         setReview(
                           candidate.id,
@@ -529,7 +529,7 @@ export function DecorationWorkspace() {
                     </Button>
                     <Button
                       variant="secondary"
-                      className="!px-2 !text-[10px]"
+                      className="!px-2 !text-[11px]"
                       onClick={() => assign(candidate.id)}
                     >
                       <Check size={11} /> Set Active
@@ -541,7 +541,7 @@ export function DecorationWorkspace() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-ink-muted-48">試聴:</span>
-            <span className="text-[10px] text-ink-muted-48">
+            <span className="text-[11px] text-ink-muted-48">
               {previewMode === "active-context-reactive"
                 ? "現在のPattern・Active Counterを含む"
                 : "候補の前後だけを自動再生"}

@@ -53,6 +53,8 @@ export interface GenerateCounterInput {
   composerRules?: ResolvedComposerRules
   /** A/B実験時だけ有効にする、候補選抜におけるTechnique Fitの補助比率。 */
   techniqueFitSelectionWeight?: number
+  /** DirectorがStrings等の明確な役割を指定した場合だけ、生成音色キャラクターを限定する。 */
+  preferredStyles?: readonly CounterGeneratorStyle[]
 }
 
 interface StylePlan {
@@ -1735,7 +1737,10 @@ export function generateCounterCandidates(
     input.finalCount ?? COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
     input.poolSize ?? COUNTER_CANDIDATE_CONFIG.candidatePoolSize,
   )
-  const orderedStylePlans = [...STYLE_PLANS].sort((left, right) => {
+  const allowedStylePlans = input.preferredStyles?.length
+    ? STYLE_PLANS.filter((plan) => input.preferredStyles?.includes(plan.style))
+    : [...STYLE_PLANS]
+  const orderedStylePlans = [...allowedStylePlans].sort((left, right) => {
     const score = (plan: StylePlan) =>
       techniquePreferenceWeight(
         input.composerRules,

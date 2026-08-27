@@ -48,6 +48,8 @@ export interface MidiProjectImportResult {
     melodyTrackName: string
     melodyTrackConfidence: number
     chordInferenceConfidence: number
+    key: string
+    keyInferenceConfidence: number
     sectionCount: number
     warnings: string[]
   }
@@ -76,6 +78,7 @@ export interface MidiImportAnalysis {
   title: string
   tempo: number
   key: string
+  keyInference: MidiKeyInference
   timeSignature: string
   totalBars: number
   tracks: MidiImportTrackSummary[]
@@ -87,6 +90,21 @@ export interface MidiImportAnalysis {
   suggestedSourceKind: "logic-project" | "external-song"
   /** UIから隠す必要はないが、編集対象ではない解析済みイベント。再パースせず確定へ進むため保持する。 */
   source: ParsedMidiSong
+}
+
+export type MidiKeyInferenceSource = "midi-signature" | "pitch-profile"
+
+export interface MidiKeyCandidate {
+  key: string
+  fit: number
+}
+
+export interface MidiKeyInference {
+  key: string
+  confidence: number
+  source: MidiKeyInferenceSource
+  alternatives: MidiKeyCandidate[]
+  evidence: string[]
 }
 
 export interface MidiImportReviewOptions {
@@ -360,19 +378,46 @@ function pitchClassProfile(notes: ParsedMidiNote[]): number[] {
   return profile.map((value) => value / total)
 }
 
-function inferKey(notes: ParsedMidiNote[]): string {
+export function inferMidiKey(notes: ParsedMidiNote[]): MidiKeyInference {
   const source = pitchClassProfile(notes)
   const major = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
   const minor = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
-  let best = { score: -Infinity, root: 0, minor: false }
+  const ranked: Array<{ score: number; root: number; minor: boolean }> = []
   for (let root = 0; root < 12; root += 1) {
     for (const isMinor of [false, true]) {
       const template = isMinor ? minor : major
       const score = source.reduce((sum, value, pc) => sum + value * template[(pc - root + 12) % 12], 0)
-      if (score > best.score) best = { score, root, minor: isMinor }
+      ranked.push({ score, root, minor: isMinor })
     }
   }
-  return `${PC_NAMES[best.root]}${best.minor ? "m" : ""}`
+  ranked.sort((left, right) => right.score - left.score)
+  const best = ranked[0]
+  const second = ranked[1]
+  const worst = ranked.at(-1) ?? best
+  const spread = Math.max(0.0001, best.score - worst.score)
+  const margin = Math.max(0, best.score - second.score) / spread
+  const pitchedNoteCount = notes.length
+  const confidence = Math.max(
+    0.35,
+    Math.min(0.94, 0.48 + margin * 0.36 + Math.min(1, pitchedNoteCount / 96) * 0.1),
+  )
+  const toKey = (candidate: typeof best) =>
+    `${PC_NAMES[candidate.root]}${candidate.minor ? "m" : ""}`
+  const alternatives = ranked.slice(1, 4).map((candidate) => ({
+    key: toKey(candidate),
+    fit: Number(Math.max(0, 1 - (best.score - candidate.score) / spread).toFixed(3)),
+  }))
+  const usedPitchClasses = source.filter((value) => value > 0).length
+  return {
+    key: toKey(best),
+    confidence: Number(confidence.toFixed(3)),
+    source: "pitch-profile",
+    alternatives,
+    evidence: [
+      `${pitchedNoteCount}音・${usedPitchClasses}種類のPitch Classを音価で重み付けしました。`,
+      `第2候補${alternatives[0]?.key ?? "なし"}との差を含めて信頼度を算出しています。`,
+    ],
+  }
 }
 
 function isDrumTrack(track: ParsedMidiTrack): boolean {
@@ -636,7 +681,16 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
   const allPitchedNotes = pitchedTracks.flatMap((track) => track.notes.filter((note) => note.channel !== 9))
   if (allPitchedNotes.length === 0) throw new Error("MIDIに音程を持つノートがありません。")
   const melody = chooseMelodyTrack(song.tracks)
-  const key = song.keySignature ? keyFromSignature(song.keySignature) : inferKey(allPitchedNotes)
+  const keyInference: MidiKeyInference = song.keySignature
+    ? {
+        key: keyFromSignature(song.keySignature),
+        confidence: 1,
+        source: "midi-signature",
+        alternatives: [],
+        evidence: ["MIDI Key Signatureメタイベントを使用しました。"],
+      }
+    : inferMidiKey(allPitchedNotes)
+  const key = keyInference.key
   const { windows, fromMarkers } = buildSections(song)
   const beatsPerBar = song.timeSignature.numerator * 4 / song.timeSignature.denominator
   const totalBars = Math.max(1, Math.ceil(Math.max(beatsPerBar, song.endTick / song.ppq) / beatsPerBar))
@@ -649,6 +703,7 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
     title: song.title || cleanFileName(fileName),
     tempo: Math.max(20, Math.min(300, Math.round(song.tempoBpm * 10) / 10)),
     key,
+    keyInference,
     timeSignature: `${song.timeSignature.numerator}/${song.timeSignature.denominator}`,
     totalBars,
     tracks: song.tracks.map((track, index) => {
@@ -786,6 +841,13 @@ export function createMidiProjectFromAnalysis(
       melodyTrackName: melodyTrack?.name ?? "主旋律なし",
       melodyTrackConfidence: melodyTrack ? (melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1) : 0,
       chordInferenceConfidence: harmony.confidence,
+      keyInferenceConfidence: options.key?.trim() && options.key.trim() !== analysis.key
+        ? 1
+        : analysis.keyInference.confidence,
+      keyInferenceSource: options.key?.trim() && options.key.trim() !== analysis.key
+        ? "user-confirmed"
+        : analysis.keyInference.source,
+      keyAlternatives: analysis.keyInference.alternatives.map((candidate) => candidate.key),
       sectionsFromMarkers: analysis.sectionsFromMarkers,
       reviewConfirmed: options.reviewConfirmed ?? false,
       trackAssignments: analysis.tracks.map((track) => ({
@@ -803,6 +865,10 @@ export function createMidiProjectFromAnalysis(
       melodyTrackName: melodyTrack?.name ?? "主旋律なし",
       melodyTrackConfidence: melodyTrack ? (melodyIndex === analysis.melodyTrackIndex ? analysis.melodyTrackConfidence : 1) : 0,
       chordInferenceConfidence: harmony.confidence,
+      key,
+      keyInferenceConfidence: options.key?.trim() && options.key.trim() !== analysis.key
+        ? 1
+        : analysis.keyInference.confidence,
       sectionCount: windows.length,
       warnings,
     },

@@ -28,13 +28,9 @@ import {
 } from "@/ai-arranger/conversation"
 import { exportAiRhythmMidi } from "@/ai-arranger/rhythmMidi"
 import {
-  decorationSettingsForIntent,
   performancePartForIntent,
-  phraseLengthForIntent,
-  signatureLengthForIntent,
-  signatureDirectionForIntent,
-  targetTabForIntent,
 } from "@/ai-arranger/generationBridge"
+import { executeAiArrangementIntent } from "@/ai-arranger/arrangementActionExecution"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -50,6 +46,7 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Pill, SectionCard, Select } from "@/ui/primitives"
 import { downloadMidi } from "@/midi/exportMelody"
 import type { MainTab } from "./App"
+import { AiPartnerControlCenter } from "./AiPartnerControlCenter"
 
 const EXAMPLE_PROMPTS = [
   "余白と残響で世界を開く、記憶に残るイントロを提案して",
@@ -80,25 +77,6 @@ export function AiPartnerWorkspace({
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const selectSection = useProjectStore((state) => state.selectSection)
-  const setGenerationSettings = useProjectStore(
-    (state) => state.setGenerationSettings,
-  )
-  const generateForSection = useProjectStore((state) => state.generateForSection)
-  const generatePhrases = useProjectStore(
-    (state) => state.generatePhrasesForSection,
-  )
-  const generateSignature = useProjectStore(
-    (state) => state.generateSignaturePhrasesForSection,
-  )
-  const generateCounter = useProjectStore(
-    (state) => state.generateCounterForSection,
-  )
-  const generateDecorations = useProjectStore(
-    (state) => state.generateDecorationsForSection,
-  )
-  const setSectionAccompanimentPattern = useProjectStore(
-    (state) => state.setSectionAccompanimentPattern,
-  )
   const setAiPartnerSession = useProjectStore(
     (state) => state.setAiPartnerSession,
   )
@@ -110,9 +88,6 @@ export function AiPartnerWorkspace({
   )
   const setSectionOrchestrationOverride = useProjectStore(
     (state) => state.setSectionOrchestrationOverride,
-  )
-  const applyPerformanceToLatestGeneration = useProjectStore(
-    (state) => state.applyPerformanceToLatestGeneration,
   )
   const [prompt, setPrompt] = useState("")
   const [response, setResponse] = useState<AiArrangementResponse | null>(null)
@@ -224,59 +199,9 @@ export function AiPartnerWorkspace({
 
   const generateFromIntent = (intent: AiArrangementIntent) => {
     if (!section) return
-    const before = useProjectStore.getState()
     setGeneratingIntentId(intent.id)
-    setGenerationSettings({
-      density: intent.density,
-      rangePreset: intent.register,
-      drama: intent.drama,
-    })
-    if (intent.generator === "melody") {
-      generateForSection(section.id)
-    } else if (intent.generator === "phrase") {
-      const length = phraseLengthForIntent(intent, section.lengthBars)
-      if (length) generatePhrases(section.id, length)
-    } else if (intent.generator === "signature") {
-      generateSignature(
-        section.id,
-        signatureLengthForIntent(intent, section.lengthBars),
-        signatureDirectionForIntent(intent),
-      )
-    } else if (intent.generator === "counter") {
-      generateCounter(section.id)
-    } else if (intent.generator === "decoration") {
-      generateDecorations(section.id, decorationSettingsForIntent(intent))
-    } else if (
-      intent.generator === "accompaniment" &&
-      intent.accompanimentPatternId !== "none"
-    ) {
-      setSectionAccompanimentPattern(
-        section.id,
-        intent.accompanimentPatternId,
-      )
-    }
-    const after = useProjectStore.getState()
-    const generatedNewBatch =
-      intent.generator === "melody"
-        ? after.activeBatchId !== before.activeBatchId
-        : intent.generator === "phrase"
-          ? after.activePhraseBatchId !== before.activePhraseBatchId
-          : intent.generator === "signature"
-            ? after.activeSignaturePhraseBatchId !== before.activeSignaturePhraseBatchId
-            : intent.generator === "counter" || intent.generator === "decoration"
-              ? after.activeReactiveBatchId !== before.activeReactiveBatchId
-              : intent.generator === "accompaniment"
-    const performancePart = performancePartForIntent(intent, orchestrationPlan)
-    if (
-      generatedNewBatch &&
-      performancePart &&
-      intent.generator !== "rhythm" &&
-      intent.generator !== "none"
-    ) {
-      applyPerformanceToLatestGeneration(section.id, intent.generator, performancePart)
-    }
-    const target = targetTabForIntent(intent)
-    if (target) onNavigate(target)
+    const result = executeAiArrangementIntent(section.id, intent)
+    if (result.target) onNavigate(result.target)
     setGeneratingIntentId(null)
   }
 
@@ -324,6 +249,8 @@ export function AiPartnerWorkspace({
           </div>
         </header>
 
+        <AiPartnerControlCenter onNavigate={onNavigate} />
+
         {director && director.sections.length > 0 && (
           <SectionCard>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -336,10 +263,10 @@ export function AiPartnerWorkspace({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-[10px] text-primary">
+                <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
                   Arc {director.arcSummary} · 頂点{director.climaxSectionId ? "設定済み" : "未設定"}
                 </span>
-                <label className="flex items-center gap-1 text-[10px] text-body-muted">
+                <label className="flex items-center gap-1 text-[11px] text-body-muted">
                   Climax
                   <Select
                     value={project.arrangementDirectorOverrides?.climaxSectionId ?? "auto"}
@@ -348,7 +275,7 @@ export function AiPartnerWorkspace({
                         event.target.value === "auto" ? null : event.target.value,
                       )
                     }
-                    className="!py-1 text-[10px]"
+                    className="!py-1 text-[11px]"
                   >
                     <option value="auto">Auto</option>
                     {project.sections.map((candidate) => (
@@ -367,16 +294,16 @@ export function AiPartnerWorkspace({
                     <div className="text-[11px] font-semibold text-body-on-dark">
                       Whole-song Review
                     </div>
-                    <p className="mt-1 text-[10px] leading-4 text-body-muted">
+                    <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {wholeSongReview.summary}
                     </p>
                   </div>
-                  <span className={`rounded-pill px-2.5 py-1 text-[10px] font-medium ${reviewStatusClass(wholeSongReview.status)}`}>
+                  <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(wholeSongReview.status)}`}>
                     {reviewStatusLabel(wholeSongReview.status)}
                     {wholeSongReview.status !== "pending" && ` · ${wholeSongReview.score}/100`}
                   </span>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4">
+                <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
                   <ReviewMetric
                     label="確定Section"
                     value={`${wholeSongReview.metrics.reviewedSectionCount}/${director.sections.length}`}
@@ -398,7 +325,7 @@ export function AiPartnerWorkspace({
                   .filter((finding) => finding.severity !== "pass")
                   .slice(0, 2)
                   .map((finding) => (
-                    <p key={finding.id} className="mt-2 text-[10px] leading-4 text-amber-200">
+                    <p key={finding.id} className="mt-2 text-[11px] leading-4 text-amber-200">
                       {finding.title}：{finding.recommendation}
                     </p>
                   ))}
@@ -421,14 +348,14 @@ export function AiPartnerWorkspace({
                       <span className="truncate text-[11px] font-medium text-body-on-dark">
                         {plan.sectionName}
                       </span>
-                      <span className="shrink-0 text-[10px] text-primary">
+                      <span className="shrink-0 text-[11px] text-primary">
                         E{plan.targetEnergy}
                       </span>
                     </div>
-                    <div className="mt-1 text-[10px] text-body-muted">
+                    <div className="mt-1 text-[11px] text-body-muted">
                       {directorFunctionLabel(plan.narrativeFunction)} · {climaxPolicyLabel(plan.climaxPolicy)}
                     </div>
-                    <div className="mt-1 text-[10px] text-ink-muted-48">
+                    <div className="mt-1 text-[11px] text-ink-muted-48">
                       密度上限 {plan.densityCeiling} · 追加余地 {plan.additionBudget}
                     </div>
                   </button>
@@ -454,8 +381,8 @@ export function AiPartnerWorkspace({
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-3 rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
-                  <span className="text-[10px] font-medium text-body-on-dark">作曲者の固定値</span>
-                  <label className="flex items-center gap-1 text-[10px] text-body-muted">
+                  <span className="text-[11px] font-medium text-body-on-dark">作曲者の固定値</span>
+                  <label className="flex items-center gap-1 text-[11px] text-body-muted">
                     Energy
                     <Select
                       value={project.arrangementDirectorOverrides?.sections[effectiveSectionId ?? ""]?.targetEnergy ?? "auto"}
@@ -470,7 +397,7 @@ export function AiPartnerWorkspace({
                           },
                         )
                       }
-                      className="!py-1 text-[10px]"
+                      className="!py-1 text-[11px]"
                     >
                       <option value="auto">Auto</option>
                       {[1, 2, 3, 4, 5].map((value) => (
@@ -478,7 +405,7 @@ export function AiPartnerWorkspace({
                       ))}
                     </Select>
                   </label>
-                  <label className="flex items-center gap-1 text-[10px] text-body-muted">
+                  <label className="flex items-center gap-1 text-[11px] text-body-muted">
                     密度上限
                     <Select
                       value={project.arrangementDirectorOverrides?.sections[effectiveSectionId ?? ""]?.densityCeiling ?? "auto"}
@@ -492,7 +419,7 @@ export function AiPartnerWorkspace({
                           },
                         )
                       }
-                      className="!py-1 text-[10px]"
+                      className="!py-1 text-[11px]"
                     >
                       <option value="auto">Auto</option>
                       {Array.from(
@@ -504,7 +431,7 @@ export function AiPartnerWorkspace({
                     </Select>
                   </label>
                   {currentDirectorPlan.climaxPolicy === "express" && (
-                    <span className="text-[9px] text-primary">ClimaxはEnergy 5で固定</span>
+                    <span className="text-[11px] text-primary">ClimaxはEnergy 5で固定</span>
                   )}
                 </div>
               </div>
@@ -529,7 +456,7 @@ export function AiPartnerWorkspace({
                   </div>
                 </div>
                 {arrangementReview.status !== "pending" && (
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4">
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
                     <ReviewMetric
                       label="密度使用率"
                       value={`${Math.round(arrangementReview.metrics.densityUtilization * 100)}%`}
@@ -556,7 +483,7 @@ export function AiPartnerWorkspace({
                         className="rounded-sm border border-hairline bg-white/[0.025] px-3 py-2"
                       >
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[10px] font-medium ${finding.severity === "pass"
+                          <span className={`text-[11px] font-medium ${finding.severity === "pass"
                             ? "text-emerald-300"
                             : finding.severity === "blocking"
                               ? "text-red-200"
@@ -564,14 +491,14 @@ export function AiPartnerWorkspace({
                           }`}>
                             {finding.title}
                           </span>
-                          <span className="text-[9px] text-ink-muted-48">
+                          <span className="text-[11px] text-ink-muted-48">
                             {finding.principleId}
                           </span>
                         </div>
-                        <p className="mt-1 text-[10px] leading-4 text-body-muted">
+                        <p className="mt-1 text-[11px] leading-4 text-body-muted">
                           {finding.evidence}
                         </p>
-                        <p className="mt-1 text-[10px] leading-4 text-body-on-dark">
+                        <p className="mt-1 text-[11px] leading-4 text-body-on-dark">
                           {finding.recommendation}
                         </p>
                       </div>
@@ -594,7 +521,7 @@ export function AiPartnerWorkspace({
                   {orchestrationPlan.performanceArc}
                 </p>
               </div>
-              <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[10px] text-body-muted">
+              <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[11px] text-body-muted">
                 同時発音パート上限 {orchestrationPlan.maxSimultaneousParts}
               </span>
             </div>
@@ -608,11 +535,11 @@ export function AiPartnerWorkspace({
                         : <TriangleAlert size={14} className={orchestrationReview.status === "revise" ? "text-red-300" : "text-amber-200"} />}
                       Orchestration Masking Review
                     </div>
-                    <p className="mt-1 text-[10px] leading-4 text-body-muted">
+                    <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {orchestrationReview.summary}
                     </p>
                   </div>
-                  <span className={`rounded-pill px-2.5 py-1 text-[10px] font-medium ${reviewStatusClass(orchestrationReview.status)}`}>
+                  <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(orchestrationReview.status)}`}>
                     {reviewStatusLabel(orchestrationReview.status)} · {orchestrationReview.score}
                   </span>
                 </div>
@@ -629,10 +556,10 @@ export function AiPartnerWorkspace({
                       .slice(0, 2)
                       .map((finding) => (
                         <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
-                          <div className={finding.severity === "blocking" ? "text-[10px] text-red-200" : "text-[10px] text-amber-100"}>
+                          <div className={finding.severity === "blocking" ? "text-[11px] text-red-200" : "text-[11px] text-amber-100"}>
                             {finding.title}
                           </div>
-                          <p className="mt-1 text-[9px] leading-4 text-body-muted">
+                          <p className="mt-1 text-[11px] leading-4 text-body-muted">
                             {finding.recommendation}
                           </p>
                         </div>
@@ -651,11 +578,11 @@ export function AiPartnerWorkspace({
                         : <AudioLines size={14} className={audibleLayerReview.status === "revise" ? "text-red-300" : "text-amber-200"} />}
                       Active Note Collision Review
                     </div>
-                    <p className="mt-1 text-[10px] leading-4 text-body-muted">
+                    <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {audibleLayerReview.summary}
                     </p>
                   </div>
-                  <span className={`rounded-pill px-2.5 py-1 text-[10px] font-medium ${reviewStatusClass(audibleLayerReview.status)}`}>
+                  <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(audibleLayerReview.status)}`}>
                     {reviewStatusLabel(audibleLayerReview.status)} · {audibleLayerReview.score}
                   </span>
                 </div>
@@ -674,13 +601,13 @@ export function AiPartnerWorkspace({
                       .slice(0, 2)
                       .map((finding) => (
                         <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
-                          <div className={finding.severity === "blocking" ? "text-[10px] text-red-200" : "text-[10px] text-amber-100"}>
+                          <div className={finding.severity === "blocking" ? "text-[11px] text-red-200" : "text-[11px] text-amber-100"}>
                             {finding.title}
                           </div>
-                          <p className="mt-1 text-[9px] leading-4 text-body-muted">
+                          <p className="mt-1 text-[11px] leading-4 text-body-muted">
                             {finding.evidence}
                           </p>
-                          <p className="mt-1 text-[9px] leading-4 text-body-on-dark">
+                          <p className="mt-1 text-[11px] leading-4 text-body-on-dark">
                             {finding.recommendation}
                           </p>
                         </div>
@@ -703,7 +630,7 @@ export function AiPartnerWorkspace({
                     <div className="text-[11px] font-medium text-body-on-dark">
                       {orchestrationRoleLabel(part.role)} · {orchestrationFamilyLabel(part.family)}
                     </div>
-                    <span className={`rounded-pill px-2 py-0.5 text-[9px] ${part.sourceState === "active"
+                    <span className={`rounded-pill px-2 py-0.5 text-[11px] ${part.sourceState === "active"
                       ? "bg-emerald-400/10 text-emerald-200"
                       : "bg-primary/10 text-primary"
                     }`}>
@@ -717,24 +644,24 @@ export function AiPartnerWorkspace({
                     <Tag>{part.dynamic}</Tag>
                     <Tag>{part.timing}</Tag>
                   </div>
-                  <p className="mt-2 text-[10px] leading-4 text-body-muted">
+                  <p className="mt-2 text-[11px] leading-4 text-body-muted">
                     <strong className="text-body-on-dark">役割：</strong>{part.purpose}
                   </p>
-                  <p className="mt-1 text-[10px] leading-4 text-ink-muted-48">
+                  <p className="mt-1 text-[11px] leading-4 text-ink-muted-48">
                     <strong className="text-body-muted">登場：</strong>{part.entry}
                   </p>
-                  <p className="text-[10px] leading-4 text-ink-muted-48">
+                  <p className="text-[11px] leading-4 text-ink-muted-48">
                     <strong className="text-body-muted">退場：</strong>{part.exit}
                   </p>
-                  <p className="mt-1 text-[9px] text-ink-muted-48">
+                  <p className="mt-1 text-[11px] text-ink-muted-48">
                     Velocity {part.velocityRange[0]}–{part.velocityRange[1]}
                   </p>
                   {part.role !== "intentional-silence" && effectiveSectionId && (
                     <details className="mt-2 border-t border-hairline pt-2">
-                      <summary className="cursor-pointer text-[9px] text-primary">
+                      <summary className="cursor-pointer text-[11px] text-primary">
                         演奏を固定・調整{override ? " · 固定あり" : ""}
                       </summary>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-[9px] sm:grid-cols-3">
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
                         <OrchestrationOverrideSelect
                           label="Family"
                           value={override?.family ?? "auto"}
@@ -792,7 +719,7 @@ export function AiPartnerWorkspace({
                         />
                         <button
                           type="button"
-                          className="self-end rounded-sm border border-hairline px-2 py-1.5 text-[9px] text-body-muted hover:text-body-on-dark"
+                          className="self-end rounded-sm border border-hairline px-2 py-1.5 text-[11px] text-body-muted hover:text-body-on-dark"
                           onClick={() => setSectionOrchestrationOverride(effectiveSectionId, part.role, null)}
                         >
                           すべてAutoへ戻す
@@ -805,7 +732,7 @@ export function AiPartnerWorkspace({
               })}
             </div>
             {orchestrationPlan.withheldGestures.length > 0 && (
-              <div className="mt-3 rounded-sm border border-dashed border-hairline px-3 py-2 text-[10px] leading-4 text-body-muted">
+              <div className="mt-3 rounded-sm border border-dashed border-hairline px-3 py-2 text-[11px] leading-4 text-body-muted">
                 <strong className="text-primary">このSectionでは温存：</strong>
                 {orchestrationPlan.withheldGestures.join(" / ")}
               </div>
@@ -848,7 +775,7 @@ export function AiPartnerWorkspace({
                 </div>
                 <button
                   type="button"
-                  className="text-[10px] text-ink-muted-48 hover:text-body-on-dark"
+                  className="text-[11px] text-ink-muted-48 hover:text-body-on-dark"
                   onClick={() => {
                     if (effectiveSectionId) setAiPartnerSession(effectiveSectionId, null)
                     setResponse(null)
@@ -899,7 +826,7 @@ export function AiPartnerWorkspace({
                 <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
                   <AudioLines size={15} className="text-primary" /> 音源を聴かせる（第二弾）
                 </div>
-                <p className="mt-1 text-[10px] leading-4 text-ink-muted-48">
+                <p className="mt-1 text-[11px] leading-4 text-ink-muted-48">
                   Logic Pro等から書き出したMP3/WAV・12MB以下。解析時だけ送信し、保存しません。
                 </p>
               </div>
@@ -920,7 +847,7 @@ export function AiPartnerWorkspace({
               <div className="mt-3 flex items-center justify-between gap-3 rounded-sm bg-primary/8 px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-[12px] text-body-on-dark">{audio.fileName}</p>
-                  <p className="text-[10px] text-body-muted">
+                  <p className="text-[11px] text-body-muted">
                     {formatDuration(audio.localFeatures.durationSeconds)} · {(audio.sizeBytes / 1024 / 1024).toFixed(1)}MB
                     {" · "}実音を含めて分析
                   </p>
@@ -980,7 +907,7 @@ export function AiPartnerWorkspace({
                   </p>
                 </div>
                 <div className="w-full rounded-sm border border-primary/20 bg-primary/8 px-3 py-2 sm:w-auto sm:min-w-[15rem]">
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-primary">
                     <Coins size={13} /> 今回のAI利用料
                   </div>
                   <div className="mt-1 text-[13px] font-semibold text-body-on-dark">
@@ -988,7 +915,7 @@ export function AiPartnerWorkspace({
                       ? "キャッシュ利用・追加費用なし"
                       : `概算 $${response.usage.estimatedCostUsd.toFixed(4)}`}
                   </div>
-                  <div className="mt-0.5 break-words text-[10px] text-ink-muted-48">
+                  <div className="mt-0.5 break-words text-[11px] text-ink-muted-48">
                     {response.model}
                   </div>
                 </div>
@@ -999,12 +926,12 @@ export function AiPartnerWorkspace({
               </div>
               {(session?.confirmedConstraints.length ?? 0) > 0 && (
                 <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2">
-                  <div className="text-[10px] font-medium uppercase tracking-wide text-primary">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-primary">
                     会話で確定した制約
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {session?.confirmedConstraints.map((constraint) => (
-                      <span key={constraint} className="inline-flex items-center gap-1 rounded-pill bg-white/8 px-2.5 py-1 text-[10px] text-body-muted">
+                      <span key={constraint} className="inline-flex items-center gap-1 rounded-pill bg-white/8 px-2.5 py-1 text-[11px] text-body-muted">
                         {constraint}
                         <button
                           type="button"
@@ -1032,13 +959,13 @@ export function AiPartnerWorkspace({
               )}
               {(response.diagnosis.audioEvidence ?? []).length > 0 && (
                 <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2">
-                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-primary">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-primary">
                     <AudioLines size={13} /> 音源から聴き取った根拠
                   </div>
                   <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
                     {(response.diagnosis.audioEvidence ?? []).map((item) => <li key={item}>• {item}</li>)}
                   </ul>
-                  <p className="mt-1 text-[10px] text-ink-muted-48">
+                  <p className="mt-1 text-[11px] text-ink-muted-48">
                     {response.diagnosis.audioConfidenceNote ?? "音源解析は編曲判断の補助情報です。"}
                   </p>
                 </div>
@@ -1055,14 +982,14 @@ export function AiPartnerWorkspace({
                   <SectionCard key={intent.id} className="flex h-full flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-primary">
+                        <span className="text-[11px] uppercase tracking-[0.16em] text-primary">
                           Direction {index + 1}
                         </span>
                         <h2 className="mt-1 text-[15px] font-semibold text-body-on-dark">
                           {intent.title}
                         </h2>
                       </div>
-                      <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[10px] text-body-muted">
+                      <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[11px] text-body-muted">
                         {GENERATOR_LABELS[intent.generator]}
                       </span>
                     </div>
@@ -1112,7 +1039,7 @@ export function AiPartnerWorkspace({
                     </div>
                     {intent.soundSourceSuggestions.length > 0 && (
                       <div className="mt-3 rounded-sm border border-white/8 bg-white/[0.025] p-3">
-                        <span className="text-[10px] uppercase tracking-wide text-primary">
+                        <span className="text-[11px] uppercase tracking-wide text-primary">
                           おすすめ音源（手持ちライブラリ）
                         </span>
                         {intent.soundSourceSuggestions.slice(0, 2).map((source) => (
@@ -1149,13 +1076,13 @@ export function AiPartnerWorkspace({
                           >
                             <Download size={14} /> ドラムMIDIを書き出す
                           </Button>
-                          <p className="mt-2 text-center text-[10px] leading-4 text-body-muted">
+                          <p className="mt-2 text-center text-[11px] leading-4 text-body-muted">
                             セクション長まで反復し、Logic ProでSoftware Instrumentへ割り当てられるChannel 1で出力します。
                           </p>
                         </>
                       )}
                       {counterUnavailable && (
-                        <p className="mt-2 text-[10px] text-amber-200">
+                        <p className="mt-2 text-[11px] text-amber-200">
                           Counter生成にはActive Melodyが必要です。
                         </p>
                       )}
@@ -1180,7 +1107,7 @@ export function AiPartnerWorkspace({
           </>
         )}
 
-        <p className="text-center text-[10px] leading-5 text-ink-muted-48">
+        <p className="text-center text-[11px] leading-5 text-ink-muted-48">
           固有の楽曲を複製せず、相談内容を余白・輪郭・リズム・音色・演奏意図へ抽象化して提案します。
         </p>
       </div>
@@ -1205,7 +1132,7 @@ function accompanimentPatternName(
 function ContextStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm bg-white/[0.04] px-3 py-2">
-      <div className="text-[10px] text-ink-muted-48">{label}</div>
+      <div className="text-[11px] text-ink-muted-48">{label}</div>
       <div className="mt-0.5 truncate text-[12px] text-body-on-dark">{value}</div>
     </div>
   )
@@ -1214,7 +1141,7 @@ function ContextStat({ label, value }: { label: string; value: string }) {
 function DiagnosisList({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="rounded-sm bg-white/[0.04] px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-ink-muted-48">{title}</div>
+      <div className="text-[11px] uppercase tracking-wide text-ink-muted-48">{title}</div>
       <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
         {items.map((item) => <li key={item}>• {item}</li>)}
       </ul>
@@ -1224,7 +1151,7 @@ function DiagnosisList({ title, items }: { title: string; items: string[] }) {
 
 function Tag({ children }: { children: string }) {
   return (
-    <span className="rounded-pill border border-hairline px-2 py-0.5 text-[10px] text-body-muted">
+    <span className="rounded-pill border border-hairline px-2 py-0.5 text-[11px] text-body-muted">
       {children}
     </span>
   )
@@ -1258,7 +1185,7 @@ function climaxPolicyLabel(
 function DirectorNote({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-sm bg-white/[0.04] px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-primary">{label}</div>
+      <div className="text-[11px] uppercase tracking-wide text-primary">{label}</div>
       <div className="mt-1 break-words leading-5 text-body-muted">{value}</div>
     </div>
   )
@@ -1306,7 +1233,7 @@ function OrchestrationOverrideSelect({
       <Select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 !py-1 text-[9px]"
+        className="min-w-0 !py-1 text-[11px]"
       >
         <option value="auto">Auto</option>
         {options.map(([optionValue, optionLabel]) => (

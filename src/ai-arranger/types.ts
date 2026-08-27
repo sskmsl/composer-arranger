@@ -428,6 +428,9 @@ export interface AiArrangementContext {
       melodyTrackName: string
       melodyTrackConfidence: number
       chordInferenceConfidence: number
+      keyInferenceConfidence?: number
+      keyInferenceSource?: "midi-signature" | "pitch-profile" | "user-confirmed"
+      keyAlternatives?: string[]
       sectionsFromMarkers: boolean
       reviewConfirmed: boolean
       warnings: string[]

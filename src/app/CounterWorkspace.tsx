@@ -294,7 +294,7 @@ export function CounterWorkspace() {
                     <h3 className="truncate text-[13px] font-semibold text-body-on-dark">
                       {candidate.name}
                     </h3>
-                    <span className="shrink-0 text-[10px] text-ink-muted-48">
+                    <span className="shrink-0 text-[11px] text-ink-muted-48">
                       Quality {Math.round(candidate.quality.overallQuality)}
                     </span>
                   </div>
@@ -309,7 +309,7 @@ export function CounterWorkspace() {
                     />
                   </div>
                   {candidate.techniqueExperiment && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
                       <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
                         A/B:{" "}
                         {candidate.techniqueExperiment.mode ===
@@ -329,16 +329,16 @@ export function CounterWorkspace() {
                     </div>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {STYLE_LABELS[candidate.generatorStyle ?? ""] ?? "Counter"}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {ROLE_LABELS[candidate.role] ?? candidate.role}
                     </span>
                     {candidate.counterPlan && (
                       <>
                         <span
-                          className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                          className={`rounded-pill px-2 py-0.5 text-[11px] ${
                             candidate.counterPlan.creativeRisk === "radical"
                               ? "bg-fuchsia-400/20 text-fuchsia-200"
                               : candidate.counterPlan.creativeRisk === "bold"
@@ -348,20 +348,20 @@ export function CounterWorkspace() {
                         >
                           {RISK_LABELS[candidate.counterPlan.creativeRisk]}
                         </span>
-                        <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[10px] text-primary-light">
+                        <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-light">
                           {INTENT_LABELS[candidate.counterPlan.dialogueIntent]}
                         </span>
-                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                           {RHYTHM_LABELS[candidate.counterPlan.rhythmGrammar]}
                         </span>
-                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                           {CONTOUR_LABELS[candidate.counterPlan.contour]}
                         </span>
-                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                           {ENDING_LABELS[candidate.counterPlan.ending]}
                         </span>
                         {candidate.counterPlan.opportunityKinds?.[0] && (
-                          <span className="rounded-pill bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-200">
+                          <span className="rounded-pill bg-cyan-400/10 px-2 py-0.5 text-[11px] text-cyan-200">
                             {OPPORTUNITY_LABELS[
                               candidate.counterPlan.opportunityKinds[0]
                             ]}
@@ -369,35 +369,35 @@ export function CounterWorkspace() {
                         )}
                       </>
                     )}
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       Gap {Math.round(candidate.quality.gapUsage)}%
                     </span>
                     {candidate.activeContextFit && (
-                      <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
+                      <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
                         Active共存 {candidate.activeContextFit.fitScore}
                       </span>
                     )}
                     {candidate.negativeSpaceFit && (
-                      <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
+                      <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
                         余白 {candidate.negativeSpaceFit.fitScore}
                       </span>
                     )}
                     {candidate.roleComplementarityFit && (
-                      <span className={`rounded-pill px-2 py-0.5 text-[10px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
+                      <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
                         役割差 {candidate.roleComplementarityFit.fitScore}
                       </span>
                     )}
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       MIDI{" "}
                       {candidate.notes.length > 0
                         ? `${Math.min(...candidate.notes.map((note) => note.pitch))}–${Math.max(...candidate.notes.map((note) => note.pitch))}`
                         : "—"}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[10px] text-body-muted">
+                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {candidate.notes.length} notes / {totalBeats} beats
                     </span>
                     <span
-                      className={`rounded-pill px-2 py-0.5 text-[10px] ${
+                      className={`rounded-pill px-2 py-0.5 text-[11px] ${
                         candidate.collisions.hasBlockingCollision
                           ? "bg-red-400/15 text-red-300"
                           : "bg-emerald-400/10 text-emerald-200"
@@ -408,16 +408,16 @@ export function CounterWorkspace() {
                         : "Collision clear"}
                     </span>
                     {assignedId === candidate.id && (
-                      <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[10px] text-primary">
+                      <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary">
                         Active
                       </span>
                     )}
                   </div>
-                  <p className="mt-2 truncate text-[10px] text-ink-muted-48">
+                  <p className="mt-2 truncate text-[11px] text-ink-muted-48">
                     Target: {activeMelody?.name ?? candidate.targetMelodyVariantId}
                   </p>
                   {candidate.counterQuality && (
-                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-ink-muted-48">
+                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-ink-muted-48">
                       <span>Dialogue {Math.round(candidate.counterQuality.dialogueClarity)}</span>
                       <span>Independent {Math.round(candidate.counterQuality.independence)}</span>
                       <span>Rhythm {Math.round(candidate.counterQuality.rhythmicCharacter)}</span>
@@ -501,7 +501,7 @@ export function CounterWorkspace() {
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-ink-muted-48">試聴:</span>
-            <span className="text-[10px] text-ink-muted-48">
+            <span className="text-[11px] text-ink-muted-48">
               {previewMode === "active-context-reactive"
                 ? "現在のPattern・Active Decorationを含む"
                 : "候補の前後だけを自動再生"}

@@ -74,6 +74,10 @@ export interface ProjectSourceImport {
   melodyTrackName: string
   melodyTrackConfidence: number
   chordInferenceConfidence: number
+  /** MIDIメタ情報または音価加重Pitch Class ProfileによるKey推定。 */
+  keyInferenceConfidence?: number
+  keyInferenceSource?: "midi-signature" | "pitch-profile" | "user-confirmed"
+  keyAlternatives?: string[]
   sectionsFromMarkers: boolean
   /** トラック・Section・コードの確認画面を通して作成されたか。 */
   reviewConfirmed?: boolean
@@ -226,8 +230,8 @@ export interface ComposerProject {
   timeBase?: TimeBase
 }
 
-/** 2.8: Logic／外部曲MIDIの役割別原演奏をcompact tupleで保持 */
-export const CURRENT_SCHEMA_VERSION = "2.8"
+/** 2.9: MIDI Key推定の信頼度・根拠候補を保持 */
+export const CURRENT_SCHEMA_VERSION = "2.9"
 
 export function createEmptyProject(title = "Untitled"): ComposerProject {
   return {

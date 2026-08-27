@@ -73,7 +73,7 @@ function ChordDiagnosisRow({ d }: { d: ChordDiagnosis }) {
           <span className="font-medium">{d.symbol || "(空)"}</span>
           {d.status !== "ok" && d.reason && <span className={clsx("ml-1", d.status === "error" ? "text-red-400" : "text-amber-400")}>— {d.reason}</span>}
         </span>
-        {preview && <span className="text-[10px] text-ink-muted-48">{preview}</span>}
+        {preview && <span className="text-[11px] text-ink-muted-48">{preview}</span>}
       </span>
     </li>
   )
@@ -194,11 +194,11 @@ export function LeftPanel({
             }}
           />
         </div>
-        <p className="mt-2 text-[9px] leading-4 text-ink-muted-48">
+        <p className="mt-2 text-[11px] leading-4 text-ink-muted-48">
           Logic Proでは「ファイル ＞ 書き出す ＞ 選択範囲をMIDIファイルとして」でSMFを書き出してください。.logicx／MP3はこの入口ではなく、標準MIDIを使用します。
         </p>
         {project.sourceImport?.type === "midi" && (
-          <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[10px] leading-relaxed text-body-muted">
+          <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[11px] leading-relaxed text-body-muted">
             <p className="font-medium text-body-on-dark">
               {project.sourceImport.sourceKind === "logic-project" ? "Logic Pro往復プロジェクト" : "外部曲MIDI解析プロジェクト"}
             </p>
@@ -209,6 +209,15 @@ export function LeftPanel({
                 : `自動推定 ${Math.round(project.sourceImport.melodyTrackConfidence * 100)}%`}
             </p>
             <p>コード推定: {Math.round(project.sourceImport.chordInferenceConfidence * 100)}%</p>
+            {project.sourceImport.keyInferenceConfidence !== undefined && (
+              <p>
+                Key: {project.song.key} · {project.sourceImport.keyInferenceSource === "user-confirmed"
+                  ? "手動確認済み"
+                  : project.sourceImport.keyInferenceSource === "midi-signature"
+                    ? "MIDI情報"
+                    : `自動推定 ${Math.round(project.sourceImport.keyInferenceConfidence * 100)}%`}
+              </p>
+            )}
             <p>
               原演奏保持: {project.importedArrangement?.tracks.length ?? 0} tracks · {project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0} notes
             </p>
@@ -320,7 +329,7 @@ export function LeftPanel({
                   </option>
                 ))}
               </Select>
-              <p className="mt-1 text-[10px] text-ink-muted-48">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
+              <p className="mt-1 text-[11px] text-ink-muted-48">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
             </FieldGroup>
 
             <FieldGroup label="Accompaniment Pattern">
@@ -335,7 +344,7 @@ export function LeftPanel({
                   </option>
                 ))}
               </Select>
-              <p className="mt-1 text-[10px] text-ink-muted-48">
+              <p className="mt-1 text-[11px] text-ink-muted-48">
                 度数＋リズムのテンプレートを現在のコードへ自動変換し、専用MIDIトラックへ出力します
               </p>
             </FieldGroup>

@@ -61,7 +61,7 @@ function IgnoredNote({ setting, selected }: { setting: GenerationSettingKey; sel
   const ignoring = profilesIgnoring(setting, selected)
   if (ignoring.length === 0) return null
   return (
-    <p className="flex items-start gap-1 text-[10px] text-amber-400/90">
+    <p className="flex items-start gap-1 text-[11px] text-amber-400/90">
       <AlertCircle size={11} className="mt-0.5 shrink-0" />
       <span className="min-w-0 break-words">{ignoring.map((p) => GENERATOR_PROFILE_LABELS[p]).join("・")} では{GENERATION_SETTING_LABELS[setting]}は生成へ反映されません</span>
     </p>
@@ -263,7 +263,7 @@ export function RightPanel({
                       ] ?? []
                     return (
                       <>
-                  <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[11px]">
                     <span
                       className={clsx(
                         "rounded-full border px-1.5 py-0.5",
@@ -304,7 +304,7 @@ export function RightPanel({
                   <p className="text-[11px] text-ink-muted-48">
                     {preset.description}
                   </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-[10px] text-ink-muted-48">
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] text-ink-muted-48">
                     {preset.techniqueNames.map((name) => (
                       <li key={name}>{name}</li>
                     ))}
@@ -314,7 +314,7 @@ export function RightPanel({
                     !selected.some((profile) =>
                       preset.recommendedProfiles.includes(profile),
                     ) && (
-                      <p className="mt-2 text-[10px] text-amber-300/90">
+                      <p className="mt-2 text-[11px] text-amber-300/90">
                         現在選択中のGenerator Profileは自動検証済みの推奨対象外です。
                       </p>
                     )}
@@ -324,7 +324,7 @@ export function RightPanel({
                     !recommendedSectionRoles.includes(
                       selectedSection.role,
                     ) && (
-                      <p className="mt-2 text-[10px] text-amber-300/90">
+                      <p className="mt-2 text-[11px] text-amber-300/90">
                         現在のSection Roleは自動検証済みの推奨対象外です。
                       </p>
                     )}
@@ -333,7 +333,7 @@ export function RightPanel({
                   })()}
                 </div>
               ))}
-              <p className="border-t border-hairline pt-2 text-[10px] text-amber-300/90">
+              <p className="border-t border-hairline pt-2 text-[11px] text-amber-300/90">
                 Draftの状態は変更しません。通常3案と適用3案を同時生成し、この設定はプロジェクトへ保存されません。
               </p>
             </div>
@@ -392,7 +392,7 @@ export function RightPanel({
               </div>
             )}
             {generationSettings.rangePreset === "custom" && (
-              <p className="text-[10px] text-ink-muted-48">
+              <p className="text-[11px] text-ink-muted-48">
                 音名(例: C4, F#5, Bb3)で入力。最高音が最低音以下になる入力・音域外は無視されます。
               </p>
             )}
@@ -407,7 +407,7 @@ export function RightPanel({
             </FieldGroup>
             {mode === "melody" && <IgnoredNote setting="drama" selected={selected} />}
           </div>
-          <p className="mt-1 border-t border-hairline pt-2 text-[10px] text-ink-muted-48">
+          <p className="mt-1 border-t border-hairline pt-2 text-[11px] text-ink-muted-48">
             {mode === "phrase" || mode === "signature"
               ? `${mode === "signature" ? "Signature Phrase" : "Phrase"}ではDensity / Range / Dramaを利用します。Generator ProfileはMelody専用です。`
               : "生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。"}
@@ -491,7 +491,7 @@ export function RightPanel({
 
       {mode === "melody" && variant && candidateEvidence && (
         <SectionCard title="候補の根拠" className="w-full min-w-0">
-          <p className="mb-3 text-[10px] leading-4 text-ink-muted-48">
+          <p className="mb-3 text-[11px] leading-4 text-ink-muted-48">
             AIの感想ではなく、表示中のMIDI・コード・生成計画から確認できる事実です。
           </p>
           {candidateEvidence.items.length > 0 ? (
@@ -504,15 +504,15 @@ export function RightPanel({
                   <p className="text-[11px] font-semibold text-body-on-dark">
                     {item.title}
                   </p>
-                  <p className="mt-1 text-[10px] leading-4 text-body-muted">
+                  <p className="mt-1 text-[11px] leading-4 text-body-muted">
                     {item.observation}
                   </p>
-                  <p className="mt-1.5 border-t border-hairline pt-1.5 text-[10px] leading-4 text-ink-muted-48">
+                  <p className="mt-1.5 border-t border-hairline pt-1.5 text-[11px] leading-4 text-ink-muted-48">
                     {item.interpretation}
                   </p>
                   <Button
                     variant="dark"
-                    className="mt-2 h-7 px-2 text-[10px]"
+                    className="mt-2 h-7 px-2 text-[11px]"
                     onClick={() =>
                       previewPlayer.play({
                         bpm: project.song.tempo,
@@ -536,8 +536,8 @@ export function RightPanel({
           )}
           {candidateEvidence.cautions.length > 0 && (
             <div className="mt-3 rounded-sm border border-amber-400/25 bg-amber-400/5 p-2.5">
-              <p className="text-[10px] font-semibold text-amber-300">採用前の確認点</p>
-              <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-[10px] leading-4 text-body-muted">
+              <p className="text-[11px] font-semibold text-amber-300">採用前の確認点</p>
+              <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-[11px] leading-4 text-body-muted">
                 {candidateEvidence.cautions.map((caution) => (
                   <li key={caution}>{caution}</li>
                 ))}

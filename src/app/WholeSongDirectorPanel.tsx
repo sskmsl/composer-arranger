@@ -106,12 +106,12 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
             Melody・コード・テンポ・Sectionを設計図として守り、全曲で何を起こすかを先に決めます。
           </p>
         </div>
-        <div className="rounded-pill bg-white/8 px-3 py-1 text-[10px] text-body-muted">
+        <div className="rounded-pill bg-white/8 px-3 py-1 text-[11px] text-body-muted">
           {program.diagnosis.confirmedSections}/{program.diagnosis.totalSections} Section確認 · Review {program.diagnosis.score}
         </div>
       </div>
 
-      <label className="mt-4 block text-[10px] font-medium uppercase tracking-wide text-primary">
+      <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-primary">
         どんな景色にしたいか
         <textarea
           value={briefDraft}
@@ -126,7 +126,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
         <Button variant="secondary" onClick={saveBrief} disabled={briefDraft.trim() === savedBrief.trim()}>
           <WandSparkles size={14} /> 3方向を設計
         </Button>
-        <span className="text-[10px] text-ink-muted-48">
+        <span className="text-[11px] text-ink-muted-48">
           全曲Arc: {program.diagnosis.energyArc}
         </span>
       </div>
@@ -148,12 +148,12 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[12px] font-semibold text-body-on-dark">{direction.title}</span>
                 {direction.id === program.recommendedDirectionId && (
-                  <span className="rounded-pill bg-emerald-400/10 px-2 py-0.5 text-[9px] text-emerald-200">推奨</span>
+                  <span className="rounded-pill bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-200">推奨</span>
                 )}
               </div>
-              <p className="mt-1 text-[10px] text-primary">{direction.subtitle}</p>
-              <p className="mt-2 text-[10px] leading-4 text-body-muted">{direction.summary}</p>
-              <p className="mt-2 text-[9px] text-ink-muted-48">生成可能 {available}件</p>
+              <p className="mt-1 text-[11px] text-primary">{direction.subtitle}</p>
+              <p className="mt-2 text-[11px] leading-4 text-body-muted">{direction.summary}</p>
+              <p className="mt-2 text-[11px] text-ink-muted-48">生成可能 {available}件</p>
             </button>
           )
         })}
@@ -163,11 +163,11 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <div className="text-[12px] font-semibold text-body-on-dark">{selectedDirection.title} · 実行計画</div>
-            <p className="mt-1 text-[10px] text-body-muted">
+            <p className="mt-1 text-[11px] text-body-muted">
               生成対象だけを選択してください。既存Melodyは変更せず、候補は自動採用しません。
             </p>
           </div>
-          <span className="text-[10px] text-ink-muted-48">{selectedCount}/{availableCount}件選択</span>
+          <span className="text-[11px] text-ink-muted-48">{selectedCount}/{availableCount}件選択</span>
         </div>
 
         <div className="mt-3 space-y-2">
@@ -195,10 +195,10 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
                   className="accent-primary"
                 />
                 <span className="text-[11px] font-medium text-body-on-dark">{action.sectionName}</span>
-                <span className="text-[10px] text-primary">{GENERATOR_LABELS[action.generator]}</span>
+                <span className="text-[11px] text-primary">{GENERATOR_LABELS[action.generator]}</span>
                 <div className="min-w-0">
-                  <p className="text-[10px] leading-4 text-body-muted">{action.purpose}</p>
-                  <p className="mt-0.5 text-[9px] text-ink-muted-48">
+                  <p className="text-[11px] leading-4 text-body-muted">{action.purpose}</p>
+                  <p className="mt-0.5 text-[11px] text-ink-muted-48">
                     {action.family} · {STATUS_LABELS[action.status]} · {action.statusReason}
                   </p>
                 </div>
@@ -208,7 +208,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
         </div>
 
         {selectedDirection.actions.some((action) => action.generator === "accompaniment" && action.status === "available") && (
-          <p className="mt-3 flex items-start gap-1.5 rounded-sm bg-amber-300/8 px-3 py-2 text-[10px] leading-4 text-amber-100">
+          <p className="mt-3 flex items-start gap-1.5 rounded-sm bg-amber-300/8 px-3 py-2 text-[11px] leading-4 text-amber-100">
             <CircleAlert size={13} className="mt-0.5 shrink-0" /> Accompanimentは候補プールを持たないため、選択時はSectionへ直接適用します。Undoで戻せます。
           </p>
         )}
@@ -226,7 +226,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
             </Button>
           )}
           {generatedActionIds.size > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-200">
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-200">
               <Check size={12} /> {generatedActionIds.size}件生成済み・Activeは維持
             </span>
           )}

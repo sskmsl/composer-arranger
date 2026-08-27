@@ -4,10 +4,12 @@ import { buildArrangementDirectorBlueprint } from "./arrangementDirector"
 import {
   decorationSettingsForIntent,
   performancePartForIntent,
+  phraseLengthForIntent,
   signatureDirectionForIntent,
   signatureLengthForIntent,
   targetTabForIntent,
 } from "./generationBridge"
+import type { AiArrangementIntent } from "./types"
 import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
 import {
   intentForWholeSongAction,
@@ -19,8 +21,83 @@ export interface ArrangementActionExecutionResult {
   target: MainTab | null
 }
 
+export interface ArrangementBatchExecutionResult {
+  generatedCount: number
+  skippedCount: number
+  targets: MainTab[]
+  actionIds: string[]
+}
+
 /**
- * DirectorとPackageの両方から同じ既存Generatorを実行する唯一の経路。
+ * AI Partner / Whole Song Director が共用するGenerator実行経路。
+ * 候補の自動採用は行わず、既存の候補プール・試聴・Set Activeへ接続する。
+ */
+export function executeAiArrangementIntent(
+  sectionId: string,
+  intent: AiArrangementIntent,
+): ArrangementActionExecutionResult {
+  if (intent.generator === "none" || intent.generator === "rhythm") {
+    return { generated: false, target: targetTabForIntent(intent) }
+  }
+  const before = useProjectStore.getState()
+  const section = before.project.sections.find((candidate) => candidate.id === sectionId)
+  if (!section) return { generated: false, target: null }
+
+  before.selectSection(sectionId)
+  before.setGenerationSettings({
+    density: intent.density,
+    rangePreset: intent.register,
+    drama: intent.drama,
+  })
+  if (intent.generator === "melody") {
+    before.generateForSection(sectionId)
+  } else if (intent.generator === "phrase") {
+    const length = phraseLengthForIntent(intent, section.lengthBars)
+    if (length) before.generatePhrasesForSection(sectionId, length)
+  } else if (intent.generator === "signature") {
+    before.generateSignaturePhrasesForSection(
+      sectionId,
+      signatureLengthForIntent(intent, section.lengthBars),
+      signatureDirectionForIntent(intent),
+    )
+  } else if (intent.generator === "counter") {
+    before.generateCounterForSection(
+      sectionId,
+      intent.techniques.includes("strings") ? "string-answer" : undefined,
+    )
+  } else if (intent.generator === "decoration") {
+    before.generateDecorationsForSection(sectionId, decorationSettingsForIntent(intent))
+  } else if (
+    intent.generator === "accompaniment" &&
+    intent.accompanimentPatternId !== "none"
+  ) {
+    before.setSectionAccompanimentPattern(sectionId, intent.accompanimentPatternId)
+  }
+
+  const after = useProjectStore.getState()
+  const generated = intent.generator === "melody"
+    ? after.activeBatchId !== before.activeBatchId
+    : intent.generator === "phrase"
+      ? after.activePhraseBatchId !== before.activePhraseBatchId
+      : intent.generator === "signature"
+        ? after.activeSignaturePhraseBatchId !== before.activeSignaturePhraseBatchId
+        : intent.generator === "counter" || intent.generator === "decoration"
+          ? after.activeReactiveBatchId !== before.activeReactiveBatchId
+          : intent.generator === "accompaniment"
+  if (generated) {
+    const director = buildArrangementDirectorBlueprint(after.project)
+    const orchestration = buildOrchestrationBlueprint(after.project, director)
+    const part = performancePartForIntent(
+      intent,
+      orchestration.sections.find((candidate) => candidate.sectionId === sectionId),
+    )
+    if (part) after.applyPerformanceToLatestGeneration(sectionId, intent.generator, part)
+  }
+  return { generated, target: targetTabForIntent(intent) }
+}
+
+/**
+ * AI Partner・Director・Packageから同じ既存Generatorを実行する共通経路。
  * MelodyのSet Activeは行わず、Accompaniment以外は候補プールへ追加する。
  */
 export function executeArrangementAction(
@@ -29,44 +106,26 @@ export function executeArrangementAction(
   if (action.status !== "available" || action.generator === "none") {
     return { generated: false, target: null }
   }
-  const intent = intentForWholeSongAction(action)
-  const before = useProjectStore.getState()
-  before.selectSection(action.sectionId)
-  before.setGenerationSettings({
-    density: intent.density,
-    rangePreset: intent.register,
-    drama: intent.drama,
-  })
-  if (intent.generator === "signature") {
-    const section = before.project.sections.find((candidate) => candidate.id === action.sectionId)
-    if (section) {
-      before.generateSignaturePhrasesForSection(
-        action.sectionId,
-        signatureLengthForIntent(intent, section.lengthBars),
-        signatureDirectionForIntent(intent),
-      )
-    }
-  } else if (intent.generator === "counter") {
-    before.generateCounterForSection(action.sectionId)
-  } else if (intent.generator === "decoration") {
-    before.generateDecorationsForSection(action.sectionId, decorationSettingsForIntent(intent))
-  } else if (intent.generator === "accompaniment" && intent.accompanimentPatternId !== "none") {
-    before.setSectionAccompanimentPattern(action.sectionId, intent.accompanimentPatternId)
+  return executeAiArrangementIntent(action.sectionId, intentForWholeSongAction(action))
+}
+
+/** Stage順に渡された全曲Actionを実行する。各候補は自動採用しない。 */
+export function executeArrangementActions(
+  actions: readonly WholeSongArrangementAction[],
+): ArrangementBatchExecutionResult {
+  const targets = new Set<MainTab>()
+  const actionIds: string[] = []
+  let skippedCount = 0
+  for (const action of actions) {
+    const result = executeArrangementAction(action)
+    if (result.generated) actionIds.push(action.id)
+    else skippedCount += 1
+    if (result.target) targets.add(result.target)
   }
-  const after = useProjectStore.getState()
-  const generated = intent.generator === "signature"
-    ? after.activeSignaturePhraseBatchId !== before.activeSignaturePhraseBatchId
-    : intent.generator === "counter" || intent.generator === "decoration"
-      ? after.activeReactiveBatchId !== before.activeReactiveBatchId
-      : intent.generator === "accompaniment"
-  if (generated) {
-    const director = buildArrangementDirectorBlueprint(after.project)
-    const orchestration = buildOrchestrationBlueprint(after.project, director)
-    const part = performancePartForIntent(
-      intent,
-      orchestration.sections.find((candidate) => candidate.sectionId === action.sectionId),
-    )
-    if (part) after.applyPerformanceToLatestGeneration(action.sectionId, action.generator, part)
+  return {
+    generatedCount: actionIds.length,
+    skippedCount,
+    targets: [...targets],
+    actionIds,
   }
-  return { generated, target: targetTabForIntent(intent) }
 }
