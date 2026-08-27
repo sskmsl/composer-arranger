@@ -124,14 +124,14 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
       </label>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={saveBrief} disabled={briefDraft.trim() === savedBrief.trim()}>
-          <WandSparkles size={14} /> 3方向を設計
+          <WandSparkles size={14} /> 全曲方針を5案設計
         </Button>
         <span className="text-[11px] text-ink-muted-48">
           全曲Arc: {program.diagnosis.energyArc}
         </span>
       </div>
 
-      <div className="mt-4 grid gap-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
         {program.directions.map((direction) => {
           const selected = direction.id === selectedDirection.id
           const available = direction.actions.filter((action) => action.status === "available").length
@@ -154,6 +154,11 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
               <p className="mt-1 text-[11px] text-primary">{direction.subtitle}</p>
               <p className="mt-2 text-[11px] leading-4 text-body-muted">{direction.summary}</p>
               <p className="mt-2 text-[11px] text-ink-muted-48">生成可能 {available}件</p>
+              {direction.id === program.recommendedDirectionId && (
+                <p className="mt-2 border-t border-emerald-300/15 pt-2 text-[11px] leading-4 text-emerald-100">
+                  {program.recommendationReason}
+                </p>
+              )}
             </button>
           )
         })}

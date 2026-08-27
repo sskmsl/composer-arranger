@@ -32,6 +32,21 @@ function project(): ComposerProject {
 }
 
 describe("Multi-Part Arrangement Package", () => {
+  it("5つの全曲方針を異なる実行計画へ変換する", () => {
+    const ids = [
+      "preserve-space",
+      "controlled-escalation",
+      "rhythmic-propulsion",
+      "motif-relay",
+      "balanced-architecture",
+    ] as const
+    const packages = ids.map((id) => buildMultiPartArrangementPackage(project(), id))
+    expect(new Set(packages.map((item) => item.title)).size).toBe(5)
+    expect(new Set(packages.map((item) => item.stages.flatMap((stage) =>
+      stage.actions.map((action) => `${action.sectionId}:${action.generator}:${action.rhythmCharacter}`),
+    ).join("|"))).size).toBeGreaterThanOrEqual(4)
+  })
+
   it("全Sectionに同じRole集合と登退場を持つMatrixを作る", () => {
     const result = buildMultiPartArrangementPackage(project(), "controlled-escalation")
     expect(result.sections).toHaveLength(5)

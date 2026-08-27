@@ -100,7 +100,9 @@ export interface MultiPartArrangementPackage {
 const PACKAGE_TITLES: Record<WholeSongDirectionId, string> = {
   "preserve-space": "余白と距離のMulti-Part Package",
   "controlled-escalation": "役割交代で開くMulti-Part Package",
+  "rhythmic-propulsion": "周期とアクセントのMulti-Part Package",
   "motif-relay": "Motif受け渡しMulti-Part Package",
+  "balanced-architecture": "主旋律中心のBalanced Multi-Part Package",
 }
 
 function patternFor(
@@ -109,6 +111,7 @@ function patternFor(
 ): AiAccompanimentPatternId {
   if (directionId === "preserve-space") return "broken-ninth"
   if (directionId === "motif-relay") return "chord-entry"
+  if (directionId === "balanced-architecture") return "arpeggio-five"
   return energy >= 4 ? "syncopated" : "pulse-root-fifth"
 }
 
@@ -128,7 +131,9 @@ function executionAction(
     ? "spacious"
     : directionId === "motif-relay"
       ? "fragmented"
-      : "pulsed"
+      : directionId === "balanced-architecture"
+        ? "flowing"
+        : "pulsed"
   const silenceStrategy: AiSilenceStrategy = plan.silenceStrategy
   const creativeRisk: AiCreativeRisk = directionId === "motif-relay" ? "bold" : "focused"
   return {
@@ -196,15 +201,21 @@ function partsForSection(
   const rhythmWanted = !isOutro && (
     directionId === "controlled-escalation"
       ? plan.targetEnergy >= 2
+      : directionId === "rhythmic-propulsion"
+        ? plan.targetEnergy >= 1
       : directionId === "motif-relay"
         ? plan.targetEnergy >= 3 || isIntro
-        : plan.targetEnergy >= 3
+        : directionId === "balanced-architecture"
+          ? plan.targetEnergy >= 3
+          : plan.targetEnergy >= 3
   )
   const stringsWanted = hasMelody && !isIntro && !isOutro && (approach || express)
   const counterWanted = hasMelody && !stringsWanted && !isIntro && !isOutro && (
     directionId === "motif-relay"
       ? ["develop", "declare", "transform"].includes(plan.narrativeFunction)
-      : plan.targetEnergy >= 3 && plan.targetEnergy <= 4
+      : directionId === "rhythmic-propulsion"
+        ? false
+        : plan.targetEnergy >= 3 && plan.targetEnergy <= 4
   )
   const colorWanted = isIntro || isOutro || approach || recovery
   const previousEnergy = previous?.targetEnergy ?? null

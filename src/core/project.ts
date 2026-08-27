@@ -132,7 +132,13 @@ export interface ArrangementDirectorOverrides {
 export interface ArrangementDirectorWorkspaceState {
   /** 曲全体で実現したい景色・制約。Section単位の会話より上位に保持する。 */
   brief: string
-  selectedDirectionId: "preserve-space" | "controlled-escalation" | "motif-relay" | null
+  selectedDirectionId:
+    | "preserve-space"
+    | "controlled-escalation"
+    | "rhythmic-propulsion"
+    | "motif-relay"
+    | "balanced-architecture"
+    | null
 }
 
 export type OrchestrationPartOverride = Partial<

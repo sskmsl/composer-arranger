@@ -17,7 +17,9 @@ import type {
 export type WholeSongDirectionId =
   | "preserve-space"
   | "controlled-escalation"
+  | "rhythmic-propulsion"
   | "motif-relay"
+  | "balanced-architecture"
 
 export type WholeSongActionGenerator =
   | "signature"
@@ -54,13 +56,14 @@ export interface WholeSongArrangementDirection {
   title: string
   subtitle: string
   summary: string
+  character: "minimal" | "cinematic" | "rhythmic" | "dark-experimental" | "balanced"
   protect: string[]
   avoid: string[]
   actions: WholeSongArrangementAction[]
 }
 
 export interface WholeSongDirectionProgram {
-  version: "1.0.0"
+  version: "2.0.0"
   brief: string
   diagnosis: {
     summary: string
@@ -71,7 +74,10 @@ export interface WholeSongDirectionProgram {
     opportunityCount: number
   }
   recommendedDirectionId: WholeSongDirectionId
+  recommendationReason: string
   directions: [
+    WholeSongArrangementDirection,
+    WholeSongArrangementDirection,
     WholeSongArrangementDirection,
     WholeSongArrangementDirection,
     WholeSongArrangementDirection,
@@ -178,7 +184,18 @@ function actionForSection(
       generator = "accompaniment"
       role = "pulse-foundation"
     }
-  } else {
+  } else if (directionId === "rhythmic-propulsion") {
+    if (section.role === "intro" && sectionPlan.additionBudget > 0) {
+      generator = "signature"
+      role = "transition-color"
+    } else if (section.role === "outro" || sectionPlan.climaxPolicy === "recover") {
+      generator = "decoration"
+      role = "transition-color"
+    } else if (sectionPlan.additionBudget > 0) {
+      generator = "accompaniment"
+      role = "pulse-foundation"
+    }
+  } else if (directionId === "motif-relay") {
     if (section.role === "intro") {
       generator = "signature"
       role = "transition-color"
@@ -195,16 +212,36 @@ function actionForSection(
       generator = "accompaniment"
       role = "pulse-foundation"
     }
+  } else if (section.role === "intro" && sectionPlan.additionBudget > 0) {
+    generator = "signature"
+    role = "transition-color"
+  } else if (sectionPlan.climaxPolicy === "approach") {
+    generator = "decoration"
+    role = "transition-color"
+  } else if (
+    sectionPlan.targetEnergy >= 3 &&
+    sectionPlan.targetEnergy <= 4 &&
+    project.sectionMelodyAssignments[section.id]
+  ) {
+    generator = "counter"
+    role = "counter-voice"
+  } else if (sectionPlan.additionBudget > 0 && section.role !== "outro") {
+    generator = "accompaniment"
+    role = "pulse-foundation"
   }
 
   const part = partFor(role)
   const sparse = directionId === "preserve-space" || sectionPlan.targetEnergy <= 2
-  const active = directionId === "controlled-escalation" && sectionPlan.targetEnergy >= 4
+  const active = ["controlled-escalation", "rhythmic-propulsion"].includes(directionId) && sectionPlan.targetEnergy >= 4
   const pattern: AiAccompanimentPatternId = directionId === "preserve-space"
     ? "broken-ninth"
     : directionId === "controlled-escalation"
       ? sectionPlan.targetEnergy >= 4 ? "syncopated" : "pulse-root-fifth"
-      : "chord-entry"
+      : directionId === "rhythmic-propulsion"
+        ? sectionPlan.targetEnergy >= 3 ? "syncopated" : "pulse-root-fifth"
+        : directionId === "balanced-architecture"
+          ? "arpeggio-five"
+          : "chord-entry"
   return action(project, directionId, {
     sectionId: section.id,
     sectionName: section.name,
@@ -220,7 +257,13 @@ function actionForSection(
     register: registerFor(part?.register ?? sectionPlan.registerFocus),
     drama: sectionPlan.climaxPolicy === "express" ? "open" : sectionPlan.climaxPolicy === "approach" ? "growing" : "restrained",
     motion: sectionPlan.climaxPolicy === "approach" ? "ascending" : sectionPlan.climaxPolicy === "recover" ? "descending" : "wave",
-    rhythmCharacter: directionId === "preserve-space" ? "spacious" : directionId === "controlled-escalation" ? "pulsed" : "fragmented",
+    rhythmCharacter: directionId === "preserve-space"
+      ? "spacious"
+      : ["controlled-escalation", "rhythmic-propulsion"].includes(directionId)
+        ? "pulsed"
+        : directionId === "motif-relay"
+          ? "fragmented"
+          : "flowing",
     silenceStrategy: sectionPlan.silenceStrategy,
     creativeRisk: directionId === "motif-relay" ? "bold" : "focused",
     lengthBars: clampLength(generator === "signature" ? Math.min(2, section.lengthBars) : section.lengthBars),
@@ -228,11 +271,55 @@ function actionForSection(
   })
 }
 
-function recommendedDirection(brief: string): WholeSongDirectionId {
-  if (/(余白|静|抑制|少な|残響|空間)/i.test(brief)) return "preserve-space"
-  if (/(上昇|盛り上|推進|リズム|ダンス|クレッシェンド)/i.test(brief)) return "controlled-escalation"
-  if (/(モチーフ|記憶|反復|顔|フック|独創|不穏)/i.test(brief)) return "motif-relay"
-  return "controlled-escalation"
+function recommendation(
+  project: ComposerProject,
+  brief: string,
+): Pick<WholeSongDirectionProgram, "recommendedDirectionId" | "recommendationReason"> {
+  const scores: Record<WholeSongDirectionId, number> = {
+    "preserve-space": 0,
+    "controlled-escalation": 0,
+    "rhythmic-propulsion": 0,
+    "motif-relay": 0,
+    "balanced-architecture": 2,
+  }
+  const reasons: Partial<Record<WholeSongDirectionId, string>> = {}
+  const add = (id: WholeSongDirectionId, score: number, reason: string) => {
+    scores[id] += score
+    reasons[id] = reason
+  }
+  if (/(余白|静|抑制|少な|残響|空間|呼吸)/i.test(brief)) add("preserve-space", 8, "制作意図が余白・抑制・距離感を明示しています。")
+  if (/(映画|ドラマ|弦|ストリングス|壮大|クライマックス|上昇|盛り上|クレッシェンド)/i.test(brief)) add("controlled-escalation", 8, "Sectionの役割交代でドラマと頂点を作る意図に最も合います。")
+  if (/(推進|リズム|グルーヴ|ダンス|ビート|パルス|躍動)/i.test(brief)) add("rhythmic-propulsion", 9, "リズムと周期を中心に曲を前へ進める意図が明確です。")
+  if (/(モチーフ|記憶|反復|顔|フック|独創|不穏|暗|意外|実験)/i.test(brief)) add("motif-relay", 8, "記憶の核と不穏な変形をSection間で受け渡す余地があります。")
+  if (/(自然|バランス|歌|主旋律|王道|過不足|全体)/i.test(brief)) add("balanced-architecture", 6, "主旋律を中心に各役割を過不足なく配分する意図に合います。")
+
+  const activeMelodySections = project.sections.filter(
+    (section) => project.sectionMelodyAssignments[section.id],
+  ).length
+  const offBeatNotes = project.melodyVariants.flatMap((variant) => variant.notes)
+    .filter((note) => Math.abs(note.startBeat - Math.round(note.startBeat)) > 0.05).length
+  const noteCount = project.melodyVariants.reduce((sum, variant) => sum + variant.notes.length, 0)
+  const chromaticChords = project.chords.filter((chord) => /dim|aug|[#b]|sus|add9|maj7/i.test(chord.symbol)).length
+  if (noteCount > 0 && offBeatNotes / noteCount >= 0.3) {
+    add("rhythmic-propulsion", 3, "既存旋律に裏拍の動きがあり、リズムの個性を発展できます。")
+  }
+  if (project.chords.length > 0 && chromaticChords / project.chords.length >= 0.35) {
+    add("motif-relay", 3, "和声に未解決感と色彩があり、意外性を無理なく拡張できます。")
+  }
+  if (project.sections.length >= 4) {
+    add("controlled-escalation", 2, "複数Sectionの高低差を利用して、頂点まで段階的に展開できます。")
+  }
+  if (activeMelodySections < Math.max(1, project.sections.length / 2)) {
+    add("preserve-space", 1, "主旋律未確定のSectionを埋めず、余白として保護できます。")
+  }
+
+  const recommendedDirectionId = (Object.entries(scores) as Array<[WholeSongDirectionId, number]>)
+    .sort((left, right) => right[1] - left[1])[0][0]
+  return {
+    recommendedDirectionId,
+    recommendationReason: reasons[recommendedDirectionId]
+      ?? "現在のMelody・コード・Section構成を最も自然に活かし、後から個別調整しやすい案です。",
+  }
 }
 
 export function buildWholeSongDirectionProgram(
@@ -245,6 +332,7 @@ export function buildWholeSongDirectionProgram(
     reviewArrangementSection(project, director, section.sectionId),
   )
   const wholeReview = reviewWholeSongArrangement(project, director, reviews)
+  const recommended = recommendation(project, brief)
   const makeActions = (id: WholeSongDirectionId) => director.sections.map((section) =>
     actionForSection(
       project,
@@ -256,34 +344,57 @@ export function buildWholeSongDirectionProgram(
   const directions: WholeSongDirectionProgram["directions"] = [
     {
       id: "preserve-space",
-      title: "余白を主役にする設計",
+      title: "Minimal",
       subtitle: "近景と遠景の距離で世界を開く",
       summary: "低Energy Sectionでは追加を拒み、境界・残響・限定された一音だけで曲の奥行きを作ります。",
+      character: "minimal",
       protect: ["Active Melodyの呼吸", "低Energy Sectionの希少な発音", "Climax前の最大密度"],
       avoid: ["全Sectionへの伴奏追加", "コードごとの機械的な追従", "残響を埋めるCounter"],
       actions: makeActions("preserve-space"),
     },
     {
       id: "controlled-escalation",
-      title: "段階的に開く設計",
-      subtitle: "音量ではなく役割交代で頂点へ向かう",
+      title: "Cinematic",
+      subtitle: "ストリングスと役割交代で頂点へ向かう",
       summary: "Pulse、Transition、CounterをSectionごとに交代させ、最高音と最大密度をClimaxまで温存します。",
+      character: "cinematic",
       protect: ["Section間のEnergy差", "サビ前の期待", "Climaxの一回性"],
       avoid: ["最初から全パートを鳴らすこと", "全Sectionで同じPattern", "音量だけのクレッシェンド"],
       actions: makeActions("controlled-escalation"),
     },
     {
+      id: "rhythmic-propulsion",
+      title: "Rhythmic",
+      subtitle: "周期・アクセント・休符で推進力を作る",
+      summary: "コードを細かく説明せず、Sectionごとに異なるPulseと抜き差しを設計して身体的な前進を作ります。",
+      character: "rhythmic",
+      protect: ["Active Melodyのアクセント", "低域の見通し", "Sectionごとの異なる歩幅"],
+      avoid: ["全拍を埋める伴奏", "Kickとの完全な同期", "全Sectionで同じシンコペーション"],
+      actions: makeActions("rhythmic-propulsion"),
+    },
+    {
       id: "motif-relay",
-      title: "Motifを受け渡す設計",
-      subtitle: "短い記憶の核を別の役割へ変形する",
-      summary: "IntroのSignatureを出発点に、CounterとTransitionへ視点を移しながら曲全体の同一性を作ります。",
+      title: "Dark / Experimental",
+      subtitle: "不穏な記憶の核を異なる役割へ変形する",
+      summary: "IntroのSignatureを出発点に、断片化したCounterと境界のColorへ視点を移し、意外性を因果のある形で作ります。",
+      character: "dark-experimental",
       protect: ["主旋律とMotifの役割差", "反復の記憶性", "Sectionごとの異なる見せ方"],
       avoid: ["主旋律の単純な二重化", "同じ音域での反復", "全ての回帰を完全形にすること"],
       actions: makeActions("motif-relay"),
     },
+    {
+      id: "balanced-architecture",
+      title: "Balanced",
+      subtitle: "主旋律を中心に役割を過不足なく配分する",
+      summary: "Melodyを唯一の前景として守り、Pulse・Counter・Transitionを必要なSectionだけへ配置します。",
+      character: "balanced",
+      protect: ["Active Melodyの感情点", "コードの色彩", "Section間の密度差"],
+      avoid: ["安全な全乗せ", "同じ役割の重複", "すべてを均等に鳴らすこと"],
+      actions: makeActions("balanced-architecture"),
+    },
   ]
   return {
-    version: "1.0.0",
+    version: "2.0.0",
     brief: brief.trim(),
     diagnosis: {
       summary: wholeReview.summary,
@@ -296,7 +407,7 @@ export function buildWholeSongDirectionProgram(
         0,
       ),
     },
-    recommendedDirectionId: recommendedDirection(brief),
+    ...recommended,
     directions,
   }
 }

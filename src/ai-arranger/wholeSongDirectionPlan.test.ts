@@ -40,21 +40,25 @@ function project(): ComposerProject {
 }
 
 describe("Whole-song Arrangement Direction Program", () => {
-  it("同じ設計図から役割の異なる3方向を決定論的に作る", () => {
+  it("同じ設計図から性格の異なる5方向を決定論的に作る", () => {
     const first = buildWholeSongDirectionProgram(project(), "冷たい余白を残したい")
     const second = buildWholeSongDirectionProgram(project(), "冷たい余白を残したい")
     expect(first).toEqual(second)
-    expect(first.directions).toHaveLength(3)
-    expect(new Set(first.directions.map((direction) => direction.id)).size).toBe(3)
+    expect(first.directions).toHaveLength(5)
+    expect(new Set(first.directions.map((direction) => direction.id)).size).toBe(5)
+    expect(new Set(first.directions.map((direction) => direction.character)).size).toBe(5)
     expect(new Set(first.directions.map((direction) =>
       direction.actions.map((action) => action.generator).join(","),
-    )).size).toBe(3)
+    )).size).toBeGreaterThanOrEqual(4)
   })
 
   it("言語化された世界観から推奨方向を選ぶ", () => {
     expect(buildWholeSongDirectionProgram(project(), "余白と残響を守る").recommendedDirectionId).toBe("preserve-space")
     expect(buildWholeSongDirectionProgram(project(), "サビへ段階的に盛り上げる").recommendedDirectionId).toBe("controlled-escalation")
+    expect(buildWholeSongDirectionProgram(project(), "ビートとグルーヴで推進する").recommendedDirectionId).toBe("rhythmic-propulsion")
     expect(buildWholeSongDirectionProgram(project(), "短いモチーフを記憶に残す").recommendedDirectionId).toBe("motif-relay")
+    expect(buildWholeSongDirectionProgram(project(), "主旋律を中心に自然なバランス").recommendedDirectionId).toBe("balanced-architecture")
+    expect(buildWholeSongDirectionProgram(project(), "").recommendationReason.length).toBeGreaterThan(10)
   })
 
   it("原曲Melodyを書き換えるActionを作らず、Counter不足も明示する", () => {

@@ -419,7 +419,13 @@ export interface AiArrangementContext {
     songProfile: string
     arrangementIntent?: {
       brief: string
-      selectedDirectionId: "preserve-space" | "controlled-escalation" | "motif-relay" | null
+      selectedDirectionId:
+        | "preserve-space"
+        | "controlled-escalation"
+        | "rhythmic-propulsion"
+        | "motif-relay"
+        | "balanced-architecture"
+        | null
     }
     sourceImport?: {
       type: "midi"
