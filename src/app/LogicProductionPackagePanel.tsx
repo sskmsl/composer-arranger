@@ -88,7 +88,7 @@ export function LogicProductionPackagePanel() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
             <PackageOpen size={16} className="shrink-0 text-cyan-300" />
-            <span className="break-words">Logic Pro Production Package · 第5弾</span>
+            <span className="break-words">Logic Pro Production Package</span>
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             曲の小節位置を保った役割別MIDIと、Komplete 15 Ultimate／Repro-1・5だけで実行できる制作指示書をまとめます。

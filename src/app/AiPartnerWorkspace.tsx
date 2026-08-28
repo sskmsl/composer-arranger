@@ -836,7 +836,7 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
-                  <AudioLines size={15} className="text-primary-on-dark" /> 音源を聴かせる（第二弾）
+                  <AudioLines size={15} className="text-primary-on-dark" /> 音源を聴かせる
                 </div>
                 <p className="mt-1 text-[11px] leading-4 text-ink-muted-48">
                   Logic Pro等から書き出したMP3/WAV・12MB以下。解析時だけ送信し、保存しません。

@@ -100,7 +100,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <Sparkles size={16} className="text-primary-on-dark" /> Arrangement Director · 第3弾
+            <Sparkles size={16} className="text-primary-on-dark" /> Arrangement Director
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             Melody・コード・テンポ・Sectionを設計図として守り、全曲で何を起こすかを先に決めます。

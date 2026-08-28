@@ -96,7 +96,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <Layers3 size={16} className="text-violet-300" /> Multi-Part Arrangement Package · 第4弾
+            <Layers3 size={16} className="text-violet-300" /> Multi-Part Arrangement
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             {arrangementPackage.summary}
