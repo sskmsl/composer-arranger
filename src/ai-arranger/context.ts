@@ -14,6 +14,9 @@ import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
 import { reviewOrchestrationMasking } from "./orchestrationReview"
 import { reviewWholeSongArrangement } from "./wholeSongArrangementReview"
 import { analyzeImportedArrangementSection } from "./importedArrangementAnalysis"
+import {
+  identifyArrangementSurpriseOpportunities,
+} from "@/core/arrangementSurprise"
 
 const MAX_MELODY_NOTES = 160
 
@@ -81,6 +84,21 @@ export function buildAiArrangementContext(
     (plan) => plan.sectionId === sectionId,
   )
   const importedArrangement = analyzeImportedArrangementSection(project, sectionId)
+  const existingSupportNoteCount = [reactiveAssignment, decorationAssignment]
+    .filter((id): id is string => Boolean(id))
+    .reduce(
+      (sum, id) =>
+        sum +
+        (project.reactiveLayerCandidates?.find((candidate) => candidate.id === id)
+          ?.notes.length ?? 0),
+      0,
+    )
+  const nextSection = timeline[sectionIndex + 1]
+  const nextSectionFirstChord = nextSection
+    ? project.chords
+        .filter((chord) => chord.sectionId === nextSection.id)
+        .sort((left, right) => left.startBeat - right.startBeat)[0]?.symbol
+    : undefined
 
   return {
     arrangementConstitution: arrangementConstitutionContext(),
@@ -94,6 +112,15 @@ export function buildAiArrangementContext(
     orchestration,
     orchestrationReview: reviewOrchestrationMasking(currentOrchestrationPlan),
     audibleLayerReview: reviewAudibleLayerCollisions(project, sectionId),
+    surpriseOpportunities: identifyArrangementSurpriseOpportunities({
+      chords,
+      melodyNotes: notes,
+      totalBeats,
+      sectionRole: section.role,
+      nextSectionRole: nextSection?.role,
+      nextSectionFirstChord,
+      existingSupportNoteCount,
+    }),
     project: {
       title: project.title,
       key: project.song.key,

@@ -1,5 +1,6 @@
 import type { Density, Drama } from "@/melody-engine/generationParams"
 import type { MelodyFeatures } from "@/core/melody"
+import type { ArrangementSurpriseOpportunity } from "@/core/arrangementSurprise"
 
 export type AiArrangementGenerator =
   | "melody"
@@ -85,6 +86,9 @@ export interface AiArrangementIntent {
   rhythmCharacter: AiRhythmCharacter
   silenceStrategy: AiSilenceStrategy
   creativeRisk: AiCreativeRisk
+  /** 通常はSafe。文脈上の回収根拠がある場合だけSurpriseを少数提示する。 */
+  approach?: "safe" | "surprise-tension"
+  necessityReason?: string
   lengthBars: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
   techniques: string[]
   soundPalette: string
@@ -411,6 +415,8 @@ export interface AiArrangementContext {
   orchestrationReview: OrchestrationMaskingReview
   /** 実際のPreview/MIDI材料を使い、主旋律と採用済み補助レイヤーの実音衝突を測る。 */
   audibleLayerReview: AudibleLayerCollisionReview
+  /** 決定論的解析で確認済みの、必然性を持たせられる意外性の機会。 */
+  surpriseOpportunities: ArrangementSurpriseOpportunity[]
   project: {
     title: string
     key: string

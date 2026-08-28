@@ -1,4 +1,5 @@
 import type { MelodyNote, PhraseContour } from "./melody"
+import type { ArrangementNecessity } from "./arrangementSurprise"
 import type {
   DecorationGestureRole,
   DecorationRhythmStyle,
@@ -248,4 +249,5 @@ export interface SignaturePhraseCandidate {
   score: SignaturePhraseScore
   selectionScore: number
   similarityToSelected: SignaturePhraseSimilarity[]
+  arrangementNecessity?: ArrangementNecessity
 }

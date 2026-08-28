@@ -12,6 +12,7 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
+import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 
 const RHYTHM_LABELS: Record<PhraseCandidate["intent"]["rhythmCharacter"], string> = {
   flowing: "流れるリズム",
@@ -247,6 +248,9 @@ export function PhraseWorkspace() {
                       {CADENCE_LABELS[candidate.intent.cadence]}
                     </span>
                   </div>
+                  <ArrangementNecessityBadge
+                    necessity={candidate.arrangementNecessity}
+                  />
                 </button>
                 <div className="mt-3 flex gap-1.5">
                   <Button variant="dark" className="min-w-0 flex-1 !px-2 !text-[11px]" onClick={() => play(candidate)}>

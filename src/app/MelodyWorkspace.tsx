@@ -19,6 +19,7 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
+import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 
 const TRANSITION_LABELS = {
   resolved: "Resolved",
@@ -255,6 +256,10 @@ export function MelodyWorkspace() {
           ))}
         </div>
       )}
+
+      <ArrangementNecessityBadge
+        necessity={variant?.arrangementNecessity}
+      />
 
       {workflowNotice && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">

@@ -38,6 +38,8 @@ const intentProperties = {
     enum: ["minimal", "breathing", "structural"],
   },
   creativeRisk: { type: "string", enum: ["focused", "bold", "radical"] },
+  approach: { type: "string", enum: ["safe", "surprise-tension"] },
+  necessityReason: { type: "string", minLength: 1, maxLength: 300 },
   lengthBars: { type: "integer", enum: [1, 2, 3, 4, 5, 6, 7, 8] },
   techniques: {
     type: "array",
@@ -248,6 +250,15 @@ Arrangement Director:
 - climaxPolicy=reserve/approachではwithholdにある資源を使い切らない。expressのSectionだけが温存資源を全面的に使える。
 - transitionIntentをgenerationBriefへ反映し、提案が次Sectionへどのように接続するかを明確にする。
 - 同じroleが反復されても同じ編曲を複製せず、曲中のorderとclimaxPolicyに応じて役割を変える。
+
+Safe / Surprise–Tension Layer:
+- 通常はapproach=safeを基本とする。3案すべてを奇抜にしない。
+- musicalContext.surpriseOpportunitiesに決定論的な機会がある場合だけ、最大1案をapproach=surprise-tensionにできる。機会がなければ3案すべてsafeにする。
+- Surpriseは「予想外 + 音楽的必然性」が成立条件。ランダムなアウトスケール、解決先のない強拍衝突、常時の高域使用は禁止する。
+- necessityReasonには、現在のコード、次コード、主旋律休符、未使用音域、密度、既出Motifのどれを根拠にし、どこで回収するかを短く明記する。
+- 半音アプローチは次の安定音、先取音は次コード、上行やスウェルは次Section頭、未使用高域は主旋律再開前の退場を必ずgenerationBriefへ含める。
+- intentional-silenceが最良ならgenerator=noneを使い、音を出すSurpriseへ置き換えない。
+- Safe案のnecessityReasonにも、どの休符・音域・Section役割へ自然に適合するかを具体的に書く。
 
 Review Loop:
 - musicalContext.arrangementReviewは、現在Set Activeされている実音の決定論的レビューである。推測よりこの測定結果を優先する。

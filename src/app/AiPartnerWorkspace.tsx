@@ -1014,6 +1014,17 @@ export function AiPartnerWorkspace({
                       <Tag>{intent.rhythmCharacter}</Tag>
                       <Tag>{intent.silenceStrategy}</Tag>
                       <Tag>{intent.creativeRisk}</Tag>
+                      <span
+                        className={`rounded-pill px-2 py-1 text-[11px] ${
+                          intent.approach === "surprise-tension"
+                            ? "bg-fuchsia-300/15 text-fuchsia-100"
+                            : "bg-emerald-300/10 text-emerald-100"
+                        }`}
+                      >
+                        {intent.approach === "surprise-tension"
+                          ? "Surprise / Tension"
+                          : "Safe"}
+                      </span>
                     </div>
                     <p className="mt-3 text-[12px] leading-5 text-body-on-dark">
                       {intent.generationBrief}
@@ -1065,7 +1076,7 @@ export function AiPartnerWorkspace({
                       </div>
                     )}
                     <p className="mt-3 text-[11px] leading-5 text-ink-muted-48">
-                      {intent.why}
+                      {intent.necessityReason ?? intent.why}
                     </p>
                     <div className="mt-auto pt-4">
                       {!noGenerator && !proposalOnly && (

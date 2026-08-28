@@ -891,6 +891,9 @@
       <span class="chapter-num">13A</span>
       <h2>AI Partnerワークスペース</h2>
       <p class="chapter-intro">AI Partnerは、曲全体・選択中Section・会話で確定した制約・Favorite／Rejectを見て、性格の異なる5つの全曲アレンジ方針を提案する統括画面です。最初の画面は「曲を診断 → 方針を選ぶ → 生成して試聴」の3段階だけを追えば進められます。</p>
+      <h3>Safe / Surprise・Tension</h3>
+      <p>生成候補は、自然に適合する<strong>Safe</strong>と、前後の文脈によって成立する<strong>Surprise / Tension</strong>の共通評価を受けます。Surpriseはランダムな外れ音ではありません。次コードへ半音で解決する、主旋律の休符だけを使う、未使用高域を短時間だけ使って退場する、既出Motifを反転する、次Sectionへ向けた上行をSection頭で止める、など<strong>逸脱と回収の両方</strong>を確認できる場合だけ表示されます。</p>
+      <p>通常はSafeが基本で、Surprise候補は1つの候補群につき最大2件です。文脈上の機会がなければSurpriseを無理に生成しません。直前までの密度が高い場合は、音を足さない<strong>Intentional Silence</strong>も有効な提案として扱います。候補カードには「なぜ成立するか」と、必要な場合は「どこで回収するか」が表示されます。</p>
       <ol>
         <li><strong>この曲の診断</strong>で、和声・旋律・Section構成から読み取った全曲の流れを確認する</li>
         <li><strong>どの方向で進めますか？</strong>で、Minimal / Cinematic / Rhythmic / Dark・Experimental / Balancedから1案を選ぶ</li>

@@ -33,6 +33,7 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
+import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 
 const RHYTHM_LABELS: Record<SignatureRhythmIdentity, string> = {
   "opening-stamp": "Opening Stamp",
@@ -426,6 +427,9 @@ export function SignaturePhraseWorkspace() {
                       {VARIATION_LABELS[candidate.plan.variationStrategy]}
                     </span>
                   </div>
+                  <ArrangementNecessityBadge
+                    necessity={candidate.arrangementNecessity}
+                  />
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-ink-muted-48">
                     <span>
                       World {Math.round((candidate.score.worldBuilding ?? 0) * 100)}

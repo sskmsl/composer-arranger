@@ -30,6 +30,7 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
+import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 
 const TYPE_LABELS: Record<string, string> = {
   "decorative-fill": "Decorative",
@@ -468,6 +469,9 @@ export function DecorationWorkspace() {
                         </span>
                       )}
                     </div>
+                    <ArrangementNecessityBadge
+                      necessity={candidate.arrangementNecessity}
+                    />
                     <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-ink-muted-48">
                       {plan?.intention}
                     </p>

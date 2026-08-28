@@ -1,4 +1,5 @@
 import type { MelodyNote, MelodySimilarityBreakdown, PhraseContour } from "./melody"
+import type { ArrangementNecessity } from "./arrangementSurprise"
 
 export type PhraseRhythmCharacter = "flowing" | "syncopated" | "breathing" | "sustained"
 export type PhraseHarmonicApproach = "chord-anchored" | "common-tone" | "tension-release" | "anticipatory"
@@ -46,6 +47,7 @@ export interface PhraseCandidate {
   techniqueFitScore?: number
   selectionScore: number
   similarityToSelected: MelodySimilarityBreakdown[]
+  arrangementNecessity?: ArrangementNecessity
   /** Draft Techniqueを昇格せず同一seedで比較した一時A/B候補。 */
   techniqueExperiment?: {
     presetId: string

@@ -1,4 +1,5 @@
 import type { MelodyNote } from "./melody"
+import type { ArrangementNecessity } from "./arrangementSurprise"
 
 /**
  * Issue #42: Active Melodyを変更せず、その周囲へ置く独立Arrangementレイヤー。
@@ -294,6 +295,8 @@ export interface ReactiveLayerCandidate {
   /** CounterとDecorationが別の仕事を担っているかを評価する。 */
   roleComplementarityFit?: ReactiveLayerRoleComplementarityFit
   selectionReason?: "highest-quality" | "quality-diversity-balance" | "regenerated"
+  /** Safe / SurpriseをGenerator横断で評価した根拠。Surpriseは解決可能な場合だけ付与する。 */
+  arrangementNecessity?: ArrangementNecessity
   /** Technique実験が指定された場合の生成意図適合度(0–1)。 */
   techniqueFitScore?: number
   /** Draft Techniqueを昇格せず同一seedで比較した一時A/B候補。 */

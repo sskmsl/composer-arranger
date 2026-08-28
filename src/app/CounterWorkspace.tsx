@@ -34,6 +34,7 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
+import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 
 const STYLE_LABELS: Record<string, string> = {
   "bell-response": "Bell",
@@ -413,6 +414,9 @@ export function CounterWorkspace() {
                       </span>
                     )}
                   </div>
+                  <ArrangementNecessityBadge
+                    necessity={candidate.arrangementNecessity}
+                  />
                   <p className="mt-2 truncate text-[11px] text-ink-muted-48">
                     Target: {activeMelody?.name ?? candidate.targetMelodyVariantId}
                   </p>

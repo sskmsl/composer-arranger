@@ -88,7 +88,15 @@ import {
   type GenerateSignaturePhrasesInput,
 } from "@/phrase-engine/generateSignaturePhrases"
 import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
-import type { CounterGeneratorStyle, ReactiveLayerCandidate } from "@/core/reactiveLayer"
+import type {
+  CounterCreativeRisk,
+  CounterGeneratorStyle,
+  ReactiveLayerCandidate,
+} from "@/core/reactiveLayer"
+import {
+  annotateArrangementApproaches,
+  type ArrangementSurpriseContext,
+} from "@/core/arrangementSurprise"
 import type { AiPartnerSession, OrchestrationRole } from "@/ai-arranger/types"
 import {
   analyzeMelodyActivity,
@@ -244,7 +252,11 @@ interface ProjectState {
   ) => void
   setActiveSignaturePhraseCandidateIndex: (index: number) => void
   regenerateSignaturePhrase: (candidateId: string) => void
-  generateCounterForSection: (sectionId: string, preferredStyle?: CounterGeneratorStyle) => void
+  generateCounterForSection: (
+    sectionId: string,
+    preferredStyle?: CounterGeneratorStyle,
+    preferredCreativeRisk?: CounterCreativeRisk,
+  ) => void
   setActiveReactiveCandidateIndex: (index: number) => void
   regenerateCounter: (candidateId: string) => void
   generateDecorationsForSection: (
@@ -432,6 +444,36 @@ function counterGenerationInput(
       generatorTarget: "counter",
       sectionRole: section.role,
     }),
+  }
+}
+
+function arrangementSurpriseContext(
+  project: ComposerProject,
+  sectionId: string,
+  melodyNotes: MelodyNote[],
+  existingSupportNoteCount = 0,
+): ArrangementSurpriseContext | null {
+  const timeline = normalizeSectionTimeline(project.sections)
+  const sectionIndex = timeline.findIndex((section) => section.id === sectionId)
+  const section = timeline[sectionIndex]
+  if (!section) return null
+  const nextSection = timeline[sectionIndex + 1]
+  const nextSectionFirstChord = nextSection
+    ? project.chords
+        .filter((chord) => chord.sectionId === nextSection.id)
+        .sort((left, right) => left.startBeat - right.startBeat)[0]?.symbol
+    : undefined
+  const { beatsPerBar } = parseTimeSignature(project.song.timeSignature)
+  return {
+    chords: project.chords
+      .filter((chord) => chord.sectionId === sectionId)
+      .sort((left, right) => left.startBeat - right.startBeat),
+    melodyNotes,
+    totalBeats: section.lengthBars * beatsPerBar,
+    sectionRole: section.role,
+    nextSectionRole: nextSection?.role,
+    nextSectionFirstChord,
+    existingSupportNoteCount,
   }
 }
 
@@ -1373,7 +1415,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     const harmonicMap = buildHarmonicMap(chords)
     const batchId = crypto.randomUUID()
-    const variants: MelodyVariant[] = taggedCandidates.map(
+    const rawVariants: MelodyVariant[] = taggedCandidates.map(
       ({ candidate: c, experimentMode }) => {
       const v = toMelodyVariantFromProfile(sectionId, profile, c, batchId)
       if (experimentPreset && experimentMode) {
@@ -1438,6 +1480,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return v
       },
     )
+
+    const melodySurpriseContext = arrangementSurpriseContext(
+      prev,
+      sectionId,
+      [],
+    )
+    const variants = melodySurpriseContext
+      ? annotateArrangementApproaches(rawVariants, melodySurpriseContext, {
+          maximumSurpriseCount: 1,
+          minimumScore: 78,
+        })
+      : rawVariants
 
     set({
       history: [...get().history, snapshot(prev)],
@@ -1512,7 +1566,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ]
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: PhraseCandidate[] = generatedGroups.flatMap(
+    const rawCandidates: PhraseCandidate[] = generatedGroups.flatMap(
       (group) =>
         group.candidates.map((candidate, index) => ({
           ...candidate,
@@ -1546,6 +1600,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
               : undefined,
         })),
     )
+    const phraseSurpriseContext = arrangementSurpriseContext(
+      prev,
+      sectionId,
+      prev.melodyVariants.find(
+        (variant) =>
+          variant.id === prev.sectionMelodyAssignments[sectionId] &&
+          variant.sectionId === sectionId,
+      )?.notes ?? [],
+    )
+    const candidates = phraseSurpriseContext
+      ? annotateArrangementApproaches(rawCandidates, phraseSurpriseContext, {
+          maximumSurpriseCount: 2,
+          minimumScore: 76,
+        })
+      : rawCandidates
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -1662,7 +1731,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const generated = generateSignaturePhraseCandidates(input)
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: SignaturePhraseCandidate[] = generated.map(
+    const rawCandidates: SignaturePhraseCandidate[] = generated.map(
       (candidate, index) => ({
         ...candidate,
         id: crypto.randomUUID(),
@@ -1671,6 +1740,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         createdAt,
       }),
     )
+    const signatureSurpriseContext = arrangementSurpriseContext(
+      prev,
+      sectionId,
+      input.referenceMelody ?? [],
+    )
+    const candidates = signatureSurpriseContext
+      ? annotateArrangementApproaches(rawCandidates, signatureSurpriseContext, {
+          maximumSurpriseCount: 2,
+          minimumScore: 74,
+        })
+      : rawCandidates
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -1738,12 +1818,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 
-  generateCounterForSection: (sectionId, preferredStyle) => {
+  generateCounterForSection: (sectionId, preferredStyle, preferredCreativeRisk) => {
     const prev = get().project
     const baseInput = counterGenerationInput(prev, sectionId, createSeed())
-    const input = baseInput && preferredStyle
-      ? { ...baseInput, preferredStyles: [preferredStyle] }
-      : baseInput
+    const input = baseInput
+      ? {
+          ...baseInput,
+          ...(preferredStyle ? { preferredStyles: [preferredStyle] } : {}),
+          ...(preferredCreativeRisk
+            ? { preferredCreativeRisks: [preferredCreativeRisk] }
+            : {}),
+        }
+      : null
     if (!input) {
       set({
         workflowNotice:
@@ -1814,7 +1900,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: ReactiveLayerCandidate[] = generated.map(
+    const rawCandidates: ReactiveLayerCandidate[] = generated.map(
       ({ candidate, experimentMode }, index) => ({
       ...candidate,
       id: crypto.randomUUID(),
@@ -1847,6 +1933,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           : undefined,
     }),
     )
+    const surpriseContext = arrangementSurpriseContext(
+      prev,
+      sectionId,
+      input.melody.notes,
+      input.existingSupportNotes?.length ?? 0,
+    )
+    const candidates = surpriseContext
+      ? annotateArrangementApproaches(rawCandidates, surpriseContext, {
+          maximumSurpriseCount: 2,
+          minimumScore: 74,
+        })
+      : rawCandidates
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -2040,7 +2138,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
-    const candidates: ReactiveLayerCandidate[] = generated.map(
+    const rawCandidates: ReactiveLayerCandidate[] = generated.map(
       ({ candidate, experimentMode }, index) => ({
       ...candidate,
       id: crypto.randomUUID(),
@@ -2072,6 +2170,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           : undefined,
     }),
     )
+    const surpriseContext = arrangementSurpriseContext(
+      prev,
+      sectionId,
+      input.melodyNotes ?? [],
+      input.existingSupportNotes?.length ?? 0,
+    )
+    const candidates = surpriseContext
+      ? annotateArrangementApproaches(rawCandidates, surpriseContext, {
+          maximumSurpriseCount: 2,
+          minimumScore: 74,
+        })
+      : rawCandidates
     set({
       history: [...get().history, snapshot(prev)],
       future: [],

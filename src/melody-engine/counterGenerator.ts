@@ -55,6 +55,8 @@ export interface GenerateCounterInput {
   techniqueFitSelectionWeight?: number
   /** DirectorがStrings等の明確な役割を指定した場合だけ、生成音色キャラクターを限定する。 */
   preferredStyles?: readonly CounterGeneratorStyle[]
+  /** AI PartnerのSafe / Surprise判断を、既存のRisk語彙へ渡す任意バイアス。 */
+  preferredCreativeRisks?: readonly CounterCreativeRisk[]
 }
 
 interface StylePlan {
@@ -1372,6 +1374,7 @@ function selectDiverseCandidates(
   pool: ReactiveLayerCandidate[],
   finalCount: number,
   techniqueFitSelectionWeight = 0,
+  preferredCreativeRisks?: readonly CounterCreativeRisk[],
 ): ReactiveLayerCandidate[] {
   // Techniqueは候補の方向を補助するが、聴感多様性を上書きしない。
   // 外部指定値をそのまま支配力にせず、Counter固有品質の中へ穏やかに統合する。
@@ -1434,7 +1437,15 @@ function selectDiverseCandidates(
             .join("|"),
       ) === index,
   )
-  const source = eligible
+  const preferred = preferredCreativeRisks?.length
+    ? eligible.filter((candidate) =>
+        preferredCreativeRisks.includes(
+          candidate.counterPlan?.creativeRisk ?? "focused",
+        ),
+      )
+    : []
+  // 指定Riskだけで候補数を満たせない場合は、品質を落とさず全eligibleへ戻す。
+  const source = preferred.length >= finalCount ? preferred : eligible
   const selected: ReactiveLayerCandidate[] = []
   const radicalTarget = Math.max(1, Math.round(finalCount * 0.3))
   const boldTarget = Math.max(1, Math.round(finalCount * 0.4))
@@ -1785,6 +1796,7 @@ export function generateCounterCandidates(
     pool,
     input.finalCount ?? COUNTER_CANDIDATE_CONFIG.finalCandidateCount,
     input.techniqueFitSelectionWeight,
+    input.preferredCreativeRisks,
   )
 }
 

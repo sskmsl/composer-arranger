@@ -6,6 +6,7 @@ import type {
   SectionContentPlan,
   SectionLayer,
 } from "./sectionContent"
+import type { ArrangementNecessity } from "./arrangementSurprise"
 
 export type LockKind = "pitch" | "rhythm" | "startPosition" | "ending"
 
@@ -443,4 +444,6 @@ export interface MelodyVariant {
   /** Issue #63: AutoがこのContent候補を採用した根拠。 */
   contentQuality?: ContentQualityBreakdown
   contentSelection?: ContentSelectionDiagnostics
+  /** Generator横断のSafe / Surprise評価と、その音楽的根拠。 */
+  arrangementNecessity?: ArrangementNecessity
 }

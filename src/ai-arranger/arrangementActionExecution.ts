@@ -64,6 +64,11 @@ export function executeAiArrangementIntent(
     before.generateCounterForSection(
       sectionId,
       intent.techniques.includes("strings") ? "string-answer" : undefined,
+      intent.approach === "surprise-tension"
+        ? intent.creativeRisk === "radical"
+          ? "radical"
+          : "bold"
+        : "focused",
     )
   } else if (intent.generator === "decoration") {
     before.generateDecorationsForSection(sectionId, decorationSettingsForIntent(intent))
