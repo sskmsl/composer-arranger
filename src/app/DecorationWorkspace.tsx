@@ -391,7 +391,7 @@ export function DecorationWorkspace() {
                     </div>
                     {candidate.techniqueExperiment && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                        <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
+                        <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-on-dark">
                           A/B:{" "}
                           {candidate.techniqueExperiment.mode ===
                           "baseline"
@@ -463,7 +463,7 @@ export function DecorationWorkspace() {
                           : `${candidate.notes.length} notes`}
                       </span>
                       {assignedId === candidate.id && (
-                        <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary">
+                        <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
                           Active
                         </span>
                       )}

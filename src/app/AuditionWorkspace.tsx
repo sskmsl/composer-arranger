@@ -189,7 +189,7 @@ export function AuditionWorkspace() {
                   {label}
                 </Pill>
                 <span className="text-[11px] text-ink-muted-48">キー {slot + 1}</span>
-                {variant?.reviewState === "favorite" && <Star size={13} className="ml-auto text-primary" />}
+                {variant?.reviewState === "favorite" && <Star size={13} className="ml-auto text-primary-on-dark" />}
                 {variant?.reviewState === "rejected" && <ThumbsDown size={13} className="ml-auto text-ink-muted-48" />}
               </div>
 

@@ -310,7 +310,7 @@ export function CounterWorkspace() {
                   </div>
                   {candidate.techniqueExperiment && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                      <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
+                      <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-on-dark">
                         A/B:{" "}
                         {candidate.techniqueExperiment.mode ===
                         "baseline"
@@ -348,7 +348,7 @@ export function CounterWorkspace() {
                         >
                           {RISK_LABELS[candidate.counterPlan.creativeRisk]}
                         </span>
-                        <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-light">
+                        <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
                           {INTENT_LABELS[candidate.counterPlan.dialogueIntent]}
                         </span>
                         <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
@@ -408,7 +408,7 @@ export function CounterWorkspace() {
                         : "Collision clear"}
                     </span>
                     {assignedId === candidate.id && (
-                      <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary">
+                      <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
                         Active
                       </span>
                     )}

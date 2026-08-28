@@ -40,7 +40,7 @@ const STATE_CLASS: Record<ArrangementPackagePartState, string> = {
   continue: "border-white/10 bg-white/[0.035] text-body-muted",
   withdraw: "border-amber-300/20 bg-amber-300/5 text-amber-100",
   transform: "border-violet-400/25 bg-violet-400/8 text-violet-100",
-  answer: "border-primary/30 bg-primary/10 text-primary",
+  answer: "border-primary/30 bg-primary/10 text-primary-on-dark",
   hold: "border-cyan-300/20 bg-cyan-300/5 text-cyan-100",
   silence: "border-white/5 bg-black/15 text-ink-muted-48",
 }

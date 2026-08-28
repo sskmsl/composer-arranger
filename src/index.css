@@ -4,7 +4,8 @@
   /* --- Apple design tokens (DESIGN-apple.md) --- */
   --color-primary: #0066cc;
   --color-primary-focus: #0071e3;
-  --color-primary-on-dark: #2997ff;
+  /* 7:1 against the darkest content tiles; use for all blue text and icons. */
+  --color-primary-on-dark: #78baff;
 
   --color-ink: #1d1d1f;
   --color-body-on-dark: #ffffff;

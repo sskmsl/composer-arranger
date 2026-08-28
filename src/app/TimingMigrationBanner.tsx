@@ -41,7 +41,7 @@ export function TimingMigrationBanner() {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-hairline bg-primary/10 px-4 py-2 text-[13px] text-body-on-dark">
       <div className="flex items-center gap-2">
-        <Info size={15} className="shrink-0 text-primary" />
+        <Info size={15} className="shrink-0 text-primary-on-dark" />
         <span>
           拍子({notice.timeSignature})の既存データを新しい時間単位へ自動変換しました(倍率 ×{notice.factor})。変換前のデータはバックアップ済みです。
         </span>

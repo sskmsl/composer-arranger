@@ -372,7 +372,7 @@ export function SignaturePhraseWorkspace() {
                           : " · Chord Driven"}
                       </span>
                     )}
-                    <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-light">
+                    <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
                       {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
                     </span>
                     {candidate.plan.creativeRisk && (
@@ -537,7 +537,7 @@ export function SignaturePhraseWorkspace() {
               <span className="text-ink-muted-48">Phrase展開: </span>
               {activeCandidate.plan.developmentStages.join(" → ")}
               {(activeCandidate.plan.decorationIntents?.length ?? 0) > 0 && (
-                <span className="ml-3 text-primary-light">
+                <span className="ml-3 text-primary-on-dark">
                   Decoration統合 {activeCandidate.plan.decorationIntents.length} Gesture
                 </span>
               )}

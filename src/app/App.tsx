@@ -10,6 +10,7 @@ import { ArrangementWorkspace } from "./ArrangementWorkspace"
 import { AuditionWorkspace } from "./AuditionWorkspace"
 import { PhraseWorkspace } from "./PhraseWorkspace"
 import { CounterWorkspace } from "./CounterWorkspace"
+import { DecorationWorkspace } from "./DecorationWorkspace"
 import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
 import { AiPartnerWorkspace } from "./AiPartnerWorkspace"
 import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
@@ -20,6 +21,7 @@ export type MainTab =
   | "phrase"
   | "signature"
   | "counter"
+  | "decoration"
   | "ai-partner"
   | "arrangement"
   | "audition"
@@ -133,6 +135,22 @@ export function App() {
             )}
           </>
         )}
+        {tab === "decoration" && (
+          <>
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
+            <DecorationWorkspace />
+            <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="decoration" />
+            {(leftOpen || rightOpen) && (
+              <div
+                className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                onClick={() => {
+                  setLeftOpen(false)
+                  setRightOpen(false)
+                }}
+              />
+            )}
+          </>
+        )}
         {tab === "ai-partner" && (
           <AiPartnerWorkspace
             onNavigate={setTab}
@@ -146,6 +164,7 @@ export function App() {
       {tab !== "phrase" &&
         tab !== "signature" &&
         tab !== "counter" &&
+        tab !== "decoration" &&
         tab !== "ai-partner" && (
         <BottomBar />
       )}

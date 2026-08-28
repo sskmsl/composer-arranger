@@ -69,6 +69,7 @@ describe("AI Intent generation bridge", () => {
   it("Intentを対応する比較試聴画面へ送る", () => {
     expect(targetTabForIntent(intent({ generator: "signature" }))).toBe("signature")
     expect(targetTabForIntent(intent({ generator: "counter" }))).toBe("counter")
+    expect(targetTabForIntent(intent({ generator: "decoration" }))).toBe("decoration")
     expect(targetTabForIntent(intent({ generator: "accompaniment" }))).toBe("melody")
     expect(targetTabForIntent(intent({ generator: "none" }))).toBeNull()
   })

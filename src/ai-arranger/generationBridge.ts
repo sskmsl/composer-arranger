@@ -39,7 +39,7 @@ export function performancePartForIntent(
 export function targetTabForIntent(intent: AiArrangementIntent): MainTab | null {
   if (intent.generator === "signature") return "signature"
   if (intent.generator === "counter") return "counter"
-  if (intent.generator === "decoration") return "counter"
+  if (intent.generator === "decoration") return "decoration"
   if (intent.generator === "phrase") return "phrase"
   if (intent.generator === "melody") return "melody"
   if (intent.generator === "accompaniment") return "melody"

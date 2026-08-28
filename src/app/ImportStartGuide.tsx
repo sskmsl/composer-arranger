@@ -36,7 +36,7 @@ function StepCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-[13px] font-semibold text-body-on-dark">{title}</h3>
-            {recommended && <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">おすすめ</span>}
+            {recommended && <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary-on-dark">おすすめ</span>}
           </div>
           <p className="mt-1 text-[11px] leading-5 text-body-muted">{description}</p>
           {children && <div className="mt-3">{children}</div>}
@@ -66,7 +66,7 @@ export function ImportStartGuide({
       <div className="max-h-[94dvh] w-full max-w-3xl overflow-y-auto rounded-lg border border-hairline bg-surface-tile-1 shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-hairline bg-surface-tile-1 px-4 py-3 sm:px-5">
           <div>
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex items-center gap-2 text-primary-on-dark">
               <Sparkles size={16} />
               <span className="text-[11px] font-medium uppercase tracking-[0.16em]">Arrangement Start Guide</span>
             </div>

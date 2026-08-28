@@ -231,7 +231,7 @@ export function AiPartnerWorkspace({
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 pb-12">
         <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-1 flex items-center gap-2 text-primary">
+            <div className="mb-1 flex items-center gap-2 text-primary-on-dark">
               <Sparkles size={18} />
               <span className="text-[11px] font-medium uppercase tracking-[0.18em]">
                 AI Arrangement Partner
@@ -258,14 +258,14 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-                  <Waypoints size={15} className="text-primary" /> Arrangement Director
+                  <Waypoints size={15} className="text-primary-on-dark" /> Arrangement Director
                 </div>
                 <p className="mt-1 text-[11px] leading-5 text-body-muted">
                   曲全体の起伏を先に決め、現在のSectionでクライマックス資源を使いすぎないための設計図です。
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
+                <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-[11px] text-primary-on-dark">
                   Arc {director.arcSummary} · 頂点{director.climaxSectionId ? "設定済み" : "未設定"}
                 </span>
                 <label className="flex items-center gap-1 text-[11px] text-body-muted">
@@ -350,7 +350,7 @@ export function AiPartnerWorkspace({
                       <span className="truncate text-[11px] font-medium text-body-on-dark">
                         {plan.sectionName}
                       </span>
-                      <span className="shrink-0 text-[11px] text-primary">
+                      <span className="shrink-0 text-[11px] text-primary-on-dark">
                         E{plan.targetEnergy}
                       </span>
                     </div>
@@ -433,7 +433,7 @@ export function AiPartnerWorkspace({
                     </Select>
                   </label>
                   {currentDirectorPlan.climaxPolicy === "express" && (
-                    <span className="text-[11px] text-primary">ClimaxはEnergy 5で固定</span>
+                    <span className="text-[11px] text-primary-on-dark">ClimaxはEnergy 5で固定</span>
                   )}
                 </div>
               </div>
@@ -517,7 +517,7 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-                  <Layers3 size={15} className="text-primary" /> Orchestration & Performance
+                  <Layers3 size={15} className="text-primary-on-dark" /> Orchestration & Performance
                 </div>
                 <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
                   {orchestrationPlan.performanceArc}
@@ -634,7 +634,7 @@ export function AiPartnerWorkspace({
                     </div>
                     <span className={`rounded-pill px-2 py-0.5 text-[11px] ${part.sourceState === "active"
                       ? "bg-emerald-400/10 text-emerald-200"
-                      : "bg-primary/10 text-primary"
+                      : "bg-primary/10 text-primary-on-dark"
                     }`}>
                       {part.sourceState === "active" ? "現在使用中" : "導入候補"}
                     </span>
@@ -660,7 +660,7 @@ export function AiPartnerWorkspace({
                   </p>
                   {part.role !== "intentional-silence" && effectiveSectionId && (
                     <details className="mt-2 border-t border-hairline pt-2">
-                      <summary className="cursor-pointer text-[11px] text-primary">
+                      <summary className="cursor-pointer text-[11px] text-primary-on-dark">
                         演奏を固定・調整{override ? " · 固定あり" : ""}
                       </summary>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
@@ -735,7 +735,7 @@ export function AiPartnerWorkspace({
             </div>
             {orchestrationPlan.withheldGestures.length > 0 && (
               <div className="mt-3 rounded-sm border border-dashed border-hairline px-3 py-2 text-[11px] leading-4 text-body-muted">
-                <strong className="text-primary">このSectionでは温存：</strong>
+                <strong className="text-primary-on-dark">このSectionでは温存：</strong>
                 {orchestrationPlan.withheldGestures.join(" / ")}
               </div>
             )}
@@ -747,7 +747,7 @@ export function AiPartnerWorkspace({
         <SectionCard>
           <div className="mb-4">
             <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-              <MessageCircle size={15} className="text-primary" /> 必要ならAIへ追加相談
+              <MessageCircle size={15} className="text-primary-on-dark" /> 必要ならAIへ追加相談
             </div>
             <p className="mt-1 text-[11px] leading-4 text-body-muted">
               選んだ方針の修正や、守りたい条件を会話で伝えられます。
@@ -783,7 +783,7 @@ export function AiPartnerWorkspace({
             <div className="mt-4 rounded-lg border border-hairline bg-white/[0.025] p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-body-on-dark">
-                  <MessageCircle size={14} className="text-primary" /> このセクションの相談履歴
+                  <MessageCircle size={14} className="text-primary-on-dark" /> このセクションの相談履歴
                 </div>
                 <button
                   type="button"
@@ -836,14 +836,14 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
-                  <AudioLines size={15} className="text-primary" /> 音源を聴かせる（第二弾）
+                  <AudioLines size={15} className="text-primary-on-dark" /> 音源を聴かせる（第二弾）
                 </div>
                 <p className="mt-1 text-[11px] leading-4 text-ink-muted-48">
                   Logic Pro等から書き出したMP3/WAV・12MB以下。解析時だけ送信し、保存しません。
                 </p>
               </div>
               {!audio && (
-                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-pill border border-primary px-3.5 py-2 text-[12px] text-primary transition hover:bg-primary/10">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-pill border border-primary px-3.5 py-2 text-[12px] text-primary-on-dark transition hover:bg-primary/10">
                   <Upload size={14} /> {preparingAudio ? "音源を準備中…" : "音源を選択"}
                   <input
                     type="file"
@@ -909,7 +909,7 @@ export function AiPartnerWorkspace({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="mb-1 flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-                    <Lightbulb size={15} className="text-primary" /> 現状診断
+                    <Lightbulb size={15} className="text-primary-on-dark" /> 現状診断
                   </div>
                   <p className="text-[13px] leading-6 text-body-muted">
                     {response.diagnosis.currentStrength}
@@ -919,7 +919,7 @@ export function AiPartnerWorkspace({
                   </p>
                 </div>
                 <div className="w-full rounded-sm border border-primary/20 bg-primary/8 px-3 py-2 sm:w-auto sm:min-w-[15rem]">
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-primary">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-primary-on-dark">
                     <Coins size={13} /> 今回のAI利用料
                   </div>
                   <div className="mt-1 text-[13px] font-semibold text-body-on-dark">
@@ -938,7 +938,7 @@ export function AiPartnerWorkspace({
               </div>
               {(session?.confirmedConstraints.length ?? 0) > 0 && (
                 <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-primary">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-primary-on-dark">
                     会話で確定した制約
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -971,7 +971,7 @@ export function AiPartnerWorkspace({
               )}
               {(response.diagnosis.audioEvidence ?? []).length > 0 && (
                 <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2">
-                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-primary">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-primary-on-dark">
                     <AudioLines size={13} /> 音源から聴き取った根拠
                   </div>
                   <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
@@ -994,7 +994,7 @@ export function AiPartnerWorkspace({
                   <SectionCard key={intent.id} className="flex h-full flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="text-[11px] uppercase tracking-[0.16em] text-primary">
+                        <span className="text-[11px] uppercase tracking-[0.16em] text-primary-on-dark">
                           Direction {index + 1}
                         </span>
                         <h2 className="mt-1 text-[15px] font-semibold text-body-on-dark">
@@ -1021,7 +1021,7 @@ export function AiPartnerWorkspace({
                     {intent.generator === "accompaniment" &&
                       intent.accompanimentPatternId !== "none" && (
                         <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-body-muted">
-                          <strong className="text-primary">提案するリズム：</strong>
+                          <strong className="text-primary-on-dark">提案するリズム：</strong>
                           {accompanimentPatternName(
                             project,
                             intent.accompanimentPatternId,
@@ -1030,7 +1030,7 @@ export function AiPartnerWorkspace({
                       )}
                     {intent.generator === "rhythm" && intent.rhythmPlan.enabled && (
                       <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] leading-5 text-body-muted">
-                        <div className="font-medium text-primary">
+                        <div className="font-medium text-primary-on-dark">
                           {intent.rhythmPlan.subdivision} · {intent.rhythmPlan.feel}
                         </div>
                         <div className="mt-1"><strong className="text-body-on-dark">Kick：</strong>{intent.rhythmPlan.kickPattern}</div>
@@ -1051,7 +1051,7 @@ export function AiPartnerWorkspace({
                     </div>
                     {intent.soundSourceSuggestions.length > 0 && (
                       <div className="mt-3 rounded-sm border border-white/8 bg-white/[0.025] p-3">
-                        <span className="text-[11px] uppercase tracking-wide text-primary">
+                        <span className="text-[11px] uppercase tracking-wide text-primary-on-dark">
                           おすすめ音源（手持ちライブラリ）
                         </span>
                         {intent.soundSourceSuggestions.slice(0, 2).map((source) => (
@@ -1197,7 +1197,7 @@ function climaxPolicyLabel(
 function DirectorNote({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-sm bg-white/[0.04] px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-primary">{label}</div>
+      <div className="text-[11px] uppercase tracking-wide text-primary-on-dark">{label}</div>
       <div className="mt-1 break-words leading-5 text-body-muted">{value}</div>
     </div>
   )

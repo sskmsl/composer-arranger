@@ -30,7 +30,7 @@ export function ImportedArrangementAnalysisPanel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <AudioLines size={16} className="text-primary" /> Imported Arrangement Analysis
+            <AudioLines size={16} className="text-primary-on-dark" /> Imported Arrangement Analysis
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             推定コードだけでなく、Logic／外部曲MIDIの原演奏を使って、役割・密度・余白・音域・主旋律衝突をSection単位で解析します。

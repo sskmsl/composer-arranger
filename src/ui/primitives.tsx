@@ -11,7 +11,7 @@ export function Button({
       className={clsx(
         "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-pill px-[18px] py-[9px] text-[14px] font-normal transition active:scale-95 disabled:pointer-events-none disabled:opacity-40",
         variant === "primary" && "bg-primary text-on-primary hover:bg-primary-focus",
-        variant === "secondary" && "border border-primary text-primary hover:bg-primary/10",
+        variant === "secondary" && "border border-primary text-primary-on-dark hover:bg-primary/10",
         variant === "ghost" && "text-body-muted hover:bg-white/8 hover:text-body-on-dark",
         variant === "dark" && "rounded-sm bg-white/10 px-[15px] py-[8px] text-[13px] text-body-on-dark hover:bg-white/15",
         className,

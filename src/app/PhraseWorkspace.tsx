@@ -215,7 +215,7 @@ export function PhraseWorkspace() {
                   </div>
                   {candidate.techniqueExperiment && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                      <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-focus">
+                      <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-on-dark">
                         A/B:{" "}
                         {candidate.techniqueExperiment.mode ===
                         "baseline"

@@ -66,7 +66,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
     setBatchResult({
       generated: result.generatedCount,
       skipped: result.skippedCount,
-      target: result.targets[0] ?? null,
+      target: result.targets.at(-1) ?? null,
     })
   }
 
@@ -80,7 +80,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
       <div className="grid grid-cols-3 gap-2">
         {["曲を診断", "方針を選ぶ", "生成して試聴"].map((label, index) => (
           <div key={label} className={`rounded-sm border px-2 py-2 text-center text-[11px] ${index === activeStep
-            ? "border-primary/45 bg-primary/10 text-primary"
+            ? "border-primary/45 bg-primary/10 text-primary-on-dark"
             : "border-hairline bg-white/[0.025] text-body-muted"
           }`}>
             <span className="mr-1 opacity-60">{index + 1}</span>{label}
@@ -90,7 +90,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
 
       <div className="mt-3 rounded-lg border border-hairline bg-surface-tile-2 p-3">
         <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-          <Waypoints size={15} className="text-primary" /> この曲の診断
+          <Waypoints size={15} className="text-primary-on-dark" /> この曲の診断
         </div>
         <p className="mt-2 text-[12px] leading-5 text-body-on-dark">{plan.diagnosis}</p>
         <p className="mt-1 text-[11px] leading-4 text-body-muted">全曲の流れ: {plan.energyArc}</p>
@@ -118,9 +118,9 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-[12px] font-semibold text-body-on-dark">{direction.title}</span>
-                  {selected && <Check size={14} className="shrink-0 text-primary" />}
+                  {selected && <Check size={14} className="shrink-0 text-primary-on-dark" />}
                 </div>
-                <p className="mt-1 text-[11px] leading-4 text-primary">{direction.subtitle}</p>
+                <p className="mt-1 text-[11px] leading-4 text-primary-on-dark">{direction.subtitle}</p>
                 {direction.id === directionProgram.recommendedDirectionId && (
                   <span className="mt-2 inline-block rounded-pill bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-100">推奨</span>
                 )}

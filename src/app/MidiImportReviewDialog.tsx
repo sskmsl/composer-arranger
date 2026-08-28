@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
-import { AlertTriangle, Check, Music2, Play, Plus, Square, Trash2, X } from "lucide-react"
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronUp, Music2, Play, Plus, Square, Trash2, X } from "lucide-react"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { parseChordSymbol } from "@/core/chord"
 import type { ComposerProject } from "@/core/project"
@@ -12,6 +12,10 @@ import {
   type MidiImportSectionDraft,
   type MidiImportTrackRole,
 } from "@/midi/importMidi"
+import {
+  buildMidiReviewIssues,
+  type MidiReviewIssueId,
+} from "@/midi/importReview"
 import { Button, Select, TextInput } from "@/ui/primitives"
 
 const SECTION_ROLES = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
@@ -71,6 +75,8 @@ export function MidiImportReviewDialog({
   const [chordOverrides, setChordOverrides] = useState<Record<string, string>>({})
   const [selectedSectionIndex, setSelectedSectionIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [acknowledgedIssues, setAcknowledgedIssues] = useState<Set<MidiReviewIssueId>>(() => new Set())
 
   const duplicateSectionStarts = sections.some((section, index) =>
     sections.findIndex((candidate) => candidate.startBar === section.startBar) !== index,
@@ -107,6 +113,33 @@ export function MidiImportReviewDialog({
   const previewChords = previewSection
     ? result.project.chords.filter((chord) => chord.sectionId === previewSection.id)
     : []
+  const issues = useMemo(
+    () => buildMidiReviewIssues(analysis, result.report.chordInferenceConfidence),
+    [analysis, result.report.chordInferenceConfidence],
+  )
+  const pendingIssueCount = issues.filter((issue) => !acknowledgedIssues.has(issue.id)).length
+  const detectedTrackCount = analysis.tracks.filter((track) => track.noteCount > 0).length
+  const roleSummary = useMemo(() => {
+    const counts = new Map<MidiImportTrackRole, number>()
+    analysis.tracks.forEach((track) => {
+      const role: MidiImportTrackRole = track.index === melodyTrackIndex
+        ? "melody"
+        : trackRoles[track.index] ?? "other"
+      if (role === "ignore") return
+      counts.set(role, (counts.get(role) ?? 0) + 1)
+    })
+    const priority: MidiImportTrackRole[] = [
+      "melody", "harmony", "accompaniment", "bass", "drums", "strings", "counter", "decoration", "other",
+    ]
+    return priority
+      .filter((role) => (counts.get(role) ?? 0) > 0)
+      .map((role) => `${ROLE_LABELS[role]} ${counts.get(role)}`)
+      .join(" / ")
+  }, [analysis.tracks, melodyTrackIndex, trackRoles])
+
+  const acknowledge = (issueId: MidiReviewIssueId) => {
+    setAcknowledgedIssues((current) => new Set(current).add(issueId))
+  }
 
   useEffect(() => () => previewPlayer.stop(), [])
   useEffect(() => {
@@ -127,6 +160,10 @@ export function MidiImportReviewDialog({
       mode: "chords-melody",
       onEnded: () => setPlaying(false),
     })
+  }
+  const confirmImport = () => {
+    stop()
+    onConfirm(result.project)
   }
   const updateSection = (id: string, patch: Partial<MidiImportSectionDraft>) => {
     setSections((current) => current.map((section) => section.id === id ? { ...section, ...patch } : section))
@@ -153,7 +190,7 @@ export function MidiImportReviewDialog({
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-hairline px-4 py-3">
           <div className="min-w-0">
             <h2 className="flex items-center gap-2 text-[16px] font-semibold text-body-on-dark">
-              <Music2 size={17} className="text-primary" /> Logic／外部曲 MIDIインポート確認
+              <Music2 size={17} className="text-primary-on-dark" /> MIDI解析結果
             </h2>
             <p className="mt-1 truncate text-[11px] text-ink-muted-48">{analysis.fileName}</p>
           </div>
@@ -163,7 +200,113 @@ export function MidiImportReviewDialog({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-          <div className="grid gap-3 lg:grid-cols-2">
+          <section className="rounded-lg border border-emerald-300/25 bg-emerald-400/[0.055] p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[15px] font-semibold text-body-on-dark">
+                  <CheckCircle2 size={18} className="text-emerald-300" /> 解析完了
+                </div>
+                <p className="mt-2 text-[15px] font-medium text-body-on-dark">
+                  Key: {key} <span className="text-body-muted">/</span> {tempo} BPM <span className="text-body-muted">/</span> {analysis.timeSignature}
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-body-muted">
+                  {detectedTrackCount}トラック · {roleSummary || "役割なし"}
+                </p>
+                <p className="text-[12px] leading-5 text-body-muted">
+                  Sections: {sortedSections.length} · 全{analysis.totalBars}小節
+                </p>
+                <p className={`mt-2 text-[12px] font-medium ${pendingIssueCount > 0 ? "text-amber-200" : "text-emerald-200"}`}>
+                  要確認: {pendingIssueCount}件
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => setDetailsOpen((current) => !current)}>
+                  {detailsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {detailsOpen ? "詳細を閉じる" : "詳細を確認"}
+                </Button>
+                <Button disabled={!canConfirm} onClick={confirmImport}>
+                  <Check size={14} /> このまま進む
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          {issues.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {issues.map((issue) => {
+                const acknowledged = acknowledgedIssues.has(issue.id)
+                return (
+                  <section
+                    key={issue.id}
+                    className={`rounded-lg border p-3 ${acknowledged
+                      ? "border-emerald-300/20 bg-emerald-400/[0.035]"
+                      : "border-amber-300/25 bg-amber-300/[0.055]"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
+                          {acknowledged
+                            ? <CheckCircle2 size={15} className="shrink-0 text-emerald-300" />
+                            : <AlertTriangle size={15} className="shrink-0 text-amber-300" />}
+                          {issue.title}
+                          {issue.confidence !== undefined && (
+                            <span className="rounded-pill bg-white/8 px-2 py-0.5 text-[11px] font-normal text-body-muted">
+                              {Math.round(issue.confidence * 100)}%
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-[11px] leading-4 text-body-muted">{issue.detail}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {issue.id === "melody" && (
+                          <Select
+                            className="max-w-64"
+                            value={melodyTrackIndex}
+                            onChange={(event) => {
+                              setMelodyTrackIndex(Number(event.target.value))
+                              acknowledge("melody")
+                            }}
+                          >
+                            <option value={-1}>主旋律なし</option>
+                            {analysis.tracks.filter((track) => track.averagePitch !== null).map((track) => (
+                              <option key={track.index} value={track.index}>{track.name}</option>
+                            ))}
+                          </Select>
+                        )}
+                        {issue.id === "key" && (
+                          <TextInput
+                            className="w-24"
+                            value={key}
+                            onChange={(event) => {
+                              setKey(event.target.value)
+                              acknowledge("key")
+                            }}
+                            aria-label="推定Key"
+                          />
+                        )}
+                        {!acknowledged && (
+                          <Button variant="secondary" onClick={() => acknowledge(issue.id)}>
+                            <Check size={13} /> この判定でOK
+                          </Button>
+                        )}
+                        {(issue.id === "chords" || issue.id === "sections") && (
+                          <Button variant="ghost" onClick={() => setDetailsOpen(true)}>詳細で修正</Button>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="mt-3 rounded-sm bg-white/[0.025] px-3 py-2 text-[11px] text-emerald-200">
+              低信頼度の判定はありません。解析結果をそのまま採用できます。
+            </p>
+          )}
+
+          {detailsOpen && (
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
             <section className="rounded-lg border border-hairline bg-surface-tile-2 p-3">
               <h3 className="text-[13px] font-semibold text-body-on-dark">1. 基本情報</h3>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -349,6 +492,7 @@ export function MidiImportReviewDialog({
               {invalidChordCount > 0 && <p className="mt-1 text-[11px] text-red-300">解釈できないコードが{invalidChordCount}件あります。</p>}
             </section>
           </div>
+          )}
         </div>
 
         <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-hairline px-4 py-3">
@@ -357,7 +501,7 @@ export function MidiImportReviewDialog({
           </p>
           <div className="ml-auto flex gap-2">
             <Button variant="dark" onClick={onCancel}>キャンセル</Button>
-            <Button variant="primary" disabled={!canConfirm} onClick={() => { stop(); onConfirm(result.project) }}>この内容でプロジェクト作成</Button>
+            <Button variant="primary" disabled={!canConfirm} onClick={confirmImport}>このまま進む</Button>
           </div>
         </footer>
       </div>

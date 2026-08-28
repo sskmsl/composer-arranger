@@ -100,7 +100,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <Sparkles size={16} className="text-primary" /> Arrangement Director · 第3弾
+            <Sparkles size={16} className="text-primary-on-dark" /> Arrangement Director · 第3弾
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             Melody・コード・テンポ・Sectionを設計図として守り、全曲で何を起こすかを先に決めます。
@@ -111,7 +111,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
         </div>
       </div>
 
-      <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-primary">
+      <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-primary-on-dark">
         どんな景色にしたいか
         <textarea
           value={briefDraft}
@@ -151,7 +151,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
                   <span className="rounded-pill bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-200">推奨</span>
                 )}
               </div>
-              <p className="mt-1 text-[11px] text-primary">{direction.subtitle}</p>
+              <p className="mt-1 text-[11px] text-primary-on-dark">{direction.subtitle}</p>
               <p className="mt-2 text-[11px] leading-4 text-body-muted">{direction.summary}</p>
               <p className="mt-2 text-[11px] text-ink-muted-48">生成可能 {available}件</p>
               {direction.id === program.recommendedDirectionId && (
@@ -200,7 +200,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
                   className="accent-primary"
                 />
                 <span className="text-[11px] font-medium text-body-on-dark">{action.sectionName}</span>
-                <span className="text-[11px] text-primary">{GENERATOR_LABELS[action.generator]}</span>
+                <span className="text-[11px] text-primary-on-dark">{GENERATOR_LABELS[action.generator]}</span>
                 <div className="min-w-0">
                   <p className="text-[11px] leading-4 text-body-muted">{action.purpose}</p>
                   <p className="mt-0.5 text-[11px] text-ink-muted-48">
