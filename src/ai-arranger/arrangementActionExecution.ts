@@ -26,6 +26,13 @@ export interface ArrangementBatchExecutionResult {
   skippedCount: number
   targets: MainTab[]
   actionIds: string[]
+  results: ArrangementBatchActionResult[]
+}
+
+export interface ArrangementBatchActionResult
+  extends ArrangementActionExecutionResult {
+  actionId: string
+  sectionId: string
 }
 
 /**
@@ -120,9 +127,15 @@ export function executeArrangementActions(
 ): ArrangementBatchExecutionResult {
   const targets = new Set<MainTab>()
   const actionIds: string[] = []
+  const results: ArrangementBatchActionResult[] = []
   let skippedCount = 0
   for (const action of actions) {
     const result = executeArrangementAction(action)
+    results.push({
+      actionId: action.id,
+      sectionId: action.sectionId,
+      ...result,
+    })
     if (result.generated) actionIds.push(action.id)
     else skippedCount += 1
     if (result.target) targets.add(result.target)
@@ -132,5 +145,6 @@ export function executeArrangementActions(
     skippedCount,
     targets: [...targets],
     actionIds,
+    results,
   }
 }

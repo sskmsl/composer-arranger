@@ -6,7 +6,11 @@ import {
   executeArrangementActions,
 } from "@/ai-arranger/arrangementActionExecution"
 import { buildMultiPartArrangementPackage } from "@/ai-arranger/multiPartArrangementPackage"
-import { generationResultLinks } from "@/ai-arranger/generationResultNavigation"
+import {
+  wholeSongGenerationResultItems,
+  type WholeSongGenerationResultItem,
+  type WholeSongGenerationResultStatus,
+} from "@/ai-arranger/generationResultNavigation"
 import {
   buildWholeSongDirectionProgram,
   type WholeSongDirectionId,
@@ -23,15 +27,34 @@ const LABELS = {
   none: "追加なし",
 } as const
 
+const RESULT_STATUS_LABELS: Record<WholeSongGenerationResultStatus, string> = {
+  candidate: "候補生成済み",
+  applied: "Sectionへ適用済み",
+  existing: "現在案を維持",
+  preserved: "追加なし",
+  unavailable: "要件不足",
+  failed: "生成保留",
+}
+
+const RESULT_STATUS_CLASSES: Record<WholeSongGenerationResultStatus, string> = {
+  candidate: "bg-primary/10 text-primary-on-dark",
+  applied: "bg-emerald-400/10 text-emerald-100",
+  existing: "bg-cyan-400/10 text-cyan-100",
+  preserved: "bg-white/5 text-body-muted",
+  unavailable: "bg-amber-300/10 text-amber-100",
+  failed: "bg-red-400/10 text-red-200",
+}
+
 export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const setWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
+  const selectSection = useProjectStore((state) => state.selectSection)
   const [generated, setGenerated] = useState(false)
   const [batchResult, setBatchResult] = useState<{
     generated: number
     skipped: number
-    targets: MainTab[]
+    items: WholeSongGenerationResultItem[]
   } | null>(null)
   const plan = useMemo(
     () => buildAiPartnerOrchestrationPlan(project, selectedSectionId),
@@ -67,8 +90,14 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
     setBatchResult({
       generated: result.generatedCount,
       skipped: result.skippedCount,
-      targets: result.targets,
+      items: wholeSongGenerationResultItems(selectedDirection.actions, result.results),
     })
+  }
+
+  const openResult = (item: WholeSongGenerationResultItem) => {
+    if (!item.target) return
+    selectSection(item.sectionId)
+    onNavigate(item.target)
   }
 
   const selectDirection = (directionId: WholeSongDirectionId) => {
@@ -157,12 +186,29 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
             <p className="text-[11px] text-emerald-100">
               {batchResult.generated}件の候補を生成しました{batchResult.skipped > 0 ? `（${batchResult.skipped}件保留）` : ""}。自動採用はしていません。
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {generationResultLinks(batchResult.targets).map((result) => (
-                <Button key={result.tab} onClick={() => onNavigate(result.tab)}>
-                  {result.label}候補を確認 <ArrowRight size={14} />
-                </Button>
+            <div className="mt-3 space-y-1.5">
+              {batchResult.items.map((item) => (
+                <div
+                  key={item.actionId}
+                  className="grid gap-2 rounded-sm border border-white/10 bg-black/10 px-3 py-2 sm:grid-cols-[7rem_7rem_minmax(0,1fr)_auto] sm:items-center"
+                >
+                  <span className="text-[11px] font-semibold text-body-on-dark">{item.sectionName}</span>
+                  <span className="text-[11px] text-primary-on-dark">{LABELS[item.generator]}</span>
+                  <div className="min-w-0">
+                    <span className={`inline-flex rounded-pill px-2 py-0.5 text-[11px] ${RESULT_STATUS_CLASSES[item.status]}`}>
+                      {RESULT_STATUS_LABELS[item.status]}
+                    </span>
+                    <p className="mt-1 text-[11px] leading-4 text-body-muted">{item.purpose}</p>
+                  </div>
+                  {item.target && (
+                    <Button variant="secondary" onClick={() => openResult(item)}>
+                      {item.status === "candidate" ? "候補を確認・試聴" : "Sectionを確認"} <ArrowRight size={14} />
+                    </Button>
+                  )}
+                </div>
               ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => setBatchResult(null)}>別の方針を試す</Button>
               <Button variant="ghost" onClick={() => onNavigate("arrangement")}>詳細を調整</Button>
             </div>
