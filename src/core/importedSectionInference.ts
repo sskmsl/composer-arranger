@@ -25,6 +25,109 @@ export interface ImportedSectionInferenceResult {
   boundaries: number[]
 }
 
+function normalizedTrackName(value: string): string {
+  return value.trim().toLocaleLowerCase().replace(/\s+/g, " ")
+}
+
+function repairLegacySplitMelody(project: ComposerProject): { project: ComposerProject; changed: boolean } {
+  if (project.sourceImport?.type !== "midi" || project.sourceImport.melodyTracksMerged) {
+    return { project, changed: false }
+  }
+  const arrangement = project.importedArrangement
+  const sourceName = normalizedTrackName(project.sourceImport.melodyTrackName)
+  const melodyTracks = arrangement?.tracks.filter((track) =>
+    track.notes.length > 0
+    && (track.role === "melody" || (sourceName.length > 0 && normalizedTrackName(track.name) === sourceName)),
+  ) ?? []
+  if (melodyTracks.length === 0) {
+    return {
+      changed: true,
+      project: {
+        ...project,
+        sourceImport: { ...project.sourceImport, melodyTracksMerged: true },
+      },
+    }
+  }
+
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const seen = new Set<string>()
+  const sourceNotes = melodyTracks.flatMap((track) => track.notes).filter((note) => {
+    const key = note.join(":")
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).sort((left, right) => left[0] - right[0] || left[2] - right[2])
+  const template = project.melodyVariants.find((variant) => variant.sourceMode === "import-midi")
+  if (!template) {
+    return {
+      changed: true,
+      project: {
+        ...project,
+        importedArrangement: arrangement ? {
+          ...arrangement,
+          tracks: arrangement.tracks.map((track) => melodyTracks.includes(track) ? { ...track, role: "melody" } : track),
+        } : arrangement,
+        sourceImport: { ...project.sourceImport, melodyTracksMerged: true },
+      },
+    }
+  }
+
+  const importedVariants: MelodyVariant[] = []
+  const assignments = { ...project.sectionMelodyAssignments }
+  project.sections.forEach((section, sectionIndex) => {
+    const sectionStart = (section.startBar - 1) * beatsPerBar
+    const sectionEnd = sectionStart + section.lengthBars * beatsPerBar
+    const notes: MelodyNote[] = sourceNotes.flatMap((note, noteIndex) => {
+      if (note[0] < sectionStart || note[0] >= sectionEnd) return []
+      return [{
+        id: `merged-import-note:${project.projectId}:${sectionIndex + 1}:${noteIndex + 1}`,
+        startBeat: note[0] - sectionStart,
+        durationBeats: note[1],
+        pitch: note[2],
+        velocity: note[3],
+        locks: [],
+      }]
+    })
+    if (notes.length === 0) {
+      delete assignments[section.id]
+      return
+    }
+    const variant: MelodyVariant = {
+      ...template,
+      id: `merged-import-variant:${project.projectId}:${sectionIndex + 1}`,
+      name: `${section.name} · ${project.sourceImport!.melodyTrackName}`,
+      sectionId: section.id,
+      notes,
+      layers: undefined,
+      phrasePlans: [],
+      batchId: `merged-import:${project.projectId}`,
+      parentMelodyId: null,
+    }
+    importedVariants.push(variant)
+    assignments[section.id] = variant.id
+  })
+  const generatedVariants = project.melodyVariants.filter((variant) => variant.sourceMode !== "import-midi")
+  const warning = `旧Importを修復し、同名の分割Melodyトラック${melodyTracks.length}本を原曲の1本として復元しました。`
+  return {
+    changed: true,
+    project: {
+      ...project,
+      melodyVariants: [...generatedVariants, ...importedVariants],
+      sectionMelodyAssignments: assignments,
+      activeMelodyId: importedVariants[0]?.id ?? project.activeMelodyId,
+      importedArrangement: arrangement ? {
+        ...arrangement,
+        tracks: arrangement.tracks.map((track) => melodyTracks.includes(track) ? { ...track, role: "melody" } : track),
+      } : arrangement,
+      sourceImport: {
+        ...project.sourceImport,
+        melodyTracksMerged: true,
+        warnings: [...project.sourceImport.warnings.filter((item) => !item.includes("旧Importを修復")), warning],
+      },
+    },
+  }
+}
+
 function overlaps(note: ImportedArrangementNote, startBeat: number, endBeat: number): boolean {
   return note[0] < endBeat && note[0] + note[1] > startBeat
 }
@@ -150,13 +253,6 @@ function nameWindows(features: BarFeature[], boundaries: number[], totalBars: nu
   return raw
 }
 
-function clippedNote(note: MelodyNote, startBeat: number, endBeat: number, id: string): MelodyNote | null {
-  const start = Math.max(startBeat, note.startBeat)
-  const end = Math.min(endBeat, note.startBeat + note.durationBeats)
-  if (end <= start) return null
-  return { ...note, id, startBeat: start - startBeat, durationBeats: end - start }
-}
-
 function canInfer(project: ComposerProject): boolean {
   if (project.sourceImport?.type !== "midi" || project.sourceImport.sectionsFromMarkers) return false
   if (project.sourceImport.sectionsInferred || project.sections.length !== 1) return false
@@ -170,18 +266,27 @@ function canInfer(project: ComposerProject): boolean {
 
 /** マーカーなしの既存・新規MIDI Projectを、推定したSectionへ非破壊的に再配置する。 */
 export function inferMarkerlessImportedSections(project: ComposerProject): ImportedSectionInferenceResult {
-  if (!canInfer(project)) return { project, changed: false, confidence: 0, boundaries: [] }
-  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
-  const totalBars = Math.max(1, Math.ceil(project.importedArrangement!.totalBeats / beatsPerBar))
-  if (totalBars < 12) return { project, changed: false, confidence: 0, boundaries: [] }
-  const features = barFeatures(project, totalBars, beatsPerBar)
+  const repaired = repairLegacySplitMelody(project)
+  const workingProject = repaired.project
+  if (!canInfer(workingProject)) return { project: workingProject, changed: repaired.changed, confidence: 0, boundaries: [] }
+  const beatsPerBar = parseTimeSignature(workingProject.song.timeSignature).beatsPerBar
+  const totalBars = Math.max(1, Math.ceil(workingProject.importedArrangement!.totalBeats / beatsPerBar))
+  if (totalBars < 12) return { project: workingProject, changed: repaired.changed, confidence: 0, boundaries: [] }
+  const features = barFeatures(workingProject, totalBars, beatsPerBar)
   const inferred = inferBoundaries(features, totalBars)
-  if (inferred.boundaries.length < 2) return { project, changed: false, confidence: inferred.confidence, boundaries: [] }
+  if (inferred.boundaries.length < 2) {
+    return {
+      project: workingProject,
+      changed: repaired.changed,
+      confidence: inferred.confidence,
+      boundaries: [],
+    }
+  }
   const windows = nameWindows(features, inferred.boundaries, totalBars)
-  const originalSectionId = project.sections[0].id
-  const sourceVariants = project.melodyVariants.filter((variant) => variant.sectionId === originalSectionId)
+  const originalSectionId = workingProject.sections[0].id
+  const sourceVariants = workingProject.melodyVariants.filter((variant) => variant.sectionId === originalSectionId)
   const sections = windows.map((window, index) => ({
-    id: `inferred:${project.projectId}:${index + 1}`,
+    id: `inferred:${workingProject.projectId}:${index + 1}`,
     name: window.name,
     role: window.role,
     startBar: window.startBar,
@@ -191,7 +296,7 @@ export function inferMarkerlessImportedSections(project: ComposerProject): Impor
   const chords: ChordEvent[] = windows.flatMap((window, windowIndex) => {
     const startBeat = (window.startBar - 1) * beatsPerBar
     const endBeat = window.endBar * beatsPerBar
-    return project.chords.filter((chord) => chord.sectionId === originalSectionId).flatMap((chord, chordIndex) => {
+    return workingProject.chords.filter((chord) => chord.sectionId === originalSectionId).flatMap((chord, chordIndex) => {
       const start = Math.max(startBeat, chord.startBeat)
       const end = Math.min(endBeat, chord.startBeat + chord.durationBeats)
       if (end <= start) return []
@@ -205,39 +310,43 @@ export function inferMarkerlessImportedSections(project: ComposerProject): Impor
     const endBeat = window.endBar * beatsPerBar
     sourceVariants.forEach((variant, variantIndex) => {
       const notes = variant.notes.flatMap((note, noteIndex) => {
-        const clipped = clippedNote(note, startBeat, endBeat, `inferred-note:${windowIndex}:${variantIndex}:${noteIndex}`)
-        return clipped ? [clipped] : []
+        if (note.startBeat < startBeat || note.startBeat >= endBeat) return []
+        return [{
+          ...note,
+          id: `inferred-note:${windowIndex}:${variantIndex}:${noteIndex}`,
+          startBeat: note.startBeat - startBeat,
+        }]
       })
       if (notes.length === 0) return
       const next: MelodyVariant = {
         ...variant,
-        id: `inferred-variant:${project.projectId}:${windowIndex + 1}:${variantIndex + 1}`,
-        name: `${sections[windowIndex].name} · ${project.sourceImport!.melodyTrackName}`,
+        id: `inferred-variant:${workingProject.projectId}:${windowIndex + 1}:${variantIndex + 1}`,
+        name: `${sections[windowIndex].name} · ${workingProject.sourceImport!.melodyTrackName}`,
         sectionId: sections[windowIndex].id,
         notes,
         layers: undefined,
         phrasePlans: [],
-        batchId: `inferred-import:${project.projectId}`,
+        batchId: `inferred-import:${workingProject.projectId}`,
       }
       melodyVariants.push(next)
       sectionMelodyAssignments[next.sectionId] ??= next.id
     })
   })
   const warning = `Section境界を小節ごとの密度・発音トラック・休止・反復変化から${sections.length}区間へ自動推定しました（信頼度${Math.round(inferred.confidence * 100)}%）。`
-  const warnings = project.sourceImport!.warnings.filter((item) => !item.includes("1セクション"))
+  const warnings = workingProject.sourceImport!.warnings.filter((item) => !item.includes("1セクション"))
   return {
     changed: true,
     confidence: inferred.confidence,
     boundaries: inferred.boundaries.map((bar) => bar + 1),
     project: {
-      ...project,
+      ...workingProject,
       sections,
       chords,
       melodyVariants,
       sectionMelodyAssignments,
       activeMelodyId: melodyVariants[0]?.id ?? null,
       sourceImport: {
-        ...project.sourceImport!,
+        ...workingProject.sourceImport!,
         sectionsInferred: true,
         sectionInferenceConfidence: inferred.confidence,
         warnings: [...warnings, warning],

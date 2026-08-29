@@ -118,6 +118,48 @@ describe("MIDI project import", () => {
     expect(report.melodyTrackName).toBe("主旋律なし")
   })
 
+  it("同名で時間方向に分割されたMelodyトラックを結合し、イントロを欠落させない", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Split Melody",
+      tempoBpm: 112,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [
+        {
+          name: "Keyboard Player",
+          notes: [
+            { pitch: 64, start: beat, duration: beat, velocity: 82, channel: 0 },
+            { pitch: 67, start: beat * 5, duration: beat, velocity: 80, channel: 0 },
+          ],
+        },
+        {
+          name: "Keyboard Player",
+          notes: [
+            { pitch: 69, start: beat * 33, duration: beat, velocity: 84, channel: 0 },
+            { pitch: 71, start: beat * 37, duration: beat, velocity: 82, channel: 0 },
+          ],
+        },
+        {
+          name: "Chords",
+          notes: Array.from({ length: 16 }, (_, bar) => ({
+            pitch: 48 + (bar % 4),
+            start: bar * 4 * beat,
+            duration: 4 * beat,
+            velocity: 64,
+            channel: 0,
+          })),
+        },
+      ],
+    })
+    const analysis = analyzeMidiImport(bytes, "split-melody.mid")
+    expect(analysis.melodyTrackIndices).toEqual([1, 2])
+    const created = createMidiProjectFromAnalysis(analysis, { reviewConfirmed: true })
+    expect(created.project.importedArrangement?.tracks.filter((track) => track.role === "melody")).toHaveLength(2)
+    expect(created.project.melodyVariants[0].notes.map((note) => note.pitch)).toEqual([64, 67, 69, 71])
+    expect(created.report.warnings).toContain("同名の分割Melodyトラック2本を、1本の原曲Melodyとして結合しました。")
+  })
+
   it("Logic Production Packageのトラック名から往復素材と役割を判定する", () => {
     const beat = TICKS_PER_QUARTER
     const bytes = buildSmf({

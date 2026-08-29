@@ -7,6 +7,7 @@ import type { ComposerProject } from "@/core/project"
 import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
 import {
   createMidiProjectFromAnalysis,
+  melodyTrackIndicesForAnalysis,
   midiChordOverrideKey,
   type MidiImportAnalysis,
   type MidiImportSectionDraft,
@@ -78,6 +79,10 @@ export function MidiImportReviewDialog({
   const [playing, setPlaying] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [acknowledgedIssues, setAcknowledgedIssues] = useState<Set<MidiReviewIssueId>>(() => new Set())
+  const melodyTrackIndices = useMemo(
+    () => melodyTrackIndicesForAnalysis(analysis, melodyTrackIndex),
+    [analysis, melodyTrackIndex],
+  )
 
   const duplicateSectionStarts = sections.some((section, index) =>
     sections.findIndex((candidate) => candidate.startBar === section.startBar) !== index,
@@ -133,7 +138,7 @@ export function MidiImportReviewDialog({
   const roleSummary = useMemo(() => {
     const counts = new Map<MidiImportTrackRole, number>()
     analysis.tracks.forEach((track) => {
-      const role: MidiImportTrackRole = track.index === melodyTrackIndex
+      const role: MidiImportTrackRole = melodyTrackIndices.includes(track.index)
         ? "melody"
         : trackRoles[track.index] ?? "other"
       if (role === "ignore") return
@@ -146,7 +151,7 @@ export function MidiImportReviewDialog({
       .filter((role) => (counts.get(role) ?? 0) > 0)
       .map((role) => `${ROLE_LABELS[role]} ${counts.get(role)}`)
       .join(" / ")
-  }, [analysis.tracks, melodyTrackIndex, trackRoles])
+  }, [analysis.tracks, melodyTrackIndices, trackRoles])
 
   const acknowledge = (issueId: MidiReviewIssueId) => {
     setAcknowledgedIssues((current) => new Set(current).add(issueId))
@@ -391,8 +396,10 @@ export function MidiImportReviewDialog({
                       <p className="truncate text-[11px] text-body-on-dark">{track.name}</p>
                       <p className="text-[11px] text-ink-muted-48">{track.noteCount} notes · Ch {track.channelNumbers.join(", ") || "—"}</p>
                     </div>
-                    {track.index === melodyTrackIndex ? (
-                      <span className="rounded-sm bg-primary/20 px-2 py-1 text-center text-[11px] text-primary-on-dark">Melody</span>
+                    {melodyTrackIndices.includes(track.index) ? (
+                      <span className="rounded-sm bg-primary/20 px-2 py-1 text-center text-[11px] text-primary-on-dark">
+                        Melody{track.index === melodyTrackIndex ? " · 基準" : " · 分割"}
+                      </span>
                     ) : (
                       <Select
                         className="w-full !py-1 text-[11px]"
@@ -409,7 +416,9 @@ export function MidiImportReviewDialog({
                 ))}
               </div>
               <p className="mt-2 text-[11px] text-ink-muted-48">
-                自動選択信頼度 {Math.round(analysis.melodyTrackConfidence * 100)}%。MelodyはActive Melodyへ変換し、読み込む全Roleの原ノートは解析素材として独立保存します。
+                自動選択信頼度 {Math.round(analysis.melodyTrackConfidence * 100)}%。
+                {melodyTrackIndices.length > 1 ? ` 同名の分割トラック${melodyTrackIndices.length}本を結合します。` : ""}
+                MelodyはActive Melodyへ変換し、読み込む全Roleの原ノートは解析素材として独立保存します。
               </p>
               <p className="mt-1 text-[11px] text-cyan-200">
                 保存対象 {result.project.importedArrangement?.tracks.length ?? 0}トラック · {result.project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0}ノート

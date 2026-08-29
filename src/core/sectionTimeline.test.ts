@@ -47,6 +47,35 @@ describe("section timeline", () => {
     expect(material.totalBeats).toBe(24)
   })
 
+  it("MIDI原曲保護中は生成Variantではなく、分割された原Melody全体を無加工で再生素材にする", () => {
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: [{ id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 }],
+      chords: [],
+      melodyVariants: [{
+        id: "generated",
+        sectionId: "intro",
+        sourceMode: "generate",
+        notes: [{ id: "changed", startBeat: 0, durationBeats: 1, pitch: 90, velocity: 90, locks: [] }],
+      }],
+      sectionMelodyAssignments: { intro: "generated" },
+      sourceImport: { type: "midi", melodyTrackName: "Keyboard Player" },
+      importedArrangement: {
+        totalBeats: 16,
+        tracks: [
+          { name: "Keyboard Player", role: "other", notes: [[0.25, 2.5, 60, 80, 1]] },
+          { name: "Keyboard Player", role: "melody", notes: [[8, 1.25, 67, 76, 1]] },
+        ],
+      },
+    } as unknown as ComposerProject
+    const material = buildSongPlaybackMaterial(project)
+    expect(material.lead.map((note) => [note.startBeat, note.durationBeats, note.pitch, note.velocity])).toEqual([
+      [0.25, 2.5, 60, 80],
+      [8, 1.25, 67, 76],
+    ])
+    expect(material.lead.some((note) => note.pitch === 90)).toBe(false)
+  })
+
   it("carry-overの保持を曲全体Preview/MIDI共通素材へ反映し、次の発音と重ねない", () => {
     const project = {
       song: { timeSignature: "4/4" },

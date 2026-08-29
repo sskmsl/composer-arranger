@@ -47,6 +47,12 @@ export function executeAiArrangementIntent(
     return { generated: false, target: targetTabForIntent(intent) }
   }
   const before = useProjectStore.getState()
+  if (before.project.sourceImport?.type === "midi" && intent.generator === "melody") {
+    useProjectStore.setState({
+      workflowNotice: "原曲保護モードでは、読み込んだ主旋律を変更・再生成しません。補助パートを選んでください。",
+    })
+    return { generated: false, target: "arrangement" }
+  }
   const section = before.project.sections.find((candidate) => candidate.id === sectionId)
   if (!section) return { generated: false, target: null }
 

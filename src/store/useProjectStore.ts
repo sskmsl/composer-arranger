@@ -2282,7 +2282,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       recommendationBatchId = state.activeBatchId
       const harmonicMap = buildHarmonicMap(sectionChords)
       melodyVariants = prev.melodyVariants.map((variant) => {
-        if (variant.sectionId !== sectionId || variant.batchId !== state.activeBatchId) return variant
+        if (
+          variant.sourceMode === "import-midi" ||
+          variant.sectionId !== sectionId ||
+          variant.batchId !== state.activeBatchId
+        ) return variant
         const replaced = replaceVariantNotes(
           variant,
           executeAndReview(variant.id, variant.notes),
@@ -2293,7 +2297,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         }
       })
       recommendationCandidates = melodyVariants
-        .filter((variant) => variant.sectionId === sectionId && variant.batchId === state.activeBatchId)
+        .filter(
+          (variant) =>
+            variant.sourceMode !== "import-midi" &&
+            variant.sectionId === sectionId &&
+            variant.batchId === state.activeBatchId,
+        )
         .map((variant) => ({
           candidateId: variant.id,
           qualityScore:

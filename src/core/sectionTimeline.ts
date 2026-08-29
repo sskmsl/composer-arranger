@@ -44,6 +44,32 @@ export interface SongPlaybackMaterial {
   totalBeats: number
 }
 
+function importedProtectedMelody(project: ComposerProject): MelodyNote[] {
+  if (project.sourceImport?.type !== "midi" || !project.importedArrangement) return []
+  const sourceName = project.sourceImport.melodyTrackName.trim().toLocaleLowerCase()
+  const seen = new Set<string>()
+  return project.importedArrangement.tracks
+    .filter((track) =>
+      track.role === "melody" ||
+      (sourceName.length > 0 && track.name.trim().toLocaleLowerCase() === sourceName),
+    )
+    .flatMap((track, trackIndex) => track.notes.map((note, noteIndex): MelodyNote => ({
+      id: `imported-source:${trackIndex}:${noteIndex}`,
+      startBeat: note[0],
+      durationBeats: note[1],
+      pitch: note[2],
+      velocity: note[3],
+      locks: [],
+    })))
+    .filter((note) => {
+      const key = `${note.startBeat}:${note.durationBeats}:${note.pitch}:${note.velocity}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((left, right) => left.startBeat - right.startBeat || left.pitch - right.pitch)
+}
+
 /** セクション相対イベントを曲全体の絶対拍へ変換する。 */
 export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybackMaterial {
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
@@ -54,6 +80,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const reactiveLayers: MelodyNote[] = []
   const counterLayers: MelodyNote[] = []
   const decorationLayers: MelodyNote[] = []
+  const protectedImportedLead = importedProtectedMelody(project)
   const sections = normalizeSectionTimeline(project.sections)
 
   for (const [sectionIndex, section] of sections.entries()) {
@@ -205,6 +232,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
     if (!variant) continue
     // Issue #41: partRoleの正はLayer。曲全体へ展開する際も役割ごとに分けて持つ
     for (const layer of layersOf(variant)) {
+      if (layer.partRole === "lead" && protectedImportedLead.length > 0) continue
       const target = layer.partRole === "accompaniment" ? accompaniment : lead
       for (const note of layer.notes) {
         target.push({ ...note, id: `${section.id}:${note.id}`, startBeat: offset + note.startBeat })
@@ -213,6 +241,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   }
 
   const byBeat = (a: MelodyNote, b: MelodyNote) => a.startBeat - b.startBeat
+  if (protectedImportedLead.length > 0) lead.push(...protectedImportedLead)
   const totalBars = project.sections.reduce((sum, section) => sum + Math.max(1, section.lengthBars), 0)
   return {
     chords: chords.sort((a, b) => a.startBeat - b.startBeat),

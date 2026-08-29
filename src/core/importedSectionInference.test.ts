@@ -66,9 +66,62 @@ describe("markerless imported section inference", () => {
     expect(inferMarkerlessImportedSections(first.project).changed).toBe(false)
   })
 
-  it("生成済み候補があるProjectは自動再分割しない", () => {
+  it("Section境界をまたぐ原曲ノートを分割せず、開始Sectionへ一度だけ保持する", () => {
+    const project = importedProject()
+    project.melodyVariants[0].notes.push({
+      id: "crossing",
+      startBeat: 31.5,
+      durationBeats: 2,
+      pitch: 71,
+      velocity: 75,
+      locks: [],
+    })
+    project.importedArrangement!.tracks[0].notes.push([31.5, 2, 71, 75, 1])
+    const result = inferMarkerlessImportedSections(project)
+    const reconstructed = result.project.sections.flatMap((section) => {
+      const offset = (section.startBar - 1) * 4
+      return result.project.melodyVariants
+        .filter((variant) => variant.sectionId === section.id)
+        .flatMap((variant) => variant.notes.map((note) => ({
+          id: note.id,
+          startBeat: offset + note.startBeat,
+          durationBeats: note.durationBeats,
+        })))
+    })
+    expect(reconstructed.filter((note) => note.startBeat === 31.5)).toEqual([
+      expect.objectContaining({ startBeat: 31.5, durationBeats: 2 }),
+    ])
+  })
+
+  it("生成済み候補があっても原曲Melodyだけを修復し、Section再分割はしない", () => {
     const project = importedProject()
     project.melodyVariants.push({ ...project.melodyVariants[0], id: "generated", sourceMode: "generate" })
-    expect(inferMarkerlessImportedSections(project).changed).toBe(false)
+    const result = inferMarkerlessImportedSections(project)
+    expect(result.changed).toBe(true)
+    expect(result.project.sections).toHaveLength(1)
+    expect(result.project.melodyVariants.some((variant) => variant.id === "generated")).toBe(true)
+    expect(result.project.sourceImport?.melodyTracksMerged).toBe(true)
+  })
+
+  it("推定済みの旧Projectでも同名分割トラックから欠落Melodyを復元する", () => {
+    const inferred = inferMarkerlessImportedSections(importedProject()).project
+    inferred.sourceImport!.melodyTracksMerged = undefined
+    inferred.importedArrangement!.tracks.push({
+      sourceTrackIndex: 2,
+      name: "Lead",
+      role: "other",
+      notes: [[100, 1.5, 72, 91, 1]],
+    })
+    const result = inferMarkerlessImportedSections(inferred)
+    const restored = result.project.sections.flatMap((section) => {
+      const offset = (section.startBar - 1) * 4
+      const assigned = result.project.melodyVariants.find(
+        (variant) => variant.id === result.project.sectionMelodyAssignments[section.id],
+      )
+      return (assigned?.notes ?? []).map((note) => [offset + note.startBeat, note.durationBeats, note.pitch])
+    })
+    expect(result.changed).toBe(true)
+    expect(restored).toContainEqual([100, 1.5, 72])
+    expect(result.project.importedArrangement?.tracks.at(-1)?.role).toBe("melody")
   })
 })

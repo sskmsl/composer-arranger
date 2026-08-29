@@ -84,6 +84,8 @@ export interface MidiImportAnalysis {
   tracks: MidiImportTrackSummary[]
   sections: MidiImportSectionDraft[]
   melodyTrackIndex: number
+  /** Logic等がSectionごとに分割した同名Melodyトラックを、1本の旋律として扱う。 */
+  melodyTrackIndices: number[]
   melodyTrackConfidence: number
   sectionsFromMarkers: boolean
   warnings: string[]
@@ -450,6 +452,48 @@ function chooseMelodyTrack(tracks: ParsedMidiTrack[]): { track: ParsedMidiTrack;
   return { track: ranked[0].track, index: ranked[0].index, confidence: Number(Math.min(0.98, 0.58 + gap * 0.1).toFixed(2)) }
 }
 
+function normalizedTrackName(name: string): string {
+  return name.trim().toLocaleLowerCase().replace(/\s+/g, " ")
+}
+
+function melodyTrackIndicesForSong(song: ParsedMidiSong, primaryIndex: number): number[] {
+  const primary = song.tracks[primaryIndex]
+  if (!primary || primary.notes.every((note) => note.channel === 9)) return []
+  const normalizedName = normalizedTrackName(primary.name)
+  if (!normalizedName) return [primaryIndex]
+  const grouped = song.tracks.flatMap((track, index) =>
+    normalizedTrackName(track.name) === normalizedName &&
+    track.notes.some((note) => note.channel !== 9)
+      ? [index]
+      : [],
+  )
+  return grouped.length > 0 ? grouped : [primaryIndex]
+}
+
+export function melodyTrackIndicesForAnalysis(
+  analysis: MidiImportAnalysis,
+  primaryIndex: number,
+): number[] {
+  if (primaryIndex < 0) return []
+  return melodyTrackIndicesForSong(analysis.source, primaryIndex)
+}
+
+function mergeMelodyTracks(song: ParsedMidiSong, indices: readonly number[]): ParsedMidiTrack | undefined {
+  const primary = song.tracks[indices[0]]
+  if (!primary) return undefined
+  const seen = new Set<string>()
+  const notes = indices.flatMap((index) => song.tracks[index]?.notes ?? [])
+    .filter((note) => note.channel !== 9)
+    .filter((note) => {
+      const key = `${note.startTick}:${note.durationTicks}:${note.pitch}:${note.velocity}:${note.channel}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((left, right) => left.startTick - right.startTick || left.pitch - right.pitch)
+  return { name: primary.name, notes }
+}
+
 function recommendedTrackRole(track: ParsedMidiTrack, index: number, melodyIndex: number): MidiImportTrackRole {
   if (index === melodyIndex) return "melody"
   if (track.notes.length === 0) return "ignore"
@@ -656,14 +700,13 @@ function inferChords(
 function notesForSection(track: ParsedMidiTrack, song: ParsedMidiSong, window: SectionWindow): MelodyNote[] {
   return track.notes.filter((note) => note.channel !== 9).flatMap((note) => {
     const globalStart = note.startTick / song.ppq
-    const globalEnd = (note.startTick + note.durationTicks) / song.ppq
-    const start = Math.max(window.startBeat, globalStart)
-    const end = Math.min(window.endBeat, globalEnd)
-    if (end <= start) return []
+    // Section境界をまたぐ原曲ノートは、開始したSectionだけが所有する。
+    // 境界で分割すると同じ音が再Attackされ、原曲Melodyが変わって聴こえるため。
+    if (globalStart < window.startBeat || globalStart >= window.endBeat) return []
     return [{
       id: crypto.randomUUID(),
-      startBeat: Number((start - window.startBeat).toFixed(4)),
-      durationBeats: Number(Math.max(1 / 64, end - start).toFixed(4)),
+      startBeat: Number((globalStart - window.startBeat).toFixed(4)),
+      durationBeats: Number(Math.max(1 / 64, note.durationTicks / song.ppq).toFixed(4)),
       pitch: note.pitch,
       velocity: note.velocity,
       locks: [],
@@ -681,6 +724,7 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
   const allPitchedNotes = pitchedTracks.flatMap((track) => track.notes.filter((note) => note.channel !== 9))
   if (allPitchedNotes.length === 0) throw new Error("MIDIに音程を持つノートがありません。")
   const melody = chooseMelodyTrack(song.tracks)
+  const melodyTrackIndices = melodyTrackIndicesForSong(song, melody.index)
   const keyInference: MidiKeyInference = song.keySignature
     ? {
         key: keyFromSignature(song.keySignature),
@@ -716,7 +760,9 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
           ? Number((pitched.reduce((sum, note) => sum + note.pitch, 0) / pitched.length).toFixed(1))
           : null,
         channelNumbers: [...new Set(track.notes.map((note) => note.channel + 1))].sort((left, right) => left - right),
-        recommendedRole: recommendedTrackRole(track, index, melody.index),
+        recommendedRole: melodyTrackIndices.includes(index)
+          ? "melody"
+          : recommendedTrackRole(track, index, melody.index),
       }
     }),
     sections: windows.map((window, index) => ({
@@ -726,6 +772,7 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
       startBar: window.section.startBar,
     })),
     melodyTrackIndex: melody.index,
+    melodyTrackIndices,
     melodyTrackConfidence: melody.confidence,
     sectionsFromMarkers: fromMarkers,
     warnings,
@@ -740,14 +787,15 @@ export function createMidiProjectFromAnalysis(
 ): MidiProjectImportResult {
   const song = analysis.source
   const melodyIndex = options.melodyTrackIndex ?? analysis.melodyTrackIndex
-  const melodyTrack = melodyIndex >= 0 ? song.tracks[melodyIndex] : undefined
-  if (melodyIndex >= 0 && (!melodyTrack || melodyTrack.notes.every((note) => note.channel === 9))) {
+  const melodyTrackIndices = melodyTrackIndicesForSong(song, melodyIndex)
+  const melodyTrack = melodyIndex >= 0 ? mergeMelodyTracks(song, melodyTrackIndices) : undefined
+  if (melodyIndex >= 0 && (!melodyTrack || melodyTrack.notes.length === 0)) {
     throw new Error("主旋律として利用できるトラックを選択してください。")
   }
   const roles = Object.fromEntries(
     analysis.tracks.map((track) => [
       track.index,
-      track.index === melodyIndex
+      melodyTrackIndices.includes(track.index)
         ? "melody"
         : options.trackRoles?.[track.index] ?? (track.recommendedRole === "melody" ? "other" : track.recommendedRole),
     ]),
@@ -791,6 +839,9 @@ export function createMidiProjectFromAnalysis(
   }) : []
   const assignments = Object.fromEntries(variants.map((variant) => [variant.sectionId, variant.id]))
   const warnings = [...analysis.warnings]
+  if (melodyTrackIndices.length > 1) {
+    warnings.push(`同名の分割Melodyトラック${melodyTrackIndices.length}本を、1本の原曲Melodyとして結合しました。`)
+  }
   if (accompanimentNotes.length === 0) warnings.push("Harmony/Bassトラックがないため、コード推定の信頼度は低めです。")
 
   const importedAt = new Date().toISOString()
@@ -849,6 +900,7 @@ export function createMidiProjectFromAnalysis(
         : analysis.keyInference.source,
       keyAlternatives: analysis.keyInference.alternatives.map((candidate) => candidate.key),
       sectionsFromMarkers: analysis.sectionsFromMarkers,
+      melodyTracksMerged: true,
       reviewConfirmed: options.reviewConfirmed ?? false,
       trackAssignments: analysis.tracks.map((track) => ({
         trackName: track.name,
