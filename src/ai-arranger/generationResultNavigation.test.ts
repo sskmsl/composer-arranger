@@ -56,7 +56,7 @@ describe("generationResultLinks", () => {
         sectionId: "verse",
         sectionName: "Aメロ",
         generator: "accompaniment",
-        target: "melody",
+        target: "arrangement",
         candidateCount: 1,
         latestBatchId: null,
         applied: true,
@@ -130,12 +130,12 @@ describe("generationResultLinks", () => {
     ]
     const items = wholeSongGenerationResultItems(actions, [
       { actionId: "intro", sectionId: "intro", generated: true, target: "signature" },
-      { actionId: "verse", sectionId: "verse", generated: true, target: "melody" },
+      { actionId: "verse", sectionId: "verse", generated: true, target: "arrangement" },
     ])
 
     expect(items.map((item) => [item.sectionName, item.status, item.target])).toEqual([
       ["Intro", "candidate", "signature"],
-      ["Aメロ", "applied", "melody"],
+      ["Aメロ", "applied", "arrangement"],
       ["サビ", "existing", "counter"],
       ["Outro", "preserved", null],
     ])

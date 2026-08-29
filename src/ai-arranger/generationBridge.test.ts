@@ -70,7 +70,7 @@ describe("AI Intent generation bridge", () => {
     expect(targetTabForIntent(intent({ generator: "signature" }))).toBe("signature")
     expect(targetTabForIntent(intent({ generator: "counter" }))).toBe("counter")
     expect(targetTabForIntent(intent({ generator: "decoration" }))).toBe("decoration")
-    expect(targetTabForIntent(intent({ generator: "accompaniment" }))).toBe("melody")
+    expect(targetTabForIntent(intent({ generator: "accompaniment" }))).toBe("arrangement")
     expect(targetTabForIntent(intent({ generator: "none" }))).toBeNull()
   })
 

@@ -10,7 +10,6 @@ import type { MainTab } from "./App"
 import { WholeSongDirectorPanel } from "./WholeSongDirectorPanel"
 import { MultiPartArrangementPanel } from "./MultiPartArrangementPanel"
 import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
-import { ImportedArrangementAnalysisPanel } from "./ImportedArrangementAnalysisPanel"
 
 export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
   const project = useProjectStore((state) => state.project)
@@ -92,7 +91,6 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
 
       {project.sections.length > 0 && (
         <>
-          <ImportedArrangementAnalysisPanel />
           <WholeSongDirectorPanel onNavigate={onNavigate} />
           <MultiPartArrangementPanel onNavigate={onNavigate} />
           <LogicProductionPackagePanel />

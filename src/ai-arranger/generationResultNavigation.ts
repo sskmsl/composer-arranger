@@ -44,7 +44,7 @@ const CURRENT_CANDIDATE_TARGETS: Record<CurrentCandidateGenerator, MainTab> = {
   signature: "signature",
   counter: "counter",
   decoration: "decoration",
-  accompaniment: "melody",
+  accompaniment: "arrangement",
 }
 
 function latestBatch<T extends { batchId: string; createdAt: string }>(
@@ -182,7 +182,7 @@ function targetForGenerator(
   if (generator === "signature") return "signature"
   if (generator === "counter") return "counter"
   if (generator === "decoration") return "decoration"
-  if (generator === "accompaniment") return "melody"
+  if (generator === "accompaniment") return "arrangement"
   return null
 }
 

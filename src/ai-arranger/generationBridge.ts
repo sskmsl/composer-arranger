@@ -42,7 +42,9 @@ export function targetTabForIntent(intent: AiArrangementIntent): MainTab | null 
   if (intent.generator === "decoration") return "decoration"
   if (intent.generator === "phrase") return "phrase"
   if (intent.generator === "melody") return "melody"
-  if (intent.generator === "accompaniment") return "melody"
+  // AccompanimentはMelody候補ではなく、Sectionへ直接適用される編曲レイヤー。
+  // 確認先もMelody Generatorではなく曲全体タイムラインへ戻す。
+  if (intent.generator === "accompaniment") return "arrangement"
   return null
 }
 
