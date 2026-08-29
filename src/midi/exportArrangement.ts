@@ -26,7 +26,6 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
 
 function song(
   project: ComposerProject,
-  arrangement: FullSongArrangement,
   tracks: GeneratedArrangementTrack[],
 ): Uint8Array {
   const timeSignature = parseTimeSignature(project.song.timeSignature)
@@ -46,7 +45,7 @@ export function exportArrangementMidi(
   project: ComposerProject,
   arrangement: FullSongArrangement,
 ): Uint8Array {
-  return song(project, arrangement, arrangement.tracks)
+  return song(project, arrangement.tracks)
 }
 
 export function exportArrangementTrackMidi(
@@ -55,5 +54,5 @@ export function exportArrangementTrackMidi(
   trackId: GeneratedArrangementTrack["id"],
 ): Uint8Array {
   const track = arrangement.tracks.find((candidate) => candidate.id === trackId)
-  return song(project, arrangement, track ? [{ ...track, muted: false }] : [])
+  return song(project, track ? [{ ...track, muted: false }] : [])
 }
