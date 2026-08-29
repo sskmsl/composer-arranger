@@ -5,7 +5,7 @@ import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { parseTimeSignature } from "@/core/section"
 import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
-import { notesByPartRole } from "@/core/sectionLayers"
+import { immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
@@ -47,13 +47,23 @@ export function AuditionWorkspace() {
     setActiveSlot(0)
   }, [selectedSectionId, variantKey])
 
-  useEffect(() => {
-    setRangeStart(0)
-    setRangeEnd(totalBeats)
-  }, [selectedSectionId, totalBeats])
-
   const selectedVariants = slotIds.map((id) => variants.find((variant) => variant.id === id))
   const activeVariant = selectedVariants[activeSlot]
+  const activeLeadNotes = useMemo(
+    () => selectedSectionId
+      ? leadNotesForAudition(project, selectedSectionId, activeVariant)
+      : [],
+    [project, selectedSectionId, activeVariant],
+  )
+
+  useEffect(() => {
+    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const range = project.sourceImport?.type === "midi"
+      ? immediateAuditionRange(activeLeadNotes, totalBeats, beatsPerBar)
+      : { startBeat: 0, endBeat: totalBeats }
+    setRangeStart(range.startBeat)
+    setRangeEnd(range.endBeat)
+  }, [selectedSectionId, activeVariant?.id, activeLeadNotes, totalBeats, project.song.timeSignature, project.sourceImport?.type])
   // Issue #41: accompaniment="none"(Silence)のセクションは比較試聴でも伴奏を鳴らさない
   const chords = accompanimentEnabled(section)
     ? project.chords
@@ -63,17 +73,20 @@ export function AuditionWorkspace() {
   const playbackOptions = (slot: number) => {
     const variant = selectedVariants[slot]
     if (!variant) return null
+    const leadNotes = selectedSectionId
+      ? leadNotesForAudition(project, selectedSectionId, variant)
+      : []
     const accompanimentPatternNotes = selectedSectionId
       ? accompanimentPatternNotesForSection(
           project,
           selectedSectionId,
-          notesByPartRole(variant, "lead"),
+          leadNotes,
         )
       : []
     return {
       bpm: project.song.tempo,
       chords,
-      melody: variant.notes,
+      melody: leadNotes,
       accompaniment: accompanimentPatternNotes,
       mode,
       loop,
@@ -172,6 +185,11 @@ export function AuditionWorkspace() {
           {playing ? <Square size={14} /> : <Play size={14} />}
           {playing ? "停止" : "再生"}
         </Button>
+        {project.sourceImport?.type === "midi" && totalBeats > rangeEnd - rangeStart && (
+          <span className="text-[11px] text-ink-muted-48">
+            Imported MIDIは主旋律開始付近の8小節を先に試聴します
+          </span>
+        )}
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">

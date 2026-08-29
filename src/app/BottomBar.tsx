@@ -7,7 +7,9 @@ import { Button, IconButton, Select } from "@/ui/primitives"
 import { Play, Square, Undo2, Redo2, Download, History } from "lucide-react"
 import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
-import { notesByPartRole } from "@/core/sectionLayers"
+import { replaceVariantNotes } from "@/core/sectionLayers"
+import { immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
+import { parseTimeSignature } from "@/core/section"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -25,6 +27,9 @@ export function BottomBar() {
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const section = project.sections.find((s) => s.id === selectedSectionId)
+  const leadNotes = selectedSectionId
+    ? leadNotesForAudition(project, selectedSectionId, variant)
+    : []
   // Issue #41: accompaniment="none"(Silence)では伴奏を鳴らさない。
   // 保存するだけで消費しないと Silence と Chords Only が同じ音になってしまう。
   const chordsEnabled = accompanimentEnabled(section)
@@ -38,24 +43,30 @@ export function BottomBar() {
     ? accompanimentPatternNotesForSection(
         project,
         selectedSectionId,
-        variant ? notesByPartRole(variant, "lead") : undefined,
+        leadNotes,
       )
     : []
   const previewLayers = previewLayersForMode(mode)
   const hasPlayableMaterial =
     (previewLayers.chords && chords.length > 0) ||
-    (previewLayers.melody && (variant?.notes.length ?? 0) > 0) ||
+    (previewLayers.melody && leadNotes.length > 0) ||
     (previewLayers.accompaniment && accompanimentPatternNotes.length > 0)
 
   const play = () => {
     if (!hasPlayableMaterial) return
+    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const totalBeats = section ? section.lengthBars * beatsPerBar : 0
+    const importedRange = project.sourceImport?.type === "midi"
+      ? immediateAuditionRange(leadNotes, totalBeats, beatsPerBar)
+      : undefined
     setPlaying(true)
     previewPlayer.play({
       bpm: project.song.tempo,
       chords,
-      melody: variant?.notes ?? [],
+      melody: leadNotes,
       accompaniment: accompanimentPatternNotes,
       mode,
+      range: importedRange,
       onEnded: () => setPlaying(false),
     })
   }
@@ -85,13 +96,14 @@ export function BottomBar() {
 
   const exportMidi = () => {
     if (!hasPlayableMaterial || !selectedSectionId || !section) return
+    const exportVariant = variant ? replaceVariantNotes(variant, leadNotes) : undefined
     const bytes = exportMelodyMidi({
       title: project.title,
       sectionName: section.name,
       tempo: project.song.tempo,
       timeSignature: project.song.timeSignature,
       chords,
-      melody: previewLayers.melody ? variant : undefined,
+      melody: previewLayers.melody ? exportVariant : undefined,
       accompanimentPatternNotes: previewLayers.accompaniment ? accompanimentPatternNotes : [],
       // Issue #41: 伴奏なし設定のセクションでは、再生モードに関わらずコードを書き出さない
       includeChords: chordsEnabled && previewLayers.chords,
