@@ -1313,7 +1313,7 @@ export function AiPartnerWorkspace({
                       </div>
                       {item.target && (
                         <Button variant="secondary" onClick={() => openWholeSongResult(item)}>
-                          {item.status === "candidate" ? "候補を確認・試聴" : "Sectionを確認"}
+                          {item.status === "candidate" ? `${GENERATOR_LABELS[item.generator]}候補を確認・試聴` : "Sectionを確認"}
                           <ArrowRight size={14} />
                         </Button>
                       )}

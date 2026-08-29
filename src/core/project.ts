@@ -82,6 +82,8 @@ export interface ProjectSourceImport {
   /** マーカーなしMIDIを音楽特徴からSectionへ自動分割済み。 */
   sectionsInferred?: boolean
   sectionInferenceConfidence?: number
+  /** Section役割推定ロジックの移行管理。 */
+  sectionInferenceVersion?: number
   /** 同名で時間分割されたMelodyトラックを原曲の1本として統合済み。 */
   melodyTracksMerged?: boolean
   /** トラック・Section・コードの確認画面を通して作成されたか。 */

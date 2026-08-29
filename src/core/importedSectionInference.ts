@@ -5,6 +5,7 @@ import { DEFAULT_SECTION_CONTENT } from "./sectionContent"
 
 interface BarFeature {
   onsetCount: number
+  melodyOnsetCount: number
   occupiedTrackCount: number
   activeRoles: Set<string>
   pitchClasses: number[]
@@ -14,6 +15,7 @@ interface InferredWindow {
   startBar: number
   endBar: number
   density: number
+  melodyDensity: number
   role: SectionRole
   name: string
 }
@@ -150,16 +152,20 @@ function barFeatures(project: ComposerProject, totalBars: number, beatsPerBar: n
     const activeRoles = new Set<string>()
     const pitchClasses = Array.from({ length: 12 }, () => 0)
     let onsetCount = 0
+    let melodyOnsetCount = 0
     tracks.forEach((track, trackIndex) => {
       track.notes.forEach((note) => {
         if (!overlaps(note, start, end)) return
         activeTracks.add(trackIndex)
         activeRoles.add(track.role)
-        if (note[0] >= start && note[0] < end) onsetCount += 1
+        if (note[0] >= start && note[0] < end) {
+          onsetCount += 1
+          if (track.role === "melody") melodyOnsetCount += 1
+        }
         if (track.role !== "drums") pitchClasses[((note[2] % 12) + 12) % 12] += Math.min(note[1], beatsPerBar)
       })
     })
-    return { onsetCount, occupiedTrackCount: activeTracks.size, activeRoles, pitchClasses }
+    return { onsetCount, melodyOnsetCount, occupiedTrackCount: activeTracks.size, activeRoles, pitchClasses }
   })
 }
 
@@ -221,20 +227,41 @@ function nameWindows(features: BarFeature[], boundaries: number[], totalBars: nu
       startBar: start + 1,
       endBar: end,
       density: bars.reduce((sum, bar) => sum + bar.onsetCount, 0) / Math.max(1, end - start),
+      melodyDensity: bars.reduce((sum, bar) => sum + bar.melodyOnsetCount, 0) / Math.max(1, end - start),
       role: "instrumental" as SectionRole,
       name: "",
     }
   })
-  const densities = raw.map((window) => window.density).sort((left, right) => left - right)
+  const melodicWindows = raw.filter((window) => window.melodyDensity > 0)
+  const densities = melodicWindows.map((window) => window.melodyDensity).sort((left, right) => left - right)
   const highDensity = densities[Math.max(0, Math.floor(densities.length * 0.7))] ?? 0
+  const firstVerseIndex = (() => {
+    const afterMelodyRest = raw.findIndex((window, index) =>
+      index > 0 &&
+      index < raw.length - 1 &&
+      window.melodyDensity > 0 &&
+      raw.slice(1, index).some((previous) => previous.melodyDensity === 0),
+    )
+    if (afterMelodyRest >= 0) return afterMelodyRest
+    const firstAfterIntro = raw.findIndex((window, index) => index > 0 && window.melodyDensity > 0)
+    return firstAfterIntro >= 0 ? firstAfterIntro : 1
+  })()
   raw.forEach((window, index) => {
     if (index === 0) window.role = "intro"
     else if (index === raw.length - 1) window.role = "outro"
-    else if (window.density >= highDensity) window.role = "chorus"
+    else if (window.melodyDensity === 0) window.role = "instrumental"
+    else if (index < firstVerseIndex) window.role = "intro"
+    else if (index === firstVerseIndex) window.role = "verse"
+    else if (window.melodyDensity >= highDensity) window.role = "chorus"
     else window.role = "verse"
   })
   raw.forEach((window, index) => {
-    if (window.role === "chorus" && index > 1 && raw[index - 1].role === "verse") raw[index - 1].role = "pre-chorus"
+    if (
+      window.role === "chorus" &&
+      index > firstVerseIndex + 1 &&
+      raw[index - 1].role === "verse" &&
+      raw[index - 2].role === "verse"
+    ) raw[index - 1].role = "pre-chorus"
   })
   const counts = new Map<SectionRole, number>()
   const labels: Partial<Record<SectionRole, string>> = {
@@ -243,7 +270,7 @@ function nameWindows(features: BarFeature[], boundaries: number[], totalBars: nu
     "pre-chorus": "推定Bメロ",
     chorus: "推定サビ",
     outro: "推定アウトロ",
-    instrumental: "推定Section",
+    instrumental: "推定間奏",
   }
   raw.forEach((window) => {
     const count = (counts.get(window.role) ?? 0) + 1
@@ -251,6 +278,36 @@ function nameWindows(features: BarFeature[], boundaries: number[], totalBars: nu
     window.name = `${labels[window.role] ?? "推定Section"}${count > 1 ? ` ${count}` : ""}`
   })
   return raw
+}
+
+function repairLegacyInferredRoles(project: ComposerProject): { project: ComposerProject; changed: boolean } {
+  if (
+    project.sourceImport?.type !== "midi" ||
+    !project.sourceImport.sectionsInferred ||
+    (project.sourceImport.sectionInferenceVersion ?? 0) >= 2 ||
+    !project.importedArrangement
+  ) return { project, changed: false }
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const totalBars = Math.max(1, Math.ceil(project.importedArrangement.totalBeats / beatsPerBar))
+  const sorted = [...project.sections].sort((left, right) => left.startBar - right.startBar)
+  const windows = nameWindows(
+    barFeatures(project, totalBars, beatsPerBar),
+    sorted.map((section) => Math.max(0, section.startBar - 1)),
+    totalBars,
+  )
+  const replacement = new Map(sorted.map((section, index) => [section.id, windows[index]]))
+  return {
+    changed: true,
+    project: {
+      ...project,
+      sections: project.sections.map((section) => {
+        const inferred = replacement.get(section.id)
+        if (!inferred || !section.name.startsWith("推定")) return section
+        return { ...section, name: inferred.name, role: inferred.role }
+      }),
+      sourceImport: { ...project.sourceImport, sectionInferenceVersion: 2 },
+    },
+  }
 }
 
 function canInfer(project: ComposerProject): boolean {
@@ -267,17 +324,19 @@ function canInfer(project: ComposerProject): boolean {
 /** マーカーなしの既存・新規MIDI Projectを、推定したSectionへ非破壊的に再配置する。 */
 export function inferMarkerlessImportedSections(project: ComposerProject): ImportedSectionInferenceResult {
   const repaired = repairLegacySplitMelody(project)
-  const workingProject = repaired.project
-  if (!canInfer(workingProject)) return { project: workingProject, changed: repaired.changed, confidence: 0, boundaries: [] }
+  const roleRepair = repairLegacyInferredRoles(repaired.project)
+  const workingProject = roleRepair.project
+  const repairedExisting = repaired.changed || roleRepair.changed
+  if (!canInfer(workingProject)) return { project: workingProject, changed: repairedExisting, confidence: 0, boundaries: [] }
   const beatsPerBar = parseTimeSignature(workingProject.song.timeSignature).beatsPerBar
   const totalBars = Math.max(1, Math.ceil(workingProject.importedArrangement!.totalBeats / beatsPerBar))
-  if (totalBars < 12) return { project: workingProject, changed: repaired.changed, confidence: 0, boundaries: [] }
+  if (totalBars < 12) return { project: workingProject, changed: repairedExisting, confidence: 0, boundaries: [] }
   const features = barFeatures(workingProject, totalBars, beatsPerBar)
   const inferred = inferBoundaries(features, totalBars)
   if (inferred.boundaries.length < 2) {
     return {
       project: workingProject,
-      changed: repaired.changed,
+      changed: repairedExisting,
       confidence: inferred.confidence,
       boundaries: [],
     }
@@ -349,6 +408,7 @@ export function inferMarkerlessImportedSections(project: ComposerProject): Impor
         ...workingProject.sourceImport!,
         sectionsInferred: true,
         sectionInferenceConfidence: inferred.confidence,
+        sectionInferenceVersion: 2,
         warnings: [...warnings, warning],
       },
     },

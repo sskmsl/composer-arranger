@@ -57,7 +57,13 @@ describe("markerless imported section inference", () => {
     expect(result.project.sections.at(-1)?.role).toBe("outro")
     expect(result.project.chords.every((chord) => result.project.sections.some((section) => section.id === chord.sectionId))).toBe(true)
     expect(result.project.melodyVariants.every((variant) => variant.notes.every((note) => note.startBeat >= 0))).toBe(true)
+    expect(result.project.sections.filter((section) => section.role === "verse").every(
+      (section) => result.project.melodyVariants.some(
+        (variant) => variant.sectionId === section.id && variant.notes.length > 0,
+      ),
+    )).toBe(true)
     expect(result.project.sourceImport?.sectionsInferred).toBe(true)
+    expect(result.project.sourceImport?.sectionInferenceVersion).toBe(2)
     expect(result.project.sourceImport?.warnings.some((warning) => warning.includes("自動推定"))).toBe(true)
   })
 
@@ -123,5 +129,14 @@ describe("markerless imported section inference", () => {
     expect(result.changed).toBe(true)
     expect(restored).toContainEqual([100, 1.5, 72])
     expect(result.project.importedArrangement?.tracks.at(-1)?.role).toBe("melody")
+  })
+
+  it("旧Section役割推定を現行版へ一度だけ移行する", () => {
+    const inferred = inferMarkerlessImportedSections(importedProject()).project
+    inferred.sourceImport!.sectionInferenceVersion = undefined
+    const result = inferMarkerlessImportedSections(inferred)
+    expect(result.changed).toBe(true)
+    expect(result.project.sourceImport?.sectionInferenceVersion).toBe(2)
+    expect(inferMarkerlessImportedSections(result.project).changed).toBe(false)
   })
 })

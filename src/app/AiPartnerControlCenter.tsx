@@ -259,7 +259,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
                   </div>
                   {item.target && (
                     <Button variant="secondary" onClick={() => openResult(item)}>
-                      {item.status === "candidate" ? "候補を確認・試聴" : "Sectionを確認"} <ArrowRight size={14} />
+                      {item.status === "candidate" ? `${LABELS[item.generator]}候補を確認・試聴` : "Sectionを確認"} <ArrowRight size={14} />
                     </Button>
                   )}
                 </div>
