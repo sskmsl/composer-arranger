@@ -45,6 +45,7 @@ import {
   deleteProject as deleteStoredProjectRepo,
 } from "@/storage/projectRepository"
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
+import { inferMarkerlessImportedSections } from "@/core/importedSectionInference"
 import { moveSectionInTimeline, normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS, type SectionContentSettings } from "@/core/sectionContent"
 import {
@@ -697,14 +698,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // normalizeProjectも内部で必ず通るため、旧schemaVersion(1.0)のデータが
       // songProfile等を欠いたままUIへ渡ってクラッシュすることもない(16章/Issue #16)
       const result = resolveProjectTiming(last)
+      const sectionInference = inferMarkerlessImportedSections(result.project)
       if (result.status !== "no-op") void backupProjectTimingSnapshot(last)
       set({
-        project: result.project,
-        selectedSectionId: result.project.sections[0]?.id ?? null,
+        project: sectionInference.project,
+        selectedSectionId: sectionInference.project.sections[0]?.id ?? null,
         hydrated: true,
         timingNotice: timingNoticeFrom(result),
       })
-      if (result.status === "auto-converted") get().persist()
+      if (result.status === "auto-converted" || sectionInference.changed) get().persist()
     } else {
       set({ hydrated: true })
     }
@@ -732,10 +734,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   loadProject: (raw) => {
     const result = resolveProjectTiming(raw)
+    const sectionInference = inferMarkerlessImportedSections(result.project)
     if (result.status !== "no-op") void backupProjectTimingSnapshot(raw)
     set({
-      project: result.project,
-      selectedSectionId: result.project.sections[0]?.id ?? null,
+      project: sectionInference.project,
+      selectedSectionId: sectionInference.project.sections[0]?.id ?? null,
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,

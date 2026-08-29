@@ -17,6 +17,7 @@ import {
   type MidiReviewIssueId,
 } from "@/midi/importReview"
 import { Button, Select, TextInput } from "@/ui/primitives"
+import { inferMarkerlessImportedSections } from "@/core/importedSectionInference"
 
 const SECTION_ROLES = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 const SUPPORT_ROLES: Array<Exclude<MidiImportTrackRole, "melody">> = [
@@ -92,17 +93,25 @@ export function MidiImportReviewDialog({
     [sections],
   )
   const result = useMemo(
-    () => createMidiProjectFromAnalysis(analysis, {
-      melodyTrackIndex,
-      trackRoles,
-      sections: sortedSections,
-      chordSymbolOverrides: chordOverrides,
-      title,
-      tempo,
-      key,
-      reviewConfirmed: true,
-      sourceKind,
-    }),
+    () => {
+      const created = createMidiProjectFromAnalysis(analysis, {
+        melodyTrackIndex,
+        trackRoles,
+        sections: sortedSections,
+        chordSymbolOverrides: chordOverrides,
+        title,
+        tempo,
+        key,
+        reviewConfirmed: true,
+        sourceKind,
+      })
+      const inferred = inferMarkerlessImportedSections(created.project)
+      return {
+        ...created,
+        project: inferred.project,
+        report: { ...created.report, sectionCount: inferred.project.sections.length },
+      }
+    },
     [analysis, chordOverrides, key, melodyTrackIndex, sortedSections, sourceKind, tempo, title, trackRoles],
   )
   const previewSection = result.project.sections[selectedSectionIndex] ?? result.project.sections[0]
@@ -114,8 +123,10 @@ export function MidiImportReviewDialog({
     ? result.project.chords.filter((chord) => chord.sectionId === previewSection.id)
     : []
   const issues = useMemo(
-    () => buildMidiReviewIssues(analysis, result.report.chordInferenceConfidence),
-    [analysis, result.report.chordInferenceConfidence],
+    () => buildMidiReviewIssues(analysis, result.report.chordInferenceConfidence).filter(
+      (issue) => issue.id !== "sections" || !result.project.sourceImport?.sectionsInferred,
+    ),
+    [analysis, result.project.sourceImport?.sectionsInferred, result.report.chordInferenceConfidence],
   )
   const pendingIssueCount = issues.filter((issue) => !acknowledgedIssues.has(issue.id)).length
   const detectedTrackCount = analysis.tracks.filter((track) => track.noteCount > 0).length
@@ -213,7 +224,8 @@ export function MidiImportReviewDialog({
                   {detectedTrackCount}トラック · {roleSummary || "役割なし"}
                 </p>
                 <p className="text-[12px] leading-5 text-body-muted">
-                  Sections: {sortedSections.length} · 全{analysis.totalBars}小節
+                  Sections: {result.project.sections.length} · 全{analysis.totalBars}小節
+                  {result.project.sourceImport?.sectionsInferred && " · AI自動推定"}
                 </p>
                 <p className={`mt-2 text-[12px] font-medium ${pendingIssueCount > 0 ? "text-amber-200" : "text-emerald-200"}`}>
                   要確認: {pendingIssueCount}件

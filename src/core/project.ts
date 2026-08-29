@@ -79,6 +79,9 @@ export interface ProjectSourceImport {
   keyInferenceSource?: "midi-signature" | "pitch-profile" | "user-confirmed"
   keyAlternatives?: string[]
   sectionsFromMarkers: boolean
+  /** マーカーなしMIDIを音楽特徴からSectionへ自動分割済み。 */
+  sectionsInferred?: boolean
+  sectionInferenceConfidence?: number
   /** トラック・Section・コードの確認画面を通して作成されたか。 */
   reviewConfirmed?: boolean
   trackAssignments?: Array<{
