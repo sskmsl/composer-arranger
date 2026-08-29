@@ -6,6 +6,7 @@ import {
   executeArrangementActions,
 } from "@/ai-arranger/arrangementActionExecution"
 import { buildMultiPartArrangementPackage } from "@/ai-arranger/multiPartArrangementPackage"
+import { generationResultLinks } from "@/ai-arranger/generationResultNavigation"
 import {
   buildWholeSongDirectionProgram,
   type WholeSongDirectionId,
@@ -30,7 +31,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
   const [batchResult, setBatchResult] = useState<{
     generated: number
     skipped: number
-    target: MainTab | null
+    targets: MainTab[]
   } | null>(null)
   const plan = useMemo(
     () => buildAiPartnerOrchestrationPlan(project, selectedSectionId),
@@ -66,7 +67,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
     setBatchResult({
       generated: result.generatedCount,
       skipped: result.skippedCount,
-      target: result.targets.at(-1) ?? null,
+      targets: result.targets,
     })
   }
 
@@ -157,9 +158,11 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
               {batchResult.generated}件の候補を生成しました{batchResult.skipped > 0 ? `（${batchResult.skipped}件保留）` : ""}。自動採用はしていません。
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {batchResult.target && (
-                <Button onClick={() => onNavigate(batchResult.target!)}>生成結果を試聴 <ArrowRight size={14} /></Button>
-              )}
+              {generationResultLinks(batchResult.targets).map((result) => (
+                <Button key={result.tab} onClick={() => onNavigate(result.tab)}>
+                  {result.label}候補を確認 <ArrowRight size={14} />
+                </Button>
+              ))}
               <Button variant="secondary" onClick={() => setBatchResult(null)}>別の方針を試す</Button>
               <Button variant="ghost" onClick={() => onNavigate("arrangement")}>詳細を調整</Button>
             </div>

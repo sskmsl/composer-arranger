@@ -1,5 +1,9 @@
 import type { ComposerProject } from "@/core/project"
 import { supabase } from "@/lib/supabase"
+import {
+  decodeCloudProjectPayload,
+  encodeCloudProjectPayload,
+} from "./cloudProjectPayload"
 
 const UPSERT_PROJECT_RPC = "upsert_arranger_project"
 const LIST_PROJECT_METADATA_RPC = "list_arranger_project_metadata"
@@ -80,7 +84,7 @@ export async function retryTransientCloudOperation<T>(
 
 function syncStageError(stage: string, reason: unknown): Error {
   const detail = isTransientCloudSyncError(reason)
-    ? "Cloudへ接続できませんでした。Chromeの広告・追跡防止拡張、VPN、DNS設定を確認して再試行してください。"
+    ? "Cloudへの通信が途中で切断されました。大きいProjectは圧縮して再送します。少し待ってから再試行してください。"
     : errorMessage(reason)
   return new Error(`Cloud同期(${stage}): ${detail}`)
 }
@@ -124,10 +128,11 @@ export async function pushProject(project: StoredComposerProject): Promise<void>
   const client = supabase
   if (!client) return
   if (!(await ownerId())) return
+  const cloudPayload = await encodeCloudProjectPayload(project)
   await runCloudRpc("アップロード", () =>
     client.rpc(UPSERT_PROJECT_RPC, {
       p_id: project.projectId,
-      p_data: project,
+      p_data: cloudPayload,
       p_updated_at: project.savedAt,
       p_deleted_at: null,
     }),
@@ -280,7 +285,9 @@ export async function syncPullAndReconcile(
     const remote = await runCloudRpc("ダウンロード", () =>
       client.rpc(GET_PROJECT_RPC, { p_id: id }),
     )
-    const project = remote as StoredComposerProject | null | undefined
+    const project = remote
+      ? await decodeCloudProjectPayload<StoredComposerProject>(remote)
+      : null
     if (project) downloadedById.set(id, project)
   }
   const rows: RemoteProjectRow[] = metadata.map((row) => ({

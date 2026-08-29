@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowRight, Check, CircleAlert, MessageCircle, Sparkles, WandSparkles } from "lucide-react"
 import { executeArrangementAction } from "@/ai-arranger/arrangementActionExecution"
+import { generationResultLinks } from "@/ai-arranger/generationResultNavigation"
 import {
   buildWholeSongDirectionProgram,
   type WholeSongArrangementAction,
@@ -45,7 +46,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
     () => new Set(defaultActionIds(selectedDirection.actions)),
   )
   const [generatedActionIds, setGeneratedActionIds] = useState<Set<string>>(new Set())
-  const [lastTarget, setLastTarget] = useState<MainTab | null>(null)
+  const [resultTargets, setResultTargets] = useState<MainTab[]>([])
 
   useEffect(() => setBriefDraft(savedBrief), [project.projectId, savedBrief])
 
@@ -61,7 +62,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
     })
     setSelectedActionIds(new Set(defaultActionIds(nextDirection.actions)))
     setGeneratedActionIds(new Set())
-    setLastTarget(null)
+    setResultTargets([])
   }
 
   const selectDirection = (directionId: WholeSongDirectionId) => {
@@ -70,7 +71,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
     setWorkspace({ selectedDirectionId: directionId })
     setSelectedActionIds(new Set(defaultActionIds(direction.actions)))
     setGeneratedActionIds(new Set())
-    setLastTarget(null)
+    setResultTargets([])
   }
 
   const execute = (action: WholeSongArrangementAction): MainTab | null => {
@@ -82,12 +83,13 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
   }
 
   const generateSelected = () => {
-    let target: MainTab | null = null
+    const targets = new Set<MainTab>()
     for (const action of selectedDirection.actions) {
       if (!selectedActionIds.has(action.id)) continue
-      target = execute(action) ?? target
+      const target = execute(action)
+      if (target) targets.add(target)
     }
-    setLastTarget(target)
+    setResultTargets([...targets])
   }
 
   const availableCount = selectedDirection.actions.filter((action) => action.status === "available").length
@@ -225,11 +227,11 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
           <Button variant="ghost" onClick={() => onNavigate("ai-partner")}>
             <MessageCircle size={14} /> AI Partnerで方向を詰める
           </Button>
-          {lastTarget && (
-            <Button variant="secondary" onClick={() => onNavigate(lastTarget)}>
-              <ArrowRight size={14} /> 生成候補を試聴
+          {generationResultLinks(resultTargets).map((result) => (
+            <Button key={result.tab} variant="secondary" onClick={() => onNavigate(result.tab)}>
+              <ArrowRight size={14} /> {result.label}候補を確認
             </Button>
-          )}
+          ))}
           {generatedActionIds.size > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-200">
               <Check size={12} /> {generatedActionIds.size}件生成済み・Activeは維持

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { AlertTriangle, ArrowRight, Check, Layers3, ShieldCheck, WandSparkles } from "lucide-react"
 import { executeArrangementAction } from "@/ai-arranger/arrangementActionExecution"
+import { generationResultLinks } from "@/ai-arranger/generationResultNavigation"
 import {
   buildMultiPartArrangementPackage,
   type ArrangementPackagePartRole,
@@ -61,13 +62,13 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
   const [stageId, setStageId] = useState<ArrangementPackageStage>("foundation")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [generatedIds, setGeneratedIds] = useState<Set<string>>(new Set())
-  const [lastTarget, setLastTarget] = useState<MainTab | null>(null)
+  const [resultTargets, setResultTargets] = useState<MainTab[]>([])
 
   useEffect(() => {
     setStageId("foundation")
     setSelectedIds(new Set())
     setGeneratedIds(new Set())
-    setLastTarget(null)
+    setResultTargets([])
   }, [directionId, project.projectId])
 
   const stage = arrangementPackage.stages.find((candidate) => candidate.id === stageId)
@@ -76,17 +77,17 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
   const selectedCount = availableActions.filter((action) => selectedIds.has(action.id)).length
 
   const generateStage = () => {
-    let nextTarget: MainTab | null = null
+    const targets = new Set<MainTab>()
     const completed = new Set(generatedIds)
     for (const action of availableActions) {
       if (!selectedIds.has(action.id)) continue
       const result = executeArrangementAction(action)
       if (result.generated) completed.add(action.id)
-      nextTarget = result.target ?? nextTarget
+      if (result.target) targets.add(result.target)
     }
     setGeneratedIds(completed)
     setSelectedIds(new Set())
-    setLastTarget(nextTarget)
+    setResultTargets([...targets])
   }
 
   const chooseAll = () => setSelectedIds(new Set(availableActions.map((action) => action.id)))
@@ -156,7 +157,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
                 onClick={() => {
                   setStageId(candidate.id)
                   setSelectedIds(new Set())
-                  setLastTarget(null)
+                  setResultTargets([])
                 }}
                 className={`rounded-lg border p-3 text-left ${active ? "border-violet-400/50 bg-violet-400/10" : "border-hairline bg-white/[0.02]"}`}
               >
@@ -201,11 +202,11 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
           <Button onClick={generateStage} disabled={selectedCount === 0}>
             <WandSparkles size={14} /> この段階を{selectedCount}件生成
           </Button>
-          {lastTarget && (
-            <Button variant="secondary" onClick={() => onNavigate(lastTarget)}>
-              <ArrowRight size={14} /> 生成候補を試聴
+          {generationResultLinks(resultTargets).map((result) => (
+            <Button key={result.tab} variant="secondary" onClick={() => onNavigate(result.tab)}>
+              <ArrowRight size={14} /> {result.label}候補を確認
             </Button>
-          )}
+          ))}
           {generatedIds.size > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-200"><Check size={12} /> {generatedIds.size}件生成済み</span>
           )}
