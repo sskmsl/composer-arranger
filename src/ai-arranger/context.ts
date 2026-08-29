@@ -50,6 +50,7 @@ function techniquePreferences(
 export function buildAiArrangementContext(
   project: ComposerProject,
   sectionId: string,
+  consultationScope: AiArrangementContext["consultationScope"] = "section",
 ): AiArrangementContext | null {
   const timeline = normalizeSectionTimeline(project.sections)
   const sectionIndex = timeline.findIndex((candidate) => candidate.id === sectionId)
@@ -100,7 +101,66 @@ export function buildAiArrangementContext(
         .sort((left, right) => left.startBeat - right.startBeat)[0]?.symbol
     : undefined
 
+  const songSections: AiArrangementContext["songSections"] = timeline.map(
+    (songSection, order) => {
+      const melodyId = project.sectionMelodyAssignments[songSection.id]
+      const melody = project.melodyVariants.find(
+        (candidate) => candidate.id === melodyId && candidate.sectionId === songSection.id,
+      )
+      const sectionNotes = melody?.notes ?? []
+      const sectionPlan = arrangementDirector.sections.find(
+        (candidate) => candidate.sectionId === songSection.id,
+      )
+      const activeLayers = [
+        melodyId ? "melody" : null,
+        project.sectionAccompanimentPatternAssignments[songSection.id]
+          ? "accompaniment"
+          : null,
+        project.sectionReactiveLayerAssignments?.[songSection.id]
+          ? "counter"
+          : null,
+        project.sectionDecorationLayerAssignments?.[songSection.id]
+          ? "decoration"
+          : null,
+      ].filter((value): value is string => Boolean(value))
+      return {
+        id: songSection.id,
+        name: songSection.name,
+        role: songSection.role,
+        order,
+        lengthBars: songSection.lengthBars,
+        chords: project.chords
+          .filter((chord) => chord.sectionId === songSection.id)
+          .sort((left, right) => left.startBeat - right.startBeat)
+          .map((chord) => chord.symbol),
+        activeMelody: {
+          present: sectionNotes.length > 0,
+          noteCount: sectionNotes.length,
+          lowestPitch:
+            sectionNotes.length > 0
+              ? Math.min(...sectionNotes.map((note) => note.pitch))
+              : null,
+          highestPitch:
+            sectionNotes.length > 0
+              ? Math.max(...sectionNotes.map((note) => note.pitch))
+              : null,
+          onsetDensity:
+            sectionNotes.length /
+            Math.max(
+              1,
+              songSection.lengthBars * parseTimeSignature(project.song.timeSignature).beatsPerBar,
+            ),
+        },
+        activeLayers,
+        targetEnergy: sectionPlan?.targetEnergy ?? 1,
+        climaxPolicy: sectionPlan?.climaxPolicy ?? "reserve",
+        transitionIntent: sectionPlan?.transitionIntent ?? "次Sectionへ余白を残す",
+      }
+    },
+  )
+
   return {
+    consultationScope,
     arrangementConstitution: arrangementConstitutionContext(),
     arrangementDirector,
     arrangementReview,
@@ -168,6 +228,7 @@ export function buildAiArrangementContext(
       previousRole: timeline[sectionIndex - 1]?.role ?? null,
       nextRole: timeline[sectionIndex + 1]?.role ?? null,
     },
+    songSections,
     chords: chords.map((chord) => ({
         startBeat: chord.startBeat,
         durationBeats: chord.durationBeats,

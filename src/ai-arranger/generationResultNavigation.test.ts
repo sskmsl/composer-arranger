@@ -1,11 +1,69 @@
 import { describe, expect, it } from "vitest"
+import { createEmptyProject } from "@/core/project"
+import type { MelodyVariant } from "@/core/melody"
 import {
+  currentCandidateResultItems,
   generationResultLinks,
   wholeSongGenerationResultItems,
 } from "./generationResultNavigation"
 import type { WholeSongArrangementAction } from "./wholeSongDirectionPlan"
 
 describe("generationResultLinks", () => {
+  it("保存済み候補をSectionとGenerator別に列挙し、最新バッチの件数を返す", () => {
+    const project = createEmptyProject("Current candidates")
+    project.sections = [
+      { id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 },
+      { id: "verse", name: "Aメロ", role: "verse", startBar: 5, lengthBars: 4 },
+    ]
+    const melody = (id: string, sectionId: string, batchId: string, createdAt: string): MelodyVariant => ({
+      id,
+      name: id,
+      sectionId,
+      sourceMode: "generate",
+      notes: [],
+      phrasePlans: [],
+      lockedBars: [],
+      motifLocked: false,
+      features: null,
+      generatorVersion: "test",
+      seed: 1,
+      songProfile: project.song.songProfile,
+      parentMelodyId: null,
+      batchId,
+      createdAt,
+    })
+    project.melodyVariants = [
+      melody("old", "intro", "old-batch", "2026-01-01T00:00:00.000Z"),
+      melody("new-a", "intro", "new-batch", "2026-02-01T00:00:00.000Z"),
+      melody("new-b", "intro", "new-batch", "2026-02-01T00:00:01.000Z"),
+    ]
+    project.sectionMelodyAssignments.intro = "new-a"
+    project.sectionAccompanimentPatternAssignments.verse = "arpeggio-up"
+
+    expect(currentCandidateResultItems(project)).toEqual([
+      {
+        id: "intro:melody",
+        sectionId: "intro",
+        sectionName: "Intro",
+        generator: "melody",
+        target: "melody",
+        candidateCount: 2,
+        latestBatchId: "new-batch",
+        applied: true,
+      },
+      {
+        id: "verse:accompaniment",
+        sectionId: "verse",
+        sectionName: "Aメロ",
+        generator: "accompaniment",
+        target: "melody",
+        candidateCount: 1,
+        latestBatchId: null,
+        applied: true,
+      },
+    ])
+  })
+
   it("複数Generatorの確認先を実行順のまま全件返す", () => {
     expect(generationResultLinks(["signature", "counter", "decoration"])).toEqual([
       { tab: "signature", label: "Signature" },

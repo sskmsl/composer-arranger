@@ -1,4 +1,5 @@
 import type { MainTab } from "@/app/App"
+import type { ComposerProject } from "@/core/project"
 import type { ArrangementBatchActionResult } from "./arrangementActionExecution"
 import type { WholeSongArrangementAction } from "./wholeSongDirectionPlan"
 
@@ -16,6 +17,128 @@ const RESULT_LABELS: Record<MainTab, string> = {
 export interface GenerationResultLink {
   tab: MainTab
   label: string
+}
+
+export type CurrentCandidateGenerator =
+  | "melody"
+  | "phrase"
+  | "signature"
+  | "counter"
+  | "decoration"
+  | "accompaniment"
+
+export interface CurrentCandidateResultItem {
+  id: string
+  sectionId: string
+  sectionName: string
+  generator: CurrentCandidateGenerator
+  target: MainTab
+  candidateCount: number
+  latestBatchId: string | null
+  applied: boolean
+}
+
+const CURRENT_CANDIDATE_TARGETS: Record<CurrentCandidateGenerator, MainTab> = {
+  melody: "melody",
+  phrase: "phrase",
+  signature: "signature",
+  counter: "counter",
+  decoration: "decoration",
+  accompaniment: "melody",
+}
+
+function latestBatch<T extends { batchId: string; createdAt: string }>(
+  candidates: readonly T[],
+): { batchId: string; count: number } | null {
+  const latest = [...candidates].sort((left, right) =>
+    right.createdAt.localeCompare(left.createdAt),
+  )[0]
+  if (!latest) return null
+  return {
+    batchId: latest.batchId,
+    count: candidates.filter((candidate) => candidate.batchId === latest.batchId).length,
+  }
+}
+
+/**
+ * 現在保存されている候補をSection単位で一覧化する。
+ * A/B/C画面へ一律に送らず、候補を実際に保持するGeneratorへ案内するための情報源。
+ */
+export function currentCandidateResultItems(
+  project: ComposerProject,
+): CurrentCandidateResultItem[] {
+  const items: CurrentCandidateResultItem[] = []
+  const pushCandidate = (
+    sectionId: string,
+    sectionName: string,
+    generator: Exclude<CurrentCandidateGenerator, "accompaniment">,
+    batch: { batchId: string; count: number } | null,
+  ) => {
+    if (!batch) return
+    items.push({
+      id: `${sectionId}:${generator}`,
+      sectionId,
+      sectionName,
+      generator,
+      target: CURRENT_CANDIDATE_TARGETS[generator],
+      candidateCount: batch.count,
+      latestBatchId: batch.batchId,
+      applied:
+        generator === "melody" &&
+        Boolean(project.sectionMelodyAssignments[sectionId]),
+    })
+  }
+
+  for (const section of project.sections) {
+    pushCandidate(
+      section.id,
+      section.name,
+      "melody",
+      latestBatch(project.melodyVariants.filter((item) => item.sectionId === section.id)),
+    )
+    pushCandidate(
+      section.id,
+      section.name,
+      "phrase",
+      latestBatch(project.phraseCandidates.filter((item) => item.sectionId === section.id)),
+    )
+    pushCandidate(
+      section.id,
+      section.name,
+      "signature",
+      latestBatch(project.signaturePhraseCandidates.filter((item) => item.sectionId === section.id)),
+    )
+    pushCandidate(
+      section.id,
+      section.name,
+      "counter",
+      latestBatch((project.reactiveLayerCandidates ?? []).filter(
+        (item) => item.sectionId === section.id && item.kind === "counter",
+      )),
+    )
+    pushCandidate(
+      section.id,
+      section.name,
+      "decoration",
+      latestBatch((project.reactiveLayerCandidates ?? []).filter(
+        (item) => item.sectionId === section.id && item.kind === "decoration",
+      )),
+    )
+
+    if (project.sectionAccompanimentPatternAssignments[section.id]) {
+      items.push({
+        id: `${section.id}:accompaniment`,
+        sectionId: section.id,
+        sectionName: section.name,
+        generator: "accompaniment",
+        target: CURRENT_CANDIDATE_TARGETS.accompaniment,
+        candidateCount: 1,
+        latestBatchId: null,
+        applied: true,
+      })
+    }
+  }
+  return items
 }
 
 /**

@@ -7,7 +7,9 @@ import {
 } from "@/ai-arranger/arrangementActionExecution"
 import { buildMultiPartArrangementPackage } from "@/ai-arranger/multiPartArrangementPackage"
 import {
+  currentCandidateResultItems,
   wholeSongGenerationResultItems,
+  type CurrentCandidateResultItem,
   type WholeSongGenerationResultItem,
   type WholeSongGenerationResultStatus,
 } from "@/ai-arranger/generationResultNavigation"
@@ -20,6 +22,8 @@ import { Button, SectionCard } from "@/ui/primitives"
 import type { MainTab } from "./App"
 
 const LABELS = {
+  melody: "Melody",
+  phrase: "Phrase",
   signature: "Signature Phrase",
   counter: "Counter",
   decoration: "Decoration",
@@ -49,8 +53,9 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const setWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
-  const selectSection = useProjectStore((state) => state.selectSection)
+  const focusCandidateWorkspace = useProjectStore((state) => state.focusCandidateWorkspace)
   const [generated, setGenerated] = useState(false)
+  const [showCurrentResults, setShowCurrentResults] = useState(false)
   const [batchResult, setBatchResult] = useState<{
     generated: number
     skipped: number
@@ -76,6 +81,10 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
   const fullSongActions = selectedDirection.actions.filter(
     (action) => action.status === "available",
   )
+  const currentResults = useMemo(
+    () => currentCandidateResultItems(project),
+    [project],
+  )
   const activeStep = batchResult ? 2 : 1
 
   const runNext = () => {
@@ -95,8 +104,18 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
   }
 
   const openResult = (item: WholeSongGenerationResultItem) => {
-    if (!item.target) return
-    selectSection(item.sectionId)
+    if (!item.target || item.generator === "none") return
+    const current = currentResults.find(
+      (candidate) =>
+        candidate.sectionId === item.sectionId &&
+        candidate.generator === item.generator,
+    )
+    focusCandidateWorkspace(item.sectionId, item.generator, current?.latestBatchId)
+    onNavigate(item.target)
+  }
+
+  const openCurrentResult = (item: CurrentCandidateResultItem) => {
+    focusCandidateWorkspace(item.sectionId, item.generator, item.latestBatchId)
     onNavigate(item.target)
   }
 
@@ -174,11 +193,40 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
           </Button>
         </div>
         {fullSongActions.length === 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <p className="text-[11px] text-amber-100">この曲は追加生成より、現在の候補を試聴する段階です。</p>
-            <Button variant="secondary" onClick={() => onNavigate("audition")}>
-              現在の候補を試聴 <ArrowRight size={14} />
-            </Button>
+          <div className="mt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[11px] text-amber-100">この曲は追加生成より、現在の候補を試聴する段階です。</p>
+              <Button variant="secondary" onClick={() => setShowCurrentResults((value) => !value)}>
+                Section別に現在候補を確認 <ArrowRight size={14} />
+              </Button>
+            </div>
+            {showCurrentResults && (
+              <div className="mt-3 rounded-sm border border-white/10 bg-black/10 p-3">
+                {currentResults.length === 0 ? (
+                  <p className="text-[11px] text-body-muted">試聴できる候補はまだありません。</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {currentResults.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid gap-2 rounded-sm border border-white/10 bg-white/[0.025] px-3 py-2 sm:grid-cols-[7rem_8rem_minmax(0,1fr)_auto] sm:items-center"
+                      >
+                        <span className="text-[11px] font-semibold text-body-on-dark">{item.sectionName}</span>
+                        <span className="text-[11px] text-primary-on-dark">{LABELS[item.generator]}</span>
+                        <span className="text-[11px] text-body-muted">
+                          {item.generator === "accompaniment"
+                            ? "適用中の伴奏"
+                            : `最新 ${item.candidateCount}候補${item.applied ? " · Active設定あり" : ""}`}
+                        </span>
+                        <Button variant="secondary" onClick={() => openCurrentResult(item)}>
+                          このSectionを確認・試聴 <ArrowRight size={14} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         {batchResult && (

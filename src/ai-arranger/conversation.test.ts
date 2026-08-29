@@ -69,6 +69,17 @@ function response(id: string, constraints: string[]): AiArrangementResponse {
 }
 
 describe("AI Partner conversation", () => {
+  it("曲全体の会話履歴をSection履歴と別の永続キーで保持できる", () => {
+    const session = appendConversationTurn(
+      "__whole_song__",
+      undefined,
+      "曲全体でサビへ向かう",
+      response("0", ["主旋律は変えない"]),
+    )
+    expect(session.sectionId).toBe("__whole_song__")
+    expect(session.turns[0].userMessage).toBe("曲全体でサビへ向かう")
+  })
+
   it("同一Sectionへ会話を追加し、最新の確定制約を保持する", () => {
     const first = appendConversationTurn("intro", undefined, "メロディは変えない", response("1", ["メロディは変えない"]))
     const second = appendConversationTurn("intro", first, "もっと不穏に", response("2", ["メロディは変えない", "もっと不穏にする"]))

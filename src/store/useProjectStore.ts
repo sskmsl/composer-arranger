@@ -221,6 +221,12 @@ interface ProjectState {
   duplicateSection: (sectionId: string) => void
   moveSection: (sectionId: string, targetIndex: number) => void
   selectSection: (sectionId: string | null) => void
+  /** AI Partnerの結果一覧から、対象Sectionと候補バッチを同時に開く。 */
+  focusCandidateWorkspace: (
+    sectionId: string,
+    generator: "melody" | "phrase" | "signature" | "counter" | "decoration" | "accompaniment",
+    batchId?: string | null,
+  ) => void
 
   setChordText: (sectionId: string, text: string) => void
   /** 現在のコード進行をそのまま複製して後ろへ繋げ、小節数を2倍にする */
@@ -1179,6 +1185,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeSignaturePhraseBatchId: null,
       activeSignaturePhraseCandidateIndex: 0,
       activeReactiveBatchId: null,
+      activeReactiveCandidateIndex: 0,
+    }),
+
+  focusCandidateWorkspace: (sectionId, generator, batchId = null) =>
+    set({
+      selectedSectionId: sectionId,
+      activeBatchId: generator === "melody" ? batchId : null,
+      activeCandidateIndex: 0,
+      activePhraseBatchId: generator === "phrase" ? batchId : null,
+      activePhraseCandidateIndex: 0,
+      activeSignaturePhraseBatchId: generator === "signature" ? batchId : null,
+      activeSignaturePhraseCandidateIndex: 0,
+      activeReactiveBatchId:
+        generator === "counter" || generator === "decoration" ? batchId : null,
       activeReactiveCandidateIndex: 0,
     }),
 

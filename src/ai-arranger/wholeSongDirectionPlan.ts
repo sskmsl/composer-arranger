@@ -84,6 +84,42 @@ export interface WholeSongDirectionProgram {
   ]
 }
 
+/**
+ * AI相談の抽象Directionを、既存の全曲Directorが実行できる5系統へ接続する。
+ * AIが実音を直接決めず、曲全体のSection別Generator選択は決定論的Directorへ委ねる。
+ */
+export function wholeSongDirectionForAiIntent(
+  project: ComposerProject,
+  intent: AiArrangementIntent,
+): {
+  program: WholeSongDirectionProgram
+  direction: WholeSongArrangementDirection
+} {
+  const generatorHint =
+    intent.generator === "rhythm" || intent.generator === "accompaniment"
+      ? "リズム グルーヴ 推進"
+      : intent.generator === "signature" || intent.generator === "phrase"
+        ? "モチーフ 記憶 フック"
+        : intent.generator === "counter"
+          ? "主旋律 全体 バランス"
+          : intent.generator === "decoration"
+            ? "ドラマ 上昇 セクション境界"
+            : "全体 バランス"
+  const brief = [
+    intent.title,
+    intent.emotionalFunction,
+    intent.generationBrief,
+    intent.why,
+    intent.techniques.join(" "),
+    generatorHint,
+  ].join(" ")
+  const program = buildWholeSongDirectionProgram(project, brief)
+  const direction = program.directions.find(
+    (candidate) => candidate.id === program.recommendedDirectionId,
+  ) ?? program.directions[4]
+  return { program, direction }
+}
+
 function clampLength(value: number): WholeSongArrangementAction["lengthBars"] {
   return Math.max(1, Math.min(8, Math.round(value))) as WholeSongArrangementAction["lengthBars"]
 }

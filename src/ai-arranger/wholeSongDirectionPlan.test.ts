@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import type { ComposerProject } from "@/core/project"
 import type { MelodyVariant } from "@/core/melody"
-import { buildWholeSongDirectionProgram, intentForWholeSongAction } from "./wholeSongDirectionPlan"
+import {
+  buildWholeSongDirectionProgram,
+  intentForWholeSongAction,
+  wholeSongDirectionForAiIntent,
+} from "./wholeSongDirectionPlan"
 
 function project(): ComposerProject {
   const value = createEmptyProject("Direction Test")
@@ -77,5 +81,30 @@ describe("Whole-song Arrangement Direction Program", () => {
     expect(intent.generator).toBe(action.generator)
     expect(intent.lengthBars).toBeGreaterThanOrEqual(1)
     expect(intent.generationBrief).toContain(action.purpose)
+  })
+
+  it("AIの全曲リズム案をSection別Actionを持つRhythmic方針へ接続する", () => {
+    const value = project()
+    const baseProgram = buildWholeSongDirectionProgram(value, "全体バランス")
+    const baseAction = baseProgram.directions[4].actions.find(
+      (candidate) => candidate.status === "available",
+    )!
+    const intent = {
+      ...intentForWholeSongAction(baseAction),
+      id: "ai-rhythm",
+      title: "呼吸する推進力",
+      generator: "rhythm" as const,
+      emotionalFunction: "Sectionごとに異なる周期で全曲を前へ進める",
+      generationBrief: "Aメロは抑え、サビでビートを開く",
+      why: "曲全体の歩幅を作る",
+      techniques: ["pulse", "groove"],
+    }
+
+    const result = wholeSongDirectionForAiIntent(value, intent)
+    expect(result.direction.id).toBe("rhythmic-propulsion")
+    expect(result.direction.actions).toHaveLength(value.sections.length)
+    expect(new Set(result.direction.actions.map((action) => action.sectionId))).toEqual(
+      new Set(value.sections.map((section) => section.id)),
+    )
   })
 })

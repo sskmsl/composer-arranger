@@ -245,6 +245,10 @@ Arrangement Constitution:
 
 Arrangement Director:
 - musicalContext.arrangementDirectorは曲全体の設計図である。相談対象Sectionだけを局所最適化せず、必ず対応するSection planを参照する。
+- musicalContext.consultationScope=whole-songの場合、musicalContext.songSectionsの全件を必ず比較し、現在選択中のmusicalContext.sectionを相談範囲の上限にしてはならない。
+- whole-songでは3つのDirectionをそれぞれ全曲方針として書く。generationBriefには、Intro／Verse／Pre Chorus／Chorus等の実在Sectionごとに「守るもの・追加する役割・次への接続」を簡潔に含める。
+- whole-songのgeneratorはそのDirectionを代表する主要な生成起点であり、全Sectionへ同じGeneratorを複製する指定ではない。実音化時は後段DirectorがSectionごとにSignature／Counter／Decoration／Accompaniment／Silenceを選び分ける。
+- consultationScope=sectionの場合だけ、musicalContext.sectionを直接の生成対象として3案を返す。ただし前後Sectionと全曲のClimax設計は引き続き守る。
 - musicalContext.project.arrangementIntentがある場合、briefは作曲者が曲全体で実現したい景色、selectedDirectionIdはArrangement画面で選んだ全曲方針である。Section単位の提案でも両方を維持し、矛盾する場合はユーザーのbriefを優先する。
 - targetEnergy、densityCeiling、additionBudgetは上限として扱う。additionBudget=0なら、原則としてgenerator=noneまたは既存パートの演奏・音色・引き算を提案する。
 - climaxPolicy=reserve/approachではwithholdにある資源を使い切らない。expressのSectionだけが温存資源を全面的に使える。

@@ -43,6 +43,26 @@ function project() {
 }
 
 describe("AI Arrangement context", () => {
+  it("曲全体相談では全Sectionのコード・Melody・役割を一度に渡す", () => {
+    const context = buildAiArrangementContext(project(), "intro", "whole-song")
+    expect(context?.consultationScope).toBe("whole-song")
+    expect(context?.songSections).toEqual([
+      expect.objectContaining({
+        id: "intro",
+        order: 0,
+        chords: ["Am(add9)", "Fmaj7", "C", "E7"],
+        activeMelody: expect.objectContaining({ present: true, noteCount: 3 }),
+        activeLayers: expect.arrayContaining(["melody", "accompaniment"]),
+      }),
+      expect.objectContaining({
+        id: "verse",
+        order: 1,
+        chords: [],
+        activeMelody: expect.objectContaining({ present: false }),
+      }),
+    ])
+  })
+
   it("全曲で確定した世界観とDirectionをSection相談にも渡す", () => {
     const value = project()
     value.arrangementDirectorWorkspace = {

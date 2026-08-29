@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   AudioLines,
+  ArrowRight,
   Bot,
   CircleCheck,
   Coins,
@@ -10,14 +11,17 @@ import {
   LoaderCircle,
   MessageCircle,
   Music2,
+  Play,
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Square,
   Upload,
   Waypoints,
   TriangleAlert,
   X,
 } from "lucide-react"
+import { rhythmPreviewPlayer } from "@/audio/rhythmPreviewPlayer"
 import { AI_AUDIO_ACCEPT, prepareAiAudio } from "@/ai-arranger/audioAnalysis"
 import { buildAiArrangementContext } from "@/ai-arranger/context"
 import { requestArrangementAdvice } from "@/ai-arranger/client"
@@ -30,7 +34,16 @@ import { exportAiRhythmMidi } from "@/ai-arranger/rhythmMidi"
 import {
   performancePartForIntent,
 } from "@/ai-arranger/generationBridge"
-import { executeAiArrangementIntent } from "@/ai-arranger/arrangementActionExecution"
+import {
+  executeAiArrangementIntent,
+  executeArrangementActions,
+} from "@/ai-arranger/arrangementActionExecution"
+import {
+  currentCandidateResultItems,
+  wholeSongGenerationResultItems,
+  type WholeSongGenerationResultItem,
+} from "@/ai-arranger/generationResultNavigation"
+import { wholeSongDirectionForAiIntent } from "@/ai-arranger/wholeSongDirectionPlan"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -49,10 +62,12 @@ import type { MainTab } from "./App"
 import { AiPartnerControlCenter } from "./AiPartnerControlCenter"
 
 const EXAMPLE_PROMPTS = [
-  "余白と残響で世界を開く、記憶に残るイントロを提案して",
-  "主旋律を壊さず、サビ前の期待を高める演出がほしい",
-  "音を足しすぎず、このセクションに必要な第二の顔を考えて",
+  "曲全体で余白と残響を守り、サビまで段階的に世界を開いて",
+  "主旋律を壊さず、Sectionごとの役割差でサビ前の期待を高めて",
+  "音を足しすぎず、全曲を通して必要な第二の顔を設計して",
 ]
+
+const WHOLE_SONG_SESSION_ID = "__whole_song__"
 
 const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
   melody: "Melody",
@@ -77,6 +92,7 @@ export function AiPartnerWorkspace({
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const selectSection = useProjectStore((state) => state.selectSection)
+  const focusCandidateWorkspace = useProjectStore((state) => state.focusCandidateWorkspace)
   const setAiPartnerSession = useProjectStore(
     (state) => state.setAiPartnerSession,
   )
@@ -90,12 +106,21 @@ export function AiPartnerWorkspace({
     (state) => state.setSectionOrchestrationOverride,
   )
   const [prompt, setPrompt] = useState("")
+  const [consultationTarget, setConsultationTarget] = useState<string>("whole-song")
   const [response, setResponse] = useState<AiArrangementResponse | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatingIntentId, setGeneratingIntentId] = useState<string | null>(null)
+  const [playingRhythmIntentId, setPlayingRhythmIntentId] = useState<string | null>(null)
   const [audio, setAudio] = useState<AiAudioPayload | null>(null)
   const [preparingAudio, setPreparingAudio] = useState(false)
+  const [wholeSongGeneration, setWholeSongGeneration] = useState<{
+    intentId: string
+    directionTitle: string
+    generated: number
+    skipped: number
+    items: WholeSongGenerationResultItem[]
+  } | null>(null)
 
   useEffect(() => {
     if (!initialPrompt) return
@@ -105,18 +130,26 @@ export function AiPartnerWorkspace({
 
   const effectiveSectionId =
     selectedSectionId ?? project.sections[0]?.id ?? null
+  const isWholeSongConsultation = consultationTarget === "whole-song"
   const section = project.sections.find(
     (candidate) => candidate.id === effectiveSectionId,
   )
   const context = useMemo(
     () =>
       effectiveSectionId
-        ? buildAiArrangementContext(project, effectiveSectionId)
+        ? buildAiArrangementContext(
+            project,
+            effectiveSectionId,
+            isWholeSongConsultation ? "whole-song" : "section",
+          )
         : null,
-    [effectiveSectionId, project],
+    [effectiveSectionId, isWholeSongConsultation, project],
   )
-  const session = effectiveSectionId
-    ? project.aiPartnerSessions?.[effectiveSectionId]
+  const sessionId = isWholeSongConsultation
+    ? WHOLE_SONG_SESSION_ID
+    : effectiveSectionId
+  const session = sessionId
+    ? project.aiPartnerSessions?.[sessionId]
     : undefined
   const director = context?.arrangementDirector
   const currentDirectorPlan = director?.sections.find(
@@ -135,13 +168,33 @@ export function AiPartnerWorkspace({
     setError(null)
   }, [effectiveSectionId, project.projectId, session?.latestResponse, session?.updatedAt])
 
+  useEffect(
+    () => () => {
+      rhythmPreviewPlayer.stop()
+    },
+    [],
+  )
+
+  useEffect(() => {
+    rhythmPreviewPlayer.stop()
+    setPlayingRhythmIntentId(null)
+  }, [effectiveSectionId])
+
   const submit = async (bypassCache = false, overridePrompt?: string) => {
     if (!context) {
       setError("先にコード進行を持つセクションを選択してください。")
       return
     }
-    if (context.chords.length === 0) {
-      setError("選択セクションにコード進行がありません。")
+    if (
+      isWholeSongConsultation
+        ? !context.songSections.some((candidate) => candidate.chords.length > 0)
+        : context.chords.length === 0
+    ) {
+      setError(
+        isWholeSongConsultation
+          ? "曲全体に解析できるコード進行がありません。"
+          : "選択セクションにコード進行がありません。",
+      )
       return
     }
     const message = (overridePrompt ?? prompt).trim()
@@ -163,11 +216,12 @@ export function AiPartnerWorkspace({
           { bypassCache },
       )
       setResponse(nextResponse)
-      if (effectiveSectionId) {
+      setWholeSongGeneration(null)
+      if (sessionId) {
         setAiPartnerSession(
-          effectiveSectionId,
+          sessionId,
           appendConversationTurn(
-            effectiveSectionId,
+            sessionId,
             session,
             message,
             nextResponse,
@@ -200,9 +254,36 @@ export function AiPartnerWorkspace({
   const generateFromIntent = (intent: AiArrangementIntent) => {
     if (!section) return
     setGeneratingIntentId(intent.id)
+    if (isWholeSongConsultation) {
+      const { direction } = wholeSongDirectionForAiIntent(project, intent)
+      const availableActions = direction.actions.filter(
+        (action) => action.status === "available",
+      )
+      const result = executeArrangementActions(availableActions)
+      setWholeSongGeneration({
+        intentId: intent.id,
+        directionTitle: `${intent.title} → ${direction.title}`,
+        generated: result.generatedCount,
+        skipped: result.skippedCount,
+        items: wholeSongGenerationResultItems(direction.actions, result.results),
+      })
+      setGeneratingIntentId(null)
+      return
+    }
     const result = executeAiArrangementIntent(section.id, intent)
     if (result.target) onNavigate(result.target)
     setGeneratingIntentId(null)
+  }
+
+  const openWholeSongResult = (item: WholeSongGenerationResultItem) => {
+    if (!item.target || item.generator === "none") return
+    const current = currentCandidateResultItems(project).find(
+      (candidate) =>
+        candidate.sectionId === item.sectionId &&
+        candidate.generator === item.generator,
+    )
+    focusCandidateWorkspace(item.sectionId, item.generator, current?.latestBatchId)
+    onNavigate(item.target)
   }
 
   const downloadRhythm = (intent: AiArrangementIntent) => {
@@ -220,6 +301,23 @@ export function AiPartnerWorkspace({
       bytes,
       `${project.title}-${section.name}-${intent.title}-drums.mid`,
     )
+  }
+
+  const previewRhythm = (intent: AiArrangementIntent) => {
+    if (!section || !intent.rhythmPlan.enabled) return
+    if (playingRhythmIntentId === intent.id) {
+      rhythmPreviewPlayer.stop()
+      setPlayingRhythmIntentId(null)
+      return
+    }
+    const started = rhythmPreviewPlayer.play({
+      bpm: project.song.tempo,
+      timeSignature: project.song.timeSignature,
+      rhythmPlan: intent.rhythmPlan,
+      performancePlan: performancePartForIntent(intent, orchestrationPlan) ?? undefined,
+      onEnded: () => setPlayingRhythmIntentId(null),
+    })
+    setPlayingRhythmIntentId(started ? intent.id : null)
   }
 
   const activeMelodyId = section
@@ -750,32 +848,54 @@ export function AiPartnerWorkspace({
               <MessageCircle size={15} className="text-primary-on-dark" /> 必要ならAIへ追加相談
             </div>
             <p className="mt-1 text-[11px] leading-4 text-body-muted">
-              選んだ方針の修正や、守りたい条件を会話で伝えられます。
+              標準では曲全体を通して判断します。局所修正が必要な場合だけSectionを指定できます。
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <label className="flex flex-col gap-1.5 text-[11px] text-body-muted">
-              対象セクション
+              相談範囲
               <Select
-                value={effectiveSectionId ?? ""}
-                onChange={(event) => selectSection(event.target.value || null)}
+                value={consultationTarget}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setConsultationTarget(value)
+                  setWholeSongGeneration(null)
+                  if (value !== "whole-song") selectSection(value || null)
+                }}
               >
+                <option value="whole-song">曲全体（標準）</option>
                 {project.sections.length === 0 && <option value="">セクションなし</option>}
                 {project.sections.map((candidate) => (
                   <option key={candidate.id} value={candidate.id}>
-                    {candidate.name} · {SECTION_ROLE_LABELS[candidate.role]}
+                    このSectionだけ: {candidate.name} · {SECTION_ROLE_LABELS[candidate.role]}
                   </option>
                 ))}
               </Select>
             </label>
             <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
-              <ContextStat label="コード" value={`${context?.chords.length ?? 0}件`} />
               <ContextStat
-                label="Active Melody"
-                value={context?.activeMelody.present ? `${context.activeMelody.noteCount}音` : "なし"}
+                label={isWholeSongConsultation ? "Section" : "コード"}
+                value={isWholeSongConsultation
+                  ? `${context?.songSections.length ?? 0}件`
+                  : `${context?.chords.length ?? 0}件`}
+              />
+              <ContextStat
+                label={isWholeSongConsultation ? "Melody設定" : "Active Melody"}
+                value={isWholeSongConsultation
+                  ? `${context?.songSections.filter((item) => item.activeMelody.present).length ?? 0} Section`
+                  : context?.activeMelody.present
+                    ? `${context.activeMelody.noteCount}音`
+                    : "なし"}
               />
               <ContextStat label="Song Profile" value={context?.project.songProfile ?? "—"} />
-              <ContextStat label="長さ" value={section ? `${section.lengthBars}小節` : "—"} />
+              <ContextStat
+                label="長さ"
+                value={isWholeSongConsultation
+                  ? `${project.sections.reduce((sum, item) => sum + item.lengthBars, 0)}小節`
+                  : section
+                    ? `${section.lengthBars}小節`
+                    : "—"}
+              />
             </div>
           </div>
 
@@ -783,13 +903,14 @@ export function AiPartnerWorkspace({
             <div className="mt-4 rounded-lg border border-hairline bg-white/[0.025] p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-body-on-dark">
-                  <MessageCircle size={14} className="text-primary-on-dark" /> このセクションの相談履歴
+                  <MessageCircle size={14} className="text-primary-on-dark" />
+                  {isWholeSongConsultation ? "この曲全体の相談履歴" : "このSectionの相談履歴"}
                 </div>
                 <button
                   type="button"
                   className="text-[11px] text-ink-muted-48 hover:text-body-on-dark"
                   onClick={() => {
-                    if (effectiveSectionId) setAiPartnerSession(effectiveSectionId, null)
+                    if (sessionId) setAiPartnerSession(sessionId, null)
                     setResponse(null)
                     setPrompt("")
                   }}
@@ -820,8 +941,12 @@ export function AiPartnerWorkspace({
               maxLength={1500}
               rows={4}
               placeholder={session?.turns.length
-                ? "例：メロディは変えず、Direction 2をもっと不穏に。ベルは使わないで"
-                : "例：このイントロに、余白を残しながら曲の顔になるピアノフレーズがほしい"}
+                ? isWholeSongConsultation
+                  ? "例：全曲でメロディは変えず、Aメロは抑えてサビだけ開いて。ベルは使わないで"
+                  : "例：メロディは変えず、Direction 2をもっと不穏に。ベルは使わないで"
+                : isWholeSongConsultation
+                  ? "例：曲全体を通して余白を守り、Sectionごとに役割を変えながらサビへ向かう3案がほしい"
+                  : "例：このSectionに、余白を残しながら次へつながるフレーズがほしい"}
               className="resize-y rounded-lg border border-hairline bg-surface-tile-2 px-3 py-2.5 text-[14px] leading-6 text-body-on-dark outline-none placeholder:text-ink-muted-48 focus:border-primary-focus"
             />
           </label>
@@ -889,8 +1014,12 @@ export function AiPartnerWorkspace({
                 : session?.turns.length
                   ? "続きを相談"
                   : audio
-                    ? "音源を聴いて3案を相談"
-                    : "AIに3案を相談"}
+                    ? isWholeSongConsultation
+                      ? "音源を聴いて全曲3案を相談"
+                      : "音源を聴いて3案を相談"
+                    : isWholeSongConsultation
+                      ? "AIに全曲3案を相談"
+                      : "AIに3案を相談"}
             </Button>
             <span className="text-[11px] text-ink-muted-48">
               同じ楽曲状態・同じ相談は24時間キャッシュされます
@@ -950,9 +1079,9 @@ export function AiPartnerWorkspace({
                           aria-label={`${constraint}を解除`}
                           className="rounded-full p-0.5 hover:bg-white/10 hover:text-body-on-dark"
                           onClick={() => {
-                            if (!effectiveSectionId || !session) return
+                            if (!sessionId || !session) return
                             setAiPartnerSession(
-                              effectiveSectionId,
+                              sessionId,
                               removeConversationConstraint(session, constraint),
                             )
                           }}
@@ -966,7 +1095,9 @@ export function AiPartnerWorkspace({
               )}
               {response.diagnosis.noAdditionRecommended && (
                 <p className="mt-3 rounded-sm bg-amber-300/10 px-3 py-2 text-[12px] text-amber-100">
-                  このセクションは、音を追加しない案も有力と診断されています。
+                  {isWholeSongConsultation
+                    ? "曲全体では、音を追加しないSectionを残す案も有力と診断されています。"
+                    : "このSectionは、音を追加しない案も有力と診断されています。"}
                 </p>
               )}
               {(response.diagnosis.audioEvidence ?? []).length > 0 && (
@@ -1079,7 +1210,17 @@ export function AiPartnerWorkspace({
                       {intent.necessityReason ?? intent.why}
                     </p>
                     <div className="mt-auto pt-4">
-                      {!noGenerator && !proposalOnly && (
+                      {isWholeSongConsultation && (
+                        <Button
+                          variant="secondary"
+                          className="w-full !whitespace-normal text-center"
+                          disabled={generatingIntentId === intent.id}
+                          onClick={() => generateFromIntent(intent)}
+                        >
+                          <Layers3 size={14} /> この案を全曲へ展開・生成
+                        </Button>
+                      )}
+                      {!isWholeSongConsultation && !noGenerator && !proposalOnly && (
                         <Button
                           variant="secondary"
                           className="w-full !whitespace-normal text-center"
@@ -1089,22 +1230,35 @@ export function AiPartnerWorkspace({
                           <Music2 size={14} /> この案を生成
                         </Button>
                       )}
-                      {proposalOnly && (
+                      {!isWholeSongConsultation && proposalOnly && (
                         <>
-                          <Button
-                            variant="secondary"
-                            className="w-full"
-                            disabled={intent.rhythmPlan.events.length === 0}
-                            onClick={() => downloadRhythm(intent)}
-                          >
-                            <Download size={14} /> ドラムMIDIを書き出す
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              variant="secondary"
+                              className="w-full"
+                              disabled={intent.rhythmPlan.events.length === 0}
+                              onClick={() => previewRhythm(intent)}
+                            >
+                              {playingRhythmIntentId === intent.id
+                                ? <Square size={14} />
+                                : <Play size={14} />}
+                              {playingRhythmIntentId === intent.id ? "停止" : "まず試聴"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="w-full"
+                              disabled={intent.rhythmPlan.events.length === 0}
+                              onClick={() => downloadRhythm(intent)}
+                            >
+                              <Download size={14} /> MIDI
+                            </Button>
+                          </div>
                           <p className="mt-2 text-center text-[11px] leading-4 text-body-muted">
-                            セクション長まで反復し、Logic ProでSoftware Instrumentへ割り当てられるChannel 1で出力します。
+                            試聴は提案ループを一度だけ再生します。MIDIはセクション長まで反復し、Logic ProでSoftware Instrumentへ割り当てられるChannel 1で出力します。
                           </p>
                         </>
                       )}
-                      {counterUnavailable && (
+                      {!isWholeSongConsultation && counterUnavailable && (
                         <p className="mt-2 text-[11px] text-amber-200">
                           Counter生成にはActive Melodyが必要です。
                         </p>
@@ -1114,6 +1268,60 @@ export function AiPartnerWorkspace({
                 )
               })}
             </div>
+
+            {wholeSongGeneration && (
+              <SectionCard className="border-emerald-300/25 bg-emerald-400/[0.05]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[13px] font-semibold text-body-on-dark">
+                      全曲候補をSection別に生成しました
+                    </div>
+                    <p className="mt-1 text-[11px] text-emerald-100">
+                      {wholeSongGeneration.directionTitle} · {wholeSongGeneration.generated}件生成
+                      {wholeSongGeneration.skipped > 0
+                        ? ` · ${wholeSongGeneration.skipped}件保留`
+                        : ""}
+                    </p>
+                  </div>
+                  <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[11px] text-body-muted">
+                    自動採用なし
+                  </span>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {wholeSongGeneration.items.map((item) => (
+                    <div
+                      key={item.actionId}
+                      className="grid gap-2 rounded-sm border border-white/10 bg-black/10 px-3 py-2 sm:grid-cols-[7rem_8rem_minmax(0,1fr)_auto] sm:items-center"
+                    >
+                      <span className="text-[11px] font-semibold text-body-on-dark">{item.sectionName}</span>
+                      <span className="text-[11px] text-primary-on-dark">{GENERATOR_LABELS[item.generator]}</span>
+                      <div className="text-[11px] leading-4 text-body-muted">
+                        <span className="text-body-on-dark">
+                          {item.status === "candidate"
+                            ? "候補生成済み"
+                            : item.status === "applied"
+                              ? "Sectionへ適用済み"
+                              : item.status === "existing"
+                                ? "現在案を維持"
+                                : item.status === "preserved"
+                                  ? "追加なし"
+                                  : item.status === "unavailable"
+                                    ? "要件不足"
+                                    : "生成保留"}
+                        </span>
+                        <div>{item.purpose}</div>
+                      </div>
+                      {item.target && (
+                        <Button variant="secondary" onClick={() => openWholeSongResult(item)}>
+                          {item.status === "candidate" ? "候補を確認・試聴" : "Sectionを確認"}
+                          <ArrowRight size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
 
             <div className="flex justify-center">
               <Button

@@ -899,11 +899,14 @@
         <li><strong>どの方向で進めますか？</strong>で、Minimal / Cinematic / Rhythmic / Dark・Experimental / Balancedから1案を選ぶ</li>
         <li>AI推奨案と短い理由を参考にし、<strong>この方針で全曲候補を生成</strong>を押す</li>
         <li><strong>生成結果を試聴</strong>から該当Generatorへ移動し、Favorite／Reject／Set Activeを判断する</li>
-        <li>必要なら<strong>AIへ追加相談</strong>で方針を修正する。Director、Quality Gate、演奏設計は<strong>詳細設定・分析</strong>から確認する</li>
+        <li>必要なら<strong>AIへ追加相談</strong>で方針を修正する。相談範囲の既定は<strong>曲全体</strong>で、局所修正時だけ「このSectionだけ」を選ぶ</li>
       </ol>
       <div class="note">
         <p>AI Partnerは確認なしにGeneratorを実行せず、生成候補を自動採用しません。会話で確定した「メロディは変えない」「音数を増やさない」等の制約は、以降の全曲判断でも保護対象として維持されます。</p>
       </div>
+      <h3>AI追加相談の範囲</h3>
+      <p><strong>曲全体（標準）</strong>では、全Sectionのコード、Active Melody、音域、発音密度、既存レイヤー、Energy、Climax方針、前後の接続をまとめてAIへ渡します。返された3案は全曲Directionとして扱われ、「この案を全曲へ展開・生成」を押した後にDirectorがSectionごとにSignature、Counter、Decoration、Accompaniment、追加なしを選び分けます。</p>
+      <p>生成後は全Sectionの結果が一覧になり、対象Sectionの候補画面へ移動して個別試聴できます。<strong>このSectionだけ</strong>は、特定箇所の再検討に限って使います。曲全体とSection限定の会話履歴・確定制約は混在せず、それぞれ独立して保持されます。</p>
       <h3>Full Song Arrangement</h3>
       <p>5案のカードを選んだだけでは音は生成されません。「この方針で全曲候補を生成」を押すと、選択中の1案に含まれる必要なSectionだけへAccompaniment、Counter／Strings、Signature／Decoration候補を生成します。Stringsは既存Counter GeneratorのString Answer設計を利用し、主旋律の休符・長音・衝突回避を維持します。BassとSpaceは専用Generatorがないため、低品質な仮MIDIへ置き換えず設計指示として保持します。</p>
     </section>
