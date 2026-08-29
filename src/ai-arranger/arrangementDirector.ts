@@ -49,10 +49,15 @@ function existingLayerCount(project: ComposerProject, sectionId: string): number
   if (project.sectionAccompanimentPatternAssignments[sectionId]) count += 1
   if (project.sectionReactiveLayerAssignments?.[sectionId]) count += 1
   if (project.sectionDecorationLayerAssignments?.[sectionId]) count += 1
-  const importedSupportingRoles = [...importedRolesInSection(project, sectionId)].filter(
-    (role) => role !== "melody" && role !== "harmony",
-  )
-  count += importedSupportingRoles.length
+  // 外部曲MIDIは「現在採用中のLayer」ではなく分析用の原素材。
+  // 既存Layerとして数えると候補生成予算が0になり、AI Partnerが何も提案できなくなる。
+  // Logic往復素材だけは現在の制作状態として従来どおり密度へ含める。
+  if (project.importedArrangement?.sourceKind === "logic-project") {
+    const importedSupportingRoles = [...importedRolesInSection(project, sectionId)].filter(
+      (role) => role !== "melody" && role !== "harmony",
+    )
+    count += importedSupportingRoles.length
+  }
   return count
 }
 

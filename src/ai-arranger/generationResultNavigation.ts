@@ -94,7 +94,11 @@ export function currentCandidateResultItems(
       section.id,
       section.name,
       "melody",
-      latestBatch(project.melodyVariants.filter((item) => item.sectionId === section.id)),
+      // Imported MIDIはAIが生成した候補ではなく、判断の基準となる原素材。
+      // ここへ混ぜると「生成済み」と誤認して元トラックの一部分へ案内してしまう。
+      latestBatch(project.melodyVariants.filter(
+        (item) => item.sectionId === section.id && item.sourceMode !== "import-midi",
+      )),
     )
     pushCandidate(
       section.id,

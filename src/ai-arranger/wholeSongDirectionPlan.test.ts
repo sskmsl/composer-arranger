@@ -74,6 +74,24 @@ describe("Whole-song Arrangement Direction Program", () => {
     expect(verse?.generator).not.toBe("counter")
   })
 
+  it("外部曲MIDIの原トラックが多くても生成Actionを無効化しない", () => {
+    const value = project()
+    value.importedArrangement = {
+      version: "1.0.0",
+      sourceKind: "external-song",
+      totalBeats: 64,
+      tracks: Array.from({ length: 12 }, (_, index) => ({
+        sourceTrackIndex: index,
+        name: `Source ${index + 1}`,
+        role: index % 2 === 0 ? "other" as const : "strings" as const,
+        notes: [[index * 2, 1, 48 + index, 70, 1]],
+      })),
+    }
+    const program = buildWholeSongDirectionProgram(value, "リズムで推進する")
+    const rhythmic = program.directions.find((direction) => direction.id === "rhythmic-propulsion")!
+    expect(rhythmic.actions.some((action) => action.status === "available")).toBe(true)
+  })
+
   it("Actionを既存Generation Bridge互換のIntentへ変換する", () => {
     const program = buildWholeSongDirectionProgram(project(), "サビへ向かって上昇")
     const action = program.directions[1].actions.find((candidate) => candidate.status === "available")!

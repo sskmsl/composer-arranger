@@ -72,6 +72,31 @@ describe("generationResultLinks", () => {
     ])
   })
 
+  it("Imported MIDIの原Melodyを生成済み候補として列挙しない", () => {
+    const project = createEmptyProject("Imported source")
+    project.sections = [{ id: "song", name: "Imported Song", role: "instrumental", startBar: 1, lengthBars: 16 }]
+    project.melodyVariants = [{
+      id: "imported",
+      name: "Imported lead",
+      sectionId: "song",
+      sourceMode: "import-midi",
+      notes: [],
+      phrasePlans: [],
+      lockedBars: [],
+      motifLocked: false,
+      features: null,
+      generatorVersion: "midi-import-1",
+      seed: 0,
+      songProfile: project.song.songProfile,
+      parentMelodyId: null,
+      batchId: "import-batch",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }]
+    project.sectionMelodyAssignments.song = "imported"
+
+    expect(currentCandidateResultItems(project)).toEqual([])
+  })
+
   it("同じGeneratorが複数Sectionにあっても確認リンクを重複させない", () => {
     expect(generationResultLinks(["counter", "counter", "decoration"])).toEqual([
       { tab: "counter", label: "Counter" },
