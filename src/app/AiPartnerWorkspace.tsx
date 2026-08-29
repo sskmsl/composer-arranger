@@ -55,6 +55,7 @@ import type {
 } from "@/ai-arranger/types"
 import { SECTION_ROLE_LABELS } from "@/core/section"
 import type { ComposerProject } from "@/core/project"
+import type { ArrangementGenerationDirective, ArrangementTrackId } from "@/core/arrangementGeneration"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Pill, SectionCard, Select } from "@/ui/primitives"
 import { downloadMidi } from "@/midi/exportMelody"
@@ -62,12 +63,30 @@ import type { MainTab } from "./App"
 import { AiPartnerControlCenter } from "./AiPartnerControlCenter"
 
 const EXAMPLE_PROMPTS = [
+  "コード・メロディ・テンポは維持。Section間のフレーズと、主旋律とは異なる音域・音階感のバックシンセを全曲に提案して",
   "曲全体で余白と残響を守り、サビまで段階的に世界を開いて",
   "主旋律を壊さず、Sectionごとの役割差でサビ前の期待を高めて",
   "音を足しすぎず、全曲を通して必要な第二の顔を設計して",
 ]
 
 const WHOLE_SONG_SESSION_ID = "__whole_song__"
+
+function arrangementDirectiveForIntent(intent: AiArrangementIntent): ArrangementGenerationDirective {
+  const roles: ArrangementTrackId[] = []
+  if (intent.generator === "rhythm") roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum")
+  if (intent.generator === "accompaniment") roles.push("syn-bass", "syn-pulse")
+  if (["counter", "phrase", "signature"].includes(intent.generator)) roles.push("syn-transition-phrase")
+  if (["decoration", "signature"].includes(intent.generator)) roles.push("syn-high-glass")
+  const description = `${intent.generationBrief} ${intent.soundPalette} ${intent.techniques.join(" ")}`
+  if (/string|violin|viola|cello|ストリング/i.test(description)) roles.push("str-cello", "str-viola", "str-violin-2", "str-violin-1")
+  if (/bass|低音|ベース/i.test(description)) roles.push("syn-bass")
+  if (/pad|パッド|空間/i.test(description)) roles.push("syn-dark-pad")
+  return {
+    intention: `${intent.emotionalFunction}。${intent.generationBrief}`,
+    add: [...new Set(roles)],
+    surpriseLevel: intent.creativeRisk === "radical" ? 0.75 : intent.creativeRisk === "bold" ? 0.45 : 0.15,
+  }
+}
 
 const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
   melody: "Melody",
@@ -96,6 +115,9 @@ export function AiPartnerWorkspace({
   const setAiPartnerSession = useProjectStore(
     (state) => state.setAiPartnerSession,
   )
+  const setArrangementDirectorWorkspace = useProjectStore(
+    (state) => state.setArrangementDirectorWorkspace,
+  )
   const setArrangementDirectorClimax = useProjectStore(
     (state) => state.setArrangementDirectorClimax,
   )
@@ -104,6 +126,9 @@ export function AiPartnerWorkspace({
   )
   const setSectionOrchestrationOverride = useProjectStore(
     (state) => state.setSectionOrchestrationOverride,
+  )
+  const generateFullSongArrangement = useProjectStore(
+    (state) => state.generateFullSongArrangement,
   )
   const [prompt, setPrompt] = useState("")
   const [consultationTarget, setConsultationTarget] = useState<string>("whole-song")
@@ -228,6 +253,14 @@ export function AiPartnerWorkspace({
           ),
         )
       }
+      if (isWholeSongConsultation) {
+        setArrangementDirectorWorkspace({
+          brief: [...(session?.turns ?? []).map((turn) => turn.userMessage), message]
+            .slice(-4)
+            .join("。"),
+          selectedDirectionId: null,
+        })
+      }
       setPrompt("")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "AI相談に失敗しました。")
@@ -255,11 +288,21 @@ export function AiPartnerWorkspace({
     if (!section) return
     setGeneratingIntentId(intent.id)
     if (isWholeSongConsultation) {
-      const { direction } = wholeSongDirectionForAiIntent(project, intent)
+      const instructionBrief = [
+        session?.turns.at(-1)?.userMessage ?? "",
+        ...(session?.confirmedConstraints ?? []),
+      ].filter(Boolean).join("。")
+      const { direction } = wholeSongDirectionForAiIntent(project, intent, instructionBrief)
       const availableActions = direction.actions.filter(
         (action) => action.status === "available",
       )
       const result = executeArrangementActions(availableActions)
+      generateFullSongArrangement([
+        instructionBrief,
+        intent.title,
+        intent.generationBrief,
+        intent.necessityReason ?? intent.why,
+      ].filter(Boolean).join("。"), arrangementDirectiveForIntent(intent))
       setWholeSongGeneration({
         intentId: intent.id,
         directionTitle: `${intent.title} → ${direction.title}`,
@@ -336,15 +379,13 @@ export function AiPartnerWorkspace({
               </span>
             </div>
             <p className="mt-1 max-w-3xl text-[12px] leading-5 text-body-muted">
-              曲を診断し、5つの方針から選んだ案だけを生成して試聴できます。
+              守るものと作りたいものを伝えると、AIが全曲の役割へ分解し、必要なGeneratorだけを実行します。
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-pill bg-emerald-400/10 px-3 py-1.5 text-[11px] text-emerald-200">
             <ShieldCheck size={14} /> APIキーはSupabase内に保持
           </div>
         </header>
-
-        <AiPartnerControlCenter onNavigate={onNavigate} />
 
         <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
           <summary className="cursor-pointer text-[11px] font-medium text-body-muted hover:text-body-on-dark">
@@ -845,10 +886,10 @@ export function AiPartnerWorkspace({
         <SectionCard>
           <div className="mb-4">
             <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-              <MessageCircle size={15} className="text-primary-on-dark" /> 必要ならAIへ追加相談
+              <MessageCircle size={15} className="text-primary-on-dark" /> {session?.turns.length ? "AIと制作意図を詰める" : "まずAIへ制作意図を伝える"}
             </div>
             <p className="mt-1 text-[11px] leading-4 text-body-muted">
-              標準では曲全体を通して判断します。局所修正が必要な場合だけSectionを指定できます。
+              コード・メロディ・テンポなど守るものと、追加したい役割を自然な言葉で指定してください。標準では曲全体を通して判断します。
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
@@ -1287,6 +1328,14 @@ export function AiPartnerWorkspace({
                     自動採用なし
                   </span>
                 </div>
+                <div className="mt-3 rounded-sm border border-primary/20 bg-primary/[0.06] p-3">
+                  <p className="text-[11px] leading-4 text-body-muted">
+                    同じ意図からEnergy Curveと役割別MIDIも生成しました。Melodyとコードは保護したままです。
+                  </p>
+                  <Button className="mt-2" variant="secondary" onClick={() => onNavigate("arrangement")}>
+                    <Layers3 size={14} /> Arrangement Planとパート別MIDIを確認
+                  </Button>
+                </div>
                 <div className="mt-3 space-y-1.5">
                   {wholeSongGeneration.items.map((item) => (
                     <div
@@ -1337,6 +1386,15 @@ export function AiPartnerWorkspace({
             </div>
           </>
         )}
+
+        <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
+          <summary className="cursor-pointer text-[11px] font-medium text-body-muted hover:text-body-on-dark">
+            指示なしの自動診断・5方針も見る
+          </summary>
+          <div className="mt-3">
+            <AiPartnerControlCenter onNavigate={onNavigate} />
+          </div>
+        </details>
 
         <p className="text-center text-[11px] leading-5 text-ink-muted-48">
           固有の楽曲を複製せず、相談内容を余白・輪郭・リズム・音色・演奏意図へ抽象化して提案します。

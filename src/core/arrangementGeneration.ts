@@ -1,0 +1,156 @@
+import type { MelodyNote } from "./melody"
+
+export type ArrangementTrackId =
+  | "dr-kick"
+  | "dr-snare"
+  | "dr-closed-hat"
+  | "dr-open-hat"
+  | "dr-low-tom"
+  | "dr-high-tom"
+  | "dr-field-drum"
+  | "dr-gran-cassa"
+  | "dr-crash"
+  | "syn-bass"
+  | "syn-pulse"
+  | "syn-dark-pad"
+  | "syn-high-glass"
+  | "syn-transition-phrase"
+  | "syn-final-lift"
+  | "str-cello"
+  | "str-viola"
+  | "str-violin-2"
+  | "str-violin-1"
+  | "str-upper"
+
+export type ArrangementCandidateCharacter = "safe" | "edge" | "surprise"
+
+export interface ArrangementAnalysisSection {
+  sectionId: string
+  sectionName: string
+  sectionRole: string
+  order: number
+  occurrence: number
+  energy: number
+  energyDelta: number
+  melodyRange: { low: number; high: number } | null
+  melodyRestRatio: number
+  chordRepetition: number
+  melodyRepetition: number
+  availableRegisters: Array<"low" | "middle" | "high">
+}
+
+export interface ArrangementAnalysis {
+  version: "1.0.0"
+  bpm: number
+  key: string
+  timeSignature: string
+  totalBeats: number
+  peakSectionId: string | null
+  sections: ArrangementAnalysisSection[]
+}
+
+export interface ArrangementTransitionCandidate {
+  id: string
+  sectionId: string
+  character: ArrangementCandidateCharacter
+  kind:
+    | "ascending"
+    | "descending"
+    | "motif-variation"
+    | "reverse-motif"
+    | "chromatic-approach"
+    | "bell-hit"
+    | "string-swell"
+    | "synth-fill"
+    | "rhythmic-fill"
+    | "silence"
+  reason: string
+  notes: MelodyNote[]
+}
+
+export interface ArrangementSectionPlan {
+  sectionId: string
+  sectionName: string
+  sectionRole: string
+  energy: number
+  density: "sparse" | "medium" | "medium-high" | "high"
+  register: { low: "open" | "medium" | "strong"; mid: "open" | "medium" | "strong"; high: "open" | "medium" | "strong" }
+  intention: string
+  activeRoles: ArrangementTrackId[]
+  transitionCandidates: ArrangementTransitionCandidate[]
+  selectedTransitionCharacter: ArrangementCandidateCharacter | "silence"
+  decorationCandidates: ArrangementTransitionCandidate[]
+  selectedDecorationCharacter: ArrangementCandidateCharacter | "silence"
+}
+
+export interface ArrangementPlan {
+  version: "1.0.0"
+  brief: string
+  seed: number
+  directive?: ArrangementGenerationDirective
+  sections: ArrangementSectionPlan[]
+}
+
+export interface ArrangementGenerationDirective {
+  sectionId?: string
+  intention: string
+  energyDelta?: number
+  add?: ArrangementTrackId[]
+  preserve?: ArrangementTrackId[]
+  surpriseLevel?: number
+}
+
+export interface GeneratedArrangementNote extends MelodyNote {
+  sectionId: string
+  character: ArrangementCandidateCharacter
+  reason: string
+}
+
+export interface GeneratedArrangementTrack {
+  id: ArrangementTrackId
+  name: string
+  family: "drums" | "bass" | "synth" | "strings" | "transition"
+  muted: boolean
+  notes: GeneratedArrangementNote[]
+  generationRevision: number
+  purpose: string
+}
+
+export interface FullSongArrangement {
+  version: "1.0.0"
+  id: string
+  createdAt: string
+  analysis: ArrangementAnalysis
+  plan: ArrangementPlan
+  tracks: GeneratedArrangementTrack[]
+}
+
+export interface ArrangementRegenerationTarget {
+  trackId: ArrangementTrackId
+  sectionId?: string
+  energyDelta?: number
+  character?: ArrangementCandidateCharacter
+}
+
+export const ARRANGEMENT_TRACK_NAMES: Record<ArrangementTrackId, string> = {
+  "dr-kick": "DR_Kick",
+  "dr-snare": "DR_Snare",
+  "dr-closed-hat": "DR_ClosedHat",
+  "dr-open-hat": "DR_OpenHat",
+  "dr-low-tom": "DR_LowTom",
+  "dr-high-tom": "DR_HighTom",
+  "dr-field-drum": "DR_FieldDrum",
+  "dr-gran-cassa": "DR_GranCassa",
+  "dr-crash": "DR_Crash",
+  "syn-bass": "SYN_Bass",
+  "syn-pulse": "SYN_Pulse",
+  "syn-dark-pad": "SYN_DarkPad",
+  "syn-high-glass": "SYN_HighGlass",
+  "syn-transition-phrase": "SYN_TransitionPhrase",
+  "syn-final-lift": "SYN_FinalLift",
+  "str-cello": "STR_Cello",
+  "str-viola": "STR_Viola",
+  "str-violin-2": "STR_Violin2",
+  "str-violin-1": "STR_Violin1",
+  "str-upper": "STR_Upper",
+}

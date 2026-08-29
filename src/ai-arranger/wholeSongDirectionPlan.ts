@@ -91,6 +91,7 @@ export interface WholeSongDirectionProgram {
 export function wholeSongDirectionForAiIntent(
   project: ComposerProject,
   intent: AiArrangementIntent,
+  userBrief = "",
 ): {
   program: WholeSongDirectionProgram
   direction: WholeSongArrangementDirection
@@ -112,12 +113,125 @@ export function wholeSongDirectionForAiIntent(
     intent.why,
     intent.techniques.join(" "),
     generatorHint,
+    userBrief,
   ].join(" ")
   const program = buildWholeSongDirectionProgram(project, brief)
   const direction = program.directions.find(
     (candidate) => candidate.id === program.recommendedDirectionId,
   ) ?? program.directions[4]
   return { program, direction }
+}
+
+interface WholeSongBriefSignals {
+  transitionPhrases: boolean
+  backgroundSynth: boolean
+  independentPitchColour: boolean
+  specificLayerRequest: boolean
+}
+
+function signalsFromBrief(brief: string): WholeSongBriefSignals {
+  const transitionPhrases = /(セクション|section).{0,8}(間|境界|つな|繋|移行)|間奏.{0,6}(フレーズ|phrase)|transition/i.test(brief)
+  const backgroundSynth = /(バック|背景|裏|後ろ).{0,10}(シンセ|synth)|シンセ.{0,10}(フレーズ|モチーフ|レイヤー)/i.test(brief)
+  const independentPitchColour = /(異なる|別の).{0,8}(音階|スケール|音程)|コード.{0,8}(従属しない|追従しない)|非和声|テンション|モード/i.test(brief)
+  return {
+    transitionPhrases,
+    backgroundSynth,
+    independentPitchColour,
+    specificLayerRequest: transitionPhrases || backgroundSynth,
+  }
+}
+
+function complementaryRegister(project: ComposerProject, sectionId: string): "low" | "high" {
+  const assignedId = project.sectionMelodyAssignments[sectionId]
+  const melody = project.melodyVariants.find((variant) => variant.id === assignedId)
+  if (!melody || melody.notes.length === 0) return "high"
+  const average = melody.notes.reduce((sum, note) => sum + note.pitch, 0) / melody.notes.length
+  return average >= 67 ? "low" : "high"
+}
+
+function applyBriefToActions(
+  project: ComposerProject,
+  directionId: WholeSongDirectionId,
+  baseActions: WholeSongArrangementAction[],
+  sectionPlans: ReturnType<typeof buildArrangementDirectorBlueprint>["sections"],
+  brief: string,
+): WholeSongArrangementAction[] {
+  const signals = signalsFromBrief(brief)
+  if (!signals.specificLayerRequest) return baseActions
+
+  // 具体的な依頼がある場合、一般方針が選んだ無関係な伴奏を先に足さない。
+  // 同一Sectionへ複数Roleを持てるMapとして組み直す。
+  const requestedGenerators = new Set<WholeSongActionGenerator>([
+    ...(signals.backgroundSynth ? ["counter" as const] : []),
+    ...(signals.transitionPhrases ? ["decoration" as const] : []),
+  ])
+  const actions = new Map(
+    baseActions
+      .filter((candidate) => requestedGenerators.has(candidate.generator))
+      .map((candidate) => [candidate.id, candidate]),
+  )
+  sectionPlans.forEach((plan, index) => {
+    const section = project.sections.find((candidate) => candidate.id === plan.sectionId)
+    if (!section) return
+    if (
+      signals.backgroundSynth &&
+      section.role !== "outro" &&
+      project.sectionMelodyAssignments[section.id] &&
+      project.chords.some((chord) => chord.sectionId === section.id)
+    ) {
+      const risk: AiCreativeRisk = signals.independentPitchColour ? "bold" : "focused"
+      const value = action(project, directionId, {
+        sectionId: section.id,
+        sectionName: section.name,
+        generator: "counter",
+        role: "counter-voice",
+        family: "analog-synth",
+        purpose: signals.independentPitchColour
+          ? "コードの説明音ではなく、解決先を持つテンションと別輪郭で背景のシンセフレーズを作る"
+          : "主旋律の休符へ、別輪郭の短いバックシンセフレーズで応答する",
+        entry: "主旋律の長音・休符を検出して後景から入る",
+        exit: "主旋律の次の重要アタックより前に退く",
+        density: plan.targetEnergy >= 4 ? "balanced" : "sparse",
+        register: complementaryRegister(project, section.id),
+        drama: plan.climaxPolicy === "express" ? "open" : "restrained",
+        motion: plan.climaxPolicy === "approach" ? "ascending" : "wave",
+        rhythmCharacter: "fragmented",
+        silenceStrategy: "breathing",
+        creativeRisk: risk,
+        lengthBars: clampLength(section.lengthBars),
+        accompanimentPatternId: "none",
+      })
+      actions.set(value.id, value)
+    }
+    if (
+      signals.transitionPhrases &&
+      index < sectionPlans.length - 1 &&
+      project.chords.some((chord) => chord.sectionId === section.id)
+    ) {
+      const next = sectionPlans[index + 1]
+      const value = action(project, directionId, {
+        sectionId: section.id,
+        sectionName: section.name,
+        generator: "decoration",
+        role: "transition-color",
+        family: "analog-synth",
+        purpose: `Section終端の余白から「${next.sectionName}」へ向かう、因果のある短い接続フレーズを作る`,
+        entry: "Section終端の主旋律が退いた位置だけを使う",
+        exit: `次のSectionの最初の主旋律アタックを避けて解決する`,
+        density: "sparse",
+        register: plan.targetEnergy >= 4 ? "high" : "middle",
+        drama: next.targetEnergy > plan.targetEnergy ? "growing" : "restrained",
+        motion: next.targetEnergy > plan.targetEnergy ? "ascending" : "wave",
+        rhythmCharacter: "fragmented",
+        silenceStrategy: "structural",
+        creativeRisk: signals.independentPitchColour ? "bold" : "focused",
+        lengthBars: clampLength(Math.min(2, section.lengthBars)),
+        accompanimentPatternId: "none",
+      })
+      actions.set(value.id, value)
+    }
+  })
+  return [...actions.values()]
 }
 
 function clampLength(value: number): WholeSongArrangementAction["lengthBars"] {
@@ -372,13 +486,19 @@ export function buildWholeSongDirectionProgram(
   const importedSourceProtection = project.sourceImport?.type === "midi"
     ? ["Imported MIDIのコードを変更しない", "Imported MIDIの主旋律を変更しない"]
     : []
-  const makeActions = (id: WholeSongDirectionId) => director.sections.map((section) =>
-    actionForSection(
-      project,
-      id,
-      section,
-      orchestration.sections.find((candidate) => candidate.sectionId === section.sectionId),
+  const makeActions = (id: WholeSongDirectionId) => applyBriefToActions(
+    project,
+    id,
+    director.sections.map((section) =>
+      actionForSection(
+        project,
+        id,
+        section,
+        orchestration.sections.find((candidate) => candidate.sectionId === section.sectionId),
+      ),
     ),
+    director.sections,
+    brief,
   )
   const directions: WholeSongDirectionProgram["directions"] = [
     {
@@ -467,6 +587,8 @@ export function intentForWholeSongAction(
     rhythmCharacter: actionValue.rhythmCharacter,
     silenceStrategy: actionValue.silenceStrategy,
     creativeRisk: actionValue.creativeRisk,
+    approach: actionValue.creativeRisk === "focused" ? "safe" : "surprise-tension",
+    necessityReason: actionValue.purpose,
     lengthBars: actionValue.lengthBars,
     techniques: [actionValue.role, actionValue.family],
     soundPalette: `${actionValue.family}を${actionValue.role}として配置`,

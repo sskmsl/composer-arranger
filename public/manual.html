@@ -908,7 +908,7 @@
       <p><strong>曲全体（標準）</strong>では、全Sectionのコード、Active Melody、音域、発音密度、既存レイヤー、Energy、Climax方針、前後の接続をまとめてAIへ渡します。返された3案は全曲Directionとして扱われ、「この案を全曲へ展開・生成」を押した後にDirectorがSectionごとにSignature、Counter、Decoration、Accompaniment、追加なしを選び分けます。</p>
       <p>生成後は全Sectionの結果が一覧になり、対象Sectionの候補画面へ移動して個別試聴できます。<strong>このSectionだけ</strong>は、特定箇所の再検討に限って使います。曲全体とSection限定の会話履歴・確定制約は混在せず、それぞれ独立して保持されます。</p>
       <h3>Full Song Arrangement</h3>
-      <p>5案のカードを選んだだけでは音は生成されません。「この方針で全曲候補を生成」を押すと、選択中の1案に含まれる必要なSectionだけへAccompaniment、Counter／Strings、Signature／Decoration候補を生成します。Stringsは既存Counter GeneratorのString Answer設計を利用し、主旋律の休符・長音・衝突回避を維持します。BassとSpaceは専用Generatorがないため、低品質な仮MIDIへ置き換えず設計指示として保持します。</p>
+      <p>5案のカードを選んだだけでは音は生成されません。「この案を全曲へ展開・生成」を押すと、選択した意図を構造化してArrangement Generatorへ渡し、既存のSection候補に加えてEnergy Curve、役割構成、Bass・Drums・Synth・Strings・Transitionの独立MIDIを生成します。コードとMelodyは保護され、自動採用もしません。</p>
     </section>
 
     <section class="chapter" id="arrangement">
@@ -916,6 +916,11 @@
       <h2>Arrangementワークスペース</h2>
       <p class="chapter-intro">セクション単体ではなく、曲全体を組み立てるためのタブです。</p>
       <ul>
+        <li><strong>Arrangement Generator</strong> — BPM、Key、コード、保護中のMelody、休符、Section反復、Climaxを先に解析し、0〜100のEnergy CurveとSection別Planを確定してから必要な役割だけを生成します。</li>
+        <li><strong>役割別トラック</strong> — Kick、Snare、Closed／Open Hat、Tom、Field Drum、Gran Cassa、Crash、Bass、Pulse、Pad、High Glass、Transition、Final Lift、Stringsを固定名の独立MIDIトラックとして扱います。全役割を常時鳴らすのではなく、SectionのEnergyと余白で登場・退場を判断します。</li>
+        <li><strong>Safe / Edge / Surprise</strong> — 装飾とTransitionは3系統を内部比較し、半音解決、主旋律休符、未使用音域、次SectionのEnergyなどの理由がある案だけを採用します。余白が不足する場合は無音を選びます。</li>
+        <li><strong>部分再生成</strong> — 対象Sectionを選んでから各トラックの再生成ボタンを押すと、そのSection・その役割だけを置換します。他のSectionとトラックは変更しません。</li>
+        <li><strong>試聴・MIDI</strong> — 全パートをコード・Melodyと一緒に試聴するほか、Mute、トラック単独試聴、個別MIDI、全パートSMF Type 1出力ができます。各MIDIトラックはLogic Proで別々のSoftware Instrumentへ割り当てられます。</li>
         <li><strong>曲全体タイムライン</strong> — セクションをドラッグして並び替え、曲の構成を組み替えます。</li>
         <li><strong>採用Melody</strong> — 各セクションごとに、どの生成候補を曲の再生・書き出しに使うかをドロップダウンで選びます(Melodyタブの「Set as Active Melody」と連動)。</li>
         <li><strong>境界を再生</strong> — 各セクション(先頭を除く)の再生アイコンから、前セクションとの繋ぎ目を前後1小節ずつ試聴できます。セクションを繋げたときの接続の自然さを確認するのに使います。</li>

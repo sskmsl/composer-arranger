@@ -3,6 +3,7 @@ import type { MelodyNote } from "@/core/melody"
 import { parseChordSymbol } from "@/core/chord"
 import { midiToFreq } from "@/core/note"
 import { voiceChord } from "./chordVoicing"
+import type { ArrangementTrackId, GeneratedArrangementNote } from "@/core/arrangementGeneration"
 
 export type PreviewMode =
   | "melody-only"
@@ -68,6 +69,8 @@ export interface PlayOptions {
   accompaniment?: MelodyNote[]
   /** Issue #42: Counter / Decoration共通の独立試聴レイヤー。 */
   reactive?: MelodyNote[]
+  /** Arrangement Generatorの役割別トラック。ドラムは簡易打楽器、その他は役割別の確認音で鳴らす。 */
+  arrangementTracks?: Array<{ id: ArrangementTrackId; notes: GeneratedArrangementNote[] }>
   mode: PreviewMode
   /** Signature Phraseの演出意図を比較試聴へ反映する。MIDI音符自体は変えない。 */
   leadStyle?: LeadPreviewStyle
@@ -202,6 +205,26 @@ class PreviewPlayer {
       }
     }
 
+    for (const track of opts.arrangementTracks ?? []) {
+      for (const note of track.notes) {
+        const eventEnd = note.startBeat + note.durationBeats
+        if (eventEnd <= playbackStart || note.startBeat >= rangeEnd) continue
+        const clippedStart = Math.max(note.startBeat, playbackStart)
+        const clippedEnd = Math.min(eventEnd, rangeEnd)
+        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
+        const dur = Math.max(0.04, (clippedEnd - clippedStart) * this.secondsPerBeat)
+        if (track.id.startsWith("dr-")) {
+          this.schedulePercussion(ctx, compressor, track.id, note.velocity, t0, dur)
+        } else {
+          const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
+            ? "atmospheric"
+            : track.id.includes("pulse") ? "obsessive" : "neutral"
+          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, dur, style)
+        }
+        totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
+      }
+    }
+
     if (Number.isFinite(rangeEnd)) totalBeats = Math.max(0, rangeEnd - playbackStart)
     const totalSeconds =
       totalBeats * this.secondsPerBeat + previewTailSeconds(leadStyle)
@@ -288,6 +311,48 @@ class PreviewPlayer {
     bassGain.connect(dest)
     bassOsc.start(t0)
     bassOsc.stop(holdEnd + release + 0.05)
+  }
+
+  private schedulePercussion(
+    ctx: AudioContext,
+    dest: AudioNode,
+    trackId: ArrangementTrackId,
+    velocity: number,
+    t0: number,
+    dur: number,
+  ): void {
+    const level = Math.max(0.04, Math.min(0.45, velocity / 260))
+    if (trackId === "dr-kick" || trackId === "dr-gran-cassa" || trackId.includes("tom")) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      const base = trackId === "dr-gran-cassa" ? 48 : trackId === "dr-kick" ? 58 : trackId === "dr-low-tom" ? 90 : 125
+      osc.type = "sine"
+      osc.frequency.setValueAtTime(base * 2.2, t0)
+      osc.frequency.exponentialRampToValueAtTime(base, t0 + Math.min(0.12, dur))
+      gain.gain.setValueAtTime(level, t0)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.max(0.08, Math.min(0.55, dur + 0.12)))
+      osc.connect(gain)
+      gain.connect(dest)
+      osc.start(t0)
+      osc.stop(t0 + Math.max(0.1, Math.min(0.6, dur + 0.15)))
+      return
+    }
+    const length = Math.max(1, Math.round(ctx.sampleRate * Math.min(0.4, dur + 0.08)))
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let index = 0; index < length; index += 1) data[index] = Math.sin(index * 12.9898) * (1 - index / length)
+    const noise = ctx.createBufferSource()
+    noise.buffer = buffer
+    const filter = ctx.createBiquadFilter()
+    filter.type = trackId.includes("hat") || trackId === "dr-crash" ? "highpass" : "bandpass"
+    filter.frequency.value = trackId.includes("hat") ? 6200 : trackId === "dr-crash" ? 4200 : 1600
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(level * (trackId.includes("hat") ? 0.45 : 0.8), t0)
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.max(0.04, Math.min(0.45, dur + 0.05)))
+    noise.connect(filter)
+    filter.connect(gain)
+    gain.connect(dest)
+    noise.start(t0)
   }
 
   private createAtmosphericLeadBus(

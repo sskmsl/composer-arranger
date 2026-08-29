@@ -9,6 +9,7 @@ import {
   type SongProfileId,
 } from "@/core/project"
 import type { Section, SectionRole } from "@/core/section"
+import type { ArrangementGenerationDirective, ArrangementRegenerationTarget, ArrangementTrackId } from "@/core/arrangementGeneration"
 import { parseTimeSignature } from "@/core/section"
 import type {
   LockKind,
@@ -35,6 +36,11 @@ import {
   type SeedOperation,
 } from "@/melody-engine/developSeed"
 import { createSeed } from "@/core/rng"
+import {
+  generateFullSongArrangement,
+  regenerateFullSongArrangementTarget,
+  setArrangementTrackMuted,
+} from "@/melody-engine/arrangementGenerator"
 import {
   saveProject,
   loadLastOpenedProject,
@@ -210,6 +216,9 @@ interface ProjectState {
       [K in keyof OrchestrationPartOverride]: OrchestrationPartOverride[K] | null
     }> | null,
   ) => void
+  generateFullSongArrangement: (brief?: string, directive?: ArrangementGenerationDirective) => void
+  regenerateFullSongArrangementTarget: (target: ArrangementRegenerationTarget) => void
+  setArrangementTrackMuted: (trackId: ArrangementTrackId, muted: boolean) => void
 
   addSection: (name: string, role: SectionRole, lengthBars: number) => void
   updateSection: (sectionId: string, patch: Partial<Section>) => void
@@ -906,6 +915,49 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       history: [...get().history, snapshot(prev)],
       future: [],
       project: { ...prev, sectionOrchestrationOverrides: allSections },
+    })
+    get().persist()
+  },
+
+  generateFullSongArrangement: (brief, directive) => {
+    const prev = get().project
+    if (prev.sections.length === 0) return
+    const fullSongArrangement = generateFullSongArrangement(prev, {
+      brief: brief ?? prev.arrangementDirectorWorkspace?.brief ?? "",
+      directive,
+    })
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, fullSongArrangement },
+    })
+    get().persist()
+  },
+
+  regenerateFullSongArrangementTarget: (target) => {
+    const prev = get().project
+    if (!prev.fullSongArrangement) return
+    const fullSongArrangement = regenerateFullSongArrangementTarget(
+      prev,
+      prev.fullSongArrangement,
+      target,
+    )
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, fullSongArrangement },
+    })
+    get().persist()
+  },
+
+  setArrangementTrackMuted: (trackId, muted) => {
+    const prev = get().project
+    if (!prev.fullSongArrangement) return
+    set({
+      project: {
+        ...prev,
+        fullSongArrangement: setArrangementTrackMuted(prev.fullSongArrangement, trackId, muted),
+      },
     })
     get().persist()
   },

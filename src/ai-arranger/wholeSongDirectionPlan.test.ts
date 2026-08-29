@@ -144,4 +144,28 @@ describe("Whole-song Arrangement Direction Program", () => {
       new Set(value.sections.map((section) => section.id)),
     )
   })
+
+  it("具体的な制作依頼をバックシンセとSection間フレーズの複数Roleへ分解する", () => {
+    const value = project()
+    const seedIntent = intentForWholeSongAction(
+      buildWholeSongDirectionProgram(value, "").directions[4].actions[0],
+    )
+    const result = wholeSongDirectionForAiIntent(
+      value,
+      seedIntent,
+      "コード・メロディ・テンポは維持。Section間のフレーズと、主旋律とは異なる音階感のバックシンセを全曲に提案して",
+    )
+    const verseActions = result.direction.actions.filter((action) => action.sectionId === "verse")
+    expect(verseActions.map((action) => action.generator).sort()).toEqual(["counter", "decoration"])
+    expect(result.direction.actions.map((action) => action.generator)).not.toContain("accompaniment")
+    expect(verseActions.find((action) => action.generator === "counter")).toMatchObject({
+      family: "analog-synth",
+      creativeRisk: "bold",
+    })
+    const counterIntent = intentForWholeSongAction(
+      verseActions.find((action) => action.generator === "counter")!,
+    )
+    expect(counterIntent.approach).toBe("surprise-tension")
+    expect(counterIntent.techniques).toContain("analog-synth")
+  })
 })

@@ -74,9 +74,14 @@ export function executeAiArrangementIntent(
       signatureDirectionForIntent(intent),
     )
   } else if (intent.generator === "counter") {
+    const counterStyle = intent.techniques.includes("strings")
+      ? "string-answer"
+      : intent.techniques.includes("analog-synth") || /synth|シンセ/i.test(intent.soundPalette)
+        ? "synth-whisper"
+        : undefined
     before.generateCounterForSection(
       sectionId,
-      intent.techniques.includes("strings") ? "string-answer" : undefined,
+      counterStyle,
       intent.approach === "surprise-tension"
         ? intent.creativeRisk === "radical"
           ? "radical"

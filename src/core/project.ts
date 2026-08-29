@@ -20,6 +20,7 @@ import type {
   PerformanceExecutionPlan,
 } from "./performanceExecution"
 import type { PerformanceBatchRecommendation } from "./performanceCandidateSelection"
+import type { FullSongArrangement } from "./arrangementGeneration"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -204,6 +205,8 @@ export interface ComposerProject {
   /** 曲の顔となる1〜2小節の原石。通常Phraseとは独立して保存する。 */
   signaturePhraseCandidates: SignaturePhraseCandidate[]
   arrangementVariants: unknown[]
+  /** Arrangement GeneratorがAnalysis→Plan→役割別MIDI生成した現在の全曲案。 */
+  fullSongArrangement?: FullSongArrangement
   audioReferences: unknown[]
   activeMelodyId: string | null
   /** 曲全体を組み立てるための、セクションごとの採用Variant。 */
@@ -268,6 +271,7 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     phraseCandidates: [],
     signaturePhraseCandidates: [],
     arrangementVariants: [],
+    fullSongArrangement: undefined,
     audioReferences: [],
     activeMelodyId: null,
     sectionMelodyAssignments: {},
@@ -364,6 +368,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     phraseCandidates: r.phraseCandidates ?? [],
     signaturePhraseCandidates: r.signaturePhraseCandidates ?? [],
     arrangementVariants: r.arrangementVariants ?? [],
+    fullSongArrangement: r.fullSongArrangement,
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
     sectionMelodyAssignments: r.sectionMelodyAssignments ?? {},
