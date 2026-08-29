@@ -122,6 +122,16 @@ describe("AI Arrangement context", () => {
       activeRoles: ["bass"],
       textureDensity: "sparse",
     })
+    expect(context?.sourceProtection).toEqual({
+      preserveChords: true,
+      preserveMelody: true,
+      generationTargets: ["Accompaniment", "Counter", "Decoration", "Signature Phrase", "Transition"],
+      instructions: [
+        "Imported MIDIのコード進行を変更しない",
+        "Imported MIDIの主旋律ノートを変更しない",
+        "提案と実音生成は独立した補助パートだけを対象にする",
+      ],
+    })
   })
 
   it("コード・Active Melody・Section関係を個人情報を増やさず圧縮する", () => {

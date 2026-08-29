@@ -145,6 +145,15 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
         <p className="mt-1 text-[11px] leading-4 text-body-muted">全曲の流れ: {plan.energyArc}</p>
       </div>
 
+      {project.sourceImport?.type === "midi" && (
+        <div className="mt-3 rounded-lg border border-emerald-300/25 bg-emerald-400/[0.055] px-3 py-2.5">
+          <p className="text-[12px] font-semibold text-emerald-100">原曲保護モード</p>
+          <p className="mt-1 text-[11px] leading-4 text-body-muted">
+            読み込んだコードと主旋律は変更しません。Accompaniment・Counter・Decoration・Signature Phraseなど、独立した補助パートだけを候補生成します。
+          </p>
+        </div>
+      )}
+
       <div className="mt-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-[12px] font-semibold text-body-on-dark">どの方向で進めますか？</div>

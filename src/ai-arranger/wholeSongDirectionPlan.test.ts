@@ -76,6 +76,20 @@ describe("Whole-song Arrangement Direction Program", () => {
 
   it("外部曲MIDIの原トラックが多くても生成Actionを無効化しない", () => {
     const value = project()
+    value.sourceImport = {
+      type: "midi",
+      fileName: "external.mid",
+      importedAt: "2026-08-30T00:00:00.000Z",
+      format: 1,
+      ppq: 480,
+      trackCount: 12,
+      melodyTrackName: "Lead",
+      melodyTrackConfidence: 0.9,
+      chordInferenceConfidence: 0.8,
+      sectionsFromMarkers: false,
+      reviewConfirmed: true,
+      warnings: [],
+    }
     value.importedArrangement = {
       version: "1.0.0",
       sourceKind: "external-song",
@@ -90,6 +104,11 @@ describe("Whole-song Arrangement Direction Program", () => {
     const program = buildWholeSongDirectionProgram(value, "リズムで推進する")
     const rhythmic = program.directions.find((direction) => direction.id === "rhythmic-propulsion")!
     expect(rhythmic.actions.some((action) => action.status === "available")).toBe(true)
+    for (const direction of program.directions) {
+      expect(direction.protect).toContain("Imported MIDIのコードを変更しない")
+      expect(direction.protect).toContain("Imported MIDIの主旋律を変更しない")
+      expect(direction.actions.map((action) => action.generator)).not.toContain("melody")
+    }
   })
 
   it("Actionを既存Generation Bridge互換のIntentへ変換する", () => {

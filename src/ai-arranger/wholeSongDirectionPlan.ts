@@ -369,6 +369,9 @@ export function buildWholeSongDirectionProgram(
   )
   const wholeReview = reviewWholeSongArrangement(project, director, reviews)
   const recommended = recommendation(project, brief)
+  const importedSourceProtection = project.sourceImport?.type === "midi"
+    ? ["Imported MIDIのコードを変更しない", "Imported MIDIの主旋律を変更しない"]
+    : []
   const makeActions = (id: WholeSongDirectionId) => director.sections.map((section) =>
     actionForSection(
       project,
@@ -384,7 +387,7 @@ export function buildWholeSongDirectionProgram(
       subtitle: "近景と遠景の距離で世界を開く",
       summary: "低Energy Sectionでは追加を拒み、境界・残響・限定された一音だけで曲の奥行きを作ります。",
       character: "minimal",
-      protect: ["Active Melodyの呼吸", "低Energy Sectionの希少な発音", "Climax前の最大密度"],
+      protect: [...importedSourceProtection, "Active Melodyの呼吸", "低Energy Sectionの希少な発音", "Climax前の最大密度"],
       avoid: ["全Sectionへの伴奏追加", "コードごとの機械的な追従", "残響を埋めるCounter"],
       actions: makeActions("preserve-space"),
     },
@@ -394,7 +397,7 @@ export function buildWholeSongDirectionProgram(
       subtitle: "ストリングスと役割交代で頂点へ向かう",
       summary: "Pulse、Transition、CounterをSectionごとに交代させ、最高音と最大密度をClimaxまで温存します。",
       character: "cinematic",
-      protect: ["Section間のEnergy差", "サビ前の期待", "Climaxの一回性"],
+      protect: [...importedSourceProtection, "Section間のEnergy差", "サビ前の期待", "Climaxの一回性"],
       avoid: ["最初から全パートを鳴らすこと", "全Sectionで同じPattern", "音量だけのクレッシェンド"],
       actions: makeActions("controlled-escalation"),
     },
@@ -404,7 +407,7 @@ export function buildWholeSongDirectionProgram(
       subtitle: "周期・アクセント・休符で推進力を作る",
       summary: "コードを細かく説明せず、Sectionごとに異なるPulseと抜き差しを設計して身体的な前進を作ります。",
       character: "rhythmic",
-      protect: ["Active Melodyのアクセント", "低域の見通し", "Sectionごとの異なる歩幅"],
+      protect: [...importedSourceProtection, "Active Melodyのアクセント", "低域の見通し", "Sectionごとの異なる歩幅"],
       avoid: ["全拍を埋める伴奏", "Kickとの完全な同期", "全Sectionで同じシンコペーション"],
       actions: makeActions("rhythmic-propulsion"),
     },
@@ -414,7 +417,7 @@ export function buildWholeSongDirectionProgram(
       subtitle: "不穏な記憶の核を異なる役割へ変形する",
       summary: "IntroのSignatureを出発点に、断片化したCounterと境界のColorへ視点を移し、意外性を因果のある形で作ります。",
       character: "dark-experimental",
-      protect: ["主旋律とMotifの役割差", "反復の記憶性", "Sectionごとの異なる見せ方"],
+      protect: [...importedSourceProtection, "主旋律とMotifの役割差", "反復の記憶性", "Sectionごとの異なる見せ方"],
       avoid: ["主旋律の単純な二重化", "同じ音域での反復", "全ての回帰を完全形にすること"],
       actions: makeActions("motif-relay"),
     },
@@ -424,7 +427,7 @@ export function buildWholeSongDirectionProgram(
       subtitle: "主旋律を中心に役割を過不足なく配分する",
       summary: "Melodyを唯一の前景として守り、Pulse・Counter・Transitionを必要なSectionだけへ配置します。",
       character: "balanced",
-      protect: ["Active Melodyの感情点", "コードの色彩", "Section間の密度差"],
+      protect: [...importedSourceProtection, "Active Melodyの感情点", "コードの色彩", "Section間の密度差"],
       avoid: ["安全な全乗せ", "同じ役割の重複", "すべてを均等に鳴らすこと"],
       actions: makeActions("balanced-architecture"),
     },

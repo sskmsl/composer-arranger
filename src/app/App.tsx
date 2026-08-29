@@ -35,6 +35,17 @@ export function App() {
   const [rightOpen, setRightOpen] = useState(false)
   const [importGuideOpen, setImportGuideOpen] = useState(false)
   const [aiPartnerInitialPrompt, setAiPartnerInitialPrompt] = useState<string | null>(null)
+  const [returnToAiPartner, setReturnToAiPartner] = useState(false)
+
+  const navigateFromAiPartner = (nextTab: MainTab) => {
+    if (nextTab !== "ai-partner") setReturnToAiPartner(true)
+    setTab(nextTab)
+  }
+
+  const changeTopTab = (nextTab: MainTab) => {
+    setReturnToAiPartner(false)
+    setTab(nextTab)
+  }
 
   useEffect(() => {
     void hydrate()
@@ -61,12 +72,24 @@ export function App() {
     <div className="flex h-dvh flex-col overflow-hidden bg-surface-black text-body-on-dark">
       <TopBar
         tab={tab}
-        onTabChange={setTab}
+        onTabChange={changeTopTab}
         onToggleLeft={() => setLeftOpen((v) => !v)}
         onToggleRight={() => setRightOpen((v) => !v)}
       />
       <TimingMigrationBanner />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {returnToAiPartner && tab !== "ai-partner" && (
+          <button
+            type="button"
+            onClick={() => {
+              setTab("ai-partner")
+              setReturnToAiPartner(false)
+            }}
+            className="absolute left-1/2 top-2 z-[55] -translate-x-1/2 rounded-pill border border-primary/50 bg-surface-tile-3 px-4 py-2 text-[12px] font-medium text-primary-on-dark shadow-xl hover:bg-primary/15"
+          >
+            ← AI Partnerの全曲候補一覧へ戻る
+          </button>
+        )}
         {tab === "melody" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
@@ -151,13 +174,13 @@ export function App() {
             )}
           </>
         )}
-        {tab === "ai-partner" && (
+        <div className={tab === "ai-partner" ? "contents" : "hidden"}>
           <AiPartnerWorkspace
-            onNavigate={setTab}
+            onNavigate={navigateFromAiPartner}
             initialPrompt={aiPartnerInitialPrompt}
             onInitialPromptConsumed={() => setAiPartnerInitialPrompt(null)}
           />
-        )}
+        </div>
         {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>

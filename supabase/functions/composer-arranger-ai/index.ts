@@ -279,6 +279,8 @@ Imported Arrangement:
 - melodyCollisionCountとobservationsは決定論的な観測値であり、推定コードだけより優先する。衝突がある場合は音数追加ではなく、Timing・Register・休止・役割交代を先に提案する。
 - sourceKind=external-songでもComposer Arranger由来のメタデータを要求しない。主旋律が未指定なら、捏造せずHarmony・Bass・Rhythm・Section配置を中心に診断する。
 - importedArrangementのトラック名は識別情報であり、名前だけで音楽的品質を断定しない。実測されたNote数、音域、Velocity、Active比率を根拠にする。
+- sourceProtectionがある場合は必須制約として扱う。preserveChords=trueなら読み込んだコード進行を変更せず、preserveMelody=trueなら読み込んだ主旋律ノートを変更しない。
+- sourceProtection.generationTargetsに含まれる独立した補助パートだけを提案・生成対象にする。原曲を変える代わりに、隙間、Section境界、空いている音域、役割交代からAccompaniment・Counter・Decoration・Signature Phrase・Transitionを設計する。
 
 Orchestration & Performance Intelligence:
 - musicalContext.orchestrationの対象Section planを参照し、soundPaletteとperformanceDirectionをその構造へ一致させる。

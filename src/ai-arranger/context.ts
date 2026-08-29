@@ -291,6 +291,20 @@ export function buildAiArrangementContext(
           },
         }
       : {}),
+    ...(project.sourceImport?.type === "midi"
+      ? {
+          sourceProtection: {
+            preserveChords: true,
+            preserveMelody: true,
+            generationTargets: ["Accompaniment", "Counter", "Decoration", "Signature Phrase", "Transition"],
+            instructions: [
+              "Imported MIDIのコード進行を変更しない",
+              "Imported MIDIの主旋律ノートを変更しない",
+              "提案と実音生成は独立した補助パートだけを対象にする",
+            ],
+          },
+        }
+      : {}),
     techniquePreferences: techniquePreferences(project, sectionId),
   }
 }
