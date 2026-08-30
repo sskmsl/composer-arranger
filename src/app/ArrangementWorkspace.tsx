@@ -24,6 +24,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const [playing, setPlaying] = useState(false)
   const [playbackBeat, setPlaybackBeat] = useState(0)
   const playbackRunRef = useRef(0)
+  const seekingRef = useRef(false)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
 
   const playRangeSequence = (
@@ -68,6 +69,24 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     playRangeSequence(ranges, 0, runId)
   }
 
+  const beginSeeking = () => {
+    if (seekingRef.current) return
+    seekingRef.current = true
+    if (playing) {
+      // ドラッグ中に旧再生位置がバーへ書き戻されないよう、一時停止する。
+      playbackRunRef.current += 1
+      previewPlayer.stop()
+    }
+  }
+
+  const commitSeek = (value: number) => {
+    const wasSeeking = seekingRef.current
+    seekingRef.current = false
+    const beat = Math.max(0, Math.min(material.totalBeats, value))
+    setPlaybackBeat(beat)
+    if (wasSeeking && playing) playSong(beat)
+  }
+
   const stop = (reset = false) => {
     const currentBeat = previewPlayer.isPlaying()
       ? previewPlayer.getCurrentBeat()
@@ -81,7 +100,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   useEffect(() => {
     if (!playing) return
     const timer = window.setInterval(() => {
-      if (!previewPlayer.isPlaying()) return
+      if (seekingRef.current || !previewPlayer.isPlaying()) return
       setPlaybackBeat(Math.max(0, Math.min(material.totalBeats, previewPlayer.getCurrentBeat())))
     }, 100)
     return () => window.clearInterval(timer)
@@ -153,14 +172,19 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
             aria-label="曲全体タイムラインの再生位置"
             className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
             onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
-            onPointerUp={(event) => {
-              if (!playing) return
-              playSong(Number(event.currentTarget.value))
+            onPointerDown={beginSeeking}
+            onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+            onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
+            onKeyDown={(event) => {
+              if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
+                beginSeeking()
+              }
             }}
             onKeyUp={(event) => {
-              if (!playing || !["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
-              playSong(Number(event.currentTarget.value))
+              if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+              commitSeek(Number(event.currentTarget.value))
             }}
+            onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
           />
         </div>
       )}

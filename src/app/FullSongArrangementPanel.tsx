@@ -23,6 +23,7 @@ export function FullSongArrangementPanel() {
   const [generationNotice, setGenerationNotice] = useState<string | null>(null)
   const [playbackBeat, setPlaybackBeat] = useState(0)
   const playbackRunRef = useRef(0)
+  const seekingRef = useRef(false)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
 
   const stop = (reset = false) => {
@@ -43,7 +44,7 @@ export function FullSongArrangementPanel() {
   useEffect(() => {
     if (!playingTrack) return
     const timer = window.setInterval(() => {
-      if (!previewPlayer.isPlaying()) return
+      if (seekingRef.current || !previewPlayer.isPlaying()) return
       setPlaybackBeat(Math.max(0, Math.min(material.totalBeats, previewPlayer.getCurrentBeat())))
     }, 100)
     return () => window.clearInterval(timer)
@@ -92,6 +93,23 @@ export function FullSongArrangementPanel() {
     setPlaybackBeat(startBeat)
     setPlayingTrack(trackId)
     playRangeSequence(trackId, tracks, ranges, 0, runId)
+  }
+
+  const beginSeeking = () => {
+    if (seekingRef.current) return
+    seekingRef.current = true
+    if (playingTrack) {
+      playbackRunRef.current += 1
+      previewPlayer.stop()
+    }
+  }
+
+  const commitSeek = (value: number) => {
+    const wasSeeking = seekingRef.current
+    seekingRef.current = false
+    const beat = Math.max(0, Math.min(material.totalBeats, value))
+    setPlaybackBeat(beat)
+    if (wasSeeking && playingTrack) playNotes(playingTrack, beat)
   }
 
   const rebuild = async () => {
@@ -226,14 +244,19 @@ export function FullSongArrangementPanel() {
               aria-label="全曲試聴の再生位置"
               className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
               onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
-              onPointerUp={(event) => {
-                if (!playingTrack) return
-                playNotes(playingTrack, Number(event.currentTarget.value))
+              onPointerDown={beginSeeking}
+              onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+              onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
+              onKeyDown={(event) => {
+                if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
+                  beginSeeking()
+                }
               }}
               onKeyUp={(event) => {
-                if (!playingTrack || !["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
-                playNotes(playingTrack, Number(event.currentTarget.value))
+                if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+                commitSeek(Number(event.currentTarget.value))
               }}
+              onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
             />
           </div>
 
