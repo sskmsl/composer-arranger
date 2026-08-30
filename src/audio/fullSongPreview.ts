@@ -10,16 +10,20 @@ export interface PreviewBeatRange {
 export function fullSongPreviewRanges(
   totalBeats: number,
   chunkBeats = 32,
+  startBeat = 0,
 ): PreviewBeatRange[] {
   if (!Number.isFinite(totalBeats) || totalBeats <= 0) return []
   const size = Number.isFinite(chunkBeats) && chunkBeats > 0
     ? chunkBeats
     : 32
+  const firstBeat = Number.isFinite(startBeat)
+    ? Math.max(0, Math.min(totalBeats, startBeat))
+    : 0
   const ranges: PreviewBeatRange[] = []
-  for (let startBeat = 0; startBeat < totalBeats; startBeat += size) {
+  for (let rangeStart = firstBeat; rangeStart < totalBeats; rangeStart += size) {
     ranges.push({
-      startBeat,
-      endBeat: Math.min(totalBeats, startBeat + size),
+      startBeat: rangeStart,
+      endBeat: Math.min(totalBeats, rangeStart + size),
     })
   }
   return ranges

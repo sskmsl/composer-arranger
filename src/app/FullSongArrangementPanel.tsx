@@ -11,6 +11,12 @@ import { Button, Select } from "@/ui/primitives"
 
 const CHARACTER_LABEL = { safe: "Safe", edge: "Edge", surprise: "Surprise", silence: "無音" }
 
+function formatPlaybackTime(beat: number, bpm: number): string {
+  const seconds = Math.max(0, beat) * 60 / Math.max(1, bpm)
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`
+}
+
 export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)
   const generate = useProjectStore((state) => state.generateFullSongArrangement)
@@ -21,19 +27,33 @@ export function FullSongArrangementPanel() {
   const [targetSectionId, setTargetSectionId] = useState<string>("")
   const [regenerating, setRegenerating] = useState(false)
   const [generationNotice, setGenerationNotice] = useState<string | null>(null)
+  const [playbackBeat, setPlaybackBeat] = useState(0)
   const playbackRunRef = useRef(0)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
 
-  const stop = () => {
+  const stop = (reset = false) => {
+    const currentBeat = previewPlayer.isPlaying()
+      ? previewPlayer.getCurrentBeat()
+      : playbackBeat
     playbackRunRef.current += 1
     previewPlayer.stop()
     setPlayingTrack(null)
+    setPlaybackBeat(reset ? 0 : Math.max(0, Math.min(material.totalBeats, currentBeat)))
   }
 
   useEffect(() => () => {
     playbackRunRef.current += 1
     previewPlayer.stop()
   }, [])
+
+  useEffect(() => {
+    if (!playingTrack) return
+    const timer = window.setInterval(() => {
+      if (!previewPlayer.isPlaying()) return
+      setPlaybackBeat(Math.max(0, Math.min(material.totalBeats, previewPlayer.getCurrentBeat())))
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [material.totalBeats, playingTrack])
 
   const playRangeSequence = (
     trackId: ArrangementTrackId | "all",
@@ -43,7 +63,10 @@ export function FullSongArrangementPanel() {
     runId: number,
   ) => {
     if (playbackRunRef.current !== runId || index >= ranges.length) {
-      if (playbackRunRef.current === runId) setPlayingTrack(null)
+      if (playbackRunRef.current === runId) {
+        setPlaybackBeat(material.totalBeats)
+        setPlayingTrack(null)
+      }
       return
     }
     previewPlayer.play({
@@ -54,27 +77,32 @@ export function FullSongArrangementPanel() {
       mode: trackId === "all" ? "chords-melody" : "melody-only",
       melody: trackId === "all" ? material.lead : [],
       range: ranges[index],
-      onEnded: () => playRangeSequence(trackId, tracks, ranges, index + 1, runId),
+      onEnded: () => {
+        setPlaybackBeat(ranges[index].endBeat)
+        playRangeSequence(trackId, tracks, ranges, index + 1, runId)
+      },
     })
   }
 
-  const playNotes = (trackId: ArrangementTrackId | "all") => {
+  const playNotes = (trackId: ArrangementTrackId | "all", requestedStartBeat = playbackBeat) => {
     if (!arrangement) return
     const tracks = trackId === "all"
       ? arrangement.tracks.filter((track) => !track.muted)
       : arrangement.tracks.filter((track) => track.id === trackId)
     if (tracks.every((track) => track.notes.length === 0)) return
-    const ranges = fullSongPreviewRanges(material.totalBeats)
+    const startBeat = requestedStartBeat >= material.totalBeats ? 0 : requestedStartBeat
+    const ranges = fullSongPreviewRanges(material.totalBeats, 32, startBeat)
     if (ranges.length === 0) return
     const runId = playbackRunRef.current + 1
     playbackRunRef.current = runId
+    setPlaybackBeat(startBeat)
     setPlayingTrack(trackId)
     playRangeSequence(trackId, tracks, ranges, 0, runId)
   }
 
   const rebuild = async () => {
     if (regenerating) return
-    stop()
+    stop(true)
     setRegenerating(true)
     setGenerationNotice(null)
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -172,7 +200,7 @@ export function FullSongArrangementPanel() {
           </details>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="dark" onClick={playingTrack ? stop : () => playNotes("all")}>
+            <Button variant="dark" onClick={playingTrack ? () => stop() : () => playNotes("all")}>
               {playingTrack ? <Square size={14} /> : <Play size={14} />}
               {playingTrack ? "停止" : "全パートを試聴"}
             </Button>
@@ -186,6 +214,33 @@ export function FullSongArrangementPanel() {
                 {arrangement.plan.sections.map((section) => <option key={section.sectionId} value={section.sectionId}>{section.sectionName}</option>)}
               </Select>
             </label>
+          </div>
+
+          <div className="rounded-md border border-hairline bg-black/15 px-3 py-2.5">
+            <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+              <span>{playingTrack === "all" ? "全パート" : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : "再生位置"}</span>
+              <span className="tabular-nums text-body-on-dark">
+                {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0.25, material.totalBeats)}
+              step={0.25}
+              value={Math.min(playbackBeat, material.totalBeats)}
+              aria-label="全曲試聴の再生位置"
+              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
+              onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
+              onPointerUp={(event) => {
+                if (!playingTrack) return
+                playNotes(playingTrack, Number(event.currentTarget.value))
+              }}
+              onKeyUp={(event) => {
+                if (!playingTrack || !["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+                playNotes(playingTrack, Number(event.currentTarget.value))
+              }}
+            />
           </div>
 
           <div className="grid gap-2 lg:grid-cols-2">

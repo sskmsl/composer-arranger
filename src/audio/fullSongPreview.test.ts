@@ -16,4 +16,12 @@ describe("full song arrangement preview", () => {
     ])
     expect(fullSongPreviewRanges(0)).toEqual([])
   })
+
+  it("再生バーで指定した途中位置から曲末まで分割する", () => {
+    expect(fullSongPreviewRanges(100, 32, 45)).toEqual([
+      { startBeat: 45, endBeat: 77 },
+      { startBeat: 77, endBeat: 100 },
+    ])
+    expect(fullSongPreviewRanges(100, 32, 100)).toEqual([])
+  })
 })
