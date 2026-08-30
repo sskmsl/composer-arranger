@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
@@ -105,10 +105,9 @@ export function LeftPanel({
   const newProject = useProjectStore((s) => s.newProject)
   const loadProject = useProjectStore((s) => s.loadProject)
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const midiInputRef = useRef<HTMLInputElement>(null)
   const [browserOpen, setBrowserOpen] = useState(false)
   const [midiImportAnalysis, setMidiImportAnalysis] = useState<MidiImportAnalysis | null>(null)
+  const [midiImportBusy, setMidiImportBusy] = useState(false)
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const ts = parseTimeSignature(project.song.timeSignature)
   const sectionContent = section?.content ?? DEFAULT_SECTION_CONTENT
@@ -152,47 +151,55 @@ export function LeftPanel({
           <Button variant="dark" onClick={() => downloadProjectFile(project)}>
             <Download size={13} /> Export
           </Button>
-          <Button variant="dark" onClick={() => fileInputRef.current?.click()}>
+          <label className="relative inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm bg-white/10 px-[15px] py-[8px] text-[13px] font-normal text-body-on-dark transition hover:bg-white/15 active:scale-95">
             <Upload size={13} /> Project JSON
-          </Button>
-          <Button variant="dark" onClick={() => midiInputRef.current?.click()}>
-            <Music2 size={13} /> Logic／外部曲 MIDI
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              try {
-                const raw = await readProjectFile(file)
-                loadProject(prepareImportedProject(raw))
-              } catch (error) {
-                window.alert(error instanceof Error ? error.message : "JSONの読み込みに失敗しました")
-              } finally {
-                e.target.value = ""
-              }
-            }}
-          />
-          <input
-            ref={midiInputRef}
-            type="file"
-            accept={MIDI_IMPORT_ACCEPT}
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              try {
-                setMidiImportAnalysis(await analyzeMidiProjectFile(file))
-              } catch (error) {
-                window.alert(error instanceof Error ? error.message : "MIDIの読み込みに失敗しました")
-              } finally {
-                e.target.value = ""
-              }
-            }}
-          />
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={async (event) => {
+                const input = event.currentTarget
+                const file = input.files?.[0]
+                if (!file) return
+                try {
+                  const raw = await readProjectFile(file)
+                  loadProject(prepareImportedProject(raw))
+                } catch (error) {
+                  window.alert(error instanceof Error ? error.message : "JSONの読み込みに失敗しました")
+                } finally {
+                  input.value = ""
+                }
+              }}
+            />
+          </label>
+          <label
+            className={clsx(
+              "relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-sm bg-white/10 px-[15px] py-[8px] text-[13px] font-normal text-body-on-dark transition hover:bg-white/15 active:scale-95",
+              midiImportBusy ? "cursor-wait opacity-60" : "cursor-pointer",
+            )}
+          >
+            <Music2 size={13} /> {midiImportBusy ? "MIDI解析中…" : "Logic／外部曲 MIDI"}
+            <input
+              type="file"
+              accept={MIDI_IMPORT_ACCEPT}
+              disabled={midiImportBusy}
+              className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-wait"
+              onChange={async (event) => {
+                const input = event.currentTarget
+                const file = input.files?.[0]
+                if (!file) return
+                setMidiImportBusy(true)
+                try {
+                  setMidiImportAnalysis(await analyzeMidiProjectFile(file))
+                } catch (error) {
+                  window.alert(error instanceof Error ? error.message : "MIDIの読み込みに失敗しました")
+                } finally {
+                  input.value = ""
+                  setMidiImportBusy(false)
+                }
+              }}
+            />
+          </label>
         </div>
         <p className="mt-2 text-[11px] leading-4 text-ink-muted-48">
           Logic Proでは「ファイル ＞ 書き出す ＞ 選択範囲をMIDIファイルとして」でSMFを書き出してください。.logicx／MP3はこの入口ではなく、標準MIDIを使用します。
