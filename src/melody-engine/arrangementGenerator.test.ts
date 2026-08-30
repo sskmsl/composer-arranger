@@ -102,6 +102,17 @@ describe("Arrangement Generator", () => {
     expect(result.plan.sections.find((section) => section.sectionId === "intro")?.activeRoles).not.toContain("dr-snare")
   })
 
+  it("全曲案の作り直しでseedとrevisionを更新し、同じ案を返さない", () => {
+    const input = project()
+    const before = generateFullSongArrangement(input, { seed: 90, revision: 0 })
+    const after = generateFullSongArrangement(input, { seed: 91, revision: 1 })
+
+    expect(after.plan.seed).toBe(91)
+    expect(after.tracks.every((track) => track.generationRevision === 1)).toBe(true)
+    expect(after.tracks.find((track) => track.id === "syn-pulse")?.notes)
+      .not.toEqual(before.tracks.find((track) => track.id === "syn-pulse")?.notes)
+  })
+
   it("BassのSection部分再生成で他トラックと他Sectionを変更しない", () => {
     const input = project()
     const before = generateFullSongArrangement(input, { seed: 11 })

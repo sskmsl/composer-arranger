@@ -141,7 +141,14 @@ export function executeArrangementActions(
   const results: ArrangementBatchActionResult[] = []
   let skippedCount = 0
   for (const action of actions) {
-    const result = executeArrangementAction(action)
+    let result: ArrangementActionExecutionResult
+    try {
+      result = executeArrangementAction(action)
+    } catch {
+      // 1 Sectionの候補生成失敗で、残りのSectionと全曲Arrangementまで
+      // 中断しない。失敗Actionは生成保留として結果一覧へ残す。
+      result = { generated: false, target: null }
+    }
     results.push({
       actionId: action.id,
       sectionId: action.sectionId,

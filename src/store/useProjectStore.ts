@@ -922,9 +922,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   generateFullSongArrangement: (brief, directive) => {
     const prev = get().project
     if (prev.sections.length === 0) return
+    const current = prev.fullSongArrangement
+    const nextRevision = current
+      ? Math.max(0, ...current.tracks.map((track) => track.generationRevision)) + 1
+      : 0
     const fullSongArrangement = generateFullSongArrangement(prev, {
-      brief: brief ?? prev.arrangementDirectorWorkspace?.brief ?? "",
-      directive,
+      seed: current ? current.plan.seed + 1 : undefined,
+      brief: brief ?? current?.plan.brief ?? prev.arrangementDirectorWorkspace?.brief ?? "",
+      directive: directive ?? current?.plan.directive,
+      revision: nextRevision,
     })
     set({
       history: [...get().history, snapshot(prev)],

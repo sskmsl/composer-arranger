@@ -546,18 +546,24 @@ function generateTrack(
 
 export function generateFullSongArrangement(
   project: ComposerProject,
-  options: { seed?: number; brief?: string; directive?: ArrangementGenerationDirective } = {},
+  options: {
+    seed?: number
+    brief?: string
+    directive?: ArrangementGenerationDirective
+    revision?: number
+  } = {},
 ): FullSongArrangement {
   const analysis = analyzeFullSongArrangement(project)
   const plan = buildFullSongArrangementPlan(project, analysis, options.seed, options.brief, options.directive)
   const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
+  const revision = Math.max(0, Math.round(options.revision ?? 0))
   return {
     version: "1.0.0",
     id: `arrangement:${plan.seed}`,
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: activeTrackIds.map((trackId) => generateTrack(project, plan, trackId)),
+    tracks: activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
   }
 }
 

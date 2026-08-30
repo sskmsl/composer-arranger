@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Download, Play, RefreshCw, Square, Volume2, VolumeX } from "lucide-react"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { previewPlayer } from "@/audio/previewPlayer"
+import { fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
 import { exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
@@ -18,11 +19,43 @@ export function FullSongArrangementPanel() {
   const arrangement = project.fullSongArrangement
   const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | "all" | null>(null)
   const [targetSectionId, setTargetSectionId] = useState<string>("")
+  const [regenerating, setRegenerating] = useState(false)
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null)
+  const playbackRunRef = useRef(0)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
 
   const stop = () => {
+    playbackRunRef.current += 1
     previewPlayer.stop()
     setPlayingTrack(null)
+  }
+
+  useEffect(() => () => {
+    playbackRunRef.current += 1
+    previewPlayer.stop()
+  }, [])
+
+  const playRangeSequence = (
+    trackId: ArrangementTrackId | "all",
+    tracks: NonNullable<typeof arrangement>["tracks"],
+    ranges: PreviewBeatRange[],
+    index: number,
+    runId: number,
+  ) => {
+    if (playbackRunRef.current !== runId || index >= ranges.length) {
+      if (playbackRunRef.current === runId) setPlayingTrack(null)
+      return
+    }
+    previewPlayer.play({
+      bpm: project.song.tempo,
+      chords: material.chords,
+      accompaniment: material.accompanimentPattern,
+      arrangementTracks: tracks,
+      mode: trackId === "all" ? "chords-melody" : "melody-only",
+      melody: trackId === "all" ? material.lead : [],
+      range: ranges[index],
+      onEnded: () => playRangeSequence(trackId, tracks, ranges, index + 1, runId),
+    })
   }
 
   const playNotes = (trackId: ArrangementTrackId | "all") => {
@@ -31,17 +64,26 @@ export function FullSongArrangementPanel() {
       ? arrangement.tracks.filter((track) => !track.muted)
       : arrangement.tracks.filter((track) => track.id === trackId)
     if (tracks.every((track) => track.notes.length === 0)) return
+    const ranges = fullSongPreviewRanges(material.totalBeats)
+    if (ranges.length === 0) return
+    const runId = playbackRunRef.current + 1
+    playbackRunRef.current = runId
     setPlayingTrack(trackId)
-    previewPlayer.play({
-      bpm: project.song.tempo,
-      chords: material.chords,
-      accompaniment: material.accompanimentPattern,
-      arrangementTracks: tracks,
-      mode: trackId === "all" ? "chords-melody" : "melody-only",
-      melody: trackId === "all" ? material.lead : [],
-      range: { startBeat: 0, endBeat: material.totalBeats },
-      onEnded: () => setPlayingTrack(null),
-    })
+    playRangeSequence(trackId, tracks, ranges, 0, runId)
+  }
+
+  const rebuild = async () => {
+    if (regenerating) return
+    stop()
+    setRegenerating(true)
+    setGenerationNotice(null)
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    try {
+      generate()
+      setGenerationNotice("新しいrevisionで全曲案を作り直しました。")
+    } finally {
+      setRegenerating(false)
+    }
   }
 
   return (
@@ -54,10 +96,16 @@ export function FullSongArrangementPanel() {
             コード・保護中のMelody・Section・制作意図を先に分析し、Energy CurveとPlanを確定してから独立トラックを生成します。
           </p>
         </div>
-        <Button onClick={() => generate()} disabled={project.sections.length === 0 || project.chords.length === 0}>
-          <RefreshCw size={14} /> {arrangement ? "全曲案を作り直す" : "全曲Arrangementを生成"}
+        <Button onClick={() => void rebuild()} disabled={regenerating || project.sections.length === 0 || project.chords.length === 0}>
+          <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} /> {regenerating ? "全曲案を生成中…" : arrangement ? "全曲案を作り直す" : "全曲Arrangementを生成"}
         </Button>
       </div>
+
+      {generationNotice && (
+        <p className="mt-3 rounded-sm border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2 text-[11px] text-emerald-100">
+          {generationNotice}
+        </p>
+      )}
 
       {!arrangement ? (
         <div className="mt-4 rounded-md border border-dashed border-hairline p-5 text-[12px] text-body-muted">

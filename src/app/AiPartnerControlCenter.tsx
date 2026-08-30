@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { ArrowRight, Check, CheckCircle2, Layers3, WandSparkles, Waypoints } from "lucide-react"
+import { ArrowRight, Check, CheckCircle2, Layers3, LoaderCircle, WandSparkles, Waypoints } from "lucide-react"
 import { buildAiPartnerOrchestrationPlan } from "@/ai-arranger/aiPartnerOrchestrator"
 import {
   executeArrangementAction,
@@ -54,8 +54,11 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const setWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
   const focusCandidateWorkspace = useProjectStore((state) => state.focusCandidateWorkspace)
+  const generateFullSongArrangement = useProjectStore((state) => state.generateFullSongArrangement)
   const [generated, setGenerated] = useState(false)
   const [showCurrentResults, setShowCurrentResults] = useState(false)
+  const [generatingFullSong, setGeneratingFullSong] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
   const [batchResult, setBatchResult] = useState<{
     generated: number
     skipped: number
@@ -94,13 +97,41 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
     if (result.target) onNavigate(result.target)
   }
 
-  const runFullSong = () => {
-    const result = executeArrangementActions(fullSongActions)
-    setBatchResult({
-      generated: result.generatedCount,
-      skipped: result.skippedCount,
-      items: wholeSongGenerationResultItems(selectedDirection.actions, result.results),
-    })
+  const runFullSong = async () => {
+    if (generatingFullSong || fullSongActions.length === 0) return
+    setGeneratingFullSong(true)
+    setGenerationError(null)
+    setBatchResult(null)
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    try {
+      const result = executeArrangementActions(fullSongActions)
+      const directionEnergyDelta = selectedDirection.character === "minimal"
+        ? -8
+        : selectedDirection.character === "cinematic"
+          ? 8
+          : selectedDirection.character === "rhythmic"
+            ? 5
+            : selectedDirection.character === "dark-experimental"
+              ? 2
+              : 0
+      generateFullSongArrangement(
+        `${selectedDirection.title}。${selectedDirection.summary}`,
+        {
+          intention: selectedDirection.summary,
+          energyDelta: directionEnergyDelta,
+          surpriseLevel: selectedDirection.character === "dark-experimental" ? 0.6 : 0.15,
+        },
+      )
+      setBatchResult({
+        generated: result.generatedCount,
+        skipped: result.skippedCount,
+        items: wholeSongGenerationResultItems(selectedDirection.actions, result.results),
+      })
+    } catch (reason) {
+      setGenerationError(reason instanceof Error ? reason.message : "全曲候補を生成できませんでした。")
+    } finally {
+      setGeneratingFullSong(false)
+    }
   }
 
   const openResult = (item: WholeSongGenerationResultItem) => {
@@ -197,10 +228,16 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
               <p className="mt-1 text-[11px] leading-4 text-emerald-100">{directionProgram.recommendationReason}</p>
             )}
           </div>
-          <Button onClick={runFullSong} disabled={fullSongActions.length === 0} className="shrink-0 justify-center sm:min-w-52">
-            <Layers3 size={14} /> この方針で全曲候補を生成
+          <Button onClick={() => void runFullSong()} disabled={generatingFullSong || fullSongActions.length === 0} className="shrink-0 justify-center sm:min-w-52">
+            {generatingFullSong ? <LoaderCircle size={14} className="animate-spin" /> : <Layers3 size={14} />}
+            {generatingFullSong ? "全曲候補を生成中…" : "この方針で全曲候補を生成"}
           </Button>
         </div>
+        {generationError && (
+          <p className="mt-3 rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[11px] text-red-200">
+            生成に失敗しました: {generationError}
+          </p>
+        )}
         {fullSongActions.length === 0 && (
           <div className="mt-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -241,8 +278,11 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
         {batchResult && (
           <div className="mt-3 rounded-sm border border-emerald-300/20 bg-emerald-400/[0.07] p-3">
             <p className="text-[11px] text-emerald-100">
-              {batchResult.generated}件の候補を生成しました{batchResult.skipped > 0 ? `（${batchResult.skipped}件保留）` : ""}。自動採用はしていません。
+              {batchResult.generated}件のSection候補と、{selectedDirection.title}方針のArrangement Plan・役割別MIDIを生成しました{batchResult.skipped > 0 ? `（${batchResult.skipped}件保留）` : ""}。自動採用はしていません。
             </p>
+            <Button variant="secondary" className="mt-2" onClick={() => onNavigate("arrangement")}>
+              <Layers3 size={14} /> 全パートを確認・試聴
+            </Button>
             <div className="mt-3 space-y-1.5">
               {batchResult.items.map((item) => (
                 <div

@@ -55,6 +55,20 @@ beforeEach(() => {
   stubPersist()
 })
 
+describe("Arrangement Generator store actions", () => {
+  it("全曲案を作り直すたびにseedとtrack revisionを進める", () => {
+    useProjectStore.getState().generateFullSongArrangement("first")
+    const first = useProjectStore.getState().project.fullSongArrangement!
+
+    useProjectStore.getState().generateFullSongArrangement()
+    const second = useProjectStore.getState().project.fullSongArrangement!
+
+    expect(second.plan.seed).toBe(first.plan.seed + 1)
+    expect(second.plan.brief).toBe("first")
+    expect(second.tracks.every((track) => track.generationRevision === 1)).toBe(true)
+  })
+})
+
 describe("Issue #41 / generateForSectionがContent設定で経路を切り替える", () => {
   it("既定(melody)では従来のMelody Engine候補が生成される", () => {
     useProjectStore.getState().generateForSection("s1")
