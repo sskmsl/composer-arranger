@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { previewPlayer } from "@/audio/previewPlayer"
+import { formatPlaybackTime, fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
 import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
@@ -21,39 +22,85 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const removeSection = useProjectStore((state) => state.removeSection)
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
+  const [playbackBeat, setPlaybackBeat] = useState(0)
+  const playbackRunRef = useRef(0)
+  const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
 
-  const playSong = () => {
-    const material = buildSongPlaybackMaterial(project)
-    if (
-      material.melody.length === 0 &&
-      material.chords.length === 0 &&
-      material.accompanimentPattern.length === 0
-    ) return
-    setPlaying(true)
+  const playRangeSequence = (
+    ranges: PreviewBeatRange[],
+    index: number,
+    runId: number,
+  ) => {
+    if (playbackRunRef.current !== runId || index >= ranges.length) {
+      if (playbackRunRef.current === runId) {
+        setPlaybackBeat(material.totalBeats)
+        setPlaying(false)
+      }
+      return
+    }
     previewPlayer.play({
       bpm: project.song.tempo,
       chords: material.chords,
       melody: material.melody,
       accompaniment: material.accompanimentPattern,
       mode: "chords-melody",
-      range: { startBeat: 0, endBeat: material.totalBeats },
-      onEnded: () => setPlaying(false),
+      range: ranges[index],
+      onEnded: () => {
+        setPlaybackBeat(ranges[index].endBeat)
+        playRangeSequence(ranges, index + 1, runId)
+      },
     })
   }
 
-  const stop = () => {
-    previewPlayer.stop()
-    setPlaying(false)
+  const playSong = (requestedStartBeat = playbackBeat) => {
+    if (
+      material.melody.length === 0 &&
+      material.chords.length === 0 &&
+      material.accompanimentPattern.length === 0
+    ) return
+    const startBeat = requestedStartBeat >= material.totalBeats ? 0 : requestedStartBeat
+    const ranges = fullSongPreviewRanges(material.totalBeats, 32, startBeat)
+    if (ranges.length === 0) return
+    const runId = playbackRunRef.current + 1
+    playbackRunRef.current = runId
+    setPlaybackBeat(startBeat)
+    setPlaying(true)
+    playRangeSequence(ranges, 0, runId)
   }
 
+  const stop = (reset = false) => {
+    const currentBeat = previewPlayer.isPlaying()
+      ? previewPlayer.getCurrentBeat()
+      : playbackBeat
+    playbackRunRef.current += 1
+    previewPlayer.stop()
+    setPlaying(false)
+    setPlaybackBeat(reset ? 0 : Math.max(0, Math.min(material.totalBeats, currentBeat)))
+  }
+
+  useEffect(() => {
+    if (!playing) return
+    const timer = window.setInterval(() => {
+      if (!previewPlayer.isPlaying()) return
+      setPlaybackBeat(Math.max(0, Math.min(material.totalBeats, previewPlayer.getCurrentBeat())))
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [material.totalBeats, playing])
+
+  useEffect(() => () => {
+    playbackRunRef.current += 1
+    previewPlayer.stop()
+  }, [])
+
   const playBoundary = (sectionStartBar: number) => {
-    const material = buildSongPlaybackMaterial(project)
     const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
     const boundaryBeat = (sectionStartBar - 1) * beatsPerBar
     const range = {
       startBeat: Math.max(0, boundaryBeat - beatsPerBar),
       endBeat: Math.min(material.totalBeats, boundaryBeat + beatsPerBar),
     }
+    playbackRunRef.current += 1
+    setPlaybackBeat(range.startBeat)
     setPlaying(true)
     previewPlayer.play({
       bpm: project.song.tempo,
@@ -62,7 +109,10 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
       accompaniment: material.accompanimentPattern,
       mode: "chords-melody",
       range,
-      onEnded: () => setPlaying(false),
+      onEnded: () => {
+        setPlaybackBeat(range.endBeat)
+        setPlaying(false)
+      },
     })
   }
 
@@ -70,7 +120,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-[16px] font-semibold">曲全体タイムライン</h2>
-        <Button variant="dark" onClick={playing ? stop : playSong} disabled={project.sections.length === 0}>
+        <Button variant="dark" onClick={playing ? () => stop() : () => playSong()} disabled={project.sections.length === 0}>
           {playing ? <Square size={14} /> : <Play size={14} />}
           {playing ? "停止" : "曲全体を再生"}
         </Button>
@@ -85,6 +135,35 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
           <Download size={14} /> 曲全体MIDI
         </Button>
       </div>
+
+      {project.sections.length > 0 && (
+        <div className="rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+            <span>{playing ? "曲全体を再生中" : "曲全体の再生位置"}</span>
+            <span className="tabular-nums text-body-on-dark">
+              {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0.25, material.totalBeats)}
+            step={0.25}
+            value={Math.min(playbackBeat, material.totalBeats)}
+            aria-label="曲全体タイムラインの再生位置"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
+            onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
+            onPointerUp={(event) => {
+              if (!playing) return
+              playSong(Number(event.currentTarget.value))
+            }}
+            onKeyUp={(event) => {
+              if (!playing || !["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+              playSong(Number(event.currentTarget.value))
+            }}
+          />
+        </div>
+      )}
 
       <p className="text-[12px] text-ink-muted-48">
         セクションをドラッグして曲順を変更し、各セクションで採用するMelody Variantを指定します。

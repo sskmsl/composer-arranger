@@ -3,19 +3,13 @@ import { Download, Play, RefreshCw, Square, Volume2, VolumeX } from "lucide-reac
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { previewPlayer } from "@/audio/previewPlayer"
-import { fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
+import { formatPlaybackTime, fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
 import { exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 
 const CHARACTER_LABEL = { safe: "Safe", edge: "Edge", surprise: "Surprise", silence: "無音" }
-
-function formatPlaybackTime(beat: number, bpm: number): string {
-  const seconds = Math.max(0, beat) * 60 / Math.max(1, bpm)
-  const minutes = Math.floor(seconds / 60)
-  return `${minutes}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`
-}
 
 export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)

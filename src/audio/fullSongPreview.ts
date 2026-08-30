@@ -3,6 +3,12 @@ export interface PreviewBeatRange {
   endBeat: number
 }
 
+export function formatPlaybackTime(beat: number, bpm: number): string {
+  const seconds = Math.max(0, beat) * 60 / Math.max(1, bpm)
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`
+}
+
 /**
  * 長い全曲ArrangementをWeb Audioへ一括予約すると、数千Oscillatorが同時に
  * 作られてブラウザーが再生を早期停止する。短い連続区間へ分けて順番に予約する。

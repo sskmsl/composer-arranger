@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { fullSongPreviewRanges } from "./fullSongPreview"
+import { formatPlaybackTime, fullSongPreviewRanges } from "./fullSongPreview"
 
 describe("full song arrangement preview", () => {
   it("長い曲をWeb Audioへ一括予約せず32拍単位へ分割する", () => {
@@ -23,5 +23,10 @@ describe("full song arrangement preview", () => {
       { startBeat: 77, endBeat: 100 },
     ])
     expect(fullSongPreviewRanges(100, 32, 100)).toEqual([])
+  })
+
+  it("拍位置をTempoに応じた時間表示へ変換する", () => {
+    expect(formatPlaybackTime(0, 120)).toBe("0:00")
+    expect(formatPlaybackTime(128, 128)).toBe("1:00")
   })
 })
