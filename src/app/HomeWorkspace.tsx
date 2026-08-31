@@ -32,10 +32,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-7 px-4 py-8 sm:px-7 lg:py-12">
         <div className="max-w-3xl">
           <p className="text-[12px] font-semibold tracking-[0.2em] text-primary-on-dark">COMPOSER ARRANGER</p>
-          <h1 className="mt-3 text-[24px] font-semibold leading-tight text-body-on-dark sm:text-[32px]">
-            曲を準備して、アレンジを始める
-          </h1>
-          <p className="mt-3 max-w-2xl text-[14px] leading-6 text-body-muted">
+          <p className="mt-4 max-w-2xl text-[14px] leading-6 text-body-muted">
             最初に素材の準備方法を選んでください。専門的なGenerator設定は、必要になった時だけ「詳細調整」から開けます。
           </p>
         </div>
