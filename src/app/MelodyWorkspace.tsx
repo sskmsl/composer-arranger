@@ -6,13 +6,14 @@ import { AccompanimentPianoRoll } from "./AccompanimentPianoRoll"
 import { ChordPianoRoll } from "./ChordPianoRoll"
 import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
+import { EmptySectionState } from "./EmptySectionState"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS } from "@/core/sectionContent"
 import { GENERATOR_PROFILE_LABELS } from "@/melody-engine/generatorProfile"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import type { SeedOperation } from "@/melody-engine/developSeed"
-import { Sparkles, Star } from "lucide-react"
+import { ArrowRight, Sparkles, Star } from "lucide-react"
 import type { MelodyVariant, RangeRegenerationLocks } from "@/core/melody"
 import { isTransitionContextStale } from "@/melody-engine/sectionTransition"
 import {
@@ -40,7 +41,7 @@ const SEED_OPS: { id: SeedOperation; label: string }[] = [
   { id: "restrain", label: "Restrain" },
 ]
 
-export function MelodyWorkspace() {
+export function MelodyWorkspace({ onNavigate }: { onNavigate?: (tab: "ai-partner") => void } = {}) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const generateForSection = useProjectStore((s) => s.generateForSection)
@@ -131,14 +132,14 @@ export function MelodyWorkspace() {
   }, [variant?.id])
 
   if (!section) {
-    return <div className="flex flex-1 items-center justify-center text-ink-muted-48">左のパネルからセクションを選択してください</div>
+    return <EmptySectionState />
   }
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
-          <Sparkles size={14} /> Generate from Chords
+          <Sparkles size={14} /> コードから主旋律を生成
         </Button>
         {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
         {sectionContent.lead !== "melody" && (
@@ -148,6 +149,11 @@ export function MelodyWorkspace() {
         {chords.length > 0 && chordHasError && (
           <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
         )}
+        {chords.length > 0 && !chordHasError && onNavigate && (
+          <Button variant="dark" onClick={() => onNavigate("ai-partner")}>
+            AIに全曲の方針を相談 <ArrowRight size={13} />
+          </Button>
+        )}
 
         {variant && (
           <Button
@@ -155,7 +161,7 @@ export function MelodyWorkspace() {
             onClick={() => setActiveMelody(variant.id)}
             className={project.activeMelodyId === variant.id ? "opacity-50" : ""}
           >
-            <Star size={13} /> {project.activeMelodyId === variant.id ? "Active Melody" : "Set as Active Melody"}
+            <Star size={13} /> {project.activeMelodyId === variant.id ? "採用中の主旋律" : "この主旋律を採用"}
           </Button>
         )}
         <PerformanceReviewBadge
@@ -302,7 +308,7 @@ export function MelodyWorkspace() {
         /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */
         <p className="text-[11px] text-ink-muted-48">
           {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
-          作り直す場合は Generate を実行してください。
+          作り直す場合は「コードから主旋律を生成」を実行してください。
         </p>
       )}
       {accompanimentPatternNotes.length > 0 && (

@@ -31,6 +31,7 @@ import {
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
+import { EmptySectionState } from "./EmptySectionState"
 
 const TYPE_LABELS: Record<string, string> = {
   "decorative-fill": "Decorative",
@@ -143,11 +144,7 @@ export function DecorationWorkspace() {
   }, [activeMelody, selectedSectionId])
 
   if (!section) {
-    return (
-      <main className="flex flex-1 items-center justify-center text-ink-muted-48">
-        左のパネルからセクションを選択してください
-      </main>
-    )
+    return <EmptySectionState title="装飾を作るセクションが必要です" />
   }
 
   const updateSetting = <K extends keyof DecorationSettings>(
@@ -224,7 +221,7 @@ export function DecorationWorkspace() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="mr-auto">
             <h2 className="text-[15px] font-semibold text-body-on-dark">
-              Decoration Generator
+              装飾フレーズ
             </h2>
             <p className="mt-0.5 text-[11px] text-ink-muted-48">
               Silence GateとPhrase Boundaryを判断し、6つの役割から採用価値のある10 Gestureを提案します
@@ -234,7 +231,7 @@ export function DecorationWorkspace() {
             onClick={() => generate(section.id, settings)}
             disabled={chords.length === 0 || chordHasError}
           >
-            <Sparkles size={14} /> Generate Decorations
+            <Sparkles size={14} /> 装飾候補を生成
           </Button>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
@@ -250,7 +247,7 @@ export function DecorationWorkspace() {
               }
               className="mt-1 w-full"
             >
-              <option value="auto">Auto</option>
+              <option value="auto">自動</option>
               <option value="decorative-fill">Decorative Fill</option>
               <option value="transition-fill">Transition Fill</option>
               <option value="ending-fill">Ending Fill</option>
@@ -268,7 +265,7 @@ export function DecorationWorkspace() {
               }
               className="mt-1 w-full"
             >
-              <option value="auto">Auto</option>
+              <option value="auto">自動</option>
               <option value="strings">Strings</option>
               <option value="bell">Bell</option>
               <option value="piano">Piano</option>
@@ -323,7 +320,7 @@ export function DecorationWorkspace() {
               }
               className="mt-1 w-full"
             >
-              <option value="auto">Auto</option>
+              <option value="auto">自動</option>
               <option value="rising">Rising</option>
               <option value="falling">Falling</option>
               <option value="mixed">Mixed</option>
@@ -342,6 +339,12 @@ export function DecorationWorkspace() {
           </label>
         </div>
       </section>
+
+      {chords.length === 0 && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          左パネルの「コード進行」を入力すると、装飾候補を生成できます。
+        </p>
+      )}
 
       {chordHasError && (
         <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
@@ -536,7 +539,7 @@ export function DecorationWorkspace() {
                       className="!px-2 !text-[11px]"
                       onClick={() => assign(candidate.id)}
                     >
-                      <Check size={11} /> Set Active
+                      <Check size={11} /> この装飾を採用
                     </Button>
                   </div>
                 </article>

@@ -12,7 +12,13 @@ import { isCloudSyncConfigured } from "@/features/sync/projectSync"
  * Issue #14: IndexedDBへ自動保存したプロジェクトを一覧・整理するブラウザー。
  * Open / Duplicate / Rename / Delete と、自動保存状態・最終保存時刻・検索・更新日時順を提供する。
  */
-export function ProjectBrowser({ onClose }: { onClose: () => void }) {
+export function ProjectBrowser({
+  onClose,
+  onOpen,
+}: {
+  onClose: () => void
+  onOpen?: () => void
+}) {
   const currentId = useProjectStore((s) => s.project.projectId)
   const loadProjectById = useProjectStore((s) => s.loadProjectById)
   const duplicateStoredProject = useProjectStore((s) => s.duplicateStoredProject)
@@ -49,6 +55,7 @@ export function ProjectBrowser({ onClose }: { onClose: () => void }) {
   const open = async (id: string) => {
     await loadProjectById(id)
     onClose()
+    onOpen?.()
   }
 
   const duplicate = async (id: string) => {

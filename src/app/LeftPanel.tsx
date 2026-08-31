@@ -132,7 +132,7 @@ export function LeftPanel({
         <X size={16} />
       </IconButton>
 
-      <SectionCard title="Composer Project">
+      <SectionCard title="曲とプロジェクト">
         <div className="flex flex-wrap gap-1.5">
           <Button
             variant="dark"
@@ -143,16 +143,16 @@ export function LeftPanel({
               }
             }}
           >
-            <FilePlus2 size={13} /> New
+            <FilePlus2 size={13} /> 新しい曲
           </Button>
           <Button variant="dark" onClick={() => setBrowserOpen(true)}>
             <FolderOpen size={13} /> 開く
           </Button>
           <Button variant="dark" onClick={() => downloadProjectFile(project)}>
-            <Download size={13} /> Export
+            <Download size={13} /> 保存用JSON
           </Button>
           <label className="relative inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm bg-white/10 px-[15px] py-[8px] text-[13px] font-normal text-body-on-dark transition hover:bg-white/15 active:scale-95">
-            <Upload size={13} /> Project JSON
+            <Upload size={13} /> JSONを開く
             <input
               type="file"
               accept="application/json,.json"
@@ -301,7 +301,7 @@ export function LeftPanel({
                 onBlur={(e) => updateSection(section.id, { name: e.currentTarget.value })}
               />
             </FieldGroup>
-            <FieldGroup label="Role">
+            <FieldGroup label="セクションの役割">
               <Select value={section.role} onChange={(e) => updateSection(section.id, { role: e.target.value as SectionRole })}>
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
@@ -321,7 +321,7 @@ export function LeftPanel({
             </FieldGroup>
 
             {/* Issue #41: 何を鳴らすかはRoleとは独立した軸。UIは7プリセットで提示し、内部は2軸で保持する */}
-            <FieldGroup label="Content(このセクションで鳴らす内容)">
+            <FieldGroup label="このセクションで鳴らす内容">
               <Select
                 value={presetIdFor(sectionContent) ?? ""}
                 onChange={(e) => {
@@ -339,12 +339,12 @@ export function LeftPanel({
               <p className="mt-1 text-[11px] text-ink-muted-48">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
             </FieldGroup>
 
-            <FieldGroup label="Accompaniment Pattern">
+            <FieldGroup label="伴奏パターン">
               <Select
                 value={project.sectionAccompanimentPatternAssignments[section.id] ?? ""}
                 onChange={(e) => setSectionAccompanimentPattern(section.id, e.target.value || null)}
               >
-                <option value="">None</option>
+                <option value="">なし</option>
                 {project.accompanimentPatterns.map((pattern) => (
                   <option key={pattern.id} value={pattern.id}>
                     {pattern.name}

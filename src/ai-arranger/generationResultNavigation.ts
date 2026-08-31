@@ -4,6 +4,7 @@ import type { ArrangementBatchActionResult } from "./arrangementActionExecution"
 import type { WholeSongArrangementAction } from "./wholeSongDirectionPlan"
 
 const RESULT_LABELS: Record<MainTab, string> = {
+  home: "ホーム",
   melody: "Melody",
   phrase: "Phrase",
   signature: "Signature",

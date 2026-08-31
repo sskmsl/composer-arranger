@@ -69,6 +69,22 @@ describe("Arrangement Generator store actions", () => {
   })
 })
 
+describe("初見ユーザーの新規作成", () => {
+  it("新しい曲には作業対象のAメロを自動作成して選択する", () => {
+    useProjectStore.getState().newProject()
+    const state = useProjectStore.getState()
+
+    expect(state.project.sections).toHaveLength(1)
+    expect(state.project.sections[0]).toMatchObject({
+      name: "Aメロ",
+      role: "verse",
+      startBar: 1,
+      lengthBars: 8,
+    })
+    expect(state.selectedSectionId).toBe(state.project.sections[0].id)
+  })
+})
+
 describe("Issue #41 / generateForSectionがContent設定で経路を切り替える", () => {
   it("既定(melody)では従来のMelody Engine候補が生成される", () => {
     useProjectStore.getState().generateForSection("s1")

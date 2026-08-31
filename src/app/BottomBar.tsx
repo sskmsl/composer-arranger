@@ -128,11 +128,17 @@ export function BottomBar() {
 
       <div className="ml-auto" />
 
+      {!hasPlayableMaterial && (
+        <span className="hidden text-[11px] text-body-muted md:inline">
+          再生するにはコードまたは候補を用意してください
+        </span>
+      )}
+
       <Select value={mode} onChange={(e) => setMode(e.target.value as PreviewMode)} className="!py-1">
-        <option value="melody-only">Melody Only</option>
-        <option value="chords-melody">Chords + Melody</option>
-        <option value="chords-only">Chords Only</option>
-        <option value="accompaniment-only">Arpeggio Only</option>
+        <option value="melody-only">主旋律のみ</option>
+        <option value="chords-melody">コード＋主旋律</option>
+        <option value="chords-only">コードのみ</option>
+        <option value="accompaniment-only">伴奏パターンのみ</option>
       </Select>
       <IconButton
         onClick={playing ? stop : play}

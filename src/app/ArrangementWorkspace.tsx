@@ -285,8 +285,10 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
       </div>
 
       {project.sections.length === 0 && (
-        <div className="rounded-lg border border-dashed border-hairline p-8 text-center text-[13px] text-ink-muted-48">
-          Melodyタブでセクションを追加してください。
+        <div className="rounded-lg border border-dashed border-hairline p-8 text-center">
+          <p className="text-[15px] font-semibold text-body-on-dark">アレンジする曲がまだありません</p>
+          <p className="mt-2 text-[12px] text-body-muted">先にMIDIを読み込むか、新しい曲のセクションを作成してください。</p>
+          <Button className="mt-4" onClick={() => onNavigate("home")}>ホームで曲を準備する</Button>
         </div>
       )}
     </main>

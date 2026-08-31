@@ -1,16 +1,21 @@
 import { useProjectStore } from "@/store/useProjectStore"
 import { IconButton, Pill, TextInput } from "@/ui/primitives"
-import { CircleHelp, PanelLeft, PanelRight } from "lucide-react"
+import { CircleHelp, House, PanelLeft, PanelRight, SlidersHorizontal } from "lucide-react"
 import type { MainTab } from "./App"
 
-const TABS: { id: MainTab; label: string }[] = [
-  { id: "melody", label: "Melody" },
-  { id: "phrase", label: "Phrase" },
-  { id: "signature", label: "Signature" },
-  { id: "counter", label: "Counter" },
-  { id: "ai-partner", label: "AI Partner" },
-  { id: "arrangement", label: "Arrangement" },
-  { id: "audition", label: "Audition" },
+const PRIMARY_TABS: { id: MainTab; label: string }[] = [
+  { id: "home", label: "ホーム" },
+  { id: "ai-partner", label: "AI相談" },
+  { id: "arrangement", label: "全曲アレンジ" },
+  { id: "audition", label: "比較試聴" },
+]
+
+const DETAIL_TABS: { id: MainTab; label: string; description: string }[] = [
+  { id: "melody", label: "主旋律", description: "セクション全体のメロディ" },
+  { id: "phrase", label: "短いフレーズ", description: "2〜8小節の着想" },
+  { id: "signature", label: "曲の顔", description: "記憶に残る導入フレーズ" },
+  { id: "counter", label: "対旋律", description: "主旋律へ応答する第二の線" },
+  { id: "decoration", label: "装飾", description: "隙間を生かす短い演出" },
 ]
 
 export function TopBar({
@@ -26,17 +31,25 @@ export function TopBar({
 }) {
   const project = useProjectStore((s) => s.project)
   const updateSongField = useProjectStore((s) => s.updateSongField)
+  const hasSidePanels = ["melody", "phrase", "signature", "counter", "decoration"].includes(tab)
 
   return (
     <header className="flex shrink-0 flex-col gap-2 border-b border-hairline bg-surface-black px-3 py-2 lg:h-11 lg:flex-row lg:items-center lg:gap-4 lg:px-4 lg:py-0">
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-        <IconButton onClick={onToggleLeft} className="lg:hidden" title="左パネルを開閉">
-          <PanelLeft size={16} />
-        </IconButton>
+        {hasSidePanels && (
+          <IconButton onClick={onToggleLeft} className="lg:hidden" title="曲とセクションを開く">
+            <PanelLeft size={16} />
+          </IconButton>
+        )}
 
-        <span className="hidden font-display text-[15px] font-semibold tracking-tight text-body-on-dark sm:inline">
-          Composer Arranger
-        </span>
+        <button
+          type="button"
+          onClick={() => onTabChange("home")}
+          className="hidden items-center gap-2 font-display text-[15px] font-semibold tracking-tight text-body-on-dark hover:text-primary-on-dark sm:inline-flex"
+          title="ホームへ戻る"
+        >
+          <House size={14} /> Composer Arranger
+        </button>
 
         <TextInput
           onBlur={(e) => {
@@ -49,17 +62,11 @@ export function TopBar({
           className="w-28 min-w-0 flex-1 !bg-transparent !border-transparent text-[13px] hover:!border-hairline sm:w-40 sm:flex-none"
         />
 
-        <nav className="ml-auto flex items-center gap-1.5 lg:hidden">
-          {TABS.map((t) => (
-            <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)} className="!px-2.5 !py-1 !text-[12px]">
-              {t.label}
-            </Pill>
-          ))}
-        </nav>
-
-        <IconButton onClick={onToggleRight} className="lg:hidden" title="右パネルを開閉">
-          <PanelRight size={16} />
-        </IconButton>
+        {hasSidePanels && (
+          <IconButton onClick={onToggleRight} className="lg:hidden" title="詳細設定を開く">
+            <PanelRight size={16} />
+          </IconButton>
+        )}
 
         <a
           href="./manual.html"
@@ -71,6 +78,27 @@ export function TopBar({
           <CircleHelp size={16} />
         </a>
       </div>
+
+      <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-0.5 lg:hidden">
+        {PRIMARY_TABS.map((t) => (
+          <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)} className="shrink-0 !px-2.5 !py-1 !text-[12px]">
+            {t.label}
+          </Pill>
+        ))}
+        <details className="group relative shrink-0">
+          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-pill border border-hairline px-2.5 py-1 text-[12px] text-body-muted hover:bg-white/10 hover:text-body-on-dark">
+            <SlidersHorizontal size={12} /> 詳細調整
+          </summary>
+          <div className="fixed left-3 top-24 z-[70] w-56 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
+            {DETAIL_TABS.map((item) => (
+              <button key={item.id} type="button" onClick={() => onTabChange(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
+                <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
+                <span className="text-[11px] text-body-muted">{item.description}</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      </nav>
 
       <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
         <label className="flex items-center gap-1">
@@ -104,11 +132,24 @@ export function TopBar({
       </div>
 
       <nav className="hidden shrink-0 items-center gap-1.5 lg:ml-auto lg:flex">
-        {TABS.map((t) => (
+        {PRIMARY_TABS.map((t) => (
           <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)}>
             {t.label}
           </Pill>
         ))}
+        <details className="group relative">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark">
+            <SlidersHorizontal size={12} /> 詳細調整
+          </summary>
+          <div className="absolute right-0 top-9 z-[70] w-60 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
+            {DETAIL_TABS.map((item) => (
+              <button key={item.id} type="button" onClick={() => onTabChange(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
+                <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
+                <span className="text-[11px] text-body-muted">{item.description}</span>
+              </button>
+            ))}
+          </div>
+        </details>
         <a
           href="./manual.html"
           target="_blank"

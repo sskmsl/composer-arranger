@@ -13,6 +13,7 @@ import {
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
+import { EmptySectionState } from "./EmptySectionState"
 
 const RHYTHM_LABELS: Record<PhraseCandidate["intent"]["rhythmCharacter"], string> = {
   flowing: "流れるリズム",
@@ -89,11 +90,7 @@ export function PhraseWorkspace() {
   )
 
   if (!section) {
-    return (
-      <main className="flex flex-1 items-center justify-center text-ink-muted-48">
-        左のパネルからセクションを選択してください
-      </main>
-    )
+    return <EmptySectionState title="短いフレーズを作るセクションが必要です" />
   }
 
   const stop = () => {
@@ -141,7 +138,7 @@ export function PhraseWorkspace() {
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
       <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
         <div className="mr-auto">
-          <h2 className="text-[15px] font-semibold text-body-on-dark">Phrase Ideas</h2>
+          <h2 className="text-[15px] font-semibold text-body-on-dark">短いフレーズ</h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
             コードとセクションの役割から、Logic Proで組み合わせられる2〜8小節の独立した着想を作ります
           </p>
@@ -153,7 +150,7 @@ export function PhraseWorkspace() {
             onChange={(event) => setLengthChoice(event.target.value as LengthChoice)}
             className="!py-1"
           >
-            <option value="auto">Auto</option>
+            <option value="auto">自動</option>
             {[2, 3, 4, 5, 6, 7, 8].map((bars) => (
               <option key={bars} value={bars} disabled={bars > maxLength}>
                 {bars}小節
@@ -165,13 +162,18 @@ export function PhraseWorkspace() {
           onClick={() => generate(section.id, requestedLength)}
           disabled={section.lengthBars < 2 || allChords.length === 0 || chordHasError}
         >
-          <Sparkles size={14} /> Generate Phrases
+          <Sparkles size={14} /> フレーズ候補を生成
         </Button>
       </section>
 
       {section.lengthBars < 2 && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
           フレーズ生成には2小節以上のセクションが必要です。
+        </p>
+      )}
+      {allChords.length === 0 && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          左パネルの「コード進行」を入力すると、フレーズ候補を生成できます。
         </p>
       )}
       {chordHasError && (

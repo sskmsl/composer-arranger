@@ -144,11 +144,22 @@ export function AuditionWorkspace() {
         </label>
       </div>
 
+      {!section && (
+        <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[12px] text-amber-200">
+          比較するセクションがありません。先にホームから曲を準備してください。
+        </p>
+      )}
+      {section && variants.length === 0 && (
+        <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[12px] text-amber-200">
+          比較できる主旋律候補がありません。「詳細調整 → 主旋律」で候補を生成すると再生できます。
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
         <Select value={mode} onChange={(event) => setMode(event.target.value as PreviewMode)}>
-          <option value="melody-only">Melody Only</option>
-          <option value="chords-melody">Chords + Melody</option>
-          <option value="chords-only">Chords Only</option>
+          <option value="melody-only">主旋律のみ</option>
+          <option value="chords-melody">コード＋主旋律</option>
+          <option value="chords-only">コードのみ</option>
         </Select>
         <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
           開始
@@ -271,7 +282,7 @@ export function AuditionWorkspace() {
             <ThumbsDown size={13} /> Reject
           </Button>
           <Button variant="secondary" onClick={() => setActiveMelody(activeVariant.id)}>
-            <Check size={13} /> Set Active
+            <Check size={13} /> この主旋律を採用
           </Button>
         </div>
       )}

@@ -675,6 +675,26 @@ function timingNoticeFrom(result: ReturnType<typeof resolveProjectTiming>): Timi
   return null
 }
 
+/**
+ * 初見の作曲者が空のキャンバスで止まらないよう、新規曲には最初の作業対象を用意する。
+ * コードは意図を決めずに自動入力せず、Sectionだけを作成する。
+ */
+function createStarterProject() {
+  const project = createEmptyProject("New Song")
+  const section: Section = {
+    id: crypto.randomUUID(),
+    name: "Aメロ",
+    role: "verse",
+    startBar: 1,
+    lengthBars: 8,
+    content: { ...DEFAULT_SECTION_CONTENT },
+  }
+  return {
+    project: { ...project, sections: [section] },
+    selectedSectionId: section.id,
+  }
+}
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   project: createEmptyProject("New Song"),
   selectedSectionId: null,
@@ -722,10 +742,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   newProject: () => {
-    const project = createEmptyProject("New Song")
+    const starter = createStarterProject()
     set({
-      project,
-      selectedSectionId: null,
+      project: starter.project,
+      selectedSectionId: starter.selectedSectionId,
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,

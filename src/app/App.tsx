@@ -15,8 +15,10 @@ import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
 import { AiPartnerWorkspace } from "./AiPartnerWorkspace"
 import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
 import { ImportStartGuide } from "./ImportStartGuide"
+import { HomeWorkspace } from "./HomeWorkspace"
 
 export type MainTab =
+  | "home"
   | "melody"
   | "phrase"
   | "signature"
@@ -30,7 +32,7 @@ export function App() {
   const project = useProjectStore((s) => s.project)
   const hydrate = useProjectStore((s) => s.hydrate)
   const hydrated = useProjectStore((s) => s.hydrated)
-  const [tab, setTab] = useState<MainTab>("melody")
+  const [tab, setTab] = useState<MainTab>("home")
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
   const [importGuideOpen, setImportGuideOpen] = useState(false)
@@ -90,10 +92,11 @@ export function App() {
             ← AI Partnerの全曲候補一覧へ戻る
           </button>
         )}
+        {tab === "home" && <HomeWorkspace onNavigate={changeTopTab} />}
         {tab === "melody" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <MelodyWorkspace />
+            <MelodyWorkspace onNavigate={setTab} />
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} />
             {(leftOpen || rightOpen) && (
               <div
@@ -184,7 +187,8 @@ export function App() {
         {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
         {tab === "audition" && <AuditionWorkspace />}
       </div>
-      {tab !== "phrase" &&
+      {tab !== "home" &&
+        tab !== "phrase" &&
         tab !== "signature" &&
         tab !== "counter" &&
         tab !== "decoration" &&

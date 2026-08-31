@@ -35,6 +35,7 @@ import {
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
+import { EmptySectionState } from "./EmptySectionState"
 
 const STYLE_LABELS: Record<string, string> = {
   "bell-response": "Bell",
@@ -176,11 +177,7 @@ export function CounterWorkspace() {
   )
 
   if (!section) {
-    return (
-      <main className="flex flex-1 items-center justify-center text-ink-muted-48">
-        左のパネルからセクションを選択してください
-      </main>
-    )
+    return <EmptySectionState title="対旋律を作るセクションが必要です" />
   }
 
   const stop = () => {
@@ -245,7 +242,7 @@ export function CounterWorkspace() {
       <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
         <div className="mr-auto">
           <h2 className="text-[15px] font-semibold text-body-on-dark">
-            Counter Generator
+            対旋律
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
             主旋律へ何を返し、どこで黙るかまで設計した独立Counterを10案提案します
@@ -255,13 +252,18 @@ export function CounterWorkspace() {
           onClick={() => generate(section.id)}
           disabled={!activeMelody || chords.length === 0 || chordHasError}
         >
-          <Sparkles size={14} /> Generate 10 Counters
+          <Sparkles size={14} /> 対旋律を10候補生成
         </Button>
       </section>
 
       {!activeMelody && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
-          Melodyタブで、このセクションのActive Melodyを設定してください。
+          「詳細調整 → 主旋律」で、このセクションに採用する主旋律を設定してください。
+        </p>
+      )}
+      {chords.length === 0 && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          左パネルの「コード進行」を入力すると、対旋律候補を生成できます。
         </p>
       )}
       {chordHasError && (
@@ -496,7 +498,7 @@ export function CounterWorkspace() {
                     className="!px-2 !text-[11px]"
                     onClick={() => assign(candidate.id)}
                   >
-                    <Check size={12} /> Set Active
+                    <Check size={12} /> この対旋律を採用
                   </Button>
                 </div>
               </article>

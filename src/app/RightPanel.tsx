@@ -128,9 +128,9 @@ export function RightPanel({
         <X size={16} />
       </IconButton>
 
-      <SectionCard title="Song Profile" className="w-full min-w-0">
+      <SectionCard title="曲の方向性" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
-          <FieldGroup label="曲全体のProfile">
+          <FieldGroup label="曲全体のスタイル">
             <Select className="w-full min-w-0" value={project.song.songProfile} onChange={(e) => updateSongField("songProfile", e.target.value as SongProfileId)}>
               {PROFILE_OPTIONS.map((p) => (
                 <option key={p} value={p}>
@@ -158,7 +158,14 @@ export function RightPanel({
         </div>
       </SectionCard>
 
-      {mode === "melody" && <SectionCard title="Generator Profile" className="w-full min-w-0">
+      <details className="w-full rounded-md border border-hairline bg-surface-tile-1">
+        <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-body-on-dark hover:bg-white/5">
+          詳細な生成設定を開く
+          <span className="mt-1 block text-[11px] font-normal text-body-muted">候補の作り方・音域・密度を細かく調整します</span>
+        </summary>
+        <div className="flex flex-col gap-3 border-t border-hairline p-2">
+
+      {mode === "melody" && <SectionCard title="主旋律の作り方" className="w-full min-w-0">
         <p className="mb-2 text-[11px] text-ink-muted-48">
           選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
         </p>
@@ -192,7 +199,7 @@ export function RightPanel({
         mode === "counter" ||
         mode === "decoration") && (
         <SectionCard
-          title="Technique Fit 実験"
+          title="技法ライブラリ比較（実験）"
           className="w-full min-w-0"
         >
           <label className="flex cursor-pointer items-start gap-2 text-[12px]">
@@ -546,6 +553,8 @@ export function RightPanel({
           )}
         </SectionCard>
       )}
+        </div>
+      </details>
     </aside>
   )
 }

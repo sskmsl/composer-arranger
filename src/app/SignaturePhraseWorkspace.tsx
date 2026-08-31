@@ -34,6 +34,7 @@ import {
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
+import { EmptySectionState } from "./EmptySectionState"
 
 const RHYTHM_LABELS: Record<SignatureRhythmIdentity, string> = {
   "opening-stamp": "Opening Stamp",
@@ -210,11 +211,7 @@ export function SignaturePhraseWorkspace() {
   }, [lengthBars, section])
 
   if (!section) {
-    return (
-      <main className="flex flex-1 items-center justify-center text-ink-muted-48">
-        左のパネルからセクションを選択してください
-      </main>
-    )
+    return <EmptySectionState title="曲の顔を作るセクションが必要です" />
   }
 
   const stop = () => {
@@ -272,7 +269,7 @@ export function SignaturePhraseWorkspace() {
       <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
         <div className="mr-auto max-w-3xl">
           <h2 className="text-[15px] font-semibold text-body-on-dark">
-            Signature Phrase Generator
+            曲の顔となるフレーズ
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
             1〜2小節の固有Motifを、反復・変形・統合Decorationで最大8小節へ発展させます
@@ -309,10 +306,15 @@ export function SignaturePhraseWorkspace() {
             chordHasError
           }
         >
-          <Sparkles size={14} /> Generate 12 Ideas
+          <Sparkles size={14} /> 12候補を生成
         </Button>
       </section>
 
+      {allChords.length === 0 && (
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          左パネルの「コード進行」を入力すると、曲の顔となるフレーズを生成できます。
+        </p>
+      )}
       {chordHasError && (
         <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
           無効なコードがあります。左のパネルで修正してください。
@@ -567,7 +569,7 @@ export function SignaturePhraseWorkspace() {
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>
             <p className="text-[13px] text-body-muted">
-              まだSignature Phrase候補がありません
+              まだ曲の顔となるフレーズ候補がありません
             </p>
             <p className="mt-1 text-[11px] text-ink-muted-48">
               コードの並びではなく、記憶に残るリズムと輪郭を持つ12案を生成します

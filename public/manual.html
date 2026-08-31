@@ -340,6 +340,7 @@
   <nav class="toc" aria-label="目次">
     <p class="toc-label">Contents</p>
     <a href="#intro">アプリの全体像</a>
+    <a href="#home">ホームから始める</a>
     <a href="#topbar">上部バーと曲の基本情報</a>
     <a href="#project">プロジェクトの管理</a>
     <a href="#midi-import-start">MIDI読込後の開始ガイド</a>
@@ -363,29 +364,25 @@
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「コード進行を入力する → 複数の候補を生成する → 気に入った候補を選び、部分的に手直しする → セクションをつなげて曲全体にする」という流れで使います。画面は上部バー・左パネル・中央ワークスペース・右パネル・下部バーの5つで構成され、中央ワークスペースは <strong>Melody / Phrase / Signature / Counter / AI Partner / Arrangement / Audition</strong> の7タブを切り替えて使います。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
+      <p class="chapter-intro">Composer Arrangerは「曲を準備する → AIと全曲方針を選ぶ → 必要なパートを生成して試聴する」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律や対旋律などの専門Generatorは、必要なときだけ<strong>詳細調整</strong>から開きます。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
 
       <div class="tab-pill-row">
-        <span class="tab-pill active">Melody</span>
-        <span class="tab-pill">Phrase</span>
-        <span class="tab-pill">Signature</span>
-        <span class="tab-pill">Counter</span>
-        <span class="tab-pill">AI Partner</span>
-        <span class="tab-pill">Arrangement</span>
-        <span class="tab-pill">Audition</span>
+        <span class="tab-pill active">ホーム</span>
+        <span class="tab-pill">AI相談</span>
+        <span class="tab-pill">全曲アレンジ</span>
+        <span class="tab-pill">比較試聴</span>
+        <span class="tab-pill">詳細調整</span>
       </div>
 
       <div class="kv-table-wrap">
         <table>
           <thead><tr><th>タブ</th><th>用途</th></tr></thead>
           <tbody>
-            <tr><td>Melody</td><td>セクション1つ分の旋律・モチーフ・伴奏を作り込む主画面</td></tr>
-            <tr><td>Phrase</td><td>2〜8小節の短いフレーズだけを、意図つきで作って聴き比べる</td></tr>
-            <tr><td>Signature</td><td>曲の顔になる短い核を作り、装飾を統合しながら最大8小節へ展開する</td></tr>
-            <tr><td>Counter</td><td>Active Melodyの隙間へ、合いの手・応答フレーズを提案させる</td></tr>
-            <tr><td>AI Partner</td><td>コード・Active Melody・読み込んだパートを踏まえ、次の一手を相談してDirectionから実音生成へ進む</td></tr>
-            <tr><td>Arrangement</td><td>セクションを並べ替えて曲全体を組み立てる</td></tr>
-            <tr><td>Audition</td><td>候補をA/B/Cで切り替えながら判定する</td></tr>
+            <tr><td>ホーム</td><td>MIDI読込、新規作成、保存曲の再開から制作を始める</td></tr>
+            <tr><td>AI相談</td><td>曲全体を診断し、5つの方向性から必要なパート生成へ進む</td></tr>
+            <tr><td>全曲アレンジ</td><td>曲のEnergy Curve、各パート、セクション順を確認する</td></tr>
+            <tr><td>比較試聴</td><td>主旋律候補をA/B/Cで切り替えながら判定する</td></tr>
+            <tr><td>詳細調整</td><td>主旋律・短いフレーズ・曲の顔・対旋律・装飾を個別に調整する</td></tr>
           </tbody>
         </table>
       </div>
@@ -394,6 +391,18 @@
 
       <div class="note">
         <p><strong>編集内容は自動保存されます。</strong>コード入力欄からフォーカスが外れた瞬間や、生成・編集操作のたびにブラウザのIndexedDBへ保存されるため、明示的な「保存」ボタンはありません。プロジェクトを閉じても「開く」からいつでも復元できます。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="home">
+      <span class="chapter-num">01</span>
+      <h2>ホームから始める</h2>
+      <p class="chapter-intro">起動後はホームが表示されます。専門機能を先に選ぶ必要はありません。</p>
+      <div class="grid-2">
+        <div class="card"><h4>MIDIからアレンジする</h4><p>Logic／外部曲のコード・主旋律・テンポ・セクションを解析し、確認後にAI相談へ進みます。</p></div>
+        <div class="card"><h4>コードから新しく作る</h4><p>8小節のAメロを自動作成します。コード進行を入力して主旋律生成またはAI相談へ進めます。</p></div>
+        <div class="card"><h4>保存した曲を開く</h4><p>自動保存またはCloud同期された曲を開き、AI相談を入口として続きから再開します。</p></div>
+        <div class="card"><h4>詳細調整</h4><p>主旋律・短いフレーズ・曲の顔・対旋律・装飾を直接編集したい場合にだけ開きます。</p></div>
       </div>
     </section>
 
@@ -410,7 +419,8 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>Melody / Phrase / Signature / Counter / AI Partner / Arrangement / Audition</td><td>中央ワークスペースの表示切り替え。詳細は各章を参照。</td></tr>
+            <tr><td>ホーム / AI相談 / 全曲アレンジ / 比較試聴</td><td>制作の主要な流れを切り替えます。</td></tr>
+            <tr><td>詳細調整</td><td>主旋律・短いフレーズ・曲の顔・対旋律・装飾を個別に開きます。</td></tr>
           </tbody>
         </table>
       </div>
@@ -420,12 +430,12 @@
     <section class="chapter" id="project">
       <span class="chapter-num">02</span>
       <h2>プロジェクトの管理</h2>
-      <p class="chapter-intro">左パネル最上部「Composer Project」カードから、プロジェクト単位の操作を行います。</p>
+      <p class="chapter-intro">左パネル最上部「曲とプロジェクト」カードから、プロジェクト単位の操作を行います。基本的な開始操作はホームにもまとめられています。</p>
 
       <div class="grid-2">
         <div class="card">
-          <h4>New</h4>
-          <p>新規プロジェクトを作成します。現在編集中のプロジェクトは自動保存済みのため、あとから「開く」で戻れます。実行前に確認ダイアログが出ます。</p>
+          <h4>新しい曲</h4>
+          <p>新規プロジェクトと最初のAメロを作成します。現在編集中のプロジェクトは自動保存済みのため、あとから「開く」で戻れます。</p>
         </div>
         <div class="card">
           <h4>開く</h4>
@@ -606,7 +616,7 @@
       <ul>
         <li><strong>Generate from Chords</strong> — コード進行から新しい候補群を生成します。右パネルで選択したGenerator Profileの数 × 3パターン分の候補が一度に作られます。</li>
         <li>生成後は候補がピル(タブ)として並び、クリックで切り替えて聴き比べられます。候補ピルの近くにマウスを乗せると「<span class="keycap">Space</span>で再生・停止」のヒントが表示されます(下部バーの再生ボタンまでマウスを移動しなくても試聴できます)。</li>
-        <li><strong>Set as Active Melody</strong> — 表示中の候補をそのセクションの「採用旋律」に設定します。Arrangementタブでの曲全体再生・MIDI書き出しはこのActive Melodyを使います。</li>
+        <li><strong>この主旋律を採用</strong> — 表示中の候補をそのセクションの「採用旋律」に設定します。全曲アレンジでの再生・MIDI書き出しはこの主旋律を使います。</li>
       </ul>
 
       <h3>候補に添えられるバッジ</h3>
@@ -831,12 +841,12 @@
       <p class="chapter-intro">主旋律(Active Melody)には手を加えず、その意味を強める第二声部を提案するタブです。コードの緊張・解決・共通音と、主旋律のPhrase・Motif・Accent・余白を同じ時間軸で解析し、何を返すか、どこで黙るか、どの緊張を残すかを先に計画します。</p>
 
       <div class="note warn">
-        <p>Melodyタブで、このセクションの<strong>Active Melodyを設定してから</strong>使います。Active Melodyが無い状態では生成できません。</p>
+        <p>「詳細調整 → 主旋律」で、このセクションの<strong>採用主旋律を設定してから</strong>使います。採用主旋律が無い状態では生成できません。</p>
       </div>
 
       <h3>使い方</h3>
       <ol>
-        <li>Melodyタブで採用旋律(Active Melody)を決めておく</li>
+        <li>「詳細調整 → 主旋律」で採用旋律を決めておく</li>
         <li>Counterタブで <strong>Generate 10 Counters</strong> を実行すると、120候補のプールから品質・多様性で選ばれた10案が並ぶ</li>
         <li>各候補を試聴し、気に入らなければその候補だけ再生成する</li>
       </ol>
@@ -925,7 +935,7 @@
         <li><strong>部分再生成</strong> — 対象Sectionを選んでから各トラックの再生成ボタンを押すと、そのSection・その役割だけを置換します。他のSectionとトラックは変更しません。</li>
         <li><strong>試聴・MIDI</strong> — 全パートをコード・Melodyと一緒に試聴するほか、Mute、トラック単独試聴、個別MIDI、全パートSMF Type 1出力ができます。各MIDIトラックはLogic Proで別々のSoftware Instrumentへ割り当てられます。</li>
         <li><strong>曲全体タイムライン</strong> — セクションをドラッグして並び替え、曲の構成を組み替えます。</li>
-        <li><strong>採用Melody</strong> — 各セクションごとに、どの生成候補を曲の再生・書き出しに使うかをドロップダウンで選びます(Melodyタブの「Set as Active Melody」と連動)。</li>
+        <li><strong>採用主旋律</strong> — 各セクションごとに、どの生成候補を曲の再生・書き出しに使うかをドロップダウンで選びます(「詳細調整 → 主旋律」の「この主旋律を採用」と連動)。</li>
         <li><strong>境界を再生</strong> — 各セクション(先頭を除く)の再生アイコンから、前セクションとの繋ぎ目を前後1小節ずつ試聴できます。セクションを繋げたときの接続の自然さを確認するのに使います。</li>
         <li><strong>曲全体を再生</strong> — 並べたセクションを通しで再生します。</li>
         <li><strong>曲全体MIDI</strong> — 曲全体を1つのMIDIファイルとして書き出します。</li>
