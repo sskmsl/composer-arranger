@@ -45,22 +45,24 @@ export function TopBar({
         <button
           type="button"
           onClick={() => onTabChange("home")}
-          className="hidden items-center gap-2 font-display text-[15px] font-semibold tracking-tight text-body-on-dark hover:text-primary-on-dark sm:inline-flex"
+          className={`${tab === "home" ? "inline-flex" : "hidden sm:inline-flex"} items-center gap-2 font-display text-[15px] font-semibold tracking-tight text-body-on-dark hover:text-primary-on-dark`}
           title="ホームへ戻る"
         >
           <House size={14} /> Composer Arranger
         </button>
 
-        <TextInput
-          onBlur={(e) => {
-            const title = e.currentTarget.value
-            useProjectStore.setState((s) => ({ project: { ...s.project, title } }))
-            useProjectStore.getState().persist()
-          }}
-          defaultValue={project.title}
-          key={project.projectId}
-          className="w-28 min-w-0 flex-1 !bg-transparent !border-transparent text-[13px] hover:!border-hairline sm:w-40 sm:flex-none"
-        />
+        {tab !== "home" && (
+          <TextInput
+            onBlur={(e) => {
+              const title = e.currentTarget.value
+              useProjectStore.setState((s) => ({ project: { ...s.project, title } }))
+              useProjectStore.getState().persist()
+            }}
+            defaultValue={project.title}
+            key={project.projectId}
+            className="w-28 min-w-0 flex-1 !bg-transparent !border-transparent text-[13px] hover:!border-hairline sm:w-40 sm:flex-none"
+          />
+        )}
 
         {hasSidePanels && (
           <IconButton onClick={onToggleRight} className="lg:hidden" title="詳細設定を開く">
@@ -100,7 +102,7 @@ export function TopBar({
         </details>
       </nav>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
+      {tab !== "home" && <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
         <label className="flex items-center gap-1">
           Key
           <TextInput
@@ -129,7 +131,7 @@ export function TopBar({
             className="w-12 !bg-transparent px-1.5 py-0.5 text-center"
           />
         </label>
-      </div>
+      </div>}
 
       <nav className="hidden shrink-0 items-center gap-1.5 lg:ml-auto lg:flex">
         {PRIMARY_TABS.map((t) => (
