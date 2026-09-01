@@ -127,9 +127,9 @@ export function FullSongArrangementPanel() {
   }
 
   return (
-    <section className="rounded-lg border border-primary/35 bg-primary/[0.055] p-4">
+    <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-primary/35 bg-primary/[0.055] p-3 sm:p-4">
       <div className="flex flex-wrap items-start gap-3">
-        <div className="mr-auto max-w-3xl">
+        <div className="min-w-0 max-w-3xl flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-on-dark">Arrangement Generator</p>
           <h3 className="mt-1 text-[16px] font-semibold">曲全体を解釈して、必要な役割だけをMIDI化</h3>
           <p className="mt-1 text-[12px] leading-5 text-body-muted">
@@ -153,7 +153,7 @@ export function FullSongArrangementPanel() {
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2 rounded-md border border-hairline bg-black/15 p-3">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 overflow-hidden rounded-md border border-hairline bg-black/15 p-3">
             <span className="text-[12px] text-body-muted">Energy Curve</span>
             {arrangement.analysis.sections.map((section) => (
               <span key={section.sectionId} className="rounded-full bg-white/7 px-2.5 py-1 text-[11px]">
@@ -166,9 +166,9 @@ export function FullSongArrangementPanel() {
             <summary className="cursor-pointer text-[13px] font-semibold">Arrangement Plan</summary>
             <div className="mt-3 grid gap-2 xl:grid-cols-2">
               {arrangement.plan.sections.map((section) => (
-                <article key={section.sectionId} className="rounded-md border border-hairline bg-white/[0.025] p-3">
-                  <div className="flex items-center gap-2">
-                    <strong className="text-[13px]">{section.sectionName}</strong>
+                <article key={section.sectionId} className="min-w-0 overflow-hidden rounded-md border border-hairline bg-white/[0.025] p-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <strong className="min-w-0 break-words text-[13px]">{section.sectionName}</strong>
                     <span className="text-[11px] text-body-muted">Energy {section.energy} · {section.density}</span>
                     <span className="ml-auto rounded-full border border-primary/30 px-2 py-0.5 text-[11px] text-primary-on-dark">
                       {CHARACTER_LABEL[section.selectedTransitionCharacter]}
@@ -219,9 +219,9 @@ export function FullSongArrangementPanel() {
             <Button variant="dark" onClick={() => downloadMidi(exportArrangementMidi(project, arrangement), `${project.title}-arrangement`)}>
               <Download size={14} /> 全パートMIDI
             </Button>
-            <label className="ml-auto flex items-center gap-2 text-[11px] text-body-muted">
+            <label className="flex min-w-0 max-w-full flex-wrap items-center gap-2 text-[11px] text-body-muted sm:ml-auto">
               部分再生成
-              <Select value={targetSectionId} onChange={(event) => setTargetSectionId(event.target.value)}>
+              <Select className="min-w-0 max-w-full" value={targetSectionId} onChange={(event) => setTargetSectionId(event.target.value)}>
                 <option value="">トラック全体</option>
                 {arrangement.plan.sections.map((section) => <option key={section.sectionId} value={section.sectionId}>{section.sectionName}</option>)}
               </Select>
@@ -262,7 +262,7 @@ export function FullSongArrangementPanel() {
 
           <div className="grid gap-2 lg:grid-cols-2">
             {arrangement.tracks.map((track) => (
-              <article key={track.id} className="flex items-center gap-2 rounded-md border border-hairline bg-surface-tile-1 p-3">
+              <article key={track.id} className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-hairline bg-surface-tile-1 p-3">
                 <button title={track.muted ? "Mute解除" : "Mute"} onClick={() => setMuted(track.id, !track.muted)} className="text-body-muted hover:text-body-on-dark">
                   {track.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 </button>

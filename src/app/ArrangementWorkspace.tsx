@@ -136,7 +136,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   }
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+    <main className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-[16px] font-semibold">曲全体タイムライン</h2>
         <Button variant="dark" onClick={playing ? () => stop() : () => playSong()} disabled={project.sections.length === 0}>
@@ -156,7 +156,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
       </div>
 
       {project.sections.length > 0 && (
-        <div className="rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5">
+        <div className="min-w-0 max-w-full rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5">
           <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
             <span>{playing ? "曲全体を再生中" : "曲全体の再生位置"}</span>
             <span className="tabular-nums text-body-on-dark">
@@ -219,7 +219,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
                 if (draggedSectionId) moveSection(draggedSectionId, index)
                 setDraggedSectionId(null)
               }}
-              className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:flex-row sm:items-center"
+              className="flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:flex-row sm:items-center"
             >
               <div className="flex items-center gap-2 sm:w-60">
                 <GripVertical size={16} className="cursor-grab text-ink-muted-48" />

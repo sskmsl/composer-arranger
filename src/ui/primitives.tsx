@@ -72,7 +72,7 @@ export function FieldGroup({ label, children }: { label: string; children: React
 
 export function SectionCard({ title, children, className }: { title?: string; children: ReactNode; className?: string }) {
   return (
-    <div className={clsx("rounded-lg border border-hairline bg-surface-tile-1 p-4", className)}>
+    <div className={clsx("min-w-0 max-w-full rounded-lg border border-hairline bg-surface-tile-1 p-4", className)}>
       {title && <h3 className="mb-3 text-[13px] font-semibold text-body-on-dark">{title}</h3>}
       {children}
     </div>
