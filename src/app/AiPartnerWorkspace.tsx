@@ -48,8 +48,6 @@ import type {
   AiArrangementIntent,
   AiArrangementResponse,
   AiAudioPayload,
-  ArrangementDirectorClimaxPolicy,
-  ArrangementDirectorFunction,
   ArrangementReviewStatus,
   OrchestrationPartPlan,
 } from "@/ai-arranger/types"
@@ -405,18 +403,15 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-                  <Waypoints size={15} className="text-primary-on-dark" /> 全曲の起伏設計
+                  <Waypoints size={15} className="text-primary-on-dark" /> 曲全体の流れ
                 </div>
                 <p className="mt-1 text-[11px] leading-5 text-body-muted">
-                  曲全体の起伏を先に決め、現在のSectionでクライマックス資源を使いすぎないための設計図です。
+                  どこを静かにし、どこで広げるかをAIが曲全体から判断しています。
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-[11px] text-primary-on-dark">
-                  起伏 {director.arcSummary} · 頂点{director.climaxSectionId ? "設定済み" : "未設定"}
-                </span>
                 <label className="flex items-center gap-1 text-[11px] text-body-muted">
-                  頂点
+                  最も盛り上げるSection
                   <Select
                     value={project.arrangementDirectorOverrides?.climaxSectionId ?? "auto"}
                     onChange={(event) =>
@@ -441,7 +436,7 @@ export function AiPartnerWorkspace({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="text-[11px] font-semibold text-body-on-dark">
-                      全曲設計の確認
+                      AIの確認結果
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {wholeSongReview.summary}
@@ -449,33 +444,14 @@ export function AiPartnerWorkspace({
                   </div>
                   <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(wholeSongReview.status)}`}>
                     {reviewStatusLabel(wholeSongReview.status)}
-                    {wholeSongReview.status !== "pending" && ` · ${wholeSongReview.score}/100`}
                   </span>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
-                  <ReviewMetric
-                    label="確定セクション"
-                    value={`${wholeSongReview.metrics.reviewedSectionCount}/${director.sections.length}`}
-                  />
-                  <ReviewMetric
-                    label="強弱への追従"
-                    value={`${Math.round(wholeSongReview.metrics.energyContrastScore * 100)}%`}
-                  />
-                  <ReviewMetric
-                    label="同一伴奏境界"
-                    value={`${wholeSongReview.metrics.repeatedSupportPatternCount}件`}
-                  />
-                  <ReviewMetric
-                    label="頂点先取り"
-                    value={`${wholeSongReview.metrics.climaxReservationRiskCount}件`}
-                  />
                 </div>
                 {wholeSongReview.findings
                   .filter((finding) => finding.severity !== "pass")
                   .slice(0, 2)
                   .map((finding) => (
-                    <p key={finding.id} className="mt-2 text-[11px] leading-4 text-amber-200">
-                      {finding.title}：{finding.recommendation}
+                    <p key={finding.id} className="mt-2 text-[11px] leading-4 text-amber-100">
+                      • {finding.recommendation}
                     </p>
                   ))}
               </div>
@@ -497,15 +473,12 @@ export function AiPartnerWorkspace({
                       <span className="truncate text-[11px] font-medium text-body-on-dark">
                         {plan.sectionName}
                       </span>
-                      <span className="shrink-0 text-[11px] text-primary-on-dark">
-                        E{plan.targetEnergy}
+                      <span className="shrink-0 rounded-pill bg-primary/10 px-2 py-0.5 text-[11px] text-primary-on-dark">
+                        {energyLabel(plan.targetEnergy)}
                       </span>
                     </div>
-                    <div className="mt-1 text-[11px] text-body-muted">
-                      {directorFunctionLabel(plan.narrativeFunction)} · {climaxPolicyLabel(plan.climaxPolicy)}
-                    </div>
-                    <div className="mt-1 text-[11px] text-ink-muted-48">
-                      密度上限 {plan.densityCeiling} · 追加余地 {plan.additionBudget}
+                    <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-body-muted">
+                      {plan.transitionIntent}
                     </div>
                   </button>
                 )
@@ -515,24 +488,27 @@ export function AiPartnerWorkspace({
               <div className="mt-3 space-y-2">
                 <div className="grid gap-2 text-[11px] sm:grid-cols-3">
                   <DirectorNote
-                    label="このSectionで導入"
+                    label="ここで加える"
                     value={currentDirectorPlan.introduce.join(" / ")}
                   />
                   <DirectorNote
-                    label="まだ温存"
+                    label="まだ使わない"
                     value={currentDirectorPlan.withhold.length > 0
                       ? currentDirectorPlan.withhold.join(" / ")
                       : "クライマックス資源を使用可能"}
                   />
                   <DirectorNote
-                    label="次への渡し方"
+                    label="次へつなぐ"
                     value={currentDirectorPlan.transitionIntent}
                   />
                 </div>
-                <div className="flex flex-wrap items-center gap-3 rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
-                  <span className="text-[11px] font-medium text-body-on-dark">作曲者の固定値</span>
+                <details className="rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
+                  <summary className="cursor-pointer text-[11px] text-body-muted hover:text-body-on-dark">
+                    このSectionの強さを手動で調整
+                  </summary>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
                   <label className="flex items-center gap-1 text-[11px] text-body-muted">
-                    Energy
+                    強さ
                     <Select
                       value={project.arrangementDirectorOverrides?.sections[effectiveSectionId ?? ""]?.targetEnergy ?? "auto"}
                       disabled={currentDirectorPlan.climaxPolicy === "express"}
@@ -548,14 +524,14 @@ export function AiPartnerWorkspace({
                       }
                       className="!py-1 text-[11px]"
                     >
-                      <option value="auto">Auto</option>
+                      <option value="auto">AIに任せる</option>
                       {[1, 2, 3, 4, 5].map((value) => (
                         <option key={value} value={value}>E{value}</option>
                       ))}
                     </Select>
                   </label>
                   <label className="flex items-center gap-1 text-[11px] text-body-muted">
-                    密度上限
+                    同時に使う役割数
                     <Select
                       value={project.arrangementDirectorOverrides?.sections[effectiveSectionId ?? ""]?.densityCeiling ?? "auto"}
                       onChange={(event) =>
@@ -570,19 +546,20 @@ export function AiPartnerWorkspace({
                       }
                       className="!py-1 text-[11px]"
                     >
-                      <option value="auto">Auto</option>
+                      <option value="auto">AIに任せる</option>
                       {Array.from(
                         { length: Math.max(1, project.arrangementSettings.maximumParts) },
                         (_, index) => index + 1,
                       ).map((value) => (
-                        <option key={value} value={value}>{value} parts</option>
+                        <option key={value} value={value}>{value}</option>
                       ))}
                     </Select>
                   </label>
                   {currentDirectorPlan.climaxPolicy === "express" && (
-                    <span className="text-[11px] text-primary-on-dark">ClimaxはEnergy 5で固定</span>
+                    <span className="text-[11px] text-primary-on-dark">最も盛り上げるSectionは最大で固定</span>
                   )}
-                </div>
+                  </div>
+                </details>
               </div>
             )}
             {arrangementReview && (
@@ -593,7 +570,7 @@ export function AiPartnerWorkspace({
                       {arrangementReview.status === "strong"
                         ? <CircleCheck size={15} className="text-emerald-300" />
                         : <TriangleAlert size={15} className="text-amber-300" />}
-                      Director Review · Active構成
+                      このSectionの状態
                     </div>
                     <p className="mt-1 text-[11px] leading-5 text-body-muted">
                       {arrangementReview.summary}
@@ -601,54 +578,22 @@ export function AiPartnerWorkspace({
                   </div>
                   <div className={`rounded-pill px-3 py-1 text-[11px] font-medium ${reviewStatusClass(arrangementReview.status)}`}>
                     {reviewStatusLabel(arrangementReview.status)}
-                    {arrangementReview.status !== "pending" && ` · ${arrangementReview.score}/100`}
                   </div>
                 </div>
-                {arrangementReview.status !== "pending" && (
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
-                    <ReviewMetric
-                      label="密度使用率"
-                      value={`${Math.round(arrangementReview.metrics.densityUtilization * 100)}%`}
-                    />
-                    <ReviewMetric
-                      label="実音の余白"
-                      value={`${Math.round(arrangementReview.metrics.silenceRatio * 100)}%`}
-                    />
-                    <ReviewMetric
-                      label="重大衝突"
-                      value={`${arrangementReview.metrics.blockingCollisionCount}件`}
-                    />
-                    <ReviewMetric
-                      label="頂点先取り"
-                      value={arrangementReview.metrics.climaxResourceRisk ? "あり" : "なし"}
-                    />
-                  </div>
-                )}
-                {arrangementReview.findings.length > 0 && (
+                {arrangementReview.findings.some((finding) => finding.severity !== "pass") && (
                   <div className="mt-3 space-y-2">
-                    {arrangementReview.findings.map((finding) => (
+                    {arrangementReview.findings
+                      .filter((finding) => finding.severity !== "pass")
+                      .map((finding) => (
                       <div
                         key={finding.id}
                         className="rounded-sm border border-hairline bg-white/[0.025] px-3 py-2"
                       >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[11px] font-medium ${finding.severity === "pass"
-                            ? "text-emerald-300"
-                            : finding.severity === "blocking"
-                              ? "text-red-200"
-                              : "text-amber-200"
-                          }`}>
-                            {finding.title}
-                          </span>
-                          <span className="text-[11px] text-ink-muted-48">
-                            {finding.principleId}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[11px] leading-4 text-body-muted">
-                          {finding.evidence}
-                        </p>
-                        <p className="mt-1 text-[11px] leading-4 text-body-on-dark">
-                          {finding.recommendation}
+                        <p className={`text-[11px] leading-4 ${finding.severity === "blocking"
+                          ? "text-red-100"
+                          : "text-amber-100"
+                        }`}>
+                          • {finding.recommendation}
                         </p>
                       </div>
                     ))}
@@ -664,17 +609,14 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-                  <Layers3 size={15} className="text-primary-on-dark" /> Orchestration & Performance
+                  <Layers3 size={15} className="text-primary-on-dark" /> 楽器と演奏の役割
                 </div>
                 <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
                   {orchestrationPlan.performanceArc}
                 </p>
               </div>
-              <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[11px] text-body-muted">
-                同時発音パート上限 {orchestrationPlan.maxSimultaneousParts}
-              </span>
             </div>
-            {orchestrationReview && (
+            {orchestrationReview && orchestrationReview.findings.some((finding) => finding.severity !== "pass") && (
               <div className="mt-3 rounded-sm border border-hairline bg-white/[0.025] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -682,21 +624,15 @@ export function AiPartnerWorkspace({
                       {orchestrationReview.status === "strong"
                         ? <CircleCheck size={14} className="text-emerald-300" />
                         : <TriangleAlert size={14} className={orchestrationReview.status === "revise" ? "text-red-300" : "text-amber-200"} />}
-                      Orchestration Masking Review
+                      楽器の重なりで確認が必要です
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {orchestrationReview.summary}
                     </p>
                   </div>
                   <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(orchestrationReview.status)}`}>
-                    {reviewStatusLabel(orchestrationReview.status)} · {orchestrationReview.score}
+                    {reviewStatusLabel(orchestrationReview.status)}
                   </span>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <ReviewMetric label="前景競合" value={`${orchestrationReview.metrics.foregroundCompetitionCount}件`} />
-                  <ReviewMetric label="強弱競合" value={`${orchestrationReview.metrics.dynamicMaskingCount}件`} />
-                  <ReviewMetric label="同系音色" value={`${orchestrationReview.metrics.familyDuplicationCount}組`} />
-                  <ReviewMetric label="音域集中" value={`${orchestrationReview.metrics.registerCrowdingCount}組`} />
                 </div>
                 {orchestrationReview.findings.some((finding) => finding.severity !== "pass") && (
                   <div className="mt-2 grid gap-2 lg:grid-cols-2">
@@ -705,11 +641,8 @@ export function AiPartnerWorkspace({
                       .slice(0, 2)
                       .map((finding) => (
                         <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
-                          <div className={finding.severity === "blocking" ? "text-[11px] text-red-200" : "text-[11px] text-amber-100"}>
-                            {finding.title}
-                          </div>
-                          <p className="mt-1 text-[11px] leading-4 text-body-muted">
-                            {finding.recommendation}
+                          <p className={finding.severity === "blocking" ? "text-[11px] leading-4 text-red-100" : "text-[11px] leading-4 text-amber-100"}>
+                            • {finding.recommendation}
                           </p>
                         </div>
                       ))}
@@ -717,7 +650,7 @@ export function AiPartnerWorkspace({
                 )}
               </div>
             )}
-            {audibleLayerReview && (
+            {audibleLayerReview && audibleLayerReview.findings.some((finding) => finding.severity !== "pass") && (
               <div className="mt-3 rounded-sm border border-hairline bg-white/[0.025] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -725,23 +658,15 @@ export function AiPartnerWorkspace({
                       {audibleLayerReview.status === "strong"
                         ? <CircleCheck size={14} className="text-emerald-300" />
                         : <AudioLines size={14} className={audibleLayerReview.status === "revise" ? "text-red-300" : "text-amber-200"} />}
-                      Active Note Collision Review
+                      音の重なりで確認が必要です
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {audibleLayerReview.summary}
                     </p>
                   </div>
                   <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(audibleLayerReview.status)}`}>
-                    {reviewStatusLabel(audibleLayerReview.status)} · {audibleLayerReview.score}
+                    {reviewStatusLabel(audibleLayerReview.status)}
                   </span>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  <ReviewMetric label="監査レイヤー" value={`${audibleLayerReview.metrics.reviewedSupportLayerCount}層`} />
-                  <ReviewMetric label="同音重複" value={`${audibleLayerReview.metrics.samePitchOverlapBeats.toFixed(2)}拍`} />
-                  <ReviewMetric label="短2度重複" value={`${audibleLayerReview.metrics.semitoneOverlapBeats.toFixed(2)}拍`} />
-                  <ReviewMetric label="感情点アタック" value={`${audibleLayerReview.metrics.protectedAttackCount}回`} />
-                  <ReviewMetric label="同時アタック" value={`${audibleLayerReview.metrics.simultaneousAttackCount}回`} />
-                  <ReviewMetric label="補助間重複" value={`${audibleLayerReview.metrics.supportCollisionBeats.toFixed(2)}拍`} />
                 </div>
                 {audibleLayerReview.findings.some((finding) => finding.severity !== "pass") && (
                   <div className="mt-2 grid gap-2 lg:grid-cols-2">
@@ -750,14 +675,8 @@ export function AiPartnerWorkspace({
                       .slice(0, 2)
                       .map((finding) => (
                         <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
-                          <div className={finding.severity === "blocking" ? "text-[11px] text-red-200" : "text-[11px] text-amber-100"}>
-                            {finding.title}
-                          </div>
-                          <p className="mt-1 text-[11px] leading-4 text-body-muted">
-                            {finding.evidence}
-                          </p>
-                          <p className="mt-1 text-[11px] leading-4 text-body-on-dark">
-                            {finding.recommendation}
+                          <p className={finding.severity === "blocking" ? "text-[11px] leading-4 text-red-100" : "text-[11px] leading-4 text-amber-100"}>
+                            • {finding.recommendation}
                           </p>
                         </div>
                       ))}
@@ -786,30 +705,27 @@ export function AiPartnerWorkspace({
                       {part.sourceState === "active" ? "現在使用中" : "導入候補"}
                     </span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Tag>{part.register}</Tag>
-                    <Tag>{orchestrationDistanceLabel(part.distance)}</Tag>
-                    <Tag>{part.articulation}</Tag>
-                    <Tag>{part.dynamic}</Tag>
-                    <Tag>{part.timing}</Tag>
-                  </div>
                   <p className="mt-2 text-[11px] leading-4 text-body-muted">
                     <strong className="text-body-on-dark">役割：</strong>{part.purpose}
-                  </p>
-                  <p className="mt-1 text-[11px] leading-4 text-ink-muted-48">
-                    <strong className="text-body-muted">登場：</strong>{part.entry}
-                  </p>
-                  <p className="text-[11px] leading-4 text-ink-muted-48">
-                    <strong className="text-body-muted">退場：</strong>{part.exit}
-                  </p>
-                  <p className="mt-1 text-[11px] text-ink-muted-48">
-                    Velocity {part.velocityRange[0]}–{part.velocityRange[1]}
                   </p>
                   {part.role !== "intentional-silence" && effectiveSectionId && (
                     <details className="mt-2 border-t border-hairline pt-2">
                       <summary className="cursor-pointer text-[11px] text-primary-on-dark">
-                        演奏を固定・調整{override ? " · 固定あり" : ""}
+                        演奏の詳細・調整{override ? " · 固定あり" : ""}
                       </summary>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Tag>{part.register}</Tag>
+                        <Tag>{orchestrationDistanceLabel(part.distance)}</Tag>
+                        <Tag>{part.articulation}</Tag>
+                        <Tag>{part.dynamic}</Tag>
+                        <Tag>{part.timing}</Tag>
+                      </div>
+                      <p className="mt-2 text-[11px] leading-4 text-body-muted">
+                        登場：{part.entry}　退場：{part.exit}
+                      </p>
+                      <p className="mt-1 text-[11px] text-ink-muted-48">
+                        Velocity {part.velocityRange[0]}–{part.velocityRange[1]}
+                      </p>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
                         <OrchestrationOverrideSelect
                           label="Family"
@@ -1454,29 +1370,12 @@ function Tag({ children }: { children: string }) {
   )
 }
 
-function directorFunctionLabel(
-  value: ArrangementDirectorFunction,
-): string {
-  return {
-    establish: "世界を提示",
-    develop: "主題を展開",
-    lift: "期待を上昇",
-    declare: "主題を宣言",
-    suspend: "時間を停止",
-    transform: "視点を転換",
-    release: "余韻へ解放",
-  }[value]
-}
-
-function climaxPolicyLabel(
-  value: ArrangementDirectorClimaxPolicy,
-): string {
-  return {
-    reserve: "温存",
-    approach: "接近",
-    express: "頂点",
-    recover: "残響",
-  }[value]
+function energyLabel(value: number): string {
+  if (value >= 5) return "最も強い"
+  if (value === 4) return "強い"
+  if (value === 3) return "中間"
+  if (value === 2) return "控えめ"
+  return "静か"
 }
 
 function DirectorNote({ label, value }: { label: string; value: string }) {
@@ -1502,15 +1401,6 @@ function reviewStatusClass(status: ArrangementReviewStatus): string {
   if (status === "revise") return "bg-red-400/10 text-red-200"
   if (status === "watch") return "bg-amber-300/10 text-amber-100"
   return "bg-white/8 text-body-muted"
-}
-
-function ReviewMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-sm bg-white/[0.04] px-3 py-2">
-      <div className="text-ink-muted-48">{label}</div>
-      <div className="mt-0.5 text-[11px] text-body-on-dark">{value}</div>
-    </div>
-  )
 }
 
 function OrchestrationOverrideSelect({
