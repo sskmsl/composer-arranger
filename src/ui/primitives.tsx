@@ -83,7 +83,7 @@ export function Pill({ active, className, children, ...props }: ButtonHTMLAttrib
   return (
     <button
       className={clsx(
-        "rounded-pill px-3.5 py-1.5 text-[13px] transition active:scale-95",
+        "rounded-pill px-3.5 py-1.5 text-[13px] transition active:scale-95 disabled:pointer-events-none disabled:opacity-35",
         active ? "bg-primary text-on-primary" : "bg-white/6 text-body-muted hover:bg-white/12 hover:text-body-on-dark",
         className,
       )}

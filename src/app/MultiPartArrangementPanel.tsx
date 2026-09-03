@@ -14,14 +14,14 @@ import { Button, SectionCard } from "@/ui/primitives"
 import type { MainTab } from "./App"
 
 const PART_LABELS: Record<ArrangementPackagePartRole, string> = {
-  lead: "Melody",
-  bass: "Bass",
-  rhythm: "Rhythm",
-  harmony: "Harmony",
-  strings: "Strings",
-  counter: "Counter",
-  color: "Color",
-  space: "Space",
+  lead: "主旋律",
+  bass: "ベース",
+  rhythm: "リズム",
+  harmony: "和声",
+  strings: "ストリングス",
+  counter: "対旋律",
+  color: "彩り",
+  space: "空間",
 }
 
 const STATE_LABELS: Record<ArrangementPackagePartState, string> = {
@@ -97,7 +97,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <Layers3 size={16} className="text-violet-300" /> Multi-Part Arrangement
+            <Layers3 size={16} className="text-violet-300" /> 段階別パート生成
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
             {arrangementPackage.summary}
@@ -111,7 +111,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
             : "bg-amber-300/10 text-amber-100"
         }`}>
           {arrangementPackage.qualityGate.status === "ready" ? <ShieldCheck size={12} /> : <AlertTriangle size={12} />}
-          Plan Quality {arrangementPackage.qualityGate.score}
+          設計品質 {arrangementPackage.qualityGate.score}
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span className="text-[12px] font-semibold text-body-on-dark">{section.sectionName}</span>
-                <span className="ml-2 text-[11px] text-ink-muted-48">Energy {section.targetEnergy} · 上限 {section.densityCeiling} Role</span>
+                <span className="ml-2 text-[11px] text-ink-muted-48">強度 {section.targetEnergy} · 役割上限 {section.densityCeiling}</span>
               </div>
               <span className="rounded-pill bg-white/5 px-2 py-0.5 text-[11px] text-body-muted">{section.climaxPolicy}</span>
             </div>
@@ -144,7 +144,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
       <div className="mt-4 rounded-lg border border-hairline bg-white/[0.025] p-3">
         <div className="text-[12px] font-semibold text-body-on-dark">段階的に生成</div>
         <p className="mt-1 text-[11px] leading-4 text-body-muted">
-          Foundation → Movement → Colorの順に確認します。Bass・Strings・Spaceは現段階では設計指示として保持し、低品質な仮MIDIは作りません。
+          土台 → 動き → 彩りの順に確認します。ベース・ストリングス・空間は現段階では設計指示として保持し、低品質な仮MIDIは作りません。
         </p>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
           {arrangementPackage.stages.map((candidate) => {
@@ -171,7 +171,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
 
         <div className="mt-3 space-y-1.5">
           {stage.actions.length === 0 && (
-            <p className="rounded-sm bg-white/[0.025] px-3 py-2 text-[11px] text-ink-muted-48">この段階で追加生成すべきRoleはありません。</p>
+            <p className="rounded-sm bg-white/[0.025] px-3 py-2 text-[11px] text-ink-muted-48">この段階で追加生成すべき役割はありません。</p>
           )}
           {stage.actions.map((action) => {
             const available = action.status === "available"
@@ -212,15 +212,15 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
           )}
         </div>
         {stage.id === "foundation" && availableActions.length > 0 && (
-          <p className="mt-2 text-[11px] leading-4 text-amber-100">FoundationのAccompanimentはSectionへ直接適用されます。必要なSectionだけ選び、Undoで戻せます。</p>
+          <p className="mt-2 text-[11px] leading-4 text-amber-100">土台の伴奏はセクションへ直接適用されます。必要なセクションだけ選び、元に戻せます。</p>
         )}
       </div>
 
       <div className="mt-3 space-y-1.5">
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-white/5 bg-black/10 px-3 py-2">
           <div>
-            <p className="text-[11px] font-medium text-body-on-dark">実音 Quality Gate</p>
-            <p className="mt-0.5 text-[11px] text-body-muted">現在Set ActiveのPreview／MIDI材料を段階生成のたびに再評価します。</p>
+            <p className="text-[11px] font-medium text-body-on-dark">実音の品質確認</p>
+            <p className="mt-0.5 text-[11px] text-body-muted">現在採用中の試聴・MIDI材料を段階生成のたびに再評価します。</p>
           </div>
           <span className={`rounded-pill px-2.5 py-1 text-[11px] ${arrangementPackage.executionGate.status === "ready"
             ? "bg-emerald-400/10 text-emerald-200"
@@ -243,7 +243,7 @@ export function MultiPartArrangementPanel({ onNavigate }: { onNavigate: (tab: Ma
       </div>
 
       <div className="mt-3 space-y-1.5">
-        <p className="text-[11px] font-medium text-body-on-dark">Plan Quality Gate</p>
+        <p className="text-[11px] font-medium text-body-on-dark">設計の品質確認</p>
         {arrangementPackage.qualityGate.findings.map((finding) => (
           <div key={finding.id} className="rounded-sm border border-white/5 bg-black/10 px-3 py-2">
             <p className="text-[11px] font-medium text-body-on-dark">{finding.title}</p>

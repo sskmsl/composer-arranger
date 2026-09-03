@@ -33,7 +33,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
         <div className="max-w-3xl">
           <p className="text-[12px] font-semibold tracking-[0.2em] text-primary-on-dark">COMPOSER ARRANGER</p>
           <p className="mt-4 max-w-2xl text-[14px] leading-6 text-body-muted">
-            最初に素材の準備方法を選んでください。専門的なGenerator設定は、必要になった時だけ「詳細調整」から開けます。
+            最初に素材の準備方法を選んでください。専門的な生成設定は、必要になった時だけ「個別調整」から開けます。
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           <label className="group relative flex min-h-48 cursor-pointer flex-col rounded-lg border border-primary/45 bg-surface-tile-1 p-5 transition hover:border-primary hover:bg-primary/8">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/18 text-primary-on-dark"><FileMusic size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">MIDIからアレンジする</span>
-            <span className="mt-2 text-[12px] leading-5 text-body-muted">Logic／外部曲のコード・メロディ・テンポを解析し、AI Partnerで全曲方針を提案します。</span>
+            <span className="mt-2 text-[12px] leading-5 text-body-muted">Logic／外部曲のコード・メロディ・テンポを解析し、AIで全曲方針を提案します。</span>
             <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">{importing ? "MIDIを解析中…" : "MIDIを選択"} →</span>
             <input
               type="file"
@@ -128,8 +128,8 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           <div className="flex items-start gap-3">
             <Sparkles size={17} className="mt-0.5 shrink-0 text-primary-on-dark" />
             <div>
-              <h2 className="text-[13px] font-semibold text-body-on-dark">AI Partnerが制作の入口になります</h2>
-              <p className="mt-1 text-[12px] leading-5 text-body-muted">曲を準備した後は、全曲診断 → 5つの方針 → 必要なパート生成の順で案内します。主旋律・短いフレーズ・対旋律などを直接調整したい場合だけ「詳細調整」を開いてください。</p>
+              <h2 className="text-[13px] font-semibold text-body-on-dark">AIで全曲の方針を決められます</h2>
+              <p className="mt-1 text-[12px] leading-5 text-body-muted">曲を準備した後は、全曲診断 → 5つの方針 → 必要なパート生成の順で案内します。主旋律・短いフレーズ・対旋律などを直接調整したい場合だけ「個別調整」を開いてください。</p>
             </div>
             <SlidersHorizontal size={16} className="ml-auto hidden shrink-0 text-body-muted sm:block" />
           </div>

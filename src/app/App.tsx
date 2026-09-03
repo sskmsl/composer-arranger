@@ -46,7 +46,7 @@ export function App() {
 
   const changeTopTab = (nextTab: MainTab) => {
     setReturnToAiPartner(false)
-    setTab(nextTab)
+    setTab(nextTab === "home" || project.sections.length > 0 ? nextTab : "home")
   }
 
   useEffect(() => {
@@ -61,6 +61,12 @@ export function App() {
       refreshAfterCloudSync,
     )
   }, [hydrate])
+
+  useEffect(() => {
+    if (hydrated && project.sections.length === 0 && tab !== "home") {
+      setTab("home")
+    }
+  }, [hydrated, project.sections.length, tab])
 
   if (!hydrated) {
     return (
@@ -96,7 +102,10 @@ export function App() {
         {tab === "melody" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <MelodyWorkspace onNavigate={setTab} />
+            <MelodyWorkspace
+              onNavigate={setTab}
+              onOpenProjectPanel={() => setLeftOpen(true)}
+            />
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} />
             {(leftOpen || rightOpen) && (
               <div

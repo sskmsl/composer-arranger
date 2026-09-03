@@ -12,10 +12,10 @@ import { Button, SectionCard } from "@/ui/primitives"
 import type { MainTab } from "./App"
 
 const GENERATOR_LABELS: Record<WholeSongArrangementAction["generator"], string> = {
-  signature: "Signature",
-  counter: "Counter",
-  decoration: "Decoration",
-  accompaniment: "Accompaniment",
+  signature: "曲の顔",
+  counter: "対旋律",
+  decoration: "装飾",
+  accompaniment: "伴奏",
   none: "追加なし",
 }
 
@@ -102,14 +102,14 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <Sparkles size={16} className="text-primary-on-dark" /> Arrangement Director
+            <Sparkles size={16} className="text-primary-on-dark" /> 全曲方針の詳細設計
           </div>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
-            Melody・コード・テンポ・Sectionを設計図として守り、全曲で何を起こすかを先に決めます。
+            主旋律・コード・テンポ・セクションを設計図として守り、全曲で何を起こすかを先に決めます。
           </p>
         </div>
         <div className="rounded-pill bg-white/8 px-3 py-1 text-[11px] text-body-muted">
-          {program.diagnosis.confirmedSections}/{program.diagnosis.totalSections} Section確認 · Review {program.diagnosis.score}
+          {program.diagnosis.confirmedSections}/{program.diagnosis.totalSections} セクション確認 · 評価 {program.diagnosis.score}
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
           <WandSparkles size={14} /> 全曲方針を5案設計
         </Button>
         <span className="text-[11px] text-ink-muted-48">
-          全曲Arc: {program.diagnosis.energyArc}
+          全曲の起伏: {program.diagnosis.energyArc}
         </span>
       </div>
 
@@ -171,7 +171,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
           <div>
             <div className="text-[12px] font-semibold text-body-on-dark">{selectedDirection.title} · 実行計画</div>
             <p className="mt-1 text-[11px] text-body-muted">
-              生成対象だけを選択してください。既存Melodyは変更せず、候補は自動採用しません。
+              生成対象だけを選択してください。既存の主旋律は変更せず、候補は自動採用しません。
             </p>
           </div>
           <span className="text-[11px] text-ink-muted-48">{selectedCount}/{availableCount}件選択</span>
@@ -216,7 +216,7 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
 
         {selectedDirection.actions.some((action) => action.generator === "accompaniment" && action.status === "available") && (
           <p className="mt-3 flex items-start gap-1.5 rounded-sm bg-amber-300/8 px-3 py-2 text-[11px] leading-4 text-amber-100">
-            <CircleAlert size={13} className="mt-0.5 shrink-0" /> Accompanimentは候補プールを持たないため、選択時はSectionへ直接適用します。Undoで戻せます。
+            <CircleAlert size={13} className="mt-0.5 shrink-0" /> 伴奏は候補プールを持たないため、選択時はセクションへ直接適用します。元に戻せます。
           </p>
         )}
 

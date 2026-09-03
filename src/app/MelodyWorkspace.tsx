@@ -21,6 +21,7 @@ import {
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
+import { CandidateStatusBadge } from "./CandidateStatusBadge"
 
 const TRANSITION_LABELS = {
   resolved: "Resolved",
@@ -41,7 +42,13 @@ const SEED_OPS: { id: SeedOperation; label: string }[] = [
   { id: "restrain", label: "Restrain" },
 ]
 
-export function MelodyWorkspace({ onNavigate }: { onNavigate?: (tab: "ai-partner") => void } = {}) {
+export function MelodyWorkspace({
+  onNavigate,
+  onOpenProjectPanel,
+}: {
+  onNavigate?: (tab: "ai-partner") => void
+  onOpenProjectPanel?: () => void
+} = {}) {
   const project = useProjectStore((s) => s.project)
   const selectedSectionId = useProjectStore((s) => s.selectedSectionId)
   const generateForSection = useProjectStore((s) => s.generateForSection)
@@ -137,6 +144,42 @@ export function MelodyWorkspace({ onNavigate }: { onNavigate?: (tab: "ai-partner
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+      <section className="rounded-lg border border-primary/30 bg-primary/[0.05] p-3">
+        <div className="grid grid-cols-3 gap-1.5 text-[11px] sm:gap-2">
+          {[
+            { label: "1 コード", done: chords.length > 0 && !chordHasError },
+            { label: "2 主旋律", done: Boolean(variant) },
+            { label: "3 全曲方針", done: false },
+          ].map((step, index) => (
+            <div
+              key={step.label}
+              className={`rounded-sm border px-2 py-2 text-center ${step.done ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : index === (chords.length === 0 || chordHasError ? 0 : variant ? 2 : 1) ? "border-primary/45 bg-primary/10 text-primary-on-dark" : "border-hairline text-body-muted"}`}
+            >
+              {step.done ? "✓ " : ""}{step.label}
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12px] text-body-muted">
+            {chords.length === 0
+              ? "まずコード進行を入力します。"
+              : chordHasError
+                ? "コード表記を直すと主旋律を生成できます。"
+                : !variant
+                  ? "コードの準備ができました。主旋律候補を生成します。"
+                  : "主旋律を採用したら、AIと全曲の方針を決めます。"}
+          </p>
+          {chords.length === 0 && onOpenProjectPanel && (
+            <Button variant="secondary" onClick={onOpenProjectPanel}>コード進行を入力</Button>
+          )}
+          {chords.length > 0 && !chordHasError && !variant && (
+            <Button onClick={() => generateForSection(section.id)}><Sparkles size={14} /> 主旋律候補を生成</Button>
+          )}
+          {variant && onNavigate && (
+            <Button onClick={() => onNavigate("ai-partner")}>AIで全曲方針へ <ArrowRight size={13} /></Button>
+          )}
+        </div>
+      </section>
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
           <Sparkles size={14} /> コードから主旋律を生成
@@ -155,6 +198,9 @@ export function MelodyWorkspace({ onNavigate }: { onNavigate?: (tab: "ai-partner
           </Button>
         )}
 
+        {variant && (
+          <CandidateStatusBadge status={project.activeMelodyId === variant.id ? "selected" : "candidate"} />
+        )}
         {variant && (
           <Button
             variant="secondary"
@@ -175,7 +221,7 @@ export function MelodyWorkspace({ onNavigate }: { onNavigate?: (tab: "ai-partner
         )}
         {variant?.transitionPlan && (
           <Pill>
-            Transition: {TRANSITION_LABELS[variant.transitionPlan.strategy]} · Fit{" "}
+            接続: {TRANSITION_LABELS[variant.transitionPlan.strategy]} · 適合{" "}
             {Math.round(variant.transitionPlan.transitionFitScore)}
           </Pill>
         )}
@@ -183,7 +229,7 @@ export function MelodyWorkspace({ onNavigate }: { onNavigate?: (tab: "ai-partner
           <Pill
             title={`Section ${Math.round(variant.contentQuality.sectionFit)} / Profile ${Math.round(variant.contentQuality.songProfileFit)} / Harmony ${Math.round(variant.contentQuality.harmonicInterest)} / Structure ${Math.round(variant.contentQuality.structuralClarity)} / Space ${Math.round(variant.contentQuality.spaceQuality)}`}
           >
-            Auto Quality {Math.round(variant.contentQuality.overallQuality)} ·{" "}
+            自動品質 {Math.round(variant.contentQuality.overallQuality)} ·{" "}
             {variant.contentSelection?.reason === "highest-quality"
               ? "Best Fit"
               : variant.contentSelection?.reason === "content-diversity"

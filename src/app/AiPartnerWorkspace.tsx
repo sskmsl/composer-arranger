@@ -89,13 +89,13 @@ function arrangementDirectiveForIntent(intent: AiArrangementIntent): Arrangement
 }
 
 const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
-  melody: "Melody",
-  phrase: "Phrase",
-  signature: "Signature",
-  counter: "Counter",
-  decoration: "Decoration",
-  accompaniment: "Rhythm Pattern",
-  rhythm: "Drum Rhythm",
+  melody: "主旋律",
+  phrase: "短いフレーズ",
+  signature: "曲の顔",
+  counter: "対旋律",
+  decoration: "装飾",
+  accompaniment: "伴奏パターン",
+  rhythm: "ドラムリズム",
   none: "追加しない",
 }
 
@@ -379,13 +379,21 @@ export function AiPartnerWorkspace({
               </span>
             </div>
             <p className="mt-1 max-w-3xl text-[12px] leading-5 text-body-muted">
-              守るものと作りたいものを伝えると、AIが全曲の役割へ分解し、必要なGeneratorだけを実行します。
+              ここでは曲を診断し、守るもの・足すもの・全曲の方針を決めます。実音の確認とMIDI書き出しは「結果・書出し」で行います。
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-pill bg-emerald-400/10 px-3 py-1.5 text-[11px] text-emerald-200">
             <ShieldCheck size={14} /> APIキーはSupabase内に保持
           </div>
         </header>
+
+        <div className="grid gap-2 rounded-lg border border-primary/25 bg-primary/[0.045] p-3 text-[11px] sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+          <div><strong className="text-primary-on-dark">AIで方針</strong><span className="ml-2 text-body-muted">診断・相談・方向選択</span></div>
+          <span className="hidden text-primary-on-dark sm:inline">→</span>
+          <button type="button" onClick={() => onNavigate("arrangement")} className="text-left text-body-muted hover:text-body-on-dark">
+            <strong className="text-primary-on-dark">結果・書出し</strong><span className="ml-2">試聴・採用・MIDI</span>
+          </button>
+        </div>
 
         <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
           <summary className="cursor-pointer text-[11px] font-medium text-body-muted hover:text-body-on-dark">
@@ -397,7 +405,7 @@ export function AiPartnerWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
-                  <Waypoints size={15} className="text-primary-on-dark" /> Arrangement Director
+                  <Waypoints size={15} className="text-primary-on-dark" /> 全曲の起伏設計
                 </div>
                 <p className="mt-1 text-[11px] leading-5 text-body-muted">
                   曲全体の起伏を先に決め、現在のSectionでクライマックス資源を使いすぎないための設計図です。
@@ -405,10 +413,10 @@ export function AiPartnerWorkspace({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-pill bg-primary/10 px-2.5 py-1 text-[11px] text-primary-on-dark">
-                  Arc {director.arcSummary} · 頂点{director.climaxSectionId ? "設定済み" : "未設定"}
+                  起伏 {director.arcSummary} · 頂点{director.climaxSectionId ? "設定済み" : "未設定"}
                 </span>
                 <label className="flex items-center gap-1 text-[11px] text-body-muted">
-                  Climax
+                  頂点
                   <Select
                     value={project.arrangementDirectorOverrides?.climaxSectionId ?? "auto"}
                     onChange={(event) =>
@@ -418,7 +426,7 @@ export function AiPartnerWorkspace({
                     }
                     className="!py-1 text-[11px]"
                   >
-                    <option value="auto">Auto</option>
+                    <option value="auto">自動</option>
                     {project.sections.map((candidate) => (
                       <option key={candidate.id} value={candidate.id}>
                         {candidate.name}
@@ -433,7 +441,7 @@ export function AiPartnerWorkspace({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="text-[11px] font-semibold text-body-on-dark">
-                      Whole-song Review
+                      全曲設計の確認
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
                       {wholeSongReview.summary}
@@ -446,11 +454,11 @@ export function AiPartnerWorkspace({
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
                   <ReviewMetric
-                    label="確定Section"
+                    label="確定セクション"
                     value={`${wholeSongReview.metrics.reviewedSectionCount}/${director.sections.length}`}
                   />
                   <ReviewMetric
-                    label="Energy追従"
+                    label="強弱への追従"
                     value={`${Math.round(wholeSongReview.metrics.energyContrastScore * 100)}%`}
                   />
                   <ReviewMetric
@@ -915,20 +923,20 @@ export function AiPartnerWorkspace({
             </label>
             <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
               <ContextStat
-                label={isWholeSongConsultation ? "Section" : "コード"}
+                label={isWholeSongConsultation ? "セクション" : "コード"}
                 value={isWholeSongConsultation
                   ? `${context?.songSections.length ?? 0}件`
                   : `${context?.chords.length ?? 0}件`}
               />
               <ContextStat
-                label={isWholeSongConsultation ? "Melody設定" : "Active Melody"}
+                label={isWholeSongConsultation ? "主旋律の設定" : "採用中の主旋律"}
                 value={isWholeSongConsultation
-                  ? `${context?.songSections.filter((item) => item.activeMelody.present).length ?? 0} Section`
+                  ? `${context?.songSections.filter((item) => item.activeMelody.present).length ?? 0}セクション`
                   : context?.activeMelody.present
                     ? `${context.activeMelody.noteCount}音`
                     : "なし"}
               />
-              <ContextStat label="Song Profile" value={context?.project.songProfile ?? "—"} />
+              <ContextStat label="曲の方向性" value={context?.project.songProfile ?? "—"} />
               <ContextStat
                 label="長さ"
                 value={isWholeSongConsultation
@@ -1167,7 +1175,7 @@ export function AiPartnerWorkspace({
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className="text-[11px] uppercase tracking-[0.16em] text-primary-on-dark">
-                          Direction {index + 1}
+                          方向 {index + 1}
                         </span>
                         <h2 className="mt-1 text-[15px] font-semibold text-body-on-dark">
                           {intent.title}
@@ -1194,8 +1202,8 @@ export function AiPartnerWorkspace({
                         }`}
                       >
                         {intent.approach === "surprise-tension"
-                          ? "Surprise / Tension"
-                          : "Safe"}
+                          ? "意外性・緊張"
+                          : "安定"}
                       </span>
                     </div>
                     <p className="mt-3 text-[12px] leading-5 text-body-on-dark">

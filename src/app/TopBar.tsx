@@ -3,11 +3,11 @@ import { IconButton, Pill, TextInput } from "@/ui/primitives"
 import { CircleHelp, House, PanelLeft, PanelRight, SlidersHorizontal } from "lucide-react"
 import type { MainTab } from "./App"
 
-const PRIMARY_TABS: { id: MainTab; label: string }[] = [
-  { id: "home", label: "ホーム" },
-  { id: "ai-partner", label: "AI相談" },
-  { id: "arrangement", label: "全曲アレンジ" },
-  { id: "audition", label: "比較試聴" },
+const PRIMARY_TABS: { id: MainTab; label: string; mobileLabel: string }[] = [
+  { id: "home", label: "ホーム", mobileLabel: "ホーム" },
+  { id: "ai-partner", label: "AIで方針", mobileLabel: "方針" },
+  { id: "arrangement", label: "結果・書出し", mobileLabel: "結果" },
+  { id: "audition", label: "比較試聴", mobileLabel: "試聴" },
 ]
 
 const DETAIL_TABS: { id: MainTab; label: string; description: string }[] = [
@@ -32,6 +32,7 @@ export function TopBar({
   const project = useProjectStore((s) => s.project)
   const updateSongField = useProjectStore((s) => s.updateSongField)
   const hasSidePanels = ["melody", "phrase", "signature", "counter", "decoration"].includes(tab)
+  const projectReady = project.sections.length > 0
 
   return (
     <header className="flex shrink-0 flex-col gap-2 border-b border-hairline bg-surface-black px-3 py-2 lg:h-11 lg:flex-row lg:items-center lg:gap-4 lg:px-4 lg:py-0">
@@ -81,25 +82,38 @@ export function TopBar({
         </a>
       </div>
 
-      <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-0.5 lg:hidden">
+      <nav className="grid w-full min-w-0 grid-cols-5 gap-1 lg:hidden" aria-label="主要機能">
         {PRIMARY_TABS.map((t) => (
-          <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)} className="shrink-0 !px-2.5 !py-1 !text-[12px]">
-            {t.label}
+          <Pill
+            key={t.id}
+            active={tab === t.id}
+            disabled={!projectReady && t.id !== "home"}
+            title={!projectReady && t.id !== "home" ? "先にホームで曲を準備してください" : undefined}
+            onClick={() => onTabChange(t.id)}
+            className="min-w-0 !px-1 !py-1.5 !text-[11px]"
+          >
+            {t.mobileLabel}
           </Pill>
         ))}
-        <details className="group relative shrink-0">
-          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-pill border border-hairline px-2.5 py-1 text-[12px] text-body-muted hover:bg-white/10 hover:text-body-on-dark">
-            <SlidersHorizontal size={12} /> 詳細調整
-          </summary>
-          <div className="fixed left-3 top-24 z-[70] w-56 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
-            {DETAIL_TABS.map((item) => (
-              <button key={item.id} type="button" onClick={() => onTabChange(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
-                <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
-                <span className="text-[11px] text-body-muted">{item.description}</span>
-              </button>
-            ))}
-          </div>
-        </details>
+        {projectReady ? (
+          <details className="group relative min-w-0">
+            <summary className="flex min-h-7 cursor-pointer list-none items-center justify-center gap-1 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted hover:bg-white/10 hover:text-body-on-dark">
+              <SlidersHorizontal size={11} /> 調整
+            </summary>
+            <div className="fixed left-3 right-3 top-[7.25rem] z-[70] rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
+              {DETAIL_TABS.map((item) => (
+                <button key={item.id} type="button" onClick={() => onTabChange(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
+                  <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
+                  <span className="text-[11px] text-body-muted">{item.description}</span>
+                </button>
+              ))}
+            </div>
+          </details>
+        ) : (
+          <button type="button" disabled className="min-w-0 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted opacity-35">
+            調整
+          </button>
+        )}
       </nav>
 
       {tab !== "home" && <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
@@ -135,13 +149,13 @@ export function TopBar({
 
       <nav className="hidden shrink-0 items-center gap-1.5 lg:ml-auto lg:flex">
         {PRIMARY_TABS.map((t) => (
-          <Pill key={t.id} active={tab === t.id} onClick={() => onTabChange(t.id)}>
+          <Pill key={t.id} active={tab === t.id} disabled={!projectReady && t.id !== "home"} onClick={() => onTabChange(t.id)}>
             {t.label}
           </Pill>
         ))}
-        <details className="group relative">
+        <details className={`group relative ${projectReady ? "" : "pointer-events-none opacity-35"}`}>
           <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark">
-            <SlidersHorizontal size={12} /> 詳細調整
+            <SlidersHorizontal size={12} /> 個別調整
           </summary>
           <div className="absolute right-0 top-9 z-[70] w-60 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
             {DETAIL_TABS.map((item) => (

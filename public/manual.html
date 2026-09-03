@@ -364,14 +364,14 @@
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「曲を準備する → AIと全曲方針を選ぶ → 必要なパートを生成して試聴する」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律や対旋律などの専門Generatorは、必要なときだけ<strong>詳細調整</strong>から開きます。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
+      <p class="chapter-intro">Composer Arrangerは「曲を準備する → AIと全曲方針を選ぶ → 必要なパートを生成して試聴する」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律や対旋律などの専門機能は、必要なときだけ<strong>個別調整</strong>から開きます。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
 
       <div class="tab-pill-row">
         <span class="tab-pill active">ホーム</span>
-        <span class="tab-pill">AI相談</span>
-        <span class="tab-pill">全曲アレンジ</span>
+        <span class="tab-pill">AIで方針</span>
+        <span class="tab-pill">結果・書出し</span>
         <span class="tab-pill">比較試聴</span>
-        <span class="tab-pill">詳細調整</span>
+        <span class="tab-pill">個別調整</span>
       </div>
 
       <div class="kv-table-wrap">
@@ -379,10 +379,10 @@
           <thead><tr><th>タブ</th><th>用途</th></tr></thead>
           <tbody>
             <tr><td>ホーム</td><td>MIDI読込、新規作成、保存曲の再開から制作を始める</td></tr>
-            <tr><td>AI相談</td><td>曲全体を診断し、5つの方向性から必要なパート生成へ進む</td></tr>
-            <tr><td>全曲アレンジ</td><td>曲のEnergy Curve、各パート、セクション順を確認する</td></tr>
+            <tr><td>AIで方針</td><td>曲全体を診断し、5つの方向性から必要なパート生成へ進む</td></tr>
+            <tr><td>結果・書出し</td><td>曲の強弱、生成パート、採用状態を試聴し、MIDIを書き出す</td></tr>
             <tr><td>比較試聴</td><td>主旋律候補をA/B/Cで切り替えながら判定する</td></tr>
-            <tr><td>詳細調整</td><td>主旋律・短いフレーズ・曲の顔・対旋律・装飾を個別に調整する</td></tr>
+            <tr><td>個別調整</td><td>主旋律・短いフレーズ・曲の顔・対旋律・装飾を個別に調整する</td></tr>
           </tbody>
         </table>
       </div>
@@ -419,8 +419,8 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>ホーム / AI相談 / 全曲アレンジ / 比較試聴</td><td>制作の主要な流れを切り替えます。</td></tr>
-            <tr><td>詳細調整</td><td>主旋律・短いフレーズ・曲の顔・対旋律・装飾を個別に開きます。</td></tr>
+            <tr><td>ホーム / AIで方針 / 結果・書出し / 比較試聴</td><td>制作の主要な流れを切り替えます。</td></tr>
+            <tr><td>個別調整</td><td>主旋律・短いフレーズ・曲の顔・対旋律・装飾を個別に開きます。</td></tr>
           </tbody>
         </table>
       </div>
