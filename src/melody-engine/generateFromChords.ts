@@ -68,6 +68,7 @@ import {
   type SectionTransitionContext,
 } from "./sectionTransition"
 import type { ResolvedComposerRules } from "@/composer-intelligence"
+import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -173,17 +174,22 @@ function buildCandidate(
     ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
     : notes
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
-  const finalNotes = reconcileFinalToneRoles(
-    applyProfileExpression(
-      narrativeNotes,
-      profileExpressionPlan,
+  const finalNotes = enforceHarmonicIntegrity(
+    reconcileFinalToneRoles(
+      applyProfileExpression(
+        narrativeNotes,
+        profileExpressionPlan,
+        harmonicMap,
+        input.range,
+        input.totalBeats,
+      ),
       harmonicMap,
       input.range,
-      input.totalBeats,
     ),
-    harmonicMap,
+    input.chords,
     input.range,
-  )
+    { preserveExpressiveChordRoles: true },
+  ).notes
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
   const score = scoreCandidate(features, params)
@@ -614,7 +620,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           input.range,
           input.chords,
         )
-        notes = transitioned.notes
+        notes = enforceHarmonicIntegrity(
+          transitioned.notes,
+          input.chords,
+          input.range,
+          { preserveExpressiveChordRoles: true },
+        ).notes
         const features = computeMelodyFeatures(notes, harmonicMap, 0, input.totalBeats)
         const placementDiagnostics = directPlacementDiagnostics(notes, harmonicMap)
         const finalHash = noteHash(notes)
@@ -655,14 +666,20 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         input.range,
         input.chords,
       )
-      const advancedMetrics = computeAdvancedMelodyMetrics(transitioned.notes, harmonicMap)
-      const fitScore = profileFitScore(profile, computeMelodyFeatures(transitioned.notes, harmonicMap, 0, input.totalBeats), advancedMetrics)
+      const finalNotes = enforceHarmonicIntegrity(
+        transitioned.notes,
+        input.chords,
+        input.range,
+        { preserveExpressiveChordRoles: true },
+      ).notes
+      const advancedMetrics = computeAdvancedMelodyMetrics(finalNotes, harmonicMap)
+      const fitScore = profileFitScore(profile, computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats), advancedMetrics)
       const intrinsicQuality = combinedQualityScore(c.score, fitScore, profile)
       const qualityScore = transitioned.plan
         ? Math.min(intrinsicQuality, intrinsicQuality * 0.85 + transitioned.plan.transitionFitScore * 0.15)
         : intrinsicQuality
       return {
-        notes: transitioned.notes,
+        notes: finalNotes,
         plans: c.plans,
         advancedMetrics,
         seed: c.seed,
@@ -675,7 +692,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         placementDiagnostics: c.placementDiagnostics,
         rawNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.rawPitch, t.role, t.resolution])),
         placedNotesHash: stableHash(c.placementDiagnostics.plannedTones.map((t) => [t.beat, t.durationBeats, t.placedPitch, t.role, t.resolution])),
-        finalNotesHash: noteHash(transitioned.notes),
+        finalNotesHash: noteHash(finalNotes),
         candidateMelodyDNA,
         profileExpressionPlan: c.profileExpressionPlan,
         transitionPlan: transitioned.plan,

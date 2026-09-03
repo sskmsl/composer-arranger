@@ -39,6 +39,7 @@ import {
   type HarmonicMapEntry,
 } from "@/melody-engine/harmonicMap"
 import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
+import { enforceHarmonicIntegrity } from "@/melody-engine/harmonicIntegrity"
 import {
   analyzeSignaturePhraseContext,
   signatureCompositionContextFor,
@@ -2597,7 +2598,7 @@ function buildSignaturePhrase(
     contextualMotifPath(profiledMotifPath, plan),
     plan,
   )
-  const leadNotes = placePitchPath(
+  const rawLeadNotes = placePitchPath(
     input,
     plan,
     events,
@@ -2606,6 +2607,31 @@ function buildSignaturePhrase(
     motifPath,
     phraseLengthBeats,
   )
+  const rawVoiced = applyVoicing(
+    plan.voicingMode,
+    rawLeadNotes,
+    map,
+    input.range,
+    seed,
+    plan,
+    input.beatsPerBar,
+  )
+  const score = scoreSignaturePhrase(
+    rawLeadNotes,
+    plan,
+    map,
+    phraseLengthBeats,
+    motifPath,
+    rawVoiced.notes,
+    rawVoiced.frames,
+  )
+  const leadNotes = enforceHarmonicIntegrity(
+    rawLeadNotes,
+    chords,
+    input.range,
+  ).notes
+  // 補正済みLeadを入力にVoicingを再解決し、声部間隔とvoice leadingを維持する。
+  // Candidate選抜用Scoreは元の作曲案で算出し、補正が創作方向の分布を偏らせないようにする。
   const voiced = applyVoicing(
     plan.voicingMode,
     leadNotes,
@@ -2622,15 +2648,7 @@ function buildSignaturePhrase(
     plan,
     phraseLengthBeats,
     seed,
-    score: scoreSignaturePhrase(
-      leadNotes,
-      plan,
-      map,
-      phraseLengthBeats,
-      motifPath,
-      notes,
-      voiced.frames,
-    ),
+    score,
   }
 }
 

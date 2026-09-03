@@ -32,6 +32,7 @@ import {
   type CounterOpportunity,
   type MelodyActivityAnalysis,
 } from "./reactiveLayerAnalysis"
+import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 
 export interface GenerateCounterInput {
   sectionId: string
@@ -1656,7 +1657,7 @@ function buildPoolCandidate(
       ),
     ].slice(0, 8),
   }
-  const notes = selectedGaps.flatMap((gap, index) =>
+  const rawNotes = selectedGaps.flatMap((gap, index) =>
     generatePhraseInGap(
       plan,
       composition,
@@ -1668,15 +1669,16 @@ function buildPoolCandidate(
       rng,
     ),
   )
+  const notes = enforceHarmonicIntegrity(rawNotes, input.chords).notes
   const opportunityAnalysis = { ...analysis, gaps: opportunities }
-  const relationship = motifRelationship(input.melody.notes, notes)
+  const relationship = motifRelationship(input.melody.notes, rawNotes)
   const counterpointFit = evaluateCounterpointFit(
     input.melody.notes,
-    notes,
+    rawNotes,
     input.chords,
   )
-  const evaluated = evaluateReactiveLayerQuality(input.melody.notes, notes, opportunityAnalysis, {
-    harmonicFit: harmonicFit(notes, input.chords),
+  const evaluated = evaluateReactiveLayerQuality(input.melody.notes, rawNotes, opportunityAnalysis, {
+    harmonicFit: harmonicFit(rawNotes, input.chords),
     motifRelationship: relationship * 0.55 + counterpointFit * 0.45,
     sectionFit: sectionFit(input.sectionRole, notes.length),
     transitionValue: input.sectionRole === "pre-chorus" || input.sectionRole === "bridge" ? 78 : 65,
@@ -1684,7 +1686,7 @@ function buildPoolCandidate(
   const counterQuality = evaluateCounterMusicalQuality(
     composition,
     input,
-    notes,
+    rawNotes,
     evaluated.quality,
     evaluated.collisions,
     counterpointFit,
@@ -1692,7 +1694,7 @@ function buildPoolCandidate(
   )
   const activeContextFit = assessReactiveActiveContextFit(
     input.existingSupportNotes ?? [],
-    notes,
+    rawNotes,
   )
   const negativeSpaceFit = assessReactiveNegativeSpaceFit(
     input.melody.notes,

@@ -15,6 +15,7 @@ import { pitchClass } from "@/core/note"
 import { buildHarmonicMap, chordAtBeat, type HarmonicMapEntry } from "@/melody-engine/harmonicMap"
 import { melodySimilarity } from "@/melody-engine/melodySimilarity"
 import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
+import { enforceHarmonicIntegrity } from "@/melody-engine/harmonicIntegrity"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
 import {
   pickTechniquePreference,
@@ -675,12 +676,19 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
     }
   }
 
+  const qualityScore = scorePhrase(articulatedNotes, intent, map, phraseLengthBeats)
+  const finalNotes = enforceHarmonicIntegrity(
+    articulatedNotes,
+    chords,
+    input.range,
+  ).notes
+
   return {
-    notes: articulatedNotes,
+    notes: finalNotes,
     intent,
     phraseLengthBeats,
     seed,
-    qualityScore: scorePhrase(articulatedNotes, intent, map, phraseLengthBeats),
+    qualityScore,
     techniqueFitScore: phraseTechniqueFitScore(
       intent,
       input.composerRules,

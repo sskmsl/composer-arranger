@@ -28,6 +28,7 @@ import {
   assessReactiveRoleComplementarity,
   evaluateReactiveLayerQuality,
 } from "./reactiveLayerAnalysis"
+import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 
 export type DecorationTypeSetting = "auto" | DecorationType
 export type DecorationCharacterSetting = "auto" | DecorationCharacter
@@ -1734,18 +1735,24 @@ function buildCandidate(
   const seed = (input.seed + (poolIndex + 1) * 104_729) >>> 0
   const rng = new SeededRandom(seed)
   const plan = planFor(input, poolIndex, rng)
-  const notes = notesForPlan(input, plan, seed)
-  const harmonic = harmonicFit(notes, input.chords)
-  const transition = transitionQuality(notes, plan)
-  const music = musicality(notes, plan)
+  const rawNotes = notesForPlan(input, plan, seed)
+  const notes = enforceHarmonicIntegrity(
+    rawNotes,
+    input.chords,
+    undefined,
+    { preserveTerminalTension: plan.type === "transition-fill" },
+  ).notes
+  const harmonic = harmonicFit(rawNotes, input.chords)
+  const transition = transitionQuality(rawNotes, plan)
+  const music = musicality(rawNotes, plan)
   const melodyNotes = input.melodyNotes ?? []
-  const relationship = melodyRelationship(melodyNotes, notes)
+  const relationship = melodyRelationship(melodyNotes, rawNotes)
   const motifScore = music * 0.65 + relationship * 0.35
   const evaluated =
     melodyNotes.length > 0
       ? evaluateReactiveLayerQuality(
           melodyNotes,
-          notes,
+          rawNotes,
           analyzeMelodyActivity(melodyNotes, input.totalBeats),
           {
             harmonicFit: harmonic,
@@ -1774,12 +1781,12 @@ function buildCandidate(
         }
   const activeContextFit = assessReactiveActiveContextFit(
     input.existingSupportNotes ?? [],
-    notes,
+    rawNotes,
   )
   const negativeSpaceFit = assessReactiveNegativeSpaceFit(
     melodyNotes,
     input.existingSupportNotes ?? [],
-    notes,
+    rawNotes,
     input.totalBeats,
   )
   const candidateRole =
