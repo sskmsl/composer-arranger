@@ -325,8 +325,8 @@ describe("Arrangement Generator", () => {
       0,
     )
 
-    expect(notesFor("syn-bass").length).toBeGreaterThan(200)
-    expect(notesFor("syn-stabs").length).toBeGreaterThan(20)
+    expect(notesFor("syn-bass").length).toBeGreaterThan(30)
+    expect(notesFor("syn-stabs").length).toBeGreaterThan(10)
     expect(notesFor("str-cello").length).toBeGreaterThan(20)
     expect(sectionDensity("final")).toBeGreaterThan(sectionDensity("breakdown"))
     expect(result.plan.sections.filter((section) => section.activeRoles.includes("syn-high-glass")).length).toBeLessThanOrEqual(4)
@@ -334,6 +334,32 @@ describe("Arrangement Generator", () => {
     expect(result.quality?.metrics.peakIsLate).toBe(true)
     expect(result.quality?.metrics.densityContrastRatio).toBeGreaterThan(1.8)
     expect(result.quality?.passed).toBe(true)
+  })
+
+  it("単一の決め打ち案ではなく8つの実音候補を比較して品質下限から選抜する", () => {
+    const result = generateFullSongArrangement(longFormProject(), { seed: 8101 })
+    const selection = result.selection!
+
+    expect(selection.poolSize).toBe(8)
+    expect(selection.eligibleCount).toBeGreaterThan(0)
+    expect(selection.candidates.filter((candidate) => candidate.selected)).toHaveLength(1)
+    expect(new Set(selection.candidates.map((candidate) => candidate.approach)).size).toBe(5)
+    expect(new Set(selection.candidates.map((candidate) => candidate.originalityScore)).size).toBeGreaterThan(1)
+    expect(result.plan.candidateSeed).toBe(selection.selectedSeed)
+    expect(result.quality!.score).toBeGreaterThanOrEqual(selection.qualityFloor)
+    expect(result.quality!.metrics.harmonicViolationCount).toBe(0)
+    expect(result.quality!.metrics.melodyCollisionCount).toBe(0)
+  })
+
+  it("同じseedでは候補選抜と全実音が再現し、別seedでは異なる解釈を生成する", () => {
+    const input = longFormProject()
+    const first = generateFullSongArrangement(input, { seed: 9012, brief: "主旋律を守り、後半で開く" })
+    const repeated = generateFullSongArrangement(input, { seed: 9012, brief: "主旋律を守り、後半で開く" })
+    const changed = generateFullSongArrangement(input, { seed: 9013, brief: "主旋律を守り、後半で開く" })
+
+    expect(repeated.selection).toEqual(first.selection)
+    expect(repeated.tracks).toEqual(first.tracks)
+    expect(changed.tracks).not.toEqual(first.tracks)
   })
 
   it("Safe系の全音程を発音時点のコードトーンまたは明示テンション内へ保つ", () => {

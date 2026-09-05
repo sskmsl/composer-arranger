@@ -6,6 +6,8 @@ import {
   ARRANGEMENT_TRACK_NAMES,
   type ArrangementAnalysis,
   type ArrangementAnalysisSection,
+  type ArrangementCandidateApproach,
+  type ArrangementCandidateSummary,
   type ArrangementCandidateCharacter,
   type ArrangementGenerationDirective,
   type ArrangementPlan,
@@ -66,6 +68,51 @@ function hashText(value: string): number {
   return hash >>> 0
 }
 
+const ARRANGEMENT_APPROACHES: ArrangementCandidateApproach[] = [
+  "space-led",
+  "rhythm-led",
+  "counterpoint-led",
+  "dynamic-contrast",
+  "motif-led",
+]
+
+const ARRANGEMENT_CANDIDATE_POOL_SIZE = 8
+const ARRANGEMENT_QUALITY_FLOOR = 76
+const ARRANGEMENT_CANDIDATE_SEED_STEP = 104_729
+
+function candidateApproachFor(seed: number): ArrangementCandidateApproach {
+  return ARRANGEMENT_APPROACHES[hashText(`arrangement-approach:${seed}`) % ARRANGEMENT_APPROACHES.length]
+}
+
+function removeRoles(roles: ArrangementTrackId[], removable: ArrangementTrackId[]) {
+  const blocked = new Set(removable)
+  for (let index = roles.length - 1; index >= 0; index -= 1) {
+    if (blocked.has(roles[index])) roles.splice(index, 1)
+  }
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
+function pearsonCorrelation(left: number[], right: number[]): number {
+  if (left.length !== right.length || left.length < 2) return 0
+  const leftMean = left.reduce((sum, value) => sum + value, 0) / left.length
+  const rightMean = right.reduce((sum, value) => sum + value, 0) / right.length
+  let numerator = 0
+  let leftVariance = 0
+  let rightVariance = 0
+  for (let index = 0; index < left.length; index += 1) {
+    const leftDelta = left[index] - leftMean
+    const rightDelta = right[index] - rightMean
+    numerator += leftDelta * rightDelta
+    leftVariance += leftDelta * leftDelta
+    rightVariance += rightDelta * rightDelta
+  }
+  const denominator = Math.sqrt(leftVariance * rightVariance)
+  return denominator > 0 ? Math.max(-1, Math.min(1, numerator / denominator)) : 0
+}
+
 function pc(value: number): number {
   return ((value % 12) + 12) % 12
 }
@@ -100,9 +147,10 @@ function semanticRoleFor(section: ComposerProject["sections"][number]) {
   const name = section.name.toLocaleLowerCase()
   if (/final\s*hold|ending hold|終止保持/.test(name)) return "outro" as const
   if (/intro.*reprise|reprise.*intro|reprise|回帰/.test(name)) return "reprise" as const
+  // "Final Build" は最終サビではなく、最終サビへ向かう助走として扱う。
+  if (/build|ビルド/.test(name)) return "build" as const
   if (/final|last chorus|grand|大サビ|最終/.test(name) || section.role === "grand-chorus") return "final" as const
   if (/breakdown|break down|ブレイクダウン/.test(name) || section.role === "breakdown-chorus") return "breakdown" as const
-  if (/build|ビルド/.test(name)) return "build" as const
   if (/pre|pre-chorus|bメロ|サビ前/.test(name) || section.role === "pre-chorus") return "pre" as const
   if (/chorus|サビ/.test(name) || section.role === "chorus") return "chorus" as const
   if (/bridge|ブリッジ|間奏/.test(name) || section.role === "bridge") return "bridge" as const
@@ -431,13 +479,16 @@ export function buildFullSongArrangementPlan(
   seed = hashText(`${project.projectId}:${project.title}:${project.song.tempo}`),
   brief = project.arrangementDirectorWorkspace?.brief ?? "",
   directive?: ArrangementGenerationDirective,
+  forcedApproach?: ArrangementCandidateApproach,
 ): ArrangementPlan {
   const asksSurprise = (directive?.surpriseLevel ?? 0) >= 0.35 || /surprise|意外|大胆|毒|不穏/i.test(brief)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const candidateApproach = forcedApproach ?? candidateApproachFor(seed)
   return {
     version: "1.0.0",
     brief,
     seed,
+    candidateApproach,
     directive,
     sections: analysis.sections.map((section, index): ArrangementSectionPlan => {
       const applies = !directive?.sectionId || directive.sectionId === section.sectionId
@@ -481,6 +532,32 @@ export function buildFullSongArrangementPlan(
         activeRoles.push("syn-stabs", "syn-high-glass")
         if (analysis.sections[index + 1]) activeRoles.push("syn-transition-phrase")
       }
+      // 同じDirection内でも、何を主役にするかを先に分岐させる。
+      // 乱数で音を散らすのではなく、全Sectionを通した一貫した解釈軸として扱う。
+      if (!isPeak && candidateApproach === "space-led") {
+        if (effectiveEnergy < 60) removeRoles(activeRoles, ["syn-pulse", "syn-stabs", "dr-open-hat", "dr-field-drum"])
+        if (
+          section.melodyRestRatio >= 0.24
+          && section.availableRegisters.includes("high")
+          && ["intro", "breakdown", "bridge", "reprise"].includes(section.semanticRole ?? "")
+        ) activeRoles.push("syn-high-glass")
+      } else if (!isPeak && candidateApproach === "rhythm-led") {
+        if (effectiveEnergy >= 42 && !["breakdown", "reprise", "outro"].includes(section.semanticRole ?? "")) {
+          activeRoles.push("dr-closed-hat", "syn-pulse")
+        }
+        if (effectiveEnergy >= 64) activeRoles.push("dr-open-hat", "dr-field-drum")
+      } else if (!isPeak && candidateApproach === "counterpoint-led") {
+        if (["pre", "chorus", "bridge", "build"].includes(section.semanticRole ?? "")) activeRoles.push("str-cello")
+        if (effectiveEnergy >= 62 && section.availableRegisters.includes("middle")) activeRoles.push("str-viola")
+        removeRoles(activeRoles, effectiveEnergy < 68 ? ["syn-stabs"] : [])
+      } else if (!isPeak && candidateApproach === "dynamic-contrast") {
+        if (effectiveEnergy < 42) removeRoles(activeRoles, ["dr-closed-hat", "syn-pulse", "syn-stabs", "str-viola", "str-violin-1"])
+        if (effectiveEnergy >= 68) activeRoles.push("dr-open-hat", "syn-stabs")
+      } else if (!isPeak && candidateApproach === "motif-led") {
+        if (effectiveEnergy >= 52) activeRoles.push("syn-stabs")
+        if (section.melodyRestRatio >= 0.12 && analysis.sections[index + 1]) activeRoles.push("syn-transition-phrase")
+        if (effectiveEnergy < 62) removeRoles(activeRoles, ["syn-pulse"])
+      }
       if (applies) activeRoles.push(...(directive?.add ?? []))
       if (selectedTransitionCharacter === "silence") {
         const index = activeRoles.indexOf("syn-transition-phrase")
@@ -488,6 +565,12 @@ export function buildFullSongArrangementPlan(
       }
       const sourceSection = project.sections.find((candidate) => candidate.id === section.sectionId)
       const sectionLengthBeats = (sourceSection?.lengthBars ?? 1) * beatsPerBar
+      const uniqueRoles = [...new Set(activeRoles)]
+      const roleEntryBeats = roleEntryBeatsFor(section, uniqueRoles, sectionLengthBeats, beatsPerBar)
+      if (candidateApproach === "space-led" && effectiveEnergy < 55) {
+        if (uniqueRoles.includes("dr-kick")) roleEntryBeats["dr-kick"] = Math.max(roleEntryBeats["dr-kick"] ?? 0, beatsPerBar)
+        if (uniqueRoles.includes("dr-snare")) roleEntryBeats["dr-snare"] = Math.max(roleEntryBeats["dr-snare"] ?? 0, beatsPerBar * 2)
+      }
       return {
         sectionId: section.sectionId,
         sectionName: section.sectionName,
@@ -508,14 +591,20 @@ export function buildFullSongArrangementPlan(
             : section.energyDelta > 0
               ? "次の段階へ向けて音数より期待と方向を増やす"
               : "主旋律の可読性を守り、前Sectionとの差を引き算で示す",
-        activeRoles: [...new Set(activeRoles)],
+        activeRoles: uniqueRoles,
         semanticRole: section.semanticRole,
         developmentStage: developmentStageFor(section),
-        phraseCycleBars: section.semanticRole === "intro" || section.semanticRole === "bridge" || section.semanticRole === "final" ? 8 : 4,
-        grooveFamily: character === "rhythmic" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
-        bassStrategy: character === "rhythmic" ? (isPeak ? "octave-drive" : "syncopated") : bassStrategyFor(section),
+        phraseCycleBars: candidateApproach === "motif-led" || section.semanticRole === "intro" || section.semanticRole === "bridge" || section.semanticRole === "final" ? 8 : 4,
+        grooveFamily: character === "rhythmic" || candidateApproach === "rhythm-led" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
+        bassStrategy: candidateApproach === "space-led"
+          ? "sustain"
+          : character === "rhythmic" || candidateApproach === "rhythm-led"
+            ? (isPeak ? "octave-drive" : "syncopated")
+            : candidateApproach === "motif-led" && effectiveEnergy < 68
+              ? "melodic-pulse"
+              : bassStrategyFor(section),
         harmonyStrategy: character === "minimal" ? "pedal-space" : character === "dark-experimental" ? "sparse-stabs" : character === "cinematic" && isPeak ? "register-expansion" : harmonyStrategyFor(section),
-        roleEntryBeats: roleEntryBeatsFor(section, [...new Set(activeRoles)], sectionLengthBeats, beatsPerBar),
+        roleEntryBeats,
         transitionCandidates,
         selectedTransitionCharacter,
         decorationCandidates,
@@ -836,7 +925,38 @@ function generateTrack(
   return track
 }
 
-export function reviewGeneratedArrangement(arrangement: Pick<FullSongArrangement, "analysis" | "plan" | "tracks">) {
+const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([
+  "syn-bass", "syn-pulse", "syn-stabs", "syn-dark-pad", "syn-high-glass",
+  "str-cello", "str-viola", "str-violin-2", "str-violin-1", "str-upper",
+])
+
+function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArrangementNote): Set<number> | null {
+  const section = project.sections.find((candidate) => candidate.id === note.sectionId)
+  if (!section) return null
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const localBeat = note.startBeat - sectionOffset(section.startBar, beatsPerBar)
+  const chords = project.chords.filter((chord) => chord.sectionId === section.id)
+  const chord = chordAtBeat(chords, localBeat)
+  const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
+  return parsed ? new Set([...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass)) : null
+}
+
+function countMelodyCollisions(project: ComposerProject, tracks: GeneratedArrangementTrack[]): number {
+  const lead = buildSongPlaybackMaterial(project).lead
+  return tracks.reduce((sum, track) => {
+    if (track.id.startsWith("dr-") || track.id === "syn-bass") return sum
+    return sum + track.notes.filter((note) => note.character === "safe" && lead.some((melodyNote) =>
+      melodyNote.startBeat < note.startBeat + note.durationBeats
+      && melodyNote.startBeat + melodyNote.durationBeats > note.startBeat
+      && Math.abs(melodyNote.pitch - note.pitch) <= 2,
+    )).length
+  }, 0)
+}
+
+export function reviewGeneratedArrangement(
+  arrangement: Pick<FullSongArrangement, "analysis" | "plan" | "tracks">,
+  project?: ComposerProject,
+) {
   const roleSignatures = arrangement.plan.sections.map((section) => [...section.activeRoles].sort().join("|"))
   const distinctSectionTextures = new Set(roleSignatures).size
   const stagedEntryCount = arrangement.plan.sections.reduce(
@@ -869,6 +989,31 @@ export function reviewGeneratedArrangement(arrangement: Pick<FullSongArrangement
     (sum, track) => sum + track.notes.filter((note) => note.sectionId === section.sectionId).length,
     0,
   ))
+  const sectionDensities = arrangement.plan.sections.map((section, index) => {
+    const sourceSection = project?.sections.find((candidate) => candidate.id === section.sectionId)
+    const lengthBeats = sourceSection ? sourceSection.lengthBars * beatsPerBar : 1
+    return sectionNoteCounts[index] / Math.max(1, lengthBeats)
+  })
+  const energyDensityCorrelation = pearsonCorrelation(
+    arrangement.plan.sections.map((section) => section.energy),
+    sectionDensities,
+  )
+  const averageActiveRoleCount = arrangement.plan.sections.reduce(
+    (sum, section) => sum + section.activeRoles.length,
+    0,
+  ) / Math.max(1, arrangement.plan.sections.length)
+  const generatedNotesPerBeat = arrangement.tracks.reduce((sum, track) => sum + track.notes.length, 0)
+    / Math.max(1, arrangement.analysis.totalBeats)
+  const harmonicViolationCount = project
+    ? arrangement.tracks.reduce((sum, track) => sum + (HARMONIC_REVIEW_TRACKS.has(track.id)
+      ? track.notes.filter((note) => {
+          if (note.character !== "safe") return false
+          const allowed = allowedPitchClassesAtNote(project, note)
+          return allowed !== null && !allowed.has(pc(note.pitch))
+        }).length
+      : 0), 0)
+    : 0
+  const melodyCollisionCount = project ? countMelodyCollisions(project, arrangement.tracks) : 0
   const positiveCounts = sectionNoteCounts.filter((count) => count > 0)
   const densityContrastRatio = positiveCounts.length > 1
     ? Math.max(...positiveCounts) / Math.max(1, Math.min(...positiveCounts))
@@ -880,19 +1025,27 @@ export function reviewGeneratedArrangement(arrangement: Pick<FullSongArrangement
   if (silentRoleCount > 0) recommendations.push("音のない役割をPlanから除外する")
   if (mechanicalLoopCount > 0) recommendations.push("同一小節の機械的な反復をMotif変形または休符で崩す")
   if (arrangement.plan.sections.length >= 4 && densityContrastRatio < 1.8) recommendations.push("Section間の実音密度差を増やす")
+  if (harmonicViolationCount > 0) recommendations.push("Safeパートのコード外音を解決可能な音へ修正する")
+  if (melodyCollisionCount > 0) recommendations.push("主旋律と同音域で接触する補助声部を整理する")
+  if (arrangement.plan.sections.length >= 4 && energyDensityCorrelation < 0.2) recommendations.push("Energy Curveと実際の発音密度を一致させる")
   const score = Math.max(0, Math.min(100,
-    45
-    + Math.min(25, distinctSectionTextures * 4)
-    + Math.min(15, stagedEntryCount * 3)
-    + (peakIsLate ? 15 : 0)
+    24
+    + Math.min(18, distinctSectionTextures * 1.5)
+    + Math.min(10, stagedEntryCount * 1.5)
+    + (peakIsLate ? 12 : 0)
     - overfilledSectionCount * 8
     - silentRoleCount * 5
     - mechanicalLoopCount * 4
-    + (densityContrastRatio >= 2.5 ? 5 : 0),
+    + (densityContrastRatio >= 2.5 ? 6 : densityContrastRatio >= 1.8 ? 3 : -6)
+    + Math.round(clamp01((energyDensityCorrelation + 0.2) / 1.1) * 20)
+    - Math.max(0, averageActiveRoleCount - 8) * 1.8
+    - Math.max(0, generatedNotesPerBeat - 7) * 1.5
+    - Math.min(28, harmonicViolationCount * 7)
+    - Math.min(20, melodyCollisionCount * 2),
   ))
   return {
     score,
-    passed: score >= 75 && recommendations.length <= 1,
+    passed: score >= ARRANGEMENT_QUALITY_FLOOR && harmonicViolationCount === 0 && melodyCollisionCount === 0,
     summary: score >= 88 ? "Sectionごとの役割差と後半の解放が成立しています" : score >= 75 ? "全曲の起伏は成立しています。試聴で役割密度を確認してください" : "全曲の役割差を再調整する余地があります",
     metrics: {
       distinctSectionTextures,
@@ -903,9 +1056,88 @@ export function reviewGeneratedArrangement(arrangement: Pick<FullSongArrangement
       silentRoleCount,
       mechanicalLoopCount,
       densityContrastRatio,
+      harmonicViolationCount,
+      melodyCollisionCount,
+      energyDensityCorrelation,
+      averageActiveRoleCount,
+      generatedNotesPerBeat,
     },
     recommendations,
   }
+}
+
+function setSimilarity(left: Set<string>, right: Set<string>): number {
+  const union = new Set([...left, ...right])
+  if (union.size === 0) return 1
+  let intersection = 0
+  left.forEach((value) => { if (right.has(value)) intersection += 1 })
+  return intersection / union.size
+}
+
+function arrangementSimilarity(left: FullSongArrangement, right: FullSongArrangement): number {
+  const sectionIds = [...new Set([...left.plan.sections, ...right.plan.sections].map((section) => section.sectionId))]
+  const roleSimilarity = sectionIds.reduce((sum, sectionId) => {
+    const leftRoles = new Set(left.plan.sections.find((section) => section.sectionId === sectionId)?.activeRoles ?? [])
+    const rightRoles = new Set(right.plan.sections.find((section) => section.sectionId === sectionId)?.activeRoles ?? [])
+    return sum + setSimilarity(leftRoles, rightRoles)
+  }, 0) / Math.max(1, sectionIds.length)
+  const noteSignature = (arrangement: FullSongArrangement) => new Set(arrangement.tracks.flatMap((track) => track.notes.map((note) =>
+    `${track.id}:${Math.round(note.startBeat * 4)}:${Math.round(note.durationBeats * 4)}:${pc(note.pitch)}`,
+  )))
+  const eventSimilarity = setSimilarity(noteSignature(left), noteSignature(right))
+  const leftDensity = left.plan.sections.map((section) => left.tracks.reduce(
+    (sum, track) => sum + track.notes.filter((note) => note.sectionId === section.sectionId).length, 0,
+  ))
+  const rightDensity = right.plan.sections.map((section) => right.tracks.reduce(
+    (sum, track) => sum + track.notes.filter((note) => note.sectionId === section.sectionId).length, 0,
+  ))
+  const densitySimilarity = leftDensity.reduce((sum, value, index) => {
+    const other = rightDensity[index] ?? 0
+    return sum + (1 - Math.abs(value - other) / Math.max(1, value, other))
+  }, 0) / Math.max(1, leftDensity.length)
+  return clamp01(roleSimilarity * 0.35 + eventSimilarity * 0.45 + densitySimilarity * 0.2)
+}
+
+function intentionFitScore(approach: ArrangementCandidateApproach, directive?: ArrangementGenerationDirective): number {
+  const preferred: Partial<Record<NonNullable<ArrangementGenerationDirective["character"]>, ArrangementCandidateApproach[]>> = {
+    minimal: ["space-led", "dynamic-contrast"],
+    cinematic: ["counterpoint-led", "dynamic-contrast"],
+    rhythmic: ["rhythm-led", "motif-led"],
+    "dark-experimental": ["motif-led", "counterpoint-led"],
+    balanced: ["dynamic-contrast", "space-led"],
+  }
+  const matches = directive?.character ? preferred[directive.character] ?? [] : []
+  if (matches[0] === approach) return 100
+  if (matches[1] === approach) return 88
+  return directive?.character ? 72 : 84
+}
+
+function candidateReason(summary: Omit<ArrangementCandidateSummary, "selected" | "reason">): string {
+  if (summary.qualityScore < ARRANGEMENT_QUALITY_FLOOR) return "音楽品質の下限に届かなかったため除外"
+  if (summary.originalityScore >= 45) return "品質を保ちながら、他案と異なる役割・リズム・音域展開を持つ"
+  return "基礎品質は高いが、他案との実音差が比較的小さい"
+}
+
+function generateArrangementCandidate(
+  project: ComposerProject,
+  analysis: ArrangementAnalysis,
+  seed: number,
+  brief: string | undefined,
+  directive: ArrangementGenerationDirective | undefined,
+  revision: number,
+  approach: ArrangementCandidateApproach,
+): FullSongArrangement {
+  const plan = buildFullSongArrangementPlan(project, analysis, seed, brief, directive, approach)
+  const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
+  const result: FullSongArrangement = {
+    version: "1.0.0",
+    id: `arrangement:${seed}`,
+    createdAt: new Date().toISOString(),
+    analysis,
+    plan,
+    tracks: activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+  }
+  return { ...result, quality: reviewGeneratedArrangement(result, project) }
 }
 
 export function generateFullSongArrangement(
@@ -918,18 +1150,62 @@ export function generateFullSongArrangement(
   } = {},
 ): FullSongArrangement {
   const analysis = analyzeFullSongArrangement(project)
-  const plan = buildFullSongArrangementPlan(project, analysis, options.seed, options.brief, options.directive)
-  const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
+  const baseSeed = options.seed ?? hashText(`${project.projectId}:${project.title}:${project.song.tempo}`)
   const revision = Math.max(0, Math.round(options.revision ?? 0))
-  const result: FullSongArrangement = {
-    version: "1.0.0",
-    id: `arrangement:${plan.seed}`,
-    createdAt: new Date().toISOString(),
+  const candidates = Array.from({ length: ARRANGEMENT_CANDIDATE_POOL_SIZE }, (_, index) => generateArrangementCandidate(
+    project,
     analysis,
-    plan,
-    tracks: activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+    (baseSeed + index * ARRANGEMENT_CANDIDATE_SEED_STEP) >>> 0,
+    options.brief,
+    options.directive,
+    revision + index,
+    ARRANGEMENT_APPROACHES[index % ARRANGEMENT_APPROACHES.length],
+  ))
+  const scored = candidates.map((candidate, index) => {
+    const comparisons = candidates.filter((_, otherIndex) => otherIndex !== index)
+    const originalityScore = comparisons.length === 0
+      ? 100
+      : (1 - comparisons.reduce((sum, other) => sum + arrangementSimilarity(candidate, other), 0) / comparisons.length) * 100
+    const qualityScore = candidate.quality?.score ?? 0
+    const intentionFit = intentionFitScore(candidate.plan.candidateApproach ?? "dynamic-contrast", options.directive)
+    const selectionScore = qualityScore * 0.72 + originalityScore * 0.15 + intentionFit * 0.13
+    const draft = {
+      seed: candidate.plan.seed,
+      approach: candidate.plan.candidateApproach ?? "dynamic-contrast" as ArrangementCandidateApproach,
+      qualityScore,
+      originalityScore: Math.round(originalityScore),
+      intentionFitScore: intentionFit,
+      selectionScore: Math.round(selectionScore * 10) / 10,
+    }
+    return { candidate, summary: { ...draft, selected: false, reason: candidateReason(draft) } }
+  })
+  const eligible = scored.filter(({ candidate }) =>
+    (candidate.quality?.score ?? 0) >= ARRANGEMENT_QUALITY_FLOOR
+    && candidate.quality?.metrics.harmonicViolationCount === 0
+    && candidate.quality?.metrics.melodyCollisionCount === 0,
+  )
+  const ranked = [...(eligible.length > 0 ? eligible : scored)].sort((left, right) =>
+    right.summary.selectionScore - left.summary.selectionScore
+    || right.summary.qualityScore - left.summary.qualityScore,
+  )
+  const winner = ranked[0]
+  const selectedSeed = winner.candidate.plan.seed
+  const summaries = scored.map(({ summary }) => summary.seed === selectedSeed
+    ? { ...summary, selected: true, reason: "実音品質・独創性・制作意図への適合を総合して採用" }
+    : summary)
+  return {
+    ...winner.candidate,
+    id: `arrangement:${baseSeed}:${selectedSeed}`,
+    plan: { ...winner.candidate.plan, seed: baseSeed, candidateSeed: selectedSeed },
+    tracks: winner.candidate.tracks.map((track) => ({ ...track, generationRevision: revision })),
+    selection: {
+      poolSize: candidates.length,
+      qualityFloor: ARRANGEMENT_QUALITY_FLOOR,
+      eligibleCount: eligible.length,
+      selectedSeed,
+      candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
+    },
   }
-  return { ...result, quality: reviewGeneratedArrangement(result) }
 }
 
 export function regenerateFullSongArrangementTarget(
@@ -986,7 +1262,7 @@ export function regenerateFullSongArrangementTarget(
       })
     : [...current.tracks, regenerated]
   const updated = { ...current, plan, tracks }
-  return { ...updated, quality: reviewGeneratedArrangement(updated) }
+  return { ...updated, quality: reviewGeneratedArrangement(updated, project) }
 }
 
 export function setArrangementTrackMuted(

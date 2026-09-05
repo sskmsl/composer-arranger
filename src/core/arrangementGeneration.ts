@@ -77,6 +77,14 @@ export type ArrangementHarmonyStrategy =
   | "sparse-stabs"
   | "register-expansion"
 
+/** 同じ制作意図を、異なる作曲判断で実音化する候補内の解釈軸。 */
+export type ArrangementCandidateApproach =
+  | "space-led"
+  | "rhythm-led"
+  | "counterpoint-led"
+  | "dynamic-contrast"
+  | "motif-led"
+
 export interface ArrangementAnalysis {
   version: "1.0.0"
   bpm: number
@@ -135,7 +143,11 @@ export interface ArrangementSectionPlan {
 export interface ArrangementPlan {
   version: "1.0.0"
   brief: string
+  /** ユーザー入力に対する再現可能な生成バッチのseed。 */
   seed: number
+  /** 候補プール内で実際に採用された候補のseed。 */
+  candidateSeed?: number
+  candidateApproach?: ArrangementCandidateApproach
   directive?: ArrangementGenerationDirective
   sections: ArrangementSectionPlan[]
 }
@@ -174,6 +186,7 @@ export interface FullSongArrangement {
   plan: ArrangementPlan
   tracks: GeneratedArrangementTrack[]
   quality?: ArrangementQualityReport
+  selection?: ArrangementSelectionDiagnostics
 }
 
 export interface ArrangementQualityReport {
@@ -191,8 +204,32 @@ export interface ArrangementQualityReport {
     mechanicalLoopCount: number
     /** 最も疎なSectionと最も密なSectionの音数差。 */
     densityContrastRatio: number
+    harmonicViolationCount: number
+    melodyCollisionCount: number
+    energyDensityCorrelation: number
+    averageActiveRoleCount: number
+    generatedNotesPerBeat: number
   }
   recommendations: string[]
+}
+
+export interface ArrangementCandidateSummary {
+  seed: number
+  approach: ArrangementCandidateApproach
+  qualityScore: number
+  originalityScore: number
+  intentionFitScore: number
+  selectionScore: number
+  selected: boolean
+  reason: string
+}
+
+export interface ArrangementSelectionDiagnostics {
+  poolSize: number
+  qualityFloor: number
+  eligibleCount: number
+  selectedSeed: number
+  candidates: ArrangementCandidateSummary[]
 }
 
 export interface ArrangementRegenerationTarget {

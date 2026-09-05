@@ -18,6 +18,14 @@ const AUDITION_MIX_LABEL: Record<AuditionMix, string> = {
   generated: "AI生成のみ",
 }
 
+const APPROACH_LABEL = {
+  "space-led": "余白主導",
+  "rhythm-led": "推進力主導",
+  "counterpoint-led": "対旋律主導",
+  "dynamic-contrast": "起伏主導",
+  "motif-led": "モチーフ主導",
+} as const
+
 export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)
   const generate = useProjectStore((state) => state.generateFullSongArrangement)
@@ -183,10 +191,34 @@ export function FullSongArrangementPanel() {
         <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 rounded-sm border border-primary/25 bg-black/15 px-3 py-2 text-[11px]">
           <span className="font-semibold text-body-on-dark">全曲設計 {arrangement.quality.score}</span>
           <span className="text-body-muted">{arrangement.quality.summary}</span>
+          {arrangement.selection && (
+            <span className="rounded-full border border-emerald-300/25 bg-emerald-400/[0.07] px-2 py-0.5 text-emerald-100">
+              {arrangement.selection.poolSize}案を実音比較 · {arrangement.plan.candidateApproach ? APPROACH_LABEL[arrangement.plan.candidateApproach] : "総合案"}を採用
+            </span>
+          )}
           {arrangement.quality.recommendations.length > 0 && (
             <span className="w-full text-amber-100">確認: {arrangement.quality.recommendations.join("・")}</span>
           )}
         </div>
+      )}
+
+      {arrangement?.selection && (
+        <details className="mt-2 rounded-sm border border-hairline bg-black/10 px-3 py-2 text-[11px]">
+          <summary className="cursor-pointer text-body-muted">
+            選抜内容を見る（品質基準を満たした {arrangement.selection.eligibleCount}/{arrangement.selection.poolSize}案）
+          </summary>
+          <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {arrangement.selection.candidates.slice(0, 5).map((candidate) => (
+              <div key={candidate.seed} className={`rounded-sm border px-2.5 py-2 ${candidate.selected ? "border-primary/50 bg-primary/10" : "border-hairline"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-body-on-dark">{APPROACH_LABEL[candidate.approach]}</span>
+                  <span className="text-body-muted">品質 {candidate.qualityScore}</span>
+                </div>
+                <p className="mt-1 leading-4 text-body-muted">{candidate.reason}</p>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
 
       {!arrangement ? (
