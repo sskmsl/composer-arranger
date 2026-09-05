@@ -503,7 +503,7 @@ export function AiPartnerWorkspace({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-1 text-[11px] text-body-muted">
-                  最も盛り上げるSection
+                  最も盛り上げる場所
                   <Select
                     value={project.arrangementDirectorOverrides?.climaxSectionId ?? "auto"}
                     onChange={(event) =>
@@ -531,7 +531,7 @@ export function AiPartnerWorkspace({
                       AIの確認結果
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
-                      {wholeSongReview.summary}
+                      {plainDirectionText(wholeSongReview.summary)}
                     </p>
                   </div>
                   <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(wholeSongReview.status)}`}>
@@ -543,7 +543,7 @@ export function AiPartnerWorkspace({
                   .slice(0, 2)
                   .map((finding) => (
                     <p key={finding.id} className="mt-2 text-[11px] leading-4 text-amber-100">
-                      • {finding.recommendation}
+                      • {plainDirectionText(finding.recommendation)}
                     </p>
                   ))}
               </div>
@@ -570,7 +570,7 @@ export function AiPartnerWorkspace({
                       </span>
                     </div>
                     <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-body-muted">
-                      {plan.transitionIntent}
+                      {plainDirectionText(plan.transitionIntent)}
                     </div>
                   </button>
                 )
@@ -587,7 +587,7 @@ export function AiPartnerWorkspace({
                     label="まだ使わない"
                     value={currentDirectorPlan.withhold.length > 0
                       ? currentDirectorPlan.withhold.join(" / ")
-                      : "クライマックス資源を使用可能"}
+                      : "温存していた高い音や強い音を使える"}
                   />
                   <DirectorNote
                     label="次へつなぐ"
@@ -596,7 +596,7 @@ export function AiPartnerWorkspace({
                 </div>
                 <details className="rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
                   <summary className="cursor-pointer text-[11px] text-body-muted hover:text-body-on-dark">
-                    このSectionの強さを手動で調整
+                    この部分の強さを手動で調整
                   </summary>
                   <div className="mt-2 flex flex-wrap items-center gap-3">
                   <label className="flex items-center gap-1 text-[11px] text-body-muted">
@@ -618,7 +618,7 @@ export function AiPartnerWorkspace({
                     >
                       <option value="auto">AIに任せる</option>
                       {[1, 2, 3, 4, 5].map((value) => (
-                        <option key={value} value={value}>E{value}</option>
+                        <option key={value} value={value}>{energyLabel(value)}</option>
                       ))}
                     </Select>
                   </label>
@@ -648,7 +648,7 @@ export function AiPartnerWorkspace({
                     </Select>
                   </label>
                   {currentDirectorPlan.climaxPolicy === "express" && (
-                    <span className="text-[11px] text-primary-on-dark">最も盛り上げるSectionは最大で固定</span>
+                    <span className="text-[11px] text-primary-on-dark">最も盛り上げる場所なので「最も強い」で固定</span>
                   )}
                   </div>
                 </details>
@@ -662,10 +662,10 @@ export function AiPartnerWorkspace({
                       {arrangementReview.status === "strong"
                         ? <CircleCheck size={15} className="text-emerald-300" />
                         : <TriangleAlert size={15} className="text-amber-300" />}
-                      このSectionの状態
+                      この部分の状態
                     </div>
                     <p className="mt-1 text-[11px] leading-5 text-body-muted">
-                      {arrangementReview.summary}
+                      {plainDirectionText(arrangementReview.summary)}
                     </p>
                   </div>
                   <div className={`rounded-pill px-3 py-1 text-[11px] font-medium ${reviewStatusClass(arrangementReview.status)}`}>
@@ -685,7 +685,7 @@ export function AiPartnerWorkspace({
                           ? "text-red-100"
                           : "text-amber-100"
                         }`}>
-                          • {finding.recommendation}
+                          • {plainDirectionText(finding.recommendation)}
                         </p>
                       </div>
                     ))}
@@ -704,7 +704,7 @@ export function AiPartnerWorkspace({
                   <Layers3 size={15} className="text-primary-on-dark" /> 楽器と演奏の役割
                 </div>
                 <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
-                  {orchestrationPlan.performanceArc}
+                  {plainDirectionText(orchestrationPlan.performanceArc)}
                 </p>
               </div>
             </div>
@@ -719,7 +719,7 @@ export function AiPartnerWorkspace({
                       楽器の重なりで確認が必要です
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
-                      {orchestrationReview.summary}
+                      {plainDirectionText(orchestrationReview.summary)}
                     </p>
                   </div>
                   <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(orchestrationReview.status)}`}>
@@ -734,7 +734,7 @@ export function AiPartnerWorkspace({
                       .map((finding) => (
                         <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
                           <p className={finding.severity === "blocking" ? "text-[11px] leading-4 text-red-100" : "text-[11px] leading-4 text-amber-100"}>
-                            • {finding.recommendation}
+                            • {plainDirectionText(finding.recommendation)}
                           </p>
                         </div>
                       ))}
@@ -753,7 +753,7 @@ export function AiPartnerWorkspace({
                       音の重なりで確認が必要です
                     </div>
                     <p className="mt-1 text-[11px] leading-4 text-body-muted">
-                      {audibleLayerReview.summary}
+                      {plainDirectionText(audibleLayerReview.summary)}
                     </p>
                   </div>
                   <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(audibleLayerReview.status)}`}>
@@ -768,7 +768,7 @@ export function AiPartnerWorkspace({
                       .map((finding) => (
                         <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
                           <p className={finding.severity === "blocking" ? "text-[11px] leading-4 text-red-100" : "text-[11px] leading-4 text-amber-100"}>
-                            • {finding.recommendation}
+                            • {plainDirectionText(finding.recommendation)}
                           </p>
                         </div>
                       ))}
@@ -798,7 +798,7 @@ export function AiPartnerWorkspace({
                     </span>
                   </div>
                   <p className="mt-2 text-[11px] leading-4 text-body-muted">
-                    <strong className="text-body-on-dark">役割：</strong>{part.purpose}
+                    <strong className="text-body-on-dark">役割：</strong>{plainDirectionText(part.purpose)}
                   </p>
                   {part.role !== "intentional-silence" && effectiveSectionId && (
                     <details className="mt-2 border-t border-hairline pt-2">
@@ -806,27 +806,27 @@ export function AiPartnerWorkspace({
                         演奏の詳細・調整{override ? " · 固定あり" : ""}
                       </summary>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <Tag>{part.register}</Tag>
+                        <Tag>{registerLabel(part.register)}</Tag>
                         <Tag>{orchestrationDistanceLabel(part.distance)}</Tag>
-                        <Tag>{part.articulation}</Tag>
-                        <Tag>{part.dynamic}</Tag>
-                        <Tag>{part.timing}</Tag>
+                        <Tag>{articulationLabel(part.articulation)}</Tag>
+                        <Tag>{dynamicLabel(part.dynamic)}</Tag>
+                        <Tag>{timingLabel(part.timing)}</Tag>
                       </div>
                       <p className="mt-2 text-[11px] leading-4 text-body-muted">
-                        登場：{part.entry}　退場：{part.exit}
+                        鳴り始め：{plainDirectionText(part.entry)}　鳴り終わり：{plainDirectionText(part.exit)}
                       </p>
                       <p className="mt-1 text-[11px] text-ink-muted-48">
-                        Velocity {part.velocityRange[0]}–{part.velocityRange[1]}
+                        音の強さ {part.velocityRange[0]}–{part.velocityRange[1]}
                       </p>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
                         <OrchestrationOverrideSelect
-                          label="Family"
+                          label="楽器の種類"
                           value={override?.family ?? "auto"}
                           options={[
-                            ["lead-voice", "Lead Voice"], ["piano-keys", "Piano / Keys"],
-                            ["strings", "Strings"], ["analog-synth", "Analog Synth"],
-                            ["atmospheric-pad", "Atmospheric Pad"], ["mallet-bell", "Mallet / Bell"],
-                            ["percussion", "Percussion"],
+                            ["lead-voice", "主役の音"], ["piano-keys", "ピアノ／鍵盤"],
+                            ["strings", "弦楽器"], ["analog-synth", "アナログシンセ"],
+                            ["atmospheric-pad", "広がる持続音"], ["mallet-bell", "ベル／打楽器系の音"],
+                            ["percussion", "打楽器"],
                           ]}
                           onChange={(value) => setSectionOrchestrationOverride(
                             effectiveSectionId,
@@ -847,7 +847,11 @@ export function AiPartnerWorkspace({
                         <OrchestrationOverrideSelect
                           label="奏法"
                           value={override?.articulation ?? "auto"}
-                          options={["legato", "sustained", "pulsed", "detached", "swelling", "decaying"].map((value) => [value, value])}
+                          options={[
+                            ["legato", "滑らかにつなぐ"], ["sustained", "長く保つ"],
+                            ["pulsed", "短く繰り返す"], ["detached", "一音ずつ切る"],
+                            ["swelling", "次第に大きくする"], ["decaying", "次第に消える"],
+                          ]}
                           onChange={(value) => setSectionOrchestrationOverride(
                             effectiveSectionId,
                             part.role,
@@ -855,7 +859,7 @@ export function AiPartnerWorkspace({
                           )}
                         />
                         <OrchestrationOverrideSelect
-                          label="Dynamic"
+                          label="音の強さ"
                           value={override?.dynamic ?? "auto"}
                           options={["pp", "p", "mp", "mf", "f"].map((value) => [value, value])}
                           onChange={(value) => setSectionOrchestrationOverride(
@@ -865,9 +869,12 @@ export function AiPartnerWorkspace({
                           )}
                         />
                         <OrchestrationOverrideSelect
-                          label="Timing"
+                          label="発音位置"
                           value={override?.timing ?? "auto"}
-                          options={["strict", "slightly-ahead", "slightly-behind", "floating"].map((value) => [value, value])}
+                          options={[
+                            ["strict", "拍どおり"], ["slightly-ahead", "少し前"],
+                            ["slightly-behind", "少し後ろ"], ["floating", "拍へ厳密に合わせない"],
+                          ]}
                           onChange={(value) => setSectionOrchestrationOverride(
                             effectiveSectionId,
                             part.role,
@@ -879,7 +886,7 @@ export function AiPartnerWorkspace({
                           className="self-end rounded-sm border border-hairline px-2 py-1.5 text-[11px] text-body-muted hover:text-body-on-dark"
                           onClick={() => setSectionOrchestrationOverride(effectiveSectionId, part.role, null)}
                         >
-                          すべてAutoへ戻す
+                          すべて自動へ戻す
                         </button>
                       </div>
                     </details>
@@ -891,7 +898,7 @@ export function AiPartnerWorkspace({
             {orchestrationPlan.withheldGestures.length > 0 && (
               <div className="mt-3 rounded-sm border border-dashed border-hairline px-3 py-2 text-[11px] leading-4 text-body-muted">
                 <strong className="text-primary-on-dark">このSectionでは温存：</strong>
-                {orchestrationPlan.withheldGestures.join(" / ")}
+                {orchestrationPlan.withheldGestures.map(plainDirectionText).join(" / ")}
               </div>
             )}
           </SectionCard>
@@ -982,7 +989,7 @@ export function AiPartnerWorkspace({
                       {turn.userMessage}
                     </div>
                     <div className="mr-auto max-w-[92%] rounded-lg bg-white/[0.06] px-3 py-2 text-[11px] leading-5 text-body-muted">
-                      {turn.partnerReply}
+                      {plainDirectionText(turn.partnerReply)}
                     </div>
                   </div>
                 ))}
@@ -1000,10 +1007,10 @@ export function AiPartnerWorkspace({
               placeholder={session?.turns.length
                 ? isWholeSongConsultation
                   ? "例：全曲でメロディは変えず、Aメロは抑えてサビだけ開いて。ベルは使わないで"
-                  : "例：メロディは変えず、Direction 2をもっと不穏に。ベルは使わないで"
+                  : "例：メロディは変えず、2案目をもっと不穏に。ベルは使わないで"
                 : isWholeSongConsultation
-                  ? "例：曲全体を通して余白を守り、Sectionごとに役割を変えながらサビへ向かう3案がほしい"
-                  : "例：このSectionに、余白を残しながら次へつながるフレーズがほしい"}
+                  ? "例：曲全体を通して余白を守り、曲の部分ごとに役割を変えながらサビへ向かう3案がほしい"
+                  : "例：この部分に、余白を残しながら次へつながるフレーズがほしい"}
               className="resize-y rounded-lg border border-hairline bg-surface-tile-2 px-3 py-2.5 text-[14px] leading-6 text-body-on-dark outline-none placeholder:text-ink-muted-48 focus:border-primary-focus"
             />
           </label>
@@ -1098,10 +1105,10 @@ export function AiPartnerWorkspace({
                     <Lightbulb size={15} className="text-primary-on-dark" /> 現状診断
                   </div>
                   <p className="text-[13px] leading-6 text-body-muted">
-                    {response.diagnosis.currentStrength}
+                    {plainDirectionText(response.diagnosis.currentStrength)}
                   </p>
                   <p className="mt-1 text-[13px] leading-6 text-body-on-dark">
-                    {response.diagnosis.primaryOpportunity}
+                    {plainDirectionText(response.diagnosis.primaryOpportunity)}
                   </p>
                 </div>
                 <div className="w-full rounded-sm border border-primary/20 bg-primary/8 px-3 py-2 sm:w-auto sm:min-w-[15rem]">
@@ -1153,8 +1160,8 @@ export function AiPartnerWorkspace({
               {response.diagnosis.noAdditionRecommended && (
                 <p className="mt-3 rounded-sm bg-amber-300/10 px-3 py-2 text-[12px] text-amber-100">
                   {isWholeSongConsultation
-                    ? "曲全体では、音を追加しないSectionを残す案も有力と診断されています。"
-                    : "このSectionは、音を追加しない案も有力と診断されています。"}
+                    ? "曲全体では、あえて音を追加しない部分を残す案も有力です。"
+                    : "この部分は、あえて音を追加しない案も有力です。"}
                 </p>
               )}
               {(response.diagnosis.audioEvidence ?? []).length > 0 && (
@@ -1163,10 +1170,10 @@ export function AiPartnerWorkspace({
                     <AudioLines size={13} /> 音源から聴き取った根拠
                   </div>
                   <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
-                    {(response.diagnosis.audioEvidence ?? []).map((item) => <li key={item}>• {item}</li>)}
+                    {(response.diagnosis.audioEvidence ?? []).map((item) => <li key={item}>• {plainDirectionText(item)}</li>)}
                   </ul>
                   <p className="mt-1 text-[11px] text-ink-muted-48">
-                    {response.diagnosis.audioConfidenceNote ?? "音源解析は編曲判断の補助情報です。"}
+                    {plainDirectionText(response.diagnosis.audioConfidenceNote ?? "音源解析は編曲判断の補助情報です。")}
                   </p>
                 </div>
               )}
@@ -1213,15 +1220,15 @@ export function AiPartnerWorkspace({
                     {intent.generator === "rhythm" && intent.rhythmPlan.enabled && (
                       <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] leading-5 text-body-muted">
                         <div className="font-medium text-primary-on-dark">
-                          {intent.rhythmPlan.subdivision} · {intent.rhythmPlan.feel}
+                          {rhythmSubdivisionLabel(intent.rhythmPlan.subdivision)} · {rhythmFeelLabel(intent.rhythmPlan.feel)}
                         </div>
-                        <div className="mt-1"><strong className="text-body-on-dark">Kick：</strong>{intent.rhythmPlan.kickPattern}</div>
-                        <div><strong className="text-body-on-dark">Snare：</strong>{intent.rhythmPlan.snarePattern}</div>
-                        <div><strong className="text-body-on-dark">Hat：</strong>{intent.rhythmPlan.hatPattern}</div>
+                        <div className="mt-1"><strong className="text-body-on-dark">低いドラム：</strong>{plainDirectionText(intent.rhythmPlan.kickPattern)}</div>
+                        <div><strong className="text-body-on-dark">拍を示すドラム：</strong>{plainDirectionText(intent.rhythmPlan.snarePattern)}</div>
+                        <div><strong className="text-body-on-dark">細かい刻み：</strong>{plainDirectionText(intent.rhythmPlan.hatPattern)}</div>
                         {intent.rhythmPlan.percussionPattern && (
-                          <div><strong className="text-body-on-dark">Perc：</strong>{intent.rhythmPlan.percussionPattern}</div>
+                          <div><strong className="text-body-on-dark">その他の打楽器：</strong>{plainDirectionText(intent.rhythmPlan.percussionPattern)}</div>
                         )}
-                        <div className="mt-1 text-ink-muted-48">{intent.rhythmPlan.variation}</div>
+                        <div className="mt-1 text-ink-muted-48">{plainDirectionText(intent.rhythmPlan.variation)}</div>
                       </div>
                     )}
                     <details className="mt-3 rounded-sm border border-white/8 bg-white/[0.025] p-3 text-[11px] leading-5 text-body-muted">
@@ -1244,15 +1251,15 @@ export function AiPartnerWorkspace({
                         {intent.soundSourceSuggestions.slice(0, 2).map((source) => (
                           <div key={`${source.product}-${source.character}`} className="mt-2 text-[11px] leading-5 text-body-muted">
                             <div className="font-medium text-body-on-dark">{source.product}</div>
-                            <div>{source.family} · {source.character}</div>
+                            <div>{plainDirectionText(source.family)} · {plainDirectionText(source.character)}</div>
                             <div className="text-ink-muted-48">検索語：{source.searchTerms.join(" / ")}</div>
-                            <div className="text-ink-muted-48">{source.reason}</div>
+                            <div className="text-ink-muted-48">{plainDirectionText(source.reason)}</div>
                           </div>
                         ))}
                       </div>
                     )}
                     <p className="mt-3 text-[11px] leading-5 text-ink-muted-48">
-                      {intent.necessityReason ?? intent.why}
+                      {plainDirectionText(intent.necessityReason ?? intent.why)}
                     </p>
                     <div className="mt-auto pt-4">
                       {isWholeSongConsultation && (
@@ -1326,7 +1333,7 @@ export function AiPartnerWorkspace({
                       )}
                       {!isWholeSongConsultation && counterUnavailable && (
                         <p className="mt-2 text-[11px] text-amber-200">
-                          Counter生成にはActive Melodyが必要です。
+                          第二の旋律を作るには、採用中の主旋律が必要です。
                         </p>
                       )}
                     </div>
@@ -1340,10 +1347,10 @@ export function AiPartnerWorkspace({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="text-[13px] font-semibold text-body-on-dark">
-                      全曲候補をSection別に生成しました
+                      全曲候補を曲の部分ごとに生成しました
                     </div>
                     <p className="mt-1 text-[11px] text-emerald-100">
-                      {wholeSongGeneration.directionTitle} · {wholeSongGeneration.generated}件生成
+                      {plainDirectionText(wholeSongGeneration.directionTitle)} · {wholeSongGeneration.generated}件生成
                       {wholeSongGeneration.skipped > 0
                         ? ` · ${wholeSongGeneration.skipped}件保留`
                         : ""}
@@ -1355,7 +1362,7 @@ export function AiPartnerWorkspace({
                 </div>
                 <div className="mt-3 rounded-sm border border-primary/20 bg-primary/[0.06] p-3">
                   <p className="text-[11px] leading-4 text-body-muted">
-                    同じ意図からEnergy Curveと役割別MIDIも生成しました。Melodyとコードは保護したままです。
+                    同じ意図から全曲の盛り上がり方と楽器別MIDIも生成しました。主旋律とコードは変更していません。
                   </p>
                   <Button className="mt-2" variant="secondary" onClick={() => onNavigate("arrangement")}>
                     <Layers3 size={14} /> Arrangement Planとパート別MIDIを確認
@@ -1373,8 +1380,8 @@ export function AiPartnerWorkspace({
                         <span className="text-body-on-dark">
                           {item.status === "candidate"
                             ? "候補生成済み"
-                            : item.status === "applied"
-                              ? "Sectionへ適用済み"
+                              : item.status === "applied"
+                              ? "曲のこの部分へ適用済み"
                               : item.status === "existing"
                                 ? "現在案を維持"
                                 : item.status === "preserved"
@@ -1383,11 +1390,11 @@ export function AiPartnerWorkspace({
                                     ? "要件不足"
                                     : "生成保留"}
                         </span>
-                        <div>{item.purpose}</div>
+                        <div>{plainDirectionText(item.purpose)}</div>
                       </div>
                       {item.target && (
                         <Button variant="secondary" onClick={() => openWholeSongResult(item)}>
-                          {item.status === "candidate" ? `${GENERATOR_LABELS[item.generator]}候補を確認・試聴` : "Sectionを確認"}
+                          {item.status === "candidate" ? `${GENERATOR_LABELS[item.generator]}候補を確認・試聴` : "この部分を確認"}
                           <ArrowRight size={14} />
                         </Button>
                       )}
@@ -1457,10 +1464,29 @@ function DiagnosisList({ title, items }: { title: string; items: string[] }) {
     <div className="rounded-sm bg-white/[0.04] px-3 py-2">
       <div className="text-[11px] uppercase tracking-wide text-ink-muted-48">{title}</div>
       <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
-        {items.map((item) => <li key={item}>• {item}</li>)}
+        {items.map((item) => <li key={item}>• {plainDirectionText(item)}</li>)}
       </ul>
     </div>
   )
+}
+
+function rhythmSubdivisionLabel(value: AiArrangementIntent["rhythmPlan"]["subdivision"]): string {
+  return {
+    eighth: "8分音符中心",
+    sixteenth: "16分音符中心",
+    triplet: "3連符中心",
+    mixed: "複数の細かさを組み合わせる",
+  }[value]
+}
+
+function rhythmFeelLabel(value: AiArrangementIntent["rhythmPlan"]["feel"]): string {
+  return {
+    straight: "まっすぐな拍",
+    swing: "少し跳ねる拍",
+    "laid-back": "わずかに後ろへためる",
+    driving: "前へ押し出す",
+    broken: "途切れを活かす",
+  }[value]
 }
 
 function Tag({ children }: { children: string }) {
@@ -1483,7 +1509,7 @@ function DirectorNote({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-sm bg-white/[0.04] px-3 py-2">
       <div className="text-[11px] uppercase tracking-wide text-primary-on-dark">{label}</div>
-      <div className="mt-1 break-words leading-5 text-body-muted">{value}</div>
+      <div className="mt-1 break-words leading-5 text-body-muted">{plainDirectionText(value)}</div>
     </div>
   )
 }
@@ -1523,7 +1549,7 @@ function OrchestrationOverrideSelect({
         onChange={(event) => onChange(event.target.value)}
         className="min-w-0 !py-1 text-[11px]"
       >
-        <option value="auto">Auto</option>
+        <option value="auto">自動</option>
         {options.map(([optionValue, optionLabel]) => (
           <option key={optionValue} value={optionValue}>{optionLabel}</option>
         ))}
@@ -1545,14 +1571,14 @@ function orchestrationRoleLabel(role: OrchestrationPartPlan["role"]): string {
 
 function orchestrationFamilyLabel(family: OrchestrationPartPlan["family"]): string {
   return {
-    "lead-voice": "Lead Voice",
-    "piano-keys": "Piano / Keys",
-    strings: "Strings",
-    "analog-synth": "Analog Synth",
-    "atmospheric-pad": "Atmospheric Pad",
-    "mallet-bell": "Mallet / Bell",
-    percussion: "Percussion",
-    silence: "Silence",
+    "lead-voice": "主役の音",
+    "piano-keys": "ピアノ／鍵盤",
+    strings: "弦楽器",
+    "analog-synth": "アナログシンセ",
+    "atmospheric-pad": "広がる持続音",
+    "mallet-bell": "ベル／打楽器系の音",
+    percussion: "打楽器",
+    silence: "無音",
   }[family]
 }
 
@@ -1565,4 +1591,38 @@ function orchestrationDistanceLabel(
     middle: "中景",
     distant: "遠景",
   }[distance]
+}
+
+function registerLabel(register: OrchestrationPartPlan["register"]): string {
+  return {
+    low: "低い音域",
+    "low-middle": "低めから中間の音域",
+    middle: "中間の音域",
+    "middle-high": "中間から高めの音域",
+    full: "広い音域",
+  }[register]
+}
+
+function articulationLabel(value: OrchestrationPartPlan["articulation"]): string {
+  return {
+    legato: "滑らかにつなぐ",
+    sustained: "長く保つ",
+    pulsed: "短く繰り返す",
+    detached: "一音ずつ切る",
+    swelling: "次第に大きくする",
+    decaying: "次第に消える",
+  }[value]
+}
+
+function dynamicLabel(value: OrchestrationPartPlan["dynamic"]): string {
+  return { pp: "とても弱く", p: "弱く", mp: "やや弱く", mf: "やや強く", f: "強く" }[value]
+}
+
+function timingLabel(value: OrchestrationPartPlan["timing"]): string {
+  return {
+    strict: "拍どおり",
+    "slightly-ahead": "少し前",
+    "slightly-behind": "少し後ろ",
+    floating: "拍へ厳密に合わせない",
+  }[value]
 }

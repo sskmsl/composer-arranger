@@ -57,4 +57,15 @@ describe("AI Direction presentation", () => {
       "拍の表から少しずらしたリズムと短い音型",
     )
   })
+
+  it("診断の内部指標と幅広い専門語を画面向けの説明へ変換する", () => {
+    const result = plainDirectionText(
+      "モチーフ反復率が約52%、コードトーン使用率74%、休符率1%。Bridgeでレイヤーのアタックとテンションノートを調整する。",
+    )
+    expect(result).not.toMatch(/52%|74%|1%|モチーフ|コードトーン|Bridge|レイヤー|アタック|テンション/)
+    expect(result).toContain("短い音型の繰り返しは適度")
+    expect(result).toContain("間奏")
+    expect(result).toContain("追加パート")
+    expect(result).toContain("緊張感を作る音")
+  })
 })

@@ -88,14 +88,73 @@ export function audibleDirectionPresentation(
   }
 }
 
-/** APIが返した制作メモを詳細表示する場合も、頻出する専門表現を聴感の言葉へ直す。 */
+function amountDescription(value: string, subject: string): string {
+  const amount = Number(value)
+  if (!Number.isFinite(amount)) return subject
+  if (amount < 15) return `${subject}はほとんどない`
+  if (amount < 40) return `${subject}は控えめに使われている`
+  if (amount < 70) return `${subject}は適度に使われている`
+  return `${subject}が多く使われている`
+}
+
+/**
+ * APIが返すすべての説明文を、内部指標や専門語ではなく聴感の言葉へ直す。
+ * 元データは生成処理のために保持し、表示時だけ変換する。
+ */
 export function plainDirectionText(value: string): string {
   return value
     .replace(/最後のパルスを抜いて\s*1拍目を強く感じさせる[。.]?/g, "小節の最後を休ませ、次の小節の始まりをはっきり聴かせる。")
-    .replace(/パルス/g, "短く繰り返す伴奏")
-    .replace(/シンコペーション/g, "拍の表から少しずらしたリズム")
-    .replace(/レジスター/g, "音域")
-    .replace(/モチーフ/g, "短い音型")
-    .replace(/アタック/g, "音の立ち上がり")
-    .replace(/構造点/g, "曲の節目")
+    .replace(/モチーフ反復率(?:が|は)?(?:約)?\s*(\d+(?:\.\d+)?)%/gi, (_, amount: string) => amountDescription(amount, "短い音型の繰り返し"))
+    .replace(/コードトーン使用率(?:が|は)?(?:約)?\s*(\d+(?:\.\d+)?)%/gi, (_, amount: string) => amountDescription(amount, "コードになじむ音"))
+    .replace(/シンコペーション率(?:が|は)?(?:約)?\s*(\d+(?:\.\d+)?)%/gi, (_, amount: string) => amountDescription(amount, "拍を少しずらす動き"))
+    .replace(/休符率(?:が|は)?(?:約)?\s*(\d+(?:\.\d+)?)%/gi, (_, amount: string) => amountDescription(amount, "休み"))
+    .replace(/(?:最高音|highest[ -]?note)\s*\d+/gi, "最も高い音")
+    .replace(/Energy\s*[0-9.]+/gi, "曲の盛り上がり")
+    .replace(/\bDirection\b/gi, "方針")
+    .replace(/\bGenerator\b/gi, "生成機能")
+    .replace(/\bActive Melody\b/gi, "採用中の主旋律")
+    .replace(/\bSection\b/gi, "セクション")
+    .replace(/\bIntro\b/gi, "イントロ")
+    .replace(/\bVerse\b/gi, "Aメロ")
+    .replace(/\bPre[ -]?Chorus\b/gi, "サビ前")
+    .replace(/\bChorus\b/gi, "サビ")
+    .replace(/\bBridge\b/gi, "間奏")
+    .replace(/\bOutro\b/gi, "アウトロ")
+    .replace(/ノンコードトーン|非コードトーン/gi, "コード外の音")
+    .replace(/コードトーン/gi, "コードに含まれる音")
+    .replace(/半音アプローチ/gi, "次の音へ半音で近づく動き")
+    .replace(/クロマチック(?:・|\s)?アプローチ/gi, "次の音へ半音ずつ近づく動き")
+    .replace(/ボイスリーディング|ヴォイスリーディング/gi, "音同士の滑らかなつながり")
+    .replace(/オスティナート/gi, "繰り返し続ける短い音型")
+    .replace(/ペダル(?:・|\s)?トーン/gi, "同じ音を保つ低音")
+    .replace(/シンコペーション/gi, "拍の表から少しずらしたリズム")
+    .replace(/レジスター/gi, "音域")
+    .replace(/モチーフ/gi, "短い音型")
+    .replace(/アタック/gi, "音の立ち上がり")
+    .replace(/構造点/gi, "曲の節目")
+    .replace(/パルス/gi, "短く繰り返す伴奏")
+    .replace(/シーケンス/gi, "繰り返しながら動く音型")
+    .replace(/テンション(?:ノート)?/gi, "緊張感を作る音")
+    .replace(/クライマックス/gi, "最も盛り上がる場所")
+    .replace(/カデンツ|ケーデンス/gi, "フレーズの終わり方")
+    .replace(/コンター|輪郭線/gi, "音の上がり下がり")
+    .replace(/スウェル/gi, "次第に大きくなる音")
+    .replace(/フィル(?!ター)/gi, "つなぎの短い演奏")
+    .replace(/ダイナミクス/gi, "強弱")
+    .replace(/ベロシティ/gi, "音の強さ")
+    .replace(/アーティキュレーション/gi, "音の切り方・つなぎ方")
+    .replace(/テクスチャ/gi, "音の重なり方")
+    .replace(/レイヤー/gi, "追加パート")
+    .replace(/サステイン/gi, "音を長く保つ演奏")
+    .replace(/トランジェント/gi, "音の立ち上がり")
+    .replace(/マスキング/gi, "音同士が重なって聴こえにくくなる状態")
+    .replace(/ユニゾン/gi, "同じ高さの音")
+    .replace(/短2度|長2度/gi, "隣り合う近い音")
+    .replace(/密度/gi, "音の量")
+    .replace(/ピーク/gi, "最も盛り上がる場所")
+    .replace(/アクセント/gi, "強く鳴らす位置")
+    .replace(/オンセット/gi, "音を鳴らす位置")
+    .replace(/フック/gi, "耳に残る短いフレーズ")
+    .replace(/アプローチ/gi, "近づき方")
+    .replace(/\s{2,}/g, " ")
 }
