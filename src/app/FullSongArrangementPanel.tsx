@@ -127,18 +127,24 @@ export function FullSongArrangementPanel() {
   }
 
   return (
-    <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-primary/35 bg-primary/[0.055] p-3 sm:p-4">
-      <div className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0 max-w-3xl flex-1">
+    <section className="min-w-0 max-w-full rounded-lg border border-primary/35 bg-primary/[0.055] p-3 sm:p-4">
+      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-on-dark">全曲パート生成</p>
           <h3 className="mt-1 text-[16px] font-semibold">必要なパートだけを生成</h3>
           <p className="mt-1 text-[12px] leading-5 text-body-muted">
             コード・保護中の主旋律・セクション・制作意図を分析し、全曲の強弱と役割を決めてから独立トラックを生成します。
           </p>
         </div>
-        <Button onClick={() => void rebuild()} disabled={regenerating || project.sections.length === 0 || project.chords.length === 0}>
-          <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} /> {regenerating ? "全曲案を生成中…" : arrangement ? "全曲案を作り直す" : "全曲パートを生成"}
-        </Button>
+        <div className="relative z-10 flex min-w-0 justify-stretch sm:justify-start lg:justify-end">
+          <Button
+            className="min-h-11 w-full shrink-0 sm:w-auto"
+            onClick={() => void rebuild()}
+            disabled={regenerating || project.sections.length === 0 || project.chords.length === 0}
+          >
+            <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} /> {regenerating ? "全曲案を生成中…" : arrangement ? "全曲案を作り直す" : "全曲パートを生成"}
+          </Button>
+        </div>
       </div>
 
       {generationNotice && (
