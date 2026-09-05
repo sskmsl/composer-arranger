@@ -63,6 +63,63 @@ function project(): ComposerProject {
   }
 }
 
+function longFormProject(): ComposerProject {
+  const base = createEmptyProject("Long Form Arrangement Test")
+  const definitions = [
+    ["intro", "INTRO", "intro", 16],
+    ["verse-1", "VERSE 1", "verse", 8],
+    ["pre-1", "PRE-CHORUS", "pre-chorus", 8],
+    ["chorus-1", "CHORUS 1", "chorus", 8],
+    ["verse-2", "VERSE 2 / INSTRUMENTAL DEVELOPMENT", "verse", 8],
+    ["pre-2", "PRE-CHORUS 2", "pre-chorus", 8],
+    ["chorus-2", "CHORUS 2", "chorus", 8],
+    ["breakdown", "BREAKDOWN", "breakdown-chorus", 8],
+    ["bridge", "CINEMATIC BRIDGE", "bridge", 8],
+    ["build", "FINAL BUILD", "pre-chorus", 8],
+    ["final", "FINAL CHORUS", "grand-chorus", 16],
+    ["reprise", "OUTRO / INTRO REPRISE", "outro", 8],
+    ["hold", "FINAL HOLD", "outro", 5],
+  ] as const
+  let nextBar = 1
+  const sections: ComposerProject["sections"] = definitions.map(([id, name, role, lengthBars]) => {
+    const section = { id, name, role, startBar: nextBar, lengthBars } as ComposerProject["sections"][number]
+    nextBar += lengthBars
+    return section
+  })
+  const chords = sections.flatMap((section) => Array.from({ length: Math.ceil(section.lengthBars / 2) }, (_, index) => ({
+    id: `${section.id}:${index}`,
+    sectionId: section.id,
+    startBeat: index * 8,
+    durationBeats: Math.min(8, section.lengthBars * 4 - index * 8),
+    symbol: ["F#m(add9)", "Dmaj7", "A", "Esus4"][index % 4],
+    bass: null,
+  })))
+  const melodyNotes = sections.flatMap((section) => {
+    const offset = (section.startBar - 1) * 4
+    return Array.from({ length: section.lengthBars * 2 }, (_, index) => [
+      offset + index * 2,
+      index % 4 === 3 ? 0.5 : 1,
+      66 + [0, 2, 4, 7, 4, 2][index % 6],
+      80,
+      0,
+    ] as [number, number, number, number, number])
+  })
+  return {
+    ...base,
+    sections,
+    chords,
+    sourceImport: {
+      type: "midi", sourceKind: "external-song", fileName: "long-form.mid", importedAt: "2026-09-05T00:00:00.000Z",
+      format: 1, ppq: 480, trackCount: 2, melodyTrackName: "Lead", melodyTrackConfidence: 1,
+      chordInferenceConfidence: 1, sectionsFromMarkers: true, warnings: [],
+    },
+    importedArrangement: {
+      version: "1.0.0", sourceKind: "external-song", totalBeats: (nextBar - 1) * 4,
+      tracks: [{ sourceTrackIndex: 1, name: "Lead", role: "melody", notes: melodyNotes }],
+    },
+  }
+}
+
 describe("Arrangement Generator", () => {
   it("曲全体を解析して反復サビをコピーせず段階的に拡張する", () => {
     const input = project()
@@ -100,6 +157,21 @@ describe("Arrangement Generator", () => {
     expect(result.tracks.every((track) => track.notes.every((note) => note.sectionId.length > 0))).toBe(true)
     expect(result.plan.sections.every((section) => section.activeRoles.length < Object.keys(ARRANGEMENT_TRACK_NAMES).length)).toBe(true)
     expect(result.plan.sections.find((section) => section.sectionId === "intro")?.activeRoles).not.toContain("dr-snare")
+  })
+
+  it("読み込んだコードと主旋律、およびコードからのMelody生成用データを変更しない", () => {
+    const input = project()
+    const chordsBefore = structuredClone(input.chords)
+    const variantsBefore = structuredClone(input.melodyVariants)
+    const assignmentsBefore = structuredClone(input.sectionMelodyAssignments)
+    const importedBefore = structuredClone(input.importedArrangement)
+
+    generateFullSongArrangement(input, { seed: 10, brief: "主旋律は保持して伴奏だけを設計" })
+
+    expect(input.chords).toEqual(chordsBefore)
+    expect(input.melodyVariants).toEqual(variantsBefore)
+    expect(input.sectionMelodyAssignments).toEqual(assignmentsBefore)
+    expect(input.importedArrangement).toEqual(importedBefore)
   })
 
   it("全曲案の作り直しでseedとrevisionを更新し、同じ案を返さない", () => {
@@ -152,6 +224,32 @@ describe("Arrangement Generator", () => {
     expect(chorus2.activeRoles).toContain("dr-gran-cassa")
   })
 
+  it("AI Partnerで選んだ全曲方針を説明だけでなく実際の編成へ反映する", () => {
+    const input = project()
+    const minimal = generateFullSongArrangement(input, {
+      seed: 22,
+      directive: { intention: "余白を守る", character: "minimal", energyDelta: -8 },
+    })
+    const cinematic = generateFullSongArrangement(input, {
+      seed: 22,
+      directive: { intention: "弦で頂点へ向かう", character: "cinematic", energyDelta: 8 },
+    })
+    const rhythmic = generateFullSongArrangement(input, {
+      seed: 22,
+      directive: { intention: "身体的な前進を作る", character: "rhythmic", energyDelta: 5 },
+    })
+    const minimalChorus = minimal.plan.sections.find((section) => section.sectionId === "chorus-1")!
+    const cinematicChorus = cinematic.plan.sections.find((section) => section.sectionId === "chorus-1")!
+    const rhythmicChorus = rhythmic.plan.sections.find((section) => section.sectionId === "chorus-1")!
+
+    expect(minimalChorus.activeRoles).not.toContain("syn-pulse")
+    expect(cinematicChorus.activeRoles).toContain("str-cello")
+    expect(cinematicChorus.activeRoles).toContain("str-viola")
+    expect(rhythmicChorus.grooveFamily).toBe("driving")
+    expect(rhythmicChorus.bassStrategy).toBe("syncopated")
+    expect(rhythmic.tracks.find((track) => track.id === "syn-pulse")?.notes.length).toBeGreaterThan(0)
+  })
+
   it("指定SectionだけをSafe/Edge/Surpriseへ切り替えられる", () => {
     const input = project()
     const before = generateFullSongArrangement(input, { seed: 31 })
@@ -184,5 +282,39 @@ describe("Arrangement Generator", () => {
     expect(all).toContain("STR_Violin1")
     expect(bass).toContain("SYN_Bass")
     expect(bass).not.toContain("DR_Kick")
+  })
+
+  it("長い曲では導入を段階化し、真のFinalをピークとして役割を展開する", () => {
+    const result = generateFullSongArrangement(longFormProject(), { seed: 20260905 })
+    const intro = result.plan.sections.find((section) => section.sectionId === "intro")!
+    const chorus2 = result.plan.sections.find((section) => section.sectionId === "chorus-2")!
+    const final = result.plan.sections.find((section) => section.sectionId === "final")!
+
+    expect(result.analysis.peakSectionId).toBe("final")
+    expect(final.energy).toBe(100)
+    expect(final.energy).toBeGreaterThan(chorus2.energy)
+    expect(intro.roleEntryBeats?.["syn-bass"]).toBe(16)
+    expect(intro.roleEntryBeats?.["dr-kick"]).toBe(32)
+    expect(intro.roleEntryBeats?.["syn-high-glass"]).toBe(48)
+    expect(final.developmentStage).toBe(2)
+  })
+
+  it("1小節ループではなく役割別フレーズを生成し、全曲品質を検証する", () => {
+    const result = generateFullSongArrangement(longFormProject(), { seed: 81 })
+    const notesFor = (trackId: string, sectionId?: string) => result.tracks
+      .find((track) => track.id === trackId)?.notes.filter((note) => !sectionId || note.sectionId === sectionId) ?? []
+    const sectionDensity = (sectionId: string) => result.tracks.reduce(
+      (sum, track) => sum + track.notes.filter((note) => note.sectionId === sectionId).length,
+      0,
+    )
+
+    expect(notesFor("syn-bass").length).toBeGreaterThan(300)
+    expect(notesFor("syn-stabs").length).toBeGreaterThan(20)
+    expect(notesFor("str-cello").length).toBeGreaterThan(20)
+    expect(sectionDensity("final")).toBeGreaterThan(sectionDensity("breakdown"))
+    expect(result.plan.sections.filter((section) => section.activeRoles.includes("syn-high-glass")).length).toBeLessThanOrEqual(4)
+    expect(result.plan.sections.every((section) => section.activeRoles.length <= 16)).toBe(true)
+    expect(result.quality?.metrics.peakIsLate).toBe(true)
+    expect(result.quality?.passed).toBe(true)
   })
 })

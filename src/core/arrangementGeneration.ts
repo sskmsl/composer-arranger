@@ -12,6 +12,7 @@ export type ArrangementTrackId =
   | "dr-crash"
   | "syn-bass"
   | "syn-pulse"
+  | "syn-stabs"
   | "syn-dark-pad"
   | "syn-high-glass"
   | "syn-transition-phrase"
@@ -37,7 +38,42 @@ export interface ArrangementAnalysisSection {
   chordRepetition: number
   melodyRepetition: number
   availableRegisters: Array<"low" | "middle" | "high">
+  semanticRole?: ArrangementSemanticRole
 }
+
+export type ArrangementSemanticRole =
+  | "intro"
+  | "verse"
+  | "pre"
+  | "chorus"
+  | "breakdown"
+  | "bridge"
+  | "build"
+  | "final"
+  | "reprise"
+  | "outro"
+  | "other"
+
+export type ArrangementGrooveFamily =
+  | "suspended"
+  | "restrained"
+  | "driving"
+  | "broken"
+  | "building"
+  | "release"
+
+export type ArrangementBassStrategy =
+  | "sustain"
+  | "melodic-pulse"
+  | "syncopated"
+  | "octave-drive"
+  | "approach-led"
+
+export type ArrangementHarmonyStrategy =
+  | "pedal-space"
+  | "slow-voice-leading"
+  | "sparse-stabs"
+  | "register-expansion"
 
 export interface ArrangementAnalysis {
   version: "1.0.0"
@@ -81,6 +117,17 @@ export interface ArrangementSectionPlan {
   selectedTransitionCharacter: ArrangementCandidateCharacter | "silence"
   decorationCandidates: ArrangementTransitionCandidate[]
   selectedDecorationCharacter: ArrangementCandidateCharacter | "silence"
+  /** Sectionの名前・配置から解釈した、生成時の音楽的な役割。 */
+  semanticRole?: ArrangementSemanticRole
+  /** 同じ役割が再登場した際の発展段階。0=提示、1=発展、2=解放。 */
+  developmentStage?: 0 | 1 | 2
+  /** 1小節ループを避けるために共有するフレーズ周期。 */
+  phraseCycleBars?: 4 | 8
+  grooveFamily?: ArrangementGrooveFamily
+  bassStrategy?: ArrangementBassStrategy
+  harmonyStrategy?: ArrangementHarmonyStrategy
+  /** Section先頭から何拍待って役割を登場させるか。 */
+  roleEntryBeats?: Partial<Record<ArrangementTrackId, number>>
 }
 
 export interface ArrangementPlan {
@@ -94,6 +141,7 @@ export interface ArrangementPlan {
 export interface ArrangementGenerationDirective {
   sectionId?: string
   intention: string
+  character?: "minimal" | "cinematic" | "rhythmic" | "dark-experimental" | "balanced"
   energyDelta?: number
   add?: ArrangementTrackId[]
   preserve?: ArrangementTrackId[]
@@ -123,6 +171,22 @@ export interface FullSongArrangement {
   analysis: ArrangementAnalysis
   plan: ArrangementPlan
   tracks: GeneratedArrangementTrack[]
+  quality?: ArrangementQualityReport
+}
+
+export interface ArrangementQualityReport {
+  score: number
+  passed: boolean
+  summary: string
+  metrics: {
+    distinctSectionTextures: number
+    stagedEntryCount: number
+    peakSectionId: string | null
+    peakIsLate: boolean
+    overfilledSectionCount: number
+    silentRoleCount: number
+  }
+  recommendations: string[]
 }
 
 export interface ArrangementRegenerationTarget {
@@ -144,6 +208,7 @@ export const ARRANGEMENT_TRACK_NAMES: Record<ArrangementTrackId, string> = {
   "dr-crash": "DR_Crash",
   "syn-bass": "SYN_Bass",
   "syn-pulse": "SYN_Pulse",
+  "syn-stabs": "SYN_Stabs",
   "syn-dark-pad": "SYN_DarkPad",
   "syn-high-glass": "SYN_HighGlass",
   "syn-transition-phrase": "SYN_TransitionPhrase",

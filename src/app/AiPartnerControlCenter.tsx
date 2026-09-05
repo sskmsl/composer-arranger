@@ -118,6 +118,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
         `${selectedDirection.title}。${selectedDirection.summary}`,
         {
           intention: selectedDirection.summary,
+          character: selectedDirection.character,
           energyDelta: directionEnergyDelta,
           surpriseLevel: selectedDirection.character === "dark-experimental" ? 0.6 : 0.15,
         },

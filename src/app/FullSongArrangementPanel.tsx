@@ -179,6 +179,16 @@ export function FullSongArrangementPanel() {
         </p>
       )}
 
+      {arrangement?.quality && (
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 rounded-sm border border-primary/25 bg-black/15 px-3 py-2 text-[11px]">
+          <span className="font-semibold text-body-on-dark">全曲設計 {arrangement.quality.score}</span>
+          <span className="text-body-muted">{arrangement.quality.summary}</span>
+          {arrangement.quality.recommendations.length > 0 && (
+            <span className="w-full text-amber-100">確認: {arrangement.quality.recommendations.join("・")}</span>
+          )}
+        </div>
+      )}
+
       {!arrangement ? (
         <div className="mt-4 rounded-md border border-dashed border-hairline p-5 text-[12px] text-body-muted">
           生成前です。AIで決めた制作意図も全曲設計へ反映されます。主旋律は変更しません。

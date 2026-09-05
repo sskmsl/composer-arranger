@@ -81,6 +81,13 @@ function arrangementDirectiveForIntent(intent: AiArrangementIntent): Arrangement
   if (/pad|パッド|空間/i.test(description)) roles.push("syn-dark-pad")
   return {
     intention: `${intent.emotionalFunction}。${intent.generationBrief}`,
+    character: intent.generator === "rhythm"
+      ? "rhythmic"
+      : intent.creativeRisk === "radical" || intent.creativeRisk === "bold"
+        ? "dark-experimental"
+        : /string|violin|viola|cello|ストリング/i.test(description)
+          ? "cinematic"
+          : "balanced",
     add: [...new Set(roles)],
     surpriseLevel: intent.creativeRisk === "radical" ? 0.75 : intent.creativeRisk === "bold" ? 0.45 : 0.15,
   }
