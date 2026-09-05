@@ -40,6 +40,7 @@ DAW を目指すアプリではありません。ノート編集や細かな打�
 - **候補の比較・採用**: 複数候補をブラインドで聴き比べ、Star/却下などで評価しながらセクションごとに採用案を決定
 - **曲全体のプレビュー**: 採用したセクションを繋げて曲全体を試聴。セクション境界だけを前後1小節ずつ再生して繋がりを確認する機能もある
 - **MIDI Export**: セクション単位・曲全体単位で SMF 書き出し。セクション名をマーカーとして出力し、Logic Pro 側で構成を確認できる。Counter/Decorationは専用トラックとして分離
+- **Full Song Arrangement**: 全曲のEnergy Curveから8つの実音候補を生成し、品質・独自性・制作意図を評価して選抜。選ばれたDrums/Bass/Synth/Stringsへ役割別のVelocity・音価・microtimingを適用して独立MIDI出力
 - **プロジェクト保存・同期**: ブラウザ内(IndexedDB)への自動保存、Supabaseによる端末間同期、プロジェクト一覧からの再開・複製・削除、JSON ファイルでの書き出し・読み込み
 - **AI Arrangement Partner (Preview)**: 自然言語の相談と現在のコード・Active Melody・Section・Technique preferenceから、異なる3つのArrangement Intentを提案。選択したIntentを既存Generatorの設定へ変換して音の候補を生成
 - **Undo/Redo**: 生成・編集操作の履歴管理

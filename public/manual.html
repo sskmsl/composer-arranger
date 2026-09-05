@@ -930,6 +930,8 @@
       <p class="chapter-intro">セクション単体ではなく、曲全体を組み立てるためのタブです。</p>
       <ul>
         <li><strong>Arrangement Generator</strong> — BPM、Key、コード、保護中のMelody、休符、Section反復、Climaxを先に解析し、0〜100のEnergy CurveとSection別Planを確定してから必要な役割だけを生成します。</li>
+        <li><strong>候補選抜</strong> — 1回の生成で余白・推進力・対旋律・起伏・モチーフを主役にした8案を実音まで作り、コード適合、主旋律との衝突、反復、密度変化、制作意図への適合を比較して1案を採用します。</li>
+        <li><strong>演奏表情</strong> — 選ばれた各トラックへ、SectionのEnergyと役割に応じたVelocity、音価、microtiming、4小節単位の呼吸を適用します。Pitchは変更せず、試聴とMIDI書き出しへ同じ演奏結果を使用します。</li>
         <li><strong>役割別トラック</strong> — Kick、Snare、Closed／Open Hat、Tom、Field Drum、Gran Cassa、Crash、Bass、Pulse、Pad、High Glass、Transition、Final Lift、Stringsを固定名の独立MIDIトラックとして扱います。全役割を常時鳴らすのではなく、SectionのEnergyと余白で登場・退場を判断します。</li>
         <li><strong>Safe / Edge / Surprise</strong> — 装飾とTransitionは3系統を内部比較し、半音解決、主旋律休符、未使用音域、次SectionのEnergyなどの理由がある案だけを採用します。余白が不足する場合は無音を選びます。</li>
         <li><strong>部分再生成</strong> — 対象Sectionを選んでから各トラックの再生成ボタンを押すと、そのSection・その役割だけを置換します。他のSectionとトラックは変更しません。</li>

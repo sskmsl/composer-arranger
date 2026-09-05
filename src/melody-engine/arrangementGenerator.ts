@@ -21,6 +21,7 @@ import {
 } from "@/core/arrangementGeneration"
 import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial, normalizeSectionTimeline } from "@/core/sectionTimeline"
+import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDirector"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
   "dr-kick": 36,
@@ -1135,7 +1136,11 @@ function generateArrangementCandidate(
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+    tracks: applyArrangementPerformanceDirector(
+      project,
+      plan,
+      activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+    ),
   }
   return { ...result, quality: reviewGeneratedArrangement(result, project) }
 }
@@ -1246,7 +1251,11 @@ export function regenerateFullSongArrangementTarget(
   }
   const currentTrack = current.tracks.find((track) => track.id === target.trackId) ?? emptyTrack(target.trackId)
   const revision = currentTrack.generationRevision + 1
-  const regenerated = generateTrack(project, plan, target.trackId, revision, target.sectionId)
+  const regenerated = applyArrangementPerformanceDirector(
+    project,
+    plan,
+    [generateTrack(project, plan, target.trackId, revision, target.sectionId)],
+  )[0]
   const tracks = current.tracks.some((track) => track.id === target.trackId)
     ? current.tracks.map((track) => {
         if (track.id !== target.trackId) return track
@@ -1258,6 +1267,24 @@ export function regenerateFullSongArrangementTarget(
             ...track.notes.filter((note) => note.sectionId !== target.sectionId),
             ...regenerated.notes,
           ].sort((left, right) => left.startBeat - right.startBeat),
+          performance: regenerated.performance && track.performance
+            ? {
+                ...track.performance,
+                changedVelocityCount: track.performance.changedVelocityCount
+                  - track.performance.sectionPlans.filter((section) => section.sectionId === target.sectionId).reduce((sum, section) => sum + section.diagnostics.changedVelocityCount, 0)
+                  + regenerated.performance.changedVelocityCount,
+                changedDurationCount: track.performance.changedDurationCount
+                  - track.performance.sectionPlans.filter((section) => section.sectionId === target.sectionId).reduce((sum, section) => sum + section.diagnostics.changedDurationCount, 0)
+                  + regenerated.performance.changedDurationCount,
+                changedOnsetCount: track.performance.changedOnsetCount
+                  - track.performance.sectionPlans.filter((section) => section.sectionId === target.sectionId).reduce((sum, section) => sum + section.diagnostics.changedOnsetCount, 0)
+                  + regenerated.performance.changedOnsetCount,
+                sectionPlans: [
+                  ...track.performance.sectionPlans.filter((section) => section.sectionId !== target.sectionId),
+                  ...regenerated.performance.sectionPlans,
+                ],
+              }
+            : regenerated.performance ?? track.performance,
         }
       })
     : [...current.tracks, regenerated]

@@ -196,6 +196,11 @@ export function FullSongArrangementPanel() {
               {arrangement.selection.poolSize}案を実音比較 · {arrangement.plan.candidateApproach ? APPROACH_LABEL[arrangement.plan.candidateApproach] : "総合案"}を採用
             </span>
           )}
+          {arrangement.tracks.some((track) => track.performance?.applied) && (
+            <span className="rounded-full border border-sky-300/25 bg-sky-400/[0.07] px-2 py-0.5 text-sky-100">
+              強弱・音価・タイミング調整済み
+            </span>
+          )}
           {arrangement.quality.recommendations.length > 0 && (
             <span className="w-full text-amber-100">確認: {arrangement.quality.recommendations.join("・")}</span>
           )}

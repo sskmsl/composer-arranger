@@ -1,4 +1,5 @@
 import type { MelodyNote } from "./melody"
+import type { PerformanceExecutionDiagnostics, PerformanceExecutionPlan } from "./performanceExecution"
 
 export type ArrangementTrackId =
   | "dr-kick"
@@ -176,6 +177,29 @@ export interface GeneratedArrangementTrack {
   notes: GeneratedArrangementNote[]
   generationRevision: number
   purpose: string
+  performance?: ArrangementTrackPerformance
+}
+
+export type ArrangementPerformanceArc =
+  | "restrained"
+  | "breathe"
+  | "build"
+  | "release"
+  | "withdraw"
+
+export interface ArrangementSectionPerformancePlan extends PerformanceExecutionPlan {
+  sectionId: string
+  arc: ArrangementPerformanceArc
+  diagnostics: PerformanceExecutionDiagnostics
+}
+
+export interface ArrangementTrackPerformance {
+  version: "1.0.0"
+  applied: boolean
+  changedVelocityCount: number
+  changedDurationCount: number
+  changedOnsetCount: number
+  sectionPlans: ArrangementSectionPerformancePlan[]
 }
 
 export interface FullSongArrangement {

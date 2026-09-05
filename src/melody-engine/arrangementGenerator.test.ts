@@ -351,6 +351,19 @@ describe("Arrangement Generator", () => {
     expect(result.quality!.metrics.melodyCollisionCount).toBe(0)
   })
 
+  it("全曲の各生成トラックへSection別の演奏表情を適用し、そのままMIDI対象へ保持する", () => {
+    const result = generateFullSongArrangement(longFormProject(), { seed: 8102 })
+    const soundingTracks = result.tracks.filter((track) => track.notes.length > 0)
+
+    expect(soundingTracks.every((track) => track.performance?.applied)).toBe(true)
+    expect(soundingTracks.some((track) => (track.performance?.changedVelocityCount ?? 0) > 0)).toBe(true)
+    expect(soundingTracks.some((track) => (track.performance?.changedDurationCount ?? 0) > 0)).toBe(true)
+    expect(soundingTracks.some((track) => (track.performance?.changedOnsetCount ?? 0) > 0)).toBe(true)
+    expect(new Set(result.tracks.find((track) => track.id === "dr-closed-hat")?.notes.map((note) => note.velocity)).size).toBeGreaterThan(2)
+    expect(result.tracks.find((track) => track.id === "syn-dark-pad")?.performance?.sectionPlans.some((section) => section.articulation === "sustained")).toBe(true)
+    expect(result.tracks.find((track) => track.id === "syn-transition-phrase")?.performance?.sectionPlans.every((section) => section.timing === "slightly-ahead")).toBe(true)
+  })
+
   it("同じseedでは候補選抜と全実音が再現し、別seedでは異なる解釈を生成する", () => {
     const input = longFormProject()
     const first = generateFullSongArrangement(input, { seed: 9012, brief: "主旋律を守り、後半で開く" })
