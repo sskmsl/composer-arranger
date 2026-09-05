@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { ArrowRight, Check, CheckCircle2, Layers3, LoaderCircle, WandSparkles, Waypoints } from "lucide-react"
 import { buildAiPartnerOrchestrationPlan } from "@/ai-arranger/aiPartnerOrchestrator"
-import { plainDirectionText } from "@/ai-arranger/directionPresentation"
+import { conciseDirectionText, plainDirectionText } from "@/ai-arranger/directionPresentation"
 import {
   executeArrangementAction,
   executeArrangementActions,
@@ -174,8 +174,8 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
         <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
           <Waypoints size={15} className="text-primary-on-dark" /> この曲の診断
         </div>
-        <p className="mt-2 text-[12px] leading-5 text-body-on-dark">{plainDirectionText(plan.diagnosis)}</p>
-        <p className="mt-1 text-[11px] leading-4 text-body-muted">曲の盛り上がり方: {plainDirectionText(plan.energyArc)}</p>
+        <p className="mt-2 text-[12px] leading-5 text-body-on-dark">{conciseDirectionText(plan.diagnosis, 72)}</p>
+        <p className="mt-1 text-[11px] leading-4 text-body-muted">曲の流れ: {conciseDirectionText(plan.energyArc, 64)}</p>
       </div>
 
       {project.sourceImport?.type === "midi" && (
@@ -211,7 +211,7 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
                   <span className="text-[12px] font-semibold text-body-on-dark">{plainDirectionText(direction.title)}</span>
                   {selected && <Check size={14} className="shrink-0 text-primary-on-dark" />}
                 </div>
-                <p className="mt-1 text-[11px] leading-4 text-primary-on-dark">{plainDirectionText(direction.subtitle)}</p>
+                <p className="mt-1 text-[11px] leading-4 text-primary-on-dark">{conciseDirectionText(direction.subtitle, 42)}</p>
                 {direction.id === directionProgram.recommendedDirectionId && (
                   <span className="mt-2 inline-block rounded-pill bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-100">推奨</span>
                 )}
@@ -225,9 +225,9 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="text-[14px] font-semibold text-body-on-dark">{plainDirectionText(selectedDirection.title)}で進める</div>
-            <p className="mt-1 text-[11px] leading-4 text-body-muted">{plainDirectionText(selectedDirection.summary)}</p>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">{conciseDirectionText(selectedDirection.summary, 64)}</p>
             {selectedDirection.id === directionProgram.recommendedDirectionId && (
-              <p className="mt-1 text-[11px] leading-4 text-emerald-100">{plainDirectionText(directionProgram.recommendationReason)}</p>
+              <p className="mt-1 text-[11px] leading-4 text-emerald-100">推奨理由: {conciseDirectionText(directionProgram.recommendationReason, 56)}</p>
             )}
           </div>
           <Button onClick={() => void runFullSong()} disabled={generatingFullSong || fullSongActions.length === 0} className="shrink-0 justify-center sm:min-w-52">

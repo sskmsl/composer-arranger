@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { AiArrangementIntent } from "./types"
-import { audibleDirectionPresentation, plainDirectionText } from "./directionPresentation"
+import { audibleDirectionPresentation, conciseDirectionText, plainDirectionText } from "./directionPresentation"
 
 function intent(overrides: Partial<AiArrangementIntent> = {}): AiArrangementIntent {
   return {
@@ -42,11 +42,20 @@ function intent(overrides: Partial<AiArrangementIntent> = {}): AiArrangementInte
 describe("AI Direction presentation", () => {
   it("自由文ではなく聴こえ方を示す日本語へ整理する", () => {
     const result = audibleDirectionPresentation(intent())
-    expect(result.title).toBe("伴奏の反復で曲を前へ進める")
+    expect(result.title).toBe("伴奏で曲を前へ進める")
     expect(result.summary).toContain("低音")
     expect(result.changes).toHaveLength(3)
     expect(result.changes.join(" ")).toContain("主旋律")
-    expect(result.changes.join(" ")).toContain("休み")
+    expect(result.changes.join(" ")).toContain("休")
+  })
+
+  it("初期表示では長い説明を一文へ絞る", () => {
+    expect(conciseDirectionText("低音を短く繰り返します。さらに高い音を加えます。")).toBe(
+      "低音を短く繰り返します。",
+    )
+    expect(conciseDirectionText("主旋律を残し、低音を加え、節目だけ高い音を鳴らします。", 18)).toBe(
+      "主旋律を残し、低音を加え…",
+    )
   })
 
   it("意味の伝わりにくい制作語を具体的な聴感へ言い換える", () => {

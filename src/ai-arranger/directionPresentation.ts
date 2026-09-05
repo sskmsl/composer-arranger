@@ -7,29 +7,29 @@ export interface AudibleDirectionPresentation {
 }
 
 const DENSITY_TEXT = {
-  sparse: "音数を絞り、主旋律の周りに余白を残す",
-  balanced: "必要な場所だけ音を足し、主旋律を前に残す",
-  active: "動きを増やし、曲の前進感をはっきりさせる",
+  sparse: "音数を絞る",
+  balanced: "必要な場所だけ音を足す",
+  active: "動きを増やす",
 } as const
 
 const REGISTER_TEXT = {
-  low: "低い音域を使い、重さと土台を加える",
-  middle: "中音域を使い、主旋律とぶつからない隙間を埋める",
-  high: "高い音域を要所だけ使い、明るさや緊張を加える",
+  low: "低い音を使う",
+  middle: "中音域を使う",
+  high: "高い音を要所だけ使う",
 } as const
 
 const RHYTHM_TEXT = {
-  spacious: "長い音と休みを使い、ゆっくり広がる",
-  flowing: "音を滑らかにつなぎ、流れを止めない",
-  syncopated: "拍の表から少しずらし、揺れと推進力を作る",
-  pulsed: "短い反復音で、一定の歩みを作る",
-  fragmented: "短い音を断続的に置き、切迫感を作る",
+  spacious: "長い音と休みを使う",
+  flowing: "音を滑らかにつなぐ",
+  syncopated: "拍から少しずらして鳴らす",
+  pulsed: "短い音を繰り返す",
+  fragmented: "短い音を断続的に置く",
 } as const
 
 const SILENCE_TEXT = {
-  minimal: "休みは少なめにし、動きを途切れさせない",
-  breathing: "主旋律の区切りでは一緒に休み、呼吸を残す",
-  structural: "曲の節目ではあえて鳴らさず、次の始まりを目立たせる",
+  minimal: "休みは少なめ",
+  breathing: "主旋律と一緒に休む",
+  structural: "節目では鳴らさない",
 } as const
 
 const PRESENTATION_BY_GENERATOR: Record<
@@ -37,36 +37,36 @@ const PRESENTATION_BY_GENERATOR: Record<
   Pick<AudibleDirectionPresentation, "title" | "summary">
 > = {
   melody: {
-    title: "主旋律の表情を変える",
-    summary: "旋律の骨格を保ちながら、音の長さと間の取り方を変えます。",
+    title: "主旋律の間を整える",
+    summary: "音の長さと休み方を変えます。",
   },
   phrase: {
-    title: "主旋律の隙間に短い返答を置く",
-    summary: "歌や主旋律が休む場所だけに、短いフレーズを加えます。",
+    title: "主旋律の隙間に返答を置く",
+    summary: "主旋律が休む場所だけに短いフレーズを加えます。",
   },
   signature: {
-    title: "短い目印で曲の顔を作る",
-    summary: "覚えやすい短い音型を要所だけに置き、曲を識別しやすくします。",
+    title: "曲の目印を作る",
+    summary: "要所に覚えやすい短いフレーズを置きます。",
   },
   counter: {
-    title: "主旋律の後ろに第二の旋律を置く",
-    summary: "主旋律を邪魔しない音域と休符を選び、別の旋律で応答します。",
+    title: "第二の旋律を置く",
+    summary: "主旋律の後ろで別の旋律を短く鳴らします。",
   },
   decoration: {
-    title: "要所だけに印象的な一音を足す",
-    summary: "曲の節目や主旋律の休符に、ベルや短い上昇音を加えます。",
+    title: "要所に一音を足す",
+    summary: "曲の節目にベルなどの短い音を加えます。",
   },
   accompaniment: {
-    title: "伴奏の反復で曲を前へ進める",
-    summary: "コードを鳴らし続けず、低音や短い反復で一定の歩みを作ります。",
+    title: "伴奏で曲を前へ進める",
+    summary: "低音や短い反復で曲の流れを作ります。",
   },
   rhythm: {
-    title: "ドラムの位置と休符で流れを変える",
-    summary: "音数ではなく、キックやスネアを置く場所の違いで推進力を作ります。",
+    title: "ドラムの流れを変える",
+    summary: "ドラムを鳴らす位置と休み方を変えます。",
   },
   none: {
-    title: "音を足さず、余白を残す",
-    summary: "新しい音を加えず、次のセクションが始まる瞬間を目立たせます。",
+    title: "余白を残す",
+    summary: "音を加えず、次の始まりを目立たせます。",
   },
 }
 
@@ -83,7 +83,7 @@ export function audibleDirectionPresentation(
     changes: [
       DENSITY_TEXT[intent.density],
       REGISTER_TEXT[intent.register],
-      `${RHYTHM_TEXT[intent.rhythmCharacter]}。${SILENCE_TEXT[intent.silenceStrategy]}`,
+      `${RHYTHM_TEXT[intent.rhythmCharacter]}／${SILENCE_TEXT[intent.silenceStrategy]}`,
     ],
   }
 }
@@ -157,4 +157,23 @@ export function plainDirectionText(value: string): string {
     .replace(/フック/gi, "耳に残る短いフレーズ")
     .replace(/アプローチ/gi, "近づき方")
     .replace(/\s{2,}/g, " ")
+}
+
+/** 初期表示用。結論を一文だけ残し、詳しい説明は折りたたみ側へ回す。 */
+export function conciseDirectionText(value: string, maxChars = 64): string {
+  const plain = plainDirectionText(value).trim()
+  if (!plain) return plain
+
+  const firstSentence = plain.match(/^.*?[。！？!?]/)?.[0]?.trim() ?? plain
+  if (firstSentence.length <= maxChars) return firstSentence
+
+  const clauses = firstSentence.split(/[、,，]/).map((part) => part.trim()).filter(Boolean)
+  let result = ""
+  for (const clause of clauses) {
+    const candidate = result ? `${result}、${clause}` : clause
+    if (candidate.length > maxChars - 1) break
+    result = candidate
+  }
+  if (result) return `${result.replace(/[。！？!?]$/, "")}…`
+  return `${firstSentence.slice(0, Math.max(1, maxChars - 1)).trim()}…`
 }

@@ -47,6 +47,7 @@ import {
 import { wholeSongDirectionForAiIntent } from "@/ai-arranger/wholeSongDirectionPlan"
 import {
   audibleDirectionPresentation,
+  conciseDirectionText,
   plainDirectionText,
 } from "@/ai-arranger/directionPresentation"
 import { directionAuditionRanges } from "@/ai-arranger/directionAudition"
@@ -1105,10 +1106,12 @@ export function AiPartnerWorkspace({
                     <Lightbulb size={15} className="text-primary-on-dark" /> 現状診断
                   </div>
                   <p className="text-[13px] leading-6 text-body-muted">
-                    {plainDirectionText(response.diagnosis.currentStrength)}
+                    <strong className="text-body-on-dark">今の良さ：</strong>
+                    {conciseDirectionText(response.diagnosis.currentStrength, 56)}
                   </p>
                   <p className="mt-1 text-[13px] leading-6 text-body-on-dark">
-                    {plainDirectionText(response.diagnosis.primaryOpportunity)}
+                    <strong>次に変える：</strong>
+                    {conciseDirectionText(response.diagnosis.primaryOpportunity, 56)}
                   </p>
                 </div>
                 <div className="w-full rounded-sm border border-primary/20 bg-primary/8 px-3 py-2 sm:w-auto sm:min-w-[15rem]">
@@ -1170,7 +1173,7 @@ export function AiPartnerWorkspace({
                     <AudioLines size={13} /> 音源から聴き取った根拠
                   </div>
                   <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
-                    {(response.diagnosis.audioEvidence ?? []).map((item) => <li key={item}>• {plainDirectionText(item)}</li>)}
+                    {(response.diagnosis.audioEvidence ?? []).map((item) => <li key={item}>• {conciseDirectionText(item, 64)}</li>)}
                   </ul>
                   <p className="mt-1 text-[11px] text-ink-muted-48">
                     {plainDirectionText(response.diagnosis.audioConfidenceNote ?? "音源解析は編曲判断の補助情報です。")}
@@ -1259,7 +1262,7 @@ export function AiPartnerWorkspace({
                       </div>
                     )}
                     <p className="mt-3 text-[11px] leading-5 text-ink-muted-48">
-                      {plainDirectionText(intent.necessityReason ?? intent.why)}
+                      {conciseDirectionText(intent.necessityReason ?? intent.why, 64)}
                     </p>
                     <div className="mt-auto pt-4">
                       {isWholeSongConsultation && (
@@ -1464,7 +1467,7 @@ function DiagnosisList({ title, items }: { title: string; items: string[] }) {
     <div className="rounded-sm bg-white/[0.04] px-3 py-2">
       <div className="text-[11px] uppercase tracking-wide text-ink-muted-48">{title}</div>
       <ul className="mt-1 space-y-1 text-[11px] leading-5 text-body-muted">
-        {items.map((item) => <li key={item}>• {plainDirectionText(item)}</li>)}
+        {items.map((item) => <li key={item}>• {conciseDirectionText(item, 56)}</li>)}
       </ul>
     </div>
   )
