@@ -236,14 +236,11 @@ function nameWindows(features: BarFeature[], boundaries: number[], totalBars: nu
   const densities = melodicWindows.map((window) => window.melodyDensity).sort((left, right) => left - right)
   const highDensity = densities[Math.max(0, Math.floor(densities.length * 0.7))] ?? 0
   const firstVerseIndex = (() => {
-    const afterMelodyRest = raw.findIndex((window, index) =>
-      index > 0 &&
-      index < raw.length - 1 &&
-      window.melodyDensity > 0 &&
-      raw.slice(1, index).some((previous) => previous.melodyDensity === 0),
-    )
-    if (afterMelodyRest >= 0) return afterMelodyRest
-    const firstAfterIntro = raw.findIndex((window, index) => index > 0 && window.melodyDensity > 0)
+    // 長い無音はIntroの終端とは限らず、Breakdownや中間部にも現れる。
+    // 「最初の無音の後」ではなく、長尺曲は最大16小節、短尺曲は最大8小節を
+    // Intro候補としてから最初の旋律区間をVerseとする。
+    const introWindowLimit = totalBars >= 64 ? Math.min(2, raw.length - 2) : 1
+    const firstAfterIntro = raw.findIndex((window, index) => index >= introWindowLimit && window.melodyDensity > 0)
     return firstAfterIntro >= 0 ? firstAfterIntro : 1
   })()
   raw.forEach((window, index) => {
@@ -255,20 +252,42 @@ function nameWindows(features: BarFeature[], boundaries: number[], totalBars: nu
     else if (window.melodyDensity >= highDensity) window.role = "chorus"
     else window.role = "verse"
   })
+  // 絶対密度だけでは、後半の大サビが高密度な曲の「最初のサビ」を見失う。
+  // 直前Sectionからの相対的な立ち上がりと、立ち上がり後の継続もChorusとして読む。
+  raw.forEach((window, index) => {
+    if (index <= firstVerseIndex || index >= raw.length - 1 || window.melodyDensity <= 0) return
+    const previous = raw[index - 1]
+    const localLift = window.density >= Math.max(2, previous.density * 1.28)
+    const continuesLift = previous.role === "chorus" && window.density >= previous.density * 0.72
+    if (localLift || continuesLift) window.role = "chorus"
+  })
+  // サビ直前の旋律区間をPre-Chorusとして解釈する。
+  raw.forEach((window, index) => {
+    if (window.role === "chorus" && index > firstVerseIndex && raw[index - 1].role === "verse") {
+      raw[index - 1].role = "pre-chorus"
+    }
+  })
+  // Chorus直後の大きな密度低下は、一般的な間奏ではなくBreakdownとして扱う。
   raw.forEach((window, index) => {
     if (
-      window.role === "chorus" &&
-      index > firstVerseIndex + 1 &&
-      raw[index - 1].role === "verse" &&
-      raw[index - 2].role === "verse"
-    ) raw[index - 1].role = "pre-chorus"
+      index > 0 && index < raw.length - 1 &&
+      raw[index - 1].role === "chorus" &&
+      window.density < Math.max(1, raw[index - 1].density * 0.45)
+    ) window.role = "breakdown-chorus"
   })
+  const chorusIndices = raw.flatMap((window, index) => window.role === "chorus" ? [index] : [])
+  const finalChorusIndex = chorusIndices.at(-1)
+  if (finalChorusIndex !== undefined && finalChorusIndex >= Math.floor(raw.length * 0.6)) {
+    raw[finalChorusIndex].role = "grand-chorus"
+  }
   const counts = new Map<SectionRole, number>()
   const labels: Partial<Record<SectionRole, string>> = {
     intro: "推定イントロ",
     verse: "推定Aメロ",
     "pre-chorus": "推定Bメロ",
     chorus: "推定サビ",
+    "grand-chorus": "推定大サビ",
+    "breakdown-chorus": "推定落ちサビ",
     outro: "推定アウトロ",
     instrumental: "推定間奏",
   }

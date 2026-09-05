@@ -160,6 +160,53 @@ describe("MIDI project import", () => {
     expect(created.report.warnings).toContain("同名の分割Melodyトラック2本を、1本の原曲Melodyとして結合しました。")
   })
 
+  it("Logicの同名分割トラック群を短いFinal Liftより優先して主旋律判定する", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Logic Split Song",
+      tempoBpm: 128,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [
+        { name: "Keyboard Player - Freely", notes: [{ pitch: 66, start: 0, duration: beat, velocity: 82, channel: 0 }] },
+        { name: "Keyboard Player - Freely", notes: [{ pitch: 69, start: beat * 32, duration: beat, velocity: 82, channel: 0 }] },
+        { name: "Keyboard Player - Freely", notes: [{ pitch: 71, start: beat * 64, duration: beat, velocity: 82, channel: 0 }] },
+        { name: "SYN_FinalLift", notes: Array.from({ length: 8 }, (_, index) => ({
+          pitch: 84 + index,
+          start: beat * (72 + index / 2),
+          duration: beat / 2,
+          velocity: 90,
+          channel: 0,
+        })) },
+      ],
+    })
+    const analysis = analyzeMidiImport(bytes, "logic-split.mid")
+
+    expect(analysis.tracks.find((track) => track.index === analysis.melodyTrackIndex)?.name).toBe("Keyboard Player - Freely")
+    expect(analysis.melodyTrackIndices).toEqual([1, 2, 3])
+    expect(analysis.tracks.find((track) => track.name === "SYN_FinalLift")?.recommendedRole).not.toBe("melody")
+  })
+
+  it("最後の発音より遠いLogic End Of Track空白を曲尺へ含めない", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Trailing Logic Space",
+      tempoBpm: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [{
+        name: "Lead Melody",
+        notes: [{ pitch: 69, start: 0, duration: beat * 32, velocity: 80, channel: 0 }],
+        textEvents: [{ tick: beat * 320, text: "Logic trailing event" }],
+      }],
+    })
+    const parsed = parseMidi(bytes)
+    const analysis = analyzeMidiImport(bytes, "trailing-space.mid")
+
+    expect(parsed.endTick / beat).toBe(32)
+    expect(analysis.totalBars).toBe(8)
+  })
+
   it("Logic Production Packageのトラック名から往復素材と役割を判定する", () => {
     const beat = TICKS_PER_QUARTER
     const bytes = buildSmf({

@@ -31,6 +31,8 @@ export interface ArrangementAnalysisSection {
   sectionRole: string
   order: number
   occurrence: number
+  /** 同じ音楽的役割が連続して分割された場合の、連続区間内の位置。 */
+  semanticSegmentIndex?: number
   energy: number
   energyDelta: number
   melodyRange: { low: number; high: number } | null
@@ -185,6 +187,10 @@ export interface ArrangementQualityReport {
     peakIsLate: boolean
     overfilledSectionCount: number
     silentRoleCount: number
+    /** 同じ音程・リズムを小節ごとに機械的に反復している音色Section数。 */
+    mechanicalLoopCount: number
+    /** 最も疎なSectionと最も密なSectionの音数差。 */
+    densityContrastRatio: number
   }
   recommendations: string[]
 }

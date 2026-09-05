@@ -358,6 +358,17 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
     }
     endTick = Math.max(endTick, parsed.endTick)
   }
+  // Logic Proは最後の発音より大幅に後ろへEnd Of Trackを置く場合がある。
+  // その空白を曲長として扱うと、Section推定と全曲アレンジが実曲の2倍以上に伸びる。
+  const beatsPerBar = timeSignature.numerator * 4 / timeSignature.denominator
+  const barTicks = Math.max(1, beatsPerBar * division)
+  const lastNoteEnd = tracks.reduce((latest, track) => track.notes.reduce(
+    (trackLatest, note) => Math.max(trackLatest, note.startTick + note.durationTicks),
+    latest,
+  ), 0)
+  const lastMarkerEnd = markers.reduce((latest, marker) => Math.max(latest, marker.tick + barTicks), 0)
+  const musicalEnd = Math.max(lastNoteEnd, lastMarkerEnd)
+  if (musicalEnd > 0) endTick = Math.min(endTick, Math.ceil(musicalEnd / barTicks) * barTicks)
   return { format, ppq: division, title, tempoBpm, timeSignature, keySignature, markers, tracks, endTick }
 }
 
@@ -443,8 +454,20 @@ function melodyTrackScore(track: ParsedMidiTrack): number {
 }
 
 function chooseMelodyTrack(tracks: ParsedMidiTrack[]): { track: ParsedMidiTrack; index: number; confidence: number } {
-  const ranked = tracks
-    .map((track, index) => ({ track, index, score: melodyTrackScore(track) }))
+  const nameGroups = new Map<string, number[]>()
+  tracks.forEach((track, index) => {
+    if (track.notes.length === 0 || isDrumTrack(track)) return
+    const key = normalizedTrackName(track.name) || `track:${index}`
+    nameGroups.set(key, [...(nameGroups.get(key) ?? []), index])
+  })
+  const ranked = [...nameGroups.values()]
+    .map((indices) => {
+      const track = mergeMelodyTracks({ tracks } as ParsedMidiSong, indices) ?? tracks[indices[0]]
+      const groupBonus = Math.min(2.4, Math.log2(indices.length + 1) * 0.72)
+      const coverageBonus = Math.min(1.2, track.notes.length / 160)
+      const rolePenalty = /(final.?lift|decoration|transition|fx|effect|riser|reverse|pad|stabs?|bass|drum|装飾)/i.test(track.name) ? 3 : 0
+      return { track: tracks[indices[0]], index: indices[0], score: melodyTrackScore(track) + groupBonus + coverageBonus - rolePenalty }
+    })
     .filter((candidate) => Number.isFinite(candidate.score))
     .sort((left, right) => right.score - left.score)
   if (ranked.length === 0) throw new Error("読み込める音符トラックがありません。")

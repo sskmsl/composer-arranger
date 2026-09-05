@@ -145,10 +145,20 @@ export function analyzeFullSongArrangement(project: ComposerProject): Arrangemen
   const lastChorus = [...sections].reverse().find((section) => semanticRoleFor(section) === "chorus")
   const climaxId = semanticFinal?.id ?? lastChorus?.id ?? director.climaxSectionId
   let previousEnergy: number | null = null
+  let previousSemanticRole: ArrangementAnalysisSection["semanticRole"]
+  let previousWasInferred = false
+  let semanticSegmentIndex = 0
   const analysisSections: ArrangementAnalysisSection[] = sections.map((section, order) => {
     const semanticRole = semanticRoles[order]
-    const occurrence = (roleOccurrence.get(semanticRole) ?? 0) + 1
+    const isInferredSegment = project.sourceImport?.sectionsFromMarkers === false && section.id.startsWith("inferred:")
+    if (semanticRole === previousSemanticRole && isInferredSegment && previousWasInferred) semanticSegmentIndex += 1
+    else semanticSegmentIndex = 0
+    const occurrence = semanticSegmentIndex === 0
+      ? (roleOccurrence.get(semanticRole) ?? 0) + 1
+      : roleOccurrence.get(semanticRole) ?? 1
     roleOccurrence.set(semanticRole, occurrence)
+    previousSemanticRole = semanticRole
+    previousWasInferred = isInferredSegment
     const directorEnergy = director.sections.find((plan) => plan.sectionId === section.id)?.targetEnergy ?? 2
     const semanticEnergy = semanticBaseEnergy(semanticRole, occurrence)
     const energy = section.id === climaxId
@@ -176,6 +186,7 @@ export function analyzeFullSongArrangement(project: ComposerProject): Arrangemen
       sectionRole: section.role,
       order,
       occurrence,
+      semanticSegmentIndex,
       energy,
       energyDelta,
       melodyRange,
@@ -203,16 +214,17 @@ function rolesFor(section: ArrangementAnalysisSection, isPeak: boolean): Arrange
   const restAllowsColour = section.melodyRestRatio >= 0.18 && section.availableRegisters.includes("high")
   if (semantic === "intro") {
     roles.push("syn-dark-pad", "syn-bass", "dr-kick")
+    if ((section.semanticSegmentIndex ?? 0) > 0) roles.push("dr-snare")
     if (restAllowsColour) roles.push("syn-high-glass")
   } else if (semantic === "verse") {
-    roles.push("dr-kick", "syn-bass", "syn-dark-pad")
-    if (section.occurrence > 1) roles.push("dr-snare", "syn-stabs")
+    roles.push("dr-kick", "dr-snare", "dr-closed-hat", "syn-bass", "syn-dark-pad")
+    if (section.occurrence > 1) roles.push("syn-pulse", "dr-field-drum")
   } else if (semantic === "pre") {
     roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum", "syn-bass", "syn-pulse", "str-cello", "syn-transition-phrase")
     if (section.occurrence > 1) roles.push("str-viola")
   } else if (semantic === "chorus") {
     roles.push("dr-kick", "dr-snare", "dr-closed-hat", "syn-bass", "syn-dark-pad", "syn-stabs")
-    if (section.occurrence > 1) roles.push("dr-open-hat", "syn-pulse", "str-cello", "str-violin-1")
+    if (section.occurrence > 1) roles.push("dr-open-hat", "dr-field-drum", "syn-pulse", "str-cello", "str-violin-1")
   } else if (semantic === "breakdown") {
     roles.push("syn-dark-pad", "syn-bass")
     if (restAllowsColour) roles.push("syn-high-glass")
@@ -277,9 +289,12 @@ function roleEntryBeatsFor(
 ): Partial<Record<ArrangementTrackId, number>> {
   const entries: Partial<Record<ArrangementTrackId, number>> = {}
   if (section.semanticRole === "intro" && sectionLengthBeats >= beatsPerBar * 8) {
-    if (activeRoles.includes("syn-bass")) entries["syn-bass"] = beatsPerBar * 4
-    if (activeRoles.includes("dr-kick")) entries["dr-kick"] = beatsPerBar * 8
-    if (activeRoles.includes("syn-high-glass")) entries["syn-high-glass"] = beatsPerBar * 12
+    if ((section.semanticSegmentIndex ?? 0) === 0) {
+      if (activeRoles.includes("syn-bass")) entries["syn-bass"] = beatsPerBar * 4
+      if (activeRoles.includes("dr-kick")) entries["dr-kick"] = beatsPerBar * 8
+    }
+    if ((section.semanticSegmentIndex ?? 0) > 0 && activeRoles.includes("dr-snare")) entries["dr-snare"] = beatsPerBar * 4
+    if (activeRoles.includes("syn-high-glass")) entries["syn-high-glass"] = (section.semanticSegmentIndex ?? 0) === 0 ? beatsPerBar * 6 : beatsPerBar * 4
   }
   if (section.semanticRole === "pre" || section.semanticRole === "build") {
     if (activeRoles.includes("dr-closed-hat")) entries["dr-closed-hat"] = beatsPerBar
@@ -354,7 +369,7 @@ function decorationCandidate(
   const chord = project.chords.filter((candidate) => candidate.sectionId === section.sectionId).sort((a, b) => a.startBeat - b.startBeat).at(-1)
   const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
   const chordPc = parsed?.tones[1]?.pitchClass ?? parsed?.rootPc ?? 9
-  const tensionPc = parsed?.tensions[0]?.pitchClass ?? pc(chordPc + 2)
+  const tensionPc = parsed?.tensions[0]?.pitchClass ?? pc((parsed?.rootPc ?? chordPc) + 2)
   if (section.melodyRestRatio < 0.12 || !section.availableRegisters.includes("high")) {
     return { id: `${section.sectionId}:decoration:${character}:silence`, sectionId: section.sectionId, character, kind: "silence", reason: "主旋律の休符または高域の余白が不足しているため、装飾を置かない", notes: [] }
   }
@@ -366,23 +381,47 @@ function decorationCandidate(
   const reason = character === "safe"
     ? "ボーカル休符の高域にコードの色を一音だけ反射させる"
     : character === "edge"
-      ? "9thまたは隣接テンションを短く置き、次の和声音へ残響で解決する"
+      ? "9thを短く置き、同じ高域のコードトーンへ解決して緊張を残さない"
       : "直前まで未使用だった最高域を一度だけ開き、反復Sectionに新しい記憶点を作る"
+  const startBeat = offset + Math.max(0, length - beatsPerBar * 0.75)
+  const candidateNotes: MelodyNote[] = character === "edge"
+    ? [
+        {
+          id: `decoration:${section.sectionId}:${character}:${seed}:tension`,
+          startBeat,
+          durationBeats: 0.25,
+          pitch,
+          velocity: 58,
+          locks: [],
+          plannedToneRole: "appoggiatura",
+          plannedResolution: { targetPitchClass: chordPc, targetBeat: startBeat + 0.5, maximumDelayBeats: 0.75 },
+        },
+        {
+          id: `decoration:${section.sectionId}:${character}:${seed}:resolution`,
+          startBeat: startBeat + 0.5,
+          durationBeats: 0.375,
+          pitch: midiForPc(chordPc, pitch),
+          velocity: 48,
+          locks: [],
+          plannedToneRole: "chord-tone",
+        },
+      ]
+    : [{
+        id: `decoration:${section.sectionId}:${character}:${seed}`,
+        startBeat,
+        durationBeats: character === "surprise" ? 0.125 : 0.25,
+        pitch,
+        velocity: character === "surprise" ? 72 : 50,
+        locks: [],
+        plannedToneRole: character === "safe" ? "chord-tone" : "tension-hold",
+      }]
   return {
     id: `${section.sectionId}:decoration:${character}:${seed}`,
     sectionId: section.sectionId,
     character,
     kind: "bell-hit",
     reason,
-    notes: [{
-      id: `decoration:${section.sectionId}:${character}:${seed}`,
-      startBeat: offset + Math.max(0, length - beatsPerBar * 0.75),
-      durationBeats: character === "surprise" ? 0.125 : 0.25,
-      pitch,
-      velocity: character === "surprise" ? 72 : character === "edge" ? 58 : 50,
-      locks: [],
-      plannedToneRole: character === "safe" ? "chord-tone" : "tension-hold",
-    }],
+    notes: candidateNotes,
   }
 }
 
@@ -541,12 +580,18 @@ function generateDrums(
     const groove = section.grooveFamily ?? "restrained"
     if (trackId === "dr-kick") {
       if (groove !== "suspended" || cycleBar % 2 === 0) beats.push(base)
+      if (groove === "restrained" && section.energy >= 34) beats.push(base + beatsPerBar / 2)
       if (["driving", "release"].includes(groove)) beats.push(base + beatsPerBar / 2)
+      if (groove === "release") beats.push(base + beatsPerBar / 4, base + beatsPerBar * 0.75)
+      if (groove === "driving" && section.developmentStage === 0 && cycleBar % 2 === 1) beats.push(base + beatsPerBar / 4)
       if (groove === "building" && cycleBar >= 2) beats.push(base + beatsPerBar / 2)
       if ((groove === "release" || (groove === "driving" && cycleBar % 2 === 1)) && !isPhraseEnd) beats.push(base + beatsPerBar - 0.5)
       if (groove === "broken" && cycleBar % 2 === 1) beats.push(base + beatsPerBar * 0.625)
     } else if (trackId === "dr-snare") {
       beats.push(base + beatsPerBar / 4, base + (beatsPerBar * 3) / 4)
+      if ((groove === "release" || section.developmentStage === 2) && cycleBar % 2 === 1) {
+        beats.push(base + beatsPerBar / 4 + 0.03, base + (beatsPerBar * 3) / 4 + 0.03)
+      }
       if (groove === "release" && isPhraseEnd) beats.push(base + beatsPerBar - 0.25)
     } else if (trackId === "dr-closed-hat") {
       const step = groove === "release" ? 0.5 : cycleBar >= 2 && groove === "building" ? 0.5 : 1
@@ -556,6 +601,8 @@ function generateDrums(
     } else if (trackId === "dr-open-hat") {
       if (cycleBar % 2 === 1 || groove === "release") beats.push(base + beatsPerBar - 0.5)
     } else if (trackId === "dr-field-drum") {
+      if (cycleBar === 1) beats.push(base + beatsPerBar * 0.4375)
+      if (cycleBar === 2 && section.energy >= 58) beats.push(base + beatsPerBar * 0.75)
       if (isPhraseEnd) beats.push(base + beatsPerBar - 1.5, base + beatsPerBar - 1, base + beatsPerBar - 0.5)
     } else if (trackId === "dr-low-tom" || trackId === "dr-high-tom") {
       if (isPhraseEnd) beats.push(base + beatsPerBar - (trackId === "dr-low-tom" ? 1 : 0.5))
@@ -618,13 +665,17 @@ function generateTonalTrack(
     }, melody))
   }
   if (trackId === "syn-final-lift") {
-    const chord = sectionChords[0]
-    const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
-    const tone = parsed?.tones[1]?.pitchClass ?? parsed?.rootPc
-    if (tone !== undefined) {
-      for (let beat = Math.max(0, length - beatsPerBar * 2); beat < length; beat += beatsPerBar / 2) {
-        add(beat, beatsPerBar / 2, midiForPc(tone, 88) + Math.min(7, Math.floor((beat - (length - beatsPerBar * 2)) / (beatsPerBar / 2)) * 2), 55 + (beat / length) * 28, notes.length, "edge", "最終ピークだけに温存した高域を段階的に開く")
-      }
+    let previousPitch = 81
+    const liftStart = Math.max(0, length - beatsPerBar * 2)
+    for (let beat = liftStart; beat < length; beat += beatsPerBar / 2) {
+      const chord = chordAtBeat(sectionChords, beat)
+      const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
+      if (!parsed) continue
+      const pool = [...parsed.tones, ...parsed.tensions].map((tone) => midiForPc(tone.pitchClass, previousPitch + 2))
+      const upward = pool.filter((pitch) => pitch >= previousPitch && pitch - previousPitch <= 7).sort((left, right) => left - right)
+      const pitch = upward[0] ?? pool.sort((left, right) => Math.abs(left - previousPitch) - Math.abs(right - previousPitch))[0]
+      previousPitch = pitch
+      add(beat, beatsPerBar / 2, pitch, 55 + (beat / length) * 28, notes.length, "edge", "最終ピークのコードトーンと明示テンションだけで上方向の解放を作る")
     }
     return notes
   }
@@ -632,10 +683,10 @@ function generateTonalTrack(
     const strategy = section.bassStrategy ?? "melodic-pulse"
     const patterns: Record<NonNullable<ArrangementSectionPlan["bassStrategy"]>, number[]> = {
       sustain: [0],
-      "melodic-pulse": [0, 1.5, 3],
-      syncopated: [0, 0.75, 2.5, 3.5],
-      "octave-drive": [0, 1, 2, 2.75, 3.5],
-      "approach-led": [0, 1.5, 2.5, 3.5],
+      "melodic-pulse": [0, 2.5],
+      syncopated: [0, 1.5, 3.5],
+      "octave-drive": [0, 1.5, 2.75],
+      "approach-led": [0, 2.5, 3.5],
     }
     const bars = Math.max(1, Math.ceil(length / beatsPerBar))
     for (let bar = 0; bar < bars; bar += 1) {
@@ -673,13 +724,19 @@ function generateTonalTrack(
     const bars = Math.max(1, Math.ceil(length / beatsPerBar))
     for (let bar = 0; bar < bars; bar += 1) {
       const cycleBar = (bar + revision) % (section.phraseCycleBars ?? 4)
-      const offsets = cycleBar % 2 === 0 ? [1.5] : section.developmentStage ? [0.75, 3.25] : [2.5]
+      const offsets = cycleBar === 0
+        ? [1.5]
+        : cycleBar === 2
+          ? [3.5]
+          : (section.developmentStage ?? 0) >= 1 && cycleBar === 3
+            ? [3.5]
+            : []
       offsets.forEach((offsetInBar) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
         const chord = chordAtBeat(sectionChords, localBeat)
         chordTonePcs(chord).slice(0, 3).forEach((tone, voice) => add(
-          localBeat, 0.3 + voice * 0.04, midiForPc(tone, 62 + voice * 7), 43 + section.energy * 0.28,
+          localBeat, 0.18 + voice * 0.015, midiForPc(tone, 62 + voice * 7), 43 + section.energy * 0.28,
           notes.length, "safe", "主旋律の空白と裏拍だけに短い和音アクセントを置く",
         ))
       })
@@ -687,7 +744,9 @@ function generateTonalTrack(
     return notes
   }
   if (trackId === "syn-dark-pad" || trackId.startsWith("str-")) {
-    const segmentBeats = trackId === "syn-dark-pad" ? beatsPerBar * 2 : beatsPerBar
+    const stringPeriodBars = trackId === "str-upper" ? 4 : 2
+    const segmentBeats = trackId === "syn-dark-pad" ? beatsPerBar : beatsPerBar * stringPeriodBars
+    const previousPadPitches: Array<number | undefined> = [undefined, undefined, undefined]
     let previousPitch: number | undefined
     for (let localBeat = 0; localBeat < length - 0.01; localBeat += segmentBeats) {
       const chord = chordAtBeat(sectionChords, localBeat)
@@ -695,20 +754,28 @@ function generateTonalTrack(
       if (!parsed) continue
       const duration = Math.min(segmentBeats, length - localBeat) * 0.96
       if (trackId === "syn-dark-pad") {
-        const palette = [...parsed.tones.slice(1, 3), ...parsed.tensions.slice(0, 1)]
-        palette.slice(0, 3).forEach((tone, voice) => add(
-          localBeat, duration, midiForPc(tone.pitchClass, 53 + voice * 7), 30 + section.energy * 0.17,
-          notes.length, "safe", "2小節単位のVoice Leadingで空間を呼吸させる",
-        ))
+        const palette = [...parsed.tones.slice(1), ...parsed.tensions.slice(0, 1), parsed.tones[0]].filter(Boolean)
+        const padCycle = (Math.floor(localBeat / beatsPerBar) + revision) % 4
+        const breathFactors = [0.96, 0.88, 0.94, 0.84]
+        palette.slice(0, 3).forEach((tone, voice) => {
+          const pitch = midiForPc(tone.pitchClass, previousPadPitches[voice] ?? 53 + voice * 7)
+          previousPadPitches[voice] = pitch
+          const voiceOffset = padCycle === 2 && voice === 2 ? 0.25 : 0
+          add(localBeat + voiceOffset, Math.max(0.25, duration * breathFactors[padCycle] - voiceOffset), pitch, 30 + section.energy * 0.17,
+            notes.length, "safe", "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す")
+        })
       } else {
+        const phraseOffset = ((Math.floor(localBeat / segmentBeats) + revision) % 2) * (beatsPerBar / 2)
+        const soundingChord = chordAtBeat(sectionChords, localBeat + phraseOffset)
+        const soundingParsed = (soundingChord ? parseChordSymbol(soundingChord.symbol, soundingChord.bass ?? undefined) : null) ?? parsed
         const targetIndex = trackId === "str-cello" ? 0 : trackId === "str-viola" ? 1 : trackId === "str-violin-2" ? 2 : trackId === "str-violin-1" ? 1 : 2
         const around = trackId === "str-cello" ? 48 : trackId === "str-viola" ? 60 : trackId === "str-violin-2" ? 67 : trackId === "str-violin-1" ? 74 : 86
-        const pool = [...parsed.tones.slice(1), ...parsed.tensions]
+        const pool = [...soundingParsed.tones.slice(1), ...soundingParsed.tensions]
         const shiftedIndex = (targetIndex + Math.floor(localBeat / segmentBeats) + (section.developmentStage ?? 0)) % Math.max(1, pool.length)
-        const tone = pool[shiftedIndex]?.pitchClass ?? parsed.rootPc
+        const tone = pool[shiftedIndex]?.pitchClass ?? soundingParsed.rootPc
         const pitch = midiForPc(tone, previousPitch ?? around)
         previousPitch = pitch
-        add(localBeat, duration, pitch, 38 + section.energy * 0.3, notes.length, trackId === "str-upper" ? "edge" : "safe", trackId === "str-upper" ? "最終ピークだけに上声を開く" : "1小節単位で内声を動かし、長いコード上でも感情曲線を止めない")
+        add(localBeat + phraseOffset, Math.max(0.25, duration - phraseOffset), pitch, 38 + section.energy * 0.3, notes.length, trackId === "str-upper" ? "edge" : "safe", trackId === "str-upper" ? "最終ピークだけに上声を開く" : "2〜4小節単位の長い弧で内声を動かし、主旋律の呼吸を残す")
       }
     }
     return notes
@@ -718,9 +785,17 @@ function generateTonalTrack(
     if (!parsed) continue
     if (trackId === "syn-pulse") {
       const pcs = [parsed.tones[0]?.pitchClass, parsed.tones[2]?.pitchClass, parsed.tones[1]?.pitchClass].filter((value): value is number => value !== undefined)
-      const step = section.energy >= 72 ? 0.5 : 1
-      for (let beat = chord.startBeat + ((revision + chordIndex) % 2 ? step / 2 : 0); beat < chord.startBeat + chord.durationBeats; beat += step) {
-        add(beat, step * 0.42, midiForPc(pcs[notes.length % pcs.length], 57), 40 + section.energy * 0.28, notes.length, "safe", "コードを説明し切らず、周期とアクセントで推進力を作る")
+      const chordEnd = chord.startBeat + chord.durationBeats
+      for (let barBeat = chord.startBeat; barBeat < chordEnd; barBeat += beatsPerBar) {
+        const cycleBar = (Math.floor(barBeat / beatsPerBar) + revision + chordIndex) % (section.phraseCycleBars ?? 4)
+        const offsets = section.energy >= 82
+          ? cycleBar === 3 ? [0, 0.5, 1.5, 2.5, 3.5] : [0.5, 1.5, 2.5, 3.5]
+          : cycleBar === 3 ? [0.5, 1.5, 3.5] : cycleBar === 1 ? [0.5, 2.5] : [0.5, 1.5, 2.5]
+        for (const offsetInBar of offsets) {
+          const beat = barBeat + offsetInBar
+          if (beat >= chordEnd) continue
+          add(beat, 0.22, midiForPc(pcs[notes.length % pcs.length], 57), 40 + section.energy * 0.28, notes.length, "safe", "4〜8小節周期の欠落とアクセントで、連打ではない推進力を作る")
+        }
       }
     }
   }
@@ -772,18 +847,48 @@ export function reviewGeneratedArrangement(arrangement: Pick<FullSongArrangement
   const peakIsLate = peakIndex >= Math.floor(arrangement.analysis.sections.length * 0.6)
   const overfilledSectionCount = arrangement.plan.sections.filter((section) => section.activeRoles.length > 16).length
   const silentRoleCount = arrangement.tracks.filter((track) => track.notes.length === 0).length
+  const beatsPerBar = parseTimeSignature(arrangement.analysis.timeSignature).beatsPerBar
+  const tonalTracks = arrangement.tracks.filter((track) => !track.id.startsWith("dr-") && track.id !== "syn-pulse")
+  const mechanicalLoopCount = arrangement.plan.sections.reduce((sum, section) => {
+    const repeatedTracks = tonalTracks.filter((track) => {
+      const notes = track.notes.filter((note) => note.sectionId === section.sectionId)
+      if (notes.length < 8) return false
+      const firstBeat = Math.floor(Math.min(...notes.map((note) => note.startBeat)) / beatsPerBar) * beatsPerBar
+      const bars = new Map<number, string[]>()
+      for (const note of notes) {
+        const bar = Math.floor((note.startBeat - firstBeat) / beatsPerBar)
+        const event = `${(note.startBeat % beatsPerBar).toFixed(3)}:${note.durationBeats.toFixed(3)}:${note.pitch}`
+        bars.set(bar, [...(bars.get(bar) ?? []), event])
+      }
+      const signatures = [...bars.values()].map((events) => events.sort().join("|"))
+      return signatures.length >= 4 && new Set(signatures).size === 1
+    }).length
+    return sum + repeatedTracks
+  }, 0)
+  const sectionNoteCounts = arrangement.plan.sections.map((section) => arrangement.tracks.reduce(
+    (sum, track) => sum + track.notes.filter((note) => note.sectionId === section.sectionId).length,
+    0,
+  ))
+  const positiveCounts = sectionNoteCounts.filter((count) => count > 0)
+  const densityContrastRatio = positiveCounts.length > 1
+    ? Math.max(...positiveCounts) / Math.max(1, Math.min(...positiveCounts))
+    : 1
   const recommendations: string[] = []
   if (distinctSectionTextures < Math.min(4, arrangement.plan.sections.length)) recommendations.push("Section間の役割差を増やす")
   if (!peakIsLate) recommendations.push("最大解放を曲後半へ移す")
   if (overfilledSectionCount > 0) recommendations.push("同時に使う役割を整理する")
   if (silentRoleCount > 0) recommendations.push("音のない役割をPlanから除外する")
+  if (mechanicalLoopCount > 0) recommendations.push("同一小節の機械的な反復をMotif変形または休符で崩す")
+  if (arrangement.plan.sections.length >= 4 && densityContrastRatio < 1.8) recommendations.push("Section間の実音密度差を増やす")
   const score = Math.max(0, Math.min(100,
     45
     + Math.min(25, distinctSectionTextures * 4)
     + Math.min(15, stagedEntryCount * 3)
     + (peakIsLate ? 15 : 0)
     - overfilledSectionCount * 8
-    - silentRoleCount * 5,
+    - silentRoleCount * 5
+    - mechanicalLoopCount * 4
+    + (densityContrastRatio >= 2.5 ? 5 : 0),
   ))
   return {
     score,
@@ -796,6 +901,8 @@ export function reviewGeneratedArrangement(arrangement: Pick<FullSongArrangement
       peakIsLate,
       overfilledSectionCount,
       silentRoleCount,
+      mechanicalLoopCount,
+      densityContrastRatio,
     },
     recommendations,
   }

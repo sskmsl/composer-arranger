@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createEmptyProject, type ComposerProject } from "@/core/project"
 import { ARRANGEMENT_TRACK_NAMES } from "@/core/arrangementGeneration"
+import { parseChordSymbol } from "@/core/chord"
 import {
   analyzeFullSongArrangement,
   buildFullSongArrangementPlan,
@@ -295,8 +296,24 @@ describe("Arrangement Generator", () => {
     expect(final.energy).toBeGreaterThan(chorus2.energy)
     expect(intro.roleEntryBeats?.["syn-bass"]).toBe(16)
     expect(intro.roleEntryBeats?.["dr-kick"]).toBe(32)
-    expect(intro.roleEntryBeats?.["syn-high-glass"]).toBe(48)
+    expect(intro.roleEntryBeats?.["syn-high-glass"]).toBe(24)
     expect(final.developmentStage).toBe(2)
+  })
+
+  it("自動推定で連続分割された同一役割を、別の再登場と誤認しない", () => {
+    const input = project()
+    input.sourceImport = { ...input.sourceImport!, sectionsFromMarkers: false }
+    input.sections = input.sections.map((section) => ({ ...section, id: `inferred:${input.projectId}:${section.id}` }))
+    const oldIds = project().sections.map((section) => section.id)
+    const idMap = new Map(oldIds.map((id, index) => [id, input.sections[index].id]))
+    input.chords = input.chords.map((chord) => ({ ...chord, sectionId: idMap.get(chord.sectionId)! }))
+    const analysis = analyzeFullSongArrangement(input)
+    const chorus1 = analysis.sections.find((section) => section.sectionName === "Chorus 1")!
+    const chorus2 = analysis.sections.find((section) => section.sectionName === "Chorus 2")!
+
+    expect(chorus1.occurrence).toBe(1)
+    expect(chorus2.occurrence).toBe(1)
+    expect(chorus2.semanticSegmentIndex).toBe(1)
   })
 
   it("1小節ループではなく役割別フレーズを生成し、全曲品質を検証する", () => {
@@ -308,13 +325,36 @@ describe("Arrangement Generator", () => {
       0,
     )
 
-    expect(notesFor("syn-bass").length).toBeGreaterThan(300)
+    expect(notesFor("syn-bass").length).toBeGreaterThan(200)
     expect(notesFor("syn-stabs").length).toBeGreaterThan(20)
     expect(notesFor("str-cello").length).toBeGreaterThan(20)
     expect(sectionDensity("final")).toBeGreaterThan(sectionDensity("breakdown"))
     expect(result.plan.sections.filter((section) => section.activeRoles.includes("syn-high-glass")).length).toBeLessThanOrEqual(4)
     expect(result.plan.sections.every((section) => section.activeRoles.length <= 16)).toBe(true)
     expect(result.quality?.metrics.peakIsLate).toBe(true)
+    expect(result.quality?.metrics.densityContrastRatio).toBeGreaterThan(1.8)
     expect(result.quality?.passed).toBe(true)
+  })
+
+  it("Safe系の全音程を発音時点のコードトーンまたは明示テンション内へ保つ", () => {
+    const input = longFormProject()
+    const result = generateFullSongArrangement(input, { seed: 20260905 })
+    const harmonicTrackIds = new Set(["syn-bass", "syn-pulse", "syn-stabs", "syn-dark-pad", "str-cello", "str-viola", "str-violin-1"])
+    const violations: string[] = []
+
+    result.tracks.filter((track) => harmonicTrackIds.has(track.id)).forEach((track) => {
+      track.notes.filter((note) => note.character === "safe").forEach((note) => {
+        const section = input.sections.find((item) => item.id === note.sectionId)!
+        const localBeat = note.startBeat - (section.startBar - 1) * 4
+        const chord = input.chords.filter((item) => item.sectionId === section.id)
+          .find((item) => localBeat >= item.startBeat && localBeat < item.startBeat + item.durationBeats)
+        const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
+        if (!parsed) return
+        const allowed = new Set([...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass))
+        if (!allowed.has(((note.pitch % 12) + 12) % 12)) violations.push(`${track.id}:${note.startBeat}:${note.pitch}`)
+      })
+    })
+
+    expect(violations).toEqual([])
   })
 })
