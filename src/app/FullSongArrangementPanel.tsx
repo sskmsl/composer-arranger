@@ -10,6 +10,13 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 
 const CHARACTER_LABEL = { safe: "Safe", edge: "Edge", surprise: "Surprise", silence: "無音" }
+type AuditionMix = "source" | "combined" | "generated"
+
+const AUDITION_MIX_LABEL: Record<AuditionMix, string> = {
+  source: "原曲のみ",
+  combined: "原曲＋AI生成",
+  generated: "AI生成のみ",
+}
 
 export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)
@@ -22,6 +29,7 @@ export function FullSongArrangementPanel() {
   const [regenerating, setRegenerating] = useState(false)
   const [generationNotice, setGenerationNotice] = useState<string | null>(null)
   const [playbackBeat, setPlaybackBeat] = useState(0)
+  const [auditionMix, setAuditionMix] = useState<AuditionMix>("combined")
   const playbackRunRef = useRef(0)
   const seekingRef = useRef(false)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
@@ -56,6 +64,7 @@ export function FullSongArrangementPanel() {
     ranges: PreviewBeatRange[],
     index: number,
     runId: number,
+    mix: AuditionMix,
   ) => {
     if (playbackRunRef.current !== runId || index >= ranges.length) {
       if (playbackRunRef.current === runId) {
@@ -64,35 +73,52 @@ export function FullSongArrangementPanel() {
       }
       return
     }
+    const includeSource = trackId !== "all" || mix !== "generated"
+    const includeGenerated = trackId !== "all" || mix !== "source"
+    const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.play({
       bpm: project.song.tempo,
-      chords: material.chords,
-      accompaniment: material.accompanimentPattern,
-      arrangementTracks: tracks,
-      mode: trackId === "all" ? "chords-melody" : "melody-only",
-      melody: trackId === "all" ? material.lead : [],
+      // Imported MIDIでは、推定コードを合成し直さず実際の原演奏を比較対象にする。
+      chords: includeSource && !importedSource ? material.chords : [],
+      accompaniment: includeSource
+        ? importedSource ? material.importedBacking : material.accompanimentPattern
+        : [],
+      arrangementTracks: includeGenerated ? tracks : [],
+      mode: trackId === "all" && includeSource ? "chords-melody" : "melody-only",
+      melody: trackId === "all" && includeSource ? material.lead : [],
       range: ranges[index],
       onEnded: () => {
         setPlaybackBeat(ranges[index].endBeat)
-        playRangeSequence(trackId, tracks, ranges, index + 1, runId)
+        playRangeSequence(trackId, tracks, ranges, index + 1, runId, mix)
       },
     })
   }
 
-  const playNotes = (trackId: ArrangementTrackId | "all", requestedStartBeat = playbackBeat) => {
+  const playNotes = (
+    trackId: ArrangementTrackId | "all",
+    requestedStartBeat = playbackBeat,
+    mix: AuditionMix = auditionMix,
+  ) => {
     if (!arrangement) return
     const tracks = trackId === "all"
       ? arrangement.tracks.filter((track) => !track.muted)
       : arrangement.tracks.filter((track) => track.id === trackId)
-    if (tracks.every((track) => track.notes.length === 0)) return
+    const sourceHasNotes = material.lead.length > 0 || material.importedBacking.length > 0 || material.chords.length > 0
+    const generatedHasNotes = tracks.some((track) => track.notes.length > 0)
+    if (trackId === "all") {
+      if (mix === "source" && !sourceHasNotes) return
+      if (mix === "generated" && !generatedHasNotes) return
+      if (mix === "combined" && !sourceHasNotes && !generatedHasNotes) return
+    } else if (!generatedHasNotes) return
     const startBeat = requestedStartBeat >= material.totalBeats ? 0 : requestedStartBeat
     const ranges = fullSongPreviewRanges(material.totalBeats, 32, startBeat)
     if (ranges.length === 0) return
     const runId = playbackRunRef.current + 1
     playbackRunRef.current = runId
+    setAuditionMix(mix)
     setPlaybackBeat(startBeat)
     setPlayingTrack(trackId)
-    playRangeSequence(trackId, tracks, ranges, 0, runId)
+    playRangeSequence(trackId, tracks, ranges, 0, runId, mix)
   }
 
   const beginSeeking = () => {
@@ -109,7 +135,7 @@ export function FullSongArrangementPanel() {
     seekingRef.current = false
     const beat = Math.max(0, Math.min(material.totalBeats, value))
     setPlaybackBeat(beat)
-    if (wasSeeking && playingTrack) playNotes(playingTrack, beat)
+    if (wasSeeking && playingTrack) playNotes(playingTrack, beat, auditionMix)
   }
 
   const rebuild = async () => {
@@ -217,11 +243,35 @@ export function FullSongArrangementPanel() {
             </div>
           </details>
 
+          <div className="rounded-lg border border-primary/30 bg-primary/[0.055] p-3">
+            <h4 className="text-[13px] font-semibold text-body-on-dark">生成前後を聴き比べる</h4>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">
+              「原曲＋AI生成」で、読み込んだ演奏を変えずにAIが加えたパートだけを重ねて確認できます。
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {(["source", "combined", "generated"] as const).map((mix) => {
+                const isPlaying = playingTrack === "all" && auditionMix === mix
+                return (
+                  <Button
+                    key={mix}
+                    variant={mix === "combined" ? "primary" : "dark"}
+                    className="w-full"
+                    onClick={isPlaying ? () => stop() : () => playNotes("all", playbackBeat, mix)}
+                  >
+                    {isPlaying ? <Square size={14} /> : <Play size={14} />}
+                    {isPlaying ? "停止" : AUDITION_MIX_LABEL[mix]}
+                  </Button>
+                )
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-body-muted">
+              {project.sourceImport?.type === "midi"
+                ? "原曲側は、MIDIから読み込んだ主旋律と伴奏ノートをそのまま使用します。"
+                : "原曲側は、現在のコード・主旋律・採用中の伴奏を使用します。"}
+            </p>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="dark" onClick={playingTrack ? () => stop() : () => playNotes("all")}>
-              {playingTrack ? <Square size={14} /> : <Play size={14} />}
-              {playingTrack ? "停止" : "全パートを試聴"}
-            </Button>
             <Button variant="dark" onClick={() => downloadMidi(exportArrangementMidi(project, arrangement), `${project.title}-arrangement`)}>
               <Download size={14} /> 全パートMIDI
             </Button>
@@ -236,7 +286,7 @@ export function FullSongArrangementPanel() {
 
           <div className="rounded-md border border-hairline bg-black/15 px-3 py-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
-              <span>{playingTrack === "all" ? "全パート" : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : "再生位置"}</span>
+              <span>{playingTrack === "all" ? AUDITION_MIX_LABEL[auditionMix] : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : "再生位置"}</span>
               <span className="tabular-nums text-body-on-dark">
                 {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
               </span>

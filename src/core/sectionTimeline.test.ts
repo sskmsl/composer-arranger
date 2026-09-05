@@ -76,6 +76,33 @@ describe("section timeline", () => {
     expect(material.lead.some((note) => note.pitch === 90)).toBe(false)
   })
 
+  it("Imported MIDIの比較試聴には推定コードではなく原伴奏トラックを保持する", () => {
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: [{ id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 }],
+      chords: [{ id: "c", sectionId: "intro", startBeat: 0, durationBeats: 4, symbol: "Am", bass: null }],
+      melodyVariants: [],
+      sectionMelodyAssignments: {},
+      sourceImport: { type: "midi", melodyTrackName: "Lead" },
+      importedArrangement: {
+        totalBeats: 16,
+        tracks: [
+          { name: "Lead", role: "melody", notes: [[0, 1, 72, 80, 1]] },
+          { name: "Chords", role: "harmony", notes: [[0, 4, 57, 68, 1], [0, 4, 60, 65, 1]] },
+          { name: "Bass", role: "bass", notes: [[0, 2, 45, 76, 1]] },
+        ],
+      },
+    } as unknown as ComposerProject
+
+    const material = buildSongPlaybackMaterial(project)
+    expect(material.importedBacking.map((note) => [note.startBeat, note.durationBeats, note.pitch])).toEqual([
+      [0, 2, 45],
+      [0, 4, 57],
+      [0, 4, 60],
+    ])
+    expect(material.importedBacking.some((note) => note.pitch === 72)).toBe(false)
+  })
+
   it("carry-overの保持を曲全体Preview/MIDI共通素材へ反映し、次の発音と重ねない", () => {
     const project = {
       song: { timeSignature: "4/4" },

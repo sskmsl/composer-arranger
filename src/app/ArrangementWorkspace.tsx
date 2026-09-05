@@ -221,9 +221,11 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         </section>
       )}
 
-      <p className="text-[12px] text-ink-muted-48">
-        下の一覧では曲順と、各セクションへ反映する主旋律候補を確認できます。
-      </p>
+      <section className="grid gap-2 rounded-lg border border-hairline bg-white/[0.025] p-3 sm:grid-cols-3">
+        <div className="text-[12px] text-body-on-dark"><b className="mr-2 text-primary-on-dark">1</b>AIが加えたパートを確認</div>
+        <div className="text-[12px] text-body-on-dark"><b className="mr-2 text-primary-on-dark">2</b>原曲と生成後を聴き比べる</div>
+        <div className="text-[12px] text-body-on-dark"><b className="mr-2 text-primary-on-dark">3</b>良ければMIDIを書き出す</div>
+      </section>
 
       {project.sections.length > 0 && (
         <>

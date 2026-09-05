@@ -37,11 +37,32 @@ export interface SongPlaybackMaterial {
   accompaniment: MelodyNote[]
   /** Issue #45: コードから導出した独立Accompaniment Patternレイヤー。 */
   accompanimentPattern: MelodyNote[]
+  /** Imported MIDIに実在する、主旋律以外の原演奏。比較試聴では推定コードの代わりに使う。 */
+  importedBacking: MelodyNote[]
   /** Issue #42: 採用中のCounter / Decoration独立レイヤー。 */
   reactiveLayers: MelodyNote[]
   counterLayers: MelodyNote[]
   decorationLayers: MelodyNote[]
   totalBeats: number
+}
+
+function importedBackingNotes(project: ComposerProject): MelodyNote[] {
+  if (project.sourceImport?.type !== "midi" || !project.importedArrangement) return []
+  const sourceName = project.sourceImport.melodyTrackName.trim().toLocaleLowerCase()
+  return project.importedArrangement.tracks
+    .filter((track) =>
+      track.role !== "melody" &&
+      (sourceName.length === 0 || track.name.trim().toLocaleLowerCase() !== sourceName),
+    )
+    .flatMap((track, trackIndex) => track.notes.map((note, noteIndex): MelodyNote => ({
+      id: `imported-backing:${trackIndex}:${noteIndex}`,
+      startBeat: note[0],
+      durationBeats: note[1],
+      pitch: note[2],
+      velocity: note[3],
+      locks: [],
+    })))
+    .sort((left, right) => left.startBeat - right.startBeat || left.pitch - right.pitch)
 }
 
 function importedProtectedMelody(project: ComposerProject): MelodyNote[] {
@@ -81,6 +102,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const counterLayers: MelodyNote[] = []
   const decorationLayers: MelodyNote[] = []
   const protectedImportedLead = importedProtectedMelody(project)
+  const importedBacking = importedBackingNotes(project)
   const sections = normalizeSectionTimeline(project.sections)
 
   for (const [sectionIndex, section] of sections.entries()) {
@@ -249,6 +271,7 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
     lead: lead.sort(byBeat),
     accompaniment: accompaniment.sort(byBeat),
     accompanimentPattern: accompanimentPattern.sort(byBeat),
+    importedBacking,
     reactiveLayers: reactiveLayers.sort(byBeat),
     counterLayers: counterLayers.sort(byBeat),
     decorationLayers: decorationLayers.sort(byBeat),

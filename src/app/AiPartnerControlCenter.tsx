@@ -277,38 +277,54 @@ export function AiPartnerControlCenter({ onNavigate }: { onNavigate: (tab: MainT
         )}
         {batchResult && (
           <div className="mt-3 rounded-sm border border-emerald-300/20 bg-emerald-400/[0.07] p-3">
-            <p className="text-[11px] text-emerald-100">
-              {batchResult.generated}件のSection候補と、{selectedDirection.title}方針のArrangement Plan・役割別MIDIを生成しました{batchResult.skipped > 0 ? `（${batchResult.skipped}件保留）` : ""}。自動採用はしていません。
+            <p className="text-[13px] font-semibold text-emerald-100">全曲の追加パートを生成しました</p>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">
+              次は、読み込んだ原曲だけの音と、AI生成パートを重ねた音を聴き比べてください。
             </p>
-            <Button variant="secondary" className="mt-2" onClick={() => onNavigate("arrangement")}>
-              <Layers3 size={14} /> 全パートを確認・試聴
+            <Button className="mt-3" onClick={() => onNavigate("arrangement")}>
+              <Layers3 size={14} /> 生成前後を聴き比べる
             </Button>
-            <div className="mt-3 space-y-1.5">
-              {batchResult.items.map((item) => (
-                <div
-                  key={item.actionId}
-                  className="grid gap-2 rounded-sm border border-white/10 bg-black/10 px-3 py-2 sm:grid-cols-[7rem_7rem_minmax(0,1fr)_auto] sm:items-center"
-                >
-                  <span className="text-[11px] font-semibold text-body-on-dark">{item.sectionName}</span>
-                  <span className="text-[11px] text-primary-on-dark">{LABELS[item.generator]}</span>
-                  <div className="min-w-0">
-                    <span className={`inline-flex rounded-pill px-2 py-0.5 text-[11px] ${RESULT_STATUS_CLASSES[item.status]}`}>
-                      {RESULT_STATUS_LABELS[item.status]}
-                    </span>
-                    <p className="mt-1 text-[11px] leading-4 text-body-muted">{item.purpose}</p>
+            <details className="mt-3 rounded-sm border border-white/10 bg-black/10 p-3">
+              <summary className="cursor-pointer text-[11px] text-body-muted">
+                Section別の生成内容を見る（{batchResult.generated}件生成{batchResult.skipped > 0 ? `・${batchResult.skipped}件保留` : ""}）
+              </summary>
+              <div className="mt-3 space-y-1.5">
+                {batchResult.items.map((item) => (
+                  <div
+                    key={item.actionId}
+                    className="grid gap-2 rounded-sm border border-white/10 bg-black/10 px-3 py-2 sm:grid-cols-[7rem_7rem_minmax(0,1fr)_auto] sm:items-center"
+                  >
+                    <span className="text-[11px] font-semibold text-body-on-dark">{item.sectionName}</span>
+                    <span className="text-[11px] text-primary-on-dark">{LABELS[item.generator]}</span>
+                    <div className="min-w-0">
+                      <span className={`inline-flex rounded-pill px-2 py-0.5 text-[11px] ${RESULT_STATUS_CLASSES[item.status]}`}>
+                        {RESULT_STATUS_LABELS[item.status]}
+                      </span>
+                      <p className="mt-1 text-[11px] leading-4 text-body-muted">{item.purpose}</p>
+                    </div>
+                    {item.target && (
+                      <Button variant="secondary" onClick={() => openResult(item)}>
+                        {item.status === "candidate" ? `${LABELS[item.generator]}候補を確認・試聴` : "Sectionを確認"} <ArrowRight size={14} />
+                      </Button>
+                    )}
                   </div>
-                  {item.target && (
-                    <Button variant="secondary" onClick={() => openResult(item)}>
-                      {item.status === "candidate" ? `${LABELS[item.generator]}候補を確認・試聴` : "Sectionを確認"} <ArrowRight size={14} />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </details>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => setBatchResult(null)}>別の方針を試す</Button>
-              <Button variant="ghost" onClick={() => onNavigate("arrangement")}>詳細を調整</Button>
             </div>
+          </div>
+        )}
+        {!batchResult && project.fullSongArrangement && (
+          <div className="mt-3 flex flex-col gap-2 rounded-sm border border-primary/25 bg-primary/[0.055] p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[12px] font-semibold text-body-on-dark">生成済みの全曲アレンジがあります</p>
+              <p className="mt-1 text-[11px] text-body-muted">原曲のみ／原曲＋AI生成／AI生成のみを切り替えて確認できます。</p>
+            </div>
+            <Button variant="secondary" onClick={() => onNavigate("arrangement")}>
+              生成前後を聴き比べる <ArrowRight size={14} />
+            </Button>
           </div>
         )}
       </div>
