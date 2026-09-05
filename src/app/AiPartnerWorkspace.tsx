@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   AudioLines,
   ArrowRight,
@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react"
 import { rhythmPreviewPlayer } from "@/audio/rhythmPreviewPlayer"
+import { previewPlayer } from "@/audio/previewPlayer"
 import { AI_AUDIO_ACCEPT, prepareAiAudio } from "@/ai-arranger/audioAnalysis"
 import { buildAiArrangementContext } from "@/ai-arranger/context"
 import { requestArrangementAdvice } from "@/ai-arranger/client"
@@ -44,6 +45,11 @@ import {
   type WholeSongGenerationResultItem,
 } from "@/ai-arranger/generationResultNavigation"
 import { wholeSongDirectionForAiIntent } from "@/ai-arranger/wholeSongDirectionPlan"
+import {
+  audibleDirectionPresentation,
+  plainDirectionText,
+} from "@/ai-arranger/directionPresentation"
+import { directionAuditionRanges } from "@/ai-arranger/directionAudition"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -54,6 +60,8 @@ import type {
 import { SECTION_ROLE_LABELS } from "@/core/section"
 import type { ComposerProject } from "@/core/project"
 import type { ArrangementGenerationDirective, ArrangementTrackId } from "@/core/arrangementGeneration"
+import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import { generateFullSongArrangement as buildFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Pill, SectionCard, Select } from "@/ui/primitives"
 import { downloadMidi } from "@/midi/exportMelody"
@@ -142,6 +150,9 @@ export function AiPartnerWorkspace({
   const [error, setError] = useState<string | null>(null)
   const [generatingIntentId, setGeneratingIntentId] = useState<string | null>(null)
   const [playingRhythmIntentId, setPlayingRhythmIntentId] = useState<string | null>(null)
+  const [playingDirectionIntentId, setPlayingDirectionIntentId] = useState<string | null>(null)
+  const [preparingDirectionIntentId, setPreparingDirectionIntentId] = useState<string | null>(null)
+  const directionPreviewRunRef = useRef(0)
   const [audio, setAudio] = useState<AiAudioPayload | null>(null)
   const [preparingAudio, setPreparingAudio] = useState(false)
   const [wholeSongGeneration, setWholeSongGeneration] = useState<{
@@ -201,13 +212,18 @@ export function AiPartnerWorkspace({
   useEffect(
     () => () => {
       rhythmPreviewPlayer.stop()
+      directionPreviewRunRef.current += 1
+      previewPlayer.stop()
     },
     [],
   )
 
   useEffect(() => {
     rhythmPreviewPlayer.stop()
+    directionPreviewRunRef.current += 1
+    previewPlayer.stop()
     setPlayingRhythmIntentId(null)
+    setPlayingDirectionIntentId(null)
   }, [effectiveSectionId])
 
   const submit = async (bypassCache = false, overridePrompt?: string) => {
@@ -246,6 +262,9 @@ export function AiPartnerWorkspace({
           { bypassCache },
       )
       setResponse(nextResponse)
+      directionPreviewRunRef.current += 1
+      previewPlayer.stop()
+      setPlayingDirectionIntentId(null)
       setWholeSongGeneration(null)
       if (sessionId) {
         setAiPartnerSession(
@@ -291,6 +310,9 @@ export function AiPartnerWorkspace({
 
   const generateFromIntent = (intent: AiArrangementIntent) => {
     if (!section) return
+    directionPreviewRunRef.current += 1
+    previewPlayer.stop()
+    setPlayingDirectionIntentId(null)
     setGeneratingIntentId(intent.id)
     if (isWholeSongConsultation) {
       const instructionBrief = [
@@ -358,6 +380,9 @@ export function AiPartnerWorkspace({
       setPlayingRhythmIntentId(null)
       return
     }
+    directionPreviewRunRef.current += 1
+    previewPlayer.stop()
+    setPlayingDirectionIntentId(null)
     const started = rhythmPreviewPlayer.play({
       bpm: project.song.tempo,
       timeSignature: project.song.timeSignature,
@@ -366,6 +391,66 @@ export function AiPartnerWorkspace({
       onEnded: () => setPlayingRhythmIntentId(null),
     })
     setPlayingRhythmIntentId(started ? intent.id : null)
+  }
+
+  const previewWholeSongDirection = async (intent: AiArrangementIntent) => {
+    if (!isWholeSongConsultation) return
+    if (playingDirectionIntentId === intent.id) {
+      directionPreviewRunRef.current += 1
+      previewPlayer.stop()
+      setPlayingDirectionIntentId(null)
+      return
+    }
+    setPreparingDirectionIntentId(intent.id)
+    setError(null)
+    rhythmPreviewPlayer.stop()
+    setPlayingRhythmIntentId(null)
+    directionPreviewRunRef.current += 1
+    previewPlayer.stop()
+    setPlayingDirectionIntentId(null)
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    try {
+      const instructionBrief = [
+        session?.turns.at(-1)?.userMessage ?? "",
+        ...(session?.confirmedConstraints ?? []),
+        intent.title,
+        intent.generationBrief,
+      ].filter(Boolean).join("。")
+      const arrangement = buildFullSongArrangement(project, {
+        brief: instructionBrief,
+        directive: arrangementDirectiveForIntent(intent),
+      })
+      const material = buildSongPlaybackMaterial(project)
+      const ranges = directionAuditionRanges(project, arrangement)
+      if (ranges.length === 0 || (!arrangement.tracks.some((track) => track.notes.length > 0) && material.lead.length === 0)) {
+        setError("この案を試聴できる音符がありません。先にMIDIまたはコードを読み込んでください。")
+        return
+      }
+      const runId = directionPreviewRunRef.current
+      const importedSource = project.sourceImport?.type === "midi"
+      setPlayingDirectionIntentId(intent.id)
+      const playRange = (index: number) => {
+        if (directionPreviewRunRef.current !== runId || index >= ranges.length) {
+          if (directionPreviewRunRef.current === runId) setPlayingDirectionIntentId(null)
+          return
+        }
+        previewPlayer.play({
+          bpm: project.song.tempo,
+          chords: importedSource ? [] : material.chords,
+          accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
+          melody: material.lead,
+          arrangementTracks: arrangement.tracks,
+          mode: "chords-melody",
+          range: ranges[index],
+          onEnded: () => playRange(index + 1),
+        })
+      }
+      playRange(0)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "この案の試聴を準備できませんでした。")
+    } finally {
+      setPreparingDirectionIntentId(null)
+    }
   }
 
   const activeMelodyId = section
@@ -1089,6 +1174,7 @@ export function AiPartnerWorkspace({
 
             <div className="grid gap-4 xl:grid-cols-3">
               {response.intents.map((intent, index) => {
+                const presentation = audibleDirectionPresentation(intent)
                 const counterUnavailable =
                   intent.generator === "counter" && !activeMelodyId
                 const noGenerator = intent.generator === "none"
@@ -1101,37 +1187,19 @@ export function AiPartnerWorkspace({
                           方向 {index + 1}
                         </span>
                         <h2 className="mt-1 text-[15px] font-semibold text-body-on-dark">
-                          {intent.title}
+                          {presentation.title}
                         </h2>
                       </div>
                       <span className="rounded-pill bg-white/8 px-2.5 py-1 text-[11px] text-body-muted">
                         {GENERATOR_LABELS[intent.generator]}
                       </span>
                     </div>
-                    <p className="mt-3 text-[12px] leading-5 text-body-muted">
-                      {intent.emotionalFunction}
+                    <p className="mt-3 text-[13px] leading-6 text-body-on-dark">
+                      {presentation.summary}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <Tag>{intent.density}</Tag>
-                      <Tag>{intent.register}</Tag>
-                      <Tag>{intent.rhythmCharacter}</Tag>
-                      <Tag>{intent.silenceStrategy}</Tag>
-                      <Tag>{intent.creativeRisk}</Tag>
-                      <span
-                        className={`rounded-pill px-2 py-1 text-[11px] ${
-                          intent.approach === "surprise-tension"
-                            ? "bg-fuchsia-300/15 text-fuchsia-100"
-                            : "bg-emerald-300/10 text-emerald-100"
-                        }`}
-                      >
-                        {intent.approach === "surprise-tension"
-                          ? "意外性・緊張"
-                          : "安定"}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-[12px] leading-5 text-body-on-dark">
-                      {intent.generationBrief}
-                    </p>
+                    <ul className="mt-3 space-y-1.5 rounded-sm bg-white/[0.04] p-3 text-[12px] leading-5 text-body-muted">
+                      {presentation.changes.map((change) => <li key={change}>• {change}</li>)}
+                    </ul>
                     {intent.generator === "accompaniment" &&
                       intent.accompanimentPatternId !== "none" && (
                         <div className="mt-3 rounded-sm border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-body-muted">
@@ -1156,13 +1224,18 @@ export function AiPartnerWorkspace({
                         <div className="mt-1 text-ink-muted-48">{intent.rhythmPlan.variation}</div>
                       </div>
                     )}
-                    <div className="mt-3 rounded-sm bg-white/[0.04] p-3 text-[11px] leading-5 text-body-muted">
-                      <strong className="text-body-on-dark">音色：</strong>
-                      {intent.soundPalette}
-                      <br />
-                      <strong className="text-body-on-dark">演奏：</strong>
-                      {intent.performanceDirection}
-                    </div>
+                    <details className="mt-3 rounded-sm border border-white/8 bg-white/[0.025] p-3 text-[11px] leading-5 text-body-muted">
+                      <summary className="cursor-pointer text-body-on-dark">音色と詳しい制作メモ</summary>
+                      <div className="mt-2">
+                        <strong className="text-body-on-dark">AI案名：</strong>{plainDirectionText(intent.title)}
+                        <br />
+                        <strong className="text-body-on-dark">具体的な変化：</strong>{plainDirectionText(intent.generationBrief)}
+                        <br />
+                        <strong className="text-body-on-dark">音色：</strong>{plainDirectionText(intent.soundPalette)}
+                        <br />
+                        <strong className="text-body-on-dark">演奏：</strong>{plainDirectionText(intent.performanceDirection)}
+                      </div>
+                    </details>
                     {intent.soundSourceSuggestions.length > 0 && (
                       <div className="mt-3 rounded-sm border border-white/8 bg-white/[0.025] p-3">
                         <span className="text-[11px] uppercase tracking-wide text-primary-on-dark">
@@ -1183,14 +1256,35 @@ export function AiPartnerWorkspace({
                     </p>
                     <div className="mt-auto pt-4">
                       {isWholeSongConsultation && (
-                        <Button
-                          variant="secondary"
-                          className="w-full !whitespace-normal text-center"
-                          disabled={generatingIntentId === intent.id}
-                          onClick={() => generateFromIntent(intent)}
-                        >
-                          <Layers3 size={14} /> この案を全曲へ展開・生成
-                        </Button>
+                        <div className="grid gap-2">
+                          <Button
+                            className="w-full !whitespace-normal text-center"
+                            disabled={preparingDirectionIntentId !== null}
+                            onClick={() => void previewWholeSongDirection(intent)}
+                          >
+                            {preparingDirectionIntentId === intent.id
+                              ? <LoaderCircle className="animate-spin" size={14} />
+                              : playingDirectionIntentId === intent.id
+                                ? <Square size={14} />
+                                : <Play size={14} />}
+                            {preparingDirectionIntentId === intent.id
+                              ? "試聴を準備中…"
+                              : playingDirectionIntentId === intent.id
+                                ? "停止"
+                                : "この案をここで試聴"}
+                          </Button>
+                          <p className="text-center text-[11px] leading-4 text-body-muted">
+                            原曲＋この案を「冒頭4小節」と「曲の頂点4小節」で比較します。試聴では保存しません。
+                          </p>
+                          <Button
+                            variant="secondary"
+                            className="w-full !whitespace-normal text-center"
+                            disabled={generatingIntentId === intent.id || preparingDirectionIntentId !== null}
+                            onClick={() => generateFromIntent(intent)}
+                          >
+                            <Layers3 size={14} /> 気に入ったら全曲を生成
+                          </Button>
+                        </div>
                       )}
                       {!isWholeSongConsultation && !noGenerator && !proposalOnly && (
                         <Button
