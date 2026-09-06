@@ -354,7 +354,7 @@ export function CounterWorkspace() {
                     className="!px-2 !text-[11px]"
                     onClick={() => assign(candidate.id)}
                   >
-                    <Check size={12} /> この対旋律を採用
+                    <Check size={12} /> 採用
                   </Button>
                 </div>
               </article>

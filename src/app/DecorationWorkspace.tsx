@@ -458,7 +458,7 @@ export function DecorationWorkspace() {
                       className="!px-2 !text-[11px]"
                       onClick={() => assign(candidate.id)}
                     >
-                      <Check size={11} /> この装飾を採用
+                      <Check size={11} /> 採用
                     </Button>
                   </div>
                 </article>

@@ -24,9 +24,6 @@ export function ArrangementNecessityBadge({
         </span>
       </div>
       <p className="mt-1">{necessity.reason}</p>
-      {necessity.resolution && (
-        <p className="mt-1 opacity-75">回収：{necessity.resolution}</p>
-      )}
     </div>
   )
 }
