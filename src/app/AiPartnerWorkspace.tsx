@@ -318,7 +318,12 @@ export function AiPartnerWorkspace({
         skipped: result.skippedCount,
         items: wholeSongGenerationResultItems(direction.actions, result.results),
       })
+      setArrangementDirectorWorkspace({
+        brief: instructionBrief,
+        selectedDirectionId: direction.id,
+      })
       setGeneratingIntentId(null)
+      onNavigate("arrangement")
       return
     }
     const result = executeAiArrangementIntent(section.id, intent)
@@ -377,9 +382,11 @@ export function AiPartnerWorkspace({
   const previewWholeSongDirection = async (
     intent: AiArrangementIntent,
     directionIndex: number,
+    includeSource = false,
   ) => {
     if (!isWholeSongConsultation) return
-    if (playingDirectionIntentId === intent.id) {
+    const previewKey = `${intent.id}:${includeSource ? "combined" : "generated"}`
+    if (playingDirectionIntentId === previewKey) {
       directionPreviewRunRef.current += 1
       previewPlayer.stop()
       setPlayingDirectionIntentId(null)
@@ -409,13 +416,17 @@ export function AiPartnerWorkspace({
       const auditionTracks = directionAuditionTracks(arrangement.tracks, directive.add ?? [])
       const material = buildSongPlaybackMaterial(project)
       const ranges = directionAuditionRanges(project, arrangement, auditionTracks)
-      if (ranges.length === 0 || (auditionTracks.length === 0 && material.lead.length === 0 && material.importedBacking.length === 0)) {
-        setError("この案を試聴できる音符がありません。先にMIDIまたはコードを読み込んでください。")
+      if (auditionTracks.length === 0 && intent.generator !== "none") {
+        setError("この案の追加音を作れませんでした。別の案を選ぶか、相談内容を少し具体的にしてください。")
+        return
+      }
+      if (ranges.length === 0 || (auditionTracks.length === 0 && !includeSource)) {
+        setError("この案は音を追加しない方針です。原曲との重ね聴きは必要ありません。")
         return
       }
       const runId = directionPreviewRunRef.current
       const importedSource = project.sourceImport?.type === "midi"
-      setPlayingDirectionIntentId(intent.id)
+      setPlayingDirectionIntentId(previewKey)
       const playRange = (index: number) => {
         if (directionPreviewRunRef.current !== runId || index >= ranges.length) {
           if (directionPreviewRunRef.current === runId) setPlayingDirectionIntentId(null)
@@ -423,11 +434,13 @@ export function AiPartnerWorkspace({
         }
         previewPlayer.play({
           bpm: project.song.tempo,
-          chords: importedSource ? [] : material.chords,
-          accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
-          melody: material.lead,
+          chords: includeSource && !importedSource ? material.chords : [],
+          accompaniment: includeSource
+            ? importedSource ? material.importedBacking : material.accompanimentPattern
+            : [],
+          melody: includeSource ? material.lead : [],
           arrangementTracks: auditionTracks,
-          mode: "chords-melody",
+          mode: includeSource ? "chords-melody" : "melody-only",
           range: ranges[index],
           onEnded: () => playRange(index + 1),
         })
@@ -1253,24 +1266,35 @@ export function AiPartnerWorkspace({
                     <div className="mt-auto pt-4">
                       {isWholeSongConsultation && (
                         <div className="grid gap-2">
-                          <Button
-                            className="w-full !whitespace-normal text-center"
-                            disabled={preparingDirectionIntentId !== null}
-                            onClick={() => void previewWholeSongDirection(intent, index)}
-                          >
-                            {preparingDirectionIntentId === intent.id
-                              ? <LoaderCircle className="animate-spin" size={14} />
-                              : playingDirectionIntentId === intent.id
-                                ? <Square size={14} />
-                                : <Play size={14} />}
-                            {preparingDirectionIntentId === intent.id
-                              ? "試聴を準備中…"
-                              : playingDirectionIntentId === intent.id
-                                ? "停止"
-                                : "この案をここで試聴"}
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              className="w-full !whitespace-normal text-center"
+                              disabled={preparingDirectionIntentId !== null || noGenerator}
+                              onClick={() => void previewWholeSongDirection(intent, index, false)}
+                            >
+                              {preparingDirectionIntentId === intent.id
+                                ? <LoaderCircle className="animate-spin" size={14} />
+                                : playingDirectionIntentId === `${intent.id}:generated`
+                                  ? <Square size={14} />
+                                  : <Play size={14} />}
+                              {preparingDirectionIntentId === intent.id
+                                ? "準備中…"
+                                : playingDirectionIntentId === `${intent.id}:generated`
+                                  ? "停止"
+                                  : "追加音だけ聴く"}
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              className="w-full !whitespace-normal text-center"
+                              disabled={preparingDirectionIntentId !== null || noGenerator}
+                              onClick={() => void previewWholeSongDirection(intent, index, true)}
+                            >
+                              {playingDirectionIntentId === `${intent.id}:combined` ? <Square size={14} /> : <Play size={14} />}
+                              {playingDirectionIntentId === `${intent.id}:combined` ? "停止" : "原曲と重ねる"}
+                            </Button>
+                          </div>
                           <p className="text-center text-[11px] leading-4 text-body-muted">
-                            この案の音が実際に入る部分を原曲と一緒に再生します。試聴では保存しません。
+                            まず追加音だけで3案を比べ、必要なら原曲と重ねて確認できます。
                           </p>
                           <Button
                             variant="secondary"
@@ -1278,7 +1302,7 @@ export function AiPartnerWorkspace({
                             disabled={generatingIntentId === intent.id || preparingDirectionIntentId !== null}
                             onClick={() => generateFromIntent(intent)}
                           >
-                            <Layers3 size={14} /> 気に入ったら全曲を生成
+                            <Layers3 size={14} /> この案で全曲を生成して結果を見る
                           </Button>
                         </div>
                       )}

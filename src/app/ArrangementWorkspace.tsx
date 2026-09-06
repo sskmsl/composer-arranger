@@ -42,11 +42,13 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
       }
       return
     }
+    const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.play({
       bpm: project.song.tempo,
-      chords: material.chords,
-      melody: material.melody,
-      accompaniment: material.accompanimentPattern,
+      chords: importedSource ? [] : material.chords,
+      melody: material.lead,
+      accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
+      arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
       mode: "chords-melody",
       range: ranges[index],
       onEnded: () => {
@@ -58,9 +60,11 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
 
   const playSong = (requestedStartBeat = playbackBeat) => {
     if (
-      material.melody.length === 0 &&
+      material.lead.length === 0 &&
       material.chords.length === 0 &&
-      material.accompanimentPattern.length === 0
+      material.accompanimentPattern.length === 0 &&
+      material.importedBacking.length === 0 &&
+      !project.fullSongArrangement?.tracks.some((track) => !track.muted && track.notes.length > 0)
     ) return
     const startBeat = requestedStartBeat >= material.totalBeats ? 0 : requestedStartBeat
     const ranges = fullSongPreviewRanges(material.totalBeats, 32, startBeat)
@@ -124,11 +128,13 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     playbackRunRef.current += 1
     setPlaybackBeat(range.startBeat)
     setPlaying(true)
+    const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.play({
       bpm: project.song.tempo,
-      chords: material.chords,
-      melody: material.melody,
-      accompaniment: material.accompanimentPattern,
+      chords: importedSource ? [] : material.chords,
+      melody: material.lead,
+      accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
+      arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
       mode: "chords-melody",
       range,
       onEnded: () => {
