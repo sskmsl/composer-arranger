@@ -143,7 +143,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   }
 
   return (
-    <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-4">
+    <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-x-clip px-3 py-4 sm:p-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto min-w-0">
           <h2 className="text-[16px] font-semibold">生成結果と書き出し</h2>
@@ -167,7 +167,8 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
       </div>
 
       {project.sections.length > 0 && (
-        <div className="min-w-0 max-w-full rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5">
+        <section className="min-w-0 max-w-full rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5" aria-labelledby="whole-song-preview-heading">
+          <h3 id="whole-song-preview-heading" className="mb-2 text-[13px] font-semibold text-body-on-dark">曲全体を確認</h3>
           <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
             <span>{playing ? "曲全体を再生中" : "曲全体の再生位置"}</span>
             <span className="tabular-nums text-body-on-dark">
@@ -197,7 +198,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
             }}
             onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
           />
-        </div>
+        </section>
       )}
 
       <section className="grid gap-2 rounded-lg border border-hairline bg-white/[0.025] p-3 sm:grid-cols-3">
@@ -223,7 +224,12 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         </>
       )}
 
-      <div className="flex flex-col gap-2">
+      {project.sections.length > 0 && (
+        <section className="flex flex-col gap-2" aria-labelledby="section-order-heading">
+          <div>
+            <h3 id="section-order-heading" className="text-[14px] font-semibold text-body-on-dark">セクションの順番と主旋律</h3>
+            <p className="mt-1 text-[11px] text-body-muted">ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選びます。</p>
+          </div>
         {project.sections.map((section, index) => {
           const variants = project.melodyVariants
             .filter((variant) => variant.sectionId === section.id)
@@ -304,7 +310,8 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
             </article>
           )
         })}
-      </div>
+        </section>
+      )}
 
       {project.sections.length === 0 && (
         <div className="rounded-lg border border-dashed border-hairline p-8 text-center">

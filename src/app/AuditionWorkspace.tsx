@@ -155,56 +155,61 @@ export function AuditionWorkspace() {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-        <Select value={mode} onChange={(event) => setMode(event.target.value as PreviewMode)}>
-          <option value="melody-only">主旋律のみ</option>
-          <option value="chords-melody">コード＋主旋律</option>
-          <option value="chords-only">コードのみ</option>
-        </Select>
-        <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
-          開始
-          <TextInput
-            type="number"
-            min={0}
-            max={totalBeats}
-            step={0.25}
-            value={rangeStart}
-            onChange={(event) => setRangeStart(Number(event.target.value))}
-            className="w-20"
-          />
-        </label>
-        <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
-          終了
-          <TextInput
-            type="number"
-            min={0.25}
-            max={totalBeats}
-            step={0.25}
-            value={rangeEnd}
-            onChange={(event) => setRangeEnd(Number(event.target.value))}
-            className="w-20"
-          />
-        </label>
-        <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
-          <input type="checkbox" checked={loop} onChange={(event) => setLoop(event.target.checked)} />
-          Loop
-        </label>
-        <Button variant={blind ? "secondary" : "dark"} onClick={() => setBlind((value) => !value)}>
-          <EyeOff size={13} /> Blind
-        </Button>
-        <Button onClick={playing ? stop : play} disabled={!activeVariant}>
-          {playing ? <Square size={14} /> : <Play size={14} />}
-          {playing ? "停止" : "再生"}
-        </Button>
-        {project.sourceImport?.type === "midi" && totalBeats > rangeEnd - rangeStart && (
-          <span className="text-[11px] text-ink-muted-48">
-            Imported MIDIは主旋律開始付近の8小節を先に試聴します
-          </span>
-        )}
-      </div>
+      <section className="rounded-lg border border-hairline bg-surface-tile-1 p-3" aria-labelledby="audition-settings-heading">
+        <h3 id="audition-settings-heading" className="mb-2 text-[13px] font-semibold text-body-on-dark">試聴方法</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={mode} onChange={(event) => setMode(event.target.value as PreviewMode)}>
+            <option value="melody-only">主旋律のみ</option>
+            <option value="chords-melody">コード＋主旋律</option>
+            <option value="chords-only">コードのみ</option>
+          </Select>
+          <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
+            開始
+            <TextInput
+              type="number"
+              min={0}
+              max={totalBeats}
+              step={0.25}
+              value={rangeStart}
+              onChange={(event) => setRangeStart(Number(event.target.value))}
+              className="w-20"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
+            終了
+            <TextInput
+              type="number"
+              min={0.25}
+              max={totalBeats}
+              step={0.25}
+              value={rangeEnd}
+              onChange={(event) => setRangeEnd(Number(event.target.value))}
+              className="w-20"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+            <input type="checkbox" checked={loop} onChange={(event) => setLoop(event.target.checked)} />
+            繰り返す
+          </label>
+          <Button variant={blind ? "secondary" : "dark"} onClick={() => setBlind((value) => !value)}>
+            <EyeOff size={13} /> 名前を隠す
+          </Button>
+          <Button onClick={playing ? stop : play} disabled={!activeVariant}>
+            {playing ? <Square size={14} /> : <Play size={14} />}
+            {playing ? "停止" : "再生"}
+          </Button>
+          {project.sourceImport?.type === "midi" && totalBeats > rangeEnd - rangeStart && (
+            <span className="text-[11px] text-ink-muted-48">
+              Imported MIDIは主旋律開始付近の8小節を先に試聴します
+            </span>
+          )}
+        </div>
+      </section>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {SLOT_LABELS.map((label, slot) => {
+      <section aria-labelledby="audition-candidates-heading">
+        <h3 id="audition-candidates-heading" className="mb-2 text-[13px] font-semibold text-body-on-dark">聴き比べる候補</h3>
+        <div className="grid gap-3 md:grid-cols-3">
+          {SLOT_LABELS.map((label, slot) => {
           const variant = selectedVariants[slot]
           return (
             <article
@@ -257,34 +262,38 @@ export function AuditionWorkspace() {
               </Button>
             </article>
           )
-        })}
-      </div>
+          })}
+        </div>
+      </section>
 
       {activeVariant && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-          <span className="mr-auto text-[12px] text-ink-muted-48">
-            {blind ? `Candidate ${SLOT_LABELS[activeSlot]}を判定` : activeVariant.name}
-          </span>
-          <Button
-            variant="dark"
-            onClick={() =>
-              setReviewState(activeVariant.id, activeVariant.reviewState === "favorite" ? null : "favorite")
-            }
-          >
-            <Star size={13} /> Favorite
-          </Button>
-          <Button
-            variant="dark"
-            onClick={() =>
-              setReviewState(activeVariant.id, activeVariant.reviewState === "rejected" ? null : "rejected")
-            }
-          >
-            <ThumbsDown size={13} /> Reject
-          </Button>
-          <Button variant="secondary" onClick={() => setActiveMelody(activeVariant.id)}>
-            <Check size={13} /> この主旋律を採用
-          </Button>
-        </div>
+        <section className="rounded-lg border border-hairline bg-surface-tile-1 p-3" aria-labelledby="audition-decision-heading">
+          <h3 id="audition-decision-heading" className="text-[13px] font-semibold text-body-on-dark">候補を決める</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="mr-auto text-[12px] text-ink-muted-48">
+              {blind ? `Candidate ${SLOT_LABELS[activeSlot]}を判定` : activeVariant.name}
+            </span>
+            <Button
+              variant="dark"
+              onClick={() =>
+                setReviewState(activeVariant.id, activeVariant.reviewState === "favorite" ? null : "favorite")
+              }
+            >
+              <Star size={13} /> Favorite
+            </Button>
+            <Button
+              variant="dark"
+              onClick={() =>
+                setReviewState(activeVariant.id, activeVariant.reviewState === "rejected" ? null : "rejected")
+              }
+            >
+              <ThumbsDown size={13} /> Reject
+            </Button>
+            <Button variant="secondary" onClick={() => setActiveMelody(activeVariant.id)}>
+              <Check size={13} /> この主旋律を採用
+            </Button>
+          </div>
+        </section>
       )}
     </main>
   )

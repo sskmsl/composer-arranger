@@ -309,66 +309,75 @@ export function FullSongArrangementPanel() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="dark" onClick={() => downloadMidi(exportArrangementMidi(project, arrangement), `${project.title}-arrangement`)}>
+          <section className="rounded-lg border border-hairline bg-black/10 p-3" aria-labelledby="arrangement-midi-heading">
+            <h4 id="arrangement-midi-heading" className="text-[13px] font-semibold text-body-on-dark">MIDIを書き出す</h4>
+            <p className="mt-1 text-[11px] leading-4 text-body-muted">全パートをまとめて保存できます。各パートは下の一覧から個別にも保存できます。</p>
+            <Button className="mt-3" variant="dark" onClick={() => downloadMidi(exportArrangementMidi(project, arrangement), `${project.title}-arrangement`)}>
               <Download size={14} /> 全パートMIDI
             </Button>
-            <label className="flex min-w-0 max-w-full flex-wrap items-center gap-2 text-[11px] text-body-muted sm:ml-auto">
-              部分再生成
-              <Select className="min-w-0 max-w-full" value={targetSectionId} onChange={(event) => setTargetSectionId(event.target.value)}>
-                <option value="">トラック全体</option>
-                {arrangement.plan.sections.map((section) => <option key={section.sectionId} value={section.sectionId}>{section.sectionName}</option>)}
-              </Select>
-            </label>
-          </div>
+            <p className="mt-3 rounded-sm border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[11px] leading-5 text-sky-100">
+              個別MIDIは曲中の位置を保持しています。Logic Proでは、すべて<strong className="mx-1 text-body-on-dark">1小節目</strong>に配置してください。先頭の無音を詰めないでください。
+            </p>
+          </section>
 
-          <p className="rounded-sm border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[11px] leading-5 text-sky-100">
-            個別MIDIは曲中の位置を保持しています。Logic Proでは、すべて<strong className="mx-1 text-body-on-dark">1小節目</strong>に配置してください。先頭の無音を詰めないでください。
-          </p>
-
-          <div className="flex min-w-0 items-center gap-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
-            <Button
-              variant="dark"
-              className="shrink-0"
-              onClick={playingTrack ? () => stop() : () => playNotes("all", playbackBeat, auditionMix)}
-            >
-              {playingTrack ? <Square size={14} /> : <Play size={14} />}
-              {playingTrack ? "停止" : "再生"}
-            </Button>
-            <div className="min-w-0 flex-1">
-              <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
-                <span className="truncate">{playingTrack === "all" ? AUDITION_MIX_LABEL[auditionMix] : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : AUDITION_MIX_LABEL[auditionMix]}</span>
-                <span className="shrink-0 tabular-nums text-body-on-dark">
-                  {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
-                </span>
+          <section className="space-y-3" aria-labelledby="generated-parts-heading">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h4 id="generated-parts-heading" className="text-[13px] font-semibold text-body-on-dark">パートを個別に確認・作り直す</h4>
+                <p className="mt-1 text-[11px] leading-4 text-body-muted">パートごとに試聴・再生成・MIDI保存ができます。</p>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={Math.max(0.25, material.totalBeats)}
-                step={0.25}
-                value={Math.min(playbackBeat, material.totalBeats)}
-                aria-label="全曲試聴の再生位置"
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
-                onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
-                onPointerDown={beginSeeking}
-                onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
-                onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
-                onKeyDown={(event) => {
-                  if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
-                    beginSeeking()
-                  }
-                }}
-                onKeyUp={(event) => {
-                  if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
-                  commitSeek(Number(event.currentTarget.value))
-                }}
-                onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
-              />
+              <label className="flex min-w-0 max-w-full flex-wrap items-center gap-2 text-[11px] text-body-muted">
+                作り直す範囲
+                <Select className="min-w-0 max-w-full" value={targetSectionId} onChange={(event) => setTargetSectionId(event.target.value)}>
+                  <option value="">トラック全体</option>
+                  {arrangement.plan.sections.map((section) => <option key={section.sectionId} value={section.sectionId}>{section.sectionName}</option>)}
+                </Select>
+              </label>
             </div>
-          </div>
 
-          <div className="grid gap-2 lg:grid-cols-2">
+            <div className="flex min-w-0 items-center gap-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
+              <Button
+                variant="dark"
+                className="shrink-0"
+                onClick={playingTrack ? () => stop() : () => playNotes("all", playbackBeat, auditionMix)}
+              >
+                {playingTrack ? <Square size={14} /> : <Play size={14} />}
+                {playingTrack ? "停止" : "再生"}
+              </Button>
+              <div className="min-w-0 flex-1">
+                <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+                  <span className="truncate">{playingTrack === "all" ? AUDITION_MIX_LABEL[auditionMix] : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : AUDITION_MIX_LABEL[auditionMix]}</span>
+                  <span className="shrink-0 tabular-nums text-body-on-dark">
+                    {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(0.25, material.totalBeats)}
+                  step={0.25}
+                  value={Math.min(playbackBeat, material.totalBeats)}
+                  aria-label="全曲試聴の再生位置"
+                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
+                  onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
+                  onPointerDown={beginSeeking}
+                  onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+                  onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
+                  onKeyDown={(event) => {
+                    if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
+                      beginSeeking()
+                    }
+                  }}
+                  onKeyUp={(event) => {
+                    if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+                    commitSeek(Number(event.currentTarget.value))
+                  }}
+                  onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2 lg:grid-cols-2">
             {arrangement.tracks.map((track) => {
               const placement = arrangementTrackPlacement(project, track)
               return <article key={track.id} className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-hairline bg-surface-tile-1 p-3">
@@ -395,7 +404,8 @@ export function FullSongArrangementPanel() {
                 </button>
               </article>
             })}
-          </div>
+            </div>
+          </section>
         </div>
       )}
     </section>

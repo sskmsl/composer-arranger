@@ -76,8 +76,10 @@ export function App() {
     )
   }
 
+  const useBrowserScroll = tab === "arrangement"
+
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-surface-black text-body-on-dark">
+    <div className={`flex flex-col bg-surface-black text-body-on-dark ${useBrowserScroll ? "min-h-dvh overflow-x-clip" : "h-dvh overflow-hidden"}`}>
       <TopBar
         tab={tab}
         onTabChange={changeTopTab}
@@ -85,7 +87,7 @@ export function App() {
         onToggleRight={() => setRightOpen((v) => !v)}
       />
       <TimingMigrationBanner />
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>
         {returnToAiPartner && tab !== "ai-partner" && (
           <button
             type="button"
