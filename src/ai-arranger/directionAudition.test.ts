@@ -6,6 +6,7 @@ import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerato
 import {
   directionAuditionDirectiveForIntent,
   directionAuditionRanges,
+  directionAuditionRoleIds,
   directionAuditionSeed,
   directionAuditionTracks,
 } from "./directionAudition"
@@ -115,6 +116,41 @@ describe("Direction audition ranges", () => {
     ] as FullSongArrangement["tracks"]
     expect(directionAuditionTracks(tracks, ["syn-bass"]).map((track) => track.id)).toEqual(["syn-bass"])
     expect(directionAuditionTracks(tracks, [])).toEqual([])
+  })
+
+  it("無音案以外の全Generatorを実音化できる役割へ割り当てる", () => {
+    const generators: AiArrangementIntent["generator"][] = [
+      "melody", "phrase", "signature", "counter", "decoration", "accompaniment", "rhythm",
+    ]
+    for (const generator of generators) {
+      expect(directionAuditionRoleIds(testIntent(generator, generator)).length).toBeGreaterThan(0)
+    }
+    expect(directionAuditionRoleIds(testIntent("none", "none"))).toEqual([])
+  })
+
+  it("休符が少ない曲でも全Generatorの比較試聴音を生成できる", () => {
+    const project = createEmptyProject("All direction generators")
+    project.sections = [
+      { ...project.sections[0], id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 },
+      { ...project.sections[0], id: "chorus", name: "Chorus", role: "chorus", startBar: 5, lengthBars: 4 },
+    ]
+    project.chords = project.sections.flatMap((section) => [
+      { id: `${section.id}:1`, sectionId: section.id, startBeat: 0, durationBeats: 8, symbol: "Am(add9)", bass: null },
+      { id: `${section.id}:2`, sectionId: section.id, startBeat: 8, durationBeats: 8, symbol: "Fmaj7", bass: null },
+    ])
+    const generators: AiArrangementIntent["generator"][] = [
+      "melody", "phrase", "signature", "counter", "decoration", "accompaniment", "rhythm",
+    ]
+    for (const [index, generator] of generators.entries()) {
+      const intent = testIntent(generator, generator)
+      const directive = directionAuditionDirectiveForIntent(intent)
+      const result = generateFullSongArrangement(project, {
+        seed: directionAuditionSeed(project, "all-generators", intent, index),
+        brief: intent.generationBrief,
+        directive,
+      })
+      expect(directionAuditionTracks(result.tracks, directive.add ?? []).some((track) => track.notes.length > 0)).toBe(true)
+    }
   })
 
   it("提案音がセクション末尾にある場合も、その音を含む範囲を返す", () => {

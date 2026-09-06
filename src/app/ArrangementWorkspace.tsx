@@ -27,8 +27,6 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const playbackRunRef = useRef(0)
   const seekingRef = useRef(false)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
-  const arrangementSections = project.fullSongArrangement?.analysis.sections ?? []
-  const arrangementPlans = project.fullSongArrangement?.plan.sections ?? []
 
   const playRangeSequence = (
     ranges: PreviewBeatRange[],
@@ -200,31 +198,6 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
             onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
           />
         </div>
-      )}
-
-      {arrangementSections.length > 0 && (
-        <section className="rounded-lg border border-hairline bg-surface-tile-1 p-3">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="text-[13px] font-semibold">全曲の流れ</h3>
-            <span className="text-[11px] text-body-muted">強度と使用パート数</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
-            {arrangementSections.map((item) => {
-              const plan = arrangementPlans.find((candidate) => candidate.sectionId === item.sectionId)
-              return (
-                <div key={item.sectionId} className="min-w-0 rounded-md border border-hairline bg-white/[0.025] p-2.5">
-                  <div className="truncate text-[11px] font-medium text-body-on-dark" title={item.sectionName}>{item.sectionName}</div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(4, Math.min(100, item.energy))}%` }} />
-                  </div>
-                  <div className="mt-1.5 flex justify-between text-[11px] text-body-muted">
-                    <span>強度 {item.energy}</span><span>{plan?.activeRoles.length ?? 0}パート</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
       )}
 
       <section className="grid gap-2 rounded-lg border border-hairline bg-white/[0.025] p-3 sm:grid-cols-3">

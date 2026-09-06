@@ -167,7 +167,7 @@ export function FullSongArrangementPanel() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-on-dark">全曲パート生成</p>
           <h3 className="mt-1 text-[16px] font-semibold">必要なパートだけを生成</h3>
           <p className="mt-1 text-[12px] leading-5 text-body-muted">
-            コード・保護中の主旋律・セクション・制作意図を分析し、全曲の強弱と役割を決めてから独立トラックを生成します。
+            コード・保護中の主旋律・セクション・制作意図を分析し、必要な役割を独立トラックとして生成します。
           </p>
         </div>
         <div className="relative z-10 flex min-w-0 justify-stretch sm:justify-start lg:justify-end">
@@ -232,15 +232,6 @@ export function FullSongArrangementPanel() {
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 overflow-hidden rounded-md border border-hairline bg-black/15 p-3">
-            <span className="text-[12px] text-body-muted">全曲の強弱</span>
-            {arrangement.analysis.sections.map((section) => (
-              <span key={section.sectionId} className="rounded-full bg-white/7 px-2.5 py-1 text-[11px]">
-                {section.sectionName} <b className="text-primary-on-dark">{section.energy}</b>
-              </span>
-            ))}
-          </div>
-
           <details className="rounded-md border border-hairline bg-black/10 p-3">
             <summary className="cursor-pointer text-[13px] font-semibold">セクション別の生成設計</summary>
             <div className="mt-3 grid gap-2 xl:grid-cols-2">
@@ -331,36 +322,46 @@ export function FullSongArrangementPanel() {
             </label>
           </div>
 
-          <div className="rounded-md border border-hairline bg-black/15 px-3 py-2.5">
-            <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
-              <span>{playingTrack === "all" ? AUDITION_MIX_LABEL[auditionMix] : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : "再生位置"}</span>
-              <span className="tabular-nums text-body-on-dark">
-                {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
-              </span>
+          <div className="flex min-w-0 items-center gap-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
+            <Button
+              variant="dark"
+              className="shrink-0"
+              onClick={playingTrack ? () => stop() : () => playNotes("all", playbackBeat, auditionMix)}
+            >
+              {playingTrack ? <Square size={14} /> : <Play size={14} />}
+              {playingTrack ? "停止" : "再生"}
+            </Button>
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+                <span className="truncate">{playingTrack === "all" ? AUDITION_MIX_LABEL[auditionMix] : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : AUDITION_MIX_LABEL[auditionMix]}</span>
+                <span className="shrink-0 tabular-nums text-body-on-dark">
+                  {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0.25, material.totalBeats)}
+                step={0.25}
+                value={Math.min(playbackBeat, material.totalBeats)}
+                aria-label="全曲試聴の再生位置"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
+                onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
+                onPointerDown={beginSeeking}
+                onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+                onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
+                onKeyDown={(event) => {
+                  if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
+                    beginSeeking()
+                  }
+                }}
+                onKeyUp={(event) => {
+                  if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+                  commitSeek(Number(event.currentTarget.value))
+                }}
+                onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
+              />
             </div>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(0.25, material.totalBeats)}
-              step={0.25}
-              value={Math.min(playbackBeat, material.totalBeats)}
-              aria-label="全曲試聴の再生位置"
-              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
-              onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
-              onPointerDown={beginSeeking}
-              onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
-              onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
-              onKeyDown={(event) => {
-                if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
-                  beginSeeking()
-                }
-              }}
-              onKeyUp={(event) => {
-                if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
-                commitSeek(Number(event.currentTarget.value))
-              }}
-              onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
-            />
           </div>
 
           <div className="grid gap-2 lg:grid-cols-2">

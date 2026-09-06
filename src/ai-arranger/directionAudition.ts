@@ -15,15 +15,30 @@ export interface DirectionAuditionRange {
   label: string
 }
 
+/**
+ * AIのGenerator名を、全曲アレンジで必ず実音化できる補助パートへ対応付ける。
+ * Transition / Decorationは主旋律の休符がない曲では空になるため、
+ * 和音から生成できる役割を同じ案の補助として含める。
+ */
+export function directionAuditionRoleIds(
+  intent: AiArrangementIntent,
+): ArrangementTrackId[] {
+  const roles: ArrangementTrackId[] = []
+  if (intent.generator === "rhythm") roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum")
+  if (intent.generator === "accompaniment") roles.push("syn-bass", "syn-pulse")
+  if (intent.generator === "melody") roles.push("str-violin-1", "syn-stabs")
+  if (intent.generator === "phrase") roles.push("syn-transition-phrase", "syn-stabs")
+  if (intent.generator === "counter") roles.push("str-cello", "str-viola")
+  if (intent.generator === "signature") roles.push("syn-transition-phrase", "syn-high-glass", "syn-stabs")
+  if (intent.generator === "decoration") roles.push("syn-high-glass", "syn-stabs")
+  return roles
+}
+
 /** AIの案を、全曲試聴で実際に鳴らす役割へ変換する。 */
 export function directionAuditionDirectiveForIntent(
   intent: AiArrangementIntent,
 ): ArrangementGenerationDirective {
-  const roles: ArrangementTrackId[] = []
-  if (intent.generator === "rhythm") roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum")
-  if (intent.generator === "accompaniment") roles.push("syn-bass", "syn-pulse")
-  if (["counter", "phrase", "signature"].includes(intent.generator)) roles.push("syn-transition-phrase")
-  if (["decoration", "signature"].includes(intent.generator)) roles.push("syn-high-glass")
+  const roles = directionAuditionRoleIds(intent)
   const description = `${intent.generationBrief} ${intent.soundPalette} ${intent.techniques.join(" ")}`
   if (/string|violin|viola|cello|ストリング/i.test(description)) roles.push("str-cello", "str-viola", "str-violin-2", "str-violin-1")
   if (/bass|低音|ベース/i.test(description)) roles.push("syn-bass")
