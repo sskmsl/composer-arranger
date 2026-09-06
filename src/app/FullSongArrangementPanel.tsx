@@ -302,6 +302,35 @@ export function FullSongArrangementPanel() {
                 )
               })}
             </div>
+            <div className="mt-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
+              <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+                <span>{AUDITION_MIX_LABEL[auditionMix]}の再生位置</span>
+                <span className="shrink-0 tabular-nums text-body-on-dark">
+                  {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0.25, material.totalBeats)}
+                step={0.25}
+                value={Math.min(playbackBeat, material.totalBeats)}
+                aria-label="生成前後を聴き比べる再生位置"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
+                onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
+                onPointerDown={beginSeeking}
+                onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+                onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
+                onKeyDown={(event) => {
+                  if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) beginSeeking()
+                }}
+                onKeyUp={(event) => {
+                  if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
+                  commitSeek(Number(event.currentTarget.value))
+                }}
+                onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
+              />
+            </div>
             <p className="mt-2 text-[11px] text-body-muted">
               {project.sourceImport?.type === "midi"
                 ? "原曲側は、MIDIから読み込んだ主旋律と伴奏ノートをそのまま使用します。"

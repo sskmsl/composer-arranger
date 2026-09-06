@@ -5,7 +5,7 @@ import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import { parseTimeSignature } from "@/core/section"
 import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
-import { immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
+import { distinctMelodyVariantsForAudition, immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
@@ -17,13 +17,14 @@ export function AuditionWorkspace() {
   const setActiveMelody = useProjectStore((state) => state.setActiveMelody)
   const setReviewState = useProjectStore((state) => state.setVariantReviewState)
   const section = project.sections.find((candidate) => candidate.id === selectedSectionId)
-  const variants = useMemo(
-    () =>
-      project.melodyVariants
+  const variants = useMemo(() => {
+    const candidates = project.melodyVariants
         .filter((variant) => variant.sectionId === selectedSectionId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [project.melodyVariants, selectedSectionId],
-  )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return selectedSectionId
+      ? distinctMelodyVariantsForAudition(project, selectedSectionId, candidates)
+      : candidates
+  }, [project, selectedSectionId])
   const variantKey = variants.map((variant) => variant.id).join("|")
   const [slotIds, setSlotIds] = useState<(string | null)[]>([null, null, null])
   const [activeSlot, setActiveSlot] = useState(0)
@@ -130,7 +131,7 @@ export function AuditionWorkspace() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto text-[16px] font-semibold">A/B/C 比較試聴</h2>
+        <h2 className="mr-auto text-[16px] font-semibold">主旋律のA/B/C比較</h2>
         <label className="flex items-center gap-2 text-[12px] text-ink-muted-48">
           セクション
           <Select value={selectedSectionId ?? ""} onChange={(event) => selectSection(event.target.value || null)}>
@@ -152,6 +153,11 @@ export function AuditionWorkspace() {
       {section && variants.length === 0 && (
         <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[12px] text-amber-200">
           比較できる主旋律候補がありません。「詳細調整 → 主旋律」で候補を生成すると再生できます。
+        </p>
+      )}
+      {section && variants.length === 1 && (
+        <p className="rounded-md border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[12px] text-sky-100">
+          音が異なる主旋律候補は1件です。同じ演奏の複製は比較枠へ表示しません。3案を比べる場合は「個別調整 → 主旋律」で候補を生成してください。
         </p>
       )}
 
@@ -239,9 +245,11 @@ export function AuditionWorkspace() {
                   >
                     <option value="">未選択</option>
                     {variants.map((candidate) => (
+                      slotIds.some((selectedId, selectedSlot) => selectedSlot !== slot && selectedId === candidate.id) ? null : (
                       <option key={candidate.id} value={candidate.id}>
                         {candidate.name}
                       </option>
+                      )
                     ))}
                   </Select>
                   {variant && (

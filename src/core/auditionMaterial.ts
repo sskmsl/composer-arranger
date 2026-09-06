@@ -37,6 +37,31 @@ export function leadNotesForAudition(
     .sort((left, right) => left.startBeat - right.startBeat || left.pitch - right.pitch)
 }
 
+/**
+ * A/B/C比較では、IDや表示名が違っても実際に鳴る音が同じ候補を重ねて表示しない。
+ * Imported MIDIの旧データには、同一演奏を指すVariantが複数残っている場合がある。
+ */
+export function distinctMelodyVariantsForAudition(
+  project: ComposerProject,
+  sectionId: string,
+  variants: readonly MelodyVariant[],
+): MelodyVariant[] {
+  const fingerprints = new Set<string>()
+  return variants.filter((variant) => {
+    const fingerprint = leadNotesForAudition(project, sectionId, variant)
+      .map((note) => [
+        Number(note.startBeat.toFixed(4)),
+        Number(note.durationBeats.toFixed(4)),
+        note.pitch,
+        note.velocity,
+      ].join(":"))
+      .join("|")
+    if (fingerprints.has(fingerprint)) return false
+    fingerprints.add(fingerprint)
+    return true
+  })
+}
+
 /** 長いImported Songは、主旋律が聞こえる位置から最大8小節だけを即時試聴する。 */
 export function immediateAuditionRange(
   notes: MelodyNote[],
