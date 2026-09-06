@@ -53,7 +53,6 @@ export function distinctMelodyVariantsForAudition(
         Number(note.startBeat.toFixed(4)),
         Number(note.durationBeats.toFixed(4)),
         note.pitch,
-        note.velocity,
       ].join(":"))
       .join("|")
     if (fingerprints.has(fingerprint)) return false

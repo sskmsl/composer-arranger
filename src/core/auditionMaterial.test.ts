@@ -61,7 +61,7 @@ describe("distinctMelodyVariantsForAudition", () => {
     }
     const variants = [
       { ...base, id: "v1" },
-      { ...base, id: "v2", name: "Imported copy" },
+      { ...base, id: "v2", name: "Imported copy", notes: [{ ...notes[0], velocity: 70 }] },
       { ...base, id: "v3", notes: [{ ...notes[0], id: "n2", pitch: 64 }] },
     ]
 
