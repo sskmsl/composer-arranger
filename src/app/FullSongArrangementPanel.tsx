@@ -5,7 +5,7 @@ import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime, fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
-import { exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
+import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 
@@ -322,6 +322,10 @@ export function FullSongArrangementPanel() {
             </label>
           </div>
 
+          <p className="rounded-sm border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[11px] leading-5 text-sky-100">
+            個別MIDIは曲中の位置を保持しています。Logic Proでは、すべて<strong className="mx-1 text-body-on-dark">1小節目</strong>に配置してください。先頭の無音を詰めないでください。
+          </p>
+
           <div className="flex min-w-0 items-center gap-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
             <Button
               variant="dark"
@@ -365,14 +369,20 @@ export function FullSongArrangementPanel() {
           </div>
 
           <div className="grid gap-2 lg:grid-cols-2">
-            {arrangement.tracks.map((track) => (
-              <article key={track.id} className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-hairline bg-surface-tile-1 p-3">
+            {arrangement.tracks.map((track) => {
+              const placement = arrangementTrackPlacement(project, track)
+              return <article key={track.id} className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-hairline bg-surface-tile-1 p-3">
                 <button title={track.muted ? "Mute解除" : "Mute"} onClick={() => setMuted(track.id, !track.muted)} className="text-body-muted hover:text-body-on-dark">
                   {track.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-medium">{track.name}</p>
                   <p className="truncate text-[11px] text-body-muted">{track.notes.length}音 · {track.purpose}</p>
+                  {placement && (
+                    <p className="truncate text-[11px] text-sky-100">
+                      Logic配置: {placement.importBar}小節目 · 最初の音: {placement.firstSoundingBar}小節目
+                    </p>
+                  )}
                 </div>
                 <button title="試聴" onClick={() => playingTrack === track.id ? stop() : playNotes(track.id)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
                   {playingTrack === track.id ? <Square size={14} /> : <Play size={14} />}
@@ -380,11 +390,11 @@ export function FullSongArrangementPanel() {
                 <button title={targetSectionId ? "選択セクションだけ再生成" : "このトラックだけ再生成"} onClick={() => regenerate({ trackId: track.id, sectionId: targetSectionId || undefined })} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
                   <RefreshCw size={14} />
                 </button>
-                <button title="このトラックをMIDI出力" onClick={() => downloadMidi(exportArrangementTrackMidi(project, arrangement, track.id), track.name)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
+                <button title="MIDI出力（Logicの1小節目へ配置）" onClick={() => downloadMidi(exportArrangementTrackMidi(project, arrangement, track.id), `${track.name}-bar-1`)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
                   <Download size={14} />
                 </button>
               </article>
-            ))}
+            })}
           </div>
         </div>
       )}

@@ -8,7 +8,7 @@ import {
   generateFullSongArrangement,
   regenerateFullSongArrangementTarget,
 } from "./arrangementGenerator"
-import { exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
+import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 
 function project(): ComposerProject {
   const base = createEmptyProject("Arrangement Test")
@@ -283,6 +283,35 @@ describe("Arrangement Generator", () => {
     expect(all).toContain("STR_Violin1")
     expect(bass).toContain("SYN_Bass")
     expect(bass).not.toContain("DR_Kick")
+  })
+
+  it("個別MIDIは1小節目へ配置し、最初に鳴る小節を案内できる", () => {
+    const input = project()
+    const track = {
+      id: "syn-high-glass",
+      name: "SYN_HighGlass",
+      family: "synth",
+      muted: false,
+      generationRevision: 0,
+      purpose: "高域の反射",
+      notes: [{
+        id: "glass",
+        sectionId: "pre",
+        pitch: 81,
+        startBeat: 34,
+        durationBeats: 2,
+        velocity: 64,
+        character: "safe",
+        reason: "試験",
+        locks: [],
+      }],
+    } satisfies NonNullable<ComposerProject["fullSongArrangement"]>["tracks"][number]
+
+    expect(arrangementTrackPlacement(input, track)).toEqual({
+      importBar: 1,
+      firstSoundingBar: 9,
+      lastSoundingBar: 9,
+    })
   })
 
   it("長い曲では導入を段階化し、真のFinalをピークとして役割を展開する", () => {

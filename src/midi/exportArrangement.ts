@@ -5,6 +5,29 @@ import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 
 const SOFTWARE_INSTRUMENT_MIDI_CHANNEL = 0
 
+export interface ArrangementTrackPlacement {
+  /** 個別MIDIは曲頭からの絶対位置を保持するため、Logic上では常に1小節目へ置く。 */
+  importBar: 1
+  firstSoundingBar: number
+  lastSoundingBar: number
+}
+
+/** 個別MIDIの配置位置と、実際に音が現れる小節範囲をUIへ伝える。 */
+export function arrangementTrackPlacement(
+  project: ComposerProject,
+  track: GeneratedArrangementTrack,
+): ArrangementTrackPlacement | null {
+  if (track.notes.length === 0) return null
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const firstBeat = Math.min(...track.notes.map((note) => note.startBeat))
+  const lastBeat = Math.max(...track.notes.map((note) => note.startBeat + note.durationBeats))
+  return {
+    importBar: 1,
+    firstSoundingBar: Math.floor(firstBeat / beatsPerBar) + 1,
+    lastSoundingBar: Math.max(1, Math.ceil(lastBeat / beatsPerBar)),
+  }
+}
+
 function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
   return {
     name: track.name,
