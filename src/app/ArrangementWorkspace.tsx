@@ -4,7 +4,7 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { previewPlayer } from "@/audio/previewPlayer"
-import { formatPlaybackTime, fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
+import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
@@ -28,34 +28,6 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const seekingRef = useRef(false)
   const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
 
-  const playRangeSequence = (
-    ranges: PreviewBeatRange[],
-    index: number,
-    runId: number,
-  ) => {
-    if (playbackRunRef.current !== runId || index >= ranges.length) {
-      if (playbackRunRef.current === runId) {
-        setPlaybackBeat(material.totalBeats)
-        setPlaying(false)
-      }
-      return
-    }
-    const importedSource = project.sourceImport?.type === "midi"
-    previewPlayer.play({
-      bpm: project.song.tempo,
-      chords: importedSource ? [] : material.chords,
-      melody: material.lead,
-      accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
-      arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
-      mode: "chords-melody",
-      range: ranges[index],
-      onEnded: () => {
-        setPlaybackBeat(ranges[index].endBeat)
-        playRangeSequence(ranges, index + 1, runId)
-      },
-    })
-  }
-
   const playSong = (requestedStartBeat = playbackBeat) => {
     if (
       material.lead.length === 0 &&
@@ -65,13 +37,26 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
       !project.fullSongArrangement?.tracks.some((track) => !track.muted && track.notes.length > 0)
     ) return
     const startBeat = requestedStartBeat >= material.totalBeats ? 0 : requestedStartBeat
-    const ranges = fullSongPreviewRanges(material.totalBeats, 32, startBeat)
-    if (ranges.length === 0) return
     const runId = playbackRunRef.current + 1
     playbackRunRef.current = runId
     setPlaybackBeat(startBeat)
     setPlaying(true)
-    playRangeSequence(ranges, 0, runId)
+    const importedSource = project.sourceImport?.type === "midi"
+    previewPlayer.playContinuous({
+      bpm: project.song.tempo,
+      chords: importedSource ? [] : material.chords,
+      melody: material.lead,
+      accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
+      arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
+      mode: "chords-melody",
+      startBeat,
+      range: { startBeat, endBeat: material.totalBeats },
+      onEnded: () => {
+        if (playbackRunRef.current !== runId) return
+        setPlaybackBeat(material.totalBeats)
+        setPlaying(false)
+      },
+    })
   }
 
   const beginSeeking = () => {

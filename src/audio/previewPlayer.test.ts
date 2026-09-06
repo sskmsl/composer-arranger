@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest"
 import {
+  belongsToContinuousPreviewWindow,
   previewLayersForMode,
   previewTailSeconds,
   resolveComparisonSwitchBeat,
   resolveReactivePreviewRange,
 } from "./previewPlayer"
+
+describe("continuous full-song preview", () => {
+  it("区間境界の音を次区間だけへ割り当て、二重発音させない", () => {
+    expect(belongsToContinuousPreviewWindow(32, 33, 0, 0, 32, true)).toBe(false)
+    expect(belongsToContinuousPreviewWindow(32, 33, 0, 32, 64, false)).toBe(true)
+  })
+
+  it("途中再生時に開始位置をまたぐ長音を最初の区間へ含める", () => {
+    expect(belongsToContinuousPreviewWindow(44, 48, 45, 45, 77, true)).toBe(true)
+    expect(belongsToContinuousPreviewWindow(44, 45, 45, 45, 77, true)).toBe(false)
+  })
+})
 
 describe("signature preview expression", () => {
   it("空間型だけはフレーズ終端で残響を切らない", () => {

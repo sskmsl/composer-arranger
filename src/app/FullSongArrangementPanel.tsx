@@ -3,7 +3,7 @@ import { Download, Play, RefreshCw, Square, Volume2, VolumeX } from "lucide-reac
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { previewPlayer } from "@/audio/previewPlayer"
-import { formatPlaybackTime, fullSongPreviewRanges, type PreviewBeatRange } from "@/audio/fullSongPreview"
+import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
 import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
@@ -17,14 +17,6 @@ const AUDITION_MIX_LABEL: Record<AuditionMix, string> = {
   combined: "原曲＋AI生成",
   generated: "AI生成のみ",
 }
-
-const APPROACH_LABEL = {
-  "space-led": "余白主導",
-  "rhythm-led": "推進力主導",
-  "counterpoint-led": "対旋律主導",
-  "dynamic-contrast": "起伏主導",
-  "motif-led": "モチーフ主導",
-} as const
 
 export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)
@@ -66,42 +58,6 @@ export function FullSongArrangementPanel() {
     return () => window.clearInterval(timer)
   }, [material.totalBeats, playingTrack])
 
-  const playRangeSequence = (
-    trackId: ArrangementTrackId | "all",
-    tracks: NonNullable<typeof arrangement>["tracks"],
-    ranges: PreviewBeatRange[],
-    index: number,
-    runId: number,
-    mix: AuditionMix,
-  ) => {
-    if (playbackRunRef.current !== runId || index >= ranges.length) {
-      if (playbackRunRef.current === runId) {
-        setPlaybackBeat(material.totalBeats)
-        setPlayingTrack(null)
-      }
-      return
-    }
-    const includeSource = trackId !== "all" || mix !== "generated"
-    const includeGenerated = trackId !== "all" || mix !== "source"
-    const importedSource = project.sourceImport?.type === "midi"
-    previewPlayer.play({
-      bpm: project.song.tempo,
-      // Imported MIDIでは、推定コードを合成し直さず実際の原演奏を比較対象にする。
-      chords: includeSource && !importedSource ? material.chords : [],
-      accompaniment: includeSource
-        ? importedSource ? material.importedBacking : material.accompanimentPattern
-        : [],
-      arrangementTracks: includeGenerated ? tracks : [],
-      mode: trackId === "all" && includeSource ? "chords-melody" : "melody-only",
-      melody: trackId === "all" && includeSource ? material.lead : [],
-      range: ranges[index],
-      onEnded: () => {
-        setPlaybackBeat(ranges[index].endBeat)
-        playRangeSequence(trackId, tracks, ranges, index + 1, runId, mix)
-      },
-    })
-  }
-
   const playNotes = (
     trackId: ArrangementTrackId | "all",
     requestedStartBeat = playbackBeat,
@@ -119,14 +75,32 @@ export function FullSongArrangementPanel() {
       if (mix === "combined" && !sourceHasNotes && !generatedHasNotes) return
     } else if (!generatedHasNotes) return
     const startBeat = requestedStartBeat >= material.totalBeats ? 0 : requestedStartBeat
-    const ranges = fullSongPreviewRanges(material.totalBeats, 32, startBeat)
-    if (ranges.length === 0) return
     const runId = playbackRunRef.current + 1
     playbackRunRef.current = runId
     setAuditionMix(mix)
     setPlaybackBeat(startBeat)
     setPlayingTrack(trackId)
-    playRangeSequence(trackId, tracks, ranges, 0, runId, mix)
+    const includeSource = trackId !== "all" || mix !== "generated"
+    const includeGenerated = trackId !== "all" || mix !== "source"
+    const importedSource = project.sourceImport?.type === "midi"
+    previewPlayer.playContinuous({
+      bpm: project.song.tempo,
+      // Imported MIDIでは、推定コードを合成し直さず実際の原演奏を比較対象にする。
+      chords: includeSource && !importedSource ? material.chords : [],
+      accompaniment: includeSource
+        ? importedSource ? material.importedBacking : material.accompanimentPattern
+        : [],
+      arrangementTracks: includeGenerated ? tracks : [],
+      mode: trackId === "all" && includeSource ? "chords-melody" : "melody-only",
+      melody: trackId === "all" && includeSource ? material.lead : [],
+      startBeat,
+      range: { startBeat, endBeat: material.totalBeats },
+      onEnded: () => {
+        if (playbackRunRef.current !== runId) return
+        setPlaybackBeat(material.totalBeats)
+        setPlayingTrack(null)
+      },
+    })
   }
 
   const beginSeeking = () => {
@@ -187,48 +161,9 @@ export function FullSongArrangementPanel() {
         </p>
       )}
 
-      {arrangement?.quality && (
-        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 rounded-sm border border-primary/25 bg-black/15 px-3 py-2 text-[11px]">
-          <span className="font-semibold text-body-on-dark">全曲設計 {arrangement.quality.score}</span>
-          <span className="text-body-muted">{arrangement.quality.summary}</span>
-          {arrangement.selection && (
-            <span className="rounded-full border border-emerald-300/25 bg-emerald-400/[0.07] px-2 py-0.5 text-emerald-100">
-              {arrangement.selection.poolSize}案を実音比較 · {arrangement.plan.candidateApproach ? APPROACH_LABEL[arrangement.plan.candidateApproach] : "総合案"}を採用
-            </span>
-          )}
-          {arrangement.tracks.some((track) => track.performance?.applied) && (
-            <span className="rounded-full border border-sky-300/25 bg-sky-400/[0.07] px-2 py-0.5 text-sky-100">
-              強弱・音価・タイミング調整済み
-            </span>
-          )}
-          {arrangement.quality.recommendations.length > 0 && (
-            <span className="w-full text-amber-100">確認: {arrangement.quality.recommendations.join("・")}</span>
-          )}
-        </div>
-      )}
-
-      {arrangement?.selection && (
-        <details className="mt-2 rounded-sm border border-hairline bg-black/10 px-3 py-2 text-[11px]">
-          <summary className="cursor-pointer text-body-muted">
-            選抜内容を見る（品質基準を満たした {arrangement.selection.eligibleCount}/{arrangement.selection.poolSize}案）
-          </summary>
-          <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {arrangement.selection.candidates.slice(0, 5).map((candidate) => (
-              <div key={candidate.seed} className={`rounded-sm border px-2.5 py-2 ${candidate.selected ? "border-primary/50 bg-primary/10" : "border-hairline"}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-body-on-dark">{APPROACH_LABEL[candidate.approach]}</span>
-                  <span className="text-body-muted">品質 {candidate.qualityScore}</span>
-                </div>
-                <p className="mt-1 leading-4 text-body-muted">{candidate.reason}</p>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-
       {!arrangement ? (
         <div className="mt-4 rounded-md border border-dashed border-hairline p-5 text-[12px] text-body-muted">
-          生成前です。AIで決めた制作意図も全曲設計へ反映されます。主旋律は変更しません。
+          生成前です。AIで決めた制作意図を反映してパートを作ります。主旋律は変更しません。
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-4">

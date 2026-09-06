@@ -4,6 +4,7 @@ import { parseChordSymbol } from "@/core/chord"
 import { midiToFreq } from "@/core/note"
 import { voiceChord } from "./chordVoicing"
 import type { ArrangementTrackId, GeneratedArrangementNote } from "@/core/arrangementGeneration"
+import { fullSongPreviewRanges } from "./fullSongPreview"
 
 export type PreviewMode =
   | "melody-only"
@@ -109,6 +110,21 @@ export function resolveComparisonSwitchBeat(currentBeat: number, rangeStart: num
   return currentBeat
 }
 
+/** 連続再生の各先読み区間へ、発音イベントを重複なく割り当てる。 */
+export function belongsToContinuousPreviewWindow(
+  eventStart: number,
+  eventEnd: number,
+  playbackStart: number,
+  windowStart: number,
+  windowEnd: number,
+  firstWindow: boolean,
+): boolean {
+  return (
+    (eventStart >= windowStart && eventStart < windowEnd) ||
+    (firstWindow && eventStart < playbackStart && eventEnd > playbackStart)
+  )
+}
+
 /**
  * Web Audio APIによる簡易プレビュー再生。3.8「判断の主軸は音」を実質化するための
  * 確認用シンセ(最終音色はLogic Proで決定する、12章)。
@@ -116,6 +132,7 @@ export function resolveComparisonSwitchBeat(currentBeat: number, rangeStart: num
 class PreviewPlayer {
   private ctx: AudioContext | null = null
   private endTimer: number | null = null
+  private schedulerTimer: number | null = null
   private startTime = 0
   private secondsPerBeat = 0.5
   private playbackStartBeat = 0
@@ -238,6 +255,86 @@ class PreviewPlayer {
     }, totalSeconds * 1000)
   }
 
+  /**
+   * 長い全曲を一つのAudioContextで連続再生する。
+   * 音符は短い区間ごとに先読み予約し、数千Oscillatorの一括生成と
+   * 区間ごとのAudioContext再作成による無音の隙間を同時に避ける。
+   */
+  playContinuous(opts: PlayOptions, chunkBeats = 32): void {
+    this.stop()
+    const rangeStart = opts.range?.startBeat ?? 0
+    const rangeEnd = opts.range?.endBeat ?? 0
+    if (!Number.isFinite(rangeEnd) || rangeEnd <= rangeStart) return
+
+    const ctx = new AudioContext()
+    this.ctx = ctx
+    void ctx.resume()
+
+    const master = ctx.createGain()
+    master.gain.value = 0.85
+    const compressor = ctx.createDynamicsCompressor()
+    compressor.threshold.value = -16
+    compressor.ratio.value = 6
+    compressor.connect(master)
+    master.connect(ctx.destination)
+
+    this.secondsPerBeat = 60 / opts.bpm
+    const playbackStart = Math.max(rangeStart, opts.startBeat ?? rangeStart)
+    this.playbackStartBeat = playbackStart
+    this.startTime = ctx.currentTime + 0.05
+    const leadStyle = opts.leadStyle ?? "neutral"
+    const layers = previewLayersForMode(opts.mode)
+    const leadDestination = layers.melody && leadStyle === "atmospheric"
+      ? this.createAtmosphericLeadBus(ctx, compressor)
+      : compressor
+    const ranges = fullSongPreviewRanges(rangeEnd, chunkBeats, playbackStart)
+    let nextRangeIndex = 0
+
+    const scheduleAhead = () => {
+      if (this.ctx !== ctx) return
+      const currentBeat = this.getCurrentBeat()
+      const lookAheadEnd = currentBeat + chunkBeats * 2
+      while (
+        nextRangeIndex < ranges.length &&
+        ranges[nextRangeIndex].startBeat < lookAheadEnd
+      ) {
+        const window = ranges[nextRangeIndex]
+        this.scheduleContinuousWindow(
+          ctx,
+          compressor,
+          leadDestination,
+          opts,
+          layers,
+          leadStyle,
+          playbackStart,
+          window.startBeat,
+          window.endBeat,
+          nextRangeIndex === 0,
+          rangeEnd,
+        )
+        nextRangeIndex += 1
+      }
+    }
+
+    scheduleAhead()
+    const schedulerIntervalMs = Math.max(
+      250,
+      Math.min(4000, chunkBeats * this.secondsPerBeat * 250),
+    )
+    this.schedulerTimer = window.setInterval(scheduleAhead, schedulerIntervalMs)
+
+    const totalSeconds = (rangeEnd - playbackStart) * this.secondsPerBeat + previewTailSeconds(leadStyle)
+    this.endTimer = window.setTimeout(() => {
+      this.clearScheduler()
+      if (opts.loop) {
+        this.playContinuous({ ...opts, startBeat: rangeStart }, chunkBeats)
+      } else {
+        this.dispose()
+        opts.onEnded?.()
+      }
+    }, totalSeconds * 1000)
+  }
+
   getElapsedBeats(): number {
     if (!this.ctx) return 0
     return (this.ctx.currentTime - this.startTime) / this.secondsPerBeat
@@ -265,7 +362,101 @@ class PreviewPlayer {
       clearTimeout(this.endTimer)
       this.endTimer = null
     }
+    this.clearScheduler()
     this.dispose()
+  }
+
+  private scheduleContinuousWindow(
+    ctx: AudioContext,
+    compressor: AudioNode,
+    leadDestination: AudioNode,
+    opts: PlayOptions,
+    layers: PreviewLayers,
+    leadStyle: LeadPreviewStyle,
+    playbackStart: number,
+    windowStart: number,
+    windowEnd: number,
+    firstWindow: boolean,
+    rangeEnd: number,
+  ): void {
+    const shouldSchedule = (eventStart: number, eventEnd: number) =>
+      belongsToContinuousPreviewWindow(
+        eventStart,
+        eventEnd,
+        playbackStart,
+        windowStart,
+        windowEnd,
+        firstWindow,
+      )
+    const timing = (eventStart: number, eventEnd: number) => {
+      const clippedStart = Math.max(eventStart, playbackStart)
+      const clippedEnd = Math.min(eventEnd, rangeEnd)
+      return {
+        t0: this.startTime + (clippedStart - playbackStart) * this.secondsPerBeat,
+        duration: Math.max(0.04, (clippedEnd - clippedStart) * this.secondsPerBeat),
+      }
+    }
+
+    if (layers.chords) {
+      for (const chord of opts.chords) {
+        const eventEnd = chord.startBeat + chord.durationBeats
+        if (!shouldSchedule(chord.startBeat, eventEnd)) continue
+        const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+        if (!parsed) continue
+        const voicing = voiceChord(parsed)
+        const { t0, duration } = timing(chord.startBeat, eventEnd)
+        this.schedulePad(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, duration)
+      }
+    }
+
+    const scheduleMelodyNotes = (
+      notes: readonly MelodyNote[],
+      destination: AudioNode,
+      style: LeadPreviewStyle,
+      velocityOffset = 0,
+    ) => {
+      for (const note of notes) {
+        const eventEnd = note.startBeat + note.durationBeats
+        if (!shouldSchedule(note.startBeat, eventEnd)) continue
+        const { t0, duration } = timing(note.startBeat, eventEnd)
+        this.scheduleLead(
+          ctx,
+          destination,
+          note.pitch,
+          Math.max(25, note.velocity + velocityOffset),
+          t0,
+          duration,
+          style,
+        )
+      }
+    }
+
+    if (layers.melody) scheduleMelodyNotes(opts.melody, leadDestination, leadStyle)
+    if (layers.accompaniment) scheduleMelodyNotes(opts.accompaniment ?? [], compressor, "neutral")
+    if (layers.reactive) scheduleMelodyNotes(opts.reactive ?? [], compressor, "neutral", -8)
+
+    for (const track of opts.arrangementTracks ?? []) {
+      for (const note of track.notes) {
+        const eventEnd = note.startBeat + note.durationBeats
+        if (!shouldSchedule(note.startBeat, eventEnd)) continue
+        const { t0, duration } = timing(note.startBeat, eventEnd)
+        if (track.id.startsWith("dr-")) {
+          this.schedulePercussion(ctx, compressor, track.id, note.velocity, t0, duration)
+        } else {
+          const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
+            ? "atmospheric"
+            : track.id.includes("pulse") ? "obsessive" : "neutral"
+          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, duration, style)
+        }
+      }
+    }
+  }
+
+  private clearScheduler(): void {
+    if (this.schedulerTimer != null) {
+      clearInterval(this.schedulerTimer)
+      this.schedulerTimer = null
+    }
   }
 
   private schedulePad(ctx: AudioContext, dest: AudioNode, bassMidi: number, upperMidi: number[], t0: number, dur: number): void {
