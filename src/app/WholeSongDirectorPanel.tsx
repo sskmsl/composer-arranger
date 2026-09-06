@@ -12,7 +12,7 @@ import { Button, SectionCard } from "@/ui/primitives"
 import type { MainTab } from "./App"
 
 const GENERATOR_LABELS: Record<WholeSongArrangementAction["generator"], string> = {
-  signature: "曲の顔",
+  signature: "イントロ",
   counter: "対旋律",
   decoration: "装飾",
   accompaniment: "伴奏",

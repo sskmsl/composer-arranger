@@ -87,7 +87,7 @@ const WHOLE_SONG_SESSION_ID = "__whole_song__"
 const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
   melody: "主旋律",
   phrase: "短いフレーズ",
-  signature: "曲の顔",
+  signature: "イントロ",
   counter: "対旋律",
   decoration: "装飾",
   accompaniment: "伴奏パターン",

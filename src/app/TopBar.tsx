@@ -14,7 +14,7 @@ const PRIMARY_TABS: { id: MainTab; label: string; mobileLabel: string }[] = [
 const DETAIL_TABS: { id: MainTab; label: string; description: string }[] = [
   { id: "melody", label: "主旋律", description: "セクション全体のメロディ" },
   { id: "phrase", label: "短いフレーズ", description: "2〜8小節の着想" },
-  { id: "signature", label: "曲の顔", description: "記憶に残る導入フレーズ" },
+  { id: "signature", label: "イントロ", description: "記憶に残る導入フレーズ" },
   { id: "counter", label: "対旋律", description: "主旋律へ応答する第二の線" },
   { id: "decoration", label: "装飾", description: "隙間を生かす短い演出" },
 ]

@@ -127,7 +127,7 @@ export function SignaturePhraseWorkspace() {
   }, [lengthBars, section])
 
   if (!section) {
-    return <EmptySectionState title="曲の顔を作るセクションが必要です" />
+    return <EmptySectionState title="イントロを作るセクションが必要です" />
   }
 
   const stop = () => {
@@ -185,7 +185,7 @@ export function SignaturePhraseWorkspace() {
       <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
         <div className="mr-auto max-w-3xl">
           <h2 className="text-[15px] font-semibold text-body-on-dark">
-            曲の顔となるフレーズ
+            イントロフレーズ
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
             イントロや間奏で使える、耳に残る短いフレーズを生成します
@@ -228,7 +228,7 @@ export function SignaturePhraseWorkspace() {
 
       {allChords.length === 0 && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
-          左パネルの「コード進行」を入力すると、曲の顔となるフレーズを生成できます。
+          左パネルの「コード進行」を入力すると、イントロフレーズを生成できます。
         </p>
       )}
       {chordHasError && (
@@ -369,7 +369,7 @@ export function SignaturePhraseWorkspace() {
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>
             <p className="text-[13px] text-body-muted">
-              まだ曲の顔となるフレーズ候補がありません
+              まだイントロフレーズ候補がありません
             </p>
             <p className="mt-1 text-[11px] text-ink-muted-48">
               コードの並びではなく、記憶に残るリズムと輪郭を持つ12案を生成します
