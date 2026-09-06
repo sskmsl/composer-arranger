@@ -9,6 +9,8 @@ import type {
 import type { ComposerProject } from "@/core/project"
 import {
   applyPerformanceExecution,
+  resolvePerformanceSpec,
+  type PerformanceSpec,
   type PerformanceExecutionPlan,
 } from "@/core/performanceExecution"
 import { parseTimeSignature } from "@/core/section"
@@ -73,14 +75,52 @@ function arcFor(section: ArrangementSectionPlan): ArrangementPerformanceArc {
 export function buildArrangementPerformancePlan(
   trackId: ArrangementTrackId,
   section: ArrangementSectionPlan,
-): PerformanceExecutionPlan & { arc: ArrangementPerformanceArc } {
-  return {
+): PerformanceExecutionPlan & { arc: ArrangementPerformanceArc; performanceSpec: PerformanceSpec } {
+  const plan: PerformanceExecutionPlan & { arc: ArrangementPerformanceArc } = {
     role: performanceRole(trackId),
     velocityRange: velocityRangeFor(trackId, section.energy),
     articulation: articulationFor(trackId, section),
     timing: timingFor(trackId),
     arc: arcFor(section),
   }
+  const baseSpec = resolvePerformanceSpec(plan)
+  const performanceSpec: PerformanceSpec = {
+    ...baseSpec,
+    velocity: {
+      ...baseSpec.velocity,
+      accentStrength:
+        trackId.startsWith("dr-")
+          ? trackId.includes("hat") ? 0.28 : 0.34
+          : trackId === "syn-stabs" ? 0.3 : baseSpec.velocity.accentStrength,
+    },
+    gate: {
+      ...baseSpec.gate,
+      variation:
+        trackId.startsWith("dr-") || trackId === "syn-stabs"
+          ? 0.08
+          : baseSpec.gate.variation,
+    },
+    timing: {
+      ...baseSpec.timing,
+      humanizeMs:
+        trackId === "dr-kick" || trackId === "dr-gran-cassa"
+          ? 2
+          : trackId.startsWith("dr-")
+            ? 7
+            : trackId.startsWith("str-") || trackId === "syn-dark-pad"
+              ? 9
+              : baseSpec.timing.humanizeMs,
+    },
+    controllers:
+      trackId.startsWith("str-") || trackId === "syn-dark-pad" || trackId === "syn-final-lift"
+        ? {
+            expression: { min: baseSpec.velocity.min, max: baseSpec.velocity.max },
+            modulation: { min: 18, max: section.energy >= 75 ? 78 : 55 },
+            sustain: trackId === "syn-dark-pad" ? "section" : "phrase",
+          }
+        : undefined,
+  }
+  return { ...plan, performanceSpec }
 }
 
 function arcAmount(arc: ArrangementPerformanceArc, progress: number): number {
@@ -159,6 +199,7 @@ export function applyArrangementPerformanceDirector(
         totalBeats,
         beatsPerBar,
         chordBoundaryBeats,
+        bpm: project.song.tempo,
         melodyNotes: material.lead,
       })
       const sourceById = new Map(sourceSectionNotes.map((note) => [note.id, note]))

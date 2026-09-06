@@ -21,6 +21,7 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
+import { CandidatePlacementHint } from "./CandidatePlacementHint"
 
 const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
   "atmospheric-gateway": "余白から始まる",
@@ -294,6 +295,11 @@ export function SignaturePhraseWorkspace() {
                       {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
                     </span>
                   </div>
+                  <CandidatePlacementHint
+                    section={section}
+                    notes={candidate.notes}
+                    beatsPerBar={beatsPerBar}
+                  />
                 </button>
                 <div className="mt-3 flex gap-1.5">
                   <Button

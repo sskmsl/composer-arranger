@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import type { MelodyNote } from "./melody"
 import {
   applyPerformanceExecution,
+  buildDefaultPerformancePlan,
+  resolvePerformanceSpec,
   reviewPerformanceExecution,
   type PerformanceExecutionPlan,
 } from "./performanceExecution"
@@ -121,5 +123,47 @@ describe("Performance Execution Bridge", () => {
     )
     expect(review.status).toBe("revise")
     expect(review.findings.join(" ")).toContain("主旋律")
+  })
+
+  it("明示したPerformanceSpecでAccent・Gate・Timingを演奏として反映する", () => {
+    const source = [
+      note("downbeat", 0, 1, 60, 80),
+      note("offbeat", 1.5, 1, 62, 80),
+      note("late", 3, 1, 64, 80),
+    ]
+    const executionPlan = buildDefaultPerformancePlan("pulse-foundation", "chorus")
+    const result = applyPerformanceExecution(source, executionPlan, {
+      ...context,
+      bpm: 120,
+      chordBoundaryBeats: [0, 4],
+    })
+
+    expect(result.notes.map((value) => value.pitch)).toEqual([60, 62, 64])
+    expect(result.notes[0].velocity).toBeGreaterThan(result.notes[1].velocity)
+    expect(result.notes.some((value) => value.durationBeats !== 1)).toBe(true)
+    expect(result.notes[1].startBeat).not.toBe(1.5)
+    expect(result.diagnostics.pitchChangeCount).toBe(0)
+  })
+
+  it("Humanizeは乱数ではなく同じ入力から同じ演奏を再現する", () => {
+    const source = [note("a", 0.5, 0.5, 60, 80), note("b", 1.5, 0.5, 62, 80)]
+    const executionPlan = buildDefaultPerformancePlan("counter-voice", "verse")
+    const performanceContext = { ...context, bpm: 96, chordBoundaryBeats: [0, 4] }
+    expect(applyPerformanceExecution(source, executionPlan, performanceContext).notes)
+      .toEqual(applyPerformanceExecution(source, executionPlan, performanceContext).notes)
+  })
+
+  it("パートとSectionの役割から異なる演奏仕様を作る", () => {
+    const bassLike = resolvePerformanceSpec(
+      buildDefaultPerformancePlan("pulse-foundation", "chorus"),
+    )
+    const stringsLike = resolvePerformanceSpec(
+      buildDefaultPerformancePlan("harmonic-space", "intro"),
+    )
+    expect(bassLike.gate.base).toBeLessThan(stringsLike.gate.base)
+    expect(bassLike.velocity.accentStrength).toBeGreaterThan(
+      stringsLike.velocity.accentStrength,
+    )
+    expect(bassLike.timing.pushPullMs).not.toBe(stringsLike.timing.pushPullMs)
   })
 })

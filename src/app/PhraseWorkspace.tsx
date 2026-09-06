@@ -14,6 +14,7 @@ import {
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 import { EmptySectionState } from "./EmptySectionState"
+import { CandidatePlacementHint } from "./CandidatePlacementHint"
 
 const RHYTHM_LABELS: Record<PhraseCandidate["intent"]["rhythmCharacter"], string> = {
   flowing: "流れるリズム",
@@ -252,6 +253,11 @@ export function PhraseWorkspace() {
                   </div>
                   <ArrangementNecessityBadge
                     necessity={candidate.arrangementNecessity}
+                  />
+                  <CandidatePlacementHint
+                    section={section}
+                    notes={candidate.notes}
+                    beatsPerBar={beatsPerBar}
                   />
                 </button>
                 <div className="mt-3 flex gap-1.5">

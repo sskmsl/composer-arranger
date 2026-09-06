@@ -94,6 +94,7 @@ describe("Issue #41 / generateForSectionがContent設定で経路を切り替え
       expect(resolvedLeadContent(variant)).toBe("melody")
       // 従来経路はGenerator Profileを持つ
       expect(variant.generatorProfile).toBeDefined()
+      expect(variant.performanceSpec).toBeDefined()
     }
   })
 

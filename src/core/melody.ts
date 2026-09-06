@@ -446,4 +446,6 @@ export interface MelodyVariant {
   contentSelection?: ContentSelectionDiagnostics
   /** Generator横断のSafe / Surprise評価と、その音楽的根拠。 */
   arrangementNecessity?: ArrangementNecessity
+  /** Pitch/Rhythm生成後に適用された演奏情報。 */
+  performanceSpec?: import("./performanceExecution").PerformanceSpec
 }

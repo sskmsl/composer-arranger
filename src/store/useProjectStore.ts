@@ -112,7 +112,10 @@ import {
 } from "@/melody-engine/reactiveLayerAnalysis"
 import {
   applyPerformanceExecution,
+  buildDefaultPerformancePlan,
+  resolvePerformanceSpec,
   reviewPerformanceExecution,
+  type PerformanceSpec,
   type PerformanceExecutionPlan,
 } from "@/core/performanceExecution"
 import { recommendPerformedCandidate } from "@/core/performanceCandidateSelection"
@@ -628,6 +631,32 @@ function decorationGenerationInput(
         : undefined,
     }),
   }
+}
+
+function performGeneratedNotes(
+  project: ComposerProject,
+  sectionId: string,
+  notes: MelodyNote[],
+  role: PerformanceExecutionPlan["role"],
+): { notes: MelodyNote[]; performanceSpec: PerformanceSpec } {
+  const section = project.sections.find((candidate) => candidate.id === sectionId)
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const totalBeats = Math.max(0.25, (section?.lengthBars ?? 1) * beatsPerBar)
+  const melodyId = project.sectionMelodyAssignments[sectionId]
+  const melody = project.melodyVariants.find(
+    (candidate) => candidate.id === melodyId && candidate.sectionId === sectionId,
+  )
+  const plan = buildDefaultPerformancePlan(role, section?.role)
+  const result = applyPerformanceExecution(notes, plan, {
+    totalBeats,
+    beatsPerBar,
+    bpm: project.song.tempo,
+    chordBoundaryBeats: project.chords
+      .filter((chord) => chord.sectionId === sectionId)
+      .map((chord) => chord.startBeat),
+    melodyNotes: role === "counter-voice" ? melody?.notes : undefined,
+  })
+  return { notes: result.notes, performanceSpec: plan.performanceSpec }
 }
 
 function snapshot(project: ComposerProject): ComposerProject {
@@ -1412,9 +1441,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         songMotifDNA: prev.songMotifDNA,
       })
       const contentBatchId = crypto.randomUUID()
-      const contentVariants = contentCandidates.map((candidate) =>
-        toMelodyVariantFromContent(sectionId, profile, candidate, contentBatchId),
-      )
+      const contentVariants = contentCandidates.map((candidate) => {
+        const variant = toMelodyVariantFromContent(
+          sectionId,
+          profile,
+          candidate,
+          contentBatchId,
+        )
+        const performed = performGeneratedNotes(
+          prev,
+          sectionId,
+          variant.notes,
+          "lead-focus",
+        )
+        const performedVariant = replaceVariantNotes(variant, performed.notes)
+        performedVariant.performanceSpec = performed.performanceSpec
+        return performedVariant
+      })
       set({
         history: [...get().history, snapshot(prev)],
         future: [],
@@ -1577,8 +1620,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         })
         v.notes = flattenLayerNotes(v.layers)
       }
-      v.features = computeMelodyFeatures(v.notes, harmonicMap, 0, totalBeats)
-      return v
+      const performed = performGeneratedNotes(prev, sectionId, v.notes, "lead-focus")
+      const performedVariant = replaceVariantNotes(v, performed.notes)
+      performedVariant.performanceSpec = performed.performanceSpec
+      performedVariant.features = computeMelodyFeatures(
+        performedVariant.notes,
+        harmonicMap,
+        0,
+        totalBeats,
+      )
+      return performedVariant
       },
     )
 
@@ -1669,37 +1720,42 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const createdAt = new Date().toISOString()
     const rawCandidates: PhraseCandidate[] = generatedGroups.flatMap(
       (group) =>
-        group.candidates.map((candidate, index) => ({
-          ...candidate,
-          id: crypto.randomUUID(),
-          batchId,
-          name: group.mode
-            ? `${
-                group.mode === "baseline"
-                  ? "Normal"
-                  : experimentPreset!.label
-              } · Phrase ${index + 1}`
-            : `Phrase ${index + 1}`,
-          createdAt,
-          techniqueFitScore:
-            experimentRules && group.mode
-              ? phraseTechniqueFitScore(
-                  candidate.intent,
-                  experimentRules,
-                )
-              : candidate.techniqueFitScore,
-          techniqueExperiment:
-            experimentPreset && group.mode
-              ? {
-                  presetId: experimentPreset.id,
-                  presetLabel: experimentPreset.label,
-                  mode: group.mode,
-                  techniqueNames: [
-                    ...experimentPreset.techniqueNames,
-                  ],
-                }
-              : undefined,
-        })),
+        group.candidates.map((candidate, index) => {
+          const performed = performGeneratedNotes(prev, sectionId, candidate.notes, "lead-focus")
+          return {
+            ...candidate,
+            id: crypto.randomUUID(),
+            batchId,
+            name: group.mode
+              ? `${
+                  group.mode === "baseline"
+                    ? "Normal"
+                    : experimentPreset!.label
+                } · Phrase ${index + 1}`
+              : `Phrase ${index + 1}`,
+            notes: performed.notes,
+            performanceSpec: performed.performanceSpec,
+            createdAt,
+            techniqueFitScore:
+              experimentRules && group.mode
+                ? phraseTechniqueFitScore(
+                    candidate.intent,
+                    experimentRules,
+                  )
+                : candidate.techniqueFitScore,
+            techniqueExperiment:
+              experimentPreset && group.mode
+                ? {
+                    presetId: experimentPreset.id,
+                    presetLabel: experimentPreset.label,
+                    mode: group.mode,
+                    techniqueNames: [
+                      ...experimentPreset.techniqueNames,
+                    ],
+                  }
+                : undefined,
+          }
+        }),
     )
     const phraseSurpriseContext = arrangementSurpriseContext(
       prev,
@@ -1784,12 +1840,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       current.seed,
       siblings,
     )
+    const performed = performGeneratedNotes(
+      prev,
+      current.sectionId,
+      regenerated.notes,
+      "lead-focus",
+    )
     const replacement: PhraseCandidate = {
       ...regenerated,
       id: crypto.randomUUID(),
       batchId: current.batchId,
       name: current.name,
       createdAt: new Date().toISOString(),
+      notes: performed.notes,
+      performanceSpec: performed.performanceSpec,
       techniqueFitScore: experimentRules
         ? phraseTechniqueFitScore(
             regenerated.intent,
@@ -1833,13 +1897,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
     const rawCandidates: SignaturePhraseCandidate[] = generated.map(
-      (candidate, index) => ({
-        ...candidate,
-        id: crypto.randomUUID(),
-        batchId,
-        name: `Signature ${index + 1}`,
-        createdAt,
-      }),
+      (candidate, index) => {
+        const performed = performGeneratedNotes(prev, sectionId, candidate.notes, "lead-focus")
+        return {
+          ...candidate,
+          id: crypto.randomUUID(),
+          batchId,
+          name: `Signature ${index + 1}`,
+          notes: performed.notes,
+          performanceSpec: performed.performanceSpec,
+          createdAt,
+        }
+      },
     )
     const signatureSurpriseContext = arrangementSurpriseContext(
       prev,
@@ -1897,11 +1966,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       current,
       siblings,
     )
+    const performed = performGeneratedNotes(
+      prev,
+      current.sectionId,
+      regenerated.notes,
+      "lead-focus",
+    )
     const replacement: SignaturePhraseCandidate = {
       ...regenerated,
       id: crypto.randomUUID(),
       batchId: current.batchId,
       name: current.name,
+      notes: performed.notes,
+      performanceSpec: performed.performanceSpec,
       createdAt: new Date().toISOString(),
     }
     set({
@@ -2002,37 +2079,45 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
     const rawCandidates: ReactiveLayerCandidate[] = generated.map(
-      ({ candidate, experimentMode }, index) => ({
-      ...candidate,
-      id: crypto.randomUUID(),
-      batchId,
-      name: experimentMode
-        ? `${
-            experimentMode === "baseline"
-              ? "Normal"
-              : experimentPreset!.label
-          } · ${candidate.name} ${(index % COUNTER_EXPERIMENT_CANDIDATES_PER_MODE) + 1}`
-        : `${candidate.name} ${index + 1}`,
-      notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
-      createdAt,
-      techniqueFitScore:
-        experimentRules && experimentMode
-          ? counterTechniqueFitScore(
-              candidate,
-              input.melody.notes,
-              experimentRules,
-            )
-          : candidate.techniqueFitScore,
-      techniqueExperiment:
-        experimentPreset && experimentMode
-          ? {
-              presetId: experimentPreset.id,
-              presetLabel: experimentPreset.label,
-              mode: experimentMode,
-              techniqueNames: [...experimentPreset.techniqueNames],
-            }
-          : undefined,
-    }),
+      ({ candidate, experimentMode }, index) => {
+        const identifiedNotes = candidate.notes.map((note) => ({
+          ...note,
+          id: crypto.randomUUID(),
+        }))
+        const performed = performGeneratedNotes(prev, sectionId, identifiedNotes, "counter-voice")
+        return {
+          ...candidate,
+          id: crypto.randomUUID(),
+          batchId,
+          name: experimentMode
+            ? `${
+                experimentMode === "baseline"
+                  ? "Normal"
+                  : experimentPreset!.label
+              } · ${candidate.name} ${(index % COUNTER_EXPERIMENT_CANDIDATES_PER_MODE) + 1}`
+            : `${candidate.name} ${index + 1}`,
+          notes: performed.notes,
+          performanceSpec: performed.performanceSpec,
+          createdAt,
+          techniqueFitScore:
+            experimentRules && experimentMode
+              ? counterTechniqueFitScore(
+                  candidate,
+                  input.melody.notes,
+                  experimentRules,
+                )
+              : candidate.techniqueFitScore,
+          techniqueExperiment:
+            experimentPreset && experimentMode
+              ? {
+                  presetId: experimentPreset.id,
+                  presetLabel: experimentPreset.label,
+                  mode: experimentMode,
+                  techniqueNames: [...experimentPreset.techniqueNames],
+                }
+              : undefined,
+        }
+      },
     )
     const surpriseContext = arrangementSurpriseContext(
       prev,
@@ -2129,12 +2214,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set({ workflowNotice: "品質下限を満たす別案を生成できませんでした。" })
       return
     }
+    const identifiedNotes = generated.notes.map((note) => ({
+      ...note,
+      id: crypto.randomUUID(),
+    }))
+    const performed = performGeneratedNotes(
+      prev,
+      current.sectionId,
+      identifiedNotes,
+      "counter-voice",
+    )
     const replacement: ReactiveLayerCandidate = {
       ...generated,
       id: crypto.randomUUID(),
       batchId: current.batchId,
       name: current.name,
-      notes: generated.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
+      notes: performed.notes,
+      performanceSpec: performed.performanceSpec,
       createdAt: new Date().toISOString(),
       techniqueFitScore: experimentRules
         ? counterTechniqueFitScore(
@@ -2240,36 +2336,44 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const batchId = crypto.randomUUID()
     const createdAt = new Date().toISOString()
     const rawCandidates: ReactiveLayerCandidate[] = generated.map(
-      ({ candidate, experimentMode }, index) => ({
-      ...candidate,
-      id: crypto.randomUUID(),
-      batchId,
-      name: experimentMode
-        ? `${
-            experimentMode === "baseline"
-              ? "Normal"
-              : experimentPreset!.label
-          } · ${candidate.name} ${(index % 10) + 1}`
-        : `${candidate.name} ${index + 1}`,
-      notes: candidate.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
-      createdAt,
-      techniqueFitScore:
-        experimentRules && experimentMode
-          ? decorationTechniqueFitScore(
-              candidate.decorationPlan,
-              experimentRules,
-            )
-          : candidate.techniqueFitScore,
-      techniqueExperiment:
-        experimentPreset && experimentMode
-          ? {
-              presetId: experimentPreset.id,
-              presetLabel: experimentPreset.label,
-              mode: experimentMode,
-              techniqueNames: [...experimentPreset.techniqueNames],
-            }
-          : undefined,
-    }),
+      ({ candidate, experimentMode }, index) => {
+        const identifiedNotes = candidate.notes.map((note) => ({
+          ...note,
+          id: crypto.randomUUID(),
+        }))
+        const performed = performGeneratedNotes(prev, sectionId, identifiedNotes, "transition-color")
+        return {
+          ...candidate,
+          id: crypto.randomUUID(),
+          batchId,
+          name: experimentMode
+            ? `${
+                experimentMode === "baseline"
+                  ? "Normal"
+                  : experimentPreset!.label
+              } · ${candidate.name} ${(index % 10) + 1}`
+            : `${candidate.name} ${index + 1}`,
+          notes: performed.notes,
+          performanceSpec: performed.performanceSpec,
+          createdAt,
+          techniqueFitScore:
+            experimentRules && experimentMode
+              ? decorationTechniqueFitScore(
+                  candidate.decorationPlan,
+                  experimentRules,
+                )
+              : candidate.techniqueFitScore,
+          techniqueExperiment:
+            experimentPreset && experimentMode
+              ? {
+                  presetId: experimentPreset.id,
+                  presetLabel: experimentPreset.label,
+                  mode: experimentMode,
+                  techniqueNames: [...experimentPreset.techniqueNames],
+                }
+              : undefined,
+        }
+      },
     )
     const surpriseContext = arrangementSurpriseContext(
       prev,
@@ -2326,11 +2430,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const executionContext = {
       totalBeats,
       beatsPerBar,
+      bpm: prev.song.tempo,
       chordBoundaryBeats: sectionChords.map((chord) => chord.startBeat),
       melodyNotes: assignedMelody?.notes,
     }
+    const resolvedPlan: PerformanceExecutionPlan = {
+      ...plan,
+      performanceSpec: resolvePerformanceSpec(plan),
+    }
     const execute = (notes: MelodyNote[]) =>
-      applyPerformanceExecution(notes, plan, executionContext)
+      applyPerformanceExecution(notes, resolvedPlan, executionContext)
     const candidatePerformanceReviews = { ...(prev.candidatePerformanceReviews ?? {}) }
     const executeAndReview = (
       candidateId: string,
@@ -2342,7 +2451,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         candidateId,
         notes,
         result,
-        plan,
+        resolvedPlan,
         executionContext,
         options,
       )
@@ -2371,6 +2480,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         )
         return {
           ...replaced,
+          performanceSpec: resolvedPlan.performanceSpec,
           features: computeMelodyFeatures(replaced.notes, harmonicMap, 0, totalBeats),
         }
       })
@@ -2392,7 +2502,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       recommendationBatchId = state.activePhraseBatchId
       phraseCandidates = prev.phraseCandidates.map((candidate) =>
         candidate.sectionId === sectionId && candidate.batchId === state.activePhraseBatchId
-          ? { ...candidate, notes: executeAndReview(candidate.id, candidate.notes) }
+          ? {
+              ...candidate,
+              notes: executeAndReview(candidate.id, candidate.notes),
+              performanceSpec: resolvedPlan.performanceSpec,
+            }
           : candidate,
       )
       recommendationCandidates = phraseCandidates
@@ -2402,7 +2516,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       recommendationBatchId = state.activeSignaturePhraseBatchId
       signaturePhraseCandidates = prev.signaturePhraseCandidates.map((candidate) =>
         candidate.sectionId === sectionId && candidate.batchId === state.activeSignaturePhraseBatchId
-          ? { ...candidate, notes: executeAndReview(candidate.id, candidate.notes) }
+          ? {
+              ...candidate,
+              notes: executeAndReview(candidate.id, candidate.notes),
+              performanceSpec: resolvedPlan.performanceSpec,
+            }
           : candidate,
       )
       recommendationCandidates = signaturePhraseCandidates
@@ -2433,7 +2551,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           candidate.id,
           candidate.notes,
           execution,
-          plan,
+          resolvedPlan,
           executionContext,
           { hasBlockingCollision: collisions.hasBlockingCollision },
         )
@@ -2441,6 +2559,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           ...candidate,
           notes,
           collisions,
+          performanceSpec: resolvedPlan.performanceSpec,
         }
       })
       recommendationCandidates = reactiveLayerCandidates
@@ -2457,7 +2576,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
 
     const sectionPlans = { ...(prev.sectionPerformancePlans?.[sectionId] ?? {}) }
-    sectionPlans[plan.role] = { ...plan, velocityRange: [...plan.velocityRange] as [number, number] }
+    sectionPlans[resolvedPlan.role] = {
+      ...resolvedPlan,
+      velocityRange: [...resolvedPlan.velocityRange] as [number, number],
+    }
     const performanceBatchRecommendations = {
       ...(prev.performanceBatchRecommendations ?? {}),
     }

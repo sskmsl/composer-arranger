@@ -71,6 +71,7 @@ describe("Issue #70 / Counter store workflow", () => {
     useProjectStore.getState().generateCounterForSection("s1")
     const state = useProjectStore.getState()
     expect(state.project.reactiveLayerCandidates).toHaveLength(10)
+    expect(state.project.reactiveLayerCandidates?.every((candidate) => candidate.performanceSpec)).toBe(true)
     expect(state.project.melodyVariants).toHaveLength(1)
     expect(new Set(state.project.reactiveLayerCandidates?.map((item) => item.batchId)).size).toBe(1)
     expect(state.activeReactiveBatchId).toBe(state.project.reactiveLayerCandidates?.[0].batchId)

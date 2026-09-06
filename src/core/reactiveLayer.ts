@@ -297,6 +297,8 @@ export interface ReactiveLayerCandidate {
   selectionReason?: "highest-quality" | "quality-diversity-balance" | "regenerated"
   /** Safe / SurpriseをGenerator横断で評価した根拠。Surpriseは解決可能な場合だけ付与する。 */
   arrangementNecessity?: ArrangementNecessity
+  /** Pitch/Rhythm生成後に適用された演奏情報。 */
+  performanceSpec?: import("./performanceExecution").PerformanceSpec
   /** Technique実験が指定された場合の生成意図適合度(0–1)。 */
   techniqueFitScore?: number
   /** Draft Techniqueを昇格せず同一seedで比較した一時A/B候補。 */

@@ -26,44 +26,32 @@ import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select, TextInput } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
-import {
-  DirectorRecommendationBadge,
-  PerformanceReviewBadge,
-} from "./PerformanceReviewBadge"
-import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 import { EmptySectionState } from "./EmptySectionState"
+import { CandidatePlacementHint } from "./CandidatePlacementHint"
 
 const TYPE_LABELS: Record<string, string> = {
-  "decorative-fill": "Decorative",
-  "transition-fill": "Transition",
-  "ending-fill": "Ending",
+  "decorative-fill": "短い装飾",
+  "transition-fill": "場面をつなぐ",
+  "ending-fill": "終わりを彩る",
 }
 
 const SHAPE_LABELS: Record<string, string> = {
-  rising: "Rising",
-  falling: "Falling",
-  sequence: "Sequence",
-  "repeated-sequence": "Repeated Sequence",
-  turn: "Turn",
-  "neighbor-motion": "Neighbor",
-  "arpeggiated-fill": "Arpeggio",
-  suspense: "Suspense",
-  "sparse-accent": "Sparse Accent",
+  rising: "上昇",
+  falling: "下降",
+  sequence: "音型を繰り返す",
+  "repeated-sequence": "反復",
+  turn: "折り返す",
+  "neighbor-motion": "隣の音へ動く",
+  "arpeggiated-fill": "分散和音",
+  suspense: "余韻を残す",
+  "sparse-accent": "一音を置く",
 }
 
-const GESTURE_LABELS: Record<string, string> = {
-  response: "Response",
-  transition: "Transition",
-  ending: "Ending",
-  swell: "Swell",
-  pedal: "Pedal",
-  pickup: "Pickup",
-}
-
-const NEED_LABELS: Record<string, string> = {
-  recommended: "Recommended",
-  optional: "Optional",
-  silence: "Silence First",
+const CHARACTER_LABELS: Record<string, string> = {
+  strings: "ストリングス",
+  bell: "ベル",
+  piano: "ピアノ",
+  generic: "その他",
 }
 
 export function DecorationWorkspace() {
@@ -224,7 +212,7 @@ export function DecorationWorkspace() {
               装飾フレーズ
             </h2>
             <p className="mt-0.5 text-[11px] text-ink-muted-48">
-              Silence GateとPhrase Boundaryを判断し、6つの役割から採用価値のある10 Gestureを提案します
+              主旋律の隙間やセクションの切り替わりに置く、短い演出を提案します
             </p>
           </div>
           <Button
@@ -236,7 +224,7 @@ export function DecorationWorkspace() {
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
           <label className="text-[11px] text-ink-muted-48">
-            Type
+            種類
             <Select
               value={settings.type}
               onChange={(event) =>
@@ -248,13 +236,13 @@ export function DecorationWorkspace() {
               className="mt-1 w-full"
             >
               <option value="auto">自動</option>
-              <option value="decorative-fill">Decorative Fill</option>
-              <option value="transition-fill">Transition Fill</option>
-              <option value="ending-fill">Ending Fill</option>
+              <option value="decorative-fill">短い装飾</option>
+              <option value="transition-fill">場面をつなぐ</option>
+              <option value="ending-fill">終わりを彩る</option>
             </Select>
           </label>
           <label className="text-[11px] text-ink-muted-48">
-            Character
+            音色
             <Select
               value={settings.character}
               onChange={(event) =>
@@ -266,14 +254,14 @@ export function DecorationWorkspace() {
               className="mt-1 w-full"
             >
               <option value="auto">自動</option>
-              <option value="strings">Strings</option>
-              <option value="bell">Bell</option>
-              <option value="piano">Piano</option>
-              <option value="generic">Generic</option>
+              <option value="strings">ストリングス</option>
+              <option value="bell">ベル</option>
+              <option value="piano">ピアノ</option>
+              <option value="generic">その他</option>
             </Select>
           </label>
           <label className="text-[11px] text-ink-muted-48">
-            Length
+            長さ
             <Select
               value={String(settings.length)}
               onChange={(event) =>
@@ -286,13 +274,13 @@ export function DecorationWorkspace() {
               }
               className="mt-1 w-full"
             >
-              <option value="2">2 Beats</option>
-              <option value="4">4 Beats</option>
-              <option value="bar">1 Bar</option>
+              <option value="2">2拍</option>
+              <option value="4">4拍</option>
+              <option value="bar">1小節</option>
             </Select>
           </label>
           <label className="text-[11px] text-ink-muted-48">
-            Density
+            音の量
             <Select
               value={settings.density}
               onChange={(event) =>
@@ -303,13 +291,13 @@ export function DecorationWorkspace() {
               }
               className="mt-1 w-full"
             >
-              <option value="sparse">Sparse</option>
-              <option value="normal">Normal</option>
-              <option value="rich">Rich</option>
+              <option value="sparse">少なめ</option>
+              <option value="normal">標準</option>
+              <option value="rich">多め</option>
             </Select>
           </label>
           <label className="text-[11px] text-ink-muted-48">
-            Direction
+            音の動き
             <Select
               value={settings.direction}
               onChange={(event) =>
@@ -321,13 +309,13 @@ export function DecorationWorkspace() {
               className="mt-1 w-full"
             >
               <option value="auto">自動</option>
-              <option value="rising">Rising</option>
-              <option value="falling">Falling</option>
-              <option value="mixed">Mixed</option>
+              <option value="rising">上昇</option>
+              <option value="falling">下降</option>
+              <option value="mixed">上下に動く</option>
             </Select>
           </label>
           <label className="text-[11px] text-ink-muted-48">
-            Random Seed
+            別案番号
             <TextInput
               type="number"
               value={settings.seed ?? 71}
@@ -377,107 +365,38 @@ export function DecorationWorkspace() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="truncate text-[12px] font-semibold text-body-on-dark">
-                        {candidate.name}
+                        候補 {index + 1}
                       </h3>
                       <span className="shrink-0 text-[11px] text-ink-muted-48">
-                        {Math.round(candidate.quality.overallQuality)}
+                        {candidate.notes.length}音
                       </span>
                     </div>
-                    <div className="mt-1.5">
-                      <PerformanceReviewBadge
-                        review={project.candidatePerformanceReviews?.[candidate.id]}
-                        compact
-                      />
-                      <DirectorRecommendationBadge
-                        recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
-                        candidateId={candidate.id}
-                      />
-                    </div>
-                    {candidate.techniqueExperiment && (
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                        <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-on-dark">
-                          A/B:{" "}
-                          {candidate.techniqueExperiment.mode ===
-                          "baseline"
-                            ? "Normal"
-                            : candidate.techniqueExperiment
-                                .presetLabel}
-                        </span>
-                        <span className="text-ink-muted-48">
-                          Fit{" "}
-                          {candidate.techniqueFitScore === undefined
-                            ? "—"
-                            : `${Math.round(
-                                candidate.techniqueFitScore *
-                                  100,
-                              )}%`}
-                        </span>
-                      </div>
-                    )}
                     <div className="mt-2 flex flex-wrap gap-1">
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        {TYPE_LABELS[plan?.type ?? ""] ?? "Decoration"}
+                        {TYPE_LABELS[plan?.type ?? ""] ?? "装飾"}
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                         {SHAPE_LABELS[plan?.shape ?? ""] ?? plan?.shape}
                       </span>
                       <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        {plan?.rhythmStyle}
+                        {CHARACTER_LABELS[plan?.character ?? ""] ?? "その他"}
                       </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        {GESTURE_LABELS[plan?.gestureRole ?? ""] ??
-                          "Gesture"}
-                      </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        {plan?.lengthBeats ?? 0} beats
-                      </span>
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        {NEED_LABELS[plan?.needLevel ?? ""] ?? "Optional"}
-                      </span>
-                      {candidate.activeContextFit && (
-                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
-                          Active共存 {candidate.activeContextFit.fitScore}
+                      {candidate.collisions.hasBlockingCollision && (
+                        <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[11px] text-red-300">
+                          主旋律とぶつかる可能性
                         </span>
                       )}
-                      {candidate.negativeSpaceFit && (
-                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
-                          余白 {candidate.negativeSpaceFit.fitScore}
-                        </span>
-                      )}
-                      {candidate.roleComplementarityFit && (
-                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
-                          役割差 {candidate.roleComplementarityFit.fitScore}
-                        </span>
-                      )}
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        MIDI{" "}
-                        {candidate.notes.length > 0
-                          ? `${Math.min(...candidate.notes.map((note) => note.pitch))}–${Math.max(...candidate.notes.map((note) => note.pitch))}`
-                          : "—"}
-                      </span>
-                      <span
-                        className={`rounded-pill px-2 py-0.5 text-[11px] ${
-                          candidate.collisions.hasBlockingCollision
-                            ? "bg-red-400/15 text-red-300"
-                            : "bg-emerald-400/10 text-emerald-200"
-                        }`}
-                      >
-                        {candidate.collisions.hasBlockingCollision
-                          ? "Collision warning"
-                          : `${candidate.notes.length} notes`}
-                      </span>
                       {assignedId === candidate.id && (
                         <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
                           Active
                         </span>
                       )}
                     </div>
-                    <ArrangementNecessityBadge
-                      necessity={candidate.arrangementNecessity}
+                    <CandidatePlacementHint
+                      section={section}
+                      notes={candidate.notes}
+                      beatsPerBar={beatsPerBar}
                     />
-                    <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-ink-muted-48">
-                      {plan?.intention}
-                    </p>
                   </button>
                   <div className="mt-3 grid grid-cols-2 gap-1">
                     <Button
@@ -547,12 +466,7 @@ export function DecorationWorkspace() {
             })}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-ink-muted-48">試聴:</span>
-            <span className="text-[11px] text-ink-muted-48">
-              {previewMode === "active-context-reactive"
-                ? "現在のPattern・Active Counterを含む"
-                : "候補の前後だけを自動再生"}
-            </span>
+            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -562,13 +476,13 @@ export function DecorationWorkspace() {
               className="!py-1"
             >
               <option value="active-context-reactive">
-                Full Active Context
+                現在の伴奏と一緒
               </option>
-              <option value="reactive-only">Decoration Only</option>
-              <option value="chords-reactive">Chords + Decoration</option>
+              <option value="reactive-only">装飾のみ</option>
+              <option value="chords-reactive">コード＋装飾</option>
               {activeMelody && (
                 <option value="chords-melody-reactive">
-                  Chords + Melody + Decoration
+                  コード＋主旋律＋装飾
                 </option>
               )}
             </Select>
@@ -583,8 +497,8 @@ export function DecorationWorkspace() {
           totalBeats={totalBeats}
           timeSignature={project.song.timeSignature}
           songKey={project.song.key}
-          title={activeCandidate.name}
-          subtitle="Structure Driven · MIDI出力と同一"
+          title={`候補 ${batch.findIndex((candidate) => candidate.id === activeCandidate.id) + 1}`}
+          subtitle="表示専用 · MIDI出力と同じ内容"
           accentColor="#4fd1b5"
           accentStroke="#a5f3df"
           ariaLabel="Decoration Candidate Piano Roll"
@@ -594,10 +508,10 @@ export function DecorationWorkspace() {
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>
             <p className="text-[13px] text-body-muted">
-              まだDecoration候補がありません
+              まだ装飾フレーズ候補がありません
             </p>
             <p className="mt-1 text-[11px] text-ink-muted-48">
-              Active Melodyなしでも、セクション構造とコードから生成できます
+              コードとセクションの切り替わりから候補を生成します
             </p>
           </div>
         </div>

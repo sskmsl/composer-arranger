@@ -15,12 +15,7 @@ import {
   type PreviewMode,
 } from "@/audio/previewPlayer"
 import type {
-  CounterContourPlan,
   CounterCreativeRisk,
-  CounterDialogueIntent,
-  CounterEndingStrategy,
-  CounterOpportunityKind,
-  CounterRhythmGrammar,
   ReactiveLayerCandidate,
 } from "@/core/reactiveLayer"
 import { parseTimeSignature } from "@/core/section"
@@ -30,79 +25,39 @@ import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
-import {
-  DirectorRecommendationBadge,
-  PerformanceReviewBadge,
-} from "./PerformanceReviewBadge"
-import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 import { EmptySectionState } from "./EmptySectionState"
+import { CandidatePlacementHint } from "./CandidatePlacementHint"
 
 const STYLE_LABELS: Record<string, string> = {
-  "bell-response": "Bell",
-  "piano-echo": "Piano",
-  "string-answer": "Strings",
-  "guitar-fill": "Guitar",
-  "synth-whisper": "Synth",
+  "bell-response": "ベル",
+  "piano-echo": "ピアノ",
+  "string-answer": "ストリングス",
+  "guitar-fill": "ギター",
+  "synth-whisper": "シンセ",
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  "answer-phrase": "Answer",
-  "gap-fill": "Gap Fill",
-  counterline: "Counterline",
-  "motif-echo": "Motif Echo",
-  "suspension-layer": "Suspension",
+  "answer-phrase": "主旋律に応える",
+  "gap-fill": "隙間を補う",
+  counterline: "別の旋律",
+  "motif-echo": "主旋律を少し引用",
+  "suspension-layer": "長い音で支える",
 }
 
 const RISK_LABELS: Record<CounterCreativeRisk, string> = {
-  focused: "Focused",
-  bold: "Bold",
-  radical: "Radical",
+  focused: "安定",
+  bold: "大胆",
+  radical: "冒険的",
 }
 
-const INTENT_LABELS: Record<CounterDialogueIntent, string> = {
-  answer: "Answer",
-  "echo-transform": "Echo Transform",
-  "counter-current": "Counter-current",
-  shadow: "Shadow",
-  "suspended-halo": "Suspended Halo",
-  "strategic-silence": "Strategic Silence",
-}
-
-const RHYTHM_LABELS: Record<CounterRhythmGrammar, string> = {
-  "breath-answer": "Breath Answer",
-  "long-short": "Long–Short",
-  "syncopated-reply": "Syncopated Reply",
-  "displaced-cell": "Displaced Cell",
-  "broken-pulse": "Broken Pulse",
-  "sparse-signal": "Sparse Signal",
-}
-
-const CONTOUR_LABELS: Record<CounterContourPlan, string> = {
-  "ascending-staircase": "Ascending Steps",
-  "descending-staircase": "Descending Steps",
-  arch: "Arch",
-  "inverted-arch": "Inverted Arch",
-  wave: "Wave",
-  "leap-recovery": "Leap & Recovery",
-  "pedal-break": "Pedal Break",
-}
-
-const ENDING_LABELS: Record<CounterEndingStrategy, string> = {
-  resolved: "Resolved",
-  "open-fifth": "Open Fifth",
-  suspended: "Suspended",
-  "motif-return": "Motif Return",
-  "silence-cut": "Silence Cut",
-}
-
-const OPPORTUNITY_LABELS: Record<CounterOpportunityKind, string> = {
-  "answer-needed": "Answer Needed",
-  "continuation-needed": "Continuation",
-  "harmonic-colour-needed": "Harmonic Colour",
-  "tension-support": "Tension Support",
-  "motif-recall": "Motif Recall",
-  "transition-support": "Transition",
-  "silence-preferred": "Silence Preferred",
+const CONTOUR_LABELS: Record<string, string> = {
+  "ascending-staircase": "少しずつ上がる",
+  "descending-staircase": "少しずつ下がる",
+  arch: "上がって戻る",
+  "inverted-arch": "下がって戻る",
+  wave: "上下に動く",
+  "leap-recovery": "跳躍して戻る",
+  "pedal-break": "同じ音から動く",
 }
 
 export function CounterWorkspace() {
@@ -245,7 +200,7 @@ export function CounterWorkspace() {
             対旋律
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            主旋律へ何を返し、どこで黙るかまで設計した独立Counterを10案提案します
+            主旋律の隙間に入り、受け答えする別の旋律を10案生成します
           </p>
         </div>
         <Button
@@ -295,45 +250,15 @@ export function CounterWorkspace() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="truncate text-[13px] font-semibold text-body-on-dark">
-                      {candidate.name}
+                      候補 {index + 1}
                     </h3>
                     <span className="shrink-0 text-[11px] text-ink-muted-48">
-                      Quality {Math.round(candidate.quality.overallQuality)}
+                      {candidate.notes.length}音
                     </span>
                   </div>
-                  <div className="mt-1.5">
-                    <PerformanceReviewBadge
-                      review={project.candidatePerformanceReviews?.[candidate.id]}
-                      compact
-                    />
-                    <DirectorRecommendationBadge
-                      recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
-                      candidateId={candidate.id}
-                    />
-                  </div>
-                  {candidate.techniqueExperiment && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                      <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-on-dark">
-                        A/B:{" "}
-                        {candidate.techniqueExperiment.mode ===
-                        "baseline"
-                          ? "Normal"
-                          : candidate.techniqueExperiment
-                              .presetLabel}
-                      </span>
-                      <span className="text-ink-muted-48">
-                        Fit{" "}
-                        {candidate.techniqueFitScore === undefined
-                          ? "—"
-                          : `${Math.round(
-                              candidate.techniqueFitScore * 100,
-                            )}%`}
-                      </span>
-                    </div>
-                  )}
                   <div className="mt-2 flex flex-wrap gap-1">
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {STYLE_LABELS[candidate.generatorStyle ?? ""] ?? "Counter"}
+                      {STYLE_LABELS[candidate.generatorStyle ?? ""] ?? "対旋律"}
                     </span>
                     <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                       {ROLE_LABELS[candidate.role] ?? candidate.role}
@@ -351,96 +276,27 @@ export function CounterWorkspace() {
                         >
                           {RISK_LABELS[candidate.counterPlan.creativeRisk]}
                         </span>
-                        <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
-                          {INTENT_LABELS[candidate.counterPlan.dialogueIntent]}
-                        </span>
-                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                          {RHYTHM_LABELS[candidate.counterPlan.rhythmGrammar]}
-                        </span>
                         <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
                           {CONTOUR_LABELS[candidate.counterPlan.contour]}
                         </span>
-                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                          {ENDING_LABELS[candidate.counterPlan.ending]}
-                        </span>
-                        {candidate.counterPlan.opportunityKinds?.[0] && (
-                          <span className="rounded-pill bg-cyan-400/10 px-2 py-0.5 text-[11px] text-cyan-200">
-                            {OPPORTUNITY_LABELS[
-                              candidate.counterPlan.opportunityKinds[0]
-                            ]}
-                          </span>
-                        )}
                       </>
                     )}
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      Gap {Math.round(candidate.quality.gapUsage)}%
-                    </span>
-                    {candidate.activeContextFit && (
-                      <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.activeContextFit.fitScore >= 85 ? "bg-emerald-400/10 text-emerald-200" : "bg-amber-400/10 text-amber-200"}`}>
-                        Active共存 {candidate.activeContextFit.fitScore}
+                    {candidate.collisions.hasBlockingCollision && (
+                      <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[11px] text-red-300">
+                        主旋律とぶつかる可能性
                       </span>
                     )}
-                    {candidate.negativeSpaceFit && (
-                      <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.negativeSpaceFit.fitScore >= 70 ? "bg-cyan-400/10 text-cyan-200" : "bg-amber-400/10 text-amber-200"}`}>
-                        余白 {candidate.negativeSpaceFit.fitScore}
-                      </span>
-                    )}
-                    {candidate.roleComplementarityFit && (
-                      <span className={`rounded-pill px-2 py-0.5 text-[11px] ${candidate.roleComplementarityFit.fitScore >= 75 ? "bg-violet-400/10 text-violet-200" : "bg-amber-400/10 text-amber-200"}`}>
-                        役割差 {candidate.roleComplementarityFit.fitScore}
-                      </span>
-                    )}
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      MIDI{" "}
-                      {candidate.notes.length > 0
-                        ? `${Math.min(...candidate.notes.map((note) => note.pitch))}–${Math.max(...candidate.notes.map((note) => note.pitch))}`
-                        : "—"}
-                    </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {candidate.notes.length} notes / {totalBeats} beats
-                    </span>
-                    <span
-                      className={`rounded-pill px-2 py-0.5 text-[11px] ${
-                        candidate.collisions.hasBlockingCollision
-                          ? "bg-red-400/15 text-red-300"
-                          : "bg-emerald-400/10 text-emerald-200"
-                      }`}
-                    >
-                      {candidate.collisions.hasBlockingCollision
-                        ? "Collision warning"
-                        : "Collision clear"}
-                    </span>
                     {assignedId === candidate.id && (
                       <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
                         Active
                       </span>
                     )}
                   </div>
-                  <ArrangementNecessityBadge
-                    necessity={candidate.arrangementNecessity}
+                  <CandidatePlacementHint
+                    section={section}
+                    notes={candidate.notes}
+                    beatsPerBar={beatsPerBar}
                   />
-                  <p className="mt-2 truncate text-[11px] text-ink-muted-48">
-                    Target: {activeMelody?.name ?? candidate.targetMelodyVariantId}
-                  </p>
-                  {candidate.counterQuality && (
-                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-ink-muted-48">
-                      <span>Dialogue {Math.round(candidate.counterQuality.dialogueClarity)}</span>
-                      <span>Independent {Math.round(candidate.counterQuality.independence)}</span>
-                      <span>Rhythm {Math.round(candidate.counterQuality.rhythmicCharacter)}</span>
-                      <span>Necessity {Math.round(candidate.counterQuality.emotionalNecessity)}</span>
-                      <span>Audacity {Math.round(candidate.counterQuality.audacity)}</span>
-                      <span>Control {Math.round(candidate.counterQuality.controlledRisk)}</span>
-                      {candidate.counterQuality.harmonicNarrative !== undefined && (
-                        <span>Harmony {Math.round(candidate.counterQuality.harmonicNarrative)}</span>
-                      )}
-                      {candidate.counterQuality.melodicComplement !== undefined && (
-                        <span>Complement {Math.round(candidate.counterQuality.melodicComplement)}</span>
-                      )}
-                      {candidate.counterQuality.placementPurpose !== undefined && (
-                        <span>Purpose {Math.round(candidate.counterQuality.placementPurpose)}</span>
-                      )}
-                    </div>
-                  )}
                 </button>
                 <div className="mt-3 grid grid-cols-2 gap-1.5">
                   <Button
@@ -506,12 +362,7 @@ export function CounterWorkspace() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-ink-muted-48">試聴:</span>
-            <span className="text-[11px] text-ink-muted-48">
-              {previewMode === "active-context-reactive"
-                ? "現在のPattern・Active Decorationを含む"
-                : "候補の前後だけを自動再生"}
-            </span>
+            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -521,12 +372,12 @@ export function CounterWorkspace() {
               className="!py-1"
             >
               <option value="active-context-reactive">
-                Full Active Context
+                現在の伴奏と一緒
               </option>
-              <option value="reactive-only">Counter Only</option>
-              <option value="melody-reactive">Melody + Counter</option>
+              <option value="reactive-only">対旋律のみ</option>
+              <option value="melody-reactive">主旋律＋対旋律</option>
               <option value="chords-melody-reactive">
-                Chords + Melody + Counter
+                コード＋主旋律＋対旋律
               </option>
             </Select>
           </div>
@@ -540,8 +391,8 @@ export function CounterWorkspace() {
           totalBeats={totalBeats}
           timeSignature={project.song.timeSignature}
           songKey={project.song.key}
-          title={activeCandidate.name}
-          subtitle="表示専用 · MIDI出力と同一"
+          title={`候補 ${batch.findIndex((candidate) => candidate.id === activeCandidate.id) + 1}`}
+          subtitle="表示専用 · MIDI出力と同じ内容"
           accentColor="#b38cff"
           accentStroke="#ddc8ff"
           ariaLabel="Counter Candidate Piano Roll"
@@ -551,10 +402,10 @@ export function CounterWorkspace() {
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>
             <p className="text-[13px] text-body-muted">
-              まだCounter候補がありません
+              まだ対旋律候補がありません
             </p>
             <p className="mt-1 text-[11px] text-ink-muted-48">
-              Active Melodyを尊重する独立した10案を生成します
+              主旋律の隙間に入る10案を生成します
             </p>
           </div>
         </div>

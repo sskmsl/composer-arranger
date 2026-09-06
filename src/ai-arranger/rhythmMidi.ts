@@ -2,6 +2,7 @@ import { parseTimeSignature } from "@/core/section"
 import { buildSmf, TICKS_PER_QUARTER, type MidiNote } from "@/midi/smf"
 import {
   applyPerformanceExecution,
+  buildDefaultPerformancePlan,
   type PerformanceExecutionPlan,
 } from "@/core/performanceExecution"
 import type {
@@ -47,6 +48,7 @@ export function rhythmNotesForPlan(
   timeSignature: string,
   sectionLengthBars: number,
   performancePlan?: PerformanceExecutionPlan,
+  bpm = 120,
 ): MidiNote[] {
   if (!rhythmPlan.enabled || rhythmPlan.events.length === 0) return []
   const { beatsPerBar } = parseTimeSignature(timeSignature)
@@ -76,7 +78,8 @@ export function rhythmNotesForPlan(
     }
   }
   const sorted = notes.sort((a, b) => a.start - b.start || a.pitch - b.pitch)
-  if (!performancePlan) return sorted
+  const resolvedPerformancePlan =
+    performancePlan ?? buildDefaultPerformancePlan("pulse-foundation", "verse")
   const performed = applyPerformanceExecution(
     sorted.map((note, index) => ({
       id: `rhythm:${index}`,
@@ -86,10 +89,11 @@ export function rhythmNotesForPlan(
       velocity: note.velocity,
       locks: [],
     })),
-    performancePlan,
+    resolvedPerformancePlan,
     {
       totalBeats: sectionBeats,
       beatsPerBar,
+      bpm,
       chordBoundaryBeats: Array.from(
         { length: Math.max(1, sectionLengthBars) },
         (_, index) => index * beatsPerBar,
@@ -122,6 +126,7 @@ export function exportAiRhythmMidi(
           options.timeSignature,
           options.sectionLengthBars,
           options.performancePlan,
+          options.tempo,
         ),
       },
     ],

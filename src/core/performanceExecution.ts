@@ -1,5 +1,40 @@
 import type { MelodyNote } from "./melody"
 
+export interface PerformanceSpec {
+  velocity: {
+    min: number
+    max: number
+    accentStrength: number
+  }
+  gate: {
+    base: number
+    variation: number
+  }
+  timing: {
+    humanizeMs: number
+    pushPullMs: number
+  }
+  articulation:
+    | "legato"
+    | "sustained"
+    | "pulsed"
+    | "staccato"
+    | "swelling"
+    | "decaying"
+  /** 将来のCC書き出し用。初期実装では型として保持し、未指定なら出力しない。 */
+  controllers?: {
+    expression?: { min: number; max: number }
+    modulation?: { min: number; max: number }
+    sustain?: "off" | "phrase" | "section"
+  }
+  /** 将来のPitch Bend書き出し用。 */
+  pitchBend?: {
+    rangeSemitones: number
+    amountCents: number
+    placement: "approach" | "phrase-end" | "accent"
+  }
+}
+
 export interface PerformanceExecutionPlan {
   role:
     | "lead-focus"
@@ -11,12 +46,15 @@ export interface PerformanceExecutionPlan {
   velocityRange: readonly [number, number]
   articulation: "legato" | "sustained" | "pulsed" | "detached" | "swelling" | "decaying"
   timing: "strict" | "slightly-ahead" | "slightly-behind" | "floating"
+  /** Velocity / Gate / Accent / TimingをMIDIへ反映する、保存可能な演奏仕様。 */
+  performanceSpec?: PerformanceSpec
 }
 
 export interface PerformanceExecutionContext {
   totalBeats: number
   beatsPerBar: number
   chordBoundaryBeats: number[]
+  bpm?: number
   /** Counterの退場を主旋律の次アタックより前に制限するための参照。 */
   melodyNotes?: MelodyNote[]
 }
@@ -72,6 +110,12 @@ function durationFactor(
   return 1
 }
 
+function articulationName(
+  articulation: PerformanceExecutionPlan["articulation"],
+): PerformanceSpec["articulation"] {
+  return articulation === "detached" ? "staccato" : articulation
+}
+
 function timingOffset(
   timing: PerformanceExecutionPlan["timing"],
 ): number {
@@ -80,18 +124,157 @@ function timingOffset(
   return 0
 }
 
+/** 旧Performance Planも同じEngineへ通せるよう、明示的なPerformanceSpecへ解決する。 */
+export function resolvePerformanceSpec(
+  plan: PerformanceExecutionPlan,
+): PerformanceSpec {
+  if (plan.performanceSpec) return plan.performanceSpec
+  const humanizeMs =
+    plan.timing === "strict"
+      ? 0
+      : plan.timing === "floating"
+        ? 8
+        : 5
+  const pushPullMs =
+    plan.timing === "slightly-ahead"
+      ? -6
+      : plan.timing === "slightly-behind"
+        ? 7
+        : 0
+  return {
+    velocity: {
+      min: plan.velocityRange[0],
+      max: plan.velocityRange[1],
+      accentStrength:
+        plan.role === "pulse-foundation"
+          ? 0.22
+          : plan.role === "transition-color"
+            ? 0.18
+            : plan.role === "counter-voice"
+              ? 0.15
+              : plan.role === "lead-focus"
+                ? 0.13
+                : 0.09,
+    },
+    gate: {
+      base: durationFactor(plan.articulation),
+      variation:
+        plan.articulation === "sustained" || plan.articulation === "legato"
+          ? 0.02
+          : 0.06,
+    },
+    timing: { humanizeMs, pushPullMs },
+    articulation: articulationName(plan.articulation),
+  }
+}
+
+function energyForSectionRole(sectionRole: string): number {
+  if (sectionRole === "final-chorus" || sectionRole === "final") return 1
+  if (sectionRole === "chorus" || sectionRole === "climax") return 0.86
+  if (sectionRole === "pre-chorus" || sectionRole === "build") return 0.68
+  if (sectionRole === "intro" || sectionRole === "outro") return 0.42
+  return 0.56
+}
+
+/** AI経由でない通常生成にも、役割とSectionに沿った演奏仕様を与える。 */
+export function buildDefaultPerformancePlan(
+  role: PerformanceExecutionPlan["role"],
+  sectionRole = "verse",
+): PerformanceExecutionPlan & { performanceSpec: PerformanceSpec } {
+  const energy = energyForSectionRole(sectionRole)
+  const velocityRange: readonly [number, number] =
+    role === "lead-focus"
+      ? [Math.round(66 + energy * 8), Math.round(94 + energy * 16)]
+      : role === "counter-voice"
+        ? [Math.round(48 + energy * 8), Math.round(74 + energy * 16)]
+        : role === "transition-color"
+          ? [Math.round(42 + energy * 7), Math.round(70 + energy * 18)]
+          : role === "pulse-foundation"
+            ? [Math.round(46 + energy * 8), Math.round(72 + energy * 20)]
+            : [Math.round(40 + energy * 7), Math.round(66 + energy * 14)]
+  const articulation: PerformanceExecutionPlan["articulation"] =
+    role === "pulse-foundation"
+      ? "pulsed"
+      : role === "transition-color"
+        ? "decaying"
+        : role === "counter-voice"
+          ? "legato"
+          : role === "harmonic-space"
+            ? "sustained"
+            : "legato"
+  const timing: PerformanceExecutionPlan["timing"] =
+    role === "pulse-foundation"
+      ? "slightly-behind"
+      : role === "transition-color"
+        ? "slightly-ahead"
+        : "floating"
+  const base = { role, velocityRange, articulation, timing }
+  return { ...base, performanceSpec: resolvePerformanceSpec(base) }
+}
+
 function velocityFor(
   note: MelodyNote,
   minimumSource: number,
   maximumSource: number,
   plan: PerformanceExecutionPlan,
+  noteIndex: number,
+  context: PerformanceExecutionContext,
 ): number {
-  const [low, high] = plan.velocityRange
+  const spec = resolvePerformanceSpec(plan)
+  const low = Math.max(1, Math.min(127, spec.velocity.min))
+  const high = Math.max(low, Math.min(127, spec.velocity.max))
   const sourceSpan = maximumSource - minimumSource
   const normalized = sourceSpan > 0
     ? (note.velocity - minimumSource) / sourceSpan
     : near(note.startBeat, Math.round(note.startBeat), 0.05) ? 0.68 : 0.48
-  return Math.max(1, Math.min(127, Math.round(low + normalized * (high - low))))
+  const beatInBar = ((note.startBeat % context.beatsPerBar) + context.beatsPerBar) % context.beatsPerBar
+  const onBeat = near(beatInBar, Math.round(beatInBar), 0.05)
+  const downbeat = near(beatInBar, 0, 0.05)
+  const halfBeat = near(beatInBar * 2, Math.round(beatInBar * 2), 0.05) && !onBeat
+  const accentShape = downbeat
+    ? 1
+    : plan.role === "pulse-foundation"
+      ? halfBeat ? -0.3 : onBeat ? 0.45 : -0.15
+      : plan.role === "transition-color"
+        ? 0.2 + (beatInBar / Math.max(1, context.beatsPerBar)) * 0.55
+        : onBeat
+          ? 0.32
+          : noteIndex % 2 === 0 ? -0.08 : 0.08
+  const accent = plan.performanceSpec
+    ? (high - low) * spec.velocity.accentStrength * accentShape
+    : 0
+  return Math.max(low, Math.min(high, Math.round(low + normalized * (high - low) + accent)))
+}
+
+function gateFactor(
+  note: MelodyNote,
+  noteIndex: number,
+  spec: PerformanceSpec,
+  context: PerformanceExecutionContext,
+): number {
+  const phraseBeats = Math.max(context.beatsPerBar, context.beatsPerBar * 4)
+  const phraseProgress = ((note.startBeat % phraseBeats) + phraseBeats) % phraseBeats / phraseBeats
+  const phraseShape = phraseProgress > 0.82 ? -0.75 : phraseProgress < 0.1 ? 0.35 : 0
+  const alternation = noteIndex % 2 === 0 ? -0.25 : 0.25
+  return Math.max(0.2, Math.min(1.05, spec.gate.base + spec.gate.variation * (phraseShape + alternation)))
+}
+
+function musicalTimingOffset(
+  note: MelodyNote,
+  noteIndex: number,
+  spec: PerformanceSpec,
+  context: PerformanceExecutionContext,
+): number {
+  if (spec.timing.humanizeMs === 0 && spec.timing.pushPullMs === 0) return 0
+  const beatInBar = ((note.startBeat % context.beatsPerBar) + context.beatsPerBar) % context.beatsPerBar
+  const offbeat = near(beatInBar * 2, Math.round(beatInBar * 2), 0.05) && !near(beatInBar, Math.round(beatInBar), 0.05)
+  const phraseBeats = Math.max(context.beatsPerBar, context.beatsPerBar * 4)
+  const phraseProgress = ((note.startBeat % phraseBeats) + phraseBeats) % phraseBeats / phraseBeats
+  const phrasing = phraseProgress > 0.82 ? 0.55 : phraseProgress < 0.1 ? -0.25 : 0
+  const beatShape = offbeat ? 0.65 : noteIndex % 2 === 0 ? -0.2 : 0.2
+  const milliseconds = spec.timing.pushPullMs + spec.timing.humanizeMs * (beatShape + phrasing)
+  const millisecondsPerBeat = 60_000 / Math.max(20, context.bpm ?? 120)
+  return milliseconds / millisecondsPerBeat
 }
 
 function nextDistinctOnset(notes: MelodyNote[], index: number): number | null {
@@ -139,8 +322,7 @@ export function applyPerformanceExecution(
 
   const minimumSource = Math.min(...notes.map((note) => note.velocity))
   const maximumSource = Math.max(...notes.map((note) => note.velocity))
-  const factor = durationFactor(plan.articulation)
-  const requestedOffset = timingOffset(plan.timing)
+  const spec = resolvePerformanceSpec(plan)
   const diagnostics: PerformanceExecutionDiagnostics = {
     changedVelocityCount: 0,
     changedDurationCount: 0,
@@ -151,11 +333,14 @@ export function applyPerformanceExecution(
   }
 
   const transformed = notes.map((note, index) => {
-    const velocity = velocityFor(note, minimumSource, maximumSource, plan)
+    const velocity = velocityFor(note, minimumSource, maximumSource, plan, index, context)
     if (velocity !== note.velocity) diagnostics.changedVelocityCount += 1
 
     const startLocked = note.locks.includes("startPosition") || note.locks.includes("rhythm")
     const boundary = isStructuralBoundary(note.startBeat, context)
+    const requestedOffset = plan.performanceSpec
+      ? musicalTimingOffset(note, index, spec, context)
+      : timingOffset(plan.timing)
     let startBeat = note.startBeat
     if (requestedOffset !== 0 && !startLocked && !boundary) {
       startBeat = Math.max(0, Math.min(context.totalBeats - 0.0625, note.startBeat + requestedOffset))
@@ -167,7 +352,11 @@ export function applyPerformanceExecution(
     const durationLocked = note.locks.includes("rhythm")
     let durationBeats = durationLocked
       ? note.durationBeats
-      : Math.max(0.0625, note.durationBeats * factor)
+      : Math.max(0.0625, note.durationBeats * (
+          plan.performanceSpec
+            ? gateFactor(note, index, spec, context)
+            : durationFactor(plan.articulation)
+        ))
     const nextOnset = nextDistinctOnset(notes, index)
     if (nextOnset !== null && startBeat + durationBeats > nextOnset - 0.015) {
       durationBeats = Math.max(0.0625, nextOnset - startBeat - 0.015)

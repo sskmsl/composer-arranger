@@ -87,6 +87,7 @@ describe("Signature Phrase store", () => {
       useProjectStore.getState().project.signaturePhraseCandidates
 
     expect(candidates).toHaveLength(12)
+    expect(candidates.every((candidate) => candidate.performanceSpec)).toBe(true)
     expect(
       candidates.every(
         (candidate) =>

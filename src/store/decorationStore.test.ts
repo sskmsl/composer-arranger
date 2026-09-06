@@ -47,6 +47,7 @@ describe("Issue #71 / Decoration store workflow", () => {
     useProjectStore.getState().generateDecorationsForSection("a")
     const candidates = useProjectStore.getState().project.reactiveLayerCandidates ?? []
     expect(candidates).toHaveLength(10)
+    expect(candidates.every((candidate) => candidate.performanceSpec)).toBe(true)
     expect(useProjectStore.getState().project.melodyVariants).toHaveLength(0)
     useProjectStore.getState().assignReactiveLayer(candidates[0].id)
     expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBe(candidates[0].id)

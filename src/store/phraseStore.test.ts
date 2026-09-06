@@ -49,6 +49,7 @@ describe("Phrase Candidate store", () => {
     expect(state.project.melodyVariants).toHaveLength(0)
     expect(new Set(state.project.phraseCandidates.map((candidate) => candidate.batchId)).size).toBe(1)
     expect(state.project.phraseCandidates.every((candidate) => candidate.intent.lengthBars === 3)).toBe(true)
+    expect(state.project.phraseCandidates.every((candidate) => candidate.performanceSpec)).toBe(true)
     expect(state.activePhraseBatchId).toBe(state.project.phraseCandidates[0].batchId)
   })
 

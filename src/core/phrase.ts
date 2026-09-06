@@ -48,6 +48,8 @@ export interface PhraseCandidate {
   selectionScore: number
   similarityToSelected: MelodySimilarityBreakdown[]
   arrangementNecessity?: ArrangementNecessity
+  /** Pitch/Rhythm生成後に適用された演奏情報。 */
+  performanceSpec?: import("./performanceExecution").PerformanceSpec
   /** Draft Techniqueを昇格せず同一seedで比較した一時A/B候補。 */
   techniqueExperiment?: {
     presetId: string

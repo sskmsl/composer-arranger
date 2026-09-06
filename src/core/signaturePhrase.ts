@@ -250,4 +250,6 @@ export interface SignaturePhraseCandidate {
   selectionScore: number
   similarityToSelected: SignaturePhraseSimilarity[]
   arrangementNecessity?: ArrangementNecessity
+  /** Pitch/Rhythm生成後に適用された演奏情報。 */
+  performanceSpec?: import("./performanceExecution").PerformanceSpec
 }
