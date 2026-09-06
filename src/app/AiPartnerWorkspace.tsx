@@ -80,6 +80,8 @@ const EXAMPLE_PROMPTS = [
   "音を足しすぎず、全曲を通して必要な第二の顔を設計して",
 ]
 
+const DEFAULT_WHOLE_SONG_PROMPT = "コード・主旋律・テンポは変えず、曲全体を判断して、必要な伴奏・つなぎ・装飾だけを性格の異なる3案で提案して"
+
 const WHOLE_SONG_SESSION_ID = "__whole_song__"
 
 const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
@@ -136,6 +138,7 @@ export function AiPartnerWorkspace({
   const directionPreviewRunRef = useRef(0)
   const [audio, setAudio] = useState<AiAudioPayload | null>(null)
   const [preparingAudio, setPreparingAudio] = useState(false)
+  const [customConsultationOpen, setCustomConsultationOpen] = useState(Boolean(initialPrompt))
   const [wholeSongGeneration, setWholeSongGeneration] = useState<{
     intentId: string
     directionTitle: string
@@ -147,6 +150,7 @@ export function AiPartnerWorkspace({
   useEffect(() => {
     if (!initialPrompt) return
     setPrompt(initialPrompt)
+    setCustomConsultationOpen(true)
     onInitialPromptConsumed?.()
   }, [initialPrompt, onInitialPromptConsumed])
 
@@ -915,6 +919,34 @@ export function AiPartnerWorkspace({
               コード・メロディ・テンポなど守るものと、追加したい役割を自然な言葉で指定してください。標準では曲全体を通して判断します。
             </p>
           </div>
+          {!response && !(session?.turns.length) && (
+            <div className="rounded-lg border border-primary/35 bg-primary/[0.07] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[13px] font-semibold text-body-on-dark">迷ったら、AIにそのまま任せられます</p>
+                  <p className="mt-1 text-[11px] leading-5 text-body-muted">コード・主旋律・テンポは守り、曲全体へ必要な追加パートを3案に分けて提案します。</p>
+                </div>
+                <Button
+                  className="min-h-11 shrink-0 justify-center"
+                  onClick={() => void submit(false, DEFAULT_WHOLE_SONG_PROMPT)}
+                  disabled={busy || preparingAudio || !context}
+                >
+                  {busy ? <LoaderCircle className="animate-spin" size={15} /> : <Bot size={15} />}
+                  {busy ? "楽曲を分析中…" : "AIにおまかせで3案を作る"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <details
+            className="mt-3 rounded-lg border border-hairline bg-white/[0.015] p-3"
+            open={customConsultationOpen}
+            onToggle={(event) => setCustomConsultationOpen(event.currentTarget.open)}
+          >
+            <summary className="cursor-pointer text-[11px] font-medium text-body-muted hover:text-body-on-dark">
+              {response || session?.turns.length ? "AIへ追加で相談する" : "希望や相談範囲を指定する（任意）"}
+            </summary>
+            <div className="mt-4">
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <label className="flex flex-col gap-1.5 text-[11px] text-body-muted">
               相談範囲
@@ -1094,6 +1126,8 @@ export function AiPartnerWorkspace({
               {error}
             </p>
           )}
+            </div>
+          </details>
         </SectionCard>
 
         {response && (

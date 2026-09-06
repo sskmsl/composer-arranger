@@ -11,6 +11,7 @@ import { MIDI_IMPORT_ACCEPT, analyzeMidiProjectFile, type MidiImportAnalysis } f
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button } from "@/ui/primitives"
 import type { MainTab } from "./App"
+import { homeContinueAction } from "./homeNavigation"
 import { MidiImportReviewDialog } from "./MidiImportReviewDialog"
 import { ProjectBrowser } from "./ProjectBrowser"
 
@@ -22,10 +23,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
   const [analysis, setAnalysis] = useState<MidiImportAnalysis | null>(null)
   const [importing, setImporting] = useState(false)
   const hasMusic = project.sections.length > 0
-  const imported = project.sourceImport?.type === "midi"
-  const hasMusicalInput = imported || project.chords.length > 0 || project.melodyVariants.length > 0
-
-  const continueTab: MainTab = hasMusicalInput ? "ai-partner" : "melody"
+  const continueAction = homeContinueAction(project)
 
   return (
     <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface-black">
@@ -64,8 +62,8 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
                 {project.sections.length}セクション · {project.song.key} · {project.song.tempo} BPM
               </p>
             </div>
-            <Button onClick={() => onNavigate(continueTab)} className="justify-center sm:min-w-44">
-              続きから始める <ArrowRight size={14} />
+            <Button onClick={() => onNavigate(continueAction.tab)} className="justify-center sm:min-w-44">
+              {continueAction.label} <ArrowRight size={14} />
             </Button>
           </section>
         )}
@@ -139,7 +137,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
       {browserOpen && (
         <ProjectBrowser
           onClose={() => setBrowserOpen(false)}
-          onOpen={() => onNavigate("ai-partner")}
+          onOpen={() => onNavigate(homeContinueAction(useProjectStore.getState().project).tab)}
         />
       )}
       {analysis && (

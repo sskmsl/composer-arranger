@@ -143,7 +143,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   }
 
   return (
-    <main className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-4">
+    <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto px-3 py-4 sm:p-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto min-w-0">
           <h2 className="text-[16px] font-semibold">生成結果と書き出し</h2>

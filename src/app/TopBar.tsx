@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { IconButton, Pill, TextInput } from "@/ui/primitives"
 import { CircleHelp, House, PanelLeft, PanelRight, SlidersHorizontal } from "lucide-react"
@@ -33,6 +34,32 @@ export function TopBar({
   const updateSongField = useProjectStore((s) => s.updateSongField)
   const hasSidePanels = ["melody", "phrase", "signature", "counter", "decoration"].includes(tab)
   const projectReady = project.sections.length > 0
+  const [detailMenuOpen, setDetailMenuOpen] = useState(false)
+  const mobileDetailMenuRef = useRef<HTMLDivElement>(null)
+  const desktopDetailMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!detailMenuOpen) return
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (mobileDetailMenuRef.current?.contains(target) || desktopDetailMenuRef.current?.contains(target)) return
+      setDetailMenuOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDetailMenuOpen(false)
+    }
+    document.addEventListener("pointerdown", closeOnOutside)
+    document.addEventListener("keydown", closeOnEscape)
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside)
+      document.removeEventListener("keydown", closeOnEscape)
+    }
+  }, [detailMenuOpen])
+
+  const selectTab = (nextTab: MainTab) => {
+    setDetailMenuOpen(false)
+    onTabChange(nextTab)
+  }
 
   return (
     <header className="flex shrink-0 flex-col gap-2 border-b border-hairline bg-surface-black px-3 py-2 lg:h-11 lg:flex-row lg:items-center lg:gap-4 lg:px-4 lg:py-0">
@@ -45,7 +72,7 @@ export function TopBar({
 
         <button
           type="button"
-          onClick={() => onTabChange("home")}
+          onClick={() => selectTab("home")}
           className={`${tab === "home" ? "inline-flex" : "hidden sm:inline-flex"} items-center gap-2 font-display text-[15px] font-semibold tracking-tight text-body-on-dark hover:text-primary-on-dark`}
           title="ホームへ戻る"
         >
@@ -89,26 +116,32 @@ export function TopBar({
             active={tab === t.id}
             disabled={!projectReady && t.id !== "home"}
             title={!projectReady && t.id !== "home" ? "先にホームで曲を準備してください" : undefined}
-            onClick={() => onTabChange(t.id)}
+            onClick={() => selectTab(t.id)}
             className="min-w-0 !px-1 !py-1.5 !text-[11px]"
           >
             {t.mobileLabel}
           </Pill>
         ))}
         {projectReady ? (
-          <details className="group relative min-w-0">
-            <summary className="flex min-h-7 cursor-pointer list-none items-center justify-center gap-1 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted hover:bg-white/10 hover:text-body-on-dark">
+          <div ref={mobileDetailMenuRef} className="relative min-w-0">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={detailMenuOpen}
+              onClick={() => setDetailMenuOpen((open) => !open)}
+              className="flex min-h-7 w-full items-center justify-center gap-1 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted hover:bg-white/10 hover:text-body-on-dark"
+            >
               <SlidersHorizontal size={11} /> 調整
-            </summary>
-            <div className="fixed left-3 right-3 top-[7.25rem] z-[70] rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
+            </button>
+            {detailMenuOpen && <div role="menu" className="fixed left-3 right-3 top-[7.25rem] z-[70] rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
               {DETAIL_TABS.map((item) => (
-                <button key={item.id} type="button" onClick={() => onTabChange(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
+                <button key={item.id} type="button" role="menuitem" onClick={() => selectTab(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
                   <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
                   <span className="text-[11px] text-body-muted">{item.description}</span>
                 </button>
               ))}
-            </div>
-          </details>
+            </div>}
+          </div>
         ) : (
           <button type="button" disabled className="min-w-0 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted opacity-35">
             調整
@@ -149,23 +182,29 @@ export function TopBar({
 
       <nav className="hidden shrink-0 items-center gap-1.5 lg:ml-auto lg:flex">
         {PRIMARY_TABS.map((t) => (
-          <Pill key={t.id} active={tab === t.id} disabled={!projectReady && t.id !== "home"} onClick={() => onTabChange(t.id)}>
+          <Pill key={t.id} active={tab === t.id} disabled={!projectReady && t.id !== "home"} onClick={() => selectTab(t.id)}>
             {t.label}
           </Pill>
         ))}
-        <details className={`group relative ${projectReady ? "" : "pointer-events-none opacity-35"}`}>
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark">
+        <div ref={desktopDetailMenuRef} className={`relative ${projectReady ? "" : "pointer-events-none opacity-35"}`}>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={detailMenuOpen}
+            onClick={() => setDetailMenuOpen((open) => !open)}
+            className="flex items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark"
+          >
             <SlidersHorizontal size={12} /> 個別調整
-          </summary>
-          <div className="absolute right-0 top-9 z-[70] w-60 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
+          </button>
+          {detailMenuOpen && <div role="menu" className="absolute right-0 top-9 z-[70] w-60 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
             {DETAIL_TABS.map((item) => (
-              <button key={item.id} type="button" onClick={() => onTabChange(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
+              <button key={item.id} type="button" role="menuitem" onClick={() => selectTab(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
                 <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
                 <span className="text-[11px] text-body-muted">{item.description}</span>
               </button>
             ))}
-          </div>
-        </details>
+          </div>}
+        </div>
         <a
           href="./manual.html"
           target="_blank"

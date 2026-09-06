@@ -128,7 +128,7 @@ export function AuditionWorkspace() {
   }
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+    <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-[16px] font-semibold">A/B/C 比較試聴</h2>
         <label className="flex items-center gap-2 text-[12px] text-ink-muted-48">
