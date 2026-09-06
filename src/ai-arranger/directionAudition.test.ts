@@ -2,11 +2,54 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import type { FullSongArrangement } from "@/core/arrangementGeneration"
 import type { AiArrangementIntent } from "./types"
+import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import {
+  directionAuditionDirectiveForIntent,
   directionAuditionRanges,
   directionAuditionSeed,
   directionAuditionTracks,
 } from "./directionAudition"
+
+function testIntent(
+  id: string,
+  generator: AiArrangementIntent["generator"],
+  overrides: Partial<AiArrangementIntent> = {},
+): AiArrangementIntent {
+  return {
+    id,
+    title: id,
+    generator,
+    emotionalFunction: "曲の流れを変える",
+    density: "balanced",
+    register: "middle",
+    drama: "growing",
+    motion: "wave",
+    rhythmCharacter: "flowing",
+    silenceStrategy: "breathing",
+    creativeRisk: "focused",
+    lengthBars: 4,
+    techniques: [],
+    soundPalette: "synth",
+    performanceDirection: "必要な場所だけ鳴らす",
+    why: "違いを作る",
+    generationBrief: "主旋律を残して別の役割を加える",
+    soundSourceSuggestions: [],
+    accompanimentPatternId: generator === "accompaniment" ? "pulse-root-fifth" : "none",
+    rhythmPlan: {
+      enabled: false,
+      subdivision: "eighth",
+      feel: "straight",
+      kickPattern: "",
+      snarePattern: "",
+      hatPattern: "",
+      percussionPattern: "",
+      variation: "",
+      bars: 1,
+      events: [],
+    },
+    ...overrides,
+  }
+}
 
 function arrangement(totalBeats: number, peakSectionId: string | null): FullSongArrangement {
   return {
@@ -72,5 +115,70 @@ describe("Direction audition ranges", () => {
     ] as FullSongArrangement["tracks"]
     expect(directionAuditionTracks(tracks, ["syn-bass"]).map((track) => track.id)).toEqual(["syn-bass"])
     expect(directionAuditionTracks(tracks, [])).toEqual([])
+  })
+
+  it("提案音がセクション末尾にある場合も、その音を含む範囲を返す", () => {
+    const project = createEmptyProject("Focused audition")
+    project.sections = [
+      { ...project.sections[0], id: "intro", name: "Intro", lengthBars: 8 },
+      { ...project.sections[0], id: "chorus", name: "Chorus", startBar: 9, lengthBars: 8 },
+    ]
+    const tracks = [{
+      id: "syn-transition-phrase",
+      name: "SYN_TransitionPhrase",
+      family: "transition",
+      muted: false,
+      generationRevision: 0,
+      purpose: "次へつなぐ",
+      notes: [{
+        id: "transition",
+        sectionId: "intro",
+        character: "safe",
+        reason: "次へつなぐ",
+        pitch: 72,
+        startBeat: 30,
+        durationBeats: 1,
+        velocity: 70,
+        locks: [],
+      }],
+    }] as FullSongArrangement["tracks"]
+    const ranges = directionAuditionRanges(project, arrangement(64, "chorus"), tracks)
+    expect(ranges).toHaveLength(1)
+    expect(ranges[0].startBeat).toBeLessThanOrEqual(30)
+    expect(ranges[0].endBeat).toBeGreaterThan(30)
+    expect(ranges[0].label).toContain("提案音")
+  })
+
+  it("代表的な3方向では実際に異なる音符列を試聴する", () => {
+    const project = createEmptyProject("Three directions")
+    project.sections = [
+      { ...project.sections[0], id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 },
+      { ...project.sections[0], id: "chorus", name: "Chorus", role: "chorus", startBar: 5, lengthBars: 4 },
+    ]
+    project.chords = project.sections.flatMap((section) => [
+      { id: `${section.id}:1`, sectionId: section.id, startBeat: 0, durationBeats: 8, symbol: "Am(add9)", bass: null },
+      { id: `${section.id}:2`, sectionId: section.id, startBeat: 8, durationBeats: 8, symbol: "Fmaj7", bass: null },
+    ])
+    const intents = [
+      testIntent("bass", "accompaniment", { density: "balanced", register: "low", rhythmCharacter: "pulsed" }),
+      testIntent("drums", "rhythm", { density: "active", rhythmCharacter: "syncopated" }),
+      testIntent("mark", "signature", { density: "sparse", register: "high", creativeRisk: "bold" }),
+    ]
+    const signatures = intents.map((intent, index) => {
+      const directive = directionAuditionDirectiveForIntent(intent)
+      const arrangement = generateFullSongArrangement(project, {
+        seed: directionAuditionSeed(project, "request", intent, index),
+        brief: intent.generationBrief,
+        directive,
+      })
+      const tracks = directionAuditionTracks(arrangement.tracks, directive.add ?? [])
+      const ranges = directionAuditionRanges(project, arrangement, tracks)
+      return tracks.flatMap((track) => track.notes
+        .filter((note) => ranges.some((range) => note.startBeat < range.endBeat && note.startBeat + note.durationBeats > range.startBeat))
+        .map((note) => `${track.id}:${note.startBeat}:${note.durationBeats}:${note.pitch}`))
+        .join("|")
+    })
+    expect(signatures.every((signature) => signature.length > 0)).toBe(true)
+    expect(new Set(signatures).size).toBe(3)
   })
 })

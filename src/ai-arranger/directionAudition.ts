@@ -1,4 +1,5 @@
 import type {
+  ArrangementGenerationDirective,
   ArrangementTrackId,
   FullSongArrangement,
   GeneratedArrangementTrack,
@@ -12,6 +13,38 @@ export interface DirectionAuditionRange {
   startBeat: number
   endBeat: number
   label: string
+}
+
+/** AIの案を、全曲試聴で実際に鳴らす役割へ変換する。 */
+export function directionAuditionDirectiveForIntent(
+  intent: AiArrangementIntent,
+): ArrangementGenerationDirective {
+  const roles: ArrangementTrackId[] = []
+  if (intent.generator === "rhythm") roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum")
+  if (intent.generator === "accompaniment") roles.push("syn-bass", "syn-pulse")
+  if (["counter", "phrase", "signature"].includes(intent.generator)) roles.push("syn-transition-phrase")
+  if (["decoration", "signature"].includes(intent.generator)) roles.push("syn-high-glass")
+  const description = `${intent.generationBrief} ${intent.soundPalette} ${intent.techniques.join(" ")}`
+  if (/string|violin|viola|cello|ストリング/i.test(description)) roles.push("str-cello", "str-viola", "str-violin-2", "str-violin-1")
+  if (/bass|低音|ベース/i.test(description)) roles.push("syn-bass")
+  if (/pad|パッド|空間/i.test(description)) roles.push("syn-dark-pad")
+  const densityDelta = intent.density === "sparse" ? -8 : intent.density === "active" ? 8 : 0
+  const dramaDelta = intent.drama === "restrained" ? -2 : intent.drama === "open" ? 5 : 0
+  return {
+    intention: `${intent.emotionalFunction}。${intent.generationBrief}`,
+    character: intent.generator === "rhythm"
+      ? "rhythmic"
+      : intent.creativeRisk === "radical" || intent.creativeRisk === "bold"
+        ? "dark-experimental"
+        : /string|violin|viola|cello|ストリング/i.test(description)
+          ? "cinematic"
+          : intent.density === "sparse"
+            ? "minimal"
+            : "balanced",
+    energyDelta: densityDelta + dramaDelta,
+    add: [...new Set(roles)],
+    surpriseLevel: intent.creativeRisk === "radical" ? 0.75 : intent.creativeRisk === "bold" ? 0.45 : 0.15,
+  }
 }
 
 function hashText(value: string): number {
@@ -62,11 +95,47 @@ export function directionAuditionTracks(
 export function directionAuditionRanges(
   project: ComposerProject,
   arrangement: FullSongArrangement,
+  auditionTracks: readonly GeneratedArrangementTrack[] = [],
 ): DirectionAuditionRange[] {
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const excerptBeats = beatsPerBar * 4
   const totalBeats = arrangement.analysis.totalBeats
   if (totalBeats <= 0) return []
+  const focusedNotes = auditionTracks.flatMap((track) => track.notes)
+  if (focusedNotes.length > 0) {
+    const sections = normalizeSectionTimeline(project.sections)
+    const noteSections = sections
+      .map((section) => {
+        const startBeat = (section.startBar - 1) * beatsPerBar
+        const endBeat = Math.min(totalBeats, startBeat + section.lengthBars * beatsPerBar)
+        const notes = focusedNotes.filter((note) => note.startBeat < endBeat && note.startBeat + note.durationBeats > startBeat)
+        return { section, startBeat, endBeat, notes }
+      })
+      .filter((candidate) => candidate.notes.length > 0)
+    if (noteSections.length > 0) {
+      const peakSectionId = arrangement.analysis.peakSectionId
+      const first = noteSections[0]
+      const strongest = [...noteSections].sort((left, right) =>
+        Number(right.section.id === peakSectionId) - Number(left.section.id === peakSectionId)
+        || right.notes.length - left.notes.length
+        || right.startBeat - left.startBeat,
+      )[0]
+      const selected = strongest.section.id === first.section.id ? [first] : [first, strongest]
+      return selected.map(({ section, startBeat, endBeat, notes }) => {
+        const firstNoteBeat = Math.min(...notes.map((note) => note.startBeat))
+        const lastPossibleStart = Math.max(startBeat, endBeat - excerptBeats)
+        const windowStart = Math.min(
+          lastPossibleStart,
+          Math.max(startBeat, Math.floor(firstNoteBeat / beatsPerBar) * beatsPerBar - beatsPerBar),
+        )
+        return {
+          startBeat: windowStart,
+          endBeat: Math.min(endBeat, windowStart + excerptBeats),
+          label: `${section.name}・提案音を含む部分`,
+        }
+      })
+    }
+  }
   const ranges: DirectionAuditionRange[] = [{
     startBeat: 0,
     endBeat: Math.min(totalBeats, excerptBeats),

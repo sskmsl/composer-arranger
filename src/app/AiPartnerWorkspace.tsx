@@ -51,6 +51,7 @@ import {
   plainDirectionText,
 } from "@/ai-arranger/directionPresentation"
 import {
+  directionAuditionDirectiveForIntent,
   directionAuditionRanges,
   directionAuditionSeed,
   directionAuditionTracks,
@@ -64,7 +65,6 @@ import type {
 } from "@/ai-arranger/types"
 import { SECTION_ROLE_LABELS } from "@/core/section"
 import type { ComposerProject } from "@/core/project"
-import type { ArrangementGenerationDirective, ArrangementTrackId } from "@/core/arrangementGeneration"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { generateFullSongArrangement as buildFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { useProjectStore } from "@/store/useProjectStore"
@@ -81,30 +81,6 @@ const EXAMPLE_PROMPTS = [
 ]
 
 const WHOLE_SONG_SESSION_ID = "__whole_song__"
-
-function arrangementDirectiveForIntent(intent: AiArrangementIntent): ArrangementGenerationDirective {
-  const roles: ArrangementTrackId[] = []
-  if (intent.generator === "rhythm") roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum")
-  if (intent.generator === "accompaniment") roles.push("syn-bass", "syn-pulse")
-  if (["counter", "phrase", "signature"].includes(intent.generator)) roles.push("syn-transition-phrase")
-  if (["decoration", "signature"].includes(intent.generator)) roles.push("syn-high-glass")
-  const description = `${intent.generationBrief} ${intent.soundPalette} ${intent.techniques.join(" ")}`
-  if (/string|violin|viola|cello|ストリング/i.test(description)) roles.push("str-cello", "str-viola", "str-violin-2", "str-violin-1")
-  if (/bass|低音|ベース/i.test(description)) roles.push("syn-bass")
-  if (/pad|パッド|空間/i.test(description)) roles.push("syn-dark-pad")
-  return {
-    intention: `${intent.emotionalFunction}。${intent.generationBrief}`,
-    character: intent.generator === "rhythm"
-      ? "rhythmic"
-      : intent.creativeRisk === "radical" || intent.creativeRisk === "bold"
-        ? "dark-experimental"
-        : /string|violin|viola|cello|ストリング/i.test(description)
-          ? "cinematic"
-          : "balanced",
-    add: [...new Set(roles)],
-    surpriseLevel: intent.creativeRisk === "radical" ? 0.75 : intent.creativeRisk === "bold" ? 0.45 : 0.15,
-  }
-}
 
 const GENERATOR_LABELS: Record<AiArrangementIntent["generator"], string> = {
   melody: "主旋律",
@@ -334,7 +310,7 @@ export function AiPartnerWorkspace({
         intent.title,
         intent.generationBrief,
         intent.necessityReason ?? intent.why,
-      ].filter(Boolean).join("。"), arrangementDirectiveForIntent(intent))
+      ].filter(Boolean).join("。"), directionAuditionDirectiveForIntent(intent))
       setWholeSongGeneration({
         intentId: intent.id,
         directionTitle: `${intent.title} → ${direction.title}`,
@@ -424,7 +400,7 @@ export function AiPartnerWorkspace({
         intent.title,
         intent.generationBrief,
       ].filter(Boolean).join("。")
-      const directive = arrangementDirectiveForIntent(intent)
+      const directive = directionAuditionDirectiveForIntent(intent)
       const arrangement = buildFullSongArrangement(project, {
         seed: directionAuditionSeed(project, response?.requestId ?? "local", intent, directionIndex),
         brief: instructionBrief,
@@ -432,7 +408,7 @@ export function AiPartnerWorkspace({
       })
       const auditionTracks = directionAuditionTracks(arrangement.tracks, directive.add ?? [])
       const material = buildSongPlaybackMaterial(project)
-      const ranges = directionAuditionRanges(project, arrangement)
+      const ranges = directionAuditionRanges(project, arrangement, auditionTracks)
       if (ranges.length === 0 || (auditionTracks.length === 0 && material.lead.length === 0 && material.importedBacking.length === 0)) {
         setError("この案を試聴できる音符がありません。先にMIDIまたはコードを読み込んでください。")
         return
@@ -1294,7 +1270,7 @@ export function AiPartnerWorkspace({
                                 : "この案をここで試聴"}
                           </Button>
                           <p className="text-center text-[11px] leading-4 text-body-muted">
-                            原曲＋この案で追加する音だけを、冒頭と曲の頂点で比較します。試聴では保存しません。
+                            この案の音が実際に入る部分を原曲と一緒に再生します。試聴では保存しません。
                           </p>
                           <Button
                             variant="secondary"
