@@ -65,6 +65,9 @@ describe("AI Direction presentation", () => {
     expect(plainDirectionText("シンコペーションとモチーフ")).toBe(
       "拍の表から少しずらしたリズムと短い音型",
     )
+    expect(plainDirectionText("曲の頭に短い音を置く")).toBe(
+      "イントロに短い音を置く",
+    )
   })
 
   it("診断の内部指標と幅広い専門語を画面向けの説明へ変換する", () => {

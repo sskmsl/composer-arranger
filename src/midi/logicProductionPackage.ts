@@ -218,7 +218,7 @@ function markdown(
     "",
     "## Import",
     "",
-    "MIDIは曲頭1小節目を基準にしたSMF Type 1です。Logic Proへ読み込むと、各Roleが独立トラックとして同じ小節位置へ配置されます。Bass GuideとChord Guideは完成演奏ではなく置換用の設計ガイドです。",
+    "MIDIはイントロの1小節目を基準にしたSMF Type 1です。Logic Proへ読み込むと、各Roleが独立トラックとして同じ小節位置へ配置されます。Bass GuideとChord Guideは完成演奏ではなく置換用の設計ガイドです。",
     "",
     "## Tracks",
     "",

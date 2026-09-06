@@ -103,6 +103,7 @@ function amountDescription(value: string, subject: string): string {
  */
 export function plainDirectionText(value: string): string {
   return value
+    .replace(/曲の頭|曲頭/g, "イントロ")
     .replace(/最後のパルスを抜いて\s*1拍目を強く感じさせる[。.]?/g, "小節の最後を休ませ、次の小節の始まりをはっきり聴かせる。")
     .replace(/モチーフ反復率(?:が|は)?(?:約)?\s*(\d+(?:\.\d+)?)%/gi, (_, amount: string) => amountDescription(amount, "短い音型の繰り返し"))
     .replace(/コードトーン使用率(?:が|は)?(?:約)?\s*(\d+(?:\.\d+)?)%/gi, (_, amount: string) => amountDescription(amount, "コードになじむ音"))

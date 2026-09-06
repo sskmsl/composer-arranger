@@ -10,18 +10,9 @@ import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import type {
   SignaturePhraseCandidate,
   SignaturePhraseArchetype,
-  SignaturePhraseArchitecture,
   SignatureCreativeRisk,
-  SignaturePitchDisruption,
-  SignatureRhythmicDisruption,
-  SignatureStructuralSurprise,
   SignaturePhraseLengthBars,
-  SignatureOpportunityKind,
-  SignatureRhythmIdentity,
-  SignatureVariationStrategy,
-  SignatureVoiceMotion,
   SignatureVoicingMode,
-  SignatureVoicingStyle,
 } from "@/core/signaturePhrase"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { parseTimeSignature } from "@/core/section"
@@ -29,99 +20,24 @@ import { downloadMidi, exportMelodyMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
-import {
-  DirectorRecommendationBadge,
-  PerformanceReviewBadge,
-} from "./PerformanceReviewBadge"
-import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 import { EmptySectionState } from "./EmptySectionState"
 
-const RHYTHM_LABELS: Record<SignatureRhythmIdentity, string> = {
-  "opening-stamp": "Opening Stamp",
-  "pickup-hook": "Pickup Hook",
-  "syncopated-cell": "Syncopated Cell",
-  "call-gap-answer": "Call / Gap / Answer",
-  "long-short-signal": "Long–Short Signal",
-  "broken-pulse": "Broken Pulse",
-}
-
-const VARIATION_LABELS: Record<SignatureVariationStrategy, string> = {
-  displacement: "位置変形",
-  fragmentation: "断片化",
-  augmentation: "拡張",
-  answer: "応答形",
-  "delayed-return": "遅延回帰",
-}
-
 const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
-  "atmospheric-gateway": "Atmospheric Gateway",
-  "obsessive-motor": "Obsessive Motor",
-  "kinetic-hook": "Kinetic Hook",
-}
-
-const ARCHITECTURE_LABELS: Record<SignaturePhraseArchitecture, string> = {
-  "identity-return": "Identity → Return",
-  "question-answer-return": "Question → Answer → Return",
-  "slow-burn-return": "Slow Burn → Return",
+  "atmospheric-gateway": "余白から始まる",
+  "obsessive-motor": "反復で進む",
+  "kinetic-hook": "リズムで引き込む",
 }
 
 const VOICING_MODE_LABELS: Record<SignatureVoicingMode, string> = {
   "single-line": "単音",
-  "block-chord": "和音スタブ",
+  "block-chord": "和音",
   "broken-chord": "分散和音",
 }
 
-const VOICING_STYLE_LABELS: Record<SignatureVoicingStyle, string> = {
-  "close-position": "Close",
-  "open-spread": "Open Spread",
-  "drop-2": "Drop 2",
-  "pedal-tone": "Pedal",
-  "inner-motion": "Inner Motion",
-}
-
-const VOICE_MOTION_LABELS: Record<SignatureVoiceMotion, string> = {
-  smooth: "Smooth",
-  contrary: "Contrary",
-  oblique: "Oblique",
-}
-
 const RISK_LABELS: Record<SignatureCreativeRisk, string> = {
-  focused: "Focused",
-  bold: "Bold",
-  radical: "Radical",
-}
-
-const RHYTHMIC_DISRUPTION_LABELS: Record<SignatureRhythmicDisruption, string> = {
-  none: "Stable Rhythm",
-  "metric-displacement": "Metric Shift",
-  "asymmetric-cycle": "Asymmetric Cycle",
-  "silence-fracture": "Silence Fracture",
-  "cross-bar-attack": "Cross-bar Attack",
-}
-
-const PITCH_DISRUPTION_LABELS: Record<SignaturePitchDisruption, string> = {
-  none: "Stable Pitch",
-  "interval-signature": "Interval Signature",
-  "chromatic-side-step": "Chromatic Side-step",
-  "register-rupture": "Register Rupture",
-  "pedal-tension": "Pedal Tension",
-}
-
-const STRUCTURAL_SURPRISE_LABELS: Record<SignatureStructuralSurprise, string> = {
-  none: "Linear Form",
-  "false-start": "False Start",
-  interruption: "Interruption",
-  "false-return": "False Return",
-  "abrupt-open-tail": "Abrupt Open Tail",
-}
-
-const OPPORTUNITY_LABELS: Record<SignatureOpportunityKind, string> = {
-  "motif-foreshadowing": "Motif Foreshadow",
-  "rhythmic-counter-identity": "Rhythmic Counter",
-  "harmonic-identity": "Harmonic Identity",
-  "tension-premonition": "Tension Premonition",
-  "register-contrast": "Register Contrast",
-  "section-threshold": "Section Threshold",
+  focused: "安定",
+  bold: "大胆",
+  radical: "冒険的",
 }
 
 function candidateArchetype(
@@ -272,7 +188,7 @@ export function SignaturePhraseWorkspace() {
             曲の顔となるフレーズ
           </h2>
           <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            1〜2小節の固有Motifを、反復・変形・統合Decorationで最大8小節へ発展させます
+            イントロや間奏で使える、耳に残る短いフレーズを生成します
           </p>
         </div>
         <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
@@ -344,35 +260,18 @@ export function SignaturePhraseWorkspace() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[13px] font-semibold text-body-on-dark">
-                      {candidate.name}
+                      候補 {index + 1}
                     </h3>
                     <span className="shrink-0 text-[11px] text-ink-muted-48">
-                      {candidate.plan.lengthBars}小節 · {Math.round(candidate.score.overall)}
+                      {candidate.plan.lengthBars}小節
                     </span>
-                  </div>
-                  <div className="mt-1.5">
-                    <PerformanceReviewBadge
-                      review={project.candidatePerformanceReviews?.[candidate.id]}
-                      compact
-                    />
-                    <DirectorRecommendationBadge
-                      recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
-                      candidateId={candidate.id}
-                    />
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {candidate.plan.compositionContext && (
-                      <span
-                        className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-200"
-                        title={candidate.plan.compositionContext.rationale}
-                      >
-                        {OPPORTUNITY_LABELS[
-                          candidate.plan.compositionContext.opportunity
-                        ]}
-                        {candidate.plan.compositionContext.source ===
-                        "chords-and-melody"
-                          ? " · Melody Linked"
-                          : " · Chord Driven"}
+                      <span className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-200">
+                        {candidate.plan.compositionContext.source === "chords-and-melody"
+                          ? "主旋律を参考"
+                          : "コードを参考"}
                       </span>
                     )}
                     <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
@@ -389,99 +288,11 @@ export function SignaturePhraseWorkspace() {
                         }`}>
                           {RISK_LABELS[candidate.plan.creativeRisk.risk]}
                         </span>
-                        {candidate.plan.creativeRisk.risk !== "focused" && (
-                          <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                            {RHYTHMIC_DISRUPTION_LABELS[candidate.plan.creativeRisk.rhythmicDevice]}
-                            {" · "}
-                            {PITCH_DISRUPTION_LABELS[candidate.plan.creativeRisk.pitchDevice]}
-                            {" · "}
-                            {STRUCTURAL_SURPRISE_LABELS[candidate.plan.creativeRisk.structuralDevice]}
-                          </span>
-                        )}
                       </>
                     )}
-                    {candidate.plan.architecture && (
-                      <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                        {ARCHITECTURE_LABELS[candidate.plan.architecture]}
-                      </span>
-                    )}
-                    {candidate.plan.voicingMode !== "single-line" && (
-                      <>
-                        <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[11px] text-amber-200">
-                          {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
-                        </span>
-                        {candidate.plan.voiceLeading && (
-                          <span className="rounded-pill bg-sky-400/15 px-2 py-0.5 text-[11px] text-sky-200">
-                            {VOICING_STYLE_LABELS[candidate.plan.voiceLeading.style]}
-                            {" · "}
-                            {VOICE_MOTION_LABELS[candidate.plan.voiceLeading.motion]}
-                          </span>
-                        )}
-                      </>
-                    )}
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {RHYTHM_LABELS[candidate.plan.rhythmIdentity]}
+                    <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[11px] text-amber-200">
+                      {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
                     </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {candidate.plan.contour}
-                    </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {VARIATION_LABELS[candidate.plan.variationStrategy]}
-                    </span>
-                  </div>
-                  <ArrangementNecessityBadge
-                    necessity={candidate.arrangementNecessity}
-                  />
-                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-ink-muted-48">
-                    <span>
-                      World {Math.round((candidate.score.worldBuilding ?? 0) * 100)}
-                    </span>
-                    <span>Opening {Math.round(candidate.score.openingImpact * 100)}</span>
-                    <span>Rhythm {Math.round(candidate.score.rhythmicIdentity * 100)}</span>
-                    {candidate.score.compositionPurpose !== undefined && (
-                      <span>
-                        Purpose {Math.round(candidate.score.compositionPurpose * 100)}
-                      </span>
-                    )}
-                    {candidate.score.harmonicNarrative !== undefined && (
-                      <span>
-                        Harmony {Math.round(candidate.score.harmonicNarrative * 100)}
-                      </span>
-                    )}
-                    {candidate.score.thematicForeshadowing !== undefined && (
-                      <span>
-                        Theme {Math.round(candidate.score.thematicForeshadowing * 100)}
-                      </span>
-                    )}
-                    {candidate.score.rhythmicComplement !== undefined && (
-                      <span>
-                        Complement {Math.round(candidate.score.rhythmicComplement * 100)}
-                      </span>
-                    )}
-                    <span>
-                      Memory {Math.round((candidate.score.motifMemorability ?? 0) * 100)}
-                    </span>
-                    {candidate.plan.creativeRisk?.risk !== "focused" && (
-                      <>
-                        <span>Audacity {Math.round((candidate.score.audacity ?? 0) * 100)}</span>
-                        <span>Control {Math.round((candidate.score.controlledRisk ?? 0) * 100)}</span>
-                      </>
-                    )}
-                    {candidate.plan.voicingMode !== "single-line" && (
-                      <span>
-                        Voice Lead {Math.round((candidate.score.voiceLeadingQuality ?? 0) * 100)}
-                      </span>
-                    )}
-                    {candidate.plan.lengthBars >= 4 && (
-                      <>
-                        <span>
-                          Coherence {Math.round((candidate.score.longRangeCoherence ?? 0) * 100)}
-                        </span>
-                        <span>
-                          Variation {Math.round((candidate.score.variationBalance ?? 0) * 100)}
-                        </span>
-                      </>
-                    )}
                   </div>
                 </button>
                 <div className="mt-3 flex gap-1.5">
@@ -520,7 +331,7 @@ export function SignaturePhraseWorkspace() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-ink-muted-48">試聴:</span>
+            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -529,8 +340,8 @@ export function SignaturePhraseWorkspace() {
               }}
               className="!py-1"
             >
-              <option value="melody-only">Signature Only</option>
-              <option value="chords-melody">Chords + Signature</option>
+              <option value="melody-only">フレーズのみ</option>
+              <option value="chords-melody">コード＋フレーズ</option>
             </Select>
           </div>
         </>
@@ -538,17 +349,6 @@ export function SignaturePhraseWorkspace() {
 
       {activeCandidate ? (
         <>
-          {activeCandidate.plan.developmentStages && (
-            <div className="rounded-lg border border-hairline bg-surface-tile-1 px-3 py-2 text-[11px] text-body-muted">
-              <span className="text-ink-muted-48">Phrase展開: </span>
-              {activeCandidate.plan.developmentStages.join(" → ")}
-              {(activeCandidate.plan.decorationIntents?.length ?? 0) > 0 && (
-                <span className="ml-3 text-primary-on-dark">
-                  Decoration統合 {activeCandidate.plan.decorationIntents.length} Gesture
-                </span>
-              )}
-            </div>
-          )}
           <ReadOnlyPianoRoll
             notes={activeCandidate.notes}
             chords={allChords.filter(
@@ -557,8 +357,8 @@ export function SignaturePhraseWorkspace() {
             totalBeats={activeCandidate.phraseLengthBeats}
             timeSignature={project.song.timeSignature}
             songKey={project.song.key}
-            title={activeCandidate.name}
-            subtitle="表示専用 · 統合Decorationを含むMIDI出力と同一"
+            title={`候補 ${batch.findIndex((candidate) => candidate.id === activeCandidate.id) + 1}`}
+            subtitle="表示専用 · MIDI出力と同じ内容"
             accentColor="#c084fc"
             accentStroke="#e9d5ff"
             ariaLabel="Signature Phrase Piano Roll"
