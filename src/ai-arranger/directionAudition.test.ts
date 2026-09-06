@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import type { FullSongArrangement } from "@/core/arrangementGeneration"
-import { directionAuditionRanges } from "./directionAudition"
+import type { AiArrangementIntent } from "./types"
+import {
+  directionAuditionRanges,
+  directionAuditionSeed,
+  directionAuditionTracks,
+} from "./directionAudition"
 
 function arrangement(totalBeats: number, peakSectionId: string | null): FullSongArrangement {
   return {
@@ -39,5 +44,33 @@ describe("Direction audition ranges", () => {
     const project = createEmptyProject("Short")
     project.sections[0] = { ...project.sections[0], id: "peak", lengthBars: 4 }
     expect(directionAuditionRanges(project, arrangement(16, "peak"))).toHaveLength(1)
+  })
+
+  it("3案へ異なる再現可能なseedを割り当てる", () => {
+    const project = createEmptyProject("Direction seed")
+    const intent = {
+      id: "direction",
+      generator: "accompaniment",
+      density: "balanced",
+      register: "low",
+      motion: "static",
+      rhythmCharacter: "pulsed",
+      silenceStrategy: "breathing",
+      creativeRisk: "focused",
+      generationBrief: "低音を短く鳴らす",
+    } as AiArrangementIntent
+    const seeds = [0, 1, 2].map((index) => directionAuditionSeed(project, "request", intent, index))
+    expect(new Set(seeds).size).toBe(3)
+    expect(directionAuditionSeed(project, "request", intent, 1)).toBe(seeds[1])
+  })
+
+  it("案固有の追加パートだけを試聴対象にする", () => {
+    const tracks = [
+      { id: "dr-kick", notes: [{ startBeat: 0 }] },
+      { id: "syn-bass", notes: [{ startBeat: 0 }] },
+      { id: "syn-dark-pad", notes: [{ startBeat: 0 }] },
+    ] as FullSongArrangement["tracks"]
+    expect(directionAuditionTracks(tracks, ["syn-bass"]).map((track) => track.id)).toEqual(["syn-bass"])
+    expect(directionAuditionTracks(tracks, [])).toEqual([])
   })
 })

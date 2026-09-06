@@ -50,7 +50,11 @@ import {
   conciseDirectionText,
   plainDirectionText,
 } from "@/ai-arranger/directionPresentation"
-import { directionAuditionRanges } from "@/ai-arranger/directionAudition"
+import {
+  directionAuditionRanges,
+  directionAuditionSeed,
+  directionAuditionTracks,
+} from "@/ai-arranger/directionAudition"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -394,7 +398,10 @@ export function AiPartnerWorkspace({
     setPlayingRhythmIntentId(started ? intent.id : null)
   }
 
-  const previewWholeSongDirection = async (intent: AiArrangementIntent) => {
+  const previewWholeSongDirection = async (
+    intent: AiArrangementIntent,
+    directionIndex: number,
+  ) => {
     if (!isWholeSongConsultation) return
     if (playingDirectionIntentId === intent.id) {
       directionPreviewRunRef.current += 1
@@ -417,13 +424,16 @@ export function AiPartnerWorkspace({
         intent.title,
         intent.generationBrief,
       ].filter(Boolean).join("。")
+      const directive = arrangementDirectiveForIntent(intent)
       const arrangement = buildFullSongArrangement(project, {
+        seed: directionAuditionSeed(project, response?.requestId ?? "local", intent, directionIndex),
         brief: instructionBrief,
-        directive: arrangementDirectiveForIntent(intent),
+        directive,
       })
+      const auditionTracks = directionAuditionTracks(arrangement.tracks, directive.add ?? [])
       const material = buildSongPlaybackMaterial(project)
       const ranges = directionAuditionRanges(project, arrangement)
-      if (ranges.length === 0 || (!arrangement.tracks.some((track) => track.notes.length > 0) && material.lead.length === 0)) {
+      if (ranges.length === 0 || (auditionTracks.length === 0 && material.lead.length === 0 && material.importedBacking.length === 0)) {
         setError("この案を試聴できる音符がありません。先にMIDIまたはコードを読み込んでください。")
         return
       }
@@ -440,7 +450,7 @@ export function AiPartnerWorkspace({
           chords: importedSource ? [] : material.chords,
           accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
           melody: material.lead,
-          arrangementTracks: arrangement.tracks,
+          arrangementTracks: auditionTracks,
           mode: "chords-melody",
           range: ranges[index],
           onEnded: () => playRange(index + 1),
@@ -1270,7 +1280,7 @@ export function AiPartnerWorkspace({
                           <Button
                             className="w-full !whitespace-normal text-center"
                             disabled={preparingDirectionIntentId !== null}
-                            onClick={() => void previewWholeSongDirection(intent)}
+                            onClick={() => void previewWholeSongDirection(intent, index)}
                           >
                             {preparingDirectionIntentId === intent.id
                               ? <LoaderCircle className="animate-spin" size={14} />
@@ -1284,7 +1294,7 @@ export function AiPartnerWorkspace({
                                 : "この案をここで試聴"}
                           </Button>
                           <p className="text-center text-[11px] leading-4 text-body-muted">
-                            原曲＋この案を「冒頭4小節」と「曲の頂点4小節」で比較します。試聴では保存しません。
+                            原曲＋この案で追加する音だけを、冒頭と曲の頂点で比較します。試聴では保存しません。
                           </p>
                           <Button
                             variant="secondary"
