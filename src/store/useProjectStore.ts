@@ -167,6 +167,8 @@ interface GenerationSettings {
 interface ProjectState {
   project: ComposerProject
   selectedSectionId: string | null
+  /** Melody Piano Rollで選んだ、セクション相対の試聴開始拍。 */
+  previewStartBeat: number
   activeBatchId: string | null
   activeCandidateIndex: number
   activePhraseBatchId: string | null
@@ -234,6 +236,7 @@ interface ProjectState {
   duplicateSection: (sectionId: string) => void
   moveSection: (sectionId: string, targetIndex: number) => void
   selectSection: (sectionId: string | null) => void
+  setPreviewStartBeat: (beat: number) => void
   /** AI Partnerの結果一覧から、対象Sectionと候補バッチを同時に開く。 */
   focusCandidateWorkspace: (
     sectionId: string,
@@ -727,6 +730,7 @@ function createStarterProject() {
 export const useProjectStore = create<ProjectState>((set, get) => ({
   project: createEmptyProject("New Song"),
   selectedSectionId: null,
+  previewStartBeat: 0,
   activeBatchId: null,
   activeCandidateIndex: 0,
   activePhraseBatchId: null,
@@ -775,6 +779,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       project: starter.project,
       selectedSectionId: starter.selectedSectionId,
+      previewStartBeat: 0,
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
@@ -1289,6 +1294,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectSection: (sectionId) =>
     set({
       selectedSectionId: sectionId,
+      previewStartBeat: 0,
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,
@@ -1297,6 +1303,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeReactiveBatchId: null,
       activeReactiveCandidateIndex: 0,
     }),
+
+  setPreviewStartBeat: (beat) => set({ previewStartBeat: Math.max(0, beat) }),
 
   focusCandidateWorkspace: (sectionId, generator, batchId = null) =>
     set({

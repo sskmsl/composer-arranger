@@ -60,6 +60,8 @@ export function MelodyWorkspace({
   const regenerateRange = useProjectStore((s) => s.regenerateRange)
   const applySeedOperation = useProjectStore((s) => s.applySeedOperation)
   const workflowNotice = useProjectStore((s) => s.workflowNotice)
+  const previewStartBeat = useProjectStore((s) => s.previewStartBeat)
+  const setPreviewStartBeat = useProjectStore((s) => s.setPreviewStartBeat)
 
   const batch = useCandidateBatch()
   const variant = useActiveVariant()
@@ -344,11 +346,13 @@ export function MelodyWorkspace({
         onToggleBarLock={(bar) => variant && toggleBarLock(variant.id, bar)}
         selection={selection}
         onSelectionChange={setSelection}
+        playbackStartBeat={previewStartBeat}
+        onPlaybackStartChange={setPreviewStartBeat}
       />
       {isMelodyVariant ? (
         <p className="text-[11px] text-ink-muted-48">
-          ノートをクリックでSeed選択(発展操作の対象) / ダブルクリックでPitch Lock切替 / 上部の小節番号でBar
-          Lock切替 / 五線内をドラッグで再生成範囲を選択
+          上部の小節番号をクリックすると、下の再生ボタンがその小節から始まります。鍵アイコンで小節を固定できます。
+          ノート選択・音程固定・範囲を選んだ作り直しにも対応しています。
         </p>
       ) : (
         /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */

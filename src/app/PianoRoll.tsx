@@ -28,6 +28,8 @@ export function PianoRoll({
   onToggleBarLock,
   selection,
   onSelectionChange,
+  playbackStartBeat,
+  onPlaybackStartChange,
 }: {
   variant: MelodyVariant | undefined
   chords: ChordEvent[]
@@ -41,6 +43,8 @@ export function PianoRoll({
   onToggleBarLock: (barIndex: number) => void
   selection: BeatRange | null
   onSelectionChange: (range: BeatRange | null) => void
+  playbackStartBeat: number
+  onPlaybackStartChange: (beat: number) => void
 }) {
   const { beatsPerBar } = parseTimeSignature(timeSignature)
   const preferFlat = songKey ? keyPrefersFlatSpelling(songKey) : false
@@ -108,20 +112,35 @@ export function PianoRoll({
           className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[11px] text-ink-muted-48"
           style={{ width }}
         >
-          {Array.from({ length: bars }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onToggleBarLock(i + 1)}
-              className={`flex items-center justify-center gap-1 border-r border-hairline/60 ${
-                lockedBars.includes(i + 1) ? "bg-primary/25 text-primary-on-dark" : "hover:bg-white/5"
-              }`}
-              style={{ width: beatsPerBar * PX_PER_BEAT }}
-              title="クリックでこの小節をLock"
-            >
-              {lockedBars.includes(i + 1) && <Lock size={9} />}
-              {i + 1}
-            </button>
-          ))}
+          {Array.from({ length: bars }).map((_, i) => {
+            const locked = lockedBars.includes(i + 1)
+            const selectedForPlayback = Math.floor(playbackStartBeat / beatsPerBar) === i
+            return (
+              <div
+                key={i}
+                className={`flex shrink-0 items-center border-r border-hairline/60 ${
+                  selectedForPlayback ? "bg-primary/25 text-primary-on-dark" : locked ? "bg-white/8" : "hover:bg-white/5"
+                }`}
+                style={{ width: beatsPerBar * PX_PER_BEAT }}
+              >
+                <button
+                  className="h-full min-w-0 flex-1 text-center"
+                  onClick={() => onPlaybackStartChange(i * beatsPerBar)}
+                  title={`${i + 1}小節目から再生`}
+                >
+                  {i + 1}
+                </button>
+                <button
+                  className={`mr-1 rounded-sm p-1 ${locked ? "text-primary-on-dark" : "text-ink-muted-48 hover:text-body-on-dark"}`}
+                  onClick={() => onToggleBarLock(i + 1)}
+                  title={locked ? "小節ロックを解除" : "この小節をロック"}
+                  aria-label={locked ? `${i + 1}小節目のロックを解除` : `${i + 1}小節目をロック`}
+                >
+                  <Lock size={9} />
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         <svg width={width} height={height} className="block">

@@ -21,6 +21,7 @@ export function BottomBar() {
   const future = useProjectStore((s) => s.future)
   const deleteVariant = useProjectStore((s) => s.deleteVariant)
   const selectVariantFromHistory = useProjectStore((s) => s.selectVariantFromHistory)
+  const previewStartBeat = useProjectStore((s) => s.previewStartBeat)
 
   const variant = useActiveVariant()
   const [mode, setMode] = useState<PreviewMode>("chords-melody")
@@ -29,6 +30,7 @@ export function BottomBar() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const resumeAfterSeekRef = useRef(false)
   const seekingRef = useRef(false)
+  const playFromBeatRef = useRef<(beat: number) => void>(() => undefined)
 
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
@@ -78,6 +80,7 @@ export function BottomBar() {
       },
     })
   }
+  playFromBeatRef.current = play
   const stop = (reset = false) => {
     const beat = previewPlayer.isPlaying() ? previewPlayer.getCurrentBeat() : playbackBeat
     previewPlayer.stop()
@@ -100,6 +103,12 @@ export function BottomBar() {
     setPlaying(false)
     setPlaybackBeat(0)
   }, [selectedSectionId, variant?.id, mode])
+
+  useEffect(() => {
+    const beat = Math.max(0, Math.min(totalBeats, previewStartBeat))
+    setPlaybackBeat(beat)
+    if (previewPlayer.isPlaying()) playFromBeatRef.current(beat)
+  }, [previewStartBeat, totalBeats])
 
   useEffect(() => () => previewPlayer.stop(), [])
 
