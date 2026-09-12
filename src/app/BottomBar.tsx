@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
 import { previewLayersForMode, previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
@@ -8,8 +8,9 @@ import { Play, Square, Undo2, Redo2, Download, History } from "lucide-react"
 import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import { replaceVariantNotes } from "@/core/sectionLayers"
-import { immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
+import { leadNotesForAudition } from "@/core/auditionMaterial"
 import { parseTimeSignature } from "@/core/section"
+import { formatPlaybackTime } from "@/audio/fullSongPreview"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -24,9 +25,14 @@ export function BottomBar() {
   const variant = useActiveVariant()
   const [mode, setMode] = useState<PreviewMode>("chords-melody")
   const [playing, setPlaying] = useState(false)
+  const [playbackBeat, setPlaybackBeat] = useState(0)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const resumeAfterSeekRef = useRef(false)
+  const seekingRef = useRef(false)
 
   const section = project.sections.find((s) => s.id === selectedSectionId)
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const totalBeats = section ? section.lengthBars * beatsPerBar : 0
   const leadNotes = selectedSectionId
     ? leadNotesForAudition(project, selectedSectionId, variant)
     : []
@@ -52,27 +58,69 @@ export function BottomBar() {
     (previewLayers.melody && leadNotes.length > 0) ||
     (previewLayers.accompaniment && accompanimentPatternNotes.length > 0)
 
-  const play = () => {
+  const play = (requestedStartBeat = playbackBeat) => {
     if (!hasPlayableMaterial) return
-    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
-    const totalBeats = section ? section.lengthBars * beatsPerBar : 0
-    const importedRange = project.sourceImport?.type === "midi"
-      ? immediateAuditionRange(leadNotes, totalBeats, beatsPerBar)
-      : undefined
+    const startBeat = requestedStartBeat >= totalBeats ? 0 : Math.max(0, requestedStartBeat)
+    setPlaybackBeat(startBeat)
     setPlaying(true)
-    previewPlayer.play({
+    // セクション未分割の長尺MIDIも、8小節で切らず最後まで連続再生する。
+    previewPlayer.playContinuous({
       bpm: project.song.tempo,
       chords,
       melody: leadNotes,
       accompaniment: accompanimentPatternNotes,
       mode,
-      range: importedRange,
-      onEnded: () => setPlaying(false),
+      startBeat,
+      range: { startBeat: 0, endBeat: totalBeats },
+      onEnded: () => {
+        setPlaybackBeat(totalBeats)
+        setPlaying(false)
+      },
     })
   }
-  const stop = () => {
+  const stop = (reset = false) => {
+    const beat = previewPlayer.isPlaying() ? previewPlayer.getCurrentBeat() : playbackBeat
     previewPlayer.stop()
     setPlaying(false)
+    setPlaybackBeat(reset ? 0 : Math.max(0, Math.min(totalBeats, beat)))
+  }
+
+  useEffect(() => {
+    if (!playing) return
+    const timer = window.setInterval(() => {
+      if (previewPlayer.isPlaying()) {
+        setPlaybackBeat(Math.max(0, Math.min(totalBeats, previewPlayer.getCurrentBeat())))
+      }
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [playing, totalBeats])
+
+  useEffect(() => {
+    previewPlayer.stop()
+    setPlaying(false)
+    setPlaybackBeat(0)
+  }, [selectedSectionId, variant?.id, mode])
+
+  useEffect(() => () => previewPlayer.stop(), [])
+
+  const beginSeeking = () => {
+    if (seekingRef.current) return
+    seekingRef.current = true
+    resumeAfterSeekRef.current = playing
+    if (playing) {
+      previewPlayer.stop()
+      setPlaying(false)
+    }
+  }
+
+  const commitSeek = (value: number) => {
+    seekingRef.current = false
+    const beat = Math.max(0, Math.min(totalBeats, value))
+    setPlaybackBeat(beat)
+    if (resumeAfterSeekRef.current) {
+      resumeAfterSeekRef.current = false
+      play(beat)
+    }
   }
 
   // 候補ピルの切替(マウス)と再生(キーボード)を分担させ、試聴を繰り返す際に
@@ -141,7 +189,7 @@ export function BottomBar() {
         <option value="accompaniment-only">伴奏パターンのみ</option>
       </Select>
       <IconButton
-        onClick={playing ? stop : play}
+        onClick={playing ? () => stop() : () => play()}
         disabled={!hasPlayableMaterial}
         title={playing ? "停止 (Space)" : "再生 (Space)"}
         className="bg-primary text-on-primary hover:bg-primary-focus"
@@ -158,6 +206,41 @@ export function BottomBar() {
       >
         <Download size={13} /> <span className="hidden sm:inline">MIDI書き出し</span>
       </Button>
+
+      {totalBeats > 0 && (
+        <div className="order-last flex w-full basis-full items-center gap-2 pb-1 text-[11px] text-body-muted sm:pb-2">
+          <span className="w-16 shrink-0 tabular-nums">
+            {formatPlaybackTime(playbackBeat, project.song.tempo)}
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0.25, totalBeats)}
+            step={0.25}
+            value={Math.min(playbackBeat, totalBeats)}
+            aria-label="主旋律の再生位置"
+            className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
+            onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
+            onPointerDown={beginSeeking}
+            onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+            onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
+            onKeyDown={(event) => {
+              if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) beginSeeking()
+            }}
+            onKeyUp={(event) => {
+              if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
+                commitSeek(Number(event.currentTarget.value))
+              }
+            }}
+            onBlur={(event) => {
+              if (seekingRef.current) commitSeek(Number(event.currentTarget.value))
+            }}
+          />
+          <span className="w-24 shrink-0 text-right tabular-nums">
+            {Math.min(section?.lengthBars ?? 0, Math.floor(playbackBeat / beatsPerBar) + 1)} / {section?.lengthBars ?? 0}小節
+          </span>
+        </div>
+      )}
 
       {historyOpen && (
         <div className="absolute bottom-full left-3 z-50 mb-1 max-h-72 w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border border-hairline bg-surface-tile-1 p-2 shadow-[3px_5px_30px_rgba(0,0,0,0.4)] sm:w-80">

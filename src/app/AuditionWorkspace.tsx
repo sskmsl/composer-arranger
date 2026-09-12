@@ -37,6 +37,9 @@ export function AuditionWorkspace() {
     : 0
   const [rangeStart, setRangeStart] = useState(0)
   const [rangeEnd, setRangeEnd] = useState(totalBeats)
+  const isUnsegmentedLongMidi = project.sourceImport?.type === "midi"
+    && project.sections.length === 1
+    && (section?.lengthBars ?? 0) > 8
 
   useEffect(() => {
     const ids = variantKey ? variantKey.split("|") : []
@@ -59,12 +62,12 @@ export function AuditionWorkspace() {
 
   useEffect(() => {
     const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
-    const range = project.sourceImport?.type === "midi"
+    const range = project.sourceImport?.type === "midi" && !isUnsegmentedLongMidi
       ? immediateAuditionRange(activeLeadNotes, totalBeats, beatsPerBar)
       : { startBeat: 0, endBeat: totalBeats }
     setRangeStart(range.startBeat)
     setRangeEnd(range.endBeat)
-  }, [selectedSectionId, activeVariant?.id, activeLeadNotes, totalBeats, project.song.timeSignature, project.sourceImport?.type])
+  }, [selectedSectionId, activeVariant?.id, activeLeadNotes, totalBeats, project.song.timeSignature, project.sourceImport?.type, isUnsegmentedLongMidi])
   // Issue #41: accompaniment="none"(Silence)のセクションは比較試聴でも伴奏を鳴らさない
   const chords = accompanimentEnabled(section)
     ? project.chords
@@ -103,7 +106,14 @@ export function AuditionWorkspace() {
     if (!selectedVariants[slot]) return
     setActiveSlot(slot)
     const options = playbackOptions(slot)
-    if (options && previewPlayer.isPlaying()) previewPlayer.switch(options)
+    if (options && previewPlayer.isPlaying()) {
+      if (options.range.endBeat - options.range.startBeat > 32) {
+        const startBeat = Math.max(options.range.startBeat, Math.min(options.range.endBeat, previewPlayer.getCurrentBeat()))
+        previewPlayer.playContinuous({ ...options, startBeat })
+      } else {
+        previewPlayer.switch(options)
+      }
+    }
   }
 
   useEffect(() => {
@@ -120,7 +130,8 @@ export function AuditionWorkspace() {
     const options = playbackOptions(activeSlot)
     if (!options) return
     setPlaying(true)
-    previewPlayer.play(options)
+    if (options.range.endBeat - options.range.startBeat > 32) previewPlayer.playContinuous(options)
+    else previewPlayer.play(options)
   }
 
   const stop = () => {
@@ -204,7 +215,12 @@ export function AuditionWorkspace() {
             {playing ? <Square size={14} /> : <Play size={14} />}
             {playing ? "停止" : "再生"}
           </Button>
-          {project.sourceImport?.type === "midi" && totalBeats > rangeEnd - rangeStart && (
+          {isUnsegmentedLongMidi && (
+            <span className="text-[11px] text-primary-on-dark">
+              セクション未分割のため、全{section?.lengthBars ?? 0}小節を再生します
+            </span>
+          )}
+          {project.sourceImport?.type === "midi" && !isUnsegmentedLongMidi && totalBeats > rangeEnd - rangeStart && (
             <span className="text-[11px] text-ink-muted-48">
               Imported MIDIは主旋律開始付近の8小節を先に試聴します
             </span>

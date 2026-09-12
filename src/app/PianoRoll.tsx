@@ -78,10 +78,13 @@ export function PianoRoll({
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
         <h3 className="text-[12px] font-medium text-body-on-dark">Melody</h3>
         <span className="text-[11px] text-ink-muted-48">編集可能</span>
+        {bars > 8 && (
+          <span className="ml-auto text-[11px] text-primary-on-dark">全{bars}小節・下のバーで横移動</span>
+        )}
       </div>
       <div
         ref={containerRef}
-        className="relative w-full min-w-0 overflow-auto no-scrollbar"
+        className="relative w-full min-w-0 overflow-auto"
         // Issue #59: 固定px高では画面サイズに関わらず一律にスクロールが発生していたため、
         // viewport高に応じて自動調整する。通常の音域(コンテンツ実高)ならスクロールなしで
         // 全体が収まり、極端に広い音域のときだけ内部スクロールでレイアウト崩れを防ぐ。

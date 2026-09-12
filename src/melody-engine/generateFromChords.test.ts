@@ -36,4 +36,31 @@ describe("generateFromChords / notes never exceed totalBeats (issue #2)", () => 
 
     expect(violations).toEqual([])
   })
+
+  it("156小節を1セクションとして読み込んでも終盤まで主旋律を生成する", () => {
+    const totalBeats = 156 * 4
+    const longChords: ChordEvent[] = Array.from({ length: 156 }, (_, index) => ({
+      id: `long-${index}`,
+      sectionId: "long-section",
+      startBeat: index * 4,
+      durationBeats: 4,
+      symbol: ["Em", "C", "D", "Dsus2"][index % 4],
+      bass: null,
+    }))
+    const { candidates } = generateFromChords({
+      chords: longChords,
+      sectionId: "long-section",
+      sectionRole: "chorus",
+      songProfile: "original-custom",
+      density: "balanced",
+      range: { low: 60, high: 77 },
+      drama: "growing",
+      totalBeats,
+      seed: 156,
+      candidateCount: 1,
+    })
+
+    expect(candidates[0].notes.some((note) => note.startBeat >= 600)).toBe(true)
+    expect(Math.max(...candidates[0].notes.map((note) => note.startBeat + note.durationBeats))).toBeLessThanOrEqual(totalBeats)
+  })
 })
