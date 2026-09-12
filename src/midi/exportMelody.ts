@@ -191,14 +191,77 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
   })
 }
 
+interface MidiSaveFileHandle {
+  createWritable(): Promise<{
+    write(data: Blob): Promise<void>
+    close(): Promise<void>
+  }>
+}
+
+type MidiSavePicker = (options: {
+  suggestedName: string
+  types: Array<{
+    description: string
+    accept: Record<string, string[]>
+  }>
+}) => Promise<MidiSaveFileHandle>
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError"
+}
+
 export function downloadMidi(bytes: Uint8Array, filename: string): void {
-  const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "audio/midi" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = filename.endsWith(".mid") ? filename : `${filename}.mid`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  // Uint8Arrayが大きなArrayBufferの一部分だった場合でも、対象範囲だけを書き出す。
+  // また、クリック直後にObject URLを破棄するとSafari/Chromeの一部環境で
+  // ダウンロード開始前にURLが無効になるため、後片付けは遅延させる。
+  const payload = bytes.slice().buffer
+  const blob = new Blob([payload], { type: "audio/midi" })
+  const safeBaseName = [...filename]
+    .map((character) => character.charCodeAt(0) < 32 ? "-" : character)
+    .join("")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .trim() || "composer-arranger"
+  const downloadName = safeBaseName.toLowerCase().endsWith(".mid")
+    ? safeBaseName
+    : `${safeBaseName}.mid`
+
+  const fallbackDownload = () => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = downloadName
+    a.style.display = "none"
+    document.body.appendChild(a)
+    a.click()
+    window.setTimeout(() => {
+      a.remove()
+      URL.revokeObjectURL(url)
+    }, 1_000)
+  }
+
+  const savePicker = (window as Window & {
+    showSaveFilePicker?: MidiSavePicker
+  }).showSaveFilePicker
+  if (!window.isSecureContext || !savePicker) {
+    fallbackDownload()
+    return
+  }
+
+  // Desktop Chromeでは保存先を明示できるOS標準ダイアログを優先する。
+  // 未対応・一時的な失敗時は通常のブラウザダウンロードへ戻す。
+  void savePicker({
+    suggestedName: downloadName,
+    types: [{
+      description: "Standard MIDI File",
+      accept: { "audio/midi": [".mid"] },
+    }],
+  })
+    .then(async (handle) => {
+      const writable = await handle.createWritable()
+      await writable.write(blob)
+      await writable.close()
+    })
+    .catch((error: unknown) => {
+      if (!isAbortError(error)) fallbackDownload()
+    })
 }
