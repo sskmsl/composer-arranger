@@ -11,6 +11,39 @@ interface TimedEvent {
   id?: string
 }
 
+/**
+ * セクション内の相対時刻で保持されたイベントへ、全曲の小節指定を適用する。
+ * 試聴やセクション単位のMIDI書き出しでも、全曲生成と同じ無音指定を使うための入口。
+ */
+export function applyArrangementTimelineToSectionEvents<T extends TimedEvent>(
+  events: readonly T[],
+  constraints: ArrangementTimelineConstraints | undefined,
+  beatsPerBar: number,
+  sectionStartBar: number,
+  includeMelodyRules: boolean,
+): T[] {
+  if (!constraints) return events.map((event) => ({ ...event }))
+  const sectionStartBeat = (Math.max(1, sectionStartBar) - 1) * beatsPerBar
+  const startRange: ArrangementBarRange[] = includeMelodyRules
+    && constraints.melodyStartBar
+    && constraints.melodyStartBar > 1
+    ? [{ startBar: 1, endBar: constraints.melodyStartBar - 1 }]
+    : []
+  const ranges = [
+    ...constraints.fullSilenceRanges,
+    ...(includeMelodyRules ? constraints.melodySilenceRanges : []),
+    ...startRange,
+  ]
+  const absoluteEvents = events.map((event) => ({
+    ...event,
+    startBeat: event.startBeat + sectionStartBeat,
+  }))
+  return applySilenceRanges(absoluteEvents, ranges, beatsPerBar).map((event) => ({
+    ...event,
+    startBeat: event.startBeat - sectionStartBeat,
+  })) as T[]
+}
+
 function normalizedRanges(
   ranges: readonly ArrangementBarRange[],
   beatsPerBar: number,

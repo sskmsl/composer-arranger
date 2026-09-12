@@ -7,6 +7,7 @@ import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import { distinctMelodyVariantsForAudition, immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
+import { applyArrangementTimelineToSectionEvents } from "@/core/arrangementTimelineConstraints"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
 
@@ -32,8 +33,10 @@ export function AuditionWorkspace() {
   const [mode, setMode] = useState<PreviewMode>("melody-only")
   const [loop, setLoop] = useState(true)
   const [playing, setPlaying] = useState(false)
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const timelineConstraints = project.fullSongArrangement?.plan.directive?.timelineConstraints
   const totalBeats = section
-    ? section.lengthBars * parseTimeSignature(project.song.timeSignature).beatsPerBar
+    ? section.lengthBars * beatsPerBar
     : 0
   const [rangeStart, setRangeStart] = useState(0)
   const [rangeEnd, setRangeEnd] = useState(totalBeats)
@@ -54,37 +57,66 @@ export function AuditionWorkspace() {
   const selectedVariants = slotIds.map((id) => variants.find((variant) => variant.id === id))
   const activeVariant = selectedVariants[activeSlot]
   const activeLeadNotes = useMemo(
-    () => selectedSectionId
-      ? leadNotesForAudition(project, selectedSectionId, activeVariant)
+    () => selectedSectionId && section
+      ? applyArrangementTimelineToSectionEvents(
+          leadNotesForAudition(project, selectedSectionId, activeVariant),
+          timelineConstraints,
+          beatsPerBar,
+          section.startBar,
+          true,
+        )
       : [],
-    [project, selectedSectionId, activeVariant],
+    [project, selectedSectionId, section, activeVariant, timelineConstraints, beatsPerBar],
   )
 
   useEffect(() => {
-    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
     const range = project.sourceImport?.type === "midi" && !isUnsegmentedLongMidi
       ? immediateAuditionRange(activeLeadNotes, totalBeats, beatsPerBar)
       : { startBeat: 0, endBeat: totalBeats }
     setRangeStart(range.startBeat)
     setRangeEnd(range.endBeat)
-  }, [selectedSectionId, activeVariant?.id, activeLeadNotes, totalBeats, project.song.timeSignature, project.sourceImport?.type, isUnsegmentedLongMidi])
+  }, [selectedSectionId, activeVariant?.id, activeLeadNotes, totalBeats, beatsPerBar, project.sourceImport?.type, isUnsegmentedLongMidi])
   // Issue #41: accompaniment="none"(Silence)のセクションは比較試聴でも伴奏を鳴らさない
-  const chords = accompanimentEnabled(section)
+  const rawChords = accompanimentEnabled(section)
     ? project.chords
         .filter((chord) => chord.sectionId === selectedSectionId)
         .sort((a, b) => a.startBeat - b.startBeat)
     : []
+  const chords = section
+    ? applyArrangementTimelineToSectionEvents(
+        rawChords,
+        timelineConstraints,
+        beatsPerBar,
+        section.startBar,
+        false,
+      )
+    : []
   const playbackOptions = (slot: number) => {
     const variant = selectedVariants[slot]
     if (!variant) return null
-    const leadNotes = selectedSectionId
-      ? leadNotesForAudition(project, selectedSectionId, variant)
+    const leadNotes = selectedSectionId && section
+      ? applyArrangementTimelineToSectionEvents(
+          leadNotesForAudition(project, selectedSectionId, variant),
+          timelineConstraints,
+          beatsPerBar,
+          section.startBar,
+          true,
+        )
       : []
-    const accompanimentPatternNotes = selectedSectionId
+    const rawAccompanimentPatternNotes = selectedSectionId
       ? accompanimentPatternNotesForSection(
           project,
           selectedSectionId,
           leadNotes,
+        )
+      : []
+    const accompanimentPatternNotes = section
+      ? applyArrangementTimelineToSectionEvents(
+          rawAccompanimentPatternNotes,
+          timelineConstraints,
+          beatsPerBar,
+          section.startBar,
+          false,
         )
       : []
     return {

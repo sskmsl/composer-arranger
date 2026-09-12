@@ -67,6 +67,30 @@ describe("Arrangement Generator store actions", () => {
     expect(second.plan.brief).toBe("first")
     expect(second.tracks.every((track) => track.generationRevision === 1)).toBe(true)
   })
+
+  it("別の全曲生成入口を使ってもAI相談の曲構成指定を保持する", () => {
+    useProjectStore.getState().generateFullSongArrangement("主旋律は3小節目から", {
+      intention: "主旋律を保護する",
+      timelineConstraints: {
+        preserveMelody: true,
+        fullSilenceRanges: [{ startBar: 4, endBar: 4 }],
+        melodySilenceRanges: [],
+        melodyStartBar: 3,
+      },
+    })
+    useProjectStore.getState().generateFullSongArrangement("別の方向へ", {
+      intention: "伴奏だけ変更する",
+      character: "rhythmic",
+    })
+
+    expect(useProjectStore.getState().project.fullSongArrangement?.plan.directive?.timelineConstraints)
+      .toEqual({
+        preserveMelody: true,
+        fullSilenceRanges: [{ startBar: 4, endBar: 4 }],
+        melodySilenceRanges: [],
+        melodyStartBar: 3,
+      })
+  })
 })
 
 describe("初見ユーザーの新規作成", () => {

@@ -11,6 +11,7 @@ import { replaceVariantNotes } from "@/core/sectionLayers"
 import { leadNotesForAudition } from "@/core/auditionMaterial"
 import { parseTimeSignature } from "@/core/section"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
+import { applyArrangementTimelineToSectionEvents } from "@/core/arrangementTimelineConstraints"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -35,23 +36,51 @@ export function BottomBar() {
   const section = project.sections.find((s) => s.id === selectedSectionId)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const totalBeats = section ? section.lengthBars * beatsPerBar : 0
-  const leadNotes = selectedSectionId
+  const timelineConstraints = project.fullSongArrangement?.plan.directive?.timelineConstraints
+  const rawLeadNotes = selectedSectionId
     ? leadNotesForAudition(project, selectedSectionId, variant)
+    : []
+  const leadNotes = section
+    ? applyArrangementTimelineToSectionEvents(
+        rawLeadNotes,
+        timelineConstraints,
+        beatsPerBar,
+        section.startBar,
+        true,
+      )
     : []
   // Issue #41: accompaniment="none"(Silence)では伴奏を鳴らさない。
   // 保存するだけで消費しないと Silence と Chords Only が同じ音になってしまう。
   const chordsEnabled = accompanimentEnabled(section)
-  const chords = chordsEnabled
+  const rawChords = chordsEnabled
     ? project.chords.filter((c) => c.sectionId === selectedSectionId).sort((a, b) => a.startBeat - b.startBeat)
+    : []
+  const chords = section
+    ? applyArrangementTimelineToSectionEvents(
+        rawChords,
+        timelineConstraints,
+        beatsPerBar,
+        section.startBar,
+        false,
+      )
     : []
   const sectionVariants = project.melodyVariants
     .filter((v) => v.sectionId === selectedSectionId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const accompanimentPatternNotes = selectedSectionId
+  const rawAccompanimentPatternNotes = selectedSectionId
     ? accompanimentPatternNotesForSection(
         project,
         selectedSectionId,
         leadNotes,
+      )
+    : []
+  const accompanimentPatternNotes = section
+    ? applyArrangementTimelineToSectionEvents(
+        rawAccompanimentPatternNotes,
+        timelineConstraints,
+        beatsPerBar,
+        section.startBar,
+        false,
       )
     : []
   const previewLayers = previewLayersForMode(mode)

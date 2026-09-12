@@ -980,10 +980,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const nextRevision = current
       ? Math.max(0, ...current.tracks.map((track) => track.generationRevision)) + 1
       : 0
+    // 別の入口から全曲案を作り直しても、AI相談で確定した小節指定を落とさない。
+    // 新しいAI案がtimelineConstraintsを明示した場合だけ、その内容で更新する。
+    const effectiveDirective = directive
+      ? {
+          ...directive,
+          timelineConstraints: directive.timelineConstraints
+            ?? current?.plan.directive?.timelineConstraints,
+        }
+      : current?.plan.directive
     const fullSongArrangement = generateFullSongArrangement(prev, {
       seed: current ? current.plan.seed + 1 : undefined,
       brief: brief ?? current?.plan.brief ?? prev.arrangementDirectorWorkspace?.brief ?? "",
-      directive: directive ?? current?.plan.directive,
+      directive: effectiveDirective,
       revision: nextRevision,
     })
     set({

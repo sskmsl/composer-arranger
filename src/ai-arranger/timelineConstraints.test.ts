@@ -27,4 +27,24 @@ describe("AI arrangement timeline constraints", () => {
       melodyStartBar: 9,
     })
   })
+
+  it("自然な言い換えでも主旋律開始と完全無音を抽出する", () => {
+    expect(parseArrangementTimelineConstraints(
+      "メロディは9小節目から。25小節から28小節までは何も鳴らさない",
+      80,
+    )).toMatchObject({
+      fullSilenceRanges: [{ startBar: 25, endBar: 28 }],
+      melodyStartBar: 9,
+    })
+  })
+
+  it("主旋律だけ休む指定と、全パートを止める指定を区別する", () => {
+    expect(parseArrangementTimelineConstraints(
+      "冒頭1〜8小節は主旋律を入れない。45～48小節は音を全部消す",
+      80,
+    )).toMatchObject({
+      fullSilenceRanges: [{ startBar: 45, endBar: 48 }],
+      melodySilenceRanges: [{ startBar: 1, endBar: 8 }],
+    })
+  })
 })

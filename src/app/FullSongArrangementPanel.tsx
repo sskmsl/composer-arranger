@@ -25,6 +25,11 @@ export function FullSongArrangementPanel() {
   const setMuted = useProjectStore((state) => state.setArrangementTrackMuted)
   const arrangement = project.fullSongArrangement
   const timelineConstraints = arrangement?.plan.directive?.timelineConstraints
+  const hasTimelineInstructions = Boolean(
+    (timelineConstraints?.melodyStartBar && timelineConstraints.melodyStartBar > 1)
+    || timelineConstraints?.fullSilenceRanges.length
+    || timelineConstraints?.melodySilenceRanges.length,
+  )
   const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | "all" | null>(null)
   const [targetSectionId, setTargetSectionId] = useState<string>("")
   const [regenerating, setRegenerating] = useState(false)
@@ -171,7 +176,7 @@ export function FullSongArrangementPanel() {
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          {timelineConstraints && (
+          {timelineConstraints && hasTimelineInstructions && (
             <div className="rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2.5 text-[12px] text-emerald-50">
               <strong className="font-semibold">指定した小節を反映済み</strong>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-emerald-100/85">
@@ -182,6 +187,13 @@ export function FullSongArrangementPanel() {
                 {timelineConstraints.fullSilenceRanges.length > 0 && (
                   <span>
                     完全無音：{timelineConstraints.fullSilenceRanges.map((range) =>
+                      range.startBar === range.endBar ? `${range.startBar}小節` : `${range.startBar}〜${range.endBar}小節`,
+                    ).join("、")}
+                  </span>
+                )}
+                {timelineConstraints.melodySilenceRanges.length > 0 && (
+                  <span>
+                    主旋律を休む：{timelineConstraints.melodySilenceRanges.map((range) =>
                       range.startBar === range.endBar ? `${range.startBar}小節` : `${range.startBar}〜${range.endBar}小節`,
                     ).join("、")}
                   </span>

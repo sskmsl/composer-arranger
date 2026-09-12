@@ -56,7 +56,10 @@ import {
   directionAuditionSeed,
   directionAuditionTracks,
 } from "@/ai-arranger/directionAudition"
-import { directiveWithTimelineConstraints } from "@/ai-arranger/timelineConstraints"
+import {
+  directiveWithTimelineConstraints,
+  parseArrangementTimelineConstraints,
+} from "@/ai-arranger/timelineConstraints"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -178,6 +181,37 @@ export function AiPartnerWorkspace({
   const session = sessionId
     ? project.aiPartnerSessions?.[sessionId]
     : undefined
+  const projectTotalBars = project.sections.reduce(
+    (sum, candidate) => sum + Math.max(1, candidate.lengthBars),
+    0,
+  )
+  const recognizedTimelineConstraints = useMemo(
+    () => parseArrangementTimelineConstraints(
+      [
+        project.arrangementDirectorWorkspace?.brief ?? "",
+        session?.turns.at(-1)?.userMessage ?? "",
+        ...(session?.confirmedConstraints ?? []),
+        prompt,
+      ].filter(Boolean).join("。"),
+      projectTotalBars,
+    ),
+    [project.arrangementDirectorWorkspace?.brief, projectTotalBars, prompt, session],
+  )
+  const recognizedTimelineLabels = [
+    recognizedTimelineConstraints.melodyStartBar && recognizedTimelineConstraints.melodyStartBar > 1
+      ? `主旋律は${recognizedTimelineConstraints.melodyStartBar}小節目から`
+      : null,
+    recognizedTimelineConstraints.melodySilenceRanges.length > 0
+      ? `主旋律を休む：${recognizedTimelineConstraints.melodySilenceRanges.map((range) =>
+          range.startBar === range.endBar ? `${range.startBar}小節` : `${range.startBar}〜${range.endBar}小節`,
+        ).join("、")}`
+      : null,
+    recognizedTimelineConstraints.fullSilenceRanges.length > 0
+      ? `完全無音：${recognizedTimelineConstraints.fullSilenceRanges.map((range) =>
+          range.startBar === range.endBar ? `${range.startBar}小節` : `${range.startBar}〜${range.endBar}小節`,
+        ).join("、")}`
+      : null,
+  ].filter((label): label is string => Boolean(label))
   const director = context?.arrangementDirector
   const currentDirectorPlan = director?.sections.find(
     (plan) => plan.sectionId === effectiveSectionId,
@@ -302,6 +336,7 @@ export function AiPartnerWorkspace({
     setGeneratingIntentId(intent.id)
     if (isWholeSongConsultation) {
       const instructionBrief = [
+        project.arrangementDirectorWorkspace?.brief ?? "",
         session?.turns.at(-1)?.userMessage ?? "",
         ...(session?.confirmedConstraints ?? []),
       ].filter(Boolean).join("。")
@@ -413,6 +448,7 @@ export function AiPartnerWorkspace({
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     try {
       const instructionBrief = [
+        project.arrangementDirectorWorkspace?.brief ?? "",
         session?.turns.at(-1)?.userMessage ?? "",
         ...(session?.confirmedConstraints ?? []),
         intent.title,
@@ -1058,6 +1094,12 @@ export function AiPartnerWorkspace({
               className="resize-y rounded-lg border border-hairline bg-surface-tile-2 px-3 py-2.5 text-[14px] leading-6 text-body-on-dark outline-none placeholder:text-ink-muted-48 focus:border-primary-focus"
             />
           </label>
+          {isWholeSongConsultation && recognizedTimelineLabels.length > 0 && (
+            <div className="mt-2 rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2 text-[11px] text-emerald-100">
+              <strong className="font-semibold">実際の曲構成へ反映する指定</strong>
+              <span className="ml-2">{recognizedTimelineLabels.join(" ／ ")}</span>
+            </div>
+          )}
           {!session?.turns.length && <div className="mt-2 flex flex-wrap gap-2">
             {EXAMPLE_PROMPTS.map((example) => (
               <Pill key={example} onClick={() => setPrompt(example)} className="!text-[11px]">
