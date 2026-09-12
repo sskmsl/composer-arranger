@@ -425,4 +425,27 @@ describe("Arrangement Generator", () => {
 
     expect(violations).toEqual([])
   })
+
+  it("完全無音に指定した小節では全生成トラックの持続音も止める", () => {
+    const result = generateFullSongArrangement(project(), {
+      seed: 404,
+      directive: {
+        intention: "25〜28小節は完全無音",
+        timelineConstraints: {
+          preserveMelody: true,
+          fullSilenceRanges: [{ startBar: 25, endBar: 28 }],
+          melodySilenceRanges: [],
+        },
+      },
+    })
+    const silenceStartBeat = 24 * 4
+    const silenceEndBeat = 28 * 4
+    const overlaps = result.tracks.flatMap((track) => track.notes.filter((note) =>
+      note.startBeat < silenceEndBeat && note.startBeat + note.durationBeats > silenceStartBeat,
+    ))
+    expect(overlaps).toEqual([])
+    expect(result.plan.directive?.timelineConstraints?.fullSilenceRanges).toEqual([
+      { startBar: 25, endBar: 28 },
+    ])
+  })
 })

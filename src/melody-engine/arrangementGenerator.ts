@@ -21,6 +21,7 @@ import {
 } from "@/core/arrangementGeneration"
 import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial, normalizeSectionTimeline } from "@/core/sectionTimeline"
+import { applyArrangementTimelineToTracks } from "@/core/arrangementTimelineConstraints"
 import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDirector"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
@@ -1130,16 +1131,21 @@ function generateArrangementCandidate(
 ): FullSongArrangement {
   const plan = buildFullSongArrangementPlan(project, analysis, seed, brief, directive, approach)
   const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
+  const performedTracks = applyArrangementPerformanceDirector(
+    project,
+    plan,
+    activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+  )
   const result: FullSongArrangement = {
     version: "1.0.0",
     id: `arrangement:${seed}`,
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: applyArrangementPerformanceDirector(
-      project,
-      plan,
-      activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+    tracks: applyArrangementTimelineToTracks(
+      performedTracks,
+      plan.directive?.timelineConstraints,
+      parseTimeSignature(project.song.timeSignature).beatsPerBar,
     ),
   }
   return { ...result, quality: reviewGeneratedArrangement(result, project) }
@@ -1251,11 +1257,11 @@ export function regenerateFullSongArrangementTarget(
   }
   const currentTrack = current.tracks.find((track) => track.id === target.trackId) ?? emptyTrack(target.trackId)
   const revision = currentTrack.generationRevision + 1
-  const regenerated = applyArrangementPerformanceDirector(
+  const regenerated = applyArrangementTimelineToTracks(applyArrangementPerformanceDirector(
     project,
     plan,
     [generateTrack(project, plan, target.trackId, revision, target.sectionId)],
-  )[0]
+  ), plan.directive?.timelineConstraints, parseTimeSignature(project.song.timeSignature).beatsPerBar)[0]
   const tracks = current.tracks.some((track) => track.id === target.trackId)
     ? current.tracks.map((track) => {
         if (track.id !== target.trackId) return track

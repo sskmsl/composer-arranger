@@ -123,14 +123,24 @@ describe("AI Arrangement context", () => {
       textureDensity: "sparse",
     })
     expect(context?.sourceProtection).toEqual({
+      source: "imported-midi",
       preserveChords: true,
       preserveMelody: true,
       generationTargets: ["Accompaniment", "Counter", "Decoration", "Signature Phrase", "Transition"],
       instructions: [
-        "Imported MIDIのコード進行を変更しない",
-        "Imported MIDIの主旋律ノートを変更しない",
+        "現在のコード進行を変更しない",
+        "採用中の主旋律ノートの音程・位置・長さを変更しない",
+        "無音小節や登場位置の指定は、主旋律を消去せず再生範囲として適用する",
         "提案と実音生成は独立した補助パートだけを対象にする",
       ],
+    })
+  })
+
+  it("コードから生成して採用した主旋律も保護対象としてAIへ渡す", () => {
+    expect(buildAiArrangementContext(project(), "intro")?.sourceProtection).toMatchObject({
+      source: "active-melody",
+      preserveChords: true,
+      preserveMelody: true,
     })
   })
 

@@ -124,7 +124,10 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
 
 export function exportSongMidi(project: ComposerProject, includeChords = true): Uint8Array {
   const ts = parseTimeSignature(project.song.timeSignature)
-  const material = buildSongPlaybackMaterial(project)
+  const material = buildSongPlaybackMaterial(
+    project,
+    project.fullSongArrangement?.plan.directive?.timelineConstraints,
+  )
   const toSmfNote = (note: MelodyNote) => ({
     pitch: note.pitch,
     start: beatsToTicks(note.startBeat),

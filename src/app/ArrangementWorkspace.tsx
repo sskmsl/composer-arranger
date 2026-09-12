@@ -26,7 +26,10 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const [playbackBeat, setPlaybackBeat] = useState(0)
   const playbackRunRef = useRef(0)
   const seekingRef = useRef(false)
-  const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
+  const material = useMemo(
+    () => buildSongPlaybackMaterial(project, project.fullSongArrangement?.plan.directive?.timelineConstraints),
+    [project],
+  )
 
   const playSong = (requestedStartBeat = playbackBeat) => {
     if (

@@ -56,6 +56,7 @@ import {
   directionAuditionSeed,
   directionAuditionTracks,
 } from "@/ai-arranger/directionAudition"
+import { directiveWithTimelineConstraints } from "@/ai-arranger/timelineConstraints"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -75,9 +76,9 @@ import { AiPartnerControlCenter } from "./AiPartnerControlCenter"
 
 const EXAMPLE_PROMPTS = [
   "コード・メロディ・テンポは維持。Section間のフレーズと、主旋律とは異なる音域・音階感のバックシンセを全曲に提案して",
+  "主旋律は変えず、1〜8小節は主旋律なし、25〜28小節は完全無音にして",
   "曲全体で余白と残響を守り、サビまで段階的に世界を開いて",
   "主旋律を壊さず、Sectionごとの役割差でサビ前の期待を高めて",
-  "音を足しすぎず、全曲を通して必要な第二の顔を設計して",
 ]
 
 const DEFAULT_WHOLE_SONG_PROMPT = "コード・主旋律・テンポは変えず、曲全体を判断して、必要な伴奏・つなぎ・装飾だけを性格の異なる3案で提案して"
@@ -305,6 +306,12 @@ export function AiPartnerWorkspace({
         ...(session?.confirmedConstraints ?? []),
       ].filter(Boolean).join("。")
       const { direction } = wholeSongDirectionForAiIntent(project, intent, instructionBrief)
+      const totalBars = project.sections.reduce((sum, candidate) => sum + Math.max(1, candidate.lengthBars), 0)
+      const generationDirective = directiveWithTimelineConstraints(
+        directionAuditionDirectiveForIntent(intent),
+        instructionBrief,
+        totalBars,
+      )
       const availableActions = direction.actions.filter(
         (action) => action.status === "available",
       )
@@ -314,7 +321,7 @@ export function AiPartnerWorkspace({
         intent.title,
         intent.generationBrief,
         intent.necessityReason ?? intent.why,
-      ].filter(Boolean).join("。"), directionAuditionDirectiveForIntent(intent))
+      ].filter(Boolean).join("。"), generationDirective)
       setWholeSongGeneration({
         intentId: intent.id,
         directionTitle: `${intent.title} → ${direction.title}`,
@@ -411,14 +418,19 @@ export function AiPartnerWorkspace({
         intent.title,
         intent.generationBrief,
       ].filter(Boolean).join("。")
-      const directive = directionAuditionDirectiveForIntent(intent)
+      const totalBars = project.sections.reduce((sum, candidate) => sum + Math.max(1, candidate.lengthBars), 0)
+      const directive = directiveWithTimelineConstraints(
+        directionAuditionDirectiveForIntent(intent),
+        instructionBrief,
+        totalBars,
+      )
       const arrangement = buildFullSongArrangement(project, {
         seed: directionAuditionSeed(project, response?.requestId ?? "local", intent, directionIndex),
         brief: instructionBrief,
         directive,
       })
       const auditionTracks = directionAuditionTracks(arrangement.tracks, directive.add ?? [])
-      const material = buildSongPlaybackMaterial(project)
+      const material = buildSongPlaybackMaterial(project, directive.timelineConstraints)
       const ranges = directionAuditionRanges(project, arrangement, auditionTracks)
       if (auditionTracks.length === 0 && intent.generator !== "none") {
         setError("この案の追加音を作れませんでした。別の案を選ぶか、相談内容を少し具体的にしてください。")
@@ -916,7 +928,7 @@ export function AiPartnerWorkspace({
               <MessageCircle size={15} className="text-primary-on-dark" /> {session?.turns.length ? "AIと制作意図を詰める" : "まずAIへ制作意図を伝える"}
             </div>
             <p className="mt-1 text-[11px] leading-4 text-body-muted">
-              コード・メロディ・テンポなど守るものと、追加したい役割を自然な言葉で指定してください。標準では曲全体を通して判断します。
+              コード・主旋律はそのまま保護します。「9小節目から主旋律」「25〜28小節は完全無音」のような位置指定もできます。
             </p>
           </div>
           {!response && !(session?.turns.length) && (

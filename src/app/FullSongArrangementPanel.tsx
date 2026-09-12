@@ -24,6 +24,7 @@ export function FullSongArrangementPanel() {
   const regenerate = useProjectStore((state) => state.regenerateFullSongArrangementTarget)
   const setMuted = useProjectStore((state) => state.setArrangementTrackMuted)
   const arrangement = project.fullSongArrangement
+  const timelineConstraints = arrangement?.plan.directive?.timelineConstraints
   const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | "all" | null>(null)
   const [targetSectionId, setTargetSectionId] = useState<string>("")
   const [regenerating, setRegenerating] = useState(false)
@@ -32,7 +33,10 @@ export function FullSongArrangementPanel() {
   const [auditionMix, setAuditionMix] = useState<AuditionMix>("combined")
   const playbackRunRef = useRef(0)
   const seekingRef = useRef(false)
-  const material = useMemo(() => buildSongPlaybackMaterial(project), [project])
+  const material = useMemo(
+    () => buildSongPlaybackMaterial(project, arrangement?.plan.directive?.timelineConstraints),
+    [arrangement?.plan.directive?.timelineConstraints, project],
+  )
 
   const stop = (reset = false) => {
     const currentBeat = previewPlayer.isPlaying()
@@ -167,6 +171,24 @@ export function FullSongArrangementPanel() {
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-4">
+          {timelineConstraints && (
+            <div className="rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2.5 text-[12px] text-emerald-50">
+              <strong className="font-semibold">指定した小節を反映済み</strong>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-emerald-100/85">
+                <span>主旋律の音程・リズムは変更しません</span>
+                {timelineConstraints.melodyStartBar && timelineConstraints.melodyStartBar > 1 && (
+                  <span>主旋律：{timelineConstraints.melodyStartBar}小節目から</span>
+                )}
+                {timelineConstraints.fullSilenceRanges.length > 0 && (
+                  <span>
+                    完全無音：{timelineConstraints.fullSilenceRanges.map((range) =>
+                      range.startBar === range.endBar ? `${range.startBar}小節` : `${range.startBar}〜${range.endBar}小節`,
+                    ).join("、")}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           <details className="rounded-md border border-hairline bg-black/10 p-3">
             <summary className="cursor-pointer text-[13px] font-semibold">セクション別の生成設計</summary>
             <div className="mt-3 grid gap-2 xl:grid-cols-2">

@@ -10,6 +10,8 @@ import {
   applyPerformanceExecution,
   buildDefaultPerformancePlan,
 } from "./performanceExecution"
+import type { ArrangementTimelineConstraints } from "./arrangementGeneration"
+import { applyArrangementTimelineToMelody, applySilenceRanges } from "./arrangementTimelineConstraints"
 
 /** 配列順を曲順として扱い、startBarを1始まりで隙間なく再計算する。 */
 export function normalizeSectionTimeline(sections: Section[]): Section[] {
@@ -95,7 +97,10 @@ function importedProtectedMelody(project: ComposerProject): MelodyNote[] {
 }
 
 /** セクション相対イベントを曲全体の絶対拍へ変換する。 */
-export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybackMaterial {
+export function buildSongPlaybackMaterial(
+  project: ComposerProject,
+  timelineConstraints?: ArrangementTimelineConstraints,
+): SongPlaybackMaterial {
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const chords: ChordEvent[] = []
   const lead: MelodyNote[] = []
@@ -272,16 +277,26 @@ export function buildSongPlaybackMaterial(project: ComposerProject): SongPlaybac
   const byBeat = (a: MelodyNote, b: MelodyNote) => a.startBeat - b.startBeat
   if (protectedImportedLead.length > 0) lead.push(...protectedImportedLead)
   const totalBars = project.sections.reduce((sum, section) => sum + Math.max(1, section.lengthBars), 0)
+  const constrainedLead = applyArrangementTimelineToMelody(lead, timelineConstraints, beatsPerBar).sort(byBeat)
+  const fullSilenceRanges = timelineConstraints?.fullSilenceRanges ?? []
+  const constrainedChords = applySilenceRanges(chords, fullSilenceRanges, beatsPerBar)
+    .sort((a, b) => a.startBeat - b.startBeat)
+  const constrainedAccompaniment = applySilenceRanges(accompaniment, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedPattern = applySilenceRanges(accompanimentPattern, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedBacking = applySilenceRanges(importedBacking, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedReactive = applySilenceRanges(reactiveLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedCounter = applySilenceRanges(counterLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedDecoration = applySilenceRanges(decorationLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
   return {
-    chords: chords.sort((a, b) => a.startBeat - b.startBeat),
-    melody: [...lead, ...accompaniment, ...reactiveLayers].sort(byBeat),
-    lead: lead.sort(byBeat),
-    accompaniment: accompaniment.sort(byBeat),
-    accompanimentPattern: accompanimentPattern.sort(byBeat),
-    importedBacking,
-    reactiveLayers: reactiveLayers.sort(byBeat),
-    counterLayers: counterLayers.sort(byBeat),
-    decorationLayers: decorationLayers.sort(byBeat),
+    chords: constrainedChords,
+    melody: [...constrainedLead, ...constrainedAccompaniment, ...constrainedReactive].sort(byBeat),
+    lead: constrainedLead,
+    accompaniment: constrainedAccompaniment,
+    accompanimentPattern: constrainedPattern,
+    importedBacking: constrainedBacking,
+    reactiveLayers: constrainedReactive,
+    counterLayers: constrainedCounter,
+    decorationLayers: constrainedDecoration,
     totalBeats: totalBars * beatsPerBar,
   }
 }

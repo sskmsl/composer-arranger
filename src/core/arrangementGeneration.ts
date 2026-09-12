@@ -153,6 +153,23 @@ export interface ArrangementPlan {
   sections: ArrangementSectionPlan[]
 }
 
+export interface ArrangementBarRange {
+  /** 1始まり・両端を含む小節範囲。 */
+  startBar: number
+  endBar: number
+}
+
+/**
+ * AI相談で確定した曲中位置の制約。
+ * 主旋律そのものを書き換えず、再生・生成・書き出しの最終段で適用する。
+ */
+export interface ArrangementTimelineConstraints {
+  preserveMelody: boolean
+  fullSilenceRanges: ArrangementBarRange[]
+  melodySilenceRanges: ArrangementBarRange[]
+  melodyStartBar?: number
+}
+
 export interface ArrangementGenerationDirective {
   sectionId?: string
   intention: string
@@ -161,6 +178,7 @@ export interface ArrangementGenerationDirective {
   add?: ArrangementTrackId[]
   preserve?: ArrangementTrackId[]
   surpriseLevel?: number
+  timelineConstraints?: ArrangementTimelineConstraints
 }
 
 export interface GeneratedArrangementNote extends MelodyNote {

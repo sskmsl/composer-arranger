@@ -17,6 +17,7 @@ import { analyzeImportedArrangementSection } from "./importedArrangementAnalysis
 import {
   identifyArrangementSurpriseOpportunities,
 } from "@/core/arrangementSurprise"
+import { hasActiveLeadMelody } from "@/core/melodyProtection"
 
 const MAX_MELODY_NOTES = 160
 
@@ -291,15 +292,17 @@ export function buildAiArrangementContext(
           },
         }
       : {}),
-    ...(project.sourceImport?.type === "midi"
+    ...(hasActiveLeadMelody(project)
       ? {
           sourceProtection: {
+            source: project.sourceImport?.type === "midi" ? "imported-midi" as const : "active-melody" as const,
             preserveChords: true,
             preserveMelody: true,
             generationTargets: ["Accompaniment", "Counter", "Decoration", "Signature Phrase", "Transition"],
             instructions: [
-              "Imported MIDIのコード進行を変更しない",
-              "Imported MIDIの主旋律ノートを変更しない",
+              "現在のコード進行を変更しない",
+              "採用中の主旋律ノートの音程・位置・長さを変更しない",
+              "無音小節や登場位置の指定は、主旋律を消去せず再生範囲として適用する",
               "提案と実音生成は独立した補助パートだけを対象にする",
             ],
           },

@@ -87,7 +87,10 @@ function chordGuideNotes(project: ComposerProject): {
   bass: MelodyNote[]
   upper: MelodyNote[]
 } {
-  const material = buildSongPlaybackMaterial(project)
+  const material = buildSongPlaybackMaterial(
+    project,
+    project.fullSongArrangement?.plan.directive?.timelineConstraints,
+  )
   const bass: MelodyNote[] = []
   const upper: MelodyNote[] = []
   for (const [index, chord] of material.chords.entries()) {
@@ -117,7 +120,10 @@ function chordGuideNotes(project: ComposerProject): {
 }
 
 function sources(project: ComposerProject): TrackSource[] {
-  const material = buildSongPlaybackMaterial(project)
+  const material = buildSongPlaybackMaterial(
+    project,
+    project.fullSongArrangement?.plan.directive?.timelineConstraints,
+  )
   const guides = chordGuideNotes(project)
   return [
     {

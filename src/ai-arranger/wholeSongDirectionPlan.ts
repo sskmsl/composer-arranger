@@ -1,4 +1,5 @@
 import type { ComposerProject } from "@/core/project"
+import { hasActiveLeadMelody } from "@/core/melodyProtection"
 import { buildArrangementDirectorBlueprint } from "./arrangementDirector"
 import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
 import { reviewArrangementSection } from "./arrangementReview"
@@ -483,8 +484,10 @@ export function buildWholeSongDirectionProgram(
   )
   const wholeReview = reviewWholeSongArrangement(project, director, reviews)
   const recommended = recommendation(project, brief)
-  const importedSourceProtection = project.sourceImport?.type === "midi"
-    ? ["Imported MIDIのコードを変更しない", "Imported MIDIの主旋律を変更しない"]
+  const importedSourceProtection = hasActiveLeadMelody(project)
+    ? project.sourceImport?.type === "midi"
+      ? ["Imported MIDIのコードを変更しない", "Imported MIDIの主旋律を変更しない"]
+      : ["現在のコードを変更しない", "採用中の主旋律を変更しない"]
     : []
   const makeActions = (id: WholeSongDirectionId) => applyBriefToActions(
     project,

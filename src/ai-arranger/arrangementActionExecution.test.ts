@@ -88,6 +88,37 @@ describe("Arrangement action execution", () => {
     })
     expect(JSON.stringify(useProjectStore.getState().project.melodyVariants)).toBe(before)
     expect(JSON.stringify(useProjectStore.getState().project.chords)).toBe(chordsBefore)
-    expect(useProjectStore.getState().workflowNotice).toContain("読み込んだ主旋律を変更・再生成しません")
+    expect(useProjectStore.getState().workflowNotice).toContain("採用中の主旋律は変更・再生成しません")
+  })
+
+  it("コードから生成して採用した主旋律もAIから再生成しない", () => {
+    const project = createEmptyProject("Generated melody")
+    project.sections = [{ id: "song", name: "Song", role: "verse", startBar: 1, lengthBars: 4 }]
+    project.chords = [{ id: "chord", sectionId: "song", startBeat: 0, durationBeats: 16, symbol: "Am", bass: null }]
+    project.melodyVariants = [{
+      id: "generated-melody",
+      name: "Generated Melody",
+      sectionId: "song",
+      sourceMode: "generate",
+      notes: [{ id: "generated-note", startBeat: 0, durationBeats: 1, pitch: 69, velocity: 82, locks: [] }],
+      phrasePlans: [],
+      lockedBars: [],
+      motifLocked: false,
+      features: null,
+      generatorVersion: "test",
+      seed: 7,
+      songProfile: project.song.songProfile,
+      parentMelodyId: null,
+      batchId: "generated",
+      createdAt: "2026-09-13T00:00:00.000Z",
+    }]
+    project.sectionMelodyAssignments = { song: "generated-melody" }
+    project.activeMelodyId = "generated-melody"
+    useProjectStore.setState({ project, selectedSectionId: "song", workflowNotice: null })
+
+    const before = JSON.stringify(project.melodyVariants)
+    expect(executeAiArrangementIntent("song", melodyIntent())).toEqual({ generated: false, target: "arrangement" })
+    expect(JSON.stringify(useProjectStore.getState().project.melodyVariants)).toBe(before)
+    expect(useProjectStore.getState().workflowNotice).toContain("伴奏・つなぎ・装飾だけを追加")
   })
 })

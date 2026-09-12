@@ -11,6 +11,7 @@ import {
 } from "./generationBridge"
 import type { AiArrangementIntent } from "./types"
 import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
+import { hasActiveLeadMelody } from "@/core/melodyProtection"
 import {
   intentForWholeSongAction,
   type WholeSongArrangementAction,
@@ -47,9 +48,9 @@ export function executeAiArrangementIntent(
     return { generated: false, target: targetTabForIntent(intent) }
   }
   const before = useProjectStore.getState()
-  if (before.project.sourceImport?.type === "midi" && intent.generator === "melody") {
+  if (hasActiveLeadMelody(before.project, sectionId) && intent.generator === "melody") {
     useProjectStore.setState({
-      workflowNotice: "原曲保護モードでは、読み込んだ主旋律を変更・再生成しません。補助パートを選んでください。",
+      workflowNotice: "採用中の主旋律は変更・再生成しません。AIでは伴奏・つなぎ・装飾だけを追加します。",
     })
     return { generated: false, target: "arrangement" }
   }

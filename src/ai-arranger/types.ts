@@ -529,8 +529,9 @@ export interface AiArrangementContext {
     }>
     observations: string[]
   }
-  /** Imported MIDIを分析素材として使う場合に、AIが変更してはならない原曲要素。 */
+  /** 読み込み／コード生成を問わず、AIが変更してはならない採用済み要素。 */
   sourceProtection?: {
+    source: "imported-midi" | "active-melody"
     preserveChords: boolean
     preserveMelody: boolean
     generationTargets: string[]
