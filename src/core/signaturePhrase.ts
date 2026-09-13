@@ -177,6 +177,8 @@ export interface SignaturePhrasePlan {
   voicingMode: SignatureVoicingMode
   /** 転回・開離配置・内声移動と、声部間の運動方針。 */
   voiceLeading: SignatureVoiceLeadingPlan
+  /** 和音を短く反復し、旋律ではなく打撃感のあるリフとして扱う。 */
+  riffMode?: "percussive-block-chord"
   /** コードとActive Melodyから導出した、このSignatureが曲中で担う役割。 */
   compositionContext?: SignatureCompositionContext
 }
@@ -188,6 +190,11 @@ export interface SignatureGenerationDirection {
   contour: PhraseContour
   creativeRisk: SignatureCreativeRisk
   targetSilenceRatio: number
+  /** ユーザーが音の作り方を明示した場合、全候補で守る。 */
+  strict?: boolean
+  voicingMode?: SignatureVoicingMode
+  repetitionStrength?: number
+  riffMode?: "percussive-block-chord"
 }
 
 export interface SignaturePhraseScore {

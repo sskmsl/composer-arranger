@@ -1,5 +1,6 @@
 import type { MelodyNote } from "./melody"
 import type { PerformanceExecutionDiagnostics, PerformanceExecutionPlan } from "./performanceExecution"
+import type { ArrangementSoundInstruction } from "./arrangementIntent"
 
 export type ArrangementTrackId =
   | "dr-kick"
@@ -208,6 +209,8 @@ export interface ArrangementGenerationDirective {
   timelineConstraints?: ArrangementTimelineConstraints
   /** AI相談から実際のSection編集へ変換した、曲固有ID付きの構成変更。 */
   structureChanges?: ArrangementStructureChange[]
+  /** 自然文の音像指定を実音へ渡す、Generator共通の構造化指示。 */
+  soundInstruction?: ArrangementSoundInstruction
 }
 
 export interface GeneratedArrangementNote extends MelodyNote {

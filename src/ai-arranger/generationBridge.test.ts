@@ -84,6 +84,21 @@ describe("AI Intent generation bridge", () => {
     })
   })
 
+  it("和音を打撃として反復するイントロ指定を、和音リフ生成へ変換する", () => {
+    expect(signatureDirectionForIntent(intent({
+      title: "和音の反復リフ",
+      generationBrief: "イントロで和音を短い打撃として使い、反復したリフを作る",
+    }))).toMatchObject({
+      archetype: "obsessive-motor",
+      rhythmIdentity: "opening-stamp",
+      creativeRisk: "focused",
+      strict: true,
+      voicingMode: "block-chord",
+      repetitionStrength: 0.94,
+      riffMode: "percussive-block-chord",
+    })
+  })
+
   it("Generatorを同Sectionの具体的な演奏役へ接続する", () => {
     const pulse = {
       id: "pulse",

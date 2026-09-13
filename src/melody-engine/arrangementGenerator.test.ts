@@ -122,6 +122,43 @@ function longFormProject(): ComposerProject {
 }
 
 describe("Arrangement Generator", () => {
+  it("和音を打撃として使う反復リフ指定をイントロの独立Stabsへ実音化する", () => {
+    const result = generateFullSongArrangement(project(), {
+      seed: 7351,
+      brief: "イントロで和音を短い打撃として使う反復したリフを生成",
+      directive: {
+        intention: "イントロで和音を短い打撃として使う反復したリフを生成",
+        add: ["syn-stabs"],
+      },
+    })
+    const notes = result.tracks
+      .find((track) => track.id === "syn-stabs")
+      ?.notes.filter((note) => note.sectionId === "intro") ?? []
+    expect(notes.length).toBeGreaterThanOrEqual(30)
+    expect(notes.every((note) => note.durationBeats <= 0.25)).toBe(true)
+    expect(notes.every((note) => note.reason.includes("反復") && note.reason.includes("和音"))).toBe(true)
+    const attackCounts = new Map<number, number>()
+    for (const note of notes) {
+      const attack = Math.round(note.startBeat * 4) / 4
+      attackCounts.set(attack, (attackCounts.get(attack) ?? 0) + 1)
+    }
+    expect([...attackCounts.values()].filter((count) => count >= 3).length).toBeGreaterThanOrEqual(8)
+  })
+
+  it("和音リフ以外の自然文指定も、対象Sectionと演奏内容を変えて実音化する", () => {
+    const result = generateFullSongArrangement(project(), {
+      seed: 7352,
+      brief: "イントロで高い単音を少しずつ変えながら8分音符で反復する",
+    })
+    const pulse = result.tracks.find((track) => track.id === "syn-pulse")
+    const introNotes = pulse?.notes.filter((note) => note.sectionId === "intro") ?? []
+    const nonIntroNotes = pulse?.notes.filter((note) => note.sectionId !== "intro") ?? []
+    expect(introNotes.length).toBeGreaterThanOrEqual(16)
+    expect(Math.min(...introNotes.map((note) => note.pitch))).toBeGreaterThanOrEqual(66)
+    expect(introNotes.every((note) => note.reason.startsWith("指定を実音化"))).toBe(true)
+    expect(nonIntroNotes.every((note) => !note.reason.startsWith("指定を実音化"))).toBe(true)
+  })
+
   it("曲全体を解析して反復サビをコピーせず段階的に拡張する", () => {
     const input = project()
     const analysis = analyzeFullSongArrangement(input)

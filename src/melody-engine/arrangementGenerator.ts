@@ -1,6 +1,12 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
 import { parseChordSymbol } from "@/core/chord"
 import type { MelodyNote } from "@/core/melody"
+import {
+  arrangementSoundInstructionAppliesTo,
+  arrangementSoundInstructionFromText,
+  arrangementSoundInstructionLabel,
+  type ArrangementSoundInstruction,
+} from "@/core/arrangementIntent"
 import type { ChordEvent, ComposerProject } from "@/core/project"
 import {
   ARRANGEMENT_TRACK_NAMES,
@@ -91,6 +97,29 @@ function removeRoles(roles: ArrangementTrackId[], removable: ArrangementTrackId[
   for (let index = roles.length - 1; index >= 0; index -= 1) {
     if (blocked.has(roles[index])) roles.splice(index, 1)
   }
+}
+
+function trackIdsForSoundInstruction(
+  instruction: ArrangementSoundInstruction | undefined,
+): ArrangementTrackId[] {
+  if (!instruction?.enabled) return []
+  if (instruction.role === "stabs") return ["syn-stabs"]
+  if (instruction.role === "pulse") return ["syn-pulse"]
+  if (instruction.role === "pad") return ["syn-dark-pad"]
+  if (instruction.role === "bass") return ["syn-bass"]
+  if (instruction.role === "strings") return ["str-cello", "str-viola", "str-violin-1"]
+  if (instruction.role === "bell") return ["syn-high-glass"]
+  if (instruction.role === "counter") return ["str-cello", "str-viola"]
+  if (instruction.role === "transition") return ["syn-transition-phrase"]
+  if (instruction.role === "percussion") return ["dr-field-drum"]
+  return []
+}
+
+function trackMatchesSoundInstruction(
+  trackId: ArrangementTrackId,
+  instruction: ArrangementSoundInstruction,
+): boolean {
+  return trackIdsForSoundInstruction(instruction).includes(trackId)
 }
 
 function clamp01(value: number): number {
@@ -483,6 +512,10 @@ export function buildFullSongArrangementPlan(
   directive?: ArrangementGenerationDirective,
   forcedApproach?: ArrangementCandidateApproach,
 ): ArrangementPlan {
+  const parsedSoundInstruction = directive?.soundInstruction ?? arrangementSoundInstructionFromText(brief)
+  const effectiveDirective = parsedSoundInstruction
+    ? { ...directive, intention: directive?.intention ?? brief, soundInstruction: parsedSoundInstruction }
+    : directive
   const asksSurprise = (directive?.surpriseLevel ?? 0) >= 0.35 || /surprise|意外|大胆|毒|不穏/i.test(brief)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const candidateApproach = forcedApproach ?? candidateApproachFor(seed)
@@ -491,11 +524,11 @@ export function buildFullSongArrangementPlan(
     brief,
     seed,
     candidateApproach,
-    directive,
+    directive: effectiveDirective,
     sections: analysis.sections.map((section, index): ArrangementSectionPlan => {
-      const applies = !directive?.sectionId || directive.sectionId === section.sectionId
+      const applies = !effectiveDirective?.sectionId || effectiveDirective.sectionId === section.sectionId
       const effectiveEnergy = applies
-        ? Math.max(10, Math.min(100, section.energy + (directive?.energyDelta ?? 0)))
+        ? Math.max(10, Math.min(100, section.energy + (effectiveDirective?.energyDelta ?? 0)))
         : section.energy
       const effectiveSection = { ...section, energy: effectiveEnergy }
       const isPeak = section.sectionId === analysis.peakSectionId
@@ -516,11 +549,11 @@ export function buildFullSongArrangementPlan(
           ? "surprise"
           : section.energy >= 65 ? "edge" : "safe"
       const activeRoles = rolesFor(effectiveSection, isPeak)
-      const character = applies ? directive?.character : undefined
+      const character = applies ? effectiveDirective?.character : undefined
       if (character === "minimal") {
         const removable = new Set<ArrangementTrackId>(["dr-closed-hat", "dr-open-hat", "syn-pulse", "syn-stabs", "str-viola", "str-violin-1", "str-upper"])
         for (let roleIndex = activeRoles.length - 1; roleIndex >= 0; roleIndex -= 1) {
-          if (removable.has(activeRoles[roleIndex]) && !(directive?.preserve ?? []).includes(activeRoles[roleIndex])) activeRoles.splice(roleIndex, 1)
+          if (removable.has(activeRoles[roleIndex]) && !(effectiveDirective?.preserve ?? []).includes(activeRoles[roleIndex])) activeRoles.splice(roleIndex, 1)
         }
       } else if (character === "cinematic" && ["pre", "chorus", "bridge", "build", "final"].includes(section.semanticRole ?? "")) {
         activeRoles.push("str-cello", "str-viola")
@@ -560,7 +593,21 @@ export function buildFullSongArrangementPlan(
         if (section.melodyRestRatio >= 0.12 && analysis.sections[index + 1]) activeRoles.push("syn-transition-phrase")
         if (effectiveEnergy < 62) removeRoles(activeRoles, ["syn-pulse"])
       }
-      if (applies) activeRoles.push(...(directive?.add ?? []))
+      const soundApplies = arrangementSoundInstructionAppliesTo(
+        effectiveDirective?.soundInstruction,
+        section.sectionId,
+        section.semanticRole,
+        effectiveDirective?.sectionId,
+      )
+      const soundRoleIds = trackIdsForSoundInstruction(effectiveDirective?.soundInstruction)
+      if (applies) activeRoles.push(...(effectiveDirective?.add ?? []).filter(
+        (trackId) => soundApplies || !soundRoleIds.includes(trackId),
+      ))
+      if (soundApplies && effectiveDirective?.soundInstruction?.role === "silence") {
+        activeRoles.splice(0, activeRoles.length)
+      } else if (soundApplies) {
+        activeRoles.push(...soundRoleIds)
+      }
       if (selectedTransitionCharacter === "silence") {
         const index = activeRoles.indexOf("syn-transition-phrase")
         if (index >= 0) activeRoles.splice(index, 1)
@@ -584,8 +631,8 @@ export function buildFullSongArrangementPlan(
           mid: effectiveEnergy >= 45 ? "strong" : "medium",
           high: isPeak ? "strong" : effectiveEnergy >= 65 ? "medium" : "open",
         },
-        intention: applies && directive?.intention
-          ? directive.intention
+        intention: applies && effectiveDirective?.intention
+          ? effectiveDirective.intention
           : isPeak
           ? "それまで温存した音域と役割を開き、曲全体の最大解放を作る"
           : section.occurrence > 1
@@ -647,7 +694,9 @@ function avoidMelodyCollision(note: GeneratedArrangementNote, melody: MelodyNote
     Math.abs(lead.pitch - note.pitch) <= 2,
   )
   if (collisions.length === 0 || note.character !== "safe") return note
-  const candidates = [note.pitch - 12, note.pitch + 12]
+  const candidates = note.pitch >= 72
+    ? [note.pitch + 12, note.pitch - 12]
+    : [note.pitch - 12, note.pitch + 12]
   const replacement = candidates.find((pitch) => pitch >= 24 && pitch <= 108 && collisions.every((lead) => Math.abs(lead.pitch - pitch) > 2))
   return replacement === undefined ? { ...note, velocity: Math.max(1, note.velocity - 18) } : { ...note, pitch: replacement }
 }
@@ -659,11 +708,44 @@ function generateDrums(
   length: number,
   beatsPerBar: number,
   revision: number,
+  soundInstruction?: ArrangementSoundInstruction,
+  directedSectionId?: string,
 ): GeneratedArrangementNote[] {
   const pitch = DRUM_PITCH[trackId]
   if (pitch === undefined) return []
   const beats: number[] = []
   const bars = Math.max(1, Math.ceil(length / beatsPerBar))
+  const directedPercussion = trackId === "dr-field-drum"
+    && soundInstruction?.role === "percussion"
+    && arrangementSoundInstructionAppliesTo(
+      soundInstruction,
+      section.sectionId,
+      section.semanticRole,
+      directedSectionId,
+    )
+  if (directedPercussion && soundInstruction) {
+    const sourceSteps = soundInstruction.rhythmSteps.length > 0
+      ? soundInstruction.rhythmSteps
+      : [0, 1.5, 2.75]
+    for (let bar = 0; bar < bars; bar += 1) {
+      if (soundInstruction.repetition === "none" && bar > 0) continue
+      for (const step of sourceSteps) {
+        const beat = start + bar * beatsPerBar + step * beatsPerBar / 4
+        if (beat < start + length) beats.push(beat)
+      }
+    }
+    return beats.map((beat, index) => makeNote(
+      trackId,
+      section.sectionId,
+      index,
+      beat,
+      soundInstruction.articulation === "short" ? 0.1 : 0.2,
+      pitch,
+      48 + section.energy * 0.36 + (index % sourceSteps.length === 0 ? 10 : -3),
+      `指定を実音化: ${arrangementSoundInstructionLabel(soundInstruction)}`,
+      "safe",
+    ))
+  }
   for (let bar = 0; bar < bars; bar += 1) {
     const base = start + bar * beatsPerBar
     const cycleBar = (bar + revision) % (section.phraseCycleBars ?? 4)
@@ -728,12 +810,102 @@ function generateTonalTrack(
   melody: MelodyNote[],
   beatsPerBar: number,
   revision: number,
+  soundInstruction?: ArrangementSoundInstruction,
+  directedSectionId?: string,
 ): GeneratedArrangementNote[] {
   const start = sectionOffset(sourceSection.startBar, beatsPerBar)
   const length = sourceSection.lengthBars * beatsPerBar
   const notes: GeneratedArrangementNote[] = []
   const add = (beat: number, duration: number, pitch: number, velocity: number, index: number, character: ArrangementCandidateCharacter = "safe", reason = TRACK_PURPOSE[trackId]) => {
     notes.push(avoidMelodyCollision(makeNote(trackId, section.sectionId, index, start + beat, duration, pitch, velocity, reason, character), melody))
+  }
+  const directedSoundApplies = Boolean(
+    soundInstruction
+    && trackMatchesSoundInstruction(trackId, soundInstruction)
+    && arrangementSoundInstructionAppliesTo(
+      soundInstruction,
+      section.sectionId,
+      section.semanticRole,
+      directedSectionId,
+    ),
+  )
+  if (directedSoundApplies && soundInstruction) {
+    if (soundInstruction.role === "silence" || soundInstruction.behavior === "silence") return []
+    const defaultSteps = soundInstruction.behavior === "riff"
+      ? [0, 0.75, 1.5, 2.75]
+      : soundInstruction.behavior === "pulse"
+        ? [0.5, 1.5, 2.5, 3.5]
+        : soundInstruction.behavior === "hit"
+          ? [0, 2.5]
+          : [0]
+    const sourceSteps = soundInstruction.rhythmSteps.length > 0
+      ? soundInstruction.rhythmSteps
+      : defaultSteps
+    const candidateSteps = revision % 3 === 1 && sourceSteps.length < 8
+      ? [...sourceSteps, Math.min(3.75, (sourceSteps.at(-1) ?? 0) + 0.5)]
+      : revision % 3 === 2 && sourceSteps.length > 2
+        ? sourceSteps.filter((_, index) => index !== sourceSteps.length - 2)
+        : sourceSteps
+    const scaledSteps = [...new Set(candidateSteps)]
+      .filter((step) => step >= 0 && step < 4)
+      .map((step) => step * beatsPerBar / 4)
+      .sort((left, right) => left - right)
+    const bars = Math.max(1, Math.ceil(length / beatsPerBar))
+    const registerBase = soundInstruction.register === "low" ? 43 : soundInstruction.register === "high" ? 78 : 61
+    const durationFor = (localBeat: number) => {
+      if (soundInstruction.articulation === "short") return Math.min(0.24, beatsPerBar / 8)
+      if (soundInstruction.articulation === "long" || soundInstruction.articulation === "legato") {
+        return Math.min(beatsPerBar * 0.96, length - localBeat)
+      }
+      return Math.min(0.65, beatsPerBar / 3)
+    }
+    const trackVoice = trackId === "str-cello" ? 0 : trackId === "str-viola" ? 1 : 2
+    for (let bar = 0; bar < bars; bar += 1) {
+      if (soundInstruction.repetition === "none" && bar > 0 && soundInstruction.behavior !== "sustain" && soundInstruction.behavior !== "swell") continue
+      const isFill = soundInstruction.behavior === "fill"
+      if (isFill && bar < bars - 1) continue
+      const steps = soundInstruction.repetition === "evolving" && bar % 4 === 3 && scaledSteps.length > 1
+        ? [...scaledSteps, Math.min(beatsPerBar - 0.25, scaledSteps.at(-1)! + beatsPerBar / 8)]
+        : scaledSteps
+      for (const [hitIndex, offsetInBar] of steps.entries()) {
+        const localBeat = bar * beatsPerBar + offsetInBar
+        if (localBeat >= length) continue
+        const chord = chordAtBeat(sectionChords, localBeat)
+        const pcs = chordTonePcs(chord)
+        const directionIndex = soundInstruction.motion === "descending"
+          ? pcs.length - 1 - ((bar + hitIndex) % pcs.length)
+          : soundInstruction.motion === "wave"
+            ? Math.abs(((bar + hitIndex) % Math.max(1, pcs.length * 2 - 2)) - (pcs.length - 1))
+            : soundInstruction.motion === "ascending"
+              ? (bar + hitIndex) % pcs.length
+              : hitIndex % pcs.length
+        const materialPcs = soundInstruction.material === "chord"
+          ? pcs.slice(0, 3)
+          : soundInstruction.material === "dyad"
+            ? pcs.slice(0, 2)
+            : soundInstruction.material === "root"
+              ? pcs.slice(0, 1)
+              : [pcs[Math.max(0, directionIndex)] ?? pcs[0]]
+        const voicedPcs = trackId.startsWith("str-") ? [materialPcs[trackVoice % materialPcs.length]] : materialPcs
+        for (const [voice, pitchClass] of voicedPcs.entries()) {
+          const pitch = midiForPc(pitchClass, registerBase + voice * 5)
+          const progress = length <= 0 ? 0 : localBeat / length
+          const velocity = 48 + section.energy * 0.28
+            + (hitIndex === 0 ? 10 : 0)
+            + (soundInstruction.behavior === "swell" ? progress * 24 : 0)
+          add(
+            localBeat,
+            durationFor(localBeat) + voice * 0.008,
+            pitch,
+            velocity,
+            notes.length,
+            "safe",
+            `指定を実音化: ${arrangementSoundInstructionLabel(soundInstruction)}`,
+          )
+        }
+      }
+    }
+    return notes
   }
   if (trackId === "syn-transition-phrase") {
     const selected = section.transitionCandidates.find((candidate) => candidate.character === section.selectedTransitionCharacter)
@@ -816,19 +988,24 @@ function generateTonalTrack(
     for (let bar = 0; bar < bars; bar += 1) {
       const cycleBar = (bar + revision) % (section.phraseCycleBars ?? 4)
       const offsets = cycleBar === 0
-        ? [1.5]
-        : cycleBar === 2
-          ? [3.5]
-          : (section.developmentStage ?? 0) >= 1 && cycleBar === 3
+          ? [1.5]
+          : cycleBar === 2
             ? [3.5]
-            : []
-      offsets.forEach((offsetInBar) => {
+            : (section.developmentStage ?? 0) >= 1 && cycleBar === 3
+              ? [3.5]
+              : []
+      offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
         const chord = chordAtBeat(sectionChords, localBeat)
         chordTonePcs(chord).slice(0, 3).forEach((tone, voice) => add(
-          localBeat, 0.18 + voice * 0.015, midiForPc(tone, 62 + voice * 7), 43 + section.energy * 0.28,
-          notes.length, "safe", "主旋律の空白と裏拍だけに短い和音アクセントを置く",
+          localBeat,
+          0.18 + voice * 0.015,
+          midiForPc(tone, 62 + voice * 7),
+          43 + section.energy * 0.28 + (hitIndex === 0 ? 5 : 0),
+          notes.length,
+          "safe",
+          "主旋律の空白と裏拍だけに短い和音アクセントを置く",
         ))
       })
     }
@@ -917,10 +1094,29 @@ function generateTrack(
     const entryBeat = offset + (sectionPlan.roleEntryBeats?.[trackId] ?? 0)
     let generated: GeneratedArrangementNote[]
     if (trackId.startsWith("dr-")) {
-      generated = generateDrums(trackId, sectionPlan, offset, length, beatsPerBar, revision)
+      generated = generateDrums(
+        trackId,
+        sectionPlan,
+        offset,
+        length,
+        beatsPerBar,
+        revision,
+        plan.directive?.soundInstruction,
+        plan.directive?.sectionId,
+      )
     } else {
       const chords = project.chords.filter((chord) => chord.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat)
-      generated = generateTonalTrack(trackId, sectionPlan, section, chords, material.lead, beatsPerBar, revision)
+      generated = generateTonalTrack(
+        trackId,
+        sectionPlan,
+        section,
+        chords,
+        material.lead,
+        beatsPerBar,
+        revision,
+        plan.directive?.soundInstruction,
+        plan.directive?.sectionId,
+      )
     }
     track.notes.push(...generated.filter((note) => note.startBeat + 0.001 >= entryBeat))
   }

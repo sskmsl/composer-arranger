@@ -54,6 +54,7 @@ export function appendConversationTurn(
           generator: intent.generator,
           emotionalFunction: intent.emotionalFunction,
           generationBrief: intent.generationBrief,
+          ...(intent.soundInstruction ? { soundInstruction: intent.soundInstruction } : {}),
         })),
       },
     ].slice(-MAX_AI_CONVERSATION_TURNS),

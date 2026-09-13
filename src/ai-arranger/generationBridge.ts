@@ -8,6 +8,10 @@ import type {
   OrchestrationPartPlan,
   SectionOrchestrationPlan,
 } from "./types"
+import {
+  arrangementSoundInstructionFromText,
+  requestsPercussiveChordRiff,
+} from "@/core/arrangementIntent"
 
 const ROLE_BY_GENERATOR: Partial<
   Record<AiArrangementIntent["generator"], OrchestrationPartPlan["role"]>
@@ -96,6 +100,22 @@ export function decorationSettingsForIntent(
 export function signatureDirectionForIntent(
   intent: AiArrangementIntent,
 ): SignatureGenerationDirection {
+  const description = [
+    intent.title,
+    intent.emotionalFunction,
+    intent.generationBrief,
+    intent.soundPalette,
+    intent.performanceDirection,
+    ...intent.techniques,
+  ].join(" ")
+  const soundInstruction = intent.soundInstruction
+    ? intent.soundInstruction.enabled ? intent.soundInstruction : undefined
+    : arrangementSoundInstructionFromText(description)
+  const percussiveChordRiff = Boolean(
+    soundInstruction?.material === "chord"
+    && soundInstruction.articulation === "short"
+    && (soundInstruction.behavior === "riff" || soundInstruction.behavior === "pulse"),
+  ) || requestsPercussiveChordRiff(description)
   const archetype =
     intent.rhythmCharacter === "spacious"
       ? "atmospheric-gateway"
@@ -120,16 +140,41 @@ export function signatureDirectionForIntent(
         : intent.motion === "wave"
           ? "wave"
           : "inverted-arch"
+  const directedArchetype = soundInstruction?.behavior === "riff" || soundInstruction?.behavior === "pulse"
+    ? "obsessive-motor"
+    : soundInstruction?.behavior === "sustain" || soundInstruction?.behavior === "swell"
+      ? "atmospheric-gateway"
+      : archetype
+  const directedRhythm = soundInstruction?.behavior === "riff" || soundInstruction?.behavior === "hit"
+    ? "opening-stamp"
+    : rhythmIdentity
+  const directedVoicing = soundInstruction?.material === "chord"
+    ? "block-chord"
+    : soundInstruction?.material === "dyad"
+      ? "block-chord"
+      : soundInstruction?.material === "arpeggio"
+        ? "broken-chord"
+        : "single-line"
   return {
-    archetype,
-    rhythmIdentity,
-    contour,
-    creativeRisk: intent.creativeRisk,
+    archetype: percussiveChordRiff ? "obsessive-motor" : directedArchetype,
+    rhythmIdentity: percussiveChordRiff ? "opening-stamp" : directedRhythm,
+    contour: soundInstruction?.motion === "static" ? contour : soundInstruction?.motion ?? contour,
+    creativeRisk: soundInstruction ? "focused" : intent.creativeRisk,
     targetSilenceRatio:
-      intent.silenceStrategy === "structural"
+      percussiveChordRiff
+        ? 0.28
+        : intent.silenceStrategy === "structural"
         ? 0.52
         : intent.silenceStrategy === "breathing"
           ? 0.34
           : 0.18,
+    ...(soundInstruction && ["stabs", "pulse", "bell"].includes(soundInstruction.role)
+      ? {
+          strict: true,
+          voicingMode: directedVoicing,
+          repetitionStrength: soundInstruction.repetition === "none" ? 0.35 : 0.94,
+          ...(percussiveChordRiff ? { riffMode: "percussive-block-chord" as const } : {}),
+        }
+      : {}),
   }
 }

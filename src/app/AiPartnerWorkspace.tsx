@@ -73,6 +73,10 @@ import type {
   OrchestrationPartPlan,
 } from "@/ai-arranger/types"
 import { SECTION_ROLE_LABELS } from "@/core/section"
+import {
+  arrangementSoundInstructionFromText,
+  arrangementSoundInstructionLabel,
+} from "@/core/arrangementIntent"
 import type { ComposerProject } from "@/core/project"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { generateFullSongArrangement as buildFullSongArrangement } from "@/melody-engine/arrangementGenerator"
@@ -229,6 +233,12 @@ export function AiPartnerWorkspace({
     ),
     [project, prompt, session],
   )
+  const recognizedSoundInstruction = arrangementSoundInstructionFromText([
+    project.arrangementDirectorWorkspace?.brief ?? "",
+    session?.turns.at(-1)?.userMessage ?? "",
+    ...(session?.confirmedConstraints ?? []),
+    prompt,
+  ].filter(Boolean).join("。"))
   const director = context?.arrangementDirector
   const currentDirectorPlan = director?.sections.find(
     (plan) => plan.sectionId === effectiveSectionId,
@@ -373,6 +383,8 @@ export function AiPartnerWorkspace({
         {
           ...directionAuditionDirectiveForIntent(intent),
           structureChanges,
+          soundInstruction: arrangementSoundInstructionFromText(executableBrief)
+            ?? directionAuditionDirectiveForIntent(intent).soundInstruction,
         },
         executableBrief,
         totalBars,
@@ -489,12 +501,15 @@ export function AiPartnerWorkspace({
         {
           ...directionAuditionDirectiveForIntent(intent),
           structureChanges: parseArrangementStructureChanges(project, instructionBrief),
+          soundInstruction: arrangementSoundInstructionFromText(instructionBrief)
+            ?? directionAuditionDirectiveForIntent(intent).soundInstruction,
         },
         instructionBrief,
         totalBars,
       )
       const arrangement = buildFullSongArrangement(project, {
         seed: directionAuditionSeed(project, response?.requestId ?? "local", intent, directionIndex),
+        revision: directionIndex,
         brief: instructionBrief,
         directive,
       })
@@ -1139,6 +1154,12 @@ export function AiPartnerWorkspace({
               <span className="ml-2">
                 {recognizedStructureChanges.map(arrangementStructureChangeLabel).join(" ／ ")}
               </span>
+            </div>
+          )}
+          {isWholeSongConsultation && recognizedSoundInstruction && (
+            <div className="mt-2 rounded-md border border-violet-300/25 bg-violet-400/[0.07] px-3 py-2 text-[11px] text-violet-100">
+              <strong className="font-semibold">音として反映する指定</strong>
+              <span className="ml-2">{arrangementSoundInstructionLabel(recognizedSoundInstruction)}（{recognizedSoundInstruction.target === "intro" ? "イントロ" : "指定した部分"}）</span>
             </div>
           )}
           {!session?.turns.length && <div className="mt-2 flex flex-wrap gap-2">

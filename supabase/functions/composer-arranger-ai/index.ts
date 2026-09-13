@@ -165,6 +165,57 @@ const intentProperties = {
       "events",
     ],
   },
+  soundInstruction: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      enabled: { type: "boolean" },
+      target: {
+        type: "string",
+        enum: ["selected-section", "intro", "verse", "pre", "chorus", "bridge", "interlude", "final", "outro", "whole-song"],
+      },
+      targetSectionId: { type: "string", maxLength: 100 },
+      role: {
+        type: "string",
+        enum: ["stabs", "pulse", "pad", "bass", "strings", "bell", "counter", "transition", "percussion", "silence"],
+      },
+      material: {
+        type: "string",
+        enum: ["single-note", "dyad", "chord", "arpeggio", "root", "melody-fragment", "noise"],
+      },
+      behavior: {
+        type: "string",
+        enum: ["hit", "riff", "pulse", "sustain", "swell", "answer", "fill", "silence"],
+      },
+      articulation: { type: "string", enum: ["short", "medium", "long", "legato"] },
+      repetition: { type: "string", enum: ["none", "exact", "evolving"] },
+      register: { type: "string", enum: ["low", "middle", "high"] },
+      motion: { type: "string", enum: ["ascending", "descending", "wave", "static"] },
+      rhythmSteps: {
+        type: "array",
+        minItems: 0,
+        maxItems: 16,
+        items: { type: "number", minimum: 0, maximum: 3.99 },
+      },
+      preserveMelody: { type: "boolean" },
+      source: { type: "string", maxLength: 500 },
+    },
+    required: [
+      "enabled",
+      "target",
+      "targetSectionId",
+      "role",
+      "material",
+      "behavior",
+      "articulation",
+      "repetition",
+      "register",
+      "motion",
+      "rhythmSteps",
+      "preserveMelody",
+      "source",
+    ],
+  },
 }
 
 const responseSchema = {
@@ -293,6 +344,9 @@ Imported Arrangement:
 - sourceProtection.generationTargetsに含まれる独立した補助パートだけを提案・生成対象にする。原曲を変える代わりに、隙間、Section境界、空いている音域、役割交代からAccompaniment・Counter・Decoration・Signature Phrase・Transitionを設計する。
 - 「25〜28小節は完全無音」「主旋律は9小節目から」のような小節位置指定はconfirmedConstraintsへ原文のまま残し、3案すべてのgenerationBriefにも守る条件として反映する。無音指定を新しい音で埋めない。
 - 「イントロを8小節に」「間奏を削除」「最後のサビをもう1回」「間奏をサビの後へ」のような構成変更もconfirmedConstraintsへ原文のまま残す。contextに実在するSection名または役割名を使い、対象・小節数・移動先・繰り返し回数を曖昧にしない。
+- ユーザーが「こういうイントロ」「この部分にこの鳴らし方」のように実音を指定した場合、説明だけで済ませずsoundInstructionへ構造化する。対象部分、音の役割、単音／2音／和音／分散和音、短く／長く、反復／発展、音域、上下の動き、1小節内の発音位置を指定し、sourceへ要望の原文を残す。
+- 「和音を打撃として使う反復リフ」は一例にすぎない。単音リフ、分散和音、長いPad、上昇するStrings、低音反復、ベル1音、対旋律、つなぎ、打楽器、無音なども同じsoundInstructionで表現する。別の音の種類へ勝手に置き換えない。
+- 明示的な鳴らし方の指定がある場合はsoundInstruction.enabled=trueにする。targetSectionIdはcontext上の対象IDが確定できる場合だけ入れ、不明なら空文字にする。指定がない場合はenabled=falseとし、他項目はDirectionの標準案を表す安全な値にする。
 
 Orchestration & Performance Intelligence:
 - musicalContext.orchestrationの対象Section planを参照し、soundPaletteとperformanceDirectionをその構造へ一致させる。
@@ -319,6 +373,7 @@ Orchestration & Performance Intelligence:
 - generator=rhythmではbarsを1または2にし、eventsへ実際にMIDI化する全打点を入れる。onsetBeatはループ先頭=0とする四分音符単位（例: 1拍目=0、1拍目裏=0.5、2拍目=1）。velocityで主従・アクセントを表し、全ステップを埋めず呼吸を残す。
 - generator=rhythmの場合だけrhythmPlan.enabled=trueにし、それ以外ではfalse・各パターン文字列は空、bars=1、events=[]にする。
 - 実音は後段の決定論的Generatorが作るため、generationBriefは実装可能な内容にする。ただし表示相手は作曲者であり、内部の実装メモや専門用語の羅列にはしない。
+- soundInstructionは後段Generatorへ直接渡される実行指示である。3案ではユーザーが固定した条件を共通で守り、rhythmSteps、register、motion、repetitionの発展方法のうち少なくとも1つを変えて、実際に聴き分けられる案にする。
 - emotionalFunction、generationBrief、performanceDirectionは「何の音が」「曲のどこで」「どう聴こえるか」を、初見で分かる普通の日本語で書く。
 - 「最後のパルスを抜いて1拍目を強く感じさせる」のような省略表現は禁止する。「小節の最後を休ませ、次の小節の始まりをはっきり聴かせる」のように、実際に聴こえる変化として説明する。
 - パルス、シンコペーション、レジスター、モチーフ、アタック、構造点などの用語を使う場合は、同じ文の中で「短い反復音」「拍の表から少しずらす」「音域」「短い音型」「音の立ち上がり」「曲の節目」のように意味が分かる言葉へ置き換える。
@@ -404,6 +459,7 @@ interface ConversationInput {
       generator: string
       emotionalFunction: string
       generationBrief: string
+      soundInstruction?: Record<string, unknown>
     }>
   }>
 }
@@ -440,6 +496,9 @@ function normalizedConversation(value: unknown): ConversationInput | null {
             generator: direction.generator.slice(0, 24),
             emotionalFunction: direction.emotionalFunction.slice(0, 240),
             generationBrief: direction.generationBrief.slice(0, 500),
+            ...(direction.soundInstruction && typeof direction.soundInstruction === "object"
+              ? { soundInstruction: direction.soundInstruction as Record<string, unknown> }
+              : {}),
           }]
         })
       : []

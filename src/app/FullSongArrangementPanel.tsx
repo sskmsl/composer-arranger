@@ -3,6 +3,10 @@ import { Download, Play, RefreshCw, Square, Volume2, VolumeX } from "lucide-reac
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { arrangementStructureChangeLabel } from "@/ai-arranger/structureChanges"
+import {
+  arrangementSoundInstructionFromText,
+  arrangementSoundInstructionLabel,
+} from "@/core/arrangementIntent"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
@@ -31,6 +35,8 @@ export function FullSongArrangementPanel() {
     || timelineConstraints?.fullSilenceRanges.length
     || timelineConstraints?.melodySilenceRanges.length,
   )
+  const appliedSoundInstruction = arrangement?.plan.directive?.soundInstruction
+    ?? (arrangement ? arrangementSoundInstructionFromText(`${arrangement.plan.brief} ${arrangement.plan.directive?.intention ?? ""}`) : undefined)
   const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | "all" | null>(null)
   const [targetSectionId, setTargetSectionId] = useState<string>("")
   const [regenerating, setRegenerating] = useState(false)
@@ -208,6 +214,12 @@ export function FullSongArrangementPanel() {
               <div className="mt-1 text-[11px] text-sky-100/85">
                 {arrangement.plan.directive?.structureChanges?.map(arrangementStructureChangeLabel).join(" ／ ")}
               </div>
+            </div>
+          )}
+          {appliedSoundInstruction && (
+            <div className="rounded-md border border-violet-300/25 bg-violet-400/[0.07] px-3 py-2.5 text-[12px] text-violet-50">
+              <strong className="font-semibold">指定を音へ反映済み</strong>
+              <span className="ml-2 text-[11px] text-violet-100/85">{arrangementSoundInstructionLabel(appliedSoundInstruction)}</span>
             </div>
           )}
           <details className="rounded-md border border-hairline bg-black/10 p-3">

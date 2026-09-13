@@ -41,6 +41,33 @@ function melodyIntent(): AiArrangementIntent {
 }
 
 describe("Arrangement action execution", () => {
+  it("AIが別Generator名を返しても、イントロの和音リフ要望をSignature生成へ接続する", () => {
+    const project = createEmptyProject("Chord riff intro")
+    project.sections = [{ id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 }]
+    project.chords = [
+      { id: "c1", sectionId: "intro", startBeat: 0, durationBeats: 4, symbol: "Am", bass: null },
+      { id: "c2", sectionId: "intro", startBeat: 4, durationBeats: 4, symbol: "F", bass: null },
+      { id: "c3", sectionId: "intro", startBeat: 8, durationBeats: 4, symbol: "C", bass: null },
+      { id: "c4", sectionId: "intro", startBeat: 12, durationBeats: 4, symbol: "G", bass: null },
+    ]
+    useProjectStore.setState({
+      project,
+      selectedSectionId: "intro",
+      workflowNotice: null,
+      activeSignaturePhraseBatchId: null,
+      persist: () => {},
+    } as never)
+
+    const result = executeAiArrangementIntent("intro", {
+      ...melodyIntent(),
+      generationBrief: "イントロで和音を短い打撃として反復するリフを作る",
+    })
+    expect(result).toEqual({ generated: true, target: "signature" })
+    const candidates = useProjectStore.getState().project.signaturePhraseCandidates
+    expect(candidates).toHaveLength(12)
+    expect(candidates.every((candidate) => candidate.plan.riffMode === "percussive-block-chord")).toBe(true)
+  })
+
   it("原曲保護モードではAIからImported Melodyを再生成しない", () => {
     const project = createEmptyProject("Protected import")
     project.sections = [{ id: "song", name: "Song", role: "instrumental", startBar: 1, lengthBars: 4 }]

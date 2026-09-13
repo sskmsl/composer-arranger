@@ -82,6 +82,32 @@ function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCan
 }
 
 describe("Signature Phrase Generator", () => {
+  it("明示された和音リフを全候補で守り、打撃的な同時発音として生成する", () => {
+    const candidates = generateSignaturePhraseCandidates({
+      ...input(55119),
+      direction: {
+        archetype: "obsessive-motor",
+        rhythmIdentity: "opening-stamp",
+        contour: "inverted-arch",
+        creativeRisk: "focused",
+        targetSilenceRatio: 0.28,
+        strict: true,
+        voicingMode: "block-chord",
+        repetitionStrength: 0.94,
+        riffMode: "percussive-block-chord",
+      },
+    })
+    expect(candidates).toHaveLength(12)
+    expect(candidates.every((candidate) => candidate.plan.riffMode === "percussive-block-chord")).toBe(true)
+    expect(candidates.every((candidate) => candidate.plan.voicingMode === "block-chord")).toBe(true)
+    expect(candidates.every((candidate) => candidate.plan.archetype === "obsessive-motor")).toBe(true)
+    expect(candidates.every((candidate) => {
+      const counts = new Map<number, number>()
+      for (const note of candidate.notes) counts.set(note.startBeat, (counts.get(note.startBeat) ?? 0) + 1)
+      return [...counts.values()].some((count) => count >= 3)
+    })).toBe(true)
+  })
+
   it("上位Arrangement Intentを候補固定ではなく分布バイアスとして反映する", () => {
     const candidates = generateSignaturePhraseCandidates({
       ...input(90210),

@@ -1,6 +1,7 @@
 import type { Density, Drama } from "@/melody-engine/generationParams"
 import type { MelodyFeatures } from "@/core/melody"
 import type { ArrangementSurpriseOpportunity } from "@/core/arrangementSurprise"
+import type { ArrangementSoundInstruction } from "@/core/arrangementIntent"
 
 export type AiArrangementGenerator =
   | "melody"
@@ -98,6 +99,8 @@ export interface AiArrangementIntent {
   soundSourceSuggestions: AiSoundSourceSuggestion[]
   accompanimentPatternId: AiAccompanimentPatternId
   rhythmPlan: AiRhythmPatternProposal
+  /** 「何をどう鳴らすか」を説明文ではなく実音へ渡す構造化指定。 */
+  soundInstruction?: ArrangementSoundInstruction
 }
 
 export interface AiArrangementDiagnosis {
@@ -178,6 +181,7 @@ export interface AiConversationContextTurn {
     generator: AiArrangementGenerator
     emotionalFunction: string
     generationBrief: string
+    soundInstruction?: ArrangementSoundInstruction
   }>
 }
 

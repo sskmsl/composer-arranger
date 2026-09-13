@@ -12,6 +12,8 @@ import {
 import type { AiArrangementIntent } from "./types"
 import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
 import { hasActiveLeadMelody } from "@/core/melodyProtection"
+import { arrangementSoundInstructionAppliesTo } from "@/core/arrangementIntent"
+import { soundInstructionForIntent } from "./directionAudition"
 import {
   intentForWholeSongAction,
   type WholeSongArrangementAction,
@@ -48,76 +50,100 @@ export function executeAiArrangementIntent(
     return { generated: false, target: targetTabForIntent(intent) }
   }
   const before = useProjectStore.getState()
-  if (hasActiveLeadMelody(before.project, sectionId) && intent.generator === "melody") {
+  const section = before.project.sections.find((candidate) => candidate.id === sectionId)
+  if (!section) return { generated: false, target: null }
+  const soundInstruction = soundInstructionForIntent(intent)
+  const directedSoundApplies = arrangementSoundInstructionAppliesTo(
+    soundInstruction,
+    section.id,
+    section.role,
+    section.id,
+  )
+  const directedGenerator = !directedSoundApplies || !soundInstruction
+    ? intent.generator
+    : ["stabs", "pulse", "bell"].includes(soundInstruction.role)
+      ? "signature"
+      : ["counter", "strings"].includes(soundInstruction.role)
+        ? "counter"
+        : soundInstruction.role === "transition"
+          ? "phrase"
+          : ["pad", "bass"].includes(soundInstruction.role)
+            ? "accompaniment"
+            : intent.generator
+  const effectiveIntent: AiArrangementIntent = directedGenerator === intent.generator
+    ? intent
+    : { ...intent, generator: directedGenerator }
+  if (hasActiveLeadMelody(before.project, sectionId) && effectiveIntent.generator === "melody") {
     useProjectStore.setState({
       workflowNotice: "採用中の主旋律は変更・再生成しません。AIでは伴奏・つなぎ・装飾だけを追加します。",
     })
     return { generated: false, target: "arrangement" }
   }
-  const section = before.project.sections.find((candidate) => candidate.id === sectionId)
-  if (!section) return { generated: false, target: null }
-
   before.selectSection(sectionId)
   before.setGenerationSettings({
-    density: intent.density,
-    rangePreset: intent.register,
-    drama: intent.drama,
+    density: effectiveIntent.density,
+    rangePreset: effectiveIntent.register,
+    drama: effectiveIntent.drama,
   })
-  if (intent.generator === "melody") {
+  if (effectiveIntent.generator === "melody") {
     before.generateForSection(sectionId)
-  } else if (intent.generator === "phrase") {
-    const length = phraseLengthForIntent(intent, section.lengthBars)
+  } else if (effectiveIntent.generator === "phrase") {
+    const length = phraseLengthForIntent(effectiveIntent, section.lengthBars)
     if (length) before.generatePhrasesForSection(sectionId, length)
-  } else if (intent.generator === "signature") {
+  } else if (effectiveIntent.generator === "signature") {
     before.generateSignaturePhrasesForSection(
       sectionId,
-      signatureLengthForIntent(intent, section.lengthBars),
-      signatureDirectionForIntent(intent),
+      signatureLengthForIntent(effectiveIntent, section.lengthBars),
+      signatureDirectionForIntent(effectiveIntent),
     )
-  } else if (intent.generator === "counter") {
-    const counterStyle = intent.techniques.includes("strings")
+  } else if (effectiveIntent.generator === "counter") {
+    const counterStyle = effectiveIntent.techniques.includes("strings")
       ? "string-answer"
-      : intent.techniques.includes("analog-synth") || /synth|シンセ/i.test(intent.soundPalette)
+      : effectiveIntent.techniques.includes("analog-synth") || /synth|シンセ/i.test(effectiveIntent.soundPalette)
         ? "synth-whisper"
         : undefined
     before.generateCounterForSection(
       sectionId,
       counterStyle,
-      intent.approach === "surprise-tension"
-        ? intent.creativeRisk === "radical"
+      effectiveIntent.approach === "surprise-tension"
+        ? effectiveIntent.creativeRisk === "radical"
           ? "radical"
           : "bold"
         : "focused",
     )
-  } else if (intent.generator === "decoration") {
-    before.generateDecorationsForSection(sectionId, decorationSettingsForIntent(intent))
+  } else if (effectiveIntent.generator === "decoration") {
+    before.generateDecorationsForSection(sectionId, decorationSettingsForIntent(effectiveIntent))
   } else if (
-    intent.generator === "accompaniment" &&
-    intent.accompanimentPatternId !== "none"
+    effectiveIntent.generator === "accompaniment" &&
+    effectiveIntent.accompanimentPatternId !== "none"
   ) {
-    before.setSectionAccompanimentPattern(sectionId, intent.accompanimentPatternId)
+    before.setSectionAccompanimentPattern(sectionId, effectiveIntent.accompanimentPatternId)
   }
 
   const after = useProjectStore.getState()
-  const generated = intent.generator === "melody"
+  const generated = effectiveIntent.generator === "melody"
     ? after.activeBatchId !== before.activeBatchId
-    : intent.generator === "phrase"
+    : effectiveIntent.generator === "phrase"
       ? after.activePhraseBatchId !== before.activePhraseBatchId
-      : intent.generator === "signature"
+      : effectiveIntent.generator === "signature"
         ? after.activeSignaturePhraseBatchId !== before.activeSignaturePhraseBatchId
-        : intent.generator === "counter" || intent.generator === "decoration"
+        : effectiveIntent.generator === "counter" || effectiveIntent.generator === "decoration"
           ? after.activeReactiveBatchId !== before.activeReactiveBatchId
-          : intent.generator === "accompaniment"
+          : effectiveIntent.generator === "accompaniment"
   if (generated) {
     const director = buildArrangementDirectorBlueprint(after.project)
     const orchestration = buildOrchestrationBlueprint(after.project, director)
     const part = performancePartForIntent(
-      intent,
+      effectiveIntent,
       orchestration.sections.find((candidate) => candidate.sectionId === sectionId),
     )
-    if (part) after.applyPerformanceToLatestGeneration(sectionId, intent.generator, part)
+    if (
+      part
+      && effectiveIntent.generator !== "rhythm"
+      && effectiveIntent.generator !== "none"
+    ) after.applyPerformanceToLatestGeneration(sectionId, effectiveIntent.generator, part)
   }
-  return { generated, target: targetTabForIntent(intent) }
+  return { generated, target: targetTabForIntent(effectiveIntent) }
 }
 
 /**

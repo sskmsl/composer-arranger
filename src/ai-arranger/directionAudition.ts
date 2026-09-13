@@ -8,11 +8,43 @@ import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import type { AiArrangementIntent } from "./types"
+import {
+  arrangementSoundInstructionFromText,
+  type ArrangementSoundInstruction,
+} from "@/core/arrangementIntent"
 
 export interface DirectionAuditionRange {
   startBeat: number
   endBeat: number
   label: string
+}
+
+export function soundInstructionForIntent(intent: AiArrangementIntent): ArrangementSoundInstruction | undefined {
+  if (intent.soundInstruction) return intent.soundInstruction.enabled ? intent.soundInstruction : undefined
+  return arrangementSoundInstructionFromText([
+    intent.title,
+    intent.emotionalFunction,
+    intent.generationBrief,
+    intent.soundPalette,
+    intent.performanceDirection,
+    ...intent.techniques,
+  ].join(" "))
+}
+
+export function soundInstructionRoleIds(
+  instruction: ArrangementSoundInstruction | undefined,
+): ArrangementTrackId[] {
+  if (!instruction?.enabled) return []
+  if (instruction.role === "stabs") return ["syn-stabs"]
+  if (instruction.role === "pulse") return ["syn-pulse"]
+  if (instruction.role === "pad") return ["syn-dark-pad"]
+  if (instruction.role === "bass") return ["syn-bass"]
+  if (instruction.role === "strings") return ["str-cello", "str-viola", "str-violin-1"]
+  if (instruction.role === "bell") return ["syn-high-glass"]
+  if (instruction.role === "counter") return ["str-cello", "str-viola"]
+  if (instruction.role === "transition") return ["syn-transition-phrase"]
+  if (instruction.role === "percussion") return ["dr-field-drum"]
+  return []
 }
 
 /**
@@ -31,6 +63,7 @@ export function directionAuditionRoleIds(
   if (intent.generator === "counter") roles.push("str-cello", "str-viola")
   if (intent.generator === "signature") roles.push("syn-transition-phrase", "syn-high-glass", "syn-stabs")
   if (intent.generator === "decoration") roles.push("syn-high-glass", "syn-stabs")
+  roles.push(...soundInstructionRoleIds(soundInstructionForIntent(intent)))
   return roles
 }
 
@@ -38,6 +71,7 @@ export function directionAuditionRoleIds(
 export function directionAuditionDirectiveForIntent(
   intent: AiArrangementIntent,
 ): ArrangementGenerationDirective {
+  const soundInstruction = soundInstructionForIntent(intent)
   const roles = directionAuditionRoleIds(intent)
   const description = `${intent.generationBrief} ${intent.soundPalette} ${intent.techniques.join(" ")}`
   if (/string|violin|viola|cello|ストリング/i.test(description)) roles.push("str-cello", "str-viola", "str-violin-2", "str-violin-1")
@@ -59,6 +93,7 @@ export function directionAuditionDirectiveForIntent(
     energyDelta: densityDelta + dramaDelta,
     add: [...new Set(roles)],
     surpriseLevel: intent.creativeRisk === "radical" ? 0.75 : intent.creativeRisk === "bold" ? 0.45 : 0.15,
+    soundInstruction,
   }
 }
 

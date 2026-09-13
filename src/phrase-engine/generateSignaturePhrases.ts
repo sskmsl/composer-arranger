@@ -614,7 +614,7 @@ function planSignaturePhrase(
       ? profileChoice
       : opportunityArchetypes[poolIndex % opportunityArchetypes.length]
   const archetype =
-    input.direction && poolIndex % 4 !== 3
+    input.direction && (input.direction.strict || poolIndex % 4 !== 3)
       ? input.direction.archetype
       : contextualArchetype
   const opportunityRhythms =
@@ -627,13 +627,13 @@ function planSignaturePhrase(
           (poolIndex + rng.intBetween(0, 2)) % opportunityRhythms.length
         ]
   const rhythmIdentity =
-    input.direction && poolIndex % 3 !== 2
+    input.direction && (input.direction.strict || poolIndex % 3 !== 2)
       ? input.direction.rhythmIdentity
       : contextualRhythm
   const contextualContour =
     CONTOURS[(poolIndex * 3 + rng.intBetween(0, 2)) % CONTOURS.length]
   const contour =
-    input.direction && poolIndex % 3 !== 2
+    input.direction && (input.direction.strict || poolIndex % 3 !== 2)
       ? input.direction.contour
       : contextualContour
   const preferredVariations: Record<
@@ -668,7 +668,7 @@ function planSignaturePhrase(
     | 3
   const architecture =
     ARCHITECTURES[(poolIndex + rng.intBetween(0, 2)) % ARCHITECTURES.length]
-  const voicingMode = rng.weightedPick(
+  const voicingMode = input.direction?.voicingMode ?? rng.weightedPick(
     VOICING_MODES,
     VOICING_MODE_WEIGHTS[archetype],
   )
@@ -714,11 +714,9 @@ function planSignaturePhrase(
     archetype,
     architecture,
     developmentStages: developmentStagesFor(architecture, lengthBars),
-    decorationIntents: decorationIntentsFor(
-      archetype,
-      lengthBars,
-      poolIndex,
-    ),
+    decorationIntents: input.direction?.riffMode
+      ? []
+      : decorationIntentsFor(archetype, lengthBars, poolIndex),
     rhythmIdentity,
     contour,
     variationStrategy,
@@ -728,7 +726,9 @@ function planSignaturePhrase(
     pickupBeats: RHYTHM_BLUEPRINTS[rhythmIdentity][0]?.start ?? 0,
     rhythmVariant: (poolIndex % 3) as 0 | 1 | 2,
     repetitionStrength:
-      archetype === "obsessive-motor"
+      input.direction?.repetitionStrength !== undefined
+        ? Math.max(0, Math.min(1, input.direction.repetitionStrength))
+        : archetype === "obsessive-motor"
         ? 0.88
         : archetype === "kinetic-hook"
           ? 0.7
@@ -746,13 +746,16 @@ function planSignaturePhrase(
         ? archetypePolicy[archetype]
         : harmonicPolicies[(poolIndex + rng.intBetween(0, 2)) % harmonicPolicies.length],
     voicingMode,
-    voiceLeading: voiceLeadingPlanFor(
-      input,
-      archetype,
-      architecture,
-      poolIndex,
-      rng,
-    ),
+    voiceLeading: input.direction?.riffMode === "percussive-block-chord"
+      ? {
+          style: "close-position",
+          motion: "smooth",
+          voiceCount: 3,
+          maxVoiceLeap: 5,
+          tensionPolicy: "chord-tones-only",
+        }
+      : voiceLeadingPlanFor(input, archetype, architecture, poolIndex, rng),
+    riffMode: input.direction?.riffMode,
     compositionContext,
   }
 }
@@ -1088,7 +1091,9 @@ export function buildSignatureRhythmSkeleton(
   const source = RHYTHM_BLUEPRINTS[plan.rhythmIdentity]
   const events: RhythmEvent[] = []
   for (let bar = 0; bar < plan.lengthBars; bar++) {
-    const stage = plan.developmentStages[bar] ?? "repeat"
+    const stage = plan.riffMode && bar > 0
+      ? "repeat"
+      : plan.developmentStages[bar] ?? "repeat"
     const transformed = transformStatement(
       source,
       plan.variationStrategy,
@@ -1838,14 +1843,22 @@ function applyBlockChordVoicing(
   const voicedBars = new Set<number>()
   let previousFrame: SignatureVoicingFrame | null = null
   for (const [noteIndex, note] of leadNotes.entries()) {
-    result.push(note)
+    const voicedLead = plan.riffMode === "percussive-block-chord"
+      && note.pitch < range.low + 7
+      && note.pitch + 12 <= range.high
+      ? { ...note, pitch: note.pitch + 12 }
+      : note
+    result.push(voicedLead)
     const barIndex = Math.floor(note.startBeat / beatsPerBar)
     const stage = plan.developmentStages[barIndex] ?? "repeat"
-    if (!canVoiceNote(note, noteIndex, barIndex, stage, voicedBars, "block-chord")) continue
-    const entry = chordAtBeat(map as HarmonicMapEntry[], note.startBeat)
+    if (
+      !plan.riffMode
+      && !canVoiceNote(voicedLead, noteIndex, barIndex, stage, voicedBars, "block-chord")
+    ) continue
+    const entry = chordAtBeat(map as HarmonicMapEntry[], voicedLead.startBeat)
     if (!entry) continue
     const frame = chooseVoicingFrame(
-      note,
+      voicedLead,
       entry,
       range,
       plan.voiceLeading,
@@ -1853,16 +1866,16 @@ function applyBlockChordVoicing(
       previousFrame,
     )
     if (frame.pitches.length < 2) continue
-    voicedBars.add(barIndex)
+    if (!plan.riffMode) voicedBars.add(barIndex)
     frames.push(frame)
     previousFrame = frame
     const supportPitches = frame.pitches.slice(0, -1)
     for (const [voice, support] of supportPitches.entries()) {
       const label = voiceLabel(voice, supportPitches.length)
       result.push({
-        id: `${note.id}-voice-${label}-${voice}`,
-        startBeat: note.startBeat,
-        durationBeats: note.durationBeats,
+        id: `${voicedLead.id}-voice-${label}-${voice}`,
+        startBeat: voicedLead.startBeat,
+        durationBeats: voicedLead.durationBeats,
         pitch: support,
         velocity: Math.max(20, note.velocity - 14 - voice * 6),
         locks: [],
