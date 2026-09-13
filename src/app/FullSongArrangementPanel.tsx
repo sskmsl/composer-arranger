@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Download, Play, RefreshCw, Square, Volume2, VolumeX } from "lucide-react"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
+import { arrangementStructureChangeLabel } from "@/ai-arranger/structureChanges"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
@@ -198,6 +199,14 @@ export function FullSongArrangementPanel() {
                     ).join("、")}
                   </span>
                 )}
+              </div>
+            </div>
+          )}
+          {(arrangement.plan.directive?.structureChanges?.length ?? 0) > 0 && (
+            <div className="rounded-md border border-sky-300/25 bg-sky-400/[0.07] px-3 py-2.5 text-[12px] text-sky-50">
+              <strong className="font-semibold">曲構成へ反映済み</strong>
+              <div className="mt-1 text-[11px] text-sky-100/85">
+                {arrangement.plan.directive?.structureChanges?.map(arrangementStructureChangeLabel).join(" ／ ")}
               </div>
             </div>
           )}

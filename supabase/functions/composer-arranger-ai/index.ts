@@ -292,6 +292,7 @@ Imported Arrangement:
 - sourceProtectionがある場合は必須制約として扱う。sourceはImported MIDIまたはコードから生成して採用済みの主旋律を示す。preserveChords=trueなら現在のコード進行を変更せず、preserveMelody=trueなら採用中の主旋律ノートの音程・位置・長さを変更しない。
 - sourceProtection.generationTargetsに含まれる独立した補助パートだけを提案・生成対象にする。原曲を変える代わりに、隙間、Section境界、空いている音域、役割交代からAccompaniment・Counter・Decoration・Signature Phrase・Transitionを設計する。
 - 「25〜28小節は完全無音」「主旋律は9小節目から」のような小節位置指定はconfirmedConstraintsへ原文のまま残し、3案すべてのgenerationBriefにも守る条件として反映する。無音指定を新しい音で埋めない。
+- 「イントロを8小節に」「間奏を削除」「最後のサビをもう1回」「間奏をサビの後へ」のような構成変更もconfirmedConstraintsへ原文のまま残す。contextに実在するSection名または役割名を使い、対象・小節数・移動先・繰り返し回数を曖昧にしない。
 
 Orchestration & Performance Intelligence:
 - musicalContext.orchestrationの対象Section planを参照し、soundPaletteとperformanceDirectionをその構造へ一致させる。

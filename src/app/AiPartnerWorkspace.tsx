@@ -60,6 +60,11 @@ import {
   directiveWithTimelineConstraints,
   parseArrangementTimelineConstraints,
 } from "@/ai-arranger/timelineConstraints"
+import {
+  arrangementStructureChangeLabel,
+  parseArrangementStructureChanges,
+} from "@/ai-arranger/structureChanges"
+import { executeArrangementStructureChanges } from "@/ai-arranger/structureChangeExecution"
 import type {
   AiArrangementIntent,
   AiArrangementResponse,
@@ -212,6 +217,18 @@ export function AiPartnerWorkspace({
         ).join("、")}`
       : null,
   ].filter((label): label is string => Boolean(label))
+  const recognizedStructureChanges = useMemo(
+    () => parseArrangementStructureChanges(
+      project,
+      [
+        project.arrangementDirectorWorkspace?.brief ?? "",
+        session?.turns.at(-1)?.userMessage ?? "",
+        ...(session?.confirmedConstraints ?? []),
+        prompt,
+      ].filter(Boolean).join("。"),
+    ),
+    [project, prompt, session],
+  )
   const director = context?.arrangementDirector
   const currentDirectorPlan = director?.sections.find(
     (plan) => plan.sectionId === effectiveSectionId,
@@ -340,11 +357,24 @@ export function AiPartnerWorkspace({
         session?.turns.at(-1)?.userMessage ?? "",
         ...(session?.confirmedConstraints ?? []),
       ].filter(Boolean).join("。")
-      const { direction } = wholeSongDirectionForAiIntent(project, intent, instructionBrief)
-      const totalBars = project.sections.reduce((sum, candidate) => sum + Math.max(1, candidate.lengthBars), 0)
+      const executableBrief = [instructionBrief, intent.generationBrief].filter(Boolean).join("。")
+      const parsedStructureChanges = parseArrangementStructureChanges(project, executableBrief)
+      const structureChanges = parsedStructureChanges.length > 0
+        ? parsedStructureChanges
+        : project.fullSongArrangement?.plan.directive?.structureChanges ?? []
+      executeArrangementStructureChanges(
+        structureChanges,
+        project.fullSongArrangement?.plan.directive?.structureChanges,
+      )
+      const effectiveProject = useProjectStore.getState().project
+      const { direction } = wholeSongDirectionForAiIntent(effectiveProject, intent, instructionBrief)
+      const totalBars = effectiveProject.sections.reduce((sum, candidate) => sum + Math.max(1, candidate.lengthBars), 0)
       const generationDirective = directiveWithTimelineConstraints(
-        directionAuditionDirectiveForIntent(intent),
-        instructionBrief,
+        {
+          ...directionAuditionDirectiveForIntent(intent),
+          structureChanges,
+        },
+        executableBrief,
         totalBars,
       )
       const availableActions = direction.actions.filter(
@@ -456,7 +486,10 @@ export function AiPartnerWorkspace({
       ].filter(Boolean).join("。")
       const totalBars = project.sections.reduce((sum, candidate) => sum + Math.max(1, candidate.lengthBars), 0)
       const directive = directiveWithTimelineConstraints(
-        directionAuditionDirectiveForIntent(intent),
+        {
+          ...directionAuditionDirectiveForIntent(intent),
+          structureChanges: parseArrangementStructureChanges(project, instructionBrief),
+        },
         instructionBrief,
         totalBars,
       )
@@ -1098,6 +1131,14 @@ export function AiPartnerWorkspace({
             <div className="mt-2 rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2 text-[11px] text-emerald-100">
               <strong className="font-semibold">実際の曲構成へ反映する指定</strong>
               <span className="ml-2">{recognizedTimelineLabels.join(" ／ ")}</span>
+            </div>
+          )}
+          {isWholeSongConsultation && recognizedStructureChanges.length > 0 && (
+            <div className="mt-2 rounded-md border border-sky-300/25 bg-sky-400/[0.07] px-3 py-2 text-[11px] text-sky-100">
+              <strong className="font-semibold">この案で進むと変更する曲構成</strong>
+              <span className="ml-2">
+                {recognizedStructureChanges.map(arrangementStructureChangeLabel).join(" ／ ")}
+              </span>
             </div>
           )}
           {!session?.turns.length && <div className="mt-2 flex flex-wrap gap-2">

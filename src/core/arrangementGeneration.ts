@@ -170,6 +170,33 @@ export interface ArrangementTimelineConstraints {
   melodyStartBar?: number
 }
 
+export type ArrangementStructureChange =
+  | {
+      kind: "resize-section"
+      sectionId: string
+      sectionName: string
+      lengthBars: number
+    }
+  | {
+      kind: "remove-section"
+      sectionId: string
+      sectionName: string
+    }
+  | {
+      kind: "duplicate-section"
+      sectionId: string
+      sectionName: string
+      copies: number
+    }
+  | {
+      kind: "move-section"
+      sectionId: string
+      sectionName: string
+      anchorSectionId: string
+      anchorSectionName: string
+      position: "before" | "after"
+    }
+
 export interface ArrangementGenerationDirective {
   sectionId?: string
   intention: string
@@ -179,6 +206,8 @@ export interface ArrangementGenerationDirective {
   preserve?: ArrangementTrackId[]
   surpriseLevel?: number
   timelineConstraints?: ArrangementTimelineConstraints
+  /** AI相談から実際のSection編集へ変換した、曲固有ID付きの構成変更。 */
+  structureChanges?: ArrangementStructureChange[]
 }
 
 export interface GeneratedArrangementNote extends MelodyNote {

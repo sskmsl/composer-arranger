@@ -987,6 +987,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           ...directive,
           timelineConstraints: directive.timelineConstraints
             ?? current?.plan.directive?.timelineConstraints,
+          structureChanges: directive.structureChanges
+            ?? current?.plan.directive?.structureChanges,
         }
       : current?.plan.directive
     const fullSongArrangement = generateFullSongArrangement(prev, {
