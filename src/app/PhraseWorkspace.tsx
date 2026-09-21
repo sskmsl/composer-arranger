@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Download, Play, RefreshCw, Sparkles, Square } from "lucide-react"
+import { Check, Download, Play, RefreshCw, Sparkles, Square } from "lucide-react"
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
 import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
 import { parseTimeSignature } from "@/core/section"
@@ -47,6 +47,7 @@ export function PhraseWorkspace() {
   const generate = useProjectStore((state) => state.generatePhrasesForSection)
   const setActiveIndex = useProjectStore((state) => state.setActivePhraseCandidateIndex)
   const regenerate = useProjectStore((state) => state.regeneratePhrase)
+  const toggleAssignment = useProjectStore((state) => state.togglePhraseAssignment)
   const workflowNotice = useProjectStore((state) => state.workflowNotice)
   const [lengthChoice, setLengthChoice] = useState<LengthChoice>("auto")
   const [previewMode, setPreviewMode] = useState<PreviewMode>("chords-melody")
@@ -67,10 +68,15 @@ export function PhraseWorkspace() {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [project.phraseCandidates, selectedSectionId],
   )
+  const assignedId = selectedSectionId
+    ? project.sectionPhraseAssignments?.[selectedSectionId]
+    : undefined
   const effectiveBatchId =
     activeBatchId && sectionCandidates.some((candidate) => candidate.batchId === activeBatchId)
       ? activeBatchId
-      : sectionCandidates[0]?.batchId ?? null
+      : sectionCandidates.find((candidate) => candidate.id === assignedId)?.batchId ??
+        sectionCandidates[0]?.batchId ??
+        null
   const batch = useMemo(
     () =>
       sectionCandidates
@@ -260,7 +266,7 @@ export function PhraseWorkspace() {
                     beatsPerBar={beatsPerBar}
                   />
                 </button>
-                <div className="mt-3 flex gap-1.5">
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
                   <Button variant="dark" className="min-w-0 flex-1 !px-2 !text-[11px]" onClick={() => play(candidate)}>
                     {playingId === candidate.id ? <Square size={12} /> : <Play size={12} />}
                     試聴
@@ -282,12 +288,23 @@ export function PhraseWorkspace() {
                   >
                     <Download size={12} /> MIDI
                   </Button>
+                  <Button
+                    variant={assignedId === candidate.id ? "dark" : "primary"}
+                    className="min-w-0 !px-2 !text-[11px]"
+                    onClick={() => toggleAssignment(candidate.id)}
+                  >
+                    <Check size={12} />
+                    {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
+                  </Button>
                 </div>
               </article>
             ))}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-emerald-200">
+              採用した候補は曲全体再生と曲全体MIDIに入ります
+            </span>
             <span className="text-[11px] text-ink-muted-48">試聴:</span>
             <Select
               value={previewMode}

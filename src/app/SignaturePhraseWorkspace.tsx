@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import {
+  Check,
   Download,
   Play,
   RefreshCw,
@@ -67,6 +68,9 @@ export function SignaturePhraseWorkspace() {
   const regenerate = useProjectStore(
     (state) => state.regenerateSignaturePhrase,
   )
+  const toggleAssignment = useProjectStore(
+    (state) => state.toggleSignaturePhraseAssignment,
+  )
   const workflowNotice = useProjectStore((state) => state.workflowNotice)
   const [lengthBars, setLengthBars] =
     useState<SignaturePhraseLengthBars>(2)
@@ -93,13 +97,18 @@ export function SignaturePhraseWorkspace() {
         .sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
     [project.signaturePhraseCandidates, selectedSectionId],
   )
+  const assignedId = selectedSectionId
+    ? project.sectionSignaturePhraseAssignments?.[selectedSectionId]
+    : undefined
   const effectiveBatchId =
     activeBatchId &&
     sectionCandidates.some(
       (candidate) => candidate.batchId === activeBatchId,
     )
       ? activeBatchId
-      : sectionCandidates[0]?.batchId ?? null
+      : sectionCandidates.find((candidate) => candidate.id === assignedId)?.batchId ??
+        sectionCandidates[0]?.batchId ??
+        null
   const batch = useMemo(
     () =>
       sectionCandidates
@@ -301,7 +310,7 @@ export function SignaturePhraseWorkspace() {
                     beatsPerBar={beatsPerBar}
                   />
                 </button>
-                <div className="mt-3 flex gap-1.5">
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
                   <Button
                     variant="dark"
                     className="min-w-0 flex-1 !px-2 !text-[11px]"
@@ -331,12 +340,23 @@ export function SignaturePhraseWorkspace() {
                   >
                     <Download size={12} /> MIDI
                   </Button>
+                  <Button
+                    variant={assignedId === candidate.id ? "dark" : "primary"}
+                    className="min-w-0 !px-2 !text-[11px]"
+                    onClick={() => toggleAssignment(candidate.id)}
+                  >
+                    <Check size={12} />
+                    {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
+                  </Button>
                 </div>
               </article>
             ))}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-emerald-200">
+              採用した候補は曲全体再生と曲全体MIDIに入ります
+            </span>
             <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}

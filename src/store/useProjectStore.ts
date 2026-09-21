@@ -266,6 +266,7 @@ interface ProjectState {
 
   generatePhrasesForSection: (sectionId: string, lengthBars?: PhraseLengthBars) => void
   setActivePhraseCandidateIndex: (index: number) => void
+  togglePhraseAssignment: (candidateId: string) => void
   regeneratePhrase: (candidateId: string) => void
   generateSignaturePhrasesForSection: (
     sectionId: string,
@@ -273,6 +274,7 @@ interface ProjectState {
     direction?: SignatureGenerationDirection,
   ) => void
   setActiveSignaturePhraseCandidateIndex: (index: number) => void
+  toggleSignaturePhraseAssignment: (candidateId: string) => void
   regenerateSignaturePhrase: (candidateId: string) => void
   generateCounterForSection: (
     sectionId: string,
@@ -1137,6 +1139,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       ...sectionDecorationLayerAssignments
     } = prev.sectionDecorationLayerAssignments ?? {}
     const {
+      [sectionId]: _removedPhraseAssignment,
+      ...sectionPhraseAssignments
+    } = prev.sectionPhraseAssignments ?? {}
+    const {
+      [sectionId]: _removedSignaturePhraseAssignment,
+      ...sectionSignaturePhraseAssignments
+    } = prev.sectionSignaturePhraseAssignments ?? {}
+    const {
       [sectionId]: _removedAiPartnerSession,
       ...aiPartnerSessions
     } = prev.aiPartnerSessions ?? {}
@@ -1148,6 +1158,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     void _removedPatternAssignment
     void _removedReactiveAssignment
     void _removedDecorationAssignment
+    void _removedPhraseAssignment
+    void _removedSignaturePhraseAssignment
     void _removedAiPartnerSession
     void _removedPerformancePlan
     const removedVariantIds = new Set(
@@ -1191,6 +1203,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         sectionAccompanimentPatternAssignments,
         sectionReactiveLayerAssignments,
         sectionDecorationLayerAssignments,
+        sectionPhraseAssignments,
+        sectionSignaturePhraseAssignments,
         aiPartnerSessions,
         sectionPerformancePlans,
         arrangementDirectorOverrides,
@@ -1804,6 +1818,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setActivePhraseCandidateIndex: (index) => set({ activePhraseCandidateIndex: Math.max(0, index) }),
 
+  togglePhraseAssignment: (candidateId) => {
+    const prev = get().project
+    const candidate = prev.phraseCandidates.find((item) => item.id === candidateId)
+    if (!candidate) return
+    const assignments = { ...(prev.sectionPhraseAssignments ?? {}) }
+    if (assignments[candidate.sectionId] === candidate.id) delete assignments[candidate.sectionId]
+    else assignments[candidate.sectionId] = candidate.id
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, sectionPhraseAssignments: assignments },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
   regeneratePhrase: (candidateId) => {
     const prev = get().project
     const current = prev.phraseCandidates.find((candidate) => candidate.id === candidateId)
@@ -1881,6 +1911,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         : regenerated.techniqueFitScore,
       techniqueExperiment: current.techniqueExperiment,
     }
+    const sectionPhraseAssignments = { ...(prev.sectionPhraseAssignments ?? {}) }
+    if (sectionPhraseAssignments[current.sectionId] === current.id) {
+      sectionPhraseAssignments[current.sectionId] = replacement.id
+    }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -1889,6 +1923,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         phraseCandidates: prev.phraseCandidates.map((candidate) =>
           candidate.id === candidateId ? replacement : candidate,
         ),
+        sectionPhraseAssignments,
       },
       workflowNotice: null,
     })
@@ -1960,6 +1995,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setActiveSignaturePhraseCandidateIndex: (index) =>
     set({ activeSignaturePhraseCandidateIndex: Math.max(0, index) }),
 
+  toggleSignaturePhraseAssignment: (candidateId) => {
+    const prev = get().project
+    const candidate = prev.signaturePhraseCandidates.find((item) => item.id === candidateId)
+    if (!candidate) return
+    const assignments = { ...(prev.sectionSignaturePhraseAssignments ?? {}) }
+    if (assignments[candidate.sectionId] === candidate.id) delete assignments[candidate.sectionId]
+    else assignments[candidate.sectionId] = candidate.id
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: { ...prev, sectionSignaturePhraseAssignments: assignments },
+      workflowNotice: null,
+    })
+    get().persist()
+  },
+
   regenerateSignaturePhrase: (candidateId) => {
     const prev = get().project
     const current = prev.signaturePhraseCandidates.find(
@@ -2000,6 +2051,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       performanceSpec: performed.performanceSpec,
       createdAt: new Date().toISOString(),
     }
+    const sectionSignaturePhraseAssignments = {
+      ...(prev.sectionSignaturePhraseAssignments ?? {}),
+    }
+    if (sectionSignaturePhraseAssignments[current.sectionId] === current.id) {
+      sectionSignaturePhraseAssignments[current.sectionId] = replacement.id
+    }
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
@@ -2009,6 +2066,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           prev.signaturePhraseCandidates.map((candidate) =>
             candidate.id === candidateId ? replacement : candidate,
           ),
+        sectionSignaturePhraseAssignments,
       },
       workflowNotice: null,
     })

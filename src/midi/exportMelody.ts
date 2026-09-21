@@ -153,6 +153,18 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
       notes: material.reactiveLayers.map(toSmfNote),
     })
   }
+  if (material.phraseLayers.length > 0) {
+    tracks.push({
+      name: "Selected Phrases",
+      notes: material.phraseLayers.map(toSmfNote),
+    })
+  }
+  if (material.signaturePhraseLayers.length > 0) {
+    tracks.push({
+      name: "Selected Intro Phrases",
+      notes: material.signaturePhraseLayers.map(toSmfNote),
+    })
+  }
 
   if (includeChords) {
     const chordNotes: SmfTrack["notes"] = []

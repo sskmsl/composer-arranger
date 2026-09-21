@@ -1,6 +1,7 @@
 import type { FullSongArrangement, GeneratedArrangementTrack } from "@/core/arrangementGeneration"
 import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
+import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 
 const SOFTWARE_INSTRUMENT_MIDI_CHANNEL = 0
@@ -50,8 +51,43 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
 function song(
   project: ComposerProject,
   tracks: GeneratedArrangementTrack[],
+  includeSelectedPhrases = false,
 ): Uint8Array {
   const timeSignature = parseTimeSignature(project.song.timeSignature)
+  const selectedMaterial = includeSelectedPhrases
+    ? buildSongPlaybackMaterial(
+        project,
+        project.fullSongArrangement?.plan.directive?.timelineConstraints,
+      )
+    : null
+  const selectedTracks: SmfTrack[] = selectedMaterial
+    ? [
+        selectedMaterial.phraseLayers.length > 0
+          ? {
+              name: "Selected Phrases",
+              notes: selectedMaterial.phraseLayers.map((note) => ({
+                pitch: note.pitch,
+                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
+                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                velocity: note.velocity,
+                channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+              })),
+            }
+          : null,
+        selectedMaterial.signaturePhraseLayers.length > 0
+          ? {
+              name: "Selected Intro Phrases",
+              notes: selectedMaterial.signaturePhraseLayers.map((note) => ({
+                pitch: note.pitch,
+                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
+                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                velocity: note.velocity,
+                channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+              })),
+            }
+          : null,
+      ].filter((track): track is SmfTrack => Boolean(track))
+    : []
   return buildSmf({
     name: `${project.title} Arrangement`,
     tempoBpm: project.song.tempo,
@@ -60,7 +96,10 @@ function song(
       tick: Math.round((section.startBar - 1) * timeSignature.beatsPerBar * TICKS_PER_QUARTER),
       text: section.name,
     })),
-    tracks: tracks.filter((track) => !track.muted && track.notes.length > 0).map(toSmfTrack),
+    tracks: [
+      ...tracks.filter((track) => !track.muted && track.notes.length > 0).map(toSmfTrack),
+      ...selectedTracks,
+    ],
   })
 }
 
@@ -68,7 +107,7 @@ export function exportArrangementMidi(
   project: ComposerProject,
   arrangement: FullSongArrangement,
 ): Uint8Array {
-  return song(project, arrangement.tracks)
+  return song(project, arrangement.tracks, true)
 }
 
 export function exportArrangementTrackMidi(

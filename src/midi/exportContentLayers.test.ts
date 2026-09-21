@@ -8,6 +8,8 @@ import type { ResolvedLeadContent, SectionLayer } from "@/core/sectionContent"
 import { partRoleFor } from "@/core/sectionContent"
 import { fallbackPlanFor, layersOf, notesByPartRole } from "@/core/sectionLayers"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import type { PhraseCandidate } from "@/core/phrase"
+import type { SignaturePhraseCandidate } from "@/core/signaturePhrase"
 
 const CHORDS: ChordEvent[] = [
   { id: "c1", sectionId: "s1", startBeat: 0, durationBeats: 8, symbol: "Am", bass: null },
@@ -396,6 +398,43 @@ describe("Issue #45 / Accompaniment Pattern MIDI", () => {
     for (const trackName of ["Chords", "Active Melody", "Accompaniment", "Accompaniment Pattern"]) {
       expect(noteOnChannelsOfTrack(bytes, trackName)).toEqual(new Set([0]))
     }
+  })
+})
+
+describe("採用済みPhraseの曲全体MIDI", () => {
+  it("短いフレーズとイントロフレーズを採用セクションの絶対位置へ別トラックで出力する", () => {
+    const project = createEmptyProject("selected-phrases")
+    project.sections = [
+      { id: "s1", name: "Intro", role: "intro", startBar: 1, lengthBars: 2 },
+      { id: "s2", name: "Verse", role: "verse", startBar: 3, lengthBars: 2 },
+    ]
+    project.phraseCandidates = [{
+      id: "phrase-1",
+      sectionId: "s1",
+      notes: [note(1, 0.5, 72)],
+    } as PhraseCandidate]
+    project.signaturePhraseCandidates = [{
+      id: "signature-1",
+      sectionId: "s2",
+      notes: [note(2, 1, 79)],
+    } as SignaturePhraseCandidate]
+    project.sectionPhraseAssignments = { s1: "phrase-1" }
+    project.sectionSignaturePhraseAssignments = { s2: "signature-1" }
+
+    const material = buildSongPlaybackMaterial(project)
+    expect(material.phraseLayers.map((item) => item.startBeat)).toEqual([1])
+    expect(material.signaturePhraseLayers.map((item) => item.startBeat)).toEqual([10])
+    expect(material.melody.map((item) => item.pitch)).toEqual([72, 79])
+
+    const bytes = exportSongMidi(project, false)
+    expect(trackNames(bytes)).toContain("Selected Phrases")
+    expect(trackNames(bytes)).toContain("Selected Intro Phrases")
+    expect(notesOfTrack(bytes, "Selected Phrases")).toEqual([
+      { start: TICKS_PER_QUARTER, duration: TICKS_PER_QUARTER / 2, pitch: 72 },
+    ])
+    expect(notesOfTrack(bytes, "Selected Intro Phrases")).toEqual([
+      { start: 10 * TICKS_PER_QUARTER, duration: TICKS_PER_QUARTER, pitch: 79 },
+    ])
   })
 })
 

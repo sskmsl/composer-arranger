@@ -775,6 +775,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           requireOpeningCategoryDiversity: true,
           requireActualStartBeatDiversity: true,
           requireCandidateDNADiversity: true,
+          requireAudibleIdentityDiversity: true,
           requireTransitionStrategyDiversity: Boolean(input.transitionContext),
           minimumTransitionFitScore: input.transitionContext ? 55 : undefined,
           techniqueFitWeight: techniqueSelectionWeight(),

@@ -68,6 +68,24 @@ describe("Phrase Candidate store", () => {
     }
   })
 
+  it("採用した短いフレーズを全曲用に保存し、再生成後も採用先を引き継ぐ", () => {
+    useProjectStore.getState().generatePhrasesForSection("s1", 2)
+    const target = useProjectStore.getState().project.phraseCandidates[0]
+    useProjectStore.getState().togglePhraseAssignment(target.id)
+    expect(useProjectStore.getState().project.sectionPhraseAssignments?.s1).toBe(target.id)
+
+    useProjectStore.getState().regeneratePhrase(target.id)
+    const replacementId = useProjectStore.getState().project.sectionPhraseAssignments?.s1
+    expect(replacementId).toBeTruthy()
+    expect(replacementId).not.toBe(target.id)
+    expect(
+      useProjectStore.getState().project.phraseCandidates.some((candidate) => candidate.id === replacementId),
+    ).toBe(true)
+
+    useProjectStore.getState().togglePhraseAssignment(replacementId!)
+    expect(useProjectStore.getState().project.sectionPhraseAssignments?.s1).toBeUndefined()
+  })
+
   it("Technique実験では同じseed条件のNormal 3案とTreatment 3案を保存する", () => {
     useProjectStore.getState().setGenerationSettings({
       techniqueExperimentPresetId:
@@ -147,5 +165,6 @@ describe("Phrase Candidate store", () => {
     const { phraseCandidates: _removed, ...old } = projectWithSection()
     void _removed
     expect(normalizeProject(old).phraseCandidates).toEqual([])
+    expect(normalizeProject(old).sectionPhraseAssignments).toEqual({})
   })
 })

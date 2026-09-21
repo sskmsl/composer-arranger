@@ -538,7 +538,7 @@ export function AiPartnerWorkspace({
           accompaniment: includeSource
             ? importedSource ? material.importedBacking : material.accompanimentPattern
             : [],
-          melody: includeSource ? material.lead : [],
+          melody: includeSource ? material.melody : [],
           arrangementTracks: auditionTracks,
           mode: includeSource ? "chords-melody" : "melody-only",
           range: ranges[index],

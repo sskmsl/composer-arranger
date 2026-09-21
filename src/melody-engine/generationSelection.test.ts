@@ -75,6 +75,26 @@ describe("Profile候補プールと診断情報", () => {
     }
   })
 
+  it.each(GENERATOR_PROFILES)("%s: 最終3案のフレーズ構造を分け、リズムとモチーフも同型にしない", (profile) => {
+    const candidates = generateFromChordsWithProfiles({
+      chords,
+      sectionId: "s",
+      sectionRole: "verse",
+      songProfile: "original-custom",
+      density: "balanced",
+      range: { low: 60, high: 79 },
+      drama: "growing",
+      totalBeats: 16,
+      seed: 31,
+      profiles: [profile],
+    }).candidates
+    const dnas = candidates.map((candidate) => candidate.candidateMelodyDNA)
+    expect(dnas.every(Boolean)).toBe(true)
+    expect(new Set(dnas.map((dna) => dna!.phraseArchitecture)).size).toBe(3)
+    expect(new Set(dnas.map((dna) => dna!.rhythmGrammar)).size).toBeGreaterThanOrEqual(2)
+    expect(new Set(dnas.map((dna) => dna!.motifIdentity)).size).toBeGreaterThanOrEqual(2)
+  })
+
   it("選ばれた候補はProfile品質下限を維持する", () => {
     for (const candidate of generate().candidates) {
       expect(candidate.generationDiagnostics?.qualityScore).toBeGreaterThanOrEqual(PROFILE_MINIMUM_QUALITY.chromatic)

@@ -19,6 +19,8 @@ export type LogicProductionTrackId =
   | "pulse"
   | "counter"
   | "decoration"
+  | "selected-phrase"
+  | "selected-intro-phrase"
 
 export interface LogicSoundRecommendation {
   library: "Native Instruments Komplete 15 Ultimate" | "u-he Repro"
@@ -189,6 +191,20 @@ function sources(project: ComposerProject): TrackSource[] {
         { library: "Native Instruments Komplete 15 Ultimate", product: "Playbox", searchTerms: ["glass bell", "organic texture", "reverse tonal"], reason: "短い色彩と異質なレイヤーを組み合わせやすい。" },
         { library: "Native Instruments Komplete 15 Ultimate", product: "Una Corda", searchTerms: ["reverse piano", "resonance", "prepared texture"], reason: "ピアノ由来の残響とTransition素材に向く。" },
       ],
+    },
+    {
+      id: "selected-phrase", name: "08 Selected Phrase", notes: material.phraseLayers, statusWithoutNotes: "empty",
+      role: "Adopted Phrase", purpose: "短いフレーズ画面で全曲採用した素材を、曲中の採用位置へ配置する。",
+      performance: "主旋律と競合する場合は音色を後景へ置き、採用したリズムと音価は保持する。",
+      panorama: "音色に応じてCenter〜±35", reverb: "主旋律より少し後景。",
+      recommendations: [{ library: "u-he Repro", product: "Repro-1", searchTerms: ["short motif", "soft pluck", "muted sequence"], reason: "短い素材の輪郭と発音を確認しやすい。" }],
+    },
+    {
+      id: "selected-intro-phrase", name: "09 Selected Intro Phrase", notes: material.signaturePhraseLayers, statusWithoutNotes: "empty",
+      role: "Adopted Intro Phrase", purpose: "イントロフレーズ画面で全曲採用した素材を、曲中の採用位置へ配置する。",
+      performance: "候補固有の反復・和音・余白を保ち、主旋律より前に曲の印象を提示する。",
+      panorama: "Center〜±30", reverb: "必要に応じて短いRoomまたはTempo Delay。",
+      recommendations: [{ library: "Native Instruments Komplete 15 Ultimate", product: "Playbox", searchTerms: ["tonal motif", "short chord", "rhythmic texture"], reason: "単音・和音・リズム素材のいずれにも割り当てやすい。" }],
     },
   ]
 }

@@ -83,7 +83,7 @@ export function FullSongArrangementPanel() {
     const tracks = trackId === "all"
       ? arrangement.tracks.filter((track) => !track.muted)
       : arrangement.tracks.filter((track) => track.id === trackId)
-    const sourceHasNotes = material.lead.length > 0 || material.importedBacking.length > 0 || material.chords.length > 0
+    const sourceHasNotes = material.melody.length > 0 || material.importedBacking.length > 0 || material.chords.length > 0
     const generatedHasNotes = tracks.some((track) => track.notes.length > 0)
     if (trackId === "all") {
       if (mix === "source" && !sourceHasNotes) return
@@ -108,7 +108,7 @@ export function FullSongArrangementPanel() {
         : [],
       arrangementTracks: includeGenerated ? tracks : [],
       mode: trackId === "all" && includeSource ? "chords-melody" : "melody-only",
-      melody: trackId === "all" && includeSource ? material.lead : [],
+      melody: trackId === "all" && includeSource ? material.melody : [],
       startBeat,
       range: { startBeat, endBeat: material.totalBeats },
       onEnded: () => {

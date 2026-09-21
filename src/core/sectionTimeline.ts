@@ -48,6 +48,9 @@ export interface SongPlaybackMaterial {
   reactiveLayers: MelodyNote[]
   counterLayers: MelodyNote[]
   decorationLayers: MelodyNote[]
+  /** 採用済みの短いフレーズ／イントロフレーズ。 */
+  phraseLayers: MelodyNote[]
+  signaturePhraseLayers: MelodyNote[]
   totalBeats: number
 }
 
@@ -109,6 +112,8 @@ export function buildSongPlaybackMaterial(
   const reactiveLayers: MelodyNote[] = []
   const counterLayers: MelodyNote[] = []
   const decorationLayers: MelodyNote[] = []
+  const phraseLayers: MelodyNote[] = []
+  const signaturePhraseLayers: MelodyNote[] = []
   const protectedImportedLead = importedProtectedMelody(project)
   const importedBacking = importedBackingNotes(project)
   const sections = normalizeSectionTimeline(project.sections)
@@ -263,6 +268,37 @@ export function buildSongPlaybackMaterial(
         roleTarget.push(absoluteNote)
       }
     }
+    const phraseId = project.sectionPhraseAssignments?.[section.id]
+    const phrase = phraseId
+      ? project.phraseCandidates.find(
+          (candidate) => candidate.id === phraseId && candidate.sectionId === section.id,
+        )
+      : undefined
+    if (phrase) {
+      for (const note of phrase.notes) {
+        phraseLayers.push({
+          ...note,
+          id: `${section.id}:phrase:${note.id}`,
+          startBeat: offset + note.startBeat,
+        })
+      }
+    }
+    const signaturePhraseId = project.sectionSignaturePhraseAssignments?.[section.id]
+    const signaturePhrase = signaturePhraseId
+      ? project.signaturePhraseCandidates.find(
+          (candidate) =>
+            candidate.id === signaturePhraseId && candidate.sectionId === section.id,
+        )
+      : undefined
+    if (signaturePhrase) {
+      for (const note of signaturePhrase.notes) {
+        signaturePhraseLayers.push({
+          ...note,
+          id: `${section.id}:signature:${note.id}`,
+          startBeat: offset + note.startBeat,
+        })
+      }
+    }
     if (!variant) continue
     // Issue #41: partRoleの正はLayer。曲全体へ展開する際も役割ごとに分けて持つ
     for (const layer of layersOf(variant)) {
@@ -287,9 +323,17 @@ export function buildSongPlaybackMaterial(
   const constrainedReactive = applySilenceRanges(reactiveLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
   const constrainedCounter = applySilenceRanges(counterLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
   const constrainedDecoration = applySilenceRanges(decorationLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedPhrases = applySilenceRanges(phraseLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
+  const constrainedSignaturePhrases = applySilenceRanges(signaturePhraseLayers, fullSilenceRanges, beatsPerBar).sort(byBeat)
   return {
     chords: constrainedChords,
-    melody: [...constrainedLead, ...constrainedAccompaniment, ...constrainedReactive].sort(byBeat),
+    melody: [
+      ...constrainedLead,
+      ...constrainedAccompaniment,
+      ...constrainedReactive,
+      ...constrainedPhrases,
+      ...constrainedSignaturePhrases,
+    ].sort(byBeat),
     lead: constrainedLead,
     accompaniment: constrainedAccompaniment,
     accompanimentPattern: constrainedPattern,
@@ -297,6 +341,8 @@ export function buildSongPlaybackMaterial(
     reactiveLayers: constrainedReactive,
     counterLayers: constrainedCounter,
     decorationLayers: constrainedDecoration,
+    phraseLayers: constrainedPhrases,
+    signaturePhraseLayers: constrainedSignaturePhrases,
     totalBeats: totalBars * beatsPerBar,
   }
 }

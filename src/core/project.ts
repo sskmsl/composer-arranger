@@ -211,6 +211,10 @@ export interface ComposerProject {
   activeMelodyId: string | null
   /** 曲全体を組み立てるための、セクションごとの採用Variant。 */
   sectionMelodyAssignments: Record<string, string>
+  /** セクションごとに採用した短いフレーズ。曲全体再生・MIDIへ反映する。 */
+  sectionPhraseAssignments?: Record<string, string>
+  /** セクションごとに採用したイントロフレーズ。曲全体再生・MIDIへ反映する。 */
+  sectionSignaturePhraseAssignments?: Record<string, string>
   /** Issue #45: コード進行・Melody Variantから独立した度数＋リズムの伴奏テンプレート。 */
   accompanimentPatterns: AccompanimentPatternTemplate[]
   /** Issue #45: セクションごとに適用するAccompaniment Pattern Template。 */
@@ -275,6 +279,8 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
     audioReferences: [],
     activeMelodyId: null,
     sectionMelodyAssignments: {},
+    sectionPhraseAssignments: {},
+    sectionSignaturePhraseAssignments: {},
     accompanimentPatterns: createDefaultAccompanimentPatterns(),
     sectionAccompanimentPatternAssignments: {},
     reactiveLayerCandidates: [],
@@ -372,6 +378,8 @@ export function normalizeProject(raw: unknown): ComposerProject {
     audioReferences: r.audioReferences ?? [],
     activeMelodyId: r.activeMelodyId ?? null,
     sectionMelodyAssignments: r.sectionMelodyAssignments ?? {},
+    sectionPhraseAssignments: r.sectionPhraseAssignments ?? {},
+    sectionSignaturePhraseAssignments: r.sectionSignaturePhraseAssignments ?? {},
     accompanimentPatterns: (() => {
       const saved = r.accompanimentPatterns ?? []
       const savedIds = new Set(saved.map((pattern) => pattern.id))

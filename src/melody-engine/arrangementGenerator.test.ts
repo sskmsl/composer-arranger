@@ -311,6 +311,34 @@ describe("Arrangement Generator", () => {
 
   it("全パートMIDIと単独MIDIをSoftware Instrument向けの別トラックで出力する", () => {
     const input = project()
+    input.phraseCandidates = [{
+      id: "adopted-phrase",
+      sectionId: "intro",
+      batchId: "phrase-batch",
+      name: "Phrase 1",
+      seed: 1,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      notes: [{ id: "phrase-note", pitch: 76, startBeat: 1, durationBeats: 0.5, velocity: 78, locks: [] }],
+      intent: {
+        lengthBars: 2,
+        contour: "arch",
+        rhythmCharacter: "flowing",
+        harmonicApproach: "chord-anchored",
+        cadence: "resolved",
+        density: 0.5,
+        restRatio: 0.3,
+        leapAmount: 0.2,
+        climaxPosition: 0.7,
+        pickupBeats: 0,
+        motifIntervals: [2, -1],
+        motifDurations: [0.5, 0.5],
+      },
+      phraseLengthBeats: 8,
+      qualityScore: 80,
+      selectionScore: 0.8,
+      similarityToSelected: [],
+    }]
+    input.sectionPhraseAssignments = { intro: "adopted-phrase" }
     const result = generateFullSongArrangement(input, { seed: 55 })
     const all = new TextDecoder().decode(exportArrangementMidi(input, result))
     const bass = new TextDecoder().decode(exportArrangementTrackMidi(input, result, "syn-bass"))
@@ -318,8 +346,10 @@ describe("Arrangement Generator", () => {
     expect(all).toContain("DR_Kick")
     expect(all).toContain("SYN_Bass")
     expect(all).toContain("STR_Violin1")
+    expect(all).toContain("Selected Phrases")
     expect(bass).toContain("SYN_Bass")
     expect(bass).not.toContain("DR_Kick")
+    expect(bass).not.toContain("Selected Phrases")
   })
 
   it("個別MIDIは1小節目へ配置し、最初に鳴る小節を案内できる", () => {

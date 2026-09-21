@@ -12,19 +12,19 @@ import {
 } from "./melodySimilarity"
 
 export const CANDIDATE_SELECTION_CONFIG = {
-  candidatePoolSize: 9,
+  candidatePoolSize: 12,
   finalCandidateCount: 3,
-  maximumPoolSize: 15,
+  maximumPoolSize: 21,
   qualityWeight: 0.6,
   diversityWeight: 0.4,
   /** Rule指定時だけ使用する。残り90%はquality/diversityの比率を維持する。 */
   techniqueFitWeight: 0.1,
   maximumOverallSimilarity: 0.72,
   similarityRelaxationStep: 0.05,
-  maximumRelaxedSimilarity: 0.9,
-  structuralRhythmSimilarity: 0.9,
-  structuralIntervalSimilarity: 0.84,
-  structuralContourSimilarity: 0.92,
+  maximumRelaxedSimilarity: 0.84,
+  structuralRhythmSimilarity: 0.84,
+  structuralIntervalSimilarity: 0.78,
+  structuralContourSimilarity: 0.88,
 } as const
 
 /** 現行score(0..100)に対する保守的なProfile別最低品質。試聴後に個別調整できる設定値。 */
@@ -68,6 +68,8 @@ export interface CandidateSelectionOptions {
   requireOpeningCategoryDiversity?: boolean
   requireActualStartBeatDiversity?: boolean
   requireCandidateDNADiversity?: boolean
+  /** ラベルだけでなく、3案のリズム設計・フレーズ構造・モチーフの役割を聴感上分ける。 */
+  requireAudibleIdentityDiversity?: boolean
   requireTransitionStrategyDiversity?: boolean
   minimumTransitionFitScore?: number
   /** 0なら従来選抜。指定時もquality floorは変更しない。 */
@@ -211,7 +213,15 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
         dnaSet.map((candidate) => candidate.climaxPlan.position),
         dnaSet.map((candidate) => candidate.endingStrategy),
       ]
-      return new Set(signatures).size === set.length && dimensions.filter((values) => new Set(values).size >= 2).length >= 3
+      const baseDiversity =
+        new Set(signatures).size === set.length &&
+        dimensions.filter((values) => new Set(values).size >= 2).length >= 4
+      if (!baseDiversity || !options.requireAudibleIdentityDiversity) return baseDiversity
+      return (
+        new Set(dnaSet.map((candidate) => candidate.phraseArchitecture)).size === set.length &&
+        new Set(dnaSet.map((candidate) => candidate.rhythmGrammar)).size >= 2 &&
+        new Set(dnaSet.map((candidate) => candidate.motifIdentity)).size >= 2
+      )
     }
     const transitionStrategiesValid = (set: T[]): boolean => {
       if (!options.requireTransitionStrategyDiversity) return true

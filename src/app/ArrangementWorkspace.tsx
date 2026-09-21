@@ -33,7 +33,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
 
   const playSong = (requestedStartBeat = playbackBeat) => {
     if (
-      material.lead.length === 0 &&
+      material.melody.length === 0 &&
       material.chords.length === 0 &&
       material.accompanimentPattern.length === 0 &&
       material.importedBacking.length === 0 &&
@@ -48,7 +48,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     previewPlayer.playContinuous({
       bpm: project.song.tempo,
       chords: importedSource ? [] : material.chords,
-      melody: material.lead,
+      melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
       arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
       mode: "chords-melody",
@@ -118,7 +118,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     previewPlayer.play({
       bpm: project.song.tempo,
       chords: importedSource ? [] : material.chords,
-      melody: material.lead,
+      melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
       arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
       mode: "chords-melody",

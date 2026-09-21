@@ -144,10 +144,28 @@ describe("Signature Phrase store", () => {
     ).toBe(true)
   })
 
+  it("採用したイントロフレーズを全曲用に保存し、再生成後も採用先を引き継ぐ", () => {
+    useProjectStore.getState().generateSignaturePhrasesForSection("s1", 1)
+    const target = useProjectStore.getState().project.signaturePhraseCandidates[0]
+    useProjectStore.getState().toggleSignaturePhraseAssignment(target.id)
+    expect(useProjectStore.getState().project.sectionSignaturePhraseAssignments?.s1).toBe(target.id)
+
+    useProjectStore.getState().regenerateSignaturePhrase(target.id)
+    const replacementId = useProjectStore.getState().project.sectionSignaturePhraseAssignments?.s1
+    expect(replacementId).toBeTruthy()
+    expect(replacementId).not.toBe(target.id)
+    expect(
+      useProjectStore.getState().project.signaturePhraseCandidates.some(
+        (candidate) => candidate.id === replacementId,
+      ),
+    ).toBe(true)
+  })
+
   it("旧プロジェクトを読み込むと専用候補配列を補完する", () => {
     const { signaturePhraseCandidates: _removed, ...old } =
       projectWithSection()
     void _removed
     expect(normalizeProject(old).signaturePhraseCandidates).toEqual([])
+    expect(normalizeProject(old).sectionSignaturePhraseAssignments).toEqual({})
   })
 })
