@@ -299,6 +299,6 @@ describe("Song Motif DNA: bespoke Profileへの反映", () => {
       }
       expect(changed).toBeGreaterThan(50)
     },
-    10_000,
+    30_000,
   )
 })

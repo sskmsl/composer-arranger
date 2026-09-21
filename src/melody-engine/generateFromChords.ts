@@ -783,13 +783,20 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       )
 
     // 2) 品質候補が不足する、または初期閾値では多様な3案を選べない場合だけ追加生成する。
+    // 1件追加するたびに全3組を再評価すると、長い曲や低速な端末では同じ組み合わせの
+    // 比較を何度も繰り返す。最終候補数と同じ3件単位で増やし、品質・多様性の条件を
+    // 変えずに再評価回数だけを抑える。
     let selection = runSelection()
     while (
       pool.length < CANDIDATE_SELECTION_CONFIG.maximumPoolSize &&
       (selection.selected.length < CANDIDATE_SELECTION_CONFIG.finalCandidateCount ||
         selection.selected.some((item) => item.reason === "insufficient-diversity-fallback"))
     ) {
-      appendCandidate()
+      const nextPoolSize = Math.min(
+        CANDIDATE_SELECTION_CONFIG.maximumPoolSize,
+        pool.length + CANDIDATE_SELECTION_CONFIG.finalCandidateCount,
+      )
+      while (pool.length < nextPoolSize) appendCandidate()
       selection = runSelection()
     }
 

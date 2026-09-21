@@ -164,7 +164,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
   const belowQualityFloor = pool.filter((candidate) => candidate.qualityScore < qualityFloor)
 
   // Opening制約を同時に満たす必要があるProfile生成では、最高品質1件を先に固定すると
-  // 残り2件を選べなくなることがある。最大15件なので全3組を評価し、実音上成立する組から選ぶ。
+  // 残り2件を選べなくなることがある。最大21件なので全3組を評価し、実音上成立する組から選ぶ。
   if (
     finalCount === 3 &&
     options.maximumOpeningSimilarity !== undefined &&

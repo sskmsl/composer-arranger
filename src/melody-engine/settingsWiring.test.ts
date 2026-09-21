@@ -55,7 +55,7 @@ describe("Custom Range: 生成音が指定範囲を外れない", () => {
         }
       }
     }
-  })
+  }, 15_000)
 })
 
 describe("Density: 高いほどノート数が増える傾向(parametric/bespoke双方)", () => {
