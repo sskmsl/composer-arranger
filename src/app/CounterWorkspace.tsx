@@ -288,7 +288,7 @@ export function CounterWorkspace() {
                     )}
                     {assignedId === candidate.id && (
                       <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
-                        Active
+                        採用済み
                       </span>
                     )}
                   </div>
@@ -354,7 +354,8 @@ export function CounterWorkspace() {
                     className="!px-2 !text-[11px]"
                     onClick={() => assign(candidate.id)}
                   >
-                    <Check size={12} /> 採用
+                    <Check size={12} />
+                    {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
                   </Button>
                 </div>
               </article>
@@ -362,6 +363,9 @@ export function CounterWorkspace() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-emerald-200">
+              採用した候補は曲全体再生と曲全体MIDIに入ります
+            </span>
             <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}

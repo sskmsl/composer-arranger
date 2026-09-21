@@ -147,10 +147,16 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
       notes: material.accompanimentPattern.map(toSmfNote),
     })
   }
-  if (material.reactiveLayers.length > 0) {
+  if (material.counterLayers.length > 0) {
     tracks.push({
-      name: "Counter and Decoration",
-      notes: material.reactiveLayers.map(toSmfNote),
+      name: "Selected Counter Melody",
+      notes: material.counterLayers.map(toSmfNote),
+    })
+  }
+  if (material.decorationLayers.length > 0) {
+    tracks.push({
+      name: "Selected Decoration",
+      notes: material.decorationLayers.map(toSmfNote),
     })
   }
   if (material.phraseLayers.length > 0) {

@@ -51,10 +51,10 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
 function song(
   project: ComposerProject,
   tracks: GeneratedArrangementTrack[],
-  includeSelectedPhrases = false,
+  includeAdoptedLayers = false,
 ): Uint8Array {
   const timeSignature = parseTimeSignature(project.song.timeSignature)
-  const selectedMaterial = includeSelectedPhrases
+  const selectedMaterial = includeAdoptedLayers
     ? buildSongPlaybackMaterial(
         project,
         project.fullSongArrangement?.plan.directive?.timelineConstraints,
@@ -62,6 +62,30 @@ function song(
     : null
   const selectedTracks: SmfTrack[] = selectedMaterial
     ? [
+        selectedMaterial.counterLayers.length > 0
+          ? {
+              name: "Selected Counter Melody",
+              notes: selectedMaterial.counterLayers.map((note) => ({
+                pitch: note.pitch,
+                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
+                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                velocity: note.velocity,
+                channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+              })),
+            }
+          : null,
+        selectedMaterial.decorationLayers.length > 0
+          ? {
+              name: "Selected Decoration",
+              notes: selectedMaterial.decorationLayers.map((note) => ({
+                pitch: note.pitch,
+                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
+                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                velocity: note.velocity,
+                channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+              })),
+            }
+          : null,
         selectedMaterial.phraseLayers.length > 0
           ? {
               name: "Selected Phrases",

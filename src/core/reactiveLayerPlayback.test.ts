@@ -108,13 +108,14 @@ describe("Issue #42 / Reactive Layer playback and persistence", () => {
     const material = buildSongPlaybackMaterial(stale)
     expect(material.reactiveLayers).toHaveLength(0)
     expect(new TextDecoder().decode(exportSongMidi(stale, false))).not.toContain(
-      "Counter and Decoration",
+      "Selected Counter Melody",
     )
   })
 
   it("曲全体MIDIへSoftware Instrument互換の独立トラックとして出力する", () => {
     const bytes = exportSongMidi(project(), false)
-    expect(new TextDecoder().decode(bytes)).toContain("Counter and Decoration")
+    expect(new TextDecoder().decode(bytes)).toContain("Selected Counter Melody")
+    expect(new TextDecoder().decode(bytes)).not.toContain("Selected Decoration")
   })
 
   it("旧Projectを読み込むとReactive Layer保存領域を空で補完する", () => {

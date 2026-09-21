@@ -2812,6 +2812,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       (item) => item.id === candidateId,
     )
     if (!candidate) return
+    const currentAssignment = candidate.kind === "decoration"
+      ? prev.sectionDecorationLayerAssignments?.[candidate.sectionId]
+      : prev.sectionReactiveLayerAssignments?.[candidate.sectionId]
+    if (currentAssignment === candidate.id) {
+      const assignments = candidate.kind === "decoration"
+        ? { ...(prev.sectionDecorationLayerAssignments ?? {}) }
+        : { ...(prev.sectionReactiveLayerAssignments ?? {}) }
+      delete assignments[candidate.sectionId]
+      set({
+        history: [...get().history, snapshot(prev)],
+        future: [],
+        project: candidate.kind === "decoration"
+          ? { ...prev, sectionDecorationLayerAssignments: assignments }
+          : { ...prev, sectionReactiveLayerAssignments: assignments },
+        workflowNotice: null,
+      })
+      get().persist()
+      return
+    }
     if (
       candidate.kind === "counter" &&
       prev.sectionMelodyAssignments[candidate.sectionId] !==

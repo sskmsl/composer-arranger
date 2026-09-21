@@ -3,6 +3,9 @@ import { createEmptyProject } from "@/core/project"
 import { parseChordInputText } from "@/core/chordInput"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { DEFAULT_DECORATION_SETTINGS } from "@/melody-engine/decorationGenerator"
+import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { exportArrangementMidi } from "@/midi/exportArrangement"
+import { exportSongMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "./useProjectStore"
 
 vi.mock("@/core/rng", async (importOriginal) => {
@@ -51,7 +54,15 @@ describe("Issue #71 / Decoration store workflow", () => {
     expect(useProjectStore.getState().project.melodyVariants).toHaveLength(0)
     useProjectStore.getState().assignReactiveLayer(candidates[0].id)
     expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBe(candidates[0].id)
-    expect(buildSongPlaybackMaterial(useProjectStore.getState().project).reactiveLayers.length).toBeGreaterThan(0)
+    const adoptedProject = useProjectStore.getState().project
+    expect(buildSongPlaybackMaterial(adoptedProject).reactiveLayers.length).toBeGreaterThan(0)
+    expect(new TextDecoder().decode(exportSongMidi(adoptedProject, false))).toContain(
+      "Selected Decoration",
+    )
+    const arrangement = generateFullSongArrangement(adoptedProject, { seed: 71 })
+    expect(new TextDecoder().decode(exportArrangementMidi(adoptedProject, arrangement))).toContain(
+      "Selected Decoration",
+    )
   })
 
   it("候補ごとの再生成は兄弟を保持し、採用参照も置換する", () => {
@@ -66,6 +77,19 @@ describe("Issue #71 / Decoration store workflow", () => {
     expect(after.some((candidate) => candidate.id === target.id)).toBe(false)
     expect(siblingIds.every((id) => after.some((candidate) => candidate.id === id))).toBe(true)
     expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).not.toBe(target.id)
+  })
+
+  it("採用済みの装飾をもう一度押すと全曲MIDIの対象から外す", () => {
+    useProjectStore.getState().generateDecorationsForSection("a")
+    const target = useProjectStore.getState().project.reactiveLayerCandidates?.[0]
+    expect(target).toBeDefined()
+    useProjectStore.getState().assignReactiveLayer(target!.id)
+    expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBe(target!.id)
+    useProjectStore.getState().assignReactiveLayer(target!.id)
+    expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBeUndefined()
+    expect(new TextDecoder().decode(exportSongMidi(useProjectStore.getState().project, false))).not.toContain(
+      "Selected Decoration",
+    )
   })
 
   it("生成後にコード構造が変わった候補はstaleとして採用しない", () => {

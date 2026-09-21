@@ -388,7 +388,7 @@ export function DecorationWorkspace() {
                       )}
                       {assignedId === candidate.id && (
                         <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
-                          Active
+                          採用済み
                         </span>
                       )}
                     </div>
@@ -458,7 +458,8 @@ export function DecorationWorkspace() {
                       className="!px-2 !text-[11px]"
                       onClick={() => assign(candidate.id)}
                     >
-                      <Check size={11} /> 採用
+                      <Check size={11} />
+                      {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
                     </Button>
                   </div>
                 </article>
@@ -466,6 +467,9 @@ export function DecorationWorkspace() {
             })}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-emerald-200">
+              採用した候補は曲全体再生と曲全体MIDIに入ります
+            </span>
             <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}
