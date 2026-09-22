@@ -47,5 +47,5 @@ describe("Standardの音程整合性", () => {
       }
     }
     expect(unexplained.slice(0, 10)).toEqual([])
-  })
+  }, 30_000) // 200 seedの生成を検証するため、共有CIランナーの処理時間に余裕を持たせる。
 })
