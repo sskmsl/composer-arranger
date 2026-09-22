@@ -1,8 +1,8 @@
-import type { MelodyFeatures } from "@/core/melody"
+import type { MelodyFeatures, MelodyGeneratorProfile } from "@/core/melody"
 import type { GenerationParams } from "./generationParams"
 
 /** 9.6 Scoring: 内部評価のみに使用し、ユーザーへは総合点を出さない */
-export function scoreCandidate(features: MelodyFeatures, params: GenerationParams): number {
+export function scoreCandidate(features: MelodyFeatures, params: GenerationParams, profile: MelodyGeneratorProfile = "standard"): number {
   const motifUnity = 25 * clamp01(features.motifRepeatRatio)
 
   const leapPenalty = clamp01(features.avgLeap / 9)
@@ -28,7 +28,12 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   const varietyScore = clamp01((features.maxLeap - features.avgLeap) / 8 + features.tensionUsageRatio)
   const novelty = 10 * clamp01(varietyScore * (0.5 + params.noveltyWeight))
 
-  return motifUnity + singability + voiceLeading + tensionAndResolution + sectionFit + restAndBreath + novelty
+  const baseScore = motifUnity + singability + voiceLeading + tensionAndResolution + sectionFit + restAndBreath + novelty
+  // 反復主体のスタイルを減点せず、識別できる核の再登場を補助加点する。
+  // 100点までの余白の5%を上限にし、旧データは従来どおり評価する。
+  // Minimalでは意図的な同音反復や余白を優先し、フックによる順位変更を行わない。
+  if (profile === "minimal") return baseScore
+  return baseScore + (100 - baseScore) * 0.05 * clamp01(features.hookStrength ?? 0)
 }
 
 function clamp01(v: number): number {

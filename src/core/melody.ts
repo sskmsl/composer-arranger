@@ -132,6 +132,8 @@ export interface MelodyFeatures {
   chordToneUsageRatio: number
   syncopationRatio: number
   motifRepeatRatio: number
+  /** 音程とリズムを保った特徴的な短いモチーフの再登場(0..1)。旧データでは未設定。 */
+  hookStrength?: number
   /** フレーズ最高音の位置(0=先頭 〜 1=末尾) */
   peakPosition: number
   /** Issue #64: 5半音以上の跳躍のうち、直後に反行かつ3半音以内の順次進行で回収された割合(跳躍が無ければ1) */

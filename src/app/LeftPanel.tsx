@@ -297,12 +297,18 @@ export function LeftPanel({
             <FieldGroup label="名前">
               <TextInput
                 defaultValue={section.name}
-                key={`name-${section.id}`}
+                key={`name-${section.id}-${section.name}`}
                 onBlur={(e) => updateSection(section.id, { name: e.currentTarget.value })}
               />
             </FieldGroup>
             <FieldGroup label="セクションの役割">
-              <Select value={section.role} onChange={(e) => updateSection(section.id, { role: e.target.value as SectionRole })}>
+              <Select
+                value={section.role}
+                onChange={(e) => {
+                  const role = e.target.value as SectionRole
+                  updateSection(section.id, { role, name: SECTION_ROLE_LABELS[role] })
+                }}
+              >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
                     {SECTION_ROLE_LABELS[r]}

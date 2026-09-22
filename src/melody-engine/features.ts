@@ -2,6 +2,7 @@ import type { MelodyNote, MelodyFeatures } from "@/core/melody"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import { isChordTone, isTensionTone } from "@/core/chord"
+import { computeHookStrength } from "./hookStrength"
 import { pitchClass } from "@/core/note"
 
 /** 3.3 客観的特徴量の算出。類似度スコアの代わりにユーザーへ提示する数値。 */
@@ -23,6 +24,7 @@ export function computeMelodyFeatures(
       chordToneUsageRatio: 0,
       syncopationRatio: 0,
       motifRepeatRatio: 0,
+      hookStrength: 0,
       peakPosition: 0,
       leapRecoveryRatio: 1,
     }
@@ -103,6 +105,7 @@ export function computeMelodyFeatures(
     chordToneUsageRatio: chordToneCount / sorted.length,
     syncopationRatio: syncopated / sorted.length,
     motifRepeatRatio,
+    hookStrength: computeHookStrength(sorted),
     peakPosition: Math.max(0, Math.min(1, peakPosition)),
     leapRecoveryRatio,
   }

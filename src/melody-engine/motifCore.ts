@@ -82,9 +82,9 @@ function pickDuration(
  * 9.3 Rhythm Motif: 音程より先にリズムの核(2〜5音)を作る。
  * openingが渡された場合は、その冒頭設計(弱起/休符後開始・最初の音価・輪郭)を核の先頭へ反映する。
  */
-export function generateRhythmMotif(rng: SeededRandom, density: Density, params: GenerationParams, opening?: MelodyOpeningPlan): MotifEvent[] {
+export function generateRhythmMotif(rng: SeededRandom, density: Density, params: GenerationParams, opening?: MelodyOpeningPlan, minimumNotes = 2): MotifEvent[] {
   const palette = DURATION_PALETTE[density]
-  const noteCount = rng.intBetween(2, 5)
+  const noteCount = rng.intBetween(Math.max(2, Math.min(5, Math.round(minimumNotes))), 5)
   const events: MotifEvent[] = []
   let cursor = 0
   let previousDuration: number | null = null
@@ -126,7 +126,9 @@ export function generateRhythmMotif(rng: SeededRandom, density: Density, params:
     const metricPosition = metricPositionAt(cursor)
     // 呼吸は強拍を無作為に欠落させず、弱拍または裏拍へ置く。
     const restMetricWeight = metricPosition === "weak" || metricPosition === "offbeat" ? 1 : 0.18
-    const isRest = i > 0 && i < noteCount - 1 && rng.chance(params.restRatioTarget * 0.45 * restMetricWeight)
+    // 記憶する核に最低音数を指定した場合、内部休符でその音数を割らないようにする。
+    const canRest = minimumNotes <= 2 || events.filter(event => !event.isRest).length + targetCount - i - 1 >= minimumNotes
+    const isRest = i > 0 && i < noteCount - 1 && canRest && rng.chance(params.restRatioTarget * 0.45 * restMetricWeight)
     // syncopationAmountに応じて拍頭のアタックを後ろへ置き、元の音価を保ったまま次拍へまたがせる。
     // 以前はずらした分だけ音価を削っていたため、裏拍で鳴るだけの短い機械的な音になっていた。
     const onBeat = Math.abs(cursor - Math.round(cursor)) < 0.01

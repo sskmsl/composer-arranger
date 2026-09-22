@@ -21,6 +21,7 @@ import { buildHarmonicMap } from "./harmonicMap"
 import { resolveGenerationParams, type Density, type Drama, type GenerationParams, type RangeSetting } from "./generationParams"
 import { assemblePhrase, createPlacementDiagnostics, type PlacementDiagnostics } from "./phraseAssembler"
 import type { MotifCore } from "./motifCore"
+import { answerHook, capturePlacedHook, hookPhraseRole, returningHook } from "./hookDevelopment"
 import { computeMelodyFeatures } from "./features"
 import { scoreCandidate } from "./scoring"
 import { buildSignature, countDistinctCandidates, differenceCount, type DiversitySignature } from "./diversityFilter"
@@ -61,6 +62,7 @@ import {
   planCandidateMelodyDNA,
   rangeForPhrase,
 } from "./candidateMelodyDNA"
+import { applyMelodicArrival } from "./melodicArrival"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
 import { nearestAllowedPitch } from "./pitchUtils"
 import {
@@ -145,8 +147,16 @@ function buildCandidate(
   for (let phraseIdx = 0; phraseIdx < phraseLengths.length; phraseIdx++) {
     const phraseLen = Math.min(phraseLengths[phraseIdx], input.totalBeats - phraseStart)
     if (phraseLen <= 0) break
-    const isAnswer = phraseIdx === 1
+    const hookRole = hookPhraseRole(phraseIdx, phraseLengths.length, generatorProfile)
+    const isAnswer = hookRole === "answer" || (hookRole === undefined && phraseIdx === 1)
     const reuseMotif = phraseIdx > 0 && firstMotifCore && rng.chance(params.motifRepeatTarget)
+    const phraseMotif = hookRole === undefined
+      ? (reuseMotif ? firstMotifCore : undefined)
+      : hookRole === "contrast" || phraseIdx === 0
+        ? undefined
+        : hookRole === "answer" && firstMotifCore
+          ? answerHook(firstMotifCore)
+          : firstMotifCore ? returningHook(firstMotifCore) : undefined
 
     const phraseRange = rangeForPhrase(input.range, candidateMelodyDNA, phraseIdx, phraseLengths.length)
     const result = assemblePhrase(
@@ -157,14 +167,17 @@ function buildCandidate(
       phraseRange,
       params,
       input.density,
-      reuseMotif ? firstMotifCore : undefined,
+      phraseMotif,
       isAnswer,
       // 冒頭設計は最初のフレーズにのみ適用する(それ以降は通常の展開に任せる)
       phraseIdx === 0 ? opening : undefined,
       placementDiagnostics,
       candidateMelodyDNA,
+      hookRole !== undefined && candidateMelodyDNA !== undefined,
     )
-    if (phraseIdx === 0) firstMotifCore = result.firstMotifCore
+    if (phraseIdx === 0) firstMotifCore = hookRole !== undefined
+      ? capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
+      : result.firstMotifCore
     notes.push(...result.notes)
     plans.push(result.plan)
     phraseStart += phraseLen
@@ -173,11 +186,12 @@ function buildCandidate(
   const narrativeNotes = candidateMelodyDNA
     ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
     : notes
+  const arrivalNotes = applyMelodicArrival(narrativeNotes, harmonicMap, input.range, input.totalBeats, input.drama, generatorProfile)
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
   const finalNotes = enforceHarmonicIntegrity(
     reconcileFinalToneRoles(
       applyProfileExpression(
-        narrativeNotes,
+        arrivalNotes,
         profileExpressionPlan,
         harmonicMap,
         input.range,
@@ -192,7 +206,7 @@ function buildCandidate(
   ).notes
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
-  const score = scoreCandidate(features, params)
+  const score = scoreCandidate(features, params, generatorProfile)
   const signature = buildSignature(finalNotes, finalPlans[0]?.contour ?? "wave")
 
   return {
@@ -630,7 +644,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         const placementDiagnostics = directPlacementDiagnostics(notes, harmonicMap)
         const finalHash = noteHash(notes)
         const fitScore = profileFitScore(profile, features, advancedMetrics)
-        const intrinsicQuality = combinedQualityScore(scoreCandidate(features, profileParams), fitScore, profile)
+        const intrinsicQuality = combinedQualityScore(scoreCandidate(features, profileParams, profile), fitScore, profile)
         const qualityScore = transitioned.plan
           ? Math.min(intrinsicQuality, intrinsicQuality * 0.85 + transitioned.plan.transitionFitScore * 0.15)
           : intrinsicQuality

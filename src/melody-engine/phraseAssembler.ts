@@ -429,6 +429,7 @@ export function assemblePhrase(
   opening?: MelodyOpeningPlan,
   placementDiagnostics?: PlacementDiagnostics,
   candidateDNA?: CandidateMelodyDNA,
+  reserveClimaxForSection = false,
 ): PhraseResult {
   const contour = contourFromParams(rng, params)
 
@@ -438,7 +439,7 @@ export function assemblePhrase(
     firstEvents = motifCoreOverride.events
     firstPitches = motifCoreOverride.pitches
   } else {
-    firstEvents = generateRhythmMotif(rng, density, params, opening)
+    firstEvents = generateRhythmMotif(rng, density, params, opening, reserveClimaxForSection ? 3 : 2)
     firstPitches = generatePitchMotif(rng, firstEvents, phraseStartBeat, harmonicMap, range, params, opening)
   }
   const firstMotifCore: MotifCore = { events: firstEvents, pitches: firstPitches, lengthBeats: eventsLength(firstEvents) }
@@ -468,7 +469,8 @@ export function assemblePhrase(
   }
 
   // クライマックス配置(9.2): climaxBiasに応じた対象区間の最高音を、フレーズ全体の頂点にする
-  if (notes.length > 0) {
+  // セクション全体で頂点を計画する場合、各フレーズの音型をオクターブ持ち上げで崩さない。
+  if (notes.length > 0 && !reserveClimaxForSection) {
     const targetFraction =
       candidateDNA?.climaxPlan.targetFraction ??
       (params.climaxBias === "early" ? 0 : params.climaxBias === "end" ? 1 : 0.7)

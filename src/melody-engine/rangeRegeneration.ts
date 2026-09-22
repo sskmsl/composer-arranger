@@ -194,7 +194,7 @@ export function generateRangeRegenerationCandidates(
       permanentlyProtectedIds,
     )
     const features = computeMelodyFeatures(notes, input.harmonicMap, 0, input.totalBeats)
-    const qualityScore = scoreCandidate(features, input.params)
+    const qualityScore = scoreCandidate(features, input.params, input.profile)
     pool.push({
       notes,
       candidatePoolIndex: index,
