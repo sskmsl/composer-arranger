@@ -37,6 +37,12 @@ export interface Section {
    */
   key?: string
   /**
+   * このセクションの中でのテンポの指定(beat はセクション頭からの拍)。テンポが途中で変わる
+   * MIDIを読み込んだときに入る。未指定なら直前のテンポ(曲頭では song.tempo)を引き継ぐ。
+   * 再生・MIDI書き出しは core/tempoMap.ts 経由で参照する。
+   */
+  tempoChanges?: { beat: number; bpm: number }[]
+  /**
    * Issue #41: このセクションで鳴らす内容(Roleとは独立した軸)。
    * 旧プロジェクトには存在しないため任意とし、normalizeProjectで既定値を補完する。
    */

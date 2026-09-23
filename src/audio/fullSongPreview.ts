@@ -1,10 +1,15 @@
+import { createTempoMap, type TempoChange } from "@/core/tempoMap"
+
 export interface PreviewBeatRange {
   startBeat: number
   endBeat: number
 }
 
-export function formatPlaybackTime(beat: number, bpm: number): string {
-  const seconds = Math.max(0, beat) * 60 / Math.max(1, bpm)
+/** 再生位置(拍)を "m:ss" に。テンポの変化があれば tempoChanges を渡す */
+export function formatPlaybackTime(beat: number, bpm: number, tempoChanges?: readonly TempoChange[]): string {
+  const seconds = tempoChanges && tempoChanges.length > 0
+    ? createTempoMap(bpm, tempoChanges).seconds(Math.max(0, beat))
+    : Math.max(0, beat) * 60 / Math.max(1, bpm)
   const minutes = Math.floor(seconds / 60)
   return `${minutes}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`
 }

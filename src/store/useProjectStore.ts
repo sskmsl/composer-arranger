@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { scaleSectionTempoChanges } from "@/core/tempoMap"
 import {
   createEmptyProject,
   effectiveSectionKey,
@@ -515,10 +516,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateSongField: (key, value) => {
     const prev = get().project
+    // テンポを変えたら、セクションごとのテンポ指定(テンポの変化)も同じ比率で速く・遅くする
+    const sections =
+      key === "tempo" && typeof value === "number" && prev.song.tempo > 0
+        ? scaleSectionTempoChanges(prev.sections, value / prev.song.tempo)
+        : prev.sections
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, song: { ...prev.song, [key]: value } },
+      project: { ...prev, sections, song: { ...prev.song, [key]: value } },
     })
     get().persist()
   },

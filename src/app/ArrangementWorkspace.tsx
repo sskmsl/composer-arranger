@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { songTempoChanges } from "@/core/tempoMap"
 import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
@@ -31,6 +32,9 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     [project],
   )
 
+  // 曲中のテンポの変化(テンポが変わるMIDIを読み込んだ曲)。再生と経過時間の表示に使う
+  const songTempo = useMemo(() => songTempoChanges(project), [project])
+
   const playSong = (requestedStartBeat = playbackBeat) => {
     if (
       material.melody.length === 0 &&
@@ -47,6 +51,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.playContinuous({
       bpm: project.song.tempo,
+      tempoChanges: songTempo,
       chords: importedSource ? [] : material.chords,
       melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
@@ -117,6 +122,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.play({
       bpm: project.song.tempo,
+      tempoChanges: songTempo,
       chords: importedSource ? [] : material.chords,
       melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
@@ -160,7 +166,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
           <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
             <span>{playing ? "曲全体を再生中" : "曲全体の再生位置"}</span>
             <span className="tabular-nums text-body-on-dark">
-              {formatPlaybackTime(playbackBeat, project.song.tempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo)}
+              {formatPlaybackTime(playbackBeat, project.song.tempo, songTempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo, songTempo)}
             </span>
           </div>
           <input

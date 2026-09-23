@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { sectionTempoChanges } from "@/core/tempoMap"
 import { EyeOff, Play, Square, Star, ThumbsDown, Check } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
@@ -122,6 +123,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
       : []
     return {
       bpm: project.song.tempo,
+      tempoChanges: section ? sectionTempoChanges(project, section.id) : undefined,
       chords,
       melody: leadNotes,
       accompaniment: accompanimentPatternNotes,

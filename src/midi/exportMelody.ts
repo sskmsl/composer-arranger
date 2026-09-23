@@ -1,3 +1,4 @@
+import { songTempoChanges } from "@/core/tempoMap"
 import { effectiveSectionKey, type ChordEvent, type ComposerProject } from "@/core/project"
 import { keySignatureOf } from "@/core/scale"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
@@ -222,6 +223,7 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
     timeSignature: ts,
     ...(keySignature ? { keySignature } : {}),
     keyChanges,
+    tempoChanges: songTempoChanges(project).map((change) => ({ tick: beatsToTicks(change.beat), bpm: change.bpm })),
     markers: project.sections.map((section) => ({
       tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar),
       text: section.name,

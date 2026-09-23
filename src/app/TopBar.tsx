@@ -1,3 +1,4 @@
+import { hasTempoChanges, songTempoChanges } from "@/core/tempoMap"
 import { useEffect, useRef, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { IconButton, Pill, TextInput } from "@/ui/primitives"
@@ -34,6 +35,7 @@ export function TopBar({
   const updateSongField = useProjectStore((s) => s.updateSongField)
   const hasSidePanels = ["melody", "phrase", "signature", "counter", "decoration"].includes(tab)
   const projectReady = project.sections.length > 0
+  const songTempo = hasTempoChanges(project) ? songTempoChanges(project) : []
   const [detailMenuOpen, setDetailMenuOpen] = useState(false)
   const mobileDetailMenuRef = useRef<HTMLDivElement>(null)
   const desktopDetailMenuRef = useRef<HTMLDivElement>(null)
@@ -169,6 +171,15 @@ export function TopBar({
             // 3桁のテンポ(104等)が上下ボタンに隠れて「10」と切れて見えていたため、幅を広げてボタンを隠す
             className="w-16 !bg-transparent px-1.5 py-0.5 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
+          {songTempo.length > 0 && (
+            // テンポが途中で変わる曲。数値を変えると、途中のテンポも同じ比率で変わる
+            <span
+              className="rounded-pill border border-hairline px-1.5 py-0.5 text-[11px] text-body-muted"
+              title={`テンポが途中で変わります: ${[project.song.tempo, ...songTempo.map((change) => change.bpm)].join(" → ")} BPM。数値を変えると途中のテンポも同じ比率で変わります。`}
+            >
+              可変
+            </span>
+          )}
         </label>
         <label className="flex items-center gap-1">
           拍子
