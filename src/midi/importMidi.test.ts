@@ -309,6 +309,31 @@ describe("MIDI project import", () => {
     expect(project.chords.at(-1)?.durationBeats).toBe(4)
   })
 
+  it("途中で転調する調号があっても、曲の調は冒頭の調号から読む", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Key Change",
+      tempoBpm: 90,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      keySignature: { sharpsFlats: 3, minor: true },
+      tracks: [{ name: "Lead Melody", notes: [{ pitch: 66, start: 0, duration: beat * 16, velocity: 80, channel: 0 }] }],
+    })
+    // 8拍目に G#m(♯5)への転調を示す調号を足す(Chord Generatorのセクションごとの調号と同じ形)
+    const withChange = insertConductorKeySignature(bytes, beat * 8, 5, true)
+    const analysis = analyzeMidiImport(withChange, "key-change.mid")
+    expect(analysis.key).toBe("F#m")
+    // 転調後のセクションには、そのセクションだけの調を残す
+    const { project } = createMidiProjectFromAnalysis(analysis, {
+      sections: [
+        { id: "a", name: "Verse", role: "verse", startBar: 1 },
+        { id: "b", name: "Chorus", role: "chorus", startBar: 3 },
+      ],
+      reviewConfirmed: true,
+    })
+    expect(project.sections.map((section) => section.key)).toEqual([undefined, "G#m"])
+  })
+
   it("7thが鳴っていない区間は三和音のまま推定し、フラット系のキーではフラットで綴る", () => {
     const beat = TICKS_PER_QUARTER
     const bytes = buildSmf({
@@ -334,3 +359,33 @@ describe("MIDI project import", () => {
     expect(() => parseMidi(new Uint8Array([1, 2, 3, 4]))).toThrow()
   })
 })
+
+/** コンダクタートラック(1本目のMTrk)の End of Track の直前に調号メタイベントを差し込む */
+function insertConductorKeySignature(bytes: Uint8Array, tick: number, sharpsFlats: number, minor: boolean): Uint8Array {
+  const data = [...bytes]
+  const trackStart = 14
+  const length = (data[trackStart + 4] << 24) | (data[trackStart + 5] << 16) | (data[trackStart + 6] << 8) | data[trackStart + 7]
+  const bodyStart = trackStart + 8
+  const endOfTrack = bodyStart + length - 4
+  // End of Track の直前イベントからの差分tickを求めるのは複雑なので、End of Track のdeltaを使って挿入する
+  const vlq = (value: number) => {
+    const out = [value & 0x7f]
+    let v = value >> 7
+    while (v > 0) {
+      out.unshift((v & 0x7f) | 0x80)
+      v >>= 7
+    }
+    return out
+  }
+  const insert = [...vlq(tick), 0xff, 0x59, 0x02, sharpsFlats & 0xff, minor ? 1 : 0]
+  const eot = data.slice(endOfTrack)
+  if (eot[0] !== 0x00) throw new Error("unexpected End of Track delta")
+  const body = [...data.slice(bodyStart, endOfTrack), ...insert, ...eot]
+  const newLength = body.length
+  return new Uint8Array([
+    ...data.slice(0, trackStart + 4),
+    (newLength >>> 24) & 0xff, (newLength >>> 16) & 0xff, (newLength >>> 8) & 0xff, newLength & 0xff,
+    ...body,
+    ...data.slice(bodyStart + length),
+  ])
+}

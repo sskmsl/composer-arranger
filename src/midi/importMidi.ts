@@ -37,6 +37,8 @@ interface ParsedMidiSong {
   tempoBpm: number
   timeSignature: { numerator: number; denominator: number }
   keySignature: { sharpsFlats: number; minor: boolean } | null
+  /** 曲中のすべての調号(tick順)。2つ以上あれば転調がある */
+  keyChanges: Array<{ tick: number; sharpsFlats: number; minor: boolean }>
   markers: ParsedMidiMarker[]
   tracks: ParsedMidiTrack[]
   endTick: number
@@ -196,6 +198,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
   tempoBpm: number | null
   timeSignature: ParsedMidiSong["timeSignature"] | null
   keySignature: ParsedMidiSong["keySignature"]
+  keyChanges: ParsedMidiSong["keyChanges"]
   endTick: number
 } {
   let tick = 0
@@ -205,6 +208,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
   let tempoBpm: number | null = null
   let timeSignature: ParsedMidiSong["timeSignature"] | null = null
   let keySignature: ParsedMidiSong["keySignature"] = null
+  const keyChanges: ParsedMidiSong["keyChanges"] = []
   const markers: ParsedMidiMarker[] = []
   const notes: ParsedMidiNote[] = []
   const active = new Map<string, Array<{ startTick: number; velocity: number }>>()
@@ -259,7 +263,10 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
         timeSignature = { numerator, denominator }
       } else if (type === 0x59 && length >= 2) {
         const raw = reader.byte()
-        keySignature = { sharpsFlats: raw > 127 ? raw - 256 : raw, minor: reader.byte() === 1 }
+        const signature = { sharpsFlats: raw > 127 ? raw - 256 : raw, minor: reader.byte() === 1 }
+        keyChanges.push({ tick, ...signature })
+        // 曲の調は冒頭の調号。途中の転調(セクションごとの調号)で上書きしない
+        if (!keySignature) keySignature = signature
       }
       reader.seek(dataStart + length)
       if (type === 0x2f) break
@@ -308,6 +315,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
     tempoBpm,
     timeSignature,
     keySignature,
+    keyChanges,
     endTick: tick,
   }
 }
@@ -331,6 +339,7 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
   let tempoBpm = 120
   let timeSignature = { numerator: 4, denominator: 4 }
   let keySignature: ParsedMidiSong["keySignature"] = null
+  const keyChanges: ParsedMidiSong["keyChanges"] = []
   let endTick = 0
   let tempoFound = false
   let timeSignatureFound = false
@@ -352,6 +361,7 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
       timeSignature = parsed.timeSignature
       timeSignatureFound = true
     }
+    keyChanges.push(...parsed.keyChanges)
     if (!keyFound && parsed.keySignature) {
       keySignature = parsed.keySignature
       keyFound = true
@@ -369,7 +379,8 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
   const lastMarkerEnd = markers.reduce((latest, marker) => Math.max(latest, marker.tick + barTicks), 0)
   const musicalEnd = Math.max(lastNoteEnd, lastMarkerEnd)
   if (musicalEnd > 0) endTick = Math.min(endTick, Math.ceil(musicalEnd / barTicks) * barTicks)
-  return { format, ppq: division, title, tempoBpm, timeSignature, keySignature, markers, tracks, endTick }
+  keyChanges.sort((left, right) => left.tick - right.tick)
+  return { format, ppq: division, title, tempoBpm, timeSignature, keySignature, keyChanges, markers, tracks, endTick }
 }
 
 const SHARP_KEYS = ["C", "G", "D", "A", "E", "B", "F#", "C#"]
@@ -431,6 +442,14 @@ export function inferMidiKey(notes: ParsedMidiNote[]): MidiKeyInference {
       `第2候補${alternatives[0]?.key ?? "なし"}との差を含めて信頼度を算出しています。`,
     ],
   }
+}
+
+/** その拍の時点で有効な調(転調を含むMIDIのみ)。調号が1つ以下なら null */
+function keyAtBeat(song: ParsedMidiSong, beat: number): string | null {
+  if (song.keyChanges.length < 2) return null
+  const tick = Math.round(beat * song.ppq)
+  const active = song.keyChanges.filter((change) => change.tick <= tick).at(-1)
+  return active ? keyFromSignature(active) : null
 }
 
 function isDrumTrack(track: ParsedMidiTrack): boolean {
@@ -968,7 +987,11 @@ export function createMidiProjectFromAnalysis(
       tempo: Math.max(20, Math.min(300, Number(options.tempo) || analysis.tempo)),
       timeSignature: `${song.timeSignature.numerator}/${song.timeSignature.denominator}`,
     },
-    sections: windows.map((window) => window.section),
+    sections: windows.map((window) => {
+      // 調号で転調が示されていれば、そのセクションだけの調として残す(曲の調と同じなら指定しない)
+      const sectionKey = keyAtBeat(song, window.startBeat)
+      return sectionKey && sectionKey !== key ? { ...window.section, key: sectionKey } : window.section
+    }),
     chords,
     melodyVariants: variants,
     activeMelodyId: variants[0]?.id ?? null,
