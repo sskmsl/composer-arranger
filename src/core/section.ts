@@ -32,6 +32,11 @@ export interface Section {
   startBar: number
   lengthBars: number
   /**
+   * このセクションだけの調(例: 大サビで全音上げた "Bm")。未指定なら曲全体の調(song.key)に従う。
+   * 生成・音名表記・MIDIの調号はすべて effectiveSectionKey() 経由で参照する。
+   */
+  key?: string
+  /**
    * Issue #41: このセクションで鳴らす内容(Roleとは独立した軸)。
    * 旧プロジェクトには存在しないため任意とし、normalizeProjectで既定値を補完する。
    */

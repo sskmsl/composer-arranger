@@ -325,6 +325,17 @@ export function LeftPanel({
                 onBlur={(e) => updateSection(section.id, { lengthBars: Math.max(1, Number(e.currentTarget.value) || 1) })}
               />
             </FieldGroup>
+            <FieldGroup label="このセクションの調(転調する場合のみ)">
+              <TextInput
+                defaultValue={section.key ?? ""}
+                key={`key-${section.id}-${section.key ?? ""}`}
+                placeholder={`曲の調に従う(${project.song.key})`}
+                onBlur={(e) => {
+                  const value = e.currentTarget.value.trim()
+                  updateSection(section.id, { key: value && value !== project.song.key ? value : undefined })
+                }}
+              />
+            </FieldGroup>
 
             {/* Issue #41: 何を鳴らすかはRoleとは独立した軸。UIは7プリセットで提示し、内部は2軸で保持する */}
             <FieldGroup label="このセクションで鳴らす内容">

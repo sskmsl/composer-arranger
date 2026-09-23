@@ -114,6 +114,11 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
   const sections: Section[] = []
   const chords: ChordEvent[] = []
   let startBar = 1
+  // 曲の調は最初のセクションの調。転調したセクション(大サビの全音上げ等)は各セクションに調を持たせる
+  const songKey =
+    exchange.sections
+      .map((section) => (typeof section.key === "string" ? section.key.trim() : ""))
+      .find(Boolean) ?? project.song.key
 
   exchange.sections.forEach((rawSection, sectionIndex) => {
     const sectionRecord = asRecord(rawSection)
@@ -167,6 +172,8 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
       startBar,
       lengthBars: Math.max(1, Math.ceil(totalBeats / 4)),
     }
+    const sectionKey = typeof sectionRecord.key === "string" ? sectionRecord.key.trim() : ""
+    if (sectionKey && sectionKey !== songKey) section.key = sectionKey
     sections.push(section)
 
     for (let repeatIndex = 0; repeatIndex < repeatCount; repeatIndex++) {
@@ -185,14 +192,11 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
     startBar += section.lengthBars
   })
 
-  const firstKey = exchange.sections.find(
-    (section) => typeof section.key === "string" && section.key.trim(),
-  )?.key
   return {
     ...project,
     song: {
       ...project.song,
-      key: firstKey?.trim() || project.song.key,
+      key: songKey,
       tempo:
         Number.isFinite(exchange.tempo) && exchange.tempo >= 20 && exchange.tempo <= 300
           ? Math.round(exchange.tempo)

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import {
   createEmptyProject,
+  effectiveSectionKey,
   effectiveSongProfile,
   type ArrangementDirectorSectionOverride,
   type ArrangementDirectorWorkspaceState,
@@ -355,7 +356,7 @@ function phraseGenerationInput(
     density: settings.density,
     drama: settings.drama,
     range: resolveRange(settings),
-    key: project.song.key,
+    key: effectiveSectionKey(project, sectionId),
     beatsPerBar: timeSignature.beatsPerBar,
     totalBeats,
     seed,
@@ -409,7 +410,7 @@ function signaturePhraseGenerationInput(
     density: settings.density,
     drama: settings.drama,
     range: resolveRange(settings),
-    key: project.song.key,
+    key: effectiveSectionKey(project, sectionId),
     beatsPerBar,
     totalBeats,
     seed,
@@ -449,7 +450,7 @@ function counterGenerationInput(
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),
-    key: project.song.key,
+    key: effectiveSectionKey(project, sectionId),
     chords,
     melody,
     totalBeats,
@@ -581,7 +582,7 @@ function decorationGenerationInput(
     chords,
     totalBeats,
     beatsPerBar,
-    key: project.song.key,
+    key: effectiveSectionKey(project, sectionId),
     seed,
     settings,
     melodyNotes: activeMelody?.notes,
@@ -1464,7 +1465,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         totalBeats,
         beatsPerBar: ts.beatsPerBar,
         seed: createSeed(),
-        key: prev.song.key,
+        key: effectiveSectionKey(prev, sectionId),
         density: settings.density,
         drama: settings.drama,
         // Issue #41: サビが未生成ならundefinedのまま渡し、生成側で予約値へフォールバックさせる
@@ -1538,7 +1539,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       seed: baseSeed,
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
-      key: prev.song.key,
+      key: effectiveSectionKey(prev, sectionId),
       // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
       transitionContext:
         window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,
@@ -1639,7 +1640,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         totalBeats,
         beatsPerBar: ts.beatsPerBar,
         seed: v.seed,
-        key: prev.song.key,
+        key: effectiveSectionKey(prev, sectionId),
         chorusPeakMidi: chorusPeakMidi(prev),
       })
       if (pickupNotes.length > 0) {
@@ -3171,7 +3172,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, variant.sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
-    const baseParams = resolveGenerationParams(profile, section.role, settings.density, settings.drama, prev.song.key)
+    const baseParams = resolveGenerationParams(profile, section.role, settings.density, settings.drama, effectiveSectionKey(prev, variant.sectionId))
     const generatorProfile = variant.generatorProfile ?? "standard"
     const params = applyProfileOverride(
       baseParams,
@@ -3286,7 +3287,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const profile = effectiveSongProfile(prev, source.sectionId)
     const settings = get().generationSettings
     const range = resolveRange(settings)
-    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama, prev.song.key)
+    const params = resolveGenerationParams(profile, section.role, settings.density, settings.drama, effectiveSectionKey(prev, source.sectionId))
     const seedValue = createSeed()
 
     let notes: MelodyNote[]

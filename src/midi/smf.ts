@@ -71,6 +71,8 @@ export interface SmfSong {
   timeSignature: { numerator: number; denominator: number }
   /** MIDI Key Signature: -7(flat)〜+7(sharp), minor=falseでmajor。 */
   keySignature?: { sharpsFlats: number; minor: boolean }
+  /** 曲の途中の調号変更(転調したセクションの頭など) */
+  keyChanges?: { tick: number; sharpsFlats: number; minor: boolean }[]
   markers: MidiMarker[]
   tracks: SmfTrack[]
 }
@@ -100,6 +102,11 @@ export function buildSmf(song: SmfSong): Uint8Array {
           ]),
         }]
       : []),
+    ...(song.keyChanges ?? []).map((k) => ({
+      tick: k.tick,
+      order: 0,
+      data: metaEvent(0x59, [Math.max(-7, Math.min(7, k.sharpsFlats)) & 0xff, k.minor ? 1 : 0]),
+    })),
     ...song.markers.map((m) => ({ tick: m.tick, order: 0, data: metaEvent(0x06, textBytes(m.text)) })),
   ]
 

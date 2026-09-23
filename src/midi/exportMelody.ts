@@ -1,4 +1,5 @@
-import type { ChordEvent, ComposerProject } from "@/core/project"
+import { effectiveSectionKey, type ChordEvent, type ComposerProject } from "@/core/project"
+import { keySignatureOf } from "@/core/scale"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import { notesByPartRole } from "@/core/sectionLayers"
 import { parseTimeSignature } from "@/core/section"
@@ -200,10 +201,27 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
     tracks.unshift({ name: "Chords", notes: chordNotes })
   }
 
+  // 調号: 曲頭は最初のセクションの調、以降は調が変わるセクションの頭で変更する
+  const keyChanges: NonNullable<Parameters<typeof buildSmf>[0]["keyChanges"]> = []
+  let keySignature: ReturnType<typeof keySignatureOf> = keySignatureOf(project.song.key)
+  let previousKey: string | null = null
+  for (const section of project.sections) {
+    const sectionKey = effectiveSectionKey(project, section.id)
+    const signature = keySignatureOf(sectionKey)
+    if (previousKey === null) {
+      keySignature = signature ?? keySignature
+    } else if (sectionKey !== previousKey && signature) {
+      keyChanges.push({ tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar), ...signature })
+    }
+    previousKey = sectionKey
+  }
+
   return buildSmf({
     name: project.title,
     tempoBpm: project.song.tempo,
     timeSignature: ts,
+    ...(keySignature ? { keySignature } : {}),
+    keyChanges,
     markers: project.sections.map((section) => ({
       tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar),
       text: section.name,
