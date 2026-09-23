@@ -15,6 +15,7 @@ import type { GenerationParams, RangeSetting, Density } from "./generationParams
 import type { MotifCore, MotifEvent } from "./motifCore"
 import { generateRhythmMotif, generatePitchMotif, MIN_MELODIC_DURATION_BEATS } from "./motifCore"
 import { applyDevelopmentOp, weightedDevelopmentOp } from "./motifDevelopment"
+import { subtleHookVariation } from "./hookDevelopment"
 import { chordAtBeat } from "./harmonicMap"
 import { allUsablePitchClasses, chordTonePitchClasses, isChordTone, isTensionTone } from "@/core/chord"
 import { nearestAllowedPitch, withKeyBias } from "./pitchUtils"
@@ -376,6 +377,7 @@ export function growSegments(
   developmentStrategy?: CandidateMelodyDNA["developmentStrategy"],
   firstMotifBreathBeats = 0,
   singableHook = false,
+  hookFirst = false,
 ): Segment[] {
   const segments: Segment[] = []
   let cursor = startCursor
@@ -402,6 +404,16 @@ export function growSegments(
   let guard = 0
   while (cursor < endBeat - 0.25 && guard < 12) {
     guard++
+    if (hookFirst) {
+      const variation = segments.length % 4 === 1
+        ? { events: firstEvents, pitches: firstPitches }
+        : subtleHookVariation(
+          { events: firstEvents, pitches: firstPitches, lengthBeats: eventsLength(firstEvents) },
+          segments.length % 4 === 2 ? "tail" : segments.length % 4 === 3 ? "contrast" : "breath",
+        )
+      if (!pushClipped(variation.events, variation.pitches)) break
+      continue
+    }
     const op = weightedDevelopmentOp(
       rng,
       params.motifRepeatTarget,
@@ -436,6 +448,7 @@ export function assemblePhrase(
   candidateDNA?: CandidateMelodyDNA,
   reserveClimaxForSection = false,
   firstMotifBreathBeats = 0,
+  hookFirst = false,
 ): PhraseResult {
   const contour = contourFromParams(rng, params)
 
@@ -463,6 +476,7 @@ export function assemblePhrase(
     candidateDNA?.developmentStrategy,
     firstMotifBreathBeats,
     reserveClimaxForSection,
+    hookFirst,
   )
 
   const notes: MelodyNote[] = []

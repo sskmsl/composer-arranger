@@ -35,14 +35,14 @@ describe("classical principles as candidate judgments", () => {
     )
   })
 
-  it("次のフレーズ前に短い吸気を作り、Minimalや保護音は維持する", () => {
+  it("次のフレーズ前に短い吸気を作り、Minimalは語尾に余白を残し、保護音は維持する", () => {
     const source = [note("lead", 60, 2, 2), note("reply", 64, 4, 1)]
     const plans: PhrasePlan[] = [
       { phraseStartBeat: 0, phraseLengthBeats: 4, climaxBeat: 2, contour: "arch", restBeats: [], endTension: 0 },
       { phraseStartBeat: 4, phraseLengthBeats: 4, climaxBeat: 4, contour: "arch", restBeats: [], endTension: 0 },
     ]
     expect(shapePhraseBreaths(source, plans, "standard")[0].durationBeats).toBe(1.75)
-    expect(shapePhraseBreaths(source, plans, "minimal")).toEqual(source)
+    expect(shapePhraseBreaths(source, plans, "minimal")[0].durationBeats).toBe(1.75)
     expect(shapePhraseBreaths([{ ...source[0], locks: ["pitch"] }, source[1]], plans, "standard")[0].durationBeats).toBe(2)
   })
 

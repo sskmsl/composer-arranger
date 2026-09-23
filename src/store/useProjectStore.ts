@@ -24,6 +24,7 @@ import { parseChordInputText } from "@/core/chordInput"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
 import { generateFromChordsWithProfiles, toMelodyVariantFromProfile } from "@/melody-engine/generateFromChords"
+import { resolveMusicContext } from "@/core/musicContext"
 import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { extractMotifDNA } from "@/melody-engine/motifDNA"
@@ -1139,6 +1140,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
       key: effectiveSectionKey(prev, sectionId),
+      musicContext: resolveMusicContext(prev, sectionId),
       // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
       transitionContext:
         window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,

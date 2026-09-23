@@ -72,7 +72,10 @@ import {
   type SectionTransitionContext,
 } from "./sectionTransition"
 import type { ResolvedComposerRules } from "@/composer-intelligence"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
+import { selectCoreMotif } from "./hookFirst"
+import { subtleHookVariation } from "./hookDevelopment"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -87,6 +90,7 @@ export interface GenerateFromChordsInput {
   candidateCount?: number
   /** Issue #13: テンション/経過音候補をこのKeyのScaleへ軽く寄せる(parametric Profileのみ) */
   key?: string
+  musicContext?: ResolvedMusicContext
 }
 
 interface Candidate {
@@ -98,9 +102,13 @@ interface Candidate {
   placementDiagnostics: PlacementDiagnostics
   candidateMelodyDNA?: CandidateMelodyDNA
   profileExpressionPlan?: ProfileExpressionPlan
+  coreHumability?: number
+  coreHookability?: number
+  coreRetention?: number
+  hookScore?: number
 }
 
-const GENERATOR_VERSION = "2.0"
+const GENERATOR_VERSION = "2.1"
 
 /**
  * Issue #13: UIのDensity設定を、bespoke ProfileのnoteDensity(0..1)へ寄せるための目標値。
@@ -140,6 +148,19 @@ function buildCandidate(
     candidateMelodyDNA,
   )
 
+  const hookFirst = generatorProfile === undefined || generatorProfile === "standard" || generatorProfile === "cinematic"
+  const selectedCore = hookFirst ? selectCoreMotif(
+    seed,
+    harmonicMap,
+    phraseLengths[0] ?? input.totalBeats,
+    rangeForPhrase(input.range, candidateMelodyDNA, 0, phraseLengths.length),
+    params,
+    input.density,
+    input.sectionRole,
+    opening,
+    input.musicContext,
+  ) : null
+
   let firstMotifCore: MotifCore | undefined
   let contrastMotifCore: MotifCore | undefined
   const notes: MelodyNote[] = []
@@ -154,9 +175,9 @@ function buildCandidate(
     const isAnswer = hookRole === "answer" || hookRole === "contrast-answer" || (hookRole === undefined && phraseIdx === 1)
     const reuseMotif = phraseIdx > 0 && firstMotifCore && rng.chance(params.motifRepeatTarget)
     const phraseMotif = hookRole === undefined
-      ? (reuseMotif ? firstMotifCore : undefined)
+      ? (phraseIdx === 0 && selectedCore ? selectedCore.core : reuseMotif ? firstMotifCore : undefined)
       : hookRole === "contrast" || hookRole === "statement"
-        ? undefined
+        ? hookRole === "statement" ? selectedCore?.core : firstMotifCore ? subtleHookVariation(firstMotifCore, "contrast") : undefined
         : hookRole === "answer" && firstMotifCore
           ? answerHook(firstMotifCore)
           : hookRole === "return" && firstMotifCore
@@ -183,15 +204,19 @@ function buildCandidate(
       placementDiagnostics,
       candidateMelodyDNA,
       hookRole !== undefined && candidateMelodyDNA !== undefined,
-      (hookRole === "statement" || hookRole === "contrast") &&
+      !selectedCore && (hookRole === "statement" || hookRole === "contrast") &&
       (input.sectionRole === "chorus" || input.sectionRole === "grand-chorus")
         ? 1.5
         : 0,
+      Boolean(selectedCore),
     )
-    if (phraseIdx === 0) firstMotifCore = hookRole !== undefined
+    if (phraseIdx === 0) firstMotifCore = selectedCore?.core ?? (hookRole !== undefined
       ? capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
       : result.firstMotifCore
-    if (hookRole === "contrast") contrastMotifCore = capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
+    )
+    if (hookRole === "contrast") contrastMotifCore = selectedCore && phraseMotif
+      ? phraseMotif
+      : capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
     notes.push(...result.notes)
     plans.push(result.plan)
     phraseStart += phraseLen
@@ -246,6 +271,12 @@ function buildCandidate(
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
   const score = scoreCandidate(features, params, generatorProfile, finalNotes.length / Math.max(1, input.totalBeats))
+  const coreRetention = selectedCore ? features.hookStrength ?? 0 : undefined
+  const hookScore = selectedCore ? 100 * (
+    selectedCore.judgment.humability * .35 +
+    selectedCore.judgment.hookability * .35 +
+    (coreRetention ?? 0) * .3
+  ) : undefined
   const signature = buildSignature(finalNotes, finalPlans[0]?.contour ?? "wave")
 
   return {
@@ -257,6 +288,10 @@ function buildCandidate(
     placementDiagnostics,
     candidateMelodyDNA,
     profileExpressionPlan,
+    coreHumability: selectedCore?.judgment.humability,
+    coreHookability: selectedCore?.judgment.hookability,
+    coreRetention,
+    hookScore,
   }
 }
 
@@ -474,6 +509,7 @@ export interface GenerateProfileBatchInput {
   motifDNA?: SongMotifDNA
   /** Issue #13: parametric Profileのテンション候補、Speech-Rhythmicのsyncopationへ軽く反映する */
   key?: string
+  musicContext?: ResolvedMusicContext
   /** Issue #30: 前セクションにActive Melodyがある場合だけ与える接続コンテキスト。 */
   transitionContext?: SectionTransitionContext
   /** 固有名・Genreを含まないRule Resolver解決済みPreference。 */
@@ -497,6 +533,9 @@ export interface ProfileCandidate {
   profileExpressionPlan?: ProfileExpressionPlan
   generationDiagnostics?: CandidateGenerationDiagnostics
   transitionPlan?: MelodyTransitionPlan
+  coreHumability?: number
+  coreHookability?: number
+  coreRetention?: number
 }
 
 /** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
@@ -520,6 +559,10 @@ interface BuiltPattern {
   elegiacPlan?: ElegiacGenerationPlan
   profileExpressionPlan?: ProfileExpressionPlan
   transitionPlan?: MelodyTransitionPlan
+  hookScore?: number
+  coreHumability?: number
+  coreHookability?: number
+  coreRetention?: number
 }
 
 /**
@@ -557,6 +600,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       totalBeats: input.totalBeats,
       seed: baseSeed,
       key: input.key,
+      musicContext: input.musicContext,
     }
     const hook = (params: GenerationParams) => applyMotifDNA(applyProfileOverride(params, profile, intensity), input.motifDNA)
     const applicability = SETTINGS_APPLICABILITY[profile]
@@ -750,6 +794,10 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         candidateMelodyDNA,
         profileExpressionPlan: c.profileExpressionPlan,
         transitionPlan: transitioned.plan,
+        hookScore: c.hookScore,
+        coreHumability: c.coreHumability,
+        coreHookability: c.coreHookability,
+        coreRetention: c.coreRetention,
       }
     }
 
@@ -833,6 +881,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           requireTransitionStrategyDiversity: Boolean(input.transitionContext),
           minimumTransitionFitScore: input.transitionContext ? 55 : undefined,
           techniqueFitWeight: techniqueSelectionWeight(),
+          hookWeight: profile === "standard" || profile === "cinematic"
+            ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .16 : .08
+            : 0,
         },
       )
 
@@ -888,6 +939,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         candidatePoolIndex: pattern.candidatePoolIndex,
         openingRegenerationAttempts: pattern.openingRegenerationAttempts,
         qualityScore: pattern.qualityScore,
+        coreHumability: pattern.coreHumability,
+        coreHookability: pattern.coreHookability,
+        coreRetention: pattern.coreRetention,
         profileFitScore: pattern.profileFitScore,
         techniqueFitScore: pattern.techniqueFitScore,
         selectionScore: diagnosticSelectionScore,
@@ -929,6 +983,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         profileExpressionPlan: pattern.profileExpressionPlan,
         generationDiagnostics,
         transitionPlan: pattern.transitionPlan,
+        coreHumability: pattern.coreHumability,
+        coreHookability: pattern.coreHookability,
+        coreRetention: pattern.coreRetention,
       })
     })
   })

@@ -43,6 +43,8 @@ export const PROFILE_MINIMUM_QUALITY: Record<MelodyGeneratorProfile, number> = {
 export interface SelectableCandidate extends MelodySimilarityCandidate {
   candidatePoolIndex: number
   qualityScore: number
+  /** 完成形の理論品質とは独立した、短いCoreの記憶性。 */
+  hookScore?: number
   profileFitScore: number
   techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
@@ -74,10 +76,18 @@ export interface CandidateSelectionOptions {
   minimumTransitionFitScore?: number
   /** 0なら従来選抜。指定時もquality floorは変更しない。 */
   techniqueFitWeight?: number
+  /** ChorusではVerseより強くCoreの記憶性を候補選抜へ反映する。 */
+  hookWeight?: number
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
   return Math.max(0, Math.min(1, candidate.qualityScore / 100))
+}
+
+function normalizedSelectionQuality(candidate: SelectableCandidate, options: CandidateSelectionOptions): number {
+  const hookWeight = candidate.hookScore === undefined ? 0 : Math.max(0, Math.min(.2, options.hookWeight ?? 0))
+  return normalizedQuality(candidate) * (1 - hookWeight) +
+    Math.max(0, Math.min(1, (candidate.hookScore ?? 0) / 100)) * hookWeight
 }
 
 function normalizedTechniqueFit(candidate: SelectableCandidate): number {
@@ -94,7 +104,7 @@ function firstCandidateScore(
 ): number {
   const fitWeight = techniqueFitWeight(options)
   return (
-    normalizedQuality(candidate) * (1 - fitWeight) +
+    normalizedSelectionQuality(candidate, options) * (1 - fitWeight) +
     normalizedTechniqueFit(candidate) * fitWeight
   )
 }
@@ -107,7 +117,7 @@ function balancedSelectionScore(
   const fitWeight = techniqueFitWeight(options)
   const baseWeight = 1 - fitWeight
   return (
-    normalizedQuality(candidate) *
+    normalizedSelectionQuality(candidate, options) *
       CANDIDATE_SELECTION_CONFIG.qualityWeight *
       baseWeight +
     diversity *
@@ -157,7 +167,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
   pool: T[],
   harmonicMap: HarmonicMapEntry[],
   qualityFloor: number,
-  finalCount = CANDIDATE_SELECTION_CONFIG.finalCandidateCount,
+  finalCount: number = CANDIDATE_SELECTION_CONFIG.finalCandidateCount,
   options: CandidateSelectionOptions = {},
 ): CandidateSelectionResult<T> {
   const eligible = pool.filter((candidate) => candidate.qualityScore >= qualityFloor)
@@ -260,7 +270,7 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
             continue
           }
           const maxOverall = Math.max(...similarities.map((similarity) => similarity.overallSimilarity))
-          const averageQuality = set.reduce((sum, candidate) => sum + normalizedQuality(candidate), 0) / set.length
+          const averageQuality = set.reduce((sum, candidate) => sum + normalizedSelectionQuality(candidate, options), 0) / set.length
           const averageTechniqueFit =
             set.reduce(
               (sum, candidate) =>

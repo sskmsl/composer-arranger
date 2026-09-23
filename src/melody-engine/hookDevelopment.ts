@@ -60,6 +60,27 @@ export function answerHook(source: MotifCore): MotifCore {
   return { ...core, pitches }
 }
 
+/** Coreの頭と周期を保ち、A′/Bを末尾1音・小さな休符・一箇所のリズム差だけで作る。 */
+export function subtleHookVariation(source: MotifCore, kind: "tail" | "breath" | "contrast"): MotifCore {
+  const events = source.events.map((event) => ({ ...event }))
+  const pitches = [...source.pitches]
+  if (pitches.length >= 3) {
+    const last = pitches.length - 1
+    const direction = Math.sign(pitches[last] - pitches[last - 1]) || 1
+    pitches[last] -= direction * 2
+  }
+  if (kind === "breath" && pitches.length >= 4) {
+    const sounding = events.map((event, index) => ({ event, index })).filter(({ event }) => !event.isRest)
+    events[sounding.at(-2)!.index].isRest = true
+    pitches.splice(-2, 1)
+  }
+  if (kind === "contrast") {
+    const firstSound = events.find((event) => !event.isRest && event.durationBeats >= .75)
+    if (firstSound) firstSound.durationBeats -= .25
+  }
+  return { events, pitches, lengthBeats: source.lengthBeats }
+}
+
 /** 配置前の抽象音型ではなく、実際に提示した音程と音価を次回の核として記憶する。 */
 export function capturePlacedHook(source: MotifCore, notes: MelodyNote[], startBeat: number): MotifCore {
   const firstSegment = notes.filter(note => note.startBeat >= startBeat && note.startBeat < startBeat + source.lengthBeats)

@@ -8,6 +8,12 @@ export function shapePhraseBreaths(
   plans: PhrasePlan[],
   profile: MelodyGeneratorProfile = "standard",
 ): MelodyNote[] {
+  if (profile === "minimal") {
+    // Motifの反復を残しながら各音の語尾を少し離し、Standardより余白を保つ。
+    return source.map((note) => note.locks.length === 0 && !note.plannedResolution && note.durationBeats >= 1
+      ? { ...note, durationBeats: note.durationBeats - 0.25 }
+      : note)
+  }
   if ((profile !== "standard" && profile !== "cinematic") || plans.length < 2) return source
   const boundaries = plans.slice(0, -1).map((plan) => plan.phraseStartBeat + plan.phraseLengthBeats)
   return source.map((note) => {

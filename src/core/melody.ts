@@ -93,6 +93,10 @@ export interface CandidateGenerationDiagnostics {
   candidatePoolIndex: number
   openingRegenerationAttempts: number
   qualityScore: number
+  /** 最終理論品質とは別に、短いCoreの歌唱性・記憶性と展開後の残存を記録する。 */
+  coreHumability?: number
+  coreHookability?: number
+  coreRetention?: number
   profileFitScore: number
   /** 解決済みTechnique Ruleと候補DNAの適合度(0..1)。Ruleがない場合は未定義。 */
   techniqueFitScore?: number

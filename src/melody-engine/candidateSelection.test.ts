@@ -42,6 +42,13 @@ function candidate(
 }
 
 describe("品質下限つき多様性選抜", () => {
+  it("理論品質を下限として維持し、サビでは独立したHook scoreを順位へ反映する", () => {
+    const plain = { ...candidate(0, 82, [60, 62, 64, 65]), hookScore: 25 }
+    const memorable = { ...candidate(1, 80, [67, 65, 64, 62]), hookScore: 95 }
+    const selected = selectDiverseCandidates([plain, memorable], map, 45, 1, { hookWeight: .16 })
+    expect(selected.selected[0].candidate.candidatePoolIndex).toBe(1)
+    expect(selectDiverseCandidates([plain, memorable], map, 45, 1).selected[0].candidate.candidatePoolIndex).toBe(0)
+  })
   it("単純なQuality上位3件ではなく、品質を保った異なる候補を選ぶ", () => {
     const pool = [
       candidate(0, 95, [60, 62, 64, 65, 67]),
