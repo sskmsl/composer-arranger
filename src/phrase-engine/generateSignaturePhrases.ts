@@ -5,7 +5,7 @@ import {
   isTensionTone,
   type ParsedChord,
 } from "@/core/chord"
-import type { MelodyNote, PhraseContour } from "@/core/melody"
+import type { MelodyFeatures, MelodyNote, PhraseContour } from "@/core/melody"
 import { pitchClass } from "@/core/note"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import { SeededRandom } from "@/core/rng"
@@ -40,6 +40,7 @@ import {
 } from "@/melody-engine/harmonicMap"
 import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
 import { enforceHarmonicIntegrity } from "@/melody-engine/harmonicIntegrity"
+import { computeMelodyFeatures } from "@/melody-engine/features"
 import {
   analyzeSignaturePhraseContext,
   signatureCompositionContextFor,
@@ -88,6 +89,30 @@ interface BuiltSignaturePhrase {
 const DEFAULT_FINAL_COUNT = 12
 const DEFAULT_POOL_SIZE = 72
 const QUALITY_FLOOR = 58
+
+/** 既存のイントロ用評価へ、補正後の単音線に限って旋律判断を小さく加える。 */
+export function scoreSignatureMelodicJudgment(
+  features: Pick<MelodyFeatures, "stepwiseMotionRatio" | "chromaticArrivalRatio" | "exposedUnresolvedRatio" | "hookStrength">,
+  archetype: SignaturePhraseArchetype,
+  riffMode?: SignaturePhrasePlan["riffMode"],
+  lengthBars = 2,
+): number {
+  if (riffMode) return 0
+  const stepwise = features.stepwiseMotionRatio ?? 0
+  // 順次進行を好むが、一本調子の音階上昇・下降は持ち上げない。
+  const stepwiseBalance =
+    clamp01((stepwise - 0.18) / 0.25) *
+    (1 - clamp01((stepwise - 0.72) / 0.16))
+  const stepwiseWeight = archetype === "kinetic-hook" ? 1 : 1.7
+  const chromaticArrival = features.chromaticArrivalRatio ?? 0
+  const arrivalWeight = archetype === "atmospheric-gateway" ? 1.4 : 0.8
+  const resolvedColor =
+    clamp01(chromaticArrival / 0.12) *
+    (1 - clamp01((chromaticArrival - 0.24) / 0.12))
+  const unresolved = clamp01((features.exposedUnresolvedRatio ?? 0) / 0.16)
+  const longPhraseHook = lengthBars >= 4 ? (features.hookStrength ?? 0) * 1.5 : 0
+  return stepwiseBalance * stepwiseWeight + resolvedColor * arrivalWeight + longPhraseHook - unresolved * 1.5
+}
 
 const CREATIVE_RISK_CYCLE: readonly SignatureCreativeRisk[] = [
   "focused", "focused", "focused",
@@ -2629,7 +2654,7 @@ function buildSignaturePhrase(
     plan,
     input.beatsPerBar,
   )
-  const score = scoreSignaturePhrase(
+  const baseScore = scoreSignaturePhrase(
     rawLeadNotes,
     plan,
     map,
@@ -2643,8 +2668,24 @@ function buildSignaturePhrase(
     chords,
     input.range,
   ).notes
+  const melodicFeatures = computeMelodyFeatures(
+    leadNotes,
+    map,
+    0,
+    phraseLengthBeats,
+  )
+  const melodicJudgment = scoreSignatureMelodicJudgment(
+    melodicFeatures,
+    plan.archetype,
+    plan.riffMode,
+    plan.lengthBars,
+  )
+  const score = {
+    ...baseScore,
+    overall: Math.round(Math.max(0, Math.min(100, baseScore.overall + melodicJudgment)) * 100) / 100,
+  }
   // 補正済みLeadを入力にVoicingを再解決し、声部間隔とvoice leadingを維持する。
-  // Candidate選抜用Scoreは元の作曲案で算出し、補正が創作方向の分布を偏らせないようにする。
+  // 既存の構成・音色評価は元の作曲案、新しい旋律補助評価だけは実際に鳴る補正後Leadで算出する。
   const voiced = applyVoicing(
     plan.voicingMode,
     leadNotes,

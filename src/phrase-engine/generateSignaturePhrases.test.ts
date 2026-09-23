@@ -4,6 +4,7 @@ import type { MelodyNote } from "@/core/melody"
 import {
   generateSignaturePhraseCandidates,
   regenerateSignaturePhraseCandidate,
+  scoreSignatureMelodicJudgment,
   signaturePhraseSimilarity,
   type GenerateSignaturePhrasesInput,
 } from "./generateSignaturePhrases"
@@ -82,6 +83,30 @@ function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCan
 }
 
 describe("Signature Phrase Generator", () => {
+  it("近接進行・解決する半音・長い句のフックを評価し、リフや未解決音は優遇しない", () => {
+    const balanced = {
+      stepwiseMotionRatio: 0.42,
+      chromaticArrivalRatio: 0,
+      exposedUnresolvedRatio: 0,
+      hookStrength: 0.5,
+    }
+    const score = scoreSignatureMelodicJudgment(balanced, "atmospheric-gateway")
+    expect(score).toBeGreaterThan(scoreSignatureMelodicJudgment(
+      { ...balanced, stepwiseMotionRatio: 0.08 }, "atmospheric-gateway",
+    ))
+    expect(score).toBeGreaterThan(scoreSignatureMelodicJudgment(
+      { ...balanced, stepwiseMotionRatio: 0.94 }, "atmospheric-gateway",
+    ))
+    expect(scoreSignatureMelodicJudgment(
+      { ...balanced, chromaticArrivalRatio: 0.1 }, "atmospheric-gateway",
+    )).toBeGreaterThan(score)
+    expect(scoreSignatureMelodicJudgment(
+      { ...balanced, exposedUnresolvedRatio: 0.16 }, "atmospheric-gateway",
+    )).toBeLessThan(score)
+    expect(scoreSignatureMelodicJudgment(balanced, "atmospheric-gateway", undefined, 8)).toBeGreaterThan(score)
+    expect(scoreSignatureMelodicJudgment(balanced, "obsessive-motor", "percussive-block-chord")).toBe(0)
+  })
+
   it("明示された和音リフを全候補で守り、打撃的な同時発音として生成する", () => {
     const candidates = generateSignaturePhraseCandidates({
       ...input(55119),
