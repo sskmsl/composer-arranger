@@ -2,7 +2,15 @@ import { createEmptyProject, type ChordEvent, type ComposerProject } from "./pro
 import type { Section, SectionRole } from "./section"
 
 export const COMPOSER_SONG_EXCHANGE_FORMAT = "composer-os/song-exchange" as const
-export const COMPOSER_SONG_EXCHANGE_VERSION = 1 as const
+/** 読み込める最新のversion */
+export const COMPOSER_SONG_EXCHANGE_VERSION = 2 as const
+/**
+ * v1: 1コード=1小節(startBeat/durationBeatsは常に4拍刻み)。
+ * v2: Chord Generatorの和声のリズムをそのまま反映し、コードごとの長さが可変
+ *     (経過和音は2拍、終止の着地は8拍など)。セクションの長さは小節単位にそろえて書き出される。
+ * どちらも中身の形は同じで、読み込み側は startBeat/durationBeats を都度参照する。
+ */
+export const SUPPORTED_COMPOSER_SONG_EXCHANGE_VERSIONS: readonly number[] = [1, 2]
 
 interface ComposerSongExchangeChord {
   symbol: string
@@ -24,9 +32,9 @@ interface ComposerSongExchangeSection {
   }
 }
 
-export interface ComposerSongExchangeV1 {
+export interface ComposerSongExchange {
   format: typeof COMPOSER_SONG_EXCHANGE_FORMAT
-  version: typeof COMPOSER_SONG_EXCHANGE_VERSION
+  version: 1 | 2
   source: {
     app: string
     folderId: string
@@ -61,21 +69,21 @@ export function isComposerSongExchange(value: unknown): boolean {
   return record?.format === COMPOSER_SONG_EXCHANGE_FORMAT
 }
 
-function readExchange(value: unknown): ComposerSongExchangeV1 {
+function readExchange(value: unknown): ComposerSongExchange {
   const record = asRecord(value)
   if (!record || record.format !== COMPOSER_SONG_EXCHANGE_FORMAT) {
     throw new Error("Composer Song Exchange JSONではありません")
   }
-  if (record.version !== COMPOSER_SONG_EXCHANGE_VERSION) {
+  if (typeof record.version !== "number" || !SUPPORTED_COMPOSER_SONG_EXCHANGE_VERSIONS.includes(record.version)) {
     throw new Error(`未対応のComposer Song Exchange versionです: ${String(record.version)}`)
   }
   if (record.timeSignature !== "4/4") {
-    throw new Error("Composer Song Exchange v1は4/4にのみ対応しています")
+    throw new Error("Composer Song Exchangeは4/4にのみ対応しています")
   }
   if (!Array.isArray(record.sections) || record.sections.length === 0) {
     throw new Error("読み込めるセクションがありません")
   }
-  return record as unknown as ComposerSongExchangeV1
+  return record as unknown as ComposerSongExchange
 }
 
 function finiteNonNegative(value: unknown, fallback: number): number {
@@ -93,7 +101,8 @@ function slashBass(symbol: string): string | null {
 
 /**
  * Chord Generatorの中立Exchange JSONを、新規Composer Projectへ変換する。
- * v1は4/4・1コード=1小節を前提とするが、JSON内の明示的な拍位置と音価を尊重する。
+ * コードの拍位置と長さはJSON内の startBeat/durationBeats を尊重する(1小節に2コード等もそのまま)。
+ * startBeat が無い場合は直前までの長さの合計から補う(v1なら従来どおり4拍刻みになる)。
  */
 export function composerSongExchangeToProject(value: unknown): ComposerProject {
   const exchange = readExchange(value)
@@ -118,6 +127,7 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
       throw new Error(`セクション${sectionIndex + 1}にコードがありません`)
     }
 
+    let cursor = 0
     const baseChords = sectionRecord.chords.map((rawChord, chordIndex) => {
       const chord = asRecord(rawChord)
       const symbol = typeof chord?.symbol === "string" ? chord.symbol.trim() : ""
@@ -126,20 +136,24 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
           `セクション${sectionIndex + 1}のコード${chordIndex + 1}が空です`,
         )
       }
-      const startBeat = finiteNonNegative(chord?.startBeat, chordIndex * 4)
+      const startBeat = finiteNonNegative(chord?.startBeat, cursor)
       const durationBeats =
         typeof chord?.durationBeats === "number" &&
         Number.isFinite(chord.durationBeats) &&
         chord.durationBeats > 0
           ? chord.durationBeats
           : 4
+      cursor = startBeat + durationBeats
       return { symbol, startBeat, durationBeats }
     })
 
-    const baseLengthBeats = Math.max(
-      4,
-      ...baseChords.map((chord) => chord.startBeat + chord.durationBeats),
-    )
+    // セクションは小節単位で並べる。合計が小節の途中で終わるファイル(Chord Generatorが
+    // 小節単位にそろえる前に書き出したv2)は、最後のコードを小節末まで伸ばして埋める。
+    // そうしないと繰り返しの2回目以降が小節の途中から始まり、次のセクションとの間に隙間ができる
+    const contentBeats = Math.max(4, ...baseChords.map((chord) => chord.startBeat + chord.durationBeats))
+    const baseLengthBeats = Math.ceil(contentBeats / 4) * 4
+    const lastChord = baseChords.reduce((a, b) => (b.startBeat >= a.startBeat ? b : a))
+    lastChord.durationBeats += baseLengthBeats - (lastChord.startBeat + lastChord.durationBeats)
     const repeatCount = positiveRepeat(sectionRecord.repeatCount)
     const totalBeats = baseLengthBeats * repeatCount
     const sectionId = crypto.randomUUID()
