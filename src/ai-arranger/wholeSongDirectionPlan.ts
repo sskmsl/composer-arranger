@@ -1,4 +1,5 @@
 import type { ComposerProject } from "@/core/project"
+import { parseTimeSignature } from "@/core/section"
 import { hasActiveLeadMelody } from "@/core/melodyProtection"
 import { buildArrangementDirectorBlueprint } from "./arrangementDirector"
 import { buildOrchestrationBlueprint } from "./orchestrationIntelligence"
@@ -140,6 +141,11 @@ function signalsFromBrief(brief: string): WholeSongBriefSignals {
     independentPitchColour,
     specificLayerRequest: transitionPhrases || backgroundSynth,
   }
+}
+
+function explicitAdditionRequested(brief: string): boolean {
+  if (/(追加しない|追加せず|加えない|入れない|生成しない|増やさない|追加は不要|追加を控え)/.test(brief)) return false
+  return /(追加|加え|入れ|作って|生成).{0,16}(カウンター|対旋律|装飾|伴奏|リズム|レイヤー|シグネチャー|モチーフ)|(カウンター|対旋律|装飾|伴奏|リズム|レイヤー|シグネチャー).{0,16}(追加|加え|入れ|作って|生成)/i.test(brief)
 }
 
 function complementaryRegister(project: ComposerProject, sectionId: string): "low" | "high" {
@@ -483,6 +489,7 @@ export function buildWholeSongDirectionProgram(
     reviewArrangementSection(project, director, section.sectionId),
   )
   const wholeReview = reviewWholeSongArrangement(project, director, reviews)
+  const explicitlyRequested = explicitAdditionRequested(brief)
   const recommended = recommendation(project, brief)
   const importedSourceProtection = hasActiveLeadMelody(project)
     ? project.sourceImport?.type === "midi"
@@ -502,7 +509,32 @@ export function buildWholeSongDirectionProgram(
     ),
     director.sections,
     brief,
-  )
+  ).map((actionValue) => {
+    if (actionValue.status !== "available" || explicitlyRequested) return actionValue
+    const sectionPlan = director.sections.find((plan) => plan.sectionId === actionValue.sectionId)
+    const review = reviews.find((item) => item.sectionId === actionValue.sectionId)
+    if (!sectionPlan || sectionPlan.additionBudget <= 0) {
+      return { ...actionValue, status: "unavailable" as const, statusReason: "このSectionは密度上限のため、追加より現在の音を選び直します。" }
+    }
+    if (review?.findings.some((item) => [
+      "density-ceiling", "melody-collision", "silence-budget", "protected-moment",
+    ].includes(item.id))) {
+      return { ...actionValue, status: "unavailable" as const, statusReason: "主旋律の可読性または余白に問題があるため、先に現在のLayerを整理します。" }
+    }
+    if (actionValue.generator === "counter") {
+      const section = project.sections.find((item) => item.id === actionValue.sectionId)
+      const activeId = project.sectionMelodyAssignments[actionValue.sectionId]
+      const melody = project.melodyVariants.find((item) => item.id === activeId)
+      if (section && melody) {
+        const totalBeats = section.lengthBars * parseTimeSignature(project.song.timeSignature).beatsPerBar
+        const occupied = melody.notes.reduce((sum, note) => sum + note.durationBeats, 0) / Math.max(1, totalBeats)
+        if (occupied >= 0.72) {
+          return { ...actionValue, status: "unavailable" as const, statusReason: "主旋律が十分に鳴っているため、対旋律を増やさず呼吸を守ります。" }
+        }
+      }
+    }
+    return actionValue
+  })
   const directions: WholeSongDirectionProgram["directions"] = [
     {
       id: "preserve-space",

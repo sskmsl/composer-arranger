@@ -134,6 +134,10 @@ export interface MelodyFeatures {
   repeatedNoteRatio: number
   tensionUsageRatio: number
   chordToneUsageRatio: number
+  /** 和声外音が次の近接音または次コードへの保持で意味を持った割合。 */
+  resolvedNonChordRatio?: number
+  /** 強拍・長音に残り、近接解決を持たない和声外音の割合。 */
+  exposedUnresolvedRatio?: number
   syncopationRatio: number
   motifRepeatRatio: number
   /** 音程とリズムを保った特徴的な短いモチーフの再登場(0..1)。旧データでは未設定。 */

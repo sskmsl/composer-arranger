@@ -1,4 +1,4 @@
-import { parseChordSymbol } from "@/core/chord"
+import { isChordTone, isTensionTone, parseChordSymbol } from "@/core/chord"
 import type { MelodyNote, SongMotifDNA } from "@/core/melody"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
@@ -11,6 +11,7 @@ import {
   type SectionContentPlan,
 } from "@/core/sectionContent"
 import { contentSimilarity } from "./contentStructure"
+import { buildHarmonicMap, chordAtBeat } from "./harmonicMap"
 
 export interface ContentQualityCandidate {
   content: ResolvedLeadContent
@@ -65,21 +66,30 @@ function harmonicInterest(
 ): number {
   if (candidate.content === "none") return 72
   if (candidate.notes.length === 0) return 0
-  const parsed = chords
-    .map((chord) => parseChordSymbol(chord.symbol, chord.bass ?? undefined))
-    .filter((chord): chord is NonNullable<typeof chord> => Boolean(chord))
-  const colorPitchClasses = new Set(
-    parsed.flatMap((chord) => [
-      ...chord.tensions.map((tone) => tone.pitchClass),
-      ...chord.tones
-        .filter((tone) => tone.role === "seventh" || tone.role === "sixth")
-        .map((tone) => tone.pitchClass),
-    ]),
-  )
-  const colorUse =
-    candidate.notes.filter((note) =>
-      colorPitchClasses.has(((note.pitch % 12) + 12) % 12),
-    ).length / candidate.notes.length
+  const harmonicMap = buildHarmonicMap(chords)
+  const sorted = [...candidate.notes].sort((left, right) => left.startBeat - right.startBeat)
+  let colorCount = 0
+  let unresolvedCount = 0
+  for (const [index, note] of sorted.entries()) {
+    const chord = chordAtBeat(harmonicMap, note.startBeat)?.parsed
+    if (!chord) continue
+    const pc = ((note.pitch % 12) + 12) % 12
+    if (isTensionTone(chord, pc) || chord.tones.some((tone) =>
+      tone.pitchClass === pc && (tone.role === "seventh" || tone.role === "sixth"))) {
+      colorCount++
+    } else if (!isChordTone(chord, pc)) {
+      const next = sorted[index + 1]
+      const nextChord = next ? chordAtBeat(harmonicMap, next.startBeat)?.parsed : undefined
+      const nextPc = next ? ((next.pitch % 12) + 12) % 12 : -1
+      if (!next || !nextChord || Math.abs(next.pitch - note.pitch) > 2 ||
+        next.startBeat - (note.startBeat + note.durationBeats) > 1 ||
+        !(isChordTone(nextChord, nextPc) || isTensionTone(nextChord, nextPc))) {
+        unresolvedCount++
+      }
+    }
+  }
+  const colorUse = colorCount / sorted.length
+  const unresolvedUse = unresolvedCount / sorted.length
   const heldAcrossBoundary = candidate.notes.filter((note) =>
     chords.slice(1).some(
       (chord) =>
@@ -93,7 +103,8 @@ function harmonicInterest(
       ? 12
       : 4
   return clampScore(
-    64 + colorUse * 20 + Math.min(12, heldAcrossBoundary * 4) + boundaryValue,
+    66 + Math.min(colorUse, 0.22) * 45 - Math.max(0, colorUse - 0.38) * 30 -
+    unresolvedUse * 25 + Math.min(10, heldAcrossBoundary * 3) + boundaryValue,
   )
 }
 

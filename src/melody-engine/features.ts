@@ -24,6 +24,8 @@ export function computeMelodyFeatures(
       repeatedNoteRatio: 0,
       tensionUsageRatio: 0,
       chordToneUsageRatio: 0,
+      resolvedNonChordRatio: 0,
+      exposedUnresolvedRatio: 0,
       syncopationRatio: 0,
       motifRepeatRatio: 0,
       hookStrength: 0,
@@ -69,13 +71,34 @@ export function computeMelodyFeatures(
 
   let tensionCount = 0
   let chordToneCount = 0
+  let resolvedNonChordCount = 0
+  let exposedUnresolvedCount = 0
   let syncopated = 0
-  for (const n of sorted) {
+  for (const [index, n] of sorted.entries()) {
     const entry: HarmonicMapEntry | undefined = chordAtBeat(harmonicMap, n.startBeat)
     if (entry) {
       const pc = pitchClass(n.pitch)
       if (isChordTone(entry.parsed, pc)) chordToneCount++
       else if (isTensionTone(entry.parsed, pc)) tensionCount++
+      else {
+        const next = sorted[index + 1]
+        const nextEntry = next ? chordAtBeat(harmonicMap, next.startBeat) : undefined
+        const nextPc = next ? pitchClass(next.pitch) : -1
+        const resolvesByStep = Boolean(next && nextEntry &&
+          next.startBeat - (n.startBeat + n.durationBeats) <= 1 &&
+          Math.abs(next.pitch - n.pitch) <= 2 &&
+          Math.abs(next.pitch - n.pitch) > 0 &&
+          (isChordTone(nextEntry.parsed, nextPc) || isTensionTone(nextEntry.parsed, nextPc)))
+        const resolvesBySuspension = harmonicMap.some((later) =>
+          later.chord.startBeat > n.startBeat &&
+          later.chord.startBeat < n.startBeat + n.durationBeats &&
+          isChordTone(later.parsed, pc),
+        )
+        if (resolvesByStep || resolvesBySuspension) resolvedNonChordCount++
+        else if (n.durationBeats >= 0.75 || Math.abs(n.startBeat - Math.round(n.startBeat)) < 0.01) {
+          exposedUnresolvedCount++
+        }
+      }
     }
     const offsetInBeat = n.startBeat - Math.floor(n.startBeat)
     const offbeatAttack =
@@ -115,6 +138,8 @@ export function computeMelodyFeatures(
     repeatedNoteRatio: pitches.length > 1 ? repeated / (pitches.length - 1) : 0,
     tensionUsageRatio: tensionCount / sorted.length,
     chordToneUsageRatio: chordToneCount / sorted.length,
+    resolvedNonChordRatio: resolvedNonChordCount / sorted.length,
+    exposedUnresolvedRatio: exposedUnresolvedCount / sorted.length,
     syncopationRatio: syncopated / sorted.length,
     motifRepeatRatio,
     hookStrength: computeHookStrength(sorted),

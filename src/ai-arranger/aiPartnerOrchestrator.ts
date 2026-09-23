@@ -102,7 +102,7 @@ export function buildAiPartnerOrchestrationPlan(
     nextAction,
     nextActionReason: nextAction
       ? `${selectedSectionId === nextAction.sectionId ? "現在のSectionを優先。" : "曲全体で次に効果が大きいSectionを選択。"}${wasRejected ? "同種のReject履歴はありますが、他に実行可能な役割がないため再提案しています。" : nextAction.statusReason}`
-      : "現在の構成には、追加生成より既存候補の試聴・採用判断が優先です。",
+      : "現在の密度・余白では追加を控え、既存候補の試聴・採用判断を優先します。",
     protect: unique([...direction.protect, ...constraints]).slice(0, 8),
     remainingActionCount: available.length,
   }

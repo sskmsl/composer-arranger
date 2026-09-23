@@ -63,7 +63,7 @@ import {
   rangeForPhrase,
 } from "./candidateMelodyDNA"
 import { applyMelodicArrival, placeExpressiveChromaticTurn } from "./melodicArrival"
-import { shapeMelodicRelease } from "./melodicRelease"
+import { shapeMelodicRelease, shapePhraseBreaths } from "./melodicRelease"
 import { shapeGrowingMelodyDynamics } from "./melodicDynamics"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
 import { nearestAllowedPitch } from "./pitchUtils"
@@ -219,7 +219,7 @@ function buildCandidate(
     plans,
   )
   const dynamicNotes = shapeGrowingMelodyDynamics(
-    releasedNotes,
+    shapePhraseBreaths(releasedNotes, plans, generatorProfile),
     input.totalBeats,
     generatorProfile,
     input.sectionRole,

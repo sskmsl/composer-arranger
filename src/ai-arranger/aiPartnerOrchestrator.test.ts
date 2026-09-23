@@ -39,6 +39,38 @@ function project() {
 }
 
 describe("AI Partner orchestration plan", () => {
+  it("全Sectionが密度上限なら追加生成を勧めない", () => {
+    const value = project()
+    value.arrangementSettings.maximumParts = 2
+    const plan = buildAiPartnerOrchestrationPlan(value, "verse")
+    expect(plan.nextAction).toBeNull()
+    expect(plan.nextActionReason).toContain("追加を控え")
+  })
+
+  it("明示されたレイヤー追加依頼は自動的な密度判断で消さない", () => {
+    const value = project()
+    value.arrangementSettings.maximumParts = 2
+    value.arrangementDirectorWorkspace!.brief = "対旋律を追加して"
+    const plan = buildAiPartnerOrchestrationPlan(value, "verse")
+    expect(plan.nextAction).not.toBeNull()
+  })
+
+  it("追加しないという制約を、追加依頼として誤読しない", () => {
+    const value = project()
+    value.arrangementSettings.maximumParts = 2
+    value.arrangementDirectorWorkspace!.brief = "対旋律は追加しないで、余白を守る"
+    expect(buildAiPartnerOrchestrationPlan(value, "verse").nextAction).toBeNull()
+  })
+
+  it("主旋律が休みなく鳴るSectionに対旋律を重ねる優先度を下げる", () => {
+    const value = project()
+    value.melodyVariants.find((variant) => variant.sectionId === "verse")!.notes = Array.from({ length: 16 }, (_, index) => ({
+      id: `busy-${index}`, pitch: 60 + index % 3, startBeat: index, durationBeats: 1,
+      velocity: 80, locks: [],
+    }))
+    const plan = buildAiPartnerOrchestrationPlan(value, "verse")
+    expect(`${plan.nextAction?.sectionId}:${plan.nextAction?.generator}`).not.toBe("verse:counter")
+  })
   it("曲全体の方向と現在Sectionから、実行可能な次の一手を一つ返す", () => {
     const plan = buildAiPartnerOrchestrationPlan(project(), "verse")
     expect(plan.directionId).toBe("motif-relay")

@@ -2,6 +2,24 @@ import type { CandidateMelodyDNA, MelodyGeneratorProfile, MelodyNote, PhrasePlan
 import type { SectionRole } from "@/core/section"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 
+/** フレーズの再提示前だけ短い吸気を作り、語尾の音を増やさず輪郭を残す。 */
+export function shapePhraseBreaths(
+  source: MelodyNote[],
+  plans: PhrasePlan[],
+  profile: MelodyGeneratorProfile = "standard",
+): MelodyNote[] {
+  if ((profile !== "standard" && profile !== "cinematic") || plans.length < 2) return source
+  const boundaries = plans.slice(0, -1).map((plan) => plan.phraseStartBeat + plan.phraseLengthBeats)
+  return source.map((note) => {
+    if (note.locks.length > 0 || note.plannedResolution) return note
+    const end = note.startBeat + note.durationBeats
+    if (!boundaries.some((boundary) => Math.abs(end - boundary) < 0.06 &&
+      !source.some((other) => other.startBeat > note.startBeat && other.startBeat < boundary))) return note
+    if (note.durationBeats < 0.75) return note
+    return { ...note, durationBeats: note.durationBeats - 0.25 }
+  })
+}
+
 /**
  * 頂点後の終止で音数を減らし、最後の和声音を保持して伴奏へ余韻を渡す。
  * 前半のフックと各和声の入りは残す。Middle-climax の解決型だけに適用し、

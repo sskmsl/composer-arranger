@@ -71,6 +71,23 @@ function quality(overallQuality: number): ContentQualityBreakdown {
 const chords = parseChordInputText("Am(add9) | D#dim | Fmaj7 | E7", "s1", 4, "c")
 
 describe("Issue #63 / Auto Content quality and diversity", () => {
+  it("色彩音は現在のコードでだけ評価し、無関係な和音から借りた音を加点しない", () => {
+    const localChords = parseChordInputText("Cmaj7 | F", "s1", 4, "local")
+    const base = {
+      content: "melody" as const,
+      plan: plan("melody"),
+      features: features("melody"),
+      problems: [],
+    }
+    const context = { sectionRole: "verse" as const, songProfile: "dark-romantic" as const, chords: localChords, totalBeats: 8 }
+    const expressive = evaluateContentQuality({ ...base, notes: [
+      { id: "color", startBeat: 0, durationBeats: 1, pitch: 71, velocity: 80, locks: [] },
+    ] }, context)
+    const misplaced = evaluateContentQuality({ ...base, notes: [
+      { id: "stray", startBeat: 4, durationBeats: 1, pitch: 71, velocity: 80, locks: [] },
+    ] }, context)
+    expect(expressive.harmonicInterest).toBeGreaterThan(misplaced.harmonicInterest)
+  })
   it("9候補を評価し、品質下限を満たす3案へ選抜する", () => {
     const result = generateSectionContent({
       chords,
