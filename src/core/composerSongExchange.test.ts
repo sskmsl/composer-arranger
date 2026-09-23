@@ -113,8 +113,12 @@ describe("Composer Song Exchange v1 import", () => {
   })
 
   it("未対応versionと空Sectionを拒否する", () => {
+    // Arrangerより新しい形式は「Arrangerを最新版に」と次の手順を案内する
     expect(() =>
       composerSongExchangeToProject({ ...exchange(), version: 3 }),
+    ).toThrow("Arrangerを最新版に")
+    expect(() =>
+      composerSongExchangeToProject({ ...exchange(), version: 0 }),
     ).toThrow("未対応")
     expect(() =>
       composerSongExchangeToProject({ ...exchange(), sections: [] }),

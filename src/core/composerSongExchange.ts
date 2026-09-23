@@ -75,7 +75,12 @@ function readExchange(value: unknown): ComposerSongExchange {
     throw new Error("Composer Song Exchange JSONではありません")
   }
   if (typeof record.version !== "number" || !SUPPORTED_COMPOSER_SONG_EXCHANGE_VERSIONS.includes(record.version)) {
-    throw new Error(`未対応のComposer Song Exchange versionです: ${String(record.version)}`)
+    const version = record.version
+    throw new Error(
+      typeof version === "number" && version > COMPOSER_SONG_EXCHANGE_VERSION
+        ? `Chord Generatorの書き出し形式(version ${version})がこのArrangerより新しいため読み込めません。ページを再読み込みしてArrangerを最新版にしてください`
+        : `未対応のComposer Song Exchange versionです: ${String(version)}`,
+    )
   }
   if (record.timeSignature !== "4/4") {
     throw new Error("Composer Song Exchangeは4/4にのみ対応しています")
