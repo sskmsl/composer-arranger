@@ -3,11 +3,14 @@ import {
   ArrowRight,
   FileMusic,
   FolderOpen,
+  Music2,
   Plus,
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react"
+import { isComposerSongExchange, prepareImportedProject } from "@/core/composerSongExchange"
 import { MIDI_IMPORT_ACCEPT, analyzeMidiProjectFile, type MidiImportAnalysis } from "@/midi/importMidi"
+import { readProjectFile } from "@/storage/projectFile"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button } from "@/ui/primitives"
 import type { MainTab } from "./App"
@@ -37,7 +40,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
 
         <ol className="grid gap-2 sm:grid-cols-3" aria-label="制作の流れ">
           {[
-            ["1", "曲を準備", "MIDI読込または新規作成"],
+            ["1", "曲を準備", "Chord Generator・MIDI読込・新規作成"],
             ["2", "方針を選ぶ", "AIが全曲を診断して提案"],
             ["3", "生成して試聴", "候補を比較してMIDI出力"],
           ].map(([number, title, description]) => (
@@ -68,7 +71,37 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           </section>
         )}
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="group relative flex min-h-48 cursor-pointer flex-col rounded-lg border border-primary/45 bg-surface-tile-1 p-5 transition hover:border-primary hover:bg-primary/8">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/18 text-primary-on-dark"><Music2 size={20} /></span>
+            <span className="mt-5 text-[16px] font-semibold text-body-on-dark">Chord Generatorの曲から始める</span>
+            <span className="mt-2 text-[12px] leading-5 text-body-muted">Chord Generatorで書き出した曲(.composer-song.json)を開き、曲名・テンポ・セクション・コード・転調・スタイルを引き継ぎます。</span>
+            <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">ファイルを選択 →</span>
+            <input
+              type="file"
+              accept="application/json,.json"
+              aria-label="Chord Generatorの書き出しファイルを選択"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={async (event) => {
+                const input = event.currentTarget
+                const file = input.files?.[0]
+                if (!file) return
+                try {
+                  const raw = await readProjectFile(file)
+                  if (!isComposerSongExchange(raw)) {
+                    throw new Error("Chord Generatorの書き出しファイルではありません。保存したComposer Projectは「保存した曲を開く」から開けます")
+                  }
+                  loadProject(prepareImportedProject(raw))
+                  onNavigate(homeContinueAction(useProjectStore.getState().project).tab)
+                } catch (error) {
+                  window.alert(error instanceof Error ? error.message : "ファイルの読み込みに失敗しました")
+                } finally {
+                  input.value = ""
+                }
+              }}
+            />
+          </label>
+
           <label className="group relative flex min-h-48 cursor-pointer flex-col rounded-lg border border-primary/45 bg-surface-tile-1 p-5 transition hover:border-primary hover:bg-primary/8">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/18 text-primary-on-dark"><FileMusic size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">MIDIからアレンジする</span>

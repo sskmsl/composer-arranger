@@ -46,7 +46,11 @@ export function App() {
 
   const changeTopTab = (nextTab: MainTab) => {
     setReturnToAiPartner(false)
-    setTab(nextTab === "home" || project.sections.length > 0 ? nextTab : "home")
+    // 描画時点の project ではなく最新の状態を見る。曲を読み込んだ直後(MIDI取り込み・
+    // Chord Generator取り込み・保存した曲を開く)に同じ処理内で呼ばれると、描画時点の
+    // project はまだセクション0件のため、読み込んだのにホームへ戻されていた
+    const hasSections = useProjectStore.getState().project.sections.length > 0
+    setTab(nextTab === "home" || hasSections ? nextTab : "home")
   }
 
   useEffect(() => {
