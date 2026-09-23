@@ -1,0 +1,140 @@
+{
+  "format": "composer-os/song-exchange",
+  "version": 2,
+  "source": {
+    "app": "composer-os-chord-generator",
+    "folderId": "folder-contract",
+    "exportedAt": "2026-09-23T00:00:00.000Z"
+  },
+  "title": "Contract Song",
+  "tempo": 84,
+  "timeSignature": "4/4",
+  "memo": "Aメロで静かに始め、大サビで全音上げる",
+  "sections": [
+    {
+      "sourceId": "contract-1",
+      "name": "Aメロ",
+      "role": "verse",
+      "key": "Am",
+      "repeatCount": 2,
+      "chords": [
+        {
+          "symbol": "Am",
+          "startBeat": 0,
+          "durationBeats": 2
+        },
+        {
+          "symbol": "E7/G#",
+          "startBeat": 2,
+          "durationBeats": 2
+        },
+        {
+          "symbol": "Am",
+          "startBeat": 4,
+          "durationBeats": 4
+        },
+        {
+          "symbol": "Dm6",
+          "startBeat": 8,
+          "durationBeats": 4
+        },
+        {
+          "symbol": "E7",
+          "startBeat": 12,
+          "durationBeats": 4
+        }
+      ],
+      "sourceIntent": {
+        "style": "kayokyoku",
+        "mood": "melancholic",
+        "scores": {
+          "mylene": 6,
+          "boutonnat": 7,
+          "melancholy": 6,
+          "darkness": 4,
+          "cinematic": 5
+        }
+      }
+    },
+    {
+      "sourceId": "contract-2",
+      "name": "サビ",
+      "role": "chorus",
+      "key": "Am",
+      "repeatCount": 1,
+      "chords": [
+        {
+          "symbol": "Fmaj7",
+          "startBeat": 0,
+          "durationBeats": 4
+        },
+        {
+          "symbol": "Bm7b5",
+          "startBeat": 4,
+          "durationBeats": 4
+        },
+        {
+          "symbol": "E7",
+          "startBeat": 8,
+          "durationBeats": 4
+        },
+        {
+          "symbol": "Am",
+          "startBeat": 12,
+          "durationBeats": 4
+        }
+      ],
+      "sourceIntent": {
+        "style": "frenchPop",
+        "mood": "melancholic",
+        "scores": {
+          "mylene": 6,
+          "boutonnat": 7,
+          "melancholy": 6,
+          "darkness": 4,
+          "cinematic": 5
+        }
+      }
+    },
+    {
+      "sourceId": "contract-3",
+      "name": "大サビ",
+      "role": "grand-chorus",
+      "key": "Bm",
+      "repeatCount": 1,
+      "chords": [
+        {
+          "symbol": "G",
+          "startBeat": 0,
+          "durationBeats": 4
+        },
+        {
+          "symbol": "A/C#",
+          "startBeat": 4,
+          "durationBeats": 2
+        },
+        {
+          "symbol": "Bm(add9)",
+          "startBeat": 6,
+          "durationBeats": 2
+        },
+        {
+          "symbol": "F#7sus4",
+          "startBeat": 8,
+          "durationBeats": 8
+        }
+      ],
+      "sourceIntent": {
+        "style": "cinematic",
+        "mood": "melancholic",
+        "scores": {
+          "mylene": 6,
+          "boutonnat": 7,
+          "melancholy": 6,
+          "darkness": 4,
+          "cinematic": 5
+        }
+      }
+    }
+  ]
+}

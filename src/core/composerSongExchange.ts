@@ -1,4 +1,10 @@
-import { createEmptyProject, type ChordEvent, type ComposerProject } from "./project"
+import {
+  createEmptyProject,
+  type ChordEvent,
+  type ComposerProject,
+  type SectionProfileOverride,
+  type SongProfileId,
+} from "./project"
 import type { Section, SectionRole } from "./section"
 
 export const COMPOSER_SONG_EXCHANGE_FORMAT = "composer-os/song-exchange" as const
@@ -60,6 +66,36 @@ const SECTION_ROLES = new Set<SectionRole>([
   "outro",
 ])
 
+/**
+ * Chord Generator のスタイル(sourceIntent.style)→ Arranger の Song Profile。
+ * Generatorは18スタイル、Arrangerは4つの性格+Original Customなので、和声と質感が
+ * 最も近い性格へ寄せる。知らないスタイルは対応付けない(Original Customのまま)。
+ */
+export const CHORD_GENERATOR_STYLE_TO_PROFILE: Readonly<Record<string, SongProfileId>> = {
+  romanticDark: "dark-romantic",
+  neoclassical: "dark-romantic",
+  jChanson: "dark-romantic",
+  kayokyoku: "dark-romantic",
+  cinematic: "cinematic-french-pop",
+  finale: "cinematic-french-pop",
+  frenchPop: "cinematic-french-pop",
+  sadcorePop: "cinematic-french-pop",
+  minimalism: "minimal-tension",
+  ritual: "minimal-tension",
+  tripHop: "minimal-tension",
+  ethereal: "minimal-tension",
+  slowcore: "minimal-tension",
+  electronica: "minimal-tension",
+  newWave: "dramatic-synth-pop",
+  hiNRG: "dramatic-synth-pop",
+  cool: "dramatic-synth-pop",
+  dorian: "dramatic-synth-pop",
+}
+
+function profileForStyle(style: unknown): SongProfileId | undefined {
+  return typeof style === "string" ? CHORD_GENERATOR_STYLE_TO_PROFILE[style] : undefined
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null
 }
@@ -75,7 +111,12 @@ function readExchange(value: unknown): ComposerSongExchange {
     throw new Error("Composer Song Exchange JSONではありません")
   }
   if (typeof record.version !== "number" || !SUPPORTED_COMPOSER_SONG_EXCHANGE_VERSIONS.includes(record.version)) {
-    throw new Error(`未対応のComposer Song Exchange versionです: ${String(record.version)}`)
+    const version = record.version
+    throw new Error(
+      typeof version === "number" && version > COMPOSER_SONG_EXCHANGE_VERSION
+        ? `Chord Generatorの書き出し形式(version ${version})がこのArrangerより新しいため読み込めません。ページを再読み込みしてArrangerを最新版にしてください`
+        : `未対応のComposer Song Exchange versionです: ${String(version)}`,
+    )
   }
   if (record.timeSignature !== "4/4") {
     throw new Error("Composer Song Exchangeは4/4にのみ対応しています")
@@ -113,7 +154,14 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
   )
   const sections: Section[] = []
   const chords: ChordEvent[] = []
+  /** セクションごとの対応Profileと長さ(曲全体のProfileを長さの多数決で決める) */
+  const sectionProfiles: { sectionId: string; profile: SongProfileId; bars: number }[] = []
   let startBar = 1
+  // 曲の調は最初のセクションの調。転調したセクション(大サビの全音上げ等)は各セクションに調を持たせる
+  const songKey =
+    exchange.sections
+      .map((section) => (typeof section.key === "string" ? section.key.trim() : ""))
+      .find(Boolean) ?? project.song.key
 
   exchange.sections.forEach((rawSection, sectionIndex) => {
     const sectionRecord = asRecord(rawSection)
@@ -167,6 +215,10 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
       startBar,
       lengthBars: Math.max(1, Math.ceil(totalBeats / 4)),
     }
+    const sectionKey = typeof sectionRecord.key === "string" ? sectionRecord.key.trim() : ""
+    if (sectionKey && sectionKey !== songKey) section.key = sectionKey
+    const profile = profileForStyle(asRecord(sectionRecord.sourceIntent)?.style)
+    if (profile) sectionProfiles.push({ sectionId, profile, bars: section.lengthBars })
     sections.push(section)
 
     for (let repeatIndex = 0; repeatIndex < repeatCount; repeatIndex++) {
@@ -185,14 +237,24 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
     startBar += section.lengthBars
   })
 
-  const firstKey = exchange.sections.find(
-    (section) => typeof section.key === "string" && section.key.trim(),
-  )?.key
+  // 曲全体のProfile: 対応付いたセクションの小節数が最も多いProfile。違うセクションだけ上書きにする
+  const barsByProfile = new Map<SongProfileId, number>()
+  for (const { profile, bars } of sectionProfiles) {
+    barsByProfile.set(profile, (barsByProfile.get(profile) ?? 0) + bars)
+  }
+  const songProfile =
+    [...barsByProfile.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? project.song.songProfile
+  const sectionProfileOverrides: SectionProfileOverride[] = sectionProfiles
+    .filter(({ profile }) => profile !== songProfile)
+    .map(({ sectionId, profile }) => ({ sectionId, songProfile: profile }))
+
   return {
     ...project,
     song: {
       ...project.song,
-      key: firstKey?.trim() || project.song.key,
+      songProfile,
+      sectionProfileOverrides,
+      key: songKey,
       tempo:
         Number.isFinite(exchange.tempo) && exchange.tempo >= 20 && exchange.tempo <= 300
           ? Math.round(exchange.tempo)

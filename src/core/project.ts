@@ -406,6 +406,12 @@ export function normalizeProject(raw: unknown): ComposerProject {
   }
 }
 
+/** セクションに適用中の調(セクション別の調を考慮)。転調したセクションの生成・表記・調号に使う */
+export function effectiveSectionKey(project: ComposerProject, sectionId: string): string {
+  const sectionKey = project.sections.find((s) => s.id === sectionId)?.key?.trim()
+  return sectionKey || project.song.key
+}
+
 /** セクションに適用中のSong Profile(セクション別上書きを考慮) */
 export function effectiveSongProfile(project: ComposerProject, sectionId: string): SongProfileId {
   const override = project.song.sectionProfileOverrides.find((o) => o.sectionId === sectionId)

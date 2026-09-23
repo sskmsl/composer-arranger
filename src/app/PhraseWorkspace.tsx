@@ -327,7 +327,7 @@ export function PhraseWorkspace() {
           chords={phraseChords}
           totalBeats={activeCandidate.phraseLengthBeats}
           timeSignature={project.song.timeSignature}
-          songKey={project.song.key}
+          songKey={section?.key?.trim() || project.song.key}
           title={activeCandidate.name}
           subtitle="表示専用 · MIDI出力と同一"
           accentColor="#4ea8de"

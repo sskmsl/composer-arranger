@@ -331,7 +331,7 @@ export function MelodyWorkspace({
         chords={chords}
         totalBeats={totalBeats}
         timeSignature={project.song.timeSignature}
-        songKey={project.song.key}
+        songKey={section?.key?.trim() || project.song.key}
         selectedNoteIds={selectedNoteIds}
         onToggleNoteSelect={(id) =>
           setSelectedNoteIds((prev) => {
@@ -367,7 +367,7 @@ export function MelodyWorkspace({
           chords={chords}
           totalBeats={totalBeats}
           timeSignature={project.song.timeSignature}
-          songKey={project.song.key}
+          songKey={section?.key?.trim() || project.song.key}
         />
       )}
       {chords.length > 0 && (
@@ -375,7 +375,7 @@ export function MelodyWorkspace({
           chords={chords}
           totalBeats={totalBeats}
           timeSignature={project.song.timeSignature}
-          songKey={project.song.key}
+          songKey={section?.key?.trim() || project.song.key}
         />
       )}
 

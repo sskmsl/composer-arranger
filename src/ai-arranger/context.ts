@@ -2,7 +2,7 @@ import { resolvePublicComposerRules } from "@/composer-intelligence"
 import type { ComposerGeneratorTarget } from "@/composer-intelligence"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
-import { effectiveSongProfile, type ComposerProject } from "@/core/project"
+import { effectiveSectionKey, effectiveSongProfile, type ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import type { AiArrangementContext } from "./types"
@@ -184,7 +184,7 @@ export function buildAiArrangementContext(
     }),
     project: {
       title: project.title,
-      key: project.song.key,
+      key: effectiveSectionKey(project, sectionId),
       tempo: project.song.tempo,
       timeSignature: project.song.timeSignature,
       songProfile: effectiveSongProfile(project, sectionId),

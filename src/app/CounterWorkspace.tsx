@@ -394,7 +394,7 @@ export function CounterWorkspace() {
           chords={chords}
           totalBeats={totalBeats}
           timeSignature={project.song.timeSignature}
-          songKey={project.song.key}
+          songKey={section?.key?.trim() || project.song.key}
           title={`候補 ${batch.findIndex((candidate) => candidate.id === activeCandidate.id) + 1}`}
           subtitle="表示専用 · MIDI出力と同じ内容"
           accentColor="#b38cff"

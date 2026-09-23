@@ -27,47 +27,48 @@ const chords: ChordEvent[] = [
 const harmonicMap = buildHarmonicMap(chords)
 
 describe("全Generator Profileの音程整合性", () => {
-  it("コード外音は使用可能テンションまたは明示的な解決計画を持つ", () => {
+  // 以前は9プロファイル×200シードを1つのテストで回しており、単体でも約28秒と
+  // 30秒の制限ぎりぎりで、CIの負荷しだいでタイムアウトしていた。網羅範囲(200シード)は
+  // そのままに、プロファイルごとのテストへ分けて1件あたり約3秒に収める
+  it.each(profiles)("コード外音は使用可能テンションまたは明示的な解決計画を持つ(%s)", (profile) => {
     const findings = new Map<string, string[]>()
-    for (const profile of profiles) {
-      const profileFindings: string[] = []
-      for (let seed = 1; seed <= 200; seed++) {
-        const result = generateFromChordsWithProfiles({
-          chords,
-          sectionId: "s",
-          sectionRole: "verse",
-          songProfile: "original-custom",
-          density: "balanced",
-          range: { low: 60, high: 79 },
-          drama: "growing",
-          totalBeats: 16,
-          seed,
-          profiles: [profile],
-          key: "Am",
-        })
-        for (const candidate of result.candidates) {
-          for (const note of candidate.notes) {
-            const entry = chordAtBeat(harmonicMap, note.startBeat)
-            if (!entry) continue
-            const pc = pitchClass(note.pitch)
-            const chordTones = chordTonePitchClasses(entry.parsed)
-            const usable = allUsablePitchClasses(entry.parsed)
-            const reasons: string[] = []
-            if (!Number.isInteger(note.pitch)) reasons.push("non-integer")
-            if (note.pitch < 60 || note.pitch > 79) reasons.push("outside-range")
-            if (!usable.includes(pc) && !note.plannedResolution) reasons.push("unexplained-outside-usable")
-            if (note.plannedToneRole === "chord-tone" && !chordTones.includes(pc)) reasons.push("chord-tone-role-mismatch")
-            if (note.plannedToneRole === "tension-hold" && !usable.includes(pc)) reasons.push("tension-role-mismatch")
-            if (reasons.length > 0) {
-              profileFindings.push(
-                `seed=${seed} pattern=${candidate.patternIndex} beat=${note.startBeat} pitch=${note.pitch} role=${note.plannedToneRole} chord=${entry.chord.symbol} reasons=${reasons.join(",")}`,
-              )
-            }
+    const profileFindings: string[] = []
+    for (let seed = 1; seed <= 200; seed++) {
+      const result = generateFromChordsWithProfiles({
+        chords,
+        sectionId: "s",
+        sectionRole: "verse",
+        songProfile: "original-custom",
+        density: "balanced",
+        range: { low: 60, high: 79 },
+        drama: "growing",
+        totalBeats: 16,
+        seed,
+        profiles: [profile],
+        key: "Am",
+      })
+      for (const candidate of result.candidates) {
+        for (const note of candidate.notes) {
+          const entry = chordAtBeat(harmonicMap, note.startBeat)
+          if (!entry) continue
+          const pc = pitchClass(note.pitch)
+          const chordTones = chordTonePitchClasses(entry.parsed)
+          const usable = allUsablePitchClasses(entry.parsed)
+          const reasons: string[] = []
+          if (!Number.isInteger(note.pitch)) reasons.push("non-integer")
+          if (note.pitch < 60 || note.pitch > 79) reasons.push("outside-range")
+          if (!usable.includes(pc) && !note.plannedResolution) reasons.push("unexplained-outside-usable")
+          if (note.plannedToneRole === "chord-tone" && !chordTones.includes(pc)) reasons.push("chord-tone-role-mismatch")
+          if (note.plannedToneRole === "tension-hold" && !usable.includes(pc)) reasons.push("tension-role-mismatch")
+          if (reasons.length > 0) {
+            profileFindings.push(
+              `seed=${seed} pattern=${candidate.patternIndex} beat=${note.startBeat} pitch=${note.pitch} role=${note.plannedToneRole} chord=${entry.chord.symbol} reasons=${reasons.join(",")}`,
+            )
           }
         }
       }
-      if (profileFindings.length > 0) findings.set(profile, profileFindings)
     }
+    if (profileFindings.length > 0) findings.set(profile, profileFindings)
     expect(
       Object.fromEntries([...findings].map(([profile, values]) => [profile, values.slice(0, 12)])),
     ).toEqual({})

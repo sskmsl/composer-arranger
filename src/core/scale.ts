@@ -31,6 +31,22 @@ export function keyScalePitchClasses(key: string): number[] {
   return steps.map((s) => (parsed.rootPc + s) % 12)
 }
 
+/** 長調の主音ピッチクラス → 調号(シャープ正/フラット負)。F#/Gb(6)は表記の好みで決める */
+const MAJOR_SHARPS_BY_PC: Record<number, number> = { 0: 0, 7: 1, 2: 2, 9: 3, 4: 4, 11: 5, 6: 6, 1: -5, 8: -4, 3: -3, 10: -2, 5: -1 }
+
+/**
+ * Key表記("Bm", "Eb", "F#m"等)を、MIDIの調号メタイベント用の値へ変換する。判定できない場合はnull。
+ * 短調は平行長調(主音+3半音)の調号を使う。
+ */
+export function keySignatureOf(key: string): { sharpsFlats: number; minor: boolean } | null {
+  const parsed = parseKey(key)
+  if (!parsed) return null
+  const majorPc = parsed.isMinor ? (parsed.rootPc + 3) % 12 : parsed.rootPc
+  let sharpsFlats = MAJOR_SHARPS_BY_PC[majorPc]
+  if (majorPc === 6 && keyPrefersFlatSpelling(key)) sharpsFlats = -6
+  return { sharpsFlats, minor: parsed.isMinor }
+}
+
 const FLAT_MAJOR_ROOTS = new Set(["F", "BB", "EB", "AB", "DB", "GB", "CB"])
 const FLAT_MINOR_ROOTS = new Set(["D", "G", "C", "F", "BB", "EB", "AB"])
 

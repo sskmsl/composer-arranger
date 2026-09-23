@@ -166,7 +166,8 @@ export function TopBar({
             key={`tempo-${project.projectId}`}
             type="number"
             onBlur={(e) => updateSongField("tempo", Number(e.currentTarget.value) || project.song.tempo)}
-            className="w-14 !bg-transparent px-1.5 py-0.5 text-center"
+            // 3桁のテンポ(104等)が上下ボタンに隠れて「10」と切れて見えていたため、幅を広げてボタンを隠す
+            className="w-16 !bg-transparent px-1.5 py-0.5 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </label>
         <label className="flex items-center gap-1">
