@@ -35,6 +35,8 @@ interface ParsedMidiSong {
   ppq: number
   title: string
   tempoBpm: number
+  /** 曲中のテンポ指定(tick順)。2つ以上あればテンポが変化する */
+  tempoChanges: Array<{ tick: number; bpm: number }>
   timeSignature: { numerator: number; denominator: number }
   keySignature: { sharpsFlats: number; minor: boolean } | null
   /** 曲中のすべての調号(tick順)。2つ以上あれば転調がある */
@@ -196,6 +198,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
   markers: ParsedMidiMarker[]
   title: string
   tempoBpm: number | null
+  tempoChanges: ParsedMidiSong["tempoChanges"]
   timeSignature: ParsedMidiSong["timeSignature"] | null
   keySignature: ParsedMidiSong["keySignature"]
   keyChanges: ParsedMidiSong["keyChanges"]
@@ -206,6 +209,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
   let name = `Track ${trackIndex + 1}`
   let title = ""
   let tempoBpm: number | null = null
+  const tempoChanges: ParsedMidiSong["tempoChanges"] = []
   let timeSignature: ParsedMidiSong["timeSignature"] | null = null
   let keySignature: ParsedMidiSong["keySignature"] = null
   const keyChanges: ParsedMidiSong["keyChanges"] = []
@@ -256,11 +260,16 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
         if (value) markers.push({ tick, text: value })
       } else if (type === 0x51 && length === 3) {
         const micros = (reader.byte() << 16) | (reader.byte() << 8) | reader.byte()
-        if (micros > 0) tempoBpm = 60_000_000 / micros
+        if (micros > 0) {
+          const bpm = 60_000_000 / micros
+          tempoChanges.push({ tick, bpm })
+          if (tempoBpm === null) tempoBpm = bpm
+        }
       } else if (type === 0x58 && length >= 2) {
         const numerator = reader.byte()
         const denominator = 2 ** reader.byte()
-        timeSignature = { numerator, denominator }
+        // 拍子は冒頭の指定を使う(途中の変拍子で曲全体の拍子を上書きしない)
+        if (!timeSignature) timeSignature = { numerator, denominator }
       } else if (type === 0x59 && length >= 2) {
         const raw = reader.byte()
         const signature = { sharpsFlats: raw > 127 ? raw - 256 : raw, minor: reader.byte() === 1 }
@@ -313,6 +322,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
     markers,
     title,
     tempoBpm,
+    tempoChanges,
     timeSignature,
     keySignature,
     keyChanges,
@@ -341,7 +351,7 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
   let keySignature: ParsedMidiSong["keySignature"] = null
   const keyChanges: ParsedMidiSong["keyChanges"] = []
   let endTick = 0
-  let tempoFound = false
+  const tempoChanges: ParsedMidiSong["tempoChanges"] = []
   let timeSignatureFound = false
   let keyFound = false
 
@@ -353,10 +363,7 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
     tracks.push(parsed.track)
     markers.push(...parsed.markers)
     if (!title && parsed.title) title = parsed.title
-    if (!tempoFound && parsed.tempoBpm !== null) {
-      tempoBpm = parsed.tempoBpm
-      tempoFound = true
-    }
+    tempoChanges.push(...parsed.tempoChanges)
     if (!timeSignatureFound && parsed.timeSignature) {
       timeSignature = parsed.timeSignature
       timeSignatureFound = true
@@ -380,7 +387,34 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
   const musicalEnd = Math.max(lastNoteEnd, lastMarkerEnd)
   if (musicalEnd > 0) endTick = Math.min(endTick, Math.ceil(musicalEnd / barTicks) * barTicks)
   keyChanges.sort((left, right) => left.tick - right.tick)
-  return { format, ppq: division, title, tempoBpm, timeSignature, keySignature, keyChanges, markers, tracks, endTick }
+  tempoChanges.sort((left, right) => left.tick - right.tick)
+  tempoBpm = dominantTempo(tempoChanges, endTick) ?? tempoBpm
+  return { format, ppq: division, title, tempoBpm, tempoChanges, timeSignature, keySignature, keyChanges, markers, tracks, endTick }
+}
+
+/**
+ * 曲のテンポ = 最も長く続くテンポ。
+ * 以前は各トラックの最後のテンポ指定を使っていたため、終盤のリタルダンドなどで
+ * 曲全体が遅いテンポとして読まれていた。1つしかなければそれを使う。
+ */
+function dominantTempo(changes: ParsedMidiSong["tempoChanges"], endTick: number): number | null {
+  if (changes.length === 0) return null
+  const lengths = new Map<number, number>()
+  changes.forEach((change, index) => {
+    const until = Math.max(change.tick, changes[index + 1]?.tick ?? Math.max(endTick, change.tick + 1))
+    const bpm = Math.round(change.bpm * 10) / 10
+    lengths.set(bpm, (lengths.get(bpm) ?? 0) + (until - change.tick))
+  })
+  let best = changes[0].bpm
+  let bestLength = -1
+  // 同じ長さなら先に出てくるテンポを優先する(Mapは挿入順)
+  for (const [bpm, length] of lengths) {
+    if (length > bestLength) {
+      best = bpm
+      bestLength = length
+    }
+  }
+  return best
 }
 
 const SHARP_KEYS = ["C", "G", "D", "A", "E", "B", "F#", "C#"]
@@ -852,6 +886,9 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
   const warnings: string[] = []
   if (!fromMarkers) warnings.push("セクションマーカーがないため、曲全体を1セクションとして候補化しました。")
   if (!song.keySignature) warnings.push("キー情報がないため、ノート分布から推定しました。")
+  if (new Set(song.tempoChanges.map((change) => Math.round(change.bpm * 10) / 10)).size > 1) {
+    warnings.push(`テンポの変化があるため、最も長く続くテンポ(${Math.round(song.tempoBpm * 10) / 10} BPM)を曲のテンポにしました。`)
+  }
   if (melody.index < 0) warnings.push("主旋律と判定できるトラックがないため、コードと構成だけを読み込みます。主旋律がある場合は確認画面で選んでください。")
   else if (melody.confidence < 0.72) warnings.push("メロディトラックの判定候補が拮抗しています。主旋律トラックを確認してください。")
   return {
