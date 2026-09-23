@@ -1,4 +1,5 @@
 import type { ComposerProject } from "@/core/project"
+import { resolveMusicContext } from "@/core/musicContext"
 import type { Section, SectionRole } from "@/core/section"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import type {
@@ -148,12 +149,15 @@ export function buildArrangementDirectorBlueprint(
   })
 
   const plans = sections.map((section, order): ArrangementDirectorSectionPlan => {
+    const { genre, aesthetic } = resolveMusicContext(project, section.id)
     const policy = climaxPolicyFor(section, order, climaxOrder)
     const energy = energies[order]
     const rawCeiling = Math.round(1 + ((maximumParts - 1) * energy) / 5)
+    const contextualSpace = (genre.space + aesthetic.layerTransparency) / 2
+    const contextAdjustment = contextualSpace >= .65 && policy !== "express" ? 1 : 0
     const automaticDensityCeiling = Math.max(
       1,
-      Math.min(maximumParts, rawCeiling - (policy === "express" ? 0 : spaceAdjustment)),
+      Math.min(maximumParts, rawCeiling - (policy === "express" ? 0 : spaceAdjustment) - contextAdjustment),
     )
     const manualDensity = project.arrangementDirectorOverrides?.sections[section.id]?.densityCeiling
     const densityCeiling = manualDensity === undefined

@@ -8,6 +8,7 @@ import {
 import type { MelodyFeatures, MelodyNote, PhraseContour } from "@/core/melody"
 import { pitchClass } from "@/core/note"
 import type { ChordEvent, SongProfileId } from "@/core/project"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 import { SeededRandom } from "@/core/rng"
 import { keyScalePitchClasses } from "@/core/scale"
 import type {
@@ -54,6 +55,7 @@ export interface GenerateSignaturePhrasesInput {
   sectionId: string
   sectionRole: SectionRole
   songProfile: SongProfileId
+  musicContext?: ResolvedMusicContext
   density: Density
   drama: Drama
   range: RangeSetting
@@ -629,10 +631,16 @@ function planSignaturePhrase(
   }
   const opportunityArchetypes =
     OPPORTUNITY_ARCHETYPES[compositionContext.opportunity]
-  const profileChoice = rng.weightedPick(
-    ARCHETYPES,
-    profileWeights[input.songProfile],
-  )
+  const style = input.musicContext
+  const profileChoice = rng.weightedPick(ARCHETYPES, profileWeights[input.songProfile].map((weight, index) => {
+    if (!style) return weight
+    const signal = index === 0
+      ? (style.genre.space + style.genre.sustain + style.aesthetic.layerTransparency) / 3
+      : index === 1
+        ? (style.genre.repetition + style.genre.bassMovement) / 2
+        : (style.genre.rhythmDensity + style.genre.syncopation) / 2
+    return weight * (.5 + signal)
+  }))
   // 曲中の必要性を主判断にしつつ、Song Profileは候補内の色として残す。
   const contextualArchetype =
     poolIndex % 4 === 3 && opportunityArchetypes.includes(profileChoice)
@@ -645,12 +653,23 @@ function planSignaturePhrase(
   const opportunityRhythms =
     OPPORTUNITY_RHYTHMS[compositionContext.opportunity]
   const archetypeRhythms = ARCHETYPE_RHYTHMS[archetype]
-  const contextualRhythm =
+  const originalRhythm =
     poolIndex % 4 === 0
       ? archetypeRhythms[(poolIndex + rng.intBetween(0, 1)) % archetypeRhythms.length]
       : opportunityRhythms[
           (poolIndex + rng.intBetween(0, 2)) % opportunityRhythms.length
         ]
+  const rhythmicPressure = style?.genres.length
+    ? style.genre.rhythmDensity * .65 + (1 - style.genre.space) * .35
+    : .5
+  const rankedRhythms = [...opportunityRhythms].sort((left, right) =>
+    RHYTHM_BLUEPRINTS[left].length - RHYTHM_BLUEPRINTS[right].length
+    || RHYTHM_BLUEPRINTS[left].reduce((sum, event) => sum + Number(event.start % 1 !== 0), 0)
+      - RHYTHM_BLUEPRINTS[right].reduce((sum, event) => sum + Number(event.start % 1 !== 0), 0),
+  )
+  const contextualRhythm = rhythmicPressure < .34 ? rankedRhythms[0]
+    : rhythmicPressure > .68 ? rankedRhythms.at(-1) ?? originalRhythm
+    : originalRhythm
   const rhythmIdentity =
     input.direction && (input.direction.strict || poolIndex % 3 !== 2)
       ? input.direction.rhythmIdentity
@@ -2789,6 +2808,7 @@ export function signaturePhraseSimilarity(
 function selectDiversePool(
   pool: BuiltSignaturePhrase[],
   finalCount: number,
+  musicContext?: ResolvedMusicContext,
 ): {
   candidate: BuiltSignaturePhrase
   selectionScore: number
@@ -2953,6 +2973,14 @@ function selectDiversePool(
           : candidate.score.audacity * 8 +
             candidate.score.controlledRisk * 8 +
             candidate.score.surpriseCoherence * 6
+      const genreFit = musicContext?.genres.length
+        ? candidate.score.motifMemorability * musicContext.genre.repetition * 5
+          + candidate.score.rhythmicIdentity * musicContext.genre.syncopation * 2
+          + candidate.score.silenceUse * musicContext.genre.space * 3
+        : 0
+      const imageFit = musicContext && musicContext.aesthetic.layerTransparency > .6
+        ? candidate.score.silenceUse * (musicContext.aesthetic.layerTransparency - .5) * 4
+        : 0
       const score =
         candidate.score.overall * 0.62 +
         diversity * 100 * 0.38 -
@@ -2963,7 +2991,8 @@ function selectDiversePool(
         compactMotifCoverageBonus +
         creativeRiskCoverageBonus +
         opportunityCoverageBonus +
-        controlledAdventureBonus
+        controlledAdventureBonus +
+        genreFit + imageFit
       if (score > bestScore) {
         bestIndex = index
         bestScore = score
@@ -3000,7 +3029,7 @@ export function generateSignaturePhraseCandidates(
       analysis,
     ),
   )
-  return selectDiversePool(pool, finalCount).map(
+  return selectDiversePool(pool, finalCount, input.musicContext).map(
     ({ candidate, selectionScore, similarities }, index) => ({
       sectionId: input.sectionId,
       name: `Signature ${index + 1}`,

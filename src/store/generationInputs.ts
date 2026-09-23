@@ -8,6 +8,7 @@ import {
   type ComposerProject,
 } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
+import { resolveMusicContext } from "@/core/musicContext"
 import type {
   MelodyGeneratorProfile,
   MelodyNote,
@@ -100,6 +101,7 @@ export function phraseGenerationInput(
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),
+    musicContext: resolveMusicContext(project, sectionId),
     density: settings.density,
     drama: settings.drama,
     range: resolveRange(settings),
@@ -156,6 +158,7 @@ export function signaturePhraseGenerationInput(
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),
+    musicContext: resolveMusicContext(project, sectionId),
     density: settings.density,
     drama: settings.drama,
     range: resolveRange(settings),
@@ -199,6 +202,7 @@ export function counterGenerationInput(
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),
+    musicContext: resolveMusicContext(project, sectionId),
     key: effectiveSectionKey(project, sectionId),
     chords,
     melody,
@@ -328,6 +332,7 @@ export function decorationGenerationInput(
     sectionId,
     sectionRole: section.role,
     songProfile: effectiveSongProfile(project, sectionId),
+    musicContext: resolveMusicContext(project, sectionId),
     chords,
     totalBeats,
     beatsPerBar,

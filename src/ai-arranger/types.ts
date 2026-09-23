@@ -2,6 +2,7 @@ import type { Density, Drama } from "@/melody-engine/generationParams"
 import type { MelodyFeatures } from "@/core/melody"
 import type { ArrangementSurpriseOpportunity } from "@/core/arrangementSurprise"
 import type { ArrangementSoundInstruction } from "@/core/arrangementIntent"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 
 export type AiArrangementGenerator =
   | "melody"
@@ -429,6 +430,7 @@ export interface AiArrangementContext {
     tempo: number
     timeSignature: string
     songProfile: string
+    musicContext?: ResolvedMusicContext
     arrangementIntent?: {
       brief: string
       selectedDirectionId:

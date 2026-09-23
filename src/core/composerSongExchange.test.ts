@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { parseChordSymbol } from "./chord"
 import {
+  CHORD_GENERATOR_STYLE_TO_GENRE,
   CHORD_GENERATOR_STYLE_TO_PROFILE,
   COMPOSER_SONG_EXCHANGE_FORMAT,
   composerSongExchangeToProject,
@@ -247,7 +248,17 @@ describe("Chord Generatorのスタイル → Song Profile", () => {
     ]
     for (const style of generatorStyles) {
       expect(CHORD_GENERATOR_STYLE_TO_PROFILE[style], style).toBeDefined()
+      expect(CHORD_GENERATOR_STYLE_TO_GENRE[style], style).toBeDefined()
     }
+  })
+
+  it("取り込んだstyleを小節長で重み付けし、Composer Arranger全体のGenre Contextへ渡す", () => {
+    const project = composerSongExchangeToProject(exchange())
+    expect(project.song.genreBlend).toEqual([
+      { id: "romantic-dark", weight: .8 },
+      { id: "finale", weight: .2 },
+    ])
+    expect(project.song.songProfile).toBe("dark-romantic")
   })
 
   it("知らないスタイルだけの曲は Original Custom のまま始める", () => {

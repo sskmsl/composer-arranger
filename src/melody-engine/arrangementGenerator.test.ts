@@ -648,4 +648,36 @@ describe("Arrangement Generator", () => {
       { startBar: 25, endBar: 28 },
     ])
   })
+
+  it("同一のコード・歌メロ・Tempo・SectionでGenreだけを変えるとBassとRhythmの実音MIDIが変わる", () => {
+    const input = project()
+    const slow = { ...input, song: { ...input.song, genreBlend: [{ id: "sadcore-slowcore" as const, weight: 1 }] } }
+    const energetic = { ...input, song: { ...input.song, genreBlend: [{ id: "hi-nrg" as const, weight: 1 }] } }
+    const quietResult = generateFullSongArrangement(slow, { seed: 7462 })
+    const activeResult = generateFullSongArrangement(energetic, { seed: 7462 })
+    const count = (result: typeof quietResult, id: string, sectionId: string) => result.tracks
+      .find((track) => track.id === id)?.notes.filter((note) => note.sectionId === sectionId).length ?? 0
+    expect(count(activeResult, "syn-bass", "verse")).toBeGreaterThan(count(quietResult, "syn-bass", "verse"))
+    expect(count(activeResult, "dr-closed-hat", "verse")).toBeGreaterThan(count(quietResult, "dr-closed-hat", "verse"))
+    expect(activeResult.plan.sections.find((section) => section.sectionId === "verse")?.grooveFamily)
+      .not.toBe(quietResult.plan.sections.find((section) => section.sectionId === "verse")?.grooveFamily)
+    expect(exportArrangementMidi(energetic, activeResult)).not.toEqual(exportArrangementMidi(slow, quietResult))
+  })
+
+  it("Aestheticだけを変えると既存後景音の距離と余韻が変わり、パートを機械的に増やさない", () => {
+    const input = project()
+    const distant = { ...input, song: { ...input.song, aesthetic: { image: "atmospheric-depth" as const, amount: 1 } } }
+    const baseline = generateFullSongArrangement(input, { seed: 7462 })
+    const imageResult = generateFullSongArrangement(distant, { seed: 7462 })
+    const baselinePad = baseline.tracks.find((track) => track.id === "syn-dark-pad")?.notes[0]
+    const distantPad = imageResult.tracks.find((track) => track.id === "syn-dark-pad")?.notes[0]
+    expect(baselinePad).toBeDefined()
+    expect(distantPad).toBeDefined()
+    expect(distantPad!.soundImage?.depth).toBeGreaterThan(baselinePad!.soundImage?.depth ?? 0)
+    expect(distantPad!.soundImage?.decay).toBeGreaterThan(baselinePad!.soundImage?.decay ?? 0)
+    expect(distantPad!.velocity).toBeLessThan(baselinePad!.velocity)
+    expect(distantPad!.durationBeats).toBeGreaterThan(baselinePad!.durationBeats)
+    expect(imageResult.tracks.length).toBeLessThanOrEqual(baseline.tracks.length)
+    expect(exportArrangementMidi(distant, imageResult)).not.toEqual(exportArrangementMidi(input, baseline))
+  })
 })

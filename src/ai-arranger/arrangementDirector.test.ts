@@ -16,6 +16,16 @@ function projectWithRoles(roles: SectionRole[]) {
 }
 
 describe("Arrangement Director", () => {
+  it("Sound Imageの透明感は高潮前の追加予算を下げ、既存パートの引き算を優先する", () => {
+    const value = projectWithRoles(["verse", "pre-chorus", "grand-chorus"])
+    value.arrangementSettings.maximumParts = 6
+    const before = buildArrangementDirectorBlueprint(value)
+    value.song.aesthetic = { image: "atmospheric-depth", amount: 1 }
+    const after = buildArrangementDirectorBlueprint(value)
+    expect(after.sections[0].densityCeiling).toBeLessThan(before.sections[0].densityCeiling)
+    expect(after.sections[1].additionBudget).toBeLessThanOrEqual(before.sections[1].additionBudget)
+    expect(after.sections[2].climaxPolicy).toBe("express")
+  })
   it("大サビを曲全体の頂点として選び、それ以前では資源を温存する", () => {
     const project = projectWithRoles([
       "intro",

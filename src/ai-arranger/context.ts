@@ -3,6 +3,7 @@ import type { ComposerGeneratorTarget } from "@/composer-intelligence"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { buildHarmonicMap } from "@/melody-engine/harmonicMap"
 import { effectiveSectionKey, effectiveSongProfile, type ComposerProject } from "@/core/project"
+import { resolveMusicContext } from "@/core/musicContext"
 import { parseTimeSignature } from "@/core/section"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import type { AiArrangementContext } from "./types"
@@ -188,6 +189,7 @@ export function buildAiArrangementContext(
       tempo: project.song.tempo,
       timeSignature: project.song.timeSignature,
       songProfile: effectiveSongProfile(project, sectionId),
+      musicContext: resolveMusicContext(project, sectionId),
       ...(project.arrangementDirectorWorkspace?.brief
         ? {
             arrangementIntent: {

@@ -217,6 +217,8 @@ export interface GeneratedArrangementNote extends MelodyNote {
   sectionId: string
   character: ArrangementCandidateCharacter
   reason: string
+  /** 既存音の距離と輪郭。音色やパートの追加とは独立したSound Image。 */
+  soundImage?: { depth: number; decay: number; transientSoftness: number; stereoDiffusion: number }
 }
 
 export interface GeneratedArrangementTrack {

@@ -6,6 +6,7 @@ import {
   type SongProfileId,
 } from "./project"
 import type { Section, SectionRole } from "./section"
+import { normalizeGenreBlend, type GenreId } from "./musicContext"
 
 export const COMPOSER_SONG_EXCHANGE_FORMAT = "composer-os/song-exchange" as const
 /** 読み込める最新のversion */
@@ -92,6 +93,16 @@ export const CHORD_GENERATOR_STYLE_TO_PROFILE: Readonly<Record<string, SongProfi
   dorian: "dramatic-synth-pop",
 }
 
+/** Exchange上の識別子をComposer Arrangerの共有Genre語彙へ変換する。 */
+export const CHORD_GENERATOR_STYLE_TO_GENRE: Readonly<Record<string, GenreId>> = {
+  ethereal: "ethereal", romanticDark: "romantic-dark", cinematic: "cinematic",
+  newWave: "new-wave", sadcorePop: "hollywood-sadcore", ritual: "ritual",
+  finale: "finale", cool: "cool", tripHop: "trip-hop",
+  neoclassical: "neoclassical", minimalism: "minimalism", jChanson: "j-chanson",
+  hiNRG: "hi-nrg", dorian: "dorian", electronica: "electronica",
+  slowcore: "sadcore-slowcore", frenchPop: "french-pop", kayokyoku: "kayokyoku",
+}
+
 function profileForStyle(style: unknown): SongProfileId | undefined {
   return typeof style === "string" ? CHORD_GENERATOR_STYLE_TO_PROFILE[style] : undefined
 }
@@ -156,6 +167,7 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
   const chords: ChordEvent[] = []
   /** セクションごとの対応Profileと長さ(曲全体のProfileを長さの多数決で決める) */
   const sectionProfiles: { sectionId: string; profile: SongProfileId; bars: number }[] = []
+  const sectionGenres: { id: GenreId; bars: number }[] = []
   let startBar = 1
   // 曲の調は最初のセクションの調。転調したセクション(大サビの全音上げ等)は各セクションに調を持たせる
   const songKey =
@@ -217,8 +229,11 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
     }
     const sectionKey = typeof sectionRecord.key === "string" ? sectionRecord.key.trim() : ""
     if (sectionKey && sectionKey !== songKey) section.key = sectionKey
-    const profile = profileForStyle(asRecord(sectionRecord.sourceIntent)?.style)
+    const sourceStyle = asRecord(sectionRecord.sourceIntent)?.style
+    const profile = profileForStyle(sourceStyle)
     if (profile) sectionProfiles.push({ sectionId, profile, bars: section.lengthBars })
+    const genreId = typeof sourceStyle === "string" ? CHORD_GENERATOR_STYLE_TO_GENRE[sourceStyle] : undefined
+    if (genreId) sectionGenres.push({ id: genreId, bars: section.lengthBars })
     sections.push(section)
 
     for (let repeatIndex = 0; repeatIndex < repeatCount; repeatIndex++) {
@@ -253,6 +268,7 @@ export function composerSongExchangeToProject(value: unknown): ComposerProject {
     song: {
       ...project.song,
       songProfile,
+      genreBlend: normalizeGenreBlend(sectionGenres.map(({ id, bars }) => ({ id, weight: bars }))),
       sectionProfileOverrides,
       key: songKey,
       tempo:

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { parseChordInputText } from "@/core/chordInput"
 import type { MelodyNote } from "@/core/melody"
+import { createEmptyProject } from "@/core/project"
+import { resolveMusicContext } from "@/core/musicContext"
 import {
   generateSignaturePhraseCandidates,
   regenerateSignaturePhraseCandidate,
@@ -49,6 +51,19 @@ function input(seed = 424242): GenerateSignaturePhrasesInput {
     lengthBars: 2,
   }
 }
+
+describe("Genre × Intro Motif", () => {
+  it("同一コードとseedでも短いMotifの候補選択・実音がGenreで変わる", () => {
+    const project = createEmptyProject("Motif context")
+    project.song.genreBlend = [{ id: "minimalism", weight: 1 }]
+    const minimal = generateSignaturePhraseCandidates({ ...input(6391), musicContext: resolveMusicContext(project) })
+    project.song.genreBlend = [{ id: "new-wave", weight: 1 }]
+    const wave = generateSignaturePhraseCandidates({ ...input(6391), musicContext: resolveMusicContext(project) })
+    expect(minimal.map((candidate) => candidate.notes)).not.toEqual(wave.map((candidate) => candidate.notes))
+    expect(minimal.every((candidate) => candidate.notes.length > 0)).toBe(true)
+    expect(wave.every((candidate) => candidate.notes.length > 0)).toBe(true)
+  })
+})
 
 function eightBarInput(seed = 424242): GenerateSignaturePhrasesInput {
   return {

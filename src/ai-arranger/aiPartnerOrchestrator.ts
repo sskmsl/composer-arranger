@@ -1,4 +1,5 @@
 import type { ComposerProject } from "@/core/project"
+import { resolveMusicContext } from "@/core/musicContext"
 import {
   buildWholeSongDirectionProgram,
   type WholeSongArrangementAction,
@@ -87,6 +88,7 @@ function priority(
   action: WholeSongArrangementAction,
   selectedSectionId: string | null,
   rejected: Set<string>,
+  project: ComposerProject,
 ): number {
   let score = action.sectionId === selectedSectionId ? 40 : 0
   if (action.generator === "signature") score += 18
@@ -97,6 +99,12 @@ function priority(
   if (action.drama === "open") score += 5
   // 明示Rejectは「同じGeneratorをもう一度」を現在Section優先より下げる。
   if (rejected.has(`${action.sectionId}:${action.generator}`)) score -= 50
+  const { genre, aesthetic } = resolveMusicContext(project, action.sectionId)
+  if (action.generator === "signature" || action.generator === "counter") {
+    score += (genre.phraseDensity - .5) * 24 - Math.max(0, aesthetic.layerTransparency - .5) * 12
+  }
+  if (action.generator === "decoration") score += (genre.decorationDensity - .5) * 28 - Math.max(0, aesthetic.layerTransparency - .5) * 16
+  if (action.generator === "accompaniment") score += (genre.rhythmDensity - .5) * 18 - Math.max(0, genre.space - .5) * 12
   return score
 }
 
@@ -124,7 +132,7 @@ export function buildAiPartnerOrchestrationPlan(
   const rejected = rejectedGenerators(project)
   const available = direction.actions
     .filter((action) => action.status === "available")
-    .sort((left, right) => priority(right, selectedSectionId, rejected) - priority(left, selectedSectionId, rejected))
+    .sort((left, right) => priority(right, selectedSectionId, rejected, project) - priority(left, selectedSectionId, rejected, project))
   const nextAction = subtractionAdvice ? null : available[0] ?? null
   const wasRejected = nextAction
     ? rejected.has(`${nextAction.sectionId}:${nextAction.generator}`)

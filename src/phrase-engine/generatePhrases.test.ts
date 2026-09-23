@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { ChordEvent } from "@/core/project"
+import { createEmptyProject } from "@/core/project"
+import { resolveMusicContext } from "@/core/musicContext"
 import { buildHarmonicMap, chordAtBeat } from "@/melody-engine/harmonicMap"
 import { isChordTone, isTensionTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
@@ -36,6 +38,15 @@ function input(seed = 41, role: GeneratePhrasesInput["sectionRole"] = "verse"): 
 }
 
 describe("Phrase Generator", () => {
+  it("同一素材でもGenreの密度・余白傾向を短いPhraseの計画へ反映する", () => {
+    const project = createEmptyProject("Phrase context")
+    project.song.genreBlend = [{ id: "sadcore-slowcore", weight: 1 }]
+    const sparse = planPhraseIntent({ ...input(138), musicContext: resolveMusicContext(project) }, 138, 0)
+    project.song.genreBlend = [{ id: "hi-nrg", weight: 1 }]
+    const active = planPhraseIntent({ ...input(138), musicContext: resolveMusicContext(project) }, 138, 0)
+    expect(sparse.density).toBeLessThan(active.density)
+    expect(sparse.restRatio).toBeGreaterThan(active.restRatio)
+  })
   it("密な主旋律がある時は短い応答を疎にし、前景の音域を避ける", () => {
     const lead = Array.from({ length: 16 }, (_, index) => ({
       id: `lead-${index}`, pitch: 69 + index % 3, startBeat: index,

@@ -8,6 +8,7 @@ import type {
   PhraseLengthBars,
 } from "@/core/phrase"
 import type { ChordEvent, SongProfileId } from "@/core/project"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 import { SeededRandom } from "@/core/rng"
 import { keyScalePitchClasses } from "@/core/scale"
 import type { SectionRole } from "@/core/section"
@@ -28,6 +29,7 @@ export interface GeneratePhrasesInput {
   sectionId: string
   sectionRole: SectionRole
   songProfile: SongProfileId
+  musicContext?: ResolvedMusicContext
   density: Density
   drama: Drama
   range: RangeSetting
@@ -185,8 +187,10 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
     rotatePick(rng, contourOptions, poolIndex),
   )
   const rhythmOptions =
-    input.songProfile === "minimal-tension"
+    (input.musicContext?.genre.space ?? 0) > 0.68 || input.songProfile === "minimal-tension"
       ? (["breathing", "sustained", "flowing", "syncopated"] as const)
+      : (input.musicContext?.genre.syncopation ?? 0) > 0.68
+        ? (["syncopated", "flowing", "breathing", "sustained"] as const)
       : (["flowing", "syncopated", "breathing", "sustained"] as const)
   const rhythmCharacter = pickTechniquePreference(
     rng,
@@ -212,9 +216,13 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
     (input.referenceMelody ?? []).reduce((sum, note) => sum + note.durationBeats, 0) /
       Math.max(1, input.totalBeats),
   )
+  const genre = input.musicContext?.genre
+  const aesthetic = input.musicContext?.aesthetic
   const density = clamp01(
     densityBase + (rng.next() - 0.5) * 0.22 - melodyCoverage * 0.17 -
-      Math.min(0.14, (input.supportNotesPerBeat ?? 0) * 0.12),
+      Math.min(0.14, (input.supportNotesPerBeat ?? 0) * 0.12) +
+      ((genre?.phraseDensity ?? .5) - .5) * .34 -
+      ((aesthetic?.textureDensity ?? .5) < .5 ? (.5 - (aesthetic?.textureDensity ?? .5)) * .2 : 0),
   )
   const restRatioBase =
     rhythmCharacter === "breathing"
@@ -222,7 +230,9 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
       : rhythmCharacter === "sustained"
         ? 0.18 + rng.next() * 0.12
         : 0.08 + rng.next() * 0.16
-  const restRatio = clamp01(restRatioBase + melodyCoverage * 0.13)
+  const restRatio = clamp01(restRatioBase + melodyCoverage * 0.13 +
+    ((genre?.space ?? .5) - .5) * .23 +
+    ((aesthetic?.layerTransparency ?? .5) - .5) * .16)
   const leapBase = input.drama === "restrained" ? 0.18 : input.drama === "open" ? 0.58 : 0.38
   const leapAmount = clamp01(leapBase + (rng.next() - 0.5) * 0.25)
   const climaxPreference =
@@ -715,6 +725,7 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
   const qualityScore = scorePhrase(articulatedNotes, intent, map, phraseLengthBeats, {
     referenceMelody: input.referenceMelody,
     supportNotesPerBeat: input.supportNotesPerBeat,
+    musicContext: input.musicContext,
   })
   const finalNotes = enforceHarmonicIntegrity(
     articulatedNotes,
@@ -745,7 +756,7 @@ export function scorePhrase(
   intent: PhraseIntent,
   map: HarmonicMapEntry[],
   phraseLengthBeats: number,
-  context: { referenceMelody?: readonly MelodyNote[]; supportNotesPerBeat?: number } = {},
+  context: { referenceMelody?: readonly MelodyNote[]; supportNotesPerBeat?: number; musicContext?: ResolvedMusicContext } = {},
 ): number {
   if (notes.length < 4) return 0
   const strongNotes = notes.filter((note) => Math.abs(note.startBeat - Math.round(note.startBeat)) < 0.06)
@@ -855,7 +866,16 @@ export function scorePhrase(
     melodyConflict * 24 -
     supportOverfill * 8 -
     Math.min(24, unresolvedLargeLeaps * 12)
-  return Math.round(Math.max(0, Math.min(100, score)) * 100) / 100
+  const music = context.musicContext
+  const styleFit = music?.genres.length
+    ? (1 - Math.abs(actualRestRatio - (.25 + music.genre.space * .45))) * 3
+      + motifReturn * music.genre.repetition * 2
+      - Math.max(0, densityPerBeat - (.35 + music.genre.phraseDensity * .65)) * 4
+    : 0
+  const imageFit = music && music.aesthetic.layerTransparency > .6
+    ? actualRestRatio * (music.aesthetic.layerTransparency - .5) * 3
+    : 0
+  return Math.round(Math.max(0, Math.min(100, score + styleFit + imageFit)) * 100) / 100
 }
 
 function phrasePlanOf(candidate: BuiltPhrase): PhrasePlan[] {

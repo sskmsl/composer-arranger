@@ -1,6 +1,7 @@
 import { parseChordSymbol } from "@/core/chord"
 import type { MelodyNote } from "@/core/melody"
 import type { ChordEvent, SongProfileId } from "@/core/project"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 import { SeededRandom } from "@/core/rng"
 import type { SectionRole } from "@/core/section"
 import {
@@ -59,6 +60,7 @@ export interface GenerateDecorationInput {
   sectionId: string
   sectionRole: SectionRole
   songProfile: SongProfileId
+  musicContext?: ResolvedMusicContext
   chords: ChordEvent[]
   totalBeats: number
   beatsPerBar: number
@@ -248,7 +250,10 @@ export function assessDecorationNeed(
         endingImportance +
         gapOpportunity -
         densityPenalty -
-        surroundingPenalty,
+        surroundingPenalty +
+        ((input.musicContext?.genre.decorationDensity ?? .5) - .5) * 20 -
+        ((input.musicContext?.genre.space ?? .5) - .5) * 12 -
+        ((input.musicContext?.aesthetic.layerTransparency ?? .5) - .5) * 18,
     ),
   )
   if (score < 36) {
@@ -1485,8 +1490,13 @@ function planFor(
     rng,
     input.composerRules,
   )
+  const contextualDensity = input.settings.density === "normal" &&
+    ((input.musicContext?.genre.decorationDensity ?? .5) < .29 ||
+      (input.musicContext?.aesthetic.textureDensity ?? .5) < .44)
+      ? "sparse"
+      : input.settings.density
   const density = resolvePlanDensity(
-    input.settings.density,
+    contextualDensity,
     gestureRole,
     poolIndex,
     rng,

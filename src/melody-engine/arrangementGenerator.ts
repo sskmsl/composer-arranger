@@ -1,5 +1,6 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
 import { parseChordSymbol } from "@/core/chord"
+import { resolveMusicContext } from "@/core/musicContext"
 import type { MelodyNote } from "@/core/melody"
 import {
   arrangementSoundInstructionAppliesTo,
@@ -534,10 +535,13 @@ export function buildFullSongArrangementPlan(
     candidateApproach,
     directive: effectiveDirective,
     sections: analysis.sections.map((section, index): ArrangementSectionPlan => {
+      const { genre, aesthetic } = resolveMusicContext(project, section.sectionId)
       const applies = !effectiveDirective?.sectionId || effectiveDirective.sectionId === section.sectionId
-      const effectiveEnergy = applies
-        ? Math.max(10, Math.min(100, section.energy + (effectiveDirective?.energyDelta ?? 0)))
-        : section.energy
+      const contrastShift = genre.dynamicContrast === .5 ? 0
+        : (genre.dynamicContrast - .5) * (section.energy >= 65 ? 10 : -6)
+      const effectiveEnergy = Math.max(10, Math.min(100,
+        section.energy + contrastShift + (applies ? effectiveDirective?.energyDelta ?? 0 : 0),
+      ))
       const effectiveSection = { ...section, energy: effectiveEnergy }
       const isPeak = section.sectionId === analysis.peakSectionId
       const transitionCandidates = (["safe", "edge", "surprise"] as const).map((character) =>
@@ -549,7 +553,8 @@ export function buildFullSongArrangementPlan(
         ? "silence"
         : asksSurprise && (section.energyDelta >= 10 || section.melodyRestRatio >= 0.25)
           ? "surprise"
-          : section.energyDelta >= 15 ? "edge" : "safe"
+          : section.energyDelta >= 15 || genre.tension >= .7 && section.melodyRestRatio >= .18 && section.energyDelta >= 0
+            ? "edge" : "safe"
       const hasDecoration = decorationCandidates.some((candidate) => candidate.notes.length > 0)
       let selectedDecorationCharacter: ArrangementSectionPlan["selectedDecorationCharacter"] = !hasDecoration
         ? "silence"
@@ -601,6 +606,22 @@ export function buildFullSongArrangementPlan(
         if (section.melodyRestRatio >= 0.12 && analysis.sections[index + 1]) activeRoles.push("syn-transition-phrase")
         if (effectiveEnergy < 62) removeRoles(activeRoles, ["syn-pulse"])
       }
+      // Genreは完成パターンではなく、既存役割の採否と演奏方法を動かす。
+      // 歌の密度と明示的なSound Instructionを最優先し、空間は追加より削除で作る。
+      if (!isPeak && (genre.space + aesthetic.layerTransparency) / 2 >= .65) {
+        removeRoles(activeRoles, ["syn-stabs", "dr-open-hat", "dr-field-drum"])
+        if (section.melodyRestRatio < .22) removeRoles(activeRoles, ["syn-transition-phrase", "syn-high-glass"])
+      }
+      if (!isPeak && genre.rhythmDensity < .36) removeRoles(activeRoles, ["dr-closed-hat", "syn-pulse"])
+      if (!isPeak && genre.rhythmDensity > .7 && effectiveEnergy >= 40 && section.melodyRestRatio >= .12) {
+        activeRoles.push("dr-closed-hat")
+        if (genre.repetition >= .7) activeRoles.push("syn-pulse")
+      }
+      if (!isPeak && genre.phraseDensity < .3) removeRoles(activeRoles, ["syn-transition-phrase"])
+      if (!isPeak && genre.decorationDensity < .26) {
+        removeRoles(activeRoles, ["syn-high-glass"])
+        selectedDecorationCharacter = "silence"
+      }
       const soundApplies = arrangementSoundInstructionAppliesTo(
         effectiveDirective?.soundInstruction,
         section.sectionId,
@@ -644,7 +665,7 @@ export function buildFullSongArrangementPlan(
         register: {
           low: effectiveEnergy >= 65 ? "strong" : effectiveEnergy >= 35 ? "medium" : "open",
           mid: effectiveEnergy >= 45 ? "strong" : "medium",
-          high: isPeak ? "strong" : effectiveEnergy >= 65 ? "medium" : "open",
+          high: isPeak ? "strong" : effectiveEnergy >= 65 - (genre.registerRange - .5) * 15 ? "medium" : "open",
         },
         intention: applies && effectiveDirective?.intention
           ? effectiveDirective.intention
@@ -659,15 +680,23 @@ export function buildFullSongArrangementPlan(
         semanticRole: section.semanticRole,
         developmentStage: developmentStageFor(section),
         phraseCycleBars: candidateApproach === "motif-led" || section.semanticRole === "intro" || section.semanticRole === "bridge" || section.semanticRole === "final" ? 8 : 4,
-        grooveFamily: character === "rhythmic" || candidateApproach === "rhythm-led" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
-        bassStrategy: candidateApproach === "space-led"
+        grooveFamily: genre.rhythmDensity < .32 && !isPeak ? "suspended"
+          : genre.rhythmDensity > .73 && !isPeak ? "driving"
+          : genre.syncopation > .72 && !isPeak ? "broken"
+          : character === "rhythmic" || candidateApproach === "rhythm-led" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
+        bassStrategy: genre.bassMovement < .32 && !isPeak ? "sustain"
+          : genre.bassMovement > .7 && genre.syncopation > .64 && !isPeak ? "syncopated"
+          : genre.bassMovement > .62 && !isPeak ? "approach-led"
+          : candidateApproach === "space-led"
           ? "sustain"
           : character === "rhythmic" || candidateApproach === "rhythm-led"
             ? (isPeak ? "octave-drive" : "syncopated")
             : candidateApproach === "motif-led" && effectiveEnergy < 68
               ? "melodic-pulse"
               : bassStrategyFor(section),
-        harmonyStrategy: character === "minimal" ? "pedal-space" : character === "dark-experimental" ? "sparse-stabs" : character === "cinematic" && isPeak ? "register-expansion" : harmonyStrategyFor(section),
+        harmonyStrategy: (genre.harmonicDensity < .36 || genre.sustain > .8 && genre.harmonicDensity < .6) && !isPeak ? "pedal-space"
+          : genre.harmonicDensity > .72 && isPeak ? "register-expansion"
+          : character === "minimal" ? "pedal-space" : character === "dark-experimental" ? "sparse-stabs" : character === "cinematic" && isPeak ? "register-expansion" : harmonyStrategyFor(section),
         roleEntryBeats,
         transitionCandidates,
         selectedTransitionCharacter,
@@ -1450,6 +1479,27 @@ function generateArrangementCandidate(
     plan,
     activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
   )
+  const imageTracks = performedTracks.map((track) => ({
+    ...track,
+    notes: track.notes.map((note) => {
+      const image = resolveMusicContext(project, note.sectionId).aesthetic
+      if (track.family === "drums") return note
+      const rear = track.id.includes("pad") || track.family === "strings" || track.id.includes("glass")
+      const depthShift = Math.max(0, image.depth - .5)
+      const decayShift = Math.max(0, image.decay - .5)
+      return {
+        ...note,
+        velocity: Math.max(1, Math.round(note.velocity - (rear ? 20 : 7) * depthShift)),
+        durationBeats: note.durationBeats * (1 + (rear ? .42 : .14) * decayShift),
+        soundImage: {
+          depth: image.depth,
+          decay: image.decay,
+          transientSoftness: image.transientSoftness,
+          stereoDiffusion: image.stereoDiffusion,
+        },
+      }
+    }),
+  }))
   const result: FullSongArrangement = {
     version: "1.0.0",
     id: `arrangement:${seed}`,
@@ -1457,7 +1507,7 @@ function generateArrangementCandidate(
     analysis,
     plan,
     tracks: applyArrangementTimelineToTracks(
-      performedTracks,
+      imageTracks,
       plan.directive?.timelineConstraints,
       parseTimeSignature(project.song.timeSignature).beatsPerBar,
     ),
@@ -1493,7 +1543,20 @@ export function generateFullSongArrangement(
       : (1 - comparisons.reduce((sum, other) => sum + arrangementSimilarity(candidate, other), 0) / comparisons.length) * 100
     const qualityScore = candidate.quality?.score ?? 0
     const intentionFit = intentionFitScore(candidate.plan.candidateApproach ?? "dynamic-contrast", options.directive)
-    const selectionScore = qualityScore * 0.72 + originalityScore * 0.15 + intentionFit * 0.13
+    const contextualFit = candidate.plan.sections.reduce((sum, section) => {
+      const { genre, aesthetic } = resolveMusicContext(project, section.sectionId)
+      const active = section.activeRoles
+      const rhythm = active.filter((id) => id.startsWith("dr-") || id === "syn-pulse").length / 7
+      const support = active.filter((id) => id === "syn-transition-phrase" || id === "syn-high-glass" || id.startsWith("str-")).length / 6
+      const targetRhythm = genre.rhythmDensity * .7
+      const targetSupport = Math.max(0, (genre.phraseDensity + genre.decorationDensity) * .35 - (aesthetic.layerTransparency - .5) * .3)
+      return sum + Math.max(0, 100 - Math.abs(rhythm - targetRhythm) * 90 - Math.abs(support - targetSupport) * 70)
+    }, 0) / Math.max(1, candidate.plan.sections.length)
+    const hasExplicitContext = Boolean(project.song.genreBlend?.length)
+      || project.song.aesthetic?.image === "atmospheric-depth" && project.song.aesthetic.amount > 0
+    const selectionScore = hasExplicitContext
+      ? qualityScore * 0.68 + originalityScore * 0.13 + intentionFit * 0.11 + contextualFit * 0.08
+      : qualityScore * 0.72 + originalityScore * 0.15 + intentionFit * 0.13
     const draft = {
       seed: candidate.plan.seed,
       approach: candidate.plan.candidateApproach ?? "dynamic-contrast" as ArrangementCandidateApproach,

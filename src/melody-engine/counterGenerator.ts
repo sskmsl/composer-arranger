@@ -1,6 +1,7 @@
 import { parseChordSymbol } from "@/core/chord"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import type { ChordEvent, SongProfileId } from "@/core/project"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 import { SeededRandom } from "@/core/rng"
 import type { SectionRole } from "@/core/section"
 import {
@@ -38,6 +39,7 @@ export interface GenerateCounterInput {
   sectionId: string
   sectionRole: SectionRole
   songProfile: SongProfileId
+  musicContext?: ResolvedMusicContext
   key: string
   chords: ChordEvent[]
   melody: MelodyVariant
@@ -1613,7 +1615,11 @@ function buildPoolCandidate(
     primaryOpportunity,
     rng,
   )
-  const gapCount = Math.min(opportunities.length, plannedComposition.phraseCount)
+  const contextualRestraint = (input.musicContext?.genre.phraseDensity ?? .5) < .3
+    || (input.musicContext?.aesthetic.layerTransparency ?? .5) > .72
+  const gapCount = Math.min(opportunities.length, Math.max(1,
+    plannedComposition.phraseCount - (contextualRestraint ? 1 : 0),
+  ))
   const selectedGaps = opportunities
     .map((gap) => ({
       gap,

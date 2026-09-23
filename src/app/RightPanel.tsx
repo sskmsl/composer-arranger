@@ -1,6 +1,7 @@
 import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
+import { GENRE_IDS, GENRE_LABELS, type GenreId, type GenreWeight } from "@/core/musicContext"
 import type { MelodyGeneratorProfile } from "@/core/melody"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { noteName, parseNoteName } from "@/core/note"
@@ -116,6 +117,13 @@ export function RightPanel({
     setGenerationSettings({ customRange: next })
   }
 
+  const setGenreSlot = (index: number, id: GenreId | "", percent?: number) => {
+    const blend = [...(project.song.genreBlend ?? [])]
+    if (!id) blend.splice(index, 1)
+    else blend[index] = { id, weight: Math.max(0, Math.min(100, percent ?? (blend[index]?.weight ?? 1) * 100)) / 100 }
+    updateSongField("genreBlend", blend.filter((entry): entry is GenreWeight => Boolean(entry?.id)))
+  }
+
   return (
     <aside
       className={clsx(
@@ -155,6 +163,36 @@ export function RightPanel({
               </Select>
             </FieldGroup>
           )}
+          <FieldGroup label="Genreブレンド（最大3要素）">
+            <div className="flex flex-col gap-1">
+              {[0, 1, 2].map((index) => {
+                const entry = project.song.genreBlend?.[index]
+                return <div key={index} className="flex gap-1">
+                  <Select className="min-w-0 flex-1" value={entry?.id ?? ""}
+                    onChange={(event) => setGenreSlot(index, event.target.value as GenreId | "")}>
+                    <option value="">{index === 0 ? "指定なし（従来どおり）" : "追加しない"}</option>
+                    {GENRE_IDS.map((id) => <option key={id} value={id}>{GENRE_LABELS[id]}</option>)}
+                  </Select>
+                  {entry && <input className="w-12 rounded border border-hairline bg-surface-tile-1 px-1 text-xs" type="number" min="1" max="100" aria-label={`${GENRE_LABELS[entry.id]}の比率`}
+                    value={Math.round(entry.weight * 100)}
+                    onChange={(event) => setGenreSlot(index, entry.id, Number(event.target.value))} />}
+                </div>
+              })}
+            </div>
+          </FieldGroup>
+          <FieldGroup label="Sound Image（Genreとは別軸）">
+            <Select className="w-full" value={project.song.aesthetic?.image ?? "neutral"}
+              onChange={(event) => updateSongField("aesthetic", {
+                image: event.target.value as "neutral" | "atmospheric-depth",
+                amount: event.target.value === "neutral" ? 0 : Math.max(.5, project.song.aesthetic?.amount ?? 1),
+              })}>
+              <option value="neutral">標準</option>
+              <option value="atmospheric-depth">奥行き・透明感・長い余韻</option>
+            </Select>
+            {project.song.aesthetic?.image === "atmospheric-depth" && <input className="mt-1 w-full" type="range" min="0" max="100"
+              aria-label="Sound Imageの強さ" value={Math.round((project.song.aesthetic.amount ?? 1) * 100)}
+              onChange={(event) => updateSongField("aesthetic", { image: "atmospheric-depth", amount: Number(event.target.value) / 100 })} />}
+          </FieldGroup>
         </div>
       </SectionCard>
 

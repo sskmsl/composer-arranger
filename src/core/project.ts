@@ -21,6 +21,7 @@ import type {
 } from "./performanceExecution"
 import type { PerformanceBatchRecommendation } from "./performanceCandidateSelection"
 import type { FullSongArrangement } from "./arrangementGeneration"
+import type { AestheticSelection, GenreWeight } from "./musicContext"
 
 export type SongProfileId =
   | "dark-romantic"
@@ -189,6 +190,10 @@ export interface ComposerProject {
     timeSignature: string
     songProfile: SongProfileId
     sectionProfileOverrides: SectionProfileOverride[]
+    /** Genreはパターン選択ではなく、生成・評価傾向の重み合成に使用する。 */
+    genreBlend?: GenreWeight[]
+    /** Genreから独立した空間・距離・質感の指定。 */
+    aesthetic?: AestheticSelection
   }
   arrangementSettings: ArrangementSettings
   /** 作曲者が明示的に確定したDirector判断。未指定項目は自動設計を使う。 */
@@ -264,6 +269,8 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
       timeSignature: "4/4",
       songProfile: "original-custom",
       sectionProfileOverrides: [],
+      genreBlend: [],
+      aesthetic: { image: "neutral", amount: 0 },
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS },
     arrangementDirectorOverrides: { sections: {} },
@@ -357,6 +364,8 @@ export function normalizeProject(raw: unknown): ComposerProject {
       timeSignature: r.song?.timeSignature ?? base.song.timeSignature,
       songProfile: r.song?.songProfile ?? "original-custom",
       sectionProfileOverrides: r.song?.sectionProfileOverrides ?? [],
+      genreBlend: r.song?.genreBlend ?? [],
+      aesthetic: r.song?.aesthetic ?? { image: "neutral", amount: 0 },
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS, ...r.arrangementSettings },
     arrangementDirectorOverrides: {

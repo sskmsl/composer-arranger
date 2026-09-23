@@ -247,7 +247,7 @@ class PreviewPlayer {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, dur, style)
+          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, dur, style, note.soundImage)
         }
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -459,7 +459,7 @@ class PreviewPlayer {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, duration, style)
+          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, duration, style, note.soundImage)
         }
       }
     }
@@ -601,18 +601,21 @@ class PreviewPlayer {
     t0: number,
     dur: number,
     style: LeadPreviewStyle = "neutral",
+    soundImage?: { depth: number; decay: number; transientSoftness: number; stereoDiffusion: number },
   ): void {
     const freq = midiToFreq(pitch)
     const vel = Math.min(1, Math.max(0.15, velocity / 127))
     // 柔らかめ: アタックの角(クリック感)を丸めるため立ち上がりをやや緩める
     const attack =
-      style === "atmospheric" ? 0.04 : style === "kinetic" ? 0.006 : 0.012
+      (style === "atmospheric" ? 0.04 : style === "kinetic" ? 0.006 : 0.012)
+      * (1 + Math.max(0, (soundImage?.transientSoftness ?? .5) - .5) * 1.4)
     const peakBase =
       style === "atmospheric" ? 0.21 : style === "kinetic" ? 0.32 : 0.28
-    const peak = peakBase * (0.5 + 0.5 * vel)
+    const peak = peakBase * (0.5 + 0.5 * vel) * (1 - Math.max(0, (soundImage?.depth ?? .5) - .5) * .35)
 
     // 低音ほど長く、強打ほど少し長く残す減衰時間。音価が短ければその長さで切る。
-    const ringScale = style === "atmospheric" ? 1.45 : style === "obsessive" ? 0.72 : 1
+    const ringScale = (style === "atmospheric" ? 1.45 : style === "obsessive" ? 0.72 : 1)
+      * (1 + Math.max(0, (soundImage?.decay ?? .5) - .5) * .65)
     const naturalRing =
       Math.min(3.4, 3.2 - (pitch - 60) * 0.05) *
       (0.75 + 0.25 * vel) *
@@ -659,7 +662,14 @@ class PreviewPlayer {
 
     osc.connect(filter)
     filter.connect(gain)
-    gain.connect(dest)
+    if (soundImage && soundImage.stereoDiffusion > .5) {
+      const pan = ctx.createStereoPanner()
+      pan.pan.value = (pitch % 2 === 0 ? 1 : -1) * (soundImage.stereoDiffusion - .5) * .55
+      gain.connect(pan)
+      pan.connect(dest)
+    } else {
+      gain.connect(dest)
+    }
     osc.start(t0)
     osc.stop(holdEnd + release + 0.05)
   }

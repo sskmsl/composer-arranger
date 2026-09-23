@@ -43,6 +43,18 @@ function project() {
 }
 
 describe("AI Arrangement context", () => {
+  it("Genreブレンドと独立したSound ImageをAI Partnerへ同時に渡す", () => {
+    const value = project()
+    value.song.genreBlend = [
+      { id: "trip-hop", weight: .65 },
+      { id: "romantic-dark", weight: .35 },
+    ]
+    value.song.aesthetic = { image: "atmospheric-depth", amount: 1 }
+    const context = buildAiArrangementContext(value, "intro")
+    expect(context?.project.musicContext?.genres).toEqual(value.song.genreBlend)
+    expect(context?.project.musicContext?.genre.syncopation).toBeGreaterThan(.5)
+    expect(context?.project.musicContext?.aesthetic.depth).toBeGreaterThan(.5)
+  })
   it("曲全体相談では全Sectionのコード・Melody・役割を一度に渡す", () => {
     const context = buildAiArrangementContext(project(), "intro", "whole-song")
     expect(context?.consultationScope).toBe("whole-song")
