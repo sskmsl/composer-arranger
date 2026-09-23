@@ -1,4 +1,5 @@
 import type { ComposerProject } from "@/core/project"
+import { parseChordSymbol } from "@/core/chord"
 import { parseTimeSignature } from "@/core/section"
 import { hasActiveLeadMelody } from "@/core/melodyProtection"
 import { buildArrangementDirectorBlueprint } from "./arrangementDirector"
@@ -462,11 +463,18 @@ function recommendation(
   const offBeatNotes = project.melodyVariants.flatMap((variant) => variant.notes)
     .filter((note) => Math.abs(note.startBeat - Math.round(note.startBeat)) > 0.05).length
   const noteCount = project.melodyVariants.reduce((sum, variant) => sum + variant.notes.length, 0)
-  const chromaticChords = project.chords.filter((chord) => /dim|aug|[#b]|sus|add9|maj7/i.test(chord.symbol)).length
+  const colouredChords = project.chords.filter((chord) => {
+    const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+    return parsed && (
+      parsed.isDiminished || parsed.isSus || parsed.tensions.length > 0
+      || parsed.tones.some((tone) => tone.role === "seventh" || tone.interval === 8)
+      || parsed.bassPc !== parsed.rootPc
+    )
+  }).length
   if (noteCount > 0 && offBeatNotes / noteCount >= 0.3) {
     add("rhythmic-propulsion", 3, "既存旋律に裏拍の動きがあり、リズムの個性を発展できます。")
   }
-  if (project.chords.length > 0 && chromaticChords / project.chords.length >= 0.35) {
+  if (project.chords.length > 0 && colouredChords / project.chords.length >= 0.35) {
     add("motif-relay", 3, "和声に未解決感と色彩があり、意外性を無理なく拡張できます。")
   }
   if (project.sections.length >= 4) {

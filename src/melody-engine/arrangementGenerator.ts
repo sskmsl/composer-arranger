@@ -303,7 +303,12 @@ function rolesFor(section: ArrangementAnalysisSection, isPeak: boolean): Arrange
     if (section.occurrence > 1) roles.push("str-viola")
   } else if (semantic === "chorus") {
     roles.push("dr-kick", "dr-snare", "dr-closed-hat", "syn-bass", "syn-dark-pad", "syn-stabs")
-    if (section.occurrence > 1) roles.push("dr-open-hat", "dr-field-drum", "syn-pulse", "str-cello", "str-violin-1")
+    if (section.occurrence > 1) {
+      // 再提示は音量と一つの音色交代で進め、最終ピークの上声を先取りしない。
+      removeRoles(roles, ["syn-dark-pad"])
+      roles.push("str-cello")
+      if (restAllowsColour) roles.push("dr-open-hat")
+    }
   } else if (semantic === "breakdown") {
     roles.push("syn-dark-pad", "syn-bass")
     if (restAllowsColour) roles.push("syn-high-glass")
@@ -393,6 +398,7 @@ function transitionCandidate(
   next: ArrangementAnalysisSection | undefined,
   character: ArrangementCandidateCharacter,
   seed: number,
+  lead: MelodyNote[],
 ): ArrangementTransitionCandidate {
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const source = project.sections.find((candidate) => candidate.id === section.sectionId)!
@@ -410,11 +416,12 @@ function transitionCandidate(
     : character === "edge"
       ? `次の${next?.sectionName ?? "終止"}へ半音で解決する非和声音を、休符の末尾だけに置く`
       : `未使用高域を一瞬だけ開き、次の${next?.sectionName ?? "終止"}の入口で解決して落差を記憶させる`
-  if (!next || section.melodyRestRatio < 0.08) {
+  const start = end - (character === "surprise" ? 1.5 : 1.25)
+  const hasEndingRest = !lead.some((note) => note.startBeat < end && note.startBeat + note.durationBeats > start)
+  if (!next || section.melodyRestRatio < 0.08 || !hasEndingRest) {
     return { id: `${section.sectionId}:${character}:silence`, sectionId: section.sectionId, character, kind: "silence", reason: "主旋律の余白が不足しているため、音を足さないことを最も強い選択とする", notes: [] }
   }
   const intervals = character === "safe" ? [-4, -2, 0] : character === "edge" ? [-3, -1, 0] : [7, 1, 0]
-  const start = end - (character === "surprise" ? 1.5 : 1.25)
   const notes = intervals.map((interval, index): MelodyNote => ({
     id: `transition:${section.sectionId}:${character}:${seed}:${index}`,
     startBeat: start + index * 0.375,
@@ -518,6 +525,7 @@ export function buildFullSongArrangementPlan(
     : directive
   const asksSurprise = (directive?.surpriseLevel ?? 0) >= 0.35 || /surprise|意外|大胆|毒|不穏/i.test(brief)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const lead = buildSongPlaybackMaterial(project).lead
   const candidateApproach = forcedApproach ?? candidateApproachFor(seed)
   return {
     version: "1.0.0",
@@ -533,7 +541,7 @@ export function buildFullSongArrangementPlan(
       const effectiveSection = { ...section, energy: effectiveEnergy }
       const isPeak = section.sectionId === analysis.peakSectionId
       const transitionCandidates = (["safe", "edge", "surprise"] as const).map((character) =>
-        transitionCandidate(project, section, analysis.sections[index + 1], character, seed))
+        transitionCandidate(project, section, analysis.sections[index + 1], character, seed, lead))
       const decorationCandidates = (["safe", "edge", "surprise"] as const).map((character) =>
         decorationCandidate(project, section, character, seed))
       const hasTransition = transitionCandidates.some((candidate) => candidate.notes.length > 0)
@@ -802,6 +810,38 @@ function chordTonePcs(chord: ChordEvent | undefined): number[] {
   return parsed.tones.map((tone) => tone.pitchClass)
 }
 
+function quietPadVoicing(
+  chord: NonNullable<ReturnType<typeof parseChordSymbol>>,
+  previous: number[],
+): number[] {
+  const palette = [...chord.tones.slice(1), ...chord.tensions.slice(0, 1), chord.tones[0]]
+    .filter((tone, index, all) => all.findIndex((candidate) => candidate.pitchClass === tone.pitchClass) === index)
+  const anchors = [53, 60, 67]
+  const options = anchors.map((anchor, voice) => palette.flatMap((tone) => {
+    const nearest = midiForPc(tone.pitchClass, previous[voice] ?? anchor)
+    return [nearest - 12, nearest, nearest + 12]
+      .filter((pitch) => pitch >= 48 + voice * 4 && pitch <= 64 + voice * 5)
+      .map((pitch) => ({ pitch, pitchClass: tone.pitchClass, isTension: chord.tensions.some((item) => item.pitchClass === tone.pitchClass) }))
+  }))
+  let best: number[] | undefined
+  let bestCost = Infinity
+  for (const low of options[0]) for (const mid of options[1]) for (const high of options[2]) {
+    if (new Set([low.pitchClass, mid.pitchClass, high.pitchClass]).size < 3) continue
+    if (mid.pitch - low.pitch < 3 || high.pitch - mid.pitch < 3) continue
+    if (mid.pitch - low.pitch > 12 || high.pitch - mid.pitch > 12) continue
+    const choice = [low, mid, high]
+    const cost = choice.reduce((sum, note, voice) => sum
+      + Math.abs(note.pitch - (previous[voice] ?? anchors[voice]))
+      + Math.abs(note.pitch - anchors[voice]) * 0.12
+      + (note.isTension ? 0.8 : 0), 0)
+    if (cost < bestCost) {
+      bestCost = cost
+      best = choice.map((note) => note.pitch)
+    }
+  }
+  return best ?? palette.slice(0, 3).map((tone, voice) => midiForPc(tone.pitchClass, previous[voice] ?? anchors[voice]))
+}
+
 function generateTonalTrack(
   trackId: ArrangementTrackId,
   section: ArrangementSectionPlan,
@@ -1017,7 +1057,7 @@ function generateTonalTrack(
   if (trackId === "syn-dark-pad" || trackId.startsWith("str-")) {
     const stringPeriodBars = trackId === "str-upper" ? 4 : 2
     const segmentBeats = trackId === "syn-dark-pad" ? beatsPerBar : beatsPerBar * stringPeriodBars
-    const previousPadPitches: Array<number | undefined> = [undefined, undefined, undefined]
+    let previousPadPitches: number[] = []
     let previousPitch: number | undefined
     for (let localBeat = 0; localBeat < length - 0.01; localBeat += segmentBeats) {
       const chord = chordAtBeat(sectionChords, localBeat)
@@ -1025,12 +1065,11 @@ function generateTonalTrack(
       if (!parsed) continue
       const duration = Math.min(segmentBeats, length - localBeat) * 0.96
       if (trackId === "syn-dark-pad") {
-        const palette = [...parsed.tones.slice(1), ...parsed.tensions.slice(0, 1), parsed.tones[0]].filter(Boolean)
+        const pitches = quietPadVoicing(parsed, previousPadPitches)
+        previousPadPitches = pitches
         const padCycle = (Math.floor(localBeat / beatsPerBar) + revision) % 4
         const breathFactors = [0.96, 0.88, 0.94, 0.84]
-        palette.slice(0, 3).forEach((tone, voice) => {
-          const pitch = midiForPc(tone.pitchClass, previousPadPitches[voice] ?? 53 + voice * 7)
-          previousPadPitches[voice] = pitch
+        pitches.forEach((pitch, voice) => {
           const voiceOffset = padCycle === 2 && voice === 2 ? 0.25 : 0
           add(localBeat + voiceOffset, Math.max(0.25, duration * breathFactors[padCycle] - voiceOffset), pitch, 30 + section.energy * 0.17,
             notes.length, "safe", "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す")
@@ -1189,6 +1228,13 @@ export function reviewGeneratedArrangement(
     }).length
     return sum + repeatedTracks
   }, 0)
+  const largeSupportLeapCount = arrangement.plan.sections.reduce((sum, section) => sum + arrangement.tracks.reduce((trackSum, track) => {
+    if (track.id !== "syn-dark-pad" && !["str-cello", "str-viola", "str-violin-1", "str-violin-2"].includes(track.id)) return trackSum
+    const notes = track.notes.filter((note) => note.sectionId === section.sectionId && !note.reason.startsWith("指定を実音化"))
+    const stride = track.id === "syn-dark-pad" ? 3 : 1
+    return trackSum + notes.reduce((count, note, index) =>
+      count + (index >= stride && Math.abs(note.pitch - notes[index - stride].pitch) > 9 ? 1 : 0), 0)
+  }, 0), 0)
   const sectionNoteCounts = arrangement.plan.sections.map((section) => arrangement.tracks.reduce(
     (sum, track) => sum + track.notes.filter((note) => note.sectionId === section.sectionId).length,
     0,
@@ -1228,6 +1274,7 @@ export function reviewGeneratedArrangement(
   if (overfilledSectionCount > 0) recommendations.push("同時に使う役割を整理する")
   if (silentRoleCount > 0) recommendations.push("音のない役割をPlanから除外する")
   if (mechanicalLoopCount > 0) recommendations.push("同一小節の機械的な反復をMotif変形または休符で崩す")
+  if (largeSupportLeapCount > 0) recommendations.push("背景声部の大きな跳躍を共通音または順次進行へ戻す")
   if (arrangement.plan.sections.length >= 4 && densityContrastRatio < 1.8) recommendations.push("Section間の実音密度差を増やす")
   if (harmonicViolationCount > 0) recommendations.push("Safeパートのコード外音を解決可能な音へ修正する")
   if (melodyCollisionCount > 0) recommendations.push("主旋律と同音域で接触する補助声部を整理する")
@@ -1240,6 +1287,7 @@ export function reviewGeneratedArrangement(
     - overfilledSectionCount * 8
     - silentRoleCount * 5
     - mechanicalLoopCount * 4
+    - Math.min(12, largeSupportLeapCount * 2)
     + (densityContrastRatio >= 2.5 ? 6 : densityContrastRatio >= 1.8 ? 3 : -6)
     + Math.round(clamp01((energyDensityCorrelation + 0.2) / 1.1) * 20)
     - Math.max(0, averageActiveRoleCount - 8) * 1.8
@@ -1259,6 +1307,7 @@ export function reviewGeneratedArrangement(
       overfilledSectionCount,
       silentRoleCount,
       mechanicalLoopCount,
+      largeSupportLeapCount,
       densityContrastRatio,
       harmonicViolationCount,
       melodyCollisionCount,

@@ -7,6 +7,7 @@ import {
   buildFullSongArrangementPlan,
   generateFullSongArrangement,
   regenerateFullSongArrangementTarget,
+  reviewGeneratedArrangement,
 } from "./arrangementGenerator"
 import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 
@@ -192,6 +193,8 @@ describe("Arrangement Generator", () => {
     expect(chorus2.energy).toBeGreaterThan(chorus1.energy)
     expect(final.energy).toBeGreaterThan(chorus2.energy)
     expect(chorus2.activeRoles).not.toEqual(chorus1.activeRoles)
+    expect(chorus2.activeRoles.length - chorus1.activeRoles.length).toBeLessThanOrEqual(1)
+    expect(chorus2.activeRoles).not.toContain("str-violin-1")
     expect(final.activeRoles).toContain("str-upper")
     expect(final.activeRoles).toContain("dr-gran-cassa")
   })
@@ -205,6 +208,45 @@ describe("Arrangement Generator", () => {
     expect(pre.transitionCandidates.every((candidate) => candidate.reason.length > 10)).toBe(true)
     expect(pre.selectedTransitionCharacter).toBe("surprise")
     expect(result.tracks.find((track) => track.id === "syn-transition-phrase")?.notes.some((note) => note.character === "surprise")).toBe(true)
+  })
+
+  it("Section末尾に主旋律が続く場合は途中の休符が多くてもTransitionを置かない", () => {
+    const input = project()
+    const preStart = (input.sections.find((section) => section.id === "pre")!.startBar - 1) * 4
+    const lead = input.importedArrangement!.tracks[0].notes
+    const last = lead.find((note) => note[0] === preStart + 14)!
+    last[1] = 2
+    const result = generateFullSongArrangement(input, { seed: 44, brief: "意外性のあるセクション間フレーズ" })
+    const pre = result.plan.sections.find((section) => section.sectionId === "pre")!
+    expect(pre.transitionCandidates.every((candidate) => candidate.notes.length === 0)).toBe(true)
+    expect(pre.selectedTransitionCharacter).toBe("silence")
+    expect(result.tracks.find((track) => track.id === "syn-transition-phrase")?.notes.some((note) => note.sectionId === "pre")).not.toBe(true)
+  })
+
+  it("背景パッドは各声部の大跳躍を避け、和声の色だけを動かす", () => {
+    const result = generateFullSongArrangement(project(), { seed: 44, brief: "意外性のあるセクション間フレーズ" })
+    const notes = result.tracks.find((track) => track.id === "syn-dark-pad")!.notes
+      .filter((note) => note.sectionId === "chorus-1")
+    expect(notes).toHaveLength(12)
+    const largestVoiceLeap = Math.max(...notes.map((note, index) =>
+      index >= 3 ? Math.abs(note.pitch - notes[index - 3].pitch) : 0))
+    expect(largestVoiceLeap).toBeLessThanOrEqual(9)
+    for (let index = 0; index < notes.length; index += 3) {
+      expect(notes[index].pitch).toBeLessThan(notes[index + 1].pitch)
+      expect(notes[index + 1].pitch).toBeLessThan(notes[index + 2].pitch)
+    }
+  })
+
+  it("候補評価は背景声部の不要な大跳躍を検出する", () => {
+    const input = project()
+    const result = generateFullSongArrangement(input, { seed: 44 })
+    const before = reviewGeneratedArrangement(result, input)
+    const pad = result.tracks.find((track) => track.id === "syn-dark-pad")!
+    const note = pad.notes.find((item) => item.sectionId === "chorus-1")!
+    note.pitch += 12
+    const after = reviewGeneratedArrangement(result, input)
+    expect(after.metrics.largeSupportLeapCount).toBeGreaterThan(before.metrics.largeSupportLeapCount)
+    expect(after.score).toBeLessThan(before.score)
   })
 
   it("必要な役割だけを固定名の独立トラックとして生成する", () => {

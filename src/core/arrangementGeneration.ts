@@ -276,6 +276,8 @@ export interface ArrangementQualityReport {
     silentRoleCount: number
     /** 同じ音程・リズムを小節ごとに機械的に反復している音色Section数。 */
     mechanicalLoopCount: number
+    /** 背景パッド／ストリングスが同一声部で不要に大きく跳ぶ回数。 */
+    largeSupportLeapCount: number
     /** 最も疎なSectionと最も密なSectionの音数差。 */
     densityContrastRatio: number
     harmonicViolationCount: number

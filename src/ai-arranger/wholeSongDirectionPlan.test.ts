@@ -65,6 +65,14 @@ describe("Whole-song Arrangement Direction Program", () => {
     expect(buildWholeSongDirectionProgram(project(), "").recommendationReason.length).toBeGreaterThan(10)
   })
 
+  it("♯付きルートだけで和声の不穏さを判定せず、テンションや分数ベースを評価する", () => {
+    const value = project()
+    value.chords = value.chords.map((chord) => ({ ...chord, symbol: "F#", bass: null }))
+    expect(buildWholeSongDirectionProgram(value, "").recommendedDirectionId).not.toBe("motif-relay")
+    value.chords = value.chords.map((chord) => ({ ...chord, symbol: "F#maj7", bass: "A#" }))
+    expect(buildWholeSongDirectionProgram(value, "").recommendedDirectionId).toBe("motif-relay")
+  })
+
   it("原曲Melodyを書き換えるActionを作らず、Counter不足も明示する", () => {
     const value = project()
     delete value.sectionMelodyAssignments.verse
