@@ -178,7 +178,7 @@ export function App() {
         {tab === "counter" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <CounterWorkspace />
+            <CounterWorkspace onNavigate={setTab} />
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="counter" />
             {(leftOpen || rightOpen) && (
               <div
@@ -218,7 +218,7 @@ export function App() {
           </div>
         )}
         {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
-        {tab === "audition" && <AuditionWorkspace />}
+        {tab === "audition" && <AuditionWorkspace onNavigate={setTab} />}
         </Suspense>
       </div>
       {tab !== "home" &&

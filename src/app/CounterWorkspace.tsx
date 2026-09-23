@@ -24,6 +24,7 @@ import { buildReactiveContextAuditionMaterial } from "@/core/reactiveContextAudi
 import { exportMelodyMidi, downloadMidi } from "@/midi/exportMelody"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button, Select } from "@/ui/primitives"
+import type { MainTab } from "./App"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
@@ -60,7 +61,7 @@ const CONTOUR_LABELS: Record<string, string> = {
   "pedal-break": "同じ音から動く",
 }
 
-export function CounterWorkspace() {
+export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) => void } = {}) {
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const activeBatchId = useProjectStore((state) => state.activeReactiveBatchId)
@@ -212,9 +213,10 @@ export function CounterWorkspace() {
       </section>
 
       {!activeMelody && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
-          「個別調整 → 主旋律」で、このセクションに採用する主旋律を設定してください。
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+          <p>対旋律は主旋律に応答して作るため、先にこのセクションの主旋律を採用してください。</p>
+          {onNavigate && <Button variant="secondary" onClick={() => onNavigate("melody")}>主旋律を開く</Button>}
+        </div>
       )}
       {chords.length === 0 && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">

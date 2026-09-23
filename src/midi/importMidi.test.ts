@@ -334,6 +334,25 @@ describe("MIDI project import", () => {
     expect(project.sections.map((section) => section.key)).toEqual([undefined, "G#m"])
   })
 
+  it("テンポが変わるMIDIは、最も長く続くテンポを曲のテンポにする(終盤のリタルダンドで遅く読まない)", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Tempo Change",
+      tempoBpm: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [{ name: "Lead Melody", notes: [{ pitch: 69, start: 0, duration: beat * 32, velocity: 80, channel: 0 }] }],
+    })
+    // 28拍目から 60 BPM(最後の1小節だけ遅くなる)。途中で 3/4 拍子の指定も入れる
+    const micros = 1_000_000
+    let changed = insertConductorMeta(bytes, beat * 28, 0x51, [(micros >> 16) & 0xff, (micros >> 8) & 0xff, micros & 0xff])
+    changed = insertConductorMeta(changed, 0, 0x58, [3, 2, 24, 8])
+    const analysis = analyzeMidiImport(changed, "tempo-change.mid")
+    expect(analysis.tempo).toBe(120)
+    expect(analysis.timeSignature).toBe("4/4")
+    expect(analysis.warnings.some((warning) => warning.includes("最も長く続くテンポ(120 BPM)"))).toBe(true)
+  })
+
   it("7thが鳴っていない区間は三和音のまま推定し、フラット系のキーではフラットで綴る", () => {
     const beat = TICKS_PER_QUARTER
     const bytes = buildSmf({
@@ -362,6 +381,11 @@ describe("MIDI project import", () => {
 
 /** コンダクタートラック(1本目のMTrk)の End of Track の直前に調号メタイベントを差し込む */
 function insertConductorKeySignature(bytes: Uint8Array, tick: number, sharpsFlats: number, minor: boolean): Uint8Array {
+  return insertConductorMeta(bytes, tick, 0x59, [sharpsFlats & 0xff, minor ? 1 : 0])
+}
+
+/** 1本目のMTrkの End of Track の直前に、End of Track から数えて tick 後のメタイベントを差し込む */
+function insertConductorMeta(bytes: Uint8Array, tick: number, type: number, payload: number[]): Uint8Array {
   const data = [...bytes]
   const trackStart = 14
   const length = (data[trackStart + 4] << 24) | (data[trackStart + 5] << 16) | (data[trackStart + 6] << 8) | data[trackStart + 7]
@@ -377,7 +401,7 @@ function insertConductorKeySignature(bytes: Uint8Array, tick: number, sharpsFlat
     }
     return out
   }
-  const insert = [...vlq(tick), 0xff, 0x59, 0x02, sharpsFlats & 0xff, minor ? 1 : 0]
+  const insert = [...vlq(tick), 0xff, type, payload.length, ...payload]
   const eot = data.slice(endOfTrack)
   if (eot[0] !== 0x00) throw new Error("unexpected End of Track delta")
   const body = [...data.slice(bodyStart, endOfTrack), ...insert, ...eot]

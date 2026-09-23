@@ -183,21 +183,18 @@ export function MelodyWorkspace({
         </div>
       </section>
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
-          <Sparkles size={14} /> コードから主旋律を生成
-        </Button>
+        {/* 最初の生成は上の手順カードのボタンで行う。候補ができた後だけ、作り直しをここに出す */}
+        {variant && (
+          <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
+            <Sparkles size={14} /> 主旋律を作り直す
+          </Button>
+        )}
         {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
         {sectionContent.lead !== "melody" && (
           <Pill active>Content: {LEAD_CONTENT_LABELS[sectionContent.lead]}</Pill>
         )}
-        {chords.length === 0 && <span className="text-[12px] text-ink-muted-48">コード進行を入力してください</span>}
         {chords.length > 0 && chordHasError && (
           <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
-        )}
-        {chords.length > 0 && !chordHasError && onNavigate && (
-          <Button variant="dark" onClick={() => onNavigate("ai-partner")}>
-            AIに全曲の方針を相談 <ArrowRight size={13} />
-          </Button>
         )}
 
         {variant && (
@@ -358,7 +355,7 @@ export function MelodyWorkspace({
         /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */
         <p className="text-[11px] text-ink-muted-48">
           {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
-          作り直す場合は「コードから主旋律を生成」を実行してください。
+          作り直す場合は「主旋律を作り直す」を実行してください。
         </p>
       )}
       {accompanimentPatternNotes.length > 0 && (
