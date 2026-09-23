@@ -181,6 +181,10 @@ function buildCandidate(
       placementDiagnostics,
       candidateMelodyDNA,
       hookRole !== undefined && candidateMelodyDNA !== undefined,
+      (hookRole === "statement" || hookRole === "contrast") &&
+      (input.sectionRole === "chorus" || input.sectionRole === "grand-chorus")
+        ? 1.5
+        : 0,
     )
     if (phraseIdx === 0) firstMotifCore = hookRole !== undefined
       ? capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)

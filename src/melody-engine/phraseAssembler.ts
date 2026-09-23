@@ -374,6 +374,7 @@ export function growSegments(
   isAnswerPhrase = false,
   includeFirst = true,
   developmentStrategy?: CandidateMelodyDNA["developmentStrategy"],
+  firstMotifBreathBeats = 0,
 ): Segment[] {
   const segments: Segment[] = []
   let cursor = startCursor
@@ -392,7 +393,9 @@ export function growSegments(
   }
 
   if (includeFirst) {
-    pushClipped(firstEvents, firstPitches)
+    if (pushClipped(firstEvents, firstPitches) && endBeat - cursor >= firstMotifBreathBeats + 1) {
+      cursor += firstMotifBreathBeats
+    }
   }
 
   let guard = 0
@@ -430,6 +433,7 @@ export function assemblePhrase(
   placementDiagnostics?: PlacementDiagnostics,
   candidateDNA?: CandidateMelodyDNA,
   reserveClimaxForSection = false,
+  firstMotifBreathBeats = 0,
 ): PhraseResult {
   const contour = contourFromParams(rng, params)
 
@@ -440,7 +444,7 @@ export function assemblePhrase(
     firstPitches = motifCoreOverride.pitches
   } else {
     firstEvents = generateRhythmMotif(rng, density, params, opening, reserveClimaxForSection ? 3 : 2)
-    firstPitches = generatePitchMotif(rng, firstEvents, phraseStartBeat, harmonicMap, range, params, opening)
+    firstPitches = generatePitchMotif(rng, firstEvents, phraseStartBeat, harmonicMap, range, params, opening, reserveClimaxForSection)
   }
   const firstMotifCore: MotifCore = { events: firstEvents, pitches: firstPitches, lengthBeats: eventsLength(firstEvents) }
 
@@ -455,6 +459,7 @@ export function assemblePhrase(
     isAnswerPhrase,
     true,
     candidateDNA?.developmentStrategy,
+    firstMotifBreathBeats,
   )
 
   const notes: MelodyNote[] = []

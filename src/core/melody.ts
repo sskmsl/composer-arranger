@@ -126,6 +126,10 @@ export interface MelodyFeatures {
   rangeHigh: number
   maxLeap: number
   avgLeap: number
+  /** 7半音以上の跳躍が連続する割合。歌いやすさを損なう候補の選抜抑制に使う。 */
+  largeLeapRatio?: number
+  /** 連続する同音の最大数。長い単調な候補の選抜抑制に使う。 */
+  longestPitchRun?: number
   restRatio: number
   repeatedNoteRatio: number
   tensionUsageRatio: number

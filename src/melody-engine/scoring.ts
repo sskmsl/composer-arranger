@@ -33,7 +33,15 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   // 100点までの余白の5%を上限にし、旧データは従来どおり評価する。
   // Minimalでは意図的な同音反復や余白を優先し、フックによる順位変更を行わない。
   if (profile === "minimal") return baseScore
-  return baseScore + (100 - baseScore) * 0.05 * clamp01(features.hookStrength ?? 0)
+  const hookBonus = (100 - baseScore) * 0.05 * clamp01(features.hookStrength ?? 0)
+  // Standardの歌メロで大跳躍が頻発する案は、珍しさより口ずさみやすさを優先する。
+  const roughLeapPenalty = profile === "standard"
+    ? 20 * clamp01(((features.largeLeapRatio ?? 0) - 0.08) / 0.14)
+    : 0
+  const staticRunPenalty = profile === "standard"
+    ? 4 * Math.min(5, Math.max(0, (features.longestPitchRun ?? 0) - 4))
+    : 0
+  return Math.max(0, baseScore + hookBonus - roughLeapPenalty - staticRunPenalty)
 }
 
 function clamp01(v: number): number {

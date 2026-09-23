@@ -18,6 +18,8 @@ export function computeMelodyFeatures(
       rangeHigh: 60,
       maxLeap: 0,
       avgLeap: 0,
+      largeLeapRatio: 0,
+      longestPitchRun: 0,
       restRatio: 1,
       repeatedNoteRatio: 0,
       tensionUsageRatio: 0,
@@ -36,12 +38,20 @@ export function computeMelodyFeatures(
   const leaps: number[] = []
   const signedIntervals: number[] = []
   let repeated = 0
+  let currentPitchRun = 1
+  let longestPitchRun = 1
   for (let i = 1; i < pitches.length; i++) {
     const signed = pitches[i] - pitches[i - 1]
     const interval = Math.abs(signed)
     leaps.push(interval)
     signedIntervals.push(signed)
-    if (interval === 0) repeated++
+    if (interval === 0) {
+      repeated++
+      currentPitchRun++
+      longestPitchRun = Math.max(longestPitchRun, currentPitchRun)
+    } else {
+      currentPitchRun = 1
+    }
   }
 
   // Issue #64: 跳躍(5半音以上)の直後が反行かつ順次進行(3半音以内)で回収されているか
@@ -99,6 +109,8 @@ export function computeMelodyFeatures(
     rangeHigh: highest,
     maxLeap: leaps.length ? Math.max(...leaps) : 0,
     avgLeap: leaps.length ? leaps.reduce((a, b) => a + b, 0) / leaps.length : 0,
+    largeLeapRatio: leaps.length ? leaps.filter(leap => leap >= 7).length / leaps.length : 0,
+    longestPitchRun,
     restRatio,
     repeatedNoteRatio: pitches.length > 1 ? repeated / (pitches.length - 1) : 0,
     tensionUsageRatio: tensionCount / sorted.length,

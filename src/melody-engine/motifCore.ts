@@ -156,6 +156,7 @@ export function generatePitchMotif(
   range: RangeSetting,
   params: GenerationParams,
   opening?: MelodyOpeningPlan,
+  keepHookMoving = false,
 ): number[] {
   const effectiveHigh = range.high - params.peakHeadroomSemitones
   const effectiveRange = { low: range.low, high: Math.max(range.low + 4, effectiveHigh) }
@@ -167,6 +168,32 @@ export function generatePitchMotif(
   // Issue #64: 跳躍の直後は反行・順次進行で回収し、跳躍が連続しないようにする
   let lastWasLeap = false
   let lastDirection = 1
+  let samePitchRun = 0
+
+  const moveAfterAnchor = (snapped: number, previous: number, allowed: readonly number[], preferredDirection: number): number => {
+    if (!keepHookMoving || snapped !== previous || samePitchRun < 3) return snapped
+    // 三度目までの同音反復を目印として残し、次は近い和声音へ進む。
+    // 1〜2半音の要求をコードトーンへ丸めるだけでは同音が無制限に続く。
+    const alternatives: number[] = []
+    for (let pitch = effectiveRange.low; pitch <= effectiveRange.high; pitch++) {
+      if (pitch !== previous && Math.abs(pitch - previous) <= 5 && allowed.includes(((pitch % 12) + 12) % 12)) {
+        alternatives.push(pitch)
+      }
+    }
+    alternatives.sort((a, b) => {
+      const aPenalty = preferredDirection !== 0 && Math.sign(a - previous) !== preferredDirection ? 2 : 0
+      const bPenalty = preferredDirection !== 0 && Math.sign(b - previous) !== preferredDirection ? 2 : 0
+      return Math.abs(a - previous) + aPenalty - Math.abs(b - previous) - bPenalty
+    })
+    return alternatives[0] ?? snapped
+  }
+
+  const appendPitch = (pitch: number): void => {
+    samePitchRun = pitch === prev ? samePitchRun + 1 : 1
+    pitches.push(pitch)
+    prev = pitch
+    sounded++
+  }
 
   for (const event of events) {
     if (event.isRest) continue
@@ -195,18 +222,14 @@ export function generatePitchMotif(
           }
         }
       }
-      pitches.push(best)
-      prev = best
-      sounded++
+      appendPitch(best)
       continue
     }
 
     // Opening Plan: 冒頭の数音だけは計画した進行方向・輪郭に従わせる
     if (opening && sounded < openingNoteBudget(opening)) {
       const snapped = openingNextPitch(rng, opening, prev, sounded, chordTones, usable, effectiveRange, params)
-      pitches.push(snapped)
-      prev = snapped
-      sounded++
+      appendPitch(moveAfterAnchor(snapped, prev, chordTones, dirSign(opening.initialDirection)))
       continue
     }
 
@@ -228,12 +251,10 @@ export function generatePitchMotif(
       magnitude = wantsLeap ? rng.intBetween(3, 7) : rng.intBetween(1, 2)
     }
     const candidate = prev + direction * magnitude
-    const snapped = nearestAllowedPitch(candidate, allowed, effectiveRange)
-    pitches.push(snapped)
-    lastWasLeap = !lastWasLeap && magnitude >= 3
-    lastDirection = direction
-    prev = snapped
-    sounded++
+    const snapped = moveAfterAnchor(nearestAllowedPitch(candidate, allowed, effectiveRange), prev, allowed, direction)
+    lastWasLeap = !lastWasLeap && Math.abs(snapped - prev) >= 4
+    lastDirection = Math.sign(snapped - prev) || direction
+    appendPitch(snapped)
   }
 
   return pitches
