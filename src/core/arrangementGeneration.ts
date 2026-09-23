@@ -282,6 +282,8 @@ export interface ArrangementQualityReport {
     densityContrastRatio: number
     harmonicViolationCount: number
     melodyCollisionCount: number
+    /** 主旋律のアタックを覆う、必須ではないKick/Fillの回数。 */
+    rhythmLeadAttackConflictCount: number
     energyDensityCorrelation: number
     averageActiveRoleCount: number
     generatedNotesPerBeat: number

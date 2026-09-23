@@ -551,7 +551,7 @@ export function buildFullSongArrangementPlan(
           ? "surprise"
           : section.energyDelta >= 15 ? "edge" : "safe"
       const hasDecoration = decorationCandidates.some((candidate) => candidate.notes.length > 0)
-      const selectedDecorationCharacter: ArrangementSectionPlan["selectedDecorationCharacter"] = !hasDecoration
+      let selectedDecorationCharacter: ArrangementSectionPlan["selectedDecorationCharacter"] = !hasDecoration
         ? "silence"
         : asksSurprise && section.occurrence > 1
           ? "surprise"
@@ -619,6 +619,13 @@ export function buildFullSongArrangementPlan(
       if (selectedTransitionCharacter === "silence") {
         const index = activeRoles.indexOf("syn-transition-phrase")
         if (index >= 0) activeRoles.splice(index, 1)
+      }
+      const explicitBell = soundApplies && effectiveDirective?.soundInstruction?.role === "bell"
+        || applies && (effectiveDirective?.add ?? []).includes("syn-high-glass")
+      if (!explicitBell && activeRoles.includes("syn-transition-phrase") && activeRoles.includes("syn-high-glass")) {
+        // 一つの境界でPhraseとDecorationを重ねず、短い接続フレーズへ役割を委ねる。
+        removeRoles(activeRoles, ["syn-high-glass"])
+        selectedDecorationCharacter = "silence"
       }
       const sourceSection = project.sections.find((candidate) => candidate.id === section.sectionId)
       const sectionLengthBeats = (sourceSection?.lengthBars ?? 1) * beatsPerBar
@@ -716,6 +723,7 @@ function generateDrums(
   length: number,
   beatsPerBar: number,
   revision: number,
+  melody: MelodyNote[],
   soundInstruction?: ArrangementSoundInstruction,
   directedSectionId?: string,
 ): GeneratedArrangementNote[] {
@@ -791,7 +799,20 @@ function generateDrums(
       if (bar === 0 || (groove === "release" && cycleBar === 0)) beats.push(base)
     }
   }
-  return beats.filter((beat) => beat < start + length).map((beat, index) => makeNote(
+  const shapedBeats = beats.filter((beat) => {
+    if (beat >= start + length) return false
+    const nearLeadAttack = melody.some((note) => Math.abs(note.startBeat - beat) <= 0.12)
+    const barOffset = ((beat - start) % beatsPerBar + beatsPerBar) % beatsPerBar
+    if (trackId === "dr-kick") return barOffset < 0.08 || !nearLeadAttack
+    if (trackId === "dr-field-drum" || trackId === "dr-low-tom" || trackId === "dr-high-tom") return !nearLeadAttack
+    if (trackId === "dr-closed-hat" && section.semanticRole !== "final") {
+      const barStart = beat - barOffset
+      const attacks = melody.filter((note) => note.startBeat >= barStart && note.startBeat < barStart + beatsPerBar).length
+      if (attacks >= 3 && Math.round(barOffset * 2) % 4 >= 2) return false
+    }
+    return true
+  })
+  return shapedBeats.map((beat, index) => makeNote(
     trackId, section.sectionId, index, beat, trackId.includes("hat") ? 0.12 : 0.2, pitch,
     44 + section.energy * 0.42 + (index % 2 === 0 ? 7 : -5), TRACK_PURPOSE[trackId], "safe",
   ))
@@ -808,6 +829,18 @@ function chordTonePcs(chord: ChordEvent | undefined): number[] {
   const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
   if (!parsed) return [9, 0, 4]
   return parsed.tones.map((tone) => tone.pitchClass)
+}
+
+function sharedBassPedalPc(chords: ChordEvent[]): number | null {
+  if (chords.length < 2) return null
+  const parsed = chords.map((chord) => parseChordSymbol(chord.symbol, chord.bass ?? undefined))
+  if (parsed.some((chord) => !chord || chord.bassPc !== chord.rootPc)) return null
+  const first = parsed[0]!
+  const common = first.tones.map((tone) => tone.pitchClass).filter((pitchClass) =>
+    parsed.every((chord) => chord && [...chord.tones, ...chord.tensions].some((tone) => tone.pitchClass === pitchClass)))
+  return common.find((pitchClass) => pitchClass === first.bassPc)
+    ?? common.find((pitchClass) => pitchClass !== first.rootPc)
+    ?? null
 }
 
 function quietPadVoicing(
@@ -984,6 +1017,9 @@ function generateTonalTrack(
   }
   if (trackId === "syn-bass") {
     const strategy = section.bassStrategy ?? "melodic-pulse"
+    const bassPedal = strategy === "sustain" && ["intro", "breakdown", "bridge", "reprise", "outro"].includes(section.semanticRole ?? "")
+      ? sharedBassPedalPc(sectionChords)
+      : null
     const patterns: Record<NonNullable<ArrangementSectionPlan["bassStrategy"]>, number[]> = {
       sustain: [0],
       "melodic-pulse": [0, 2.5],
@@ -998,20 +1034,31 @@ function generateTonalTrack(
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
+        const barStart = start + bar * beatsPerBar
+        const barEnd = Math.min(start + length, barStart + beatsPerBar)
+        const leadOccupancy = melody.reduce((sum, lead) => sum + Math.max(0,
+          Math.min(barEnd, lead.startBeat + lead.durationBeats) - Math.max(barStart, lead.startBeat)), 0)
+          / Math.max(0.01, barEnd - barStart)
         const chord = chordAtBeat(sectionChords, localBeat)
         const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
         if (!parsed) return
-        const rootPitch = midiForPc(parsed.bassPc, 39)
+        const rootPitch = midiForPc(bassPedal ?? parsed.bassPc, 39)
         const nextBeat = Math.min(length - 0.01, localBeat + Math.max(0.25, beatsPerBar - offsetInBar))
         const nextChord = chordAtBeat(sectionChords, nextBeat)
         const nextParsed = nextChord ? parseChordSymbol(nextChord.symbol, nextChord.bass ?? undefined) : null
+        // 歌が密な小節ではBassの補助音を引く。次コードへの明確な接近音だけは残せる。
+        const isApproach = strategy === "approach-led" && hitIndex === offsets.length - 1 && nextParsed && nextChord?.id !== chord?.id
+        if (hitIndex > 0 && leadOccupancy >= 0.72 && !isApproach) return
+        if (hitIndex > 0 && melody.some((lead) => Math.abs(lead.startBeat - start - localBeat) <= 0.12)) return
         let pitch = rootPitch
         let character: ArrangementCandidateCharacter = "safe"
-        let reason = "コードの重心を保ちながら、4小節周期の独立したBass lineを作る"
+        let reason = bassPedal === null
+          ? "コードの重心を保ちながら、4小節周期の独立したBass lineを作る"
+          : "共通音を低音に保持し、和声の見え方だけを静かに変える"
         if (strategy === "octave-drive" && (hitIndex + cycleBar) % 3 === 2) pitch += 12
         else if (strategy === "melodic-pulse" && hitIndex === 1) pitch = midiForPc(parsed.tones[2]?.pitchClass ?? parsed.rootPc, 43)
         else if (strategy === "syncopated" && hitIndex === offsets.length - 1) pitch = midiForPc(parsed.tones[1]?.pitchClass ?? parsed.rootPc, 40)
-        else if (strategy === "approach-led" && hitIndex === offsets.length - 1 && nextParsed && nextChord?.id !== chord?.id) {
+        else if (isApproach && nextParsed) {
           const target = midiForPc(nextParsed.bassPc, 39)
           pitch = target + ((bar + revision) % 2 === 0 ? -1 : 2)
           character = "edge"
@@ -1143,6 +1190,7 @@ function generateTrack(
         length,
         beatsPerBar,
         revision,
+        material.lead,
         plan.directive?.soundInstruction,
         plan.directive?.sectionId,
       )
@@ -1264,6 +1312,18 @@ export function reviewGeneratedArrangement(
       : 0), 0)
     : 0
   const melodyCollisionCount = project ? countMelodyCollisions(project, arrangement.tracks) : 0
+  const leadAttacks = project ? buildSongPlaybackMaterial(project).lead.map((note) => note.startBeat) : []
+  const rhythmLeadAttackConflictCount = arrangement.tracks.reduce((sum, track) => {
+    if (!["dr-kick", "dr-field-drum", "dr-low-tom", "dr-high-tom"].includes(track.id)) return sum
+    return sum + track.notes.filter((note) => {
+      if (note.reason.startsWith("指定を実音化")) return false
+      const source = project?.sections.find((section) => section.id === note.sectionId)
+      if (!source) return false
+      const barOffset = ((note.startBeat - sectionOffset(source.startBar, beatsPerBar)) % beatsPerBar + beatsPerBar) % beatsPerBar
+      if (track.id === "dr-kick" && barOffset < 0.08) return false
+      return leadAttacks.some((beat) => Math.abs(beat - note.startBeat) <= 0.12)
+    }).length
+  }, 0)
   const positiveCounts = sectionNoteCounts.filter((count) => count > 0)
   const densityContrastRatio = positiveCounts.length > 1
     ? Math.max(...positiveCounts) / Math.max(1, Math.min(...positiveCounts))
@@ -1278,6 +1338,7 @@ export function reviewGeneratedArrangement(
   if (arrangement.plan.sections.length >= 4 && densityContrastRatio < 1.8) recommendations.push("Section間の実音密度差を増やす")
   if (harmonicViolationCount > 0) recommendations.push("Safeパートのコード外音を解決可能な音へ修正する")
   if (melodyCollisionCount > 0) recommendations.push("主旋律と同音域で接触する補助声部を整理する")
+  if (rhythmLeadAttackConflictCount > 0) recommendations.push("主旋律のアタックに重なるKick/Fillを引く")
   if (arrangement.plan.sections.length >= 4 && energyDensityCorrelation < 0.2) recommendations.push("Energy Curveと実際の発音密度を一致させる")
   const score = Math.max(0, Math.min(100,
     24
@@ -1293,7 +1354,8 @@ export function reviewGeneratedArrangement(
     - Math.max(0, averageActiveRoleCount - 8) * 1.8
     - Math.max(0, generatedNotesPerBeat - 7) * 1.5
     - Math.min(28, harmonicViolationCount * 7)
-    - Math.min(20, melodyCollisionCount * 2),
+    - Math.min(20, melodyCollisionCount * 2)
+    - Math.min(12, rhythmLeadAttackConflictCount * 1.5),
   ))
   return {
     score,
@@ -1311,6 +1373,7 @@ export function reviewGeneratedArrangement(
       densityContrastRatio,
       harmonicViolationCount,
       melodyCollisionCount,
+      rhythmLeadAttackConflictCount,
       energyDensityCorrelation,
       averageActiveRoleCount,
       generatedNotesPerBeat,

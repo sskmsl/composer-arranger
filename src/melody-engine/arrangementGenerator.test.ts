@@ -249,6 +249,75 @@ describe("Arrangement Generator", () => {
     expect(after.score).toBeLessThan(before.score)
   })
 
+  it("Kick/Fillは主旋律アタックを避け、拍頭の土台は保つ", () => {
+    const input = project()
+    const result = generateFullSongArrangement(input, { seed: 44 })
+    const attacks = input.importedArrangement!.tracks[0].notes.map((note) => note[0])
+    const drums = result.tracks.filter((track) => ["dr-kick", "dr-field-drum", "dr-low-tom", "dr-high-tom"].includes(track.id))
+    const secondary = drums.flatMap((track) => track.notes.filter((note) => {
+      const source = input.sections.find((section) => section.id === note.sectionId)!
+      return track.id !== "dr-kick" || (note.startBeat - (source.startBar - 1) * 4) % 4 !== 0
+    }))
+    expect(secondary.every((note) => attacks.every((beat) => Math.abs(beat - note.startBeat) > 0.12))).toBe(true)
+    expect(result.tracks.find((track) => track.id === "dr-kick")!.notes.some((note) => note.sectionId === "chorus-1")).toBe(true)
+    expect(result.quality!.metrics.rhythmLeadAttackConflictCount).toBe(0)
+  })
+
+  it("歌が密な小節ではBass補助音とHatを引き、ルートの重心を残す", () => {
+    const sparse = project()
+    const dense = project()
+    const verseStart = (dense.sections.find((section) => section.id === "verse")!.startBar - 1) * 4
+    dense.importedArrangement!.tracks[0].notes = dense.importedArrangement!.tracks[0].notes
+      .filter((note) => note[0] < verseStart || note[0] >= verseStart + 16)
+      .concat(Array.from({ length: 16 }, (_, index) => [verseStart + index, 1, 69 + index % 3, 82, 0] as [number, number, number, number, number]))
+    const directive = { intention: "旋律の呼吸を守る", character: "rhythmic" as const }
+    const before = generateFullSongArrangement(sparse, { seed: 44, directive })
+    const after = generateFullSongArrangement(dense, { seed: 44, directive })
+    const notesFor = (result: typeof before, trackId: string) => result.tracks.find((track) => track.id === trackId)?.notes.filter((note) => note.sectionId === "verse") ?? []
+    expect(notesFor(after, "syn-bass").length).toBeLessThan(notesFor(before, "syn-bass").length)
+    expect(notesFor(after, "syn-bass")).toHaveLength(4)
+    expect(notesFor(after, "dr-closed-hat").length).toBeLessThan(notesFor(before, "dr-closed-hat").length)
+  })
+
+  it("疎なSectionでは共通音の低音ペダルで和声を変え、明示分数ベースを優先する", () => {
+    const input = project()
+    const result = generateFullSongArrangement(input, { seed: 44 })
+    expect(result.plan.sections.find((section) => section.sectionId === "intro")!.bassStrategy).toBe("sustain")
+    const introBass = result.tracks.find((track) => track.id === "syn-bass")!.notes.filter((note) => note.sectionId === "intro")
+    expect(introBass.length).toBeGreaterThan(0)
+    expect(introBass.every((note) => note.pitch % 12 === 4)).toBe(true)
+    input.chords.filter((chord) => chord.sectionId === "intro").forEach((chord) => { chord.bass = "C" })
+    const withExplicitBass = generateFullSongArrangement(input, { seed: 44 })
+    const directedBass = withExplicitBass.tracks.find((track) => track.id === "syn-bass")!.notes.filter((note) => note.sectionId === "intro")
+    expect(directedBass.length).toBeGreaterThan(0)
+    expect(directedBass.every((note) => note.pitch % 12 === 0)).toBe(true)
+  })
+
+  it("同じ境界にPhraseとDecorationを重ねず、明示的な音色指定は尊重する", () => {
+    const input = project()
+    const analysis = analyzeFullSongArrangement(input)
+    const directive = { sectionId: "intro", intention: "境界を一箇所だけ変える", character: "dark-experimental" as const }
+    const plan = buildFullSongArrangementPlan(input, analysis, 44, "", directive, "motif-led")
+    const intro = plan.sections.find((section) => section.sectionId === "intro")!
+    expect(intro.activeRoles).toContain("syn-transition-phrase")
+    expect(intro.activeRoles).not.toContain("syn-high-glass")
+    expect(intro.selectedDecorationCharacter).toBe("silence")
+    const explicit = buildFullSongArrangementPlan(input, analysis, 44, "", { ...directive, add: ["syn-high-glass"] }, "motif-led")
+    expect(explicit.sections.find((section) => section.sectionId === "intro")!.activeRoles).toContain("syn-high-glass")
+  })
+
+  it("候補評価は主旋律に重なる余分なKickを減点する", () => {
+    const input = project()
+    const result = generateFullSongArrangement(input, { seed: 44 })
+    const before = reviewGeneratedArrangement(result, input)
+    const kick = result.tracks.find((track) => track.id === "dr-kick")!
+    const source = kick.notes.find((note) => note.sectionId === "verse")!
+    kick.notes.push({ ...source, id: "unneeded-kick", startBeat: 18 })
+    const after = reviewGeneratedArrangement(result, input)
+    expect(after.metrics.rhythmLeadAttackConflictCount).toBe(before.metrics.rhythmLeadAttackConflictCount + 1)
+    expect(after.score).toBeLessThan(before.score)
+  })
+
   it("必要な役割だけを固定名の独立トラックとして生成する", () => {
     const result = generateFullSongArrangement(project(), { seed: 9 })
     const names = result.tracks.map((track) => track.name)

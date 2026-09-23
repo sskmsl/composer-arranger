@@ -88,6 +88,24 @@ describe("Issue #63 / Auto Content quality and diversity", () => {
     ] }, context)
     expect(expressive.harmonicInterest).toBeGreaterThan(misplaced.harmonicInterest)
   })
+  it("和音境界の保持は共通音か近接解決だけを評価し、露出した未解決音を抑える", () => {
+    const localChords = parseChordInputText("Cmaj7 | F", "s1", 4, "boundary")
+    const base = {
+      content: "melody" as const,
+      plan: plan("melody", { chordBoundaryResponse: "hold-through" }),
+      features: features("melody"),
+      problems: [],
+    }
+    const context = { sectionRole: "verse" as const, songProfile: "dark-romantic" as const, chords: localChords, totalBeats: 8 }
+    const note = (pitch: number, id = "hold") => ({ id, startBeat: 3.5, durationBeats: 1, pitch, velocity: 80, locks: [] })
+    const exposed = evaluateContentQuality({ ...base, notes: [note(71)] }, context)
+    const common = evaluateContentQuality({ ...base, notes: [note(72)] }, context)
+    const resolved = evaluateContentQuality({ ...base, notes: [note(71), {
+      id: "resolve", startBeat: 4.5, durationBeats: 0.5, pitch: 69, velocity: 75, locks: [],
+    }] }, context)
+    expect(common.harmonicInterest).toBeGreaterThan(exposed.harmonicInterest)
+    expect(resolved.harmonicInterest).toBeGreaterThan(exposed.harmonicInterest)
+  })
   it("9候補を評価し、品質下限を満たす3案へ選抜する", () => {
     const result = generateSectionContent({
       chords,

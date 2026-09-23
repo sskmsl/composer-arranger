@@ -90,13 +90,27 @@ function harmonicInterest(
   }
   const colorUse = colorCount / sorted.length
   const unresolvedUse = unresolvedCount / sorted.length
-  const heldAcrossBoundary = candidate.notes.filter((note) =>
-    chords.slice(1).some(
-      (chord) =>
-        note.startBeat < chord.startBeat &&
-        note.startBeat + note.durationBeats > chord.startBeat,
-    ),
-  ).length
+  let meaningfulHoldCount = 0
+  let exposedHoldCount = 0
+  for (const [index, note] of sorted.entries()) {
+    for (const nextChord of chords.slice(1)) {
+      if (note.startBeat >= nextChord.startBeat || note.startBeat + note.durationBeats <= nextChord.startBeat) continue
+      const parsed = parseChordSymbol(nextChord.symbol, nextChord.bass ?? undefined)
+      if (!parsed) continue
+      const notePc = ((note.pitch % 12) + 12) % 12
+      const staysConsonant = isChordTone(parsed, notePc) || isTensionTone(parsed, notePc)
+      const resolution = sorted[index + 1]
+      const resolvesByStep = resolution
+        && resolution.startBeat >= nextChord.startBeat
+        && resolution.startBeat - (note.startBeat + note.durationBeats) <= 1
+        && Math.abs(resolution.pitch - note.pitch) > 0
+        && Math.abs(resolution.pitch - note.pitch) <= 2
+        && (isChordTone(parsed, ((resolution.pitch % 12) + 12) % 12)
+          || isTensionTone(parsed, ((resolution.pitch % 12) + 12) % 12))
+      if (staysConsonant || resolvesByStep) meaningfulHoldCount++
+      else exposedHoldCount++
+    }
+  }
   const boundaryValue =
     candidate.plan.chordBoundaryResponse === "hold-through" ||
     candidate.plan.chordBoundaryResponse === "anticipate"
@@ -104,7 +118,7 @@ function harmonicInterest(
       : 4
   return clampScore(
     66 + Math.min(colorUse, 0.22) * 45 - Math.max(0, colorUse - 0.38) * 30 -
-    unresolvedUse * 25 + Math.min(10, heldAcrossBoundary * 3) + boundaryValue,
+    unresolvedUse * 25 + Math.min(10, meaningfulHoldCount * 3) - Math.min(12, exposedHoldCount * 6) + boundaryValue,
   )
 }
 

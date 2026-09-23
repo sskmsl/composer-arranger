@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import type { MelodyVariant } from "@/core/melody"
 import { buildAiPartnerOrchestrationPlan } from "./aiPartnerOrchestrator"
+import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 
 function project() {
   const value = createEmptyProject("AI Orchestrator")
@@ -106,5 +107,16 @@ describe("AI Partner orchestration plan", () => {
     const plan = buildAiPartnerOrchestrationPlan(value, "verse")
     expect(`${plan.nextAction?.sectionId}:${plan.nextAction?.generator}`).not.toBe("verse:counter")
     expect(plan.feedbackSummary).toContain("Reject 1件")
+  })
+
+  it("既存アレンジが埋まっている時は漠然とした盛り上げ依頼に追加せず、引く音色を示す", () => {
+    const value = project()
+    value.arrangementSettings.maximumParts = 4
+    value.arrangementDirectorWorkspace!.brief = "もう少し盛り上げたい、何か足したい"
+    value.fullSongArrangement = generateFullSongArrangement(value, { seed: 44 })
+    const plan = buildAiPartnerOrchestrationPlan(value, "verse")
+    expect(plan.nextAction).toBeNull()
+    expect(plan.nextActionReason).toContain("ミュート")
+    expect(plan.nextActionReason).toContain("主旋律")
   })
 })
