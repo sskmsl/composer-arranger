@@ -375,6 +375,7 @@ export function growSegments(
   includeFirst = true,
   developmentStrategy?: CandidateMelodyDNA["developmentStrategy"],
   firstMotifBreathBeats = 0,
+  singableHook = false,
 ): Segment[] {
   const segments: Segment[] = []
   let cursor = startCursor
@@ -408,6 +409,7 @@ export function growSegments(
       isAnswerPhrase && segments.length === 0,
       developmentStrategy,
       segments.length,
+      singableHook,
     )
     const dev = applyDevelopmentOp(op, { events: firstEvents, pitches: firstPitches }, rng)
     if (!pushClipped(dev.events, dev.pitches)) break
@@ -460,6 +462,7 @@ export function assemblePhrase(
     true,
     candidateDNA?.developmentStrategy,
     firstMotifBreathBeats,
+    reserveClimaxForSection,
   )
 
   const notes: MelodyNote[] = []

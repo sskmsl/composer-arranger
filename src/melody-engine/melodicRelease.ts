@@ -1,4 +1,4 @@
-import type { CandidateMelodyDNA, MelodyGeneratorProfile, MelodyNote } from "@/core/melody"
+import type { CandidateMelodyDNA, MelodyGeneratorProfile, MelodyNote, PhrasePlan } from "@/core/melody"
 import type { SectionRole } from "@/core/section"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 
@@ -14,6 +14,7 @@ export function shapeMelodicRelease(
   profile: MelodyGeneratorProfile = "standard",
   sectionRole?: SectionRole,
   dna?: CandidateMelodyDNA,
+  plans?: PhrasePlan[],
 ): MelodyNote[] {
   if (
     totalBeats < 24 ||
@@ -28,12 +29,17 @@ export function shapeMelodicRelease(
   const finalChord = chordAtBeat(harmonicMap, totalBeats - 0.01)
   if (!finalChord || totalBeats - finalChord.chord.startBeat < 2) return source
   const finalChordStart = finalChord.chord.startBeat
+  // 終盤を間引く場合も、A/Bそれぞれの再登場部分はリズムの目印として残す。
+  const hookHeadIds = new Set((plans ?? []).flatMap(plan =>
+    notes.filter(note => note.startBeat >= plan.phraseStartBeat &&
+      note.startBeat < plan.phraseStartBeat + plan.phraseLengthBeats &&
+      note.startBeat < finalChordStart).slice(0, 3).map(note => note.id)))
   const tailStart = Math.max(0, totalBeats - 16)
   const tail = notes.filter(note => note.startBeat >= tailStart)
   const landingNotes = tail.filter(note => note.startBeat >= finalChordStart)
   const resolutionTargets = tail.flatMap(note => note.plannedResolution ? [note.plannedResolution.targetBeat] : [])
   const isProtected = (note: MelodyNote): boolean =>
-    note.locks.length > 0 || Boolean(note.plannedResolution) ||
+    note.locks.length > 0 || hookHeadIds.has(note.id) || Boolean(note.plannedResolution) ||
     resolutionTargets.some(beat => Math.abs(beat - note.startBeat) < 0.01)
   if (landingNotes.length < 2 || landingNotes.some(isProtected)) return source
 

@@ -5,6 +5,7 @@ import type {
   MelodyOpeningPlan,
   PhraseContour,
 } from "@/core/melody"
+import type { SectionRole } from "@/core/section"
 import type { SeededRandom } from "@/core/rng"
 import { allUsablePitchClasses, chordTonePitchClasses } from "@/core/chord"
 import { pitchClass } from "@/core/note"
@@ -134,6 +135,7 @@ export function planCandidateMelodyDNA(
   candidatePoolIndex: number,
   endTensionBias?: number,
   composerRules?: ResolvedComposerRules,
+  sectionRole?: SectionRole,
 ): CandidateMelodyDNA {
   const prototypes = PROTOTYPES[profile]
   const rotation = rng.intBetween(0, prototypes.length - 1)
@@ -187,12 +189,21 @@ export function planCandidateMelodyDNA(
       ? ordered[(candidatePoolIndex + rotation) % Math.min(2, ordered.length)]
       : ordered[(candidatePoolIndex + rotation) % ordered.length]
   const jitter = (rng.next() - 0.5) * 0.06
+  // 歌のサビでは対照的なリズム頂点の案も残しつつ、最高音の提示を
+  // 冒頭1/3から後半へ送る。独立した新文法は作らない。
+  const climaxPosition =
+    (profile === "standard" || profile === "cinematic") &&
+    (sectionRole === "chorus" || sectionRole === "grand-chorus") &&
+    source.climaxPlan.position === "early"
+      ? "middle"
+      : source.climaxPlan.position
   return {
     ...source,
     endingStrategy: resolveEndingStrategy(rng, source.endingStrategy, endTensionBias),
     climaxPlan: {
       ...source.climaxPlan,
-      targetFraction: clamp(CLIMAX_FRACTION[source.climaxPlan.position] + jitter, 0.2, 0.9),
+      position: climaxPosition,
+      targetFraction: clamp(CLIMAX_FRACTION[climaxPosition] + jitter, 0.2, 0.9),
     },
   }
 }

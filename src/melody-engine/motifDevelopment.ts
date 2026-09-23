@@ -114,6 +114,7 @@ export function weightedDevelopmentOp(
   isAnswerSlot: boolean,
   strategy?: MotifDevelopmentStrategy,
   segmentIndex = 0,
+  singableHook = false,
 ): DevelopmentOp {
   if (isAnswerSlot && rng.chance(0.6)) return "answerPhrase"
   if (strategy === "delayed-return" && segmentIndex >= 2 && rng.chance(0.65)) return "repeat"
@@ -136,6 +137,15 @@ export function weightedDevelopmentOp(
   for (const op of preferred[strategy ?? "sequence"] ?? []) {
     const index = ops.indexOf(op)
     if (index >= 0) weights[index] *= 2.4
+  }
+  if (singableHook) {
+    // 短い核の同一性を優先する。全音程の拡大や反転は、歌の応答では
+    // 別の素材に聞こえやすいので控えめにし、反復と小さな移高を残す。
+    weights[0] *= 1.65
+    weights[1] *= 1.25
+    weights[3] *= 0.25
+    weights[4] *= 0.55
+    weights[5] *= 0.35
   }
   return rng.weightedPick(ops, weights)
 }

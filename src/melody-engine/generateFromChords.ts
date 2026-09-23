@@ -62,7 +62,7 @@ import {
   planCandidateMelodyDNA,
   rangeForPhrase,
 } from "./candidateMelodyDNA"
-import { applyMelodicArrival } from "./melodicArrival"
+import { applyMelodicArrival, placeExpressiveChromaticTurn } from "./melodicArrival"
 import { shapeMelodicRelease } from "./melodicRelease"
 import { shapeGrowingMelodyDynamics } from "./melodicDynamics"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
@@ -216,6 +216,7 @@ function buildCandidate(
     generatorProfile,
     input.sectionRole,
     candidateMelodyDNA,
+    plans,
   )
   const dynamicNotes = shapeGrowingMelodyDynamics(
     releasedNotes,
@@ -225,9 +226,16 @@ function buildCandidate(
     input.drama,
     candidateMelodyDNA,
   )
+  const expressiveNotes = placeExpressiveChromaticTurn(
+    dynamicNotes,
+    harmonicMap,
+    input.range,
+    input.totalBeats,
+    generatorProfile,
+  )
   const finalNotes = enforceHarmonicIntegrity(
     reconcileFinalToneRoles(
-      dynamicNotes,
+      expressiveNotes,
       harmonicMap,
       input.range,
     ),
@@ -237,7 +245,7 @@ function buildCandidate(
   ).notes
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
-  const score = scoreCandidate(features, params, generatorProfile)
+  const score = scoreCandidate(features, params, generatorProfile, finalNotes.length / Math.max(1, input.totalBeats))
   const signature = buildSignature(finalNotes, finalPlans[0]?.contour ?? "wave")
 
   return {
@@ -576,6 +584,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         candidatePoolIndex,
         baseParams.endTensionBias,
         input.composerRules,
+        input.sectionRole,
       )
       const techniqueFitScore = candidateTechniqueFitScore(
         candidateMelodyDNA,

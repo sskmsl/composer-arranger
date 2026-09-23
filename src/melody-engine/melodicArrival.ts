@@ -1,5 +1,5 @@
 import type { MelodyGeneratorProfile, MelodyNote } from "@/core/melody"
-import { chordTonePitchClasses } from "@/core/chord"
+import { chordTonePitchClasses, isChordTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
 import type { Drama, RangeSetting } from "./generationParams"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
@@ -82,5 +82,63 @@ export function applyMelodicArrival(
   }
   peak.velocity = Math.max(peak.velocity, drama === "open" ? 98 : 92)
   after.velocity = Math.min(after.velocity, peak.velocity - 10)
+  return notes
+}
+
+/**
+ * 既存の音列から、頂点の少し前に一度だけ半音の「引っ掛かり」を作る。
+ * 次の和声音へ順次解決できる場所だけを選び、音数・リズム・短い核は変えない。
+ */
+export function placeExpressiveChromaticTurn(
+  source: MelodyNote[],
+  harmonicMap: HarmonicMapEntry[],
+  range: RangeSetting,
+  totalBeats: number,
+  profile: MelodyGeneratorProfile = "standard",
+): MelodyNote[] {
+  const notes = source.map(note => ({ ...note, plannedResolution: note.plannedResolution ? { ...note.plannedResolution } : undefined }))
+    .sort((a, b) => a.startBeat - b.startBeat)
+  if ((profile !== "standard" && profile !== "cinematic") || notes.length < 12 || totalBeats < 24) return notes
+  const peakIndex = notes.reduce((best, note, index) => note.pitch > notes[best].pitch ? index : best, 0)
+  const peakBeat = notes[peakIndex].startBeat
+  const windowStart = Math.max(totalBeats * 0.48, peakBeat - 10)
+  const windowEnd = Math.min(totalBeats * 0.78, peakBeat - 1)
+  if (windowEnd <= windowStart) return notes
+  // 既に同じ山への導入に意図した非和声音がある場合、毒を重ねない。
+  if (notes.some(note => note.plannedResolution && note.startBeat >= windowStart && note.startBeat <= windowEnd)) return notes
+
+  const choices: { index: number; pitch: number; cost: number }[] = []
+  for (let index = 4; index < Math.min(peakIndex - 1, notes.length - 2); index++) {
+    const previous = notes[index - 1]
+    const current = notes[index]
+    const next = notes[index + 1]
+    if (current.startBeat < windowStart || current.startBeat > windowEnd) continue
+    if (current.locks.length || next.locks.length || current.plannedResolution || next.plannedResolution) continue
+    if (current.plannedToneRole && current.plannedToneRole !== "chord-tone" && current.plannedToneRole !== "common-tone") continue
+    const delay = next.startBeat - current.startBeat
+    if (delay < 0.25 || delay > 2 || current.durationBeats > delay + 0.01) continue
+    const currentEntry = chordAtBeat(harmonicMap, current.startBeat)
+    const nextEntry = chordAtBeat(harmonicMap, next.startBeat)
+    if (!currentEntry || !nextEntry || !isChordTone(nextEntry.parsed, pitchClass(next.pitch))) continue
+    for (const pitch of [next.pitch - 1, next.pitch + 1]) {
+      if (pitch < range.low || pitch > range.high || isChordTone(currentEntry.parsed, pitchClass(pitch))) continue
+      if (Math.abs(pitch - current.pitch) > 2 || Math.abs(pitch - previous.pitch) > 5) continue
+      const cost = Math.abs(current.startBeat - (peakBeat - 4)) + Math.abs(pitch - current.pitch) * 0.8 +
+        (Math.abs(current.startBeat - Math.round(current.startBeat)) < 0.01 ? 0 : 0.4)
+      choices.push({ index, pitch, cost })
+    }
+  }
+  if (choices.length === 0) return notes
+  choices.sort((a, b) => a.cost - b.cost)
+  const selected = choices[0]
+  const current = notes[selected.index]
+  const next = notes[selected.index + 1]
+  current.pitch = selected.pitch
+  current.plannedToneRole = "appoggiatura"
+  current.plannedResolution = {
+    targetPitchClass: pitchClass(next.pitch),
+    targetBeat: next.startBeat,
+    maximumDelayBeats: next.startBeat - current.startBeat,
+  }
   return notes
 }

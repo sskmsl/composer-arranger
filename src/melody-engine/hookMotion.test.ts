@@ -52,5 +52,7 @@ describe("chorus hook motion", () => {
     const good = scoreCandidate(base, params, "standard")
     expect(scoreCandidate({ ...base, longestPitchRun: 9 }, params, "standard")).toBeLessThan(good)
     expect(scoreCandidate({ ...base, largeLeapRatio: 0.25 }, params, "standard")).toBeLessThan(good)
+    expect(scoreCandidate(base, params, "standard", 1.1)).toBeLessThan(scoreCandidate(base, params, "standard", 0.75))
+    expect(scoreCandidate({ ...base, leapRecoveryRatio: 0.2 }, params, "standard")).toBeLessThan(good)
   })
 })

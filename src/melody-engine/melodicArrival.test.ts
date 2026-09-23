@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { MelodyNote } from "@/core/melody"
-import { applyMelodicArrival } from "./melodicArrival"
+import { applyMelodicArrival, placeExpressiveChromaticTurn } from "./melodicArrival"
 import { buildHarmonicMap } from "./harmonicMap"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 import { SeededRandom } from "@/core/rng"
@@ -19,6 +19,26 @@ function fixture(): MelodyNote[] {
 }
 
 describe("melodic arrival", () => {
+  it("adds one late chromatic tension that resolves without adding notes or changing the hook", () => {
+    const longChords = [{ ...chords[0], durationBeats: 32 }]
+    const longMap = buildHarmonicMap(longChords)
+    const source: MelodyNote[] = Array.from({ length: 16 }, (_, i) => ({
+      id: `late-${i}`, pitch: i === 12 ? 79 : i % 4 === 0 ? 64 : 67,
+      startBeat: i * 2, durationBeats: 1.5, velocity: 80, locks: [],
+    }))
+    const shaped = placeExpressiveChromaticTurn(source, longMap, range, 32)
+    const final = enforceHarmonicIntegrity(shaped, longChords, range).notes
+    const changed = final.filter((note, i) => note.pitch !== source[i].pitch)
+    expect(changed).toHaveLength(1)
+    expect(final.map(note => [note.id, note.startBeat, note.durationBeats]))
+      .toEqual(source.map(note => [note.id, note.startBeat, note.durationBeats]))
+    expect(final.slice(0, 4).map(note => note.pitch)).toEqual(source.slice(0, 4).map(note => note.pitch))
+    const tension = changed[0]
+    const next = final[final.findIndex(note => note.id === tension.id) + 1]
+    expect(Math.abs(next.pitch - tension.pitch)).toBe(1)
+    expect(tension.plannedResolution?.targetBeat).toBe(next.startBeat)
+    expect(placeExpressiveChromaticTurn(final, longMap, range, 32)).toEqual(final)
+  })
   it("preserves the hook and ending while shaping a single existing peak", () => {
     const source = fixture()
     const snapshot = structuredClone(source)

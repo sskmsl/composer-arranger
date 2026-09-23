@@ -2,14 +2,15 @@ import type { MelodyFeatures, MelodyGeneratorProfile } from "@/core/melody"
 import type { GenerationParams } from "./generationParams"
 
 /** 9.6 Scoring: 内部評価のみに使用し、ユーザーへは総合点を出さない */
-export function scoreCandidate(features: MelodyFeatures, params: GenerationParams, profile: MelodyGeneratorProfile = "standard"): number {
+export function scoreCandidate(features: MelodyFeatures, params: GenerationParams, profile: MelodyGeneratorProfile = "standard", notesPerBeat?: number): number {
+  const vocalArc = profile === "standard" || profile === "cinematic"
   const motifUnity = 25 * clamp01(features.motifRepeatRatio)
 
   const leapPenalty = clamp01(features.avgLeap / 9)
   const singability = 10 * (1 - leapPenalty * 0.7)
 
   // Issue #64: 跳躍後の反行・段階進行による回収度合いをボイスリーディングの評価に加える
-  const voiceLeading = 10 * clamp01(features.leapRecoveryRatio)
+  const voiceLeading = (vocalArc ? 15 : 10) * clamp01(features.leapRecoveryRatio)
 
   const tensionFit = 1 - Math.min(1, Math.abs(features.tensionUsageRatio - params.tensionUsageTarget) / 0.4)
   const tensionAndResolution = 20 * clamp01(tensionFit)
@@ -26,7 +27,8 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   const restAndBreath = 10 * clamp01(restFit)
 
   const varietyScore = clamp01((features.maxLeap - features.avgLeap) / 8 + features.tensionUsageRatio)
-  const novelty = 10 * clamp01(varietyScore * (0.5 + params.noveltyWeight))
+  // 歌の候補では珍しい跳躍の量より、跳躍に行き先があることを重視する。
+  const novelty = (vocalArc ? 5 : 10) * clamp01(varietyScore * (0.5 + params.noveltyWeight))
 
   const baseScore = motifUnity + singability + voiceLeading + tensionAndResolution + sectionFit + restAndBreath + novelty
   // 反復主体のスタイルを減点せず、識別できる核の再登場を補助加点する。
@@ -37,11 +39,18 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   // Standardの歌メロで大跳躍が頻発する案は、珍しさより口ずさみやすさを優先する。
   const roughLeapPenalty = profile === "standard"
     ? 20 * clamp01(((features.largeLeapRatio ?? 0) - 0.08) / 0.14)
+    : profile === "cinematic"
+      ? 9 * clamp01(((features.largeLeapRatio ?? 0) - 0.12) / 0.16)
     : 0
   const staticRunPenalty = profile === "standard"
     ? 4 * Math.min(5, Math.max(0, (features.longestPitchRun ?? 0) - 4))
     : 0
-  return Math.max(0, baseScore + hookBonus - roughLeapPenalty - staticRunPenalty)
+  // 反復を密度で埋める候補より、短い核の後に歌う余地がある候補を選ぶ。
+  // 音数そのものは変更せず、同じ長さの候補間の順位にだけ使う。
+  const densityPenalty = profile === "standard" && notesPerBeat !== undefined
+    ? 10 * clamp01((notesPerBeat - 0.78) / 0.28)
+    : 0
+  return Math.max(0, baseScore + hookBonus - roughLeapPenalty - staticRunPenalty - densityPenalty)
 }
 
 function clamp01(v: number): number {

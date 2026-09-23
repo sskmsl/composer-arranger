@@ -53,6 +53,16 @@ function dimensionDiversity(dnas: CandidateMelodyDNA[]): number {
 }
 
 describe("Candidate Melody DNA planning", () => {
+  it("歌のサビでは最高音を冒頭1/3に置かず、他セクションの計画は保持する", () => {
+    for (const profile of ["standard", "cinematic"] as const) {
+      const chorus = Array.from({ length: 4 }, (_, i) =>
+        planCandidateMelodyDNA(new SeededRandom(9471), profile, i, undefined, undefined, "chorus"))
+      expect(chorus.every(dna => dna.climaxPlan.targetFraction > 0.5)).toBe(true)
+      const verse = Array.from({ length: 4 }, (_, i) =>
+        planCandidateMelodyDNA(new SeededRandom(9471), profile, i, undefined, undefined, "verse"))
+      expect(verse.some(dna => dna.climaxPlan.position === "early")).toBe(true)
+    }
+  })
   it.each(GENERATOR_PROFILES)("%sは候補プール先頭4件へProfile固有の異なるDNAを計画する", (profile) => {
     const rngSeed = 9471
     const dnas = Array.from({ length: 4 }, (_, index) =>
