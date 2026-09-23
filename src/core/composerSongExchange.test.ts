@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { parseChordSymbol } from "./chord"
 import {
+  CHORD_GENERATOR_STYLE_TO_PROFILE,
   COMPOSER_SONG_EXCHANGE_FORMAT,
   composerSongExchangeToProject,
   isComposerSongExchange,
@@ -85,8 +86,13 @@ describe("Composer Song Exchange v1 import", () => {
       key: "Am",
       tempo: 88,
       timeSignature: "4/4",
-      songProfile: "original-custom",
+      // Aメロ(romanticDark)の性格を曲全体へ、大サビ(finale)だけセクション別に上書き
+      songProfile: "dark-romantic",
     })
+    const grand = project.sections.find((section) => section.role === "grand-chorus")
+    expect(project.song.sectionProfileOverrides).toEqual([
+      { sectionId: grand?.id, songProfile: "cinematic-french-pop" },
+    ])
     expect(project.notes).toBe("静かな導入から大サビへ")
     expect(project.sections.map((section) => section.role)).toEqual([
       "verse",
@@ -230,5 +236,30 @@ describe("Composer Song Exchange v2 import(可変長のコード)", () => {
     expect(parseChordSymbol("Bbmaj7")?.rootPc).toBe(10)
     expect(parseChordSymbol("AmMaj7")?.tones.map((t) => t.interval)).toEqual([0, 3, 7, 11])
     expect(parseChordSymbol("Bm7b5")?.isDiminished).toBe(true)
+  })
+})
+
+describe("Chord Generatorのスタイル → Song Profile", () => {
+  it("Generatorの全18スタイルが、いずれかのProfileへ対応付いている", () => {
+    const generatorStyles = [
+      "ethereal", "romanticDark", "cinematic", "newWave", "sadcorePop", "ritual", "finale", "cool", "tripHop",
+      "neoclassical", "minimalism", "jChanson", "hiNRG", "dorian", "electronica", "slowcore", "frenchPop", "kayokyoku",
+    ]
+    for (const style of generatorStyles) {
+      expect(CHORD_GENERATOR_STYLE_TO_PROFILE[style], style).toBeDefined()
+    }
+  })
+
+  it("知らないスタイルだけの曲は Original Custom のまま始める", () => {
+    const raw = exchange()
+    const project = composerSongExchangeToProject({
+      ...raw,
+      sections: raw.sections.map((section) => ({
+        ...section,
+        sourceIntent: { style: "unknownStyle", mood: "melancholic", scores: {} },
+      })),
+    })
+    expect(project.song.songProfile).toBe("original-custom")
+    expect(project.song.sectionProfileOverrides).toEqual([])
   })
 })

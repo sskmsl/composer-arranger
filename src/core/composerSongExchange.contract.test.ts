@@ -49,4 +49,12 @@ describe("Composer Song Exchange 契約見本(Chord Generatorの書き出し)の
     const grandChords = project.chords.filter((c) => c.sectionId === project.sections[2].id)
     expect(grandChords.map((c) => c.durationBeats)).toEqual([4, 2, 2, 8])
   })
+
+  it("スタイルを Song Profile として引き継ぐ(歌謡曲→Dark Romantic、French Pop/Cinematic→Cinematic French Pop)", () => {
+    expect(project.song.songProfile).toBe("dark-romantic")
+    expect(project.song.sectionProfileOverrides.map((o) => o.songProfile)).toEqual([
+      "cinematic-french-pop",
+      "cinematic-french-pop",
+    ])
+  })
 })
