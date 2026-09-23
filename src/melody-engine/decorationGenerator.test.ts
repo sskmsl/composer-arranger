@@ -39,6 +39,27 @@ function hasRoleAppropriateLength(
 }
 
 describe("Issue #71 / Structure Driven Decoration Generator", () => {
+  it("主旋律がなくても、全候補を最後の1小節へ集めず楽節の区切りへ散らす", () => {
+    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | E7", "verse", 8, "c")
+    for (const sectionRole of ["verse", "chorus", "bridge"] as const) {
+      const candidates = generateDecorationCandidates(input({ sectionRole, chords, totalBeats: 32 }))
+      const placements = candidates.map((candidate) => candidate.decorationPlan?.placementBeat ?? -1)
+      // 以前は全10候補が28〜30拍目(最後の1小節)だった
+      expect(new Set(placements).size, `${sectionRole}: ${placements.join(",")}`).toBeGreaterThanOrEqual(5)
+      expect(placements.filter((beat) => beat < 24).length, `${sectionRole}: ${placements.join(",")}`).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it("主旋律がないOutroの終止の身振りは、セクションの末尾に置く", () => {
+    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | Am", "outro", 8, "c")
+    const candidates = generateDecorationCandidates(
+      input({ sectionRole: "outro", chords, totalBeats: 32, nextSectionRole: undefined, isLastSection: true }),
+    )
+    const endings = candidates.filter((candidate) => candidate.decorationPlan?.gestureRole === "ending")
+    expect(endings.length).toBeGreaterThan(0)
+    for (const candidate of endings) expect(candidate.decorationPlan!.placementBeat).toBeGreaterThanOrEqual(24)
+  })
+
   it("Active Melodyなしでも品質・多様性選抜した10候補を生成する", () => {
     const candidates = generateDecorationCandidates(input())
     expect(candidates).toHaveLength(10)

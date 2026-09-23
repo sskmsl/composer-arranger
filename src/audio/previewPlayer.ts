@@ -1,4 +1,5 @@
 import type { ChordEvent } from "@/core/project"
+import { createTempoMap, type TempoChange, type TempoMap } from "@/core/tempoMap"
 import type { MelodyNote } from "@/core/melody"
 import { parseChordSymbol } from "@/core/chord"
 import { midiToFreq } from "@/core/note"
@@ -64,6 +65,8 @@ export function previewLayersForMode(mode: PreviewMode): PreviewLayers {
 
 export interface PlayOptions {
   bpm: number
+  /** 途中のテンポの指定(beat は chords / melody と同じ位置の基準)。省略時は bpm 一定 */
+  tempoChanges?: TempoChange[]
   chords: ChordEvent[]
   melody: MelodyNote[]
   /** Issue #45: コードパッドとは独立したPattern伴奏。 */
@@ -135,6 +138,13 @@ class PreviewPlayer {
   private schedulerTimer: number | null = null
   private startTime = 0
   private secondsPerBeat = 0.5
+  /** テンポの変化を含む拍→秒の換算。tempoChanges がなければ bpm 一定 */
+  private tempoMap: TempoMap = createTempoMap(120)
+
+  /** from拍からto拍までの秒数(テンポの変化を反映) */
+  private span(from: number, to: number): number {
+    return this.tempoMap.seconds(to) - this.tempoMap.seconds(from)
+  }
   private playbackStartBeat = 0
 
   play(opts: PlayOptions): void {
@@ -152,6 +162,7 @@ class PreviewPlayer {
     master.connect(ctx.destination)
 
     this.secondsPerBeat = 60 / opts.bpm
+    this.tempoMap = createTempoMap(opts.bpm, opts.tempoChanges)
     const start = ctx.currentTime + 0.05
     this.startTime = start
     const rangeStart = opts.range?.startBeat ?? 0
@@ -176,8 +187,8 @@ class PreviewPlayer {
         if (eventEnd <= playbackStart || c.startBeat >= rangeEnd) continue
         const clippedStart = Math.max(c.startBeat, playbackStart)
         const clippedEnd = Math.min(eventEnd, rangeEnd)
-        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
-        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
+        const t0 = start + this.span(playbackStart, clippedStart)
+        const dur = this.span(clippedStart, clippedEnd)
         this.schedulePad(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -189,8 +200,8 @@ class PreviewPlayer {
         if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
         const clippedStart = Math.max(n.startBeat, playbackStart)
         const clippedEnd = Math.min(eventEnd, rangeEnd)
-        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
-        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
+        const t0 = start + this.span(playbackStart, clippedStart)
+        const dur = this.span(clippedStart, clippedEnd)
         this.scheduleLead(ctx, leadDestination, n.pitch, n.velocity, t0, dur, leadStyle)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -202,8 +213,8 @@ class PreviewPlayer {
         if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
         const clippedStart = Math.max(n.startBeat, playbackStart)
         const clippedEnd = Math.min(eventEnd, rangeEnd)
-        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
-        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
+        const t0 = start + this.span(playbackStart, clippedStart)
+        const dur = this.span(clippedStart, clippedEnd)
         this.scheduleLead(ctx, compressor, n.pitch, n.velocity, t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -215,8 +226,8 @@ class PreviewPlayer {
         if (eventEnd <= playbackStart || n.startBeat >= rangeEnd) continue
         const clippedStart = Math.max(n.startBeat, playbackStart)
         const clippedEnd = Math.min(eventEnd, rangeEnd)
-        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
-        const dur = (clippedEnd - clippedStart) * this.secondsPerBeat
+        const t0 = start + this.span(playbackStart, clippedStart)
+        const dur = this.span(clippedStart, clippedEnd)
         this.scheduleLead(ctx, compressor, n.pitch, Math.max(35, n.velocity - 8), t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -228,8 +239,8 @@ class PreviewPlayer {
         if (eventEnd <= playbackStart || note.startBeat >= rangeEnd) continue
         const clippedStart = Math.max(note.startBeat, playbackStart)
         const clippedEnd = Math.min(eventEnd, rangeEnd)
-        const t0 = start + (clippedStart - playbackStart) * this.secondsPerBeat
-        const dur = Math.max(0.04, (clippedEnd - clippedStart) * this.secondsPerBeat)
+        const t0 = start + this.span(playbackStart, clippedStart)
+        const dur = Math.max(0.04, this.span(clippedStart, clippedEnd))
         if (track.id.startsWith("dr-")) {
           this.schedulePercussion(ctx, compressor, track.id, note.velocity, t0, dur)
         } else {
@@ -244,7 +255,7 @@ class PreviewPlayer {
 
     if (Number.isFinite(rangeEnd)) totalBeats = Math.max(0, rangeEnd - playbackStart)
     const totalSeconds =
-      totalBeats * this.secondsPerBeat + previewTailSeconds(leadStyle)
+      this.span(playbackStart, playbackStart + totalBeats) + previewTailSeconds(leadStyle)
     this.endTimer = window.setTimeout(() => {
       if (opts.loop) {
         this.play({ ...opts, startBeat: rangeStart })
@@ -279,6 +290,7 @@ class PreviewPlayer {
     master.connect(ctx.destination)
 
     this.secondsPerBeat = 60 / opts.bpm
+    this.tempoMap = createTempoMap(opts.bpm, opts.tempoChanges)
     const playbackStart = Math.max(rangeStart, opts.startBeat ?? rangeStart)
     this.playbackStartBeat = playbackStart
     this.startTime = ctx.currentTime + 0.05
@@ -323,7 +335,7 @@ class PreviewPlayer {
     )
     this.schedulerTimer = window.setInterval(scheduleAhead, schedulerIntervalMs)
 
-    const totalSeconds = (rangeEnd - playbackStart) * this.secondsPerBeat + previewTailSeconds(leadStyle)
+    const totalSeconds = this.span(playbackStart, rangeEnd) + previewTailSeconds(leadStyle)
     this.endTimer = window.setTimeout(() => {
       this.clearScheduler()
       if (opts.loop) {
@@ -337,7 +349,8 @@ class PreviewPlayer {
 
   getElapsedBeats(): number {
     if (!this.ctx) return 0
-    return (this.ctx.currentTime - this.startTime) / this.secondsPerBeat
+    const elapsedSeconds = this.ctx.currentTime - this.startTime
+    return this.tempoMap.beatAt(this.tempoMap.seconds(this.playbackStartBeat) + elapsedSeconds) - this.playbackStartBeat
   }
 
   getCurrentBeat(): number {
@@ -392,8 +405,8 @@ class PreviewPlayer {
       const clippedStart = Math.max(eventStart, playbackStart)
       const clippedEnd = Math.min(eventEnd, rangeEnd)
       return {
-        t0: this.startTime + (clippedStart - playbackStart) * this.secondsPerBeat,
-        duration: Math.max(0.04, (clippedEnd - clippedStart) * this.secondsPerBeat),
+        t0: this.startTime + this.span(playbackStart, clippedStart),
+        duration: Math.max(0.04, this.span(clippedStart, clippedEnd)),
       }
     }
 

@@ -1,3 +1,4 @@
+import { songTempoChanges } from "@/core/tempoMap"
 import { voiceChord } from "@/audio/chordVoicing"
 import { parseChordSymbol } from "@/core/chord"
 import type { MelodyNote } from "@/core/melody"
@@ -301,6 +302,7 @@ export function buildLogicProductionPackage(
   const midi = buildSmf({
     name: `${project.title} Logic Production Package`,
     tempoBpm: project.song.tempo,
+    tempoChanges: songTempoChanges(project).map((change) => ({ tick: beatsToTicks(change.beat), bpm: change.bpm })),
     timeSignature: ts,
     markers: project.sections.map((section) => ({
       tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar),

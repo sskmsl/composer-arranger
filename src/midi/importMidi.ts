@@ -478,6 +478,29 @@ export function inferMidiKey(notes: ParsedMidiNote[]): MidiKeyInference {
   }
 }
 
+/**
+ * テンポが途中で変わるMIDIのとき、セクションごとのテンポ指定(セクション頭からの拍)。
+ * 並べ替えても崩れないよう、各セクションの頭で有効なテンポを0拍目に必ず置く。
+ * テンポが一定なら undefined(曲のテンポだけで足りる)。
+ */
+function sectionTempoChangesFromSong(
+  song: ParsedMidiSong,
+  window: SectionWindow,
+): { beat: number; bpm: number }[] | undefined {
+  const distinct = new Set(song.tempoChanges.map((change) => Math.round(change.bpm * 10) / 10))
+  if (distinct.size < 2) return undefined
+  const startTick = Math.round(window.startBeat * song.ppq)
+  const endTick = Math.round(window.endBeat * song.ppq)
+  const atStart = song.tempoChanges.filter((change) => change.tick <= startTick).at(-1)?.bpm ?? song.tempoChanges[0].bpm
+  const inside = song.tempoChanges
+    .filter((change) => change.tick > startTick && change.tick < endTick)
+    .map((change) => ({
+      beat: Number(((change.tick - startTick) / song.ppq).toFixed(4)),
+      bpm: Math.round(change.bpm * 10) / 10,
+    }))
+  return [{ beat: 0, bpm: Math.round(atStart * 10) / 10 }, ...inside]
+}
+
 /** その拍の時点で有効な調(転調を含むMIDIのみ)。調号が1つ以下なら null */
 function keyAtBeat(song: ParsedMidiSong, beat: number): string | null {
   if (song.keyChanges.length < 2) return null
@@ -1027,7 +1050,12 @@ export function createMidiProjectFromAnalysis(
     sections: windows.map((window) => {
       // 調号で転調が示されていれば、そのセクションだけの調として残す(曲の調と同じなら指定しない)
       const sectionKey = keyAtBeat(song, window.startBeat)
-      return sectionKey && sectionKey !== key ? { ...window.section, key: sectionKey } : window.section
+      const tempoChanges = sectionTempoChangesFromSong(song, window)
+      return {
+        ...window.section,
+        ...(sectionKey && sectionKey !== key ? { key: sectionKey } : {}),
+        ...(tempoChanges ? { tempoChanges } : {}),
+      }
     }),
     chords,
     melodyVariants: variants,

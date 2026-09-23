@@ -73,12 +73,16 @@ export interface SmfSong {
   keySignature?: { sharpsFlats: number; minor: boolean }
   /** 曲の途中の調号変更(転調したセクションの頭など) */
   keyChanges?: { tick: number; sharpsFlats: number; minor: boolean }[]
+  /** 曲の途中のテンポの変更(tick 0 の指定は tempoBpm より優先する) */
+  tempoChanges?: { tick: number; bpm: number }[]
   markers: MidiMarker[]
   tracks: SmfTrack[]
 }
 
 export function buildSmf(song: SmfSong): Uint8Array {
-  const microsecPerQuarter = Math.round(60_000_000 / song.tempoBpm)
+  // 曲頭(tick 0)にテンポの指定があれば、それを曲頭のテンポにする
+  const openingBpm = song.tempoChanges?.find((t) => t.tick === 0)?.bpm ?? song.tempoBpm
+  const microsecPerQuarter = Math.round(60_000_000 / openingBpm)
   const denomPow2 = Math.round(Math.log2(song.timeSignature.denominator))
   const conductor: AbsEvent[] = [
     { tick: 0, order: 0, data: metaEvent(0x03, textBytes(song.name)) },
@@ -102,6 +106,10 @@ export function buildSmf(song: SmfSong): Uint8Array {
           ]),
         }]
       : []),
+    ...(song.tempoChanges ?? []).filter((t) => t.tick > 0 && t.bpm > 0).map((t) => {
+      const micros = Math.round(60_000_000 / t.bpm)
+      return { tick: t.tick, order: 0, data: metaEvent(0x51, [(micros >>> 16) & 0xff, (micros >>> 8) & 0xff, micros & 0xff]) }
+    }),
     ...(song.keyChanges ?? []).map((k) => ({
       tick: k.tick,
       order: 0,

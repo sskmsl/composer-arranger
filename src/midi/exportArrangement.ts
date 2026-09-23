@@ -1,3 +1,4 @@
+import { songTempoChanges } from "@/core/tempoMap"
 import type { FullSongArrangement, GeneratedArrangementTrack } from "@/core/arrangementGeneration"
 import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
@@ -115,6 +116,10 @@ function song(
   return buildSmf({
     name: `${project.title} Arrangement`,
     tempoBpm: project.song.tempo,
+    tempoChanges: songTempoChanges(project).map((change) => ({
+      tick: Math.round(change.beat * TICKS_PER_QUARTER),
+      bpm: change.bpm,
+    })),
     timeSignature,
     markers: project.sections.map((section) => ({
       tick: Math.round((section.startBar - 1) * timeSignature.beatsPerBar * TICKS_PER_QUARTER),

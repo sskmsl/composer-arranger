@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { sectionTempoChanges } from "@/core/tempoMap"
 import { useProjectStore } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
 import { previewLayersForMode, previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
@@ -97,6 +98,7 @@ export function BottomBar() {
     // セクション未分割の長尺MIDIも、8小節で切らず最後まで連続再生する。
     previewPlayer.playContinuous({
       bpm: project.song.tempo,
+      tempoChanges: selectedSectionId ? sectionTempoChanges(project, selectedSectionId) : undefined,
       chords,
       melody: leadNotes,
       accompaniment: accompanimentPatternNotes,
@@ -255,7 +257,7 @@ export function BottomBar() {
       {totalBeats > 0 && (
         <div className="order-last flex w-full basis-full items-center gap-2 pb-1 text-[11px] text-body-muted sm:pb-2">
           <span className="w-16 shrink-0 tabular-nums">
-            {formatPlaybackTime(playbackBeat, project.song.tempo)}
+            {formatPlaybackTime(playbackBeat, project.song.tempo, selectedSectionId ? sectionTempoChanges(project, selectedSectionId) : undefined)}
           </span>
           <input
             type="range"

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { exportSongMidi } from "./exportMelody"
 import { buildSmf, TICKS_PER_QUARTER } from "./smf"
 import {
   analyzeMidiImport,
@@ -351,6 +352,29 @@ describe("MIDI project import", () => {
     expect(analysis.tempo).toBe(120)
     expect(analysis.timeSignature).toBe("4/4")
     expect(analysis.warnings.some((warning) => warning.includes("最も長く続くテンポ(120 BPM)"))).toBe(true)
+  })
+
+  it("テンポの変化をセクションごとに残し、曲全体のMIDI書き出しで元に戻る", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Tempo Round Trip",
+      tempoBpm: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [{ tick: 0, text: "Verse" }, { tick: beat * 16, text: "Outro" }],
+      tracks: [{ name: "Lead Melody", notes: [{ pitch: 69, start: 0, duration: beat * 32, velocity: 80, channel: 0 }] }],
+    })
+    const micros = 1_000_000 // 60 BPM
+    // 差し込む位置は直前のイベント(16拍目の Outro マーカー)からの差分なので、8拍後 = 曲頭から24拍目
+    const changed = insertConductorMeta(bytes, beat * 8, 0x51, [(micros >> 16) & 0xff, (micros >> 8) & 0xff, micros & 0xff])
+    const { project } = createMidiProjectFromAnalysis(analyzeMidiImport(changed, "tempo-round-trip.mid"), { reviewConfirmed: true })
+    const outro = project.sections.find((section) => section.name === "Outro")
+    expect(outro?.tempoChanges).toEqual([{ beat: 0, bpm: 120 }, { beat: 8, bpm: 60 }])
+
+    const reparsed = parseMidi(exportSongMidi(project))
+    expect(reparsed.tempoChanges.map((change) => ({ beat: change.tick / reparsed.ppq, bpm: Math.round(change.bpm) }))).toEqual([
+      { beat: 0, bpm: 120 },
+      { beat: 24, bpm: 60 },
+    ])
   })
 
   it("7thが鳴っていない区間は三和音のまま推定し、フラット系のキーではフラットで綴る", () => {
