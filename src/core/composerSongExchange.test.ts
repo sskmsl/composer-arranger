@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { parseChordSymbol } from "./chord"
 import {
   COMPOSER_SONG_EXCHANGE_FORMAT,
   composerSongExchangeToProject,
@@ -113,10 +114,117 @@ describe("Composer Song Exchange v1 import", () => {
 
   it("未対応versionと空Sectionを拒否する", () => {
     expect(() =>
-      composerSongExchangeToProject({ ...exchange(), version: 2 }),
+      composerSongExchangeToProject({ ...exchange(), version: 3 }),
     ).toThrow("未対応")
     expect(() =>
       composerSongExchangeToProject({ ...exchange(), sections: [] }),
     ).toThrow("セクション")
+  })
+})
+
+/** Chord Generatorが現在書き出す形(v2): 和声のリズムが可変で、1小節に2コード入ることがある */
+function exchangeV2() {
+  return {
+    ...exchange(),
+    version: 2,
+    sections: [
+      {
+        sourceId: "verse-1",
+        name: "Aメロ",
+        role: "verse",
+        key: "C",
+        repeatCount: 2,
+        chords: [
+          { symbol: "Cmaj7", startBeat: 0, durationBeats: 4 },
+          { symbol: "A7", startBeat: 4, durationBeats: 4 },
+          { symbol: "Dm7", startBeat: 8, durationBeats: 2 },
+          { symbol: "G7/D", startBeat: 10, durationBeats: 2 },
+          { symbol: "Cmaj7", startBeat: 12, durationBeats: 8 },
+        ],
+        sourceIntent: { style: "frenchPop", mood: "melancholic", scores: { boutonnat: 6 } },
+      },
+      {
+        sourceId: "outro",
+        name: "アウトロ",
+        role: "outro",
+        key: "C",
+        repeatCount: 1,
+        chords: [
+          { symbol: "C", startBeat: 0, durationBeats: 4 },
+          { symbol: "Am/C", startBeat: 4, durationBeats: 4 },
+        ],
+        sourceIntent: { style: "slowcore", mood: "melancholic", scores: { boutonnat: 5 } },
+      },
+    ],
+  }
+}
+
+describe("Composer Song Exchange v2 import(可変長のコード)", () => {
+  it("v2を受け付け、2拍・8拍のコードを拍位置どおりに取り込む", () => {
+    const project = composerSongExchangeToProject(exchangeV2())
+    const verse = project.sections[0]
+    const verseChords = project.chords.filter((chord) => chord.sectionId === verse.id)
+    // 20拍 = 5小節 × 2回
+    expect(verse.lengthBars).toBe(10)
+    expect(verseChords.slice(0, 5).map((c) => [c.symbol, c.startBeat, c.durationBeats])).toEqual([
+      ["Cmaj7", 0, 4],
+      ["A7", 4, 4],
+      ["Dm7", 8, 2],
+      ["G7/D", 10, 2],
+      ["Cmaj7", 12, 8],
+    ])
+    // 2回目は小節頭(20拍目)から
+    expect(verseChords[5].startBeat).toBe(20)
+    expect(verseChords[0].bass).toBe(null)
+    expect(verseChords[3].bass).toBe("D")
+    expect(project.sections.map((s) => s.startBar)).toEqual([1, 11])
+  })
+
+  it("小節の途中で終わるセクション(整列前のv2)は、最後のコードを小節末まで伸ばして小節単位にそろえる", () => {
+    const raw = exchangeV2()
+    // 4 + 2 + 4 + 4 = 14拍(小節単位にそろえる前のChord Generatorが書き出しうる形)
+    raw.sections[0].chords = [
+      { symbol: "C", startBeat: 0, durationBeats: 4 },
+      { symbol: "G/B", startBeat: 4, durationBeats: 2 },
+      { symbol: "Am", startBeat: 6, durationBeats: 4 },
+      { symbol: "F", startBeat: 10, durationBeats: 4 },
+    ]
+    const project = composerSongExchangeToProject(raw)
+    const verse = project.sections[0]
+    const chords = project.chords.filter((chord) => chord.sectionId === verse.id)
+    expect(verse.lengthBars).toBe(8)
+    expect(chords[3].durationBeats).toBe(6)
+    // 繰り返しの2回目も小節頭から始まる
+    expect(chords[4].startBeat).toBe(16)
+    expect(project.sections[1].startBar).toBe(9)
+  })
+
+  it("startBeatが省略されたコードは、直前までの長さの合計から位置を補う", () => {
+    const raw = exchangeV2()
+    raw.sections[1].chords = [
+      { symbol: "C", durationBeats: 2 },
+      { symbol: "G/B", durationBeats: 2 },
+      { symbol: "Am", durationBeats: 4 },
+    ] as never
+    const project = composerSongExchangeToProject(raw)
+    const outro = project.sections[1]
+    const chords = project.chords.filter((chord) => chord.sectionId === outro.id)
+    expect(chords.map((c) => c.startBeat)).toEqual([0, 2, 4])
+  })
+
+  it("Chord Generatorが出すコード表記(♭表記・mMaj7・m7b5・7sus4・m(add9)・11・6th等)を未解釈なしで読める", () => {
+    const symbols = [
+      "Bbmaj7", "Ebmaj7/Bb", "Ab", "AmMaj7", "Bm7b5", "E7sus4", "Am(add9)", "Cadd9",
+      "Am9", "Am11", "C11", "C6", "Am6", "Caug", "Bdim", "Csus2", "Csus4", "Em7",
+      "A7", "Dmaj7/F#", "Am/G", "F#dim",
+    ]
+    for (const symbol of symbols) {
+      const parsed = parseChordSymbol(symbol)
+      expect(parsed, symbol).not.toBeNull()
+      expect(parsed?.unrecognized, symbol).toBe("")
+    }
+    expect(parseChordSymbol("Bbmaj7")?.rootPc).toBe(10)
+    expect(parseChordSymbol("AmMaj7")?.tones.map((t) => t.interval)).toEqual([0, 3, 7, 11])
+    expect(parseChordSymbol("Bm7b5")?.isDiminished).toBe(true)
   })
 })
