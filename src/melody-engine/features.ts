@@ -22,6 +22,8 @@ export function computeMelodyFeatures(
       longestPitchRun: 0,
       restRatio: 1,
       repeatedNoteRatio: 0,
+      stepwiseMotionRatio: 0,
+      chromaticArrivalRatio: 0,
       tensionUsageRatio: 0,
       chordToneUsageRatio: 0,
       resolvedNonChordRatio: 0,
@@ -74,6 +76,7 @@ export function computeMelodyFeatures(
   let resolvedNonChordCount = 0
   let exposedUnresolvedCount = 0
   let syncopated = 0
+  let chromaticArrivals = 0
   for (const [index, n] of sorted.entries()) {
     const entry: HarmonicMapEntry | undefined = chordAtBeat(harmonicMap, n.startBeat)
     if (entry) {
@@ -98,6 +101,16 @@ export function computeMelodyFeatures(
         else if (n.durationBeats >= 0.75 || Math.abs(n.startBeat - Math.round(n.startBeat)) < 0.01) {
           exposedUnresolvedCount++
         }
+      }
+    }
+    if (entry && index + 1 < sorted.length && !isChordTone(entry.parsed, pitchClass(n.pitch)) &&
+      !isTensionTone(entry.parsed, pitchClass(n.pitch))) {
+      const next = sorted[index + 1]
+      const nextEntry = chordAtBeat(harmonicMap, next.startBeat)
+      if (Math.abs(next.pitch - n.pitch) === 1 && next.startBeat - (n.startBeat + n.durationBeats) <= 1 &&
+        next.durationBeats >= 0.5 && nextEntry &&
+        (isChordTone(nextEntry.parsed, pitchClass(next.pitch)) || isTensionTone(nextEntry.parsed, pitchClass(next.pitch)))) {
+        chromaticArrivals++
       }
     }
     const offsetInBeat = n.startBeat - Math.floor(n.startBeat)
@@ -136,6 +149,8 @@ export function computeMelodyFeatures(
     longestPitchRun,
     restRatio,
     repeatedNoteRatio: pitches.length > 1 ? repeated / (pitches.length - 1) : 0,
+    stepwiseMotionRatio: leaps.length ? leaps.filter((leap) => leap > 0 && leap <= 2).length / leaps.length : 0,
+    chromaticArrivalRatio: chromaticArrivals / sorted.length,
     tensionUsageRatio: tensionCount / sorted.length,
     chordToneUsageRatio: chordToneCount / sorted.length,
     resolvedNonChordRatio: resolvedNonChordCount / sorted.length,

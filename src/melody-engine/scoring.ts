@@ -3,7 +3,7 @@ import type { GenerationParams } from "./generationParams"
 
 /** 9.6 Scoring: 内部評価のみに使用し、ユーザーへは総合点を出さない */
 export function scoreCandidate(features: MelodyFeatures, params: GenerationParams, profile: MelodyGeneratorProfile = "standard", notesPerBeat?: number): number {
-  const vocalArc = profile === "standard" || profile === "cinematic"
+  const vocalArc = profile === "standard" || profile === "cinematic" || profile === "elegiac-cantabile"
   // 輪郭だけ似た反復より、音程とリズムを保って戻る短い核を重視する。
   const motifUnity = 25 * clamp01(vocalArc && features.hookStrength !== undefined
     ? features.motifRepeatRatio * 0.65 + features.hookStrength * 0.35
@@ -44,6 +44,8 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
     ? 20 * clamp01(((features.largeLeapRatio ?? 0) - 0.08) / 0.14)
     : profile === "cinematic"
       ? 9 * clamp01(((features.largeLeapRatio ?? 0) - 0.12) / 0.16)
+      : profile === "elegiac-cantabile"
+        ? 8 * clamp01(((features.largeLeapRatio ?? 0) - 0.14) / 0.18)
     : 0
   const staticRunPenalty = profile === "standard"
     ? 4 * Math.min(5, Math.max(0, (features.longestPitchRun ?? 0) - 4))
@@ -53,13 +55,22 @@ export function scoreCandidate(features: MelodyFeatures, params: GenerationParam
   const densityPenalty = vocalArc && notesPerBeat !== undefined
     ? (profile === "standard" ? 10 : 7) * clamp01((notesPerBeat - 0.78) / 0.28)
     : 0
+  // 公開譜面の歌唱線に多い近接運動を、跳躍を禁じずに候補順位へ反映する。
+  const stepwiseBonus = profile === "elegiac-cantabile"
+    ? 6 * clamp01(((features.stepwiseMotionRatio ?? 0) - 0.16) / 0.3)
+    : 0
   if (!vocalArc) return Math.max(0, baseScore + hookBonus - roughLeapPenalty - staticRunPenalty - densityPenalty)
   // 一度だけ意味を持つ和声外音は残し、解決しない強拍・長音の乱発を抑える。
   const resolvedRatio = features.resolvedNonChordRatio ?? 0
   const meaningfulSurprise = 4 * clamp01(resolvedRatio / 0.08) *
     (1 - clamp01((resolvedRatio - 0.18) / 0.12))
+  // 半音の「毒」は解決先と長めの着地がある場合だけ、少量を評価する。
+  const chromaticArrival = features.chromaticArrivalRatio ?? 0
+  const chromaticArrivalBonus = profile === "elegiac-cantabile"
+    ? 3 * clamp01(chromaticArrival / 0.08) * (1 - clamp01((chromaticArrival - 0.16) / 0.08))
+    : 0
   const randomDissonance = 15 * clamp01((features.exposedUnresolvedRatio ?? 0) / 0.18)
-  return Math.max(0, Math.min(100, baseScore + hookBonus + meaningfulSurprise - randomDissonance - roughLeapPenalty - staticRunPenalty - densityPenalty))
+  return Math.max(0, Math.min(100, baseScore + hookBonus + stepwiseBonus + meaningfulSurprise + chromaticArrivalBonus - randomDissonance - roughLeapPenalty - staticRunPenalty - densityPenalty))
 }
 
 function clamp01(v: number): number {

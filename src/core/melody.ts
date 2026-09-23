@@ -132,6 +132,10 @@ export interface MelodyFeatures {
   longestPitchRun?: number
   restRatio: number
   repeatedNoteRatio: number
+  /** 非同音の1〜2半音進行の割合。短い歌唱線の近接運動を評価する補助値。 */
+  stepwiseMotionRatio?: number
+  /** 半音の和声外音が短時間で和声音・許容テンションへ着地する割合。 */
+  chromaticArrivalRatio?: number
   tensionUsageRatio: number
   chordToneUsageRatio: number
   /** 和声外音が次の近接音または次コードへの保持で意味を持った割合。 */

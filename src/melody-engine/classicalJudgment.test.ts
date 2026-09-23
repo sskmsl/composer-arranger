@@ -45,4 +45,23 @@ describe("classical principles as candidate judgments", () => {
     expect(shapePhraseBreaths(source, plans, "minimal")).toEqual(source)
     expect(shapePhraseBreaths([{ ...source[0], locks: ["pitch"] }, source[1]], plans, "standard")[0].durationBeats).toBe(2)
   })
+
+  it("歌える近接運動を評価し、半音の情感は解決と着地がある時だけ数える", () => {
+    const arrival = computeMelodyFeatures([
+      note("lead", 64, 0), note("ache", 61, 1, 0.5), note("land", 60, 1.5, 1.5),
+      note("answer", 62, 3), note("close", 60, 4),
+    ], harmony, 0, 8)
+    const stray = computeMelodyFeatures([
+      note("lead", 64, 0), note("ache", 61, 1, 0.5), note("jump", 67, 1.5, 1.5),
+      note("answer", 62, 3), note("close", 60, 4),
+    ], harmony, 0, 8)
+    expect(arrival.chromaticArrivalRatio).toBeGreaterThan(0)
+    expect(stray.chromaticArrivalRatio).toBe(0)
+    expect(arrival.stepwiseMotionRatio).toBeGreaterThan(stray.stepwiseMotionRatio!)
+    const params = resolveGenerationParams("dark-romantic", "verse", "balanced", "growing")
+    const withArrival = scoreCandidate(arrival, params, "elegiac-cantabile")
+    expect(withArrival).toBeGreaterThan(scoreCandidate({ ...arrival, chromaticArrivalRatio: 0 }, params, "elegiac-cantabile"))
+    expect(withArrival).toBeGreaterThan(scoreCandidate({ ...arrival, stepwiseMotionRatio: 0 }, params, "elegiac-cantabile"))
+    expect(scoreCandidate(arrival, params, "minimal")).toBe(scoreCandidate({ ...arrival, stepwiseMotionRatio: 0, chromaticArrivalRatio: 0 }, params, "minimal"))
+  })
 })
