@@ -122,4 +122,27 @@ describe("Orchestration & Performance Intelligence", () => {
       sourceState: "active",
     })
   })
+
+  it("忙しい主旋律には対旋律を勧めず、反復Sectionは一つの伴奏音色を交代する", () => {
+    const value = project()
+    value.sections[1].role = "verse"
+    value.sections.splice(2, 0, { id: "verse2", name: "Verse 2", role: "verse", startBar: 9, lengthBars: 4 })
+    value.sections[3].startBar = 13
+    value.sections[4].startBar = 17
+    value.melodyVariants = [{
+      id: "m2", name: "busy", sectionId: "verse", sourceMode: "import-midi",
+      notes: Array.from({ length: 16 }, (_, index) => ({ id: `n${index}`, pitch: 69 + index % 3,
+        startBeat: index, durationBeats: 0.75, velocity: 80, locks: [] })),
+      phrasePlans: [], lockedBars: [], motifLocked: false, features: null,
+      generatorVersion: "test", seed: 1, songProfile: value.song.songProfile,
+      parentMelodyId: null, batchId: "test", createdAt: "2026-01-01T00:00:00Z",
+    }]
+    const orchestra = buildOrchestrationBlueprint(value, buildArrangementDirectorBlueprint(value))
+    const first = orchestra.sections.find((section) => section.sectionId === "verse")!
+    const second = orchestra.sections.find((section) => section.sectionId === "verse2")!
+    expect(first.parts.some((part) => part.role === "counter-voice")).toBe(false)
+    expect(first.parts.find((part) => part.role === "harmonic-space")?.family).not.toBe(
+      second.parts.find((part) => part.role === "harmonic-space")?.family,
+    )
+  })
 })

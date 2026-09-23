@@ -387,6 +387,12 @@ function actionForSection(
     role = "pulse-foundation"
   }
 
+  // Directorが応答のための余白を見つけられなければ、AI Partnerも対旋律を勧めない。
+  if (generator === "counter" && !partFor("counter-voice") &&
+    !project.sectionReactiveLayerAssignments?.[section.id]) {
+    generator = "none"
+    role = "intentional-silence"
+  }
   const part = partFor(role)
   const sparse = directionId === "preserve-space" || sectionPlan.targetEnergy <= 2
   const active = ["controlled-escalation", "rhythmic-propulsion"].includes(directionId) && sectionPlan.targetEnergy >= 4

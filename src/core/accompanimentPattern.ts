@@ -294,13 +294,20 @@ function shouldCreateBreath(
   event: ResolvedPatternEvent,
   eventCount: number,
   melody: MelodyNote[],
+  busyCycle: boolean,
+  simultaneousVoices: number,
 ): boolean {
   const phraseBreath = event.cycleIndex % 4 === 3 && event.eventIndex === eventCount - 1
   const melodyOwnsAttack =
     event.degree >= 7 &&
     event.velocity <= 72 &&
     hasMelodyAttack(event.startBeat, melody)
-  return phraseBreath || melodyOwnsAttack
+  // Keep the root as harmonic gravity while removing upper attacks from a busy lead's space.
+  const upperVoiceObscuresLead = event.degree !== 1 && (busyCycle || simultaneousVoices < 3) && (
+    hasMelodyAttack(event.startBeat, melody) ||
+    (busyCycle && event.eventIndex % 2 === 0)
+  )
+  return phraseBreath || melodyOwnsAttack || upperVoiceObscuresLead
 }
 
 function expressiveVelocity(event: ResolvedPatternEvent, activeMelody: MelodyNote[]): number {
@@ -367,7 +374,14 @@ export function applyAccompanimentPattern(
   resolvedEvents.sort((a, b) => a.startBeat - b.startBeat || a.eventIndex - b.eventIndex)
   let previous: PreviousVoicing | null = null
   for (const event of resolvedEvents) {
-    if (shouldCreateBreath(event, pattern.events.length, melody)) continue
+    const cycleStart = event.cycleIndex * pattern.lengthBeats
+    const cycleMelody = melody.filter((note) => note.startBeat >= cycleStart && note.startBeat < cycleStart + pattern.lengthBeats)
+    const busyCycle = cycleMelody.length / pattern.lengthBeats >= 0.75 &&
+      cycleMelody.reduce((sum, note) => sum + note.durationBeats, 0) / pattern.lengthBeats >= 0.65
+    const simultaneousVoices = pattern.events.filter((candidate) =>
+      Math.abs(candidate.offsetBeats - pattern.events[event.eventIndex].offsetBeats) < 0.001,
+    ).length
+    if (shouldCreateBreath(event, pattern.events.length, melody, busyCycle, simultaneousVoices)) continue
     const activeMelody = melodyAt(event, melody)
     const { pitch, basePitch } = chooseAccompanimentPitch(event, activeMelody, previous)
     const durationBeats = Math.min(

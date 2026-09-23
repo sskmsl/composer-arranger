@@ -143,6 +143,16 @@ describe("Accompaniment Pattern / コード度数解決", () => {
     expect(first.some((note) => note.startBeat === 15)).toBe(false)
   })
 
+  it("細かく動く主旋律の下では上声を間引き、ベースの和声重心を残す", () => {
+    const pattern = createDefaultAccompanimentPatterns().find((candidate) => candidate.id === "arpeggio-five")!
+    const lead = Array.from({ length: 16 }, (_, index) => melody(72 + index % 3, index, 0.75))
+    const chords = [chord("Am(add9)", 0, 8), chord("Fmaj7", 8, 8)]
+    const alone = applyAccompanimentPattern(pattern, chords, 16)
+    const underLead = applyAccompanimentPattern(pattern, chords, 16, { melodyNotes: lead })
+    expect(underLead.length).toBeLessThan(alone.length)
+    expect(underLead.filter((note) => note.startBeat % 4 === 0)).toHaveLength(4)
+  })
+
   it("メジャーコードの回避音11thは安全な色彩音へ替え、マイナーでは保持する", () => {
     const pattern = createDefaultAccompanimentPatterns().find((candidate) => candidate.id === "arpeggio-six")!
     const major = applyAccompanimentPattern(pattern, [chord("C")], 4)

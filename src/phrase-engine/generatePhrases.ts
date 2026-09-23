@@ -721,6 +721,11 @@ export function scorePhrase(
       const next = intervals[index + 1]
       return next !== undefined && Math.sign(next) === -Math.sign(interval) && Math.abs(next) <= 3
     }).length / Math.max(1, leaps.length)
+  const unresolvedLargeLeaps = leaps.filter(({ interval, index }) => {
+    if (Math.abs(interval) < 8) return false
+    const next = intervals[index + 1]
+    return next === undefined || Math.sign(next) !== -Math.sign(interval) || Math.abs(next) > 3
+  }).length
   const pitches = notes.map((note) => note.pitch)
   const range = Math.max(...pitches) - Math.min(...pitches)
   const durationVariety = new Set(notes.map((note) => note.durationBeats)).size
@@ -730,6 +735,31 @@ export function scorePhrase(
   const targetDensity = 0.45 + intent.density * 0.8
   const densityFit = 1 - Math.min(1, Math.abs(densityPerBeat - targetDensity) / 0.9)
   const singableRange = range <= 19 ? 1 : Math.max(0, 1 - (range - 19) / 12)
+  // Harmony can change the pitches, but a short contour with a recognizable rhythm should survive.
+  const motifWindows = notes.slice(0, -2).map((note, index) => ({
+    index,
+    contour: [notes[index + 1].pitch - note.pitch, notes[index + 2].pitch - notes[index + 1].pitch],
+    rhythm: [notes[index + 1].startBeat - note.startBeat, notes[index + 2].startBeat - notes[index + 1].startBeat],
+  }))
+  const motifReturn = motifWindows.reduce((best, first) => {
+    for (const later of motifWindows) {
+      if (later.index < first.index + 3) continue
+      const contourRelated = first.contour.every((interval, index) =>
+        Math.sign(interval) === Math.sign(later.contour[index]) &&
+        Math.abs(Math.abs(interval) - Math.abs(later.contour[index])) <= 2,
+      )
+      if (!contourRelated) continue
+      const rhythmRelated = first.rhythm.every((duration, index) =>
+        Math.abs(duration - later.rhythm[index]) <= 0.25,
+      )
+      best = Math.max(best, rhythmRelated ? 1 : 0.55)
+    }
+    return best
+  }, 0)
+  const peakPitch = Math.max(...pitches)
+  const firstPeak = notes.find((note) => note.pitch === peakPitch)!
+  const peakPosition = firstPeak.startBeat / Math.max(1, phraseLengthBeats)
+  const peakFit = Math.max(0, 1 - Math.abs(peakPosition - intent.climaxPosition) / 0.45)
   const cadenceFit =
     intent.cadence === "resolved"
       ? notes.at(-1)?.plannedToneRole === "chord-tone"
@@ -739,14 +769,17 @@ export function scorePhrase(
         ? 1
         : 0.65
   const score =
-    strongFit * 24 +
-    (leaps.length === 0 ? 0.85 : recovered) * 15 +
-    singableRange * 13 +
-    Math.min(1, durationVariety / 3) * 10 +
-    restFit * 12 +
-    densityFit * 12 +
-    cadenceFit * 14
-  return Math.round(score * 100) / 100
+    strongFit * 18 +
+    (leaps.length === 0 ? 0.85 : recovered) * 20 +
+    singableRange * 12 +
+    Math.min(1, durationVariety / 3) * 7 +
+    restFit * 10 +
+    densityFit * 7 +
+    cadenceFit * 10 +
+    motifReturn * 9 +
+    peakFit * 7 -
+    Math.min(24, unresolvedLargeLeaps * 12)
+  return Math.round(Math.max(0, Math.min(100, score)) * 100) / 100
 }
 
 function phrasePlanOf(candidate: BuiltPhrase): PhrasePlan[] {

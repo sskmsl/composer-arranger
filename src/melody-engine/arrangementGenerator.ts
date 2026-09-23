@@ -961,7 +961,7 @@ function generateTonalTrack(
         const chord = chordAtBeat(sectionChords, localBeat)
         const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
         if (!parsed) return
-        const rootPitch = midiForPc(parsed.rootPc, 39)
+        const rootPitch = midiForPc(parsed.bassPc, 39)
         const nextBeat = Math.min(length - 0.01, localBeat + Math.max(0.25, beatsPerBar - offsetInBar))
         const nextChord = chordAtBeat(sectionChords, nextBeat)
         const nextParsed = nextChord ? parseChordSymbol(nextChord.symbol, nextChord.bass ?? undefined) : null
@@ -971,8 +971,8 @@ function generateTonalTrack(
         if (strategy === "octave-drive" && (hitIndex + cycleBar) % 3 === 2) pitch += 12
         else if (strategy === "melodic-pulse" && hitIndex === 1) pitch = midiForPc(parsed.tones[2]?.pitchClass ?? parsed.rootPc, 43)
         else if (strategy === "syncopated" && hitIndex === offsets.length - 1) pitch = midiForPc(parsed.tones[1]?.pitchClass ?? parsed.rootPc, 40)
-        else if (strategy === "approach-led" && hitIndex === offsets.length - 1 && nextParsed) {
-          const target = midiForPc(nextParsed.rootPc, 39)
+        else if (strategy === "approach-led" && hitIndex === offsets.length - 1 && nextParsed && nextChord?.id !== chord?.id) {
+          const target = midiForPc(nextParsed.bassPc, 39)
           pitch = target + ((bar + revision) % 2 === 0 ? -1 : 2)
           character = "edge"
           reason = "次の和音へ解決するアプローチ音でSectionの方向を作る"
@@ -997,6 +997,9 @@ function generateTonalTrack(
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
+        // A short chord accent belongs in a genuine vocal rest, not on top of a sustained syllable.
+        if (melody.some((lead) => lead.startBeat < start + localBeat + 0.25 &&
+          lead.startBeat + lead.durationBeats > start + localBeat)) return
         const chord = chordAtBeat(sectionChords, localBeat)
         chordTonePcs(chord).slice(0, 3).forEach((tone, voice) => add(
           localBeat,
@@ -1128,7 +1131,7 @@ const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([
   "str-cello", "str-viola", "str-violin-2", "str-violin-1", "str-upper",
 ])
 
-function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArrangementNote): Set<number> | null {
+function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArrangementNote, trackId: ArrangementTrackId): Set<number> | null {
   const section = project.sections.find((candidate) => candidate.id === note.sectionId)
   if (!section) return null
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
@@ -1136,7 +1139,10 @@ function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArra
   const chords = project.chords.filter((chord) => chord.sectionId === section.id)
   const chord = chordAtBeat(chords, localBeat)
   const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
-  return parsed ? new Set([...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass)) : null
+  return parsed ? new Set([
+    ...[...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass),
+    ...(trackId === "syn-bass" ? [parsed.bassPc] : []),
+  ]) : null
 }
 
 function countMelodyCollisions(project: ComposerProject, tracks: GeneratedArrangementTrack[]): number {
@@ -1206,7 +1212,7 @@ export function reviewGeneratedArrangement(
     ? arrangement.tracks.reduce((sum, track) => sum + (HARMONIC_REVIEW_TRACKS.has(track.id)
       ? track.notes.filter((note) => {
           if (note.character !== "safe") return false
-          const allowed = allowedPitchClassesAtNote(project, note)
+          const allowed = allowedPitchClassesAtNote(project, note, track.id)
           return allowed !== null && !allowed.has(pc(note.pitch))
         }).length
       : 0), 0)

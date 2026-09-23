@@ -1,4 +1,6 @@
 import type { ComposerProject } from "@/core/project"
+import { notesByPartRole } from "@/core/sectionLayers"
+import { parseTimeSignature } from "@/core/section"
 import type {
   ArrangementDirectorBlueprint,
   ArrangementOrchestrationBlueprint,
@@ -38,6 +40,23 @@ function part(
   return value
 }
 
+function hasMelodicReplySpace(project: ComposerProject, sectionId: string, totalBeats: number): boolean {
+  const assignedId = project.sectionMelodyAssignments[sectionId]
+  const variant = project.melodyVariants.find((candidate) => candidate.id === assignedId && candidate.sectionId === sectionId)
+  if (!variant) return true
+  const notes = [...notesByPartRole(variant, "lead")].sort((left, right) => left.startBeat - right.startBeat)
+  if (notes.length === 0) return true
+  let cursor = 0
+  let longestGap = 0
+  for (const note of notes) {
+    longestGap = Math.max(longestGap, note.startBeat - cursor)
+    cursor = Math.max(cursor, note.startBeat + note.durationBeats)
+  }
+  longestGap = Math.max(longestGap, totalBeats - cursor)
+  // A counterline needs a real answer window; tiny spaces between syllables are not invitations.
+  return longestGap >= 0.75 || notes.length / Math.max(1, totalBeats) < 0.65
+}
+
 export function buildOrchestrationBlueprint(
   project: ComposerProject,
   director: ArrangementDirectorBlueprint,
@@ -62,6 +81,13 @@ export function buildOrchestrationBlueprint(
       !activeDecoration
     const dynamic = dynamicForEnergy(sectionPlan.targetEnergy)
     const nextPlan = director.sections[sectionPlan.order + 1]
+    const replySpace = hasMelodicReplySpace(
+      project,
+      sectionPlan.sectionId,
+      (section?.lengthBars ?? 1) * parseTimeSignature(project.song.timeSignature).beatsPerBar,
+    )
+    const sameRoleOccurrence = director.sections.slice(0, sectionPlan.order)
+      .filter((candidate) => candidate.sectionRole === sectionPlan.sectionRole).length
     const parts: OrchestrationPartPlan[] = []
 
     if (leadExpected || activeMelody) {
@@ -87,7 +113,9 @@ export function buildOrchestrationBlueprint(
     }
 
     if (accompanimentExpected) {
-      const family = sectionPlan.targetEnergy <= 2 ? "atmospheric-pad" : "piano-keys"
+      const family = (sectionPlan.targetEnergy <= 2) === (sameRoleOccurrence % 2 === 0)
+        ? "atmospheric-pad"
+        : "piano-keys"
       const supportDynamic = sectionPlan.targetEnergy >= 5 ? "mf" : sectionPlan.targetEnergy >= 3 ? "mp" : "p"
       parts.push(part({
         id: `${sectionPlan.sectionId}:harmonic-space`,
@@ -119,8 +147,8 @@ export function buildOrchestrationBlueprint(
         register: "low-middle",
         distance: "middle",
         articulation: "pulsed",
-        dynamic: sectionPlan.targetEnergy >= 4 ? "mf" : "mp",
-        velocityRange: velocityForDynamic(sectionPlan.targetEnergy >= 4 ? "mf" : "mp"),
+        dynamic: sectionPlan.targetEnergy >= 4 ? "mp" : "p",
+        velocityRange: velocityForDynamic(sectionPlan.targetEnergy >= 4 ? "mp" : "p"),
         timing: sectionPlan.targetEnergy >= 4 ? "strict" : "slightly-behind",
         entry: sectionPlan.climaxPolicy === "approach"
           ? "Section後半から限定的に入り、次Sectionで輪郭を完成させる"
@@ -132,6 +160,7 @@ export function buildOrchestrationBlueprint(
 
     if (!intentionalSilence && (activeCounter || (
       sectionPlan.additionBudget > 0 &&
+      replySpace &&
       sectionPlan.targetEnergy >= 2 &&
       sectionPlan.targetEnergy <= 4 &&
       section?.role !== "intro"
@@ -139,7 +168,9 @@ export function buildOrchestrationBlueprint(
       parts.push(part({
         id: `${sectionPlan.sectionId}:counter-voice`,
         role: "counter-voice",
-        family: sectionPlan.targetEnergy <= 2 ? "mallet-bell" : "strings",
+        family: sectionPlan.climaxPolicy === "approach" && sectionPlan.targetEnergy >= 4
+          ? "strings"
+          : "mallet-bell",
         sourceState: activeCounter ? "active" : "recommended",
         register: sectionPlan.registerFocus === "low-middle" ? "middle" : "middle-high",
         distance: "middle",

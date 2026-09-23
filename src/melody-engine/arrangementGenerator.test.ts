@@ -122,6 +122,28 @@ function longFormProject(): ComposerProject {
 }
 
 describe("Arrangement Generator", () => {
+  it("Bassは分数コードの低音を重心にし、短い和音打撃は主旋律の持続中に置かない", () => {
+    const input = project()
+    input.chords = input.chords.map((chord) => chord.sectionId === "verse" && chord.startBeat < 8
+      ? { ...chord, symbol: "C/E" }
+      : chord)
+    const result = generateFullSongArrangement(input, {
+      seed: 7351,
+      brief: "",
+      directive: { intention: "旋律と伴奏の配置を確認", add: ["syn-bass", "syn-stabs"] },
+    })
+    const verseStart = 16
+    const bass = result.tracks.find((track) => track.id === "syn-bass")!.notes
+      .filter((note) => note.sectionId === "verse" && note.startBeat >= verseStart && note.startBeat < verseStart + 8)
+    expect(bass.some((note) => note.pitch % 12 === 4)).toBe(true)
+    const lead = input.importedArrangement!.tracks[0].notes
+    const stabs = result.tracks.find((track) => track.id === "syn-stabs")!.notes
+      .filter((note) => note.sectionId === "verse")
+    expect(stabs.every((stab) => lead.every((note) =>
+      note[0] >= stab.startBeat + 0.25 || note[0] + note[1] <= stab.startBeat,
+    ))).toBe(true)
+  })
+
   it("和音を打撃として使う反復リフ指定をイントロの独立Stabsへ実音化する", () => {
     const result = generateFullSongArrangement(project(), {
       seed: 7351,

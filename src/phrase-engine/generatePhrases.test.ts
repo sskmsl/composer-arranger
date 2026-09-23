@@ -8,6 +8,7 @@ import {
   phraseSimilarity,
   planPhraseIntent,
   regeneratePhraseCandidate,
+  scorePhrase,
   type GeneratePhrasesInput,
 } from "./generatePhrases"
 
@@ -35,6 +36,17 @@ function input(seed = 41, role: GeneratePhrasesInput["sectionRole"] = "verse"): 
 }
 
 describe("Phrase Generator", () => {
+  it("同じ音数・音域なら計画した後半の最高音を高く評価する", () => {
+    const intent = { ...planPhraseIntent(input(41), 41, 0), climaxPosition: 0.75 }
+    const notes = (pitches: number[]) => pitches.map((pitch, index) => ({
+      id: `peak:${index}`, pitch, startBeat: index, durationBeats: 0.5,
+      velocity: 80, locks: [], plannedToneRole: "chord-tone" as const,
+    }))
+    const early = scorePhrase(notes([69, 74, 69, 69, 69, 69, 69, 69]), intent, [], 8)
+    const late = scorePhrase(notes([69, 69, 69, 69, 69, 69, 74, 69]), intent, [], 8)
+    expect(late).toBeGreaterThan(early)
+  })
+
   it("2〜8小節の独立候補を3案選ぶ", () => {
     const candidates = generatePhraseCandidates(input())
     expect(candidates).toHaveLength(3)

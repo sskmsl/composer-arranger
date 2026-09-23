@@ -74,6 +74,20 @@ describe("Whole-song Arrangement Direction Program", () => {
     expect(verse?.generator).not.toBe("counter")
   })
 
+  it("主旋律に応答の空白が無いSectionではMotif Relayでも対旋律を追加しない", () => {
+    const value = project()
+    value.melodyVariants.find((variant) => variant.sectionId === "verse")!.notes =
+      Array.from({ length: 16 }, (_, index) => ({
+        id: `busy:${index}`, pitch: 69 + index % 3, startBeat: index,
+        durationBeats: 0.75, velocity: 80, locks: [],
+      }))
+    const program = buildWholeSongDirectionProgram(value, "モチーフを受け渡す")
+    const verse = program.directions.find((direction) => direction.id === "motif-relay")!
+      .actions.find((action) => action.sectionId === "verse")!
+    expect(verse.generator).toBe("none")
+    expect(verse.status).toBe("preserve")
+  })
+
   it("外部曲MIDIの原トラックが多くても生成Actionを無効化しない", () => {
     const value = project()
     value.sourceImport = {
