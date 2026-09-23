@@ -108,15 +108,49 @@ export interface DecorationNeedAssessment {
 interface PhraseBoundary {
   beat: number
   strength: number
-  kind: "breath" | "long-note-release" | "section-ending"
+  kind: "breath" | "long-note-release" | "section-ending" | "phrase-structure"
+}
+
+/**
+ * 主旋律がないときの区切り。以前はセクション末尾だけを返していたため、Intro でも
+ * Chorus でも、10候補すべてが最後の1小節へ集まっていた。小節線を楽節の構造
+ * (8小節なら4小節目の切れ目が最も強い、次いで4小節・2小節ごと)で重み付けし、
+ * 和音が小節頭で変わる所を少し強める。Intro だけは冒頭の導入身振りも候補にする。
+ */
+function structuralBoundaries(
+  totalBeats: number,
+  beatsPerBar: number,
+  chords: ChordEvent[],
+  sectionRole: SectionRole,
+): PhraseBoundary[] {
+  const bars = Math.floor(totalBeats / Math.max(1, beatsPerBar))
+  const boundaries: PhraseBoundary[] = [{ beat: totalBeats, strength: 70, kind: "section-ending" }]
+  for (let bar = 1; bar < bars; bar += 1) {
+    const beat = bar * beatsPerBar
+    const base =
+      bars >= 4 && bars % 2 === 0 && bar === bars / 2
+        ? 78
+        : bar % 4 === 0
+          ? 74
+          : bar % 2 === 0
+            ? 64
+            : 52
+    const harmonicArrival = chords.some(
+      (chord) => Math.abs(chord.startBeat - beat) < 0.001 && chord.durationBeats >= beatsPerBar,
+    )
+    boundaries.push({ beat, strength: base + (harmonicArrival ? 4 : 0), kind: "phrase-structure" })
+  }
+  if (sectionRole === "intro") boundaries.push({ beat: 0, strength: 60, kind: "phrase-structure" })
+  return boundaries.sort((left, right) => right.strength - left.strength)
 }
 
 function phraseBoundaries(
   melodyNotes: MelodyNote[],
   totalBeats: number,
+  structure: { beatsPerBar: number; chords: ChordEvent[]; sectionRole: SectionRole },
 ): PhraseBoundary[] {
   if (melodyNotes.length === 0) {
-    return [{ beat: totalBeats, strength: 70, kind: "section-ending" }]
+    return structuralBoundaries(totalBeats, structure.beatsPerBar, structure.chords, structure.sectionRole)
   }
   const sorted = [...melodyNotes].sort(
     (left, right) => left.startBeat - right.startBeat,
@@ -1558,13 +1592,21 @@ function planFor(
   const boundaries = phraseBoundaries(
     input.melodyNotes ?? [],
     input.totalBeats,
+    { beatsPerBar: input.beatsPerBar, chords: input.chords, sectionRole: input.sectionRole },
   )
+  const hasMelody = (input.melodyNotes?.length ?? 0) > 0
+  const latestFirst = [...boundaries].sort((left, right) => right.beat - left.beat)
   const boundaryPool =
-    gestureRole === "transition" ||
-    gestureRole === "pickup" ||
-    gestureRole === "ending"
-      ? [...boundaries].sort((left, right) => right.beat - left.beat)
-      : boundaries
+    // 主旋律がないとき: 終止の身振りはセクション末尾だけ、次セクションへの橋渡しは最後の2小節の中から選ぶ
+    !hasMelody && gestureRole === "ending"
+      ? latestFirst.slice(0, 1)
+      : !hasMelody && gestureRole === "transition"
+        ? latestFirst.filter((boundary) => boundary.beat >= input.totalBeats - input.beatsPerBar * 2)
+        : gestureRole === "transition" ||
+            gestureRole === "pickup" ||
+            gestureRole === "ending"
+          ? latestFirst
+          : boundaries
   const boundary =
     boundaryPool[poolIndex % Math.max(1, boundaryPool.length)] ??
     ({ beat: input.totalBeats, strength: 70, kind: "section-ending" } as const)
