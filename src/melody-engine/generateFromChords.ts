@@ -63,6 +63,7 @@ import {
   rangeForPhrase,
 } from "./candidateMelodyDNA"
 import { applyMelodicArrival } from "./melodicArrival"
+import { shapeMelodicRelease } from "./melodicRelease"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
 import { nearestAllowedPitch } from "./pitchUtils"
 import {
@@ -202,12 +203,19 @@ function buildCandidate(
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
   const finalNotes = enforceHarmonicIntegrity(
     reconcileFinalToneRoles(
-      applyProfileExpression(
-        arrivalNotes,
-        profileExpressionPlan,
+      shapeMelodicRelease(
+        applyProfileExpression(
+          arrivalNotes,
+          profileExpressionPlan,
+          harmonicMap,
+          input.range,
+          input.totalBeats,
+        ),
         harmonicMap,
-        input.range,
         input.totalBeats,
+        generatorProfile,
+        input.sectionRole,
+        candidateMelodyDNA,
       ),
       harmonicMap,
       input.range,
