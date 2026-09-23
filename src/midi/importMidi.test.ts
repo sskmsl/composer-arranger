@@ -272,6 +272,64 @@ describe("MIDI project import", () => {
     })
   })
 
+  it("主旋律を含まない和音+ベースのMIDIは、和音トラックを主旋律と誤認せずコード推定に使う", () => {
+    const beat = TICKS_PER_QUARTER
+    // Chord Generatorの書き出しと同じ形: Chords(和音)とBass(転回形のベース音)の2トラック
+    const progression = [
+      { tones: [57, 60, 64, 67], bass: 45, beats: 4 }, // Am7
+      { tones: [53, 57, 60, 64], bass: 41, beats: 4 }, // Fmaj7
+      { tones: [55, 59, 62], bass: 47, beats: 4 }, // G/B
+      { tones: [52, 56, 59, 62], bass: 40, beats: 3.5 }, // E7(End of Trackが小節の手前)
+    ]
+    let start = 0
+    const chords: Array<{ pitch: number; start: number; duration: number; velocity: number; channel: number }> = []
+    const bass: typeof chords = []
+    for (const chord of progression) {
+      for (const pitch of chord.tones) chords.push({ pitch, start: start * beat, duration: chord.beats * beat, velocity: 70, channel: 0 })
+      bass.push({ pitch: chord.bass, start: start * beat, duration: chord.beats * beat, velocity: 80, channel: 1 })
+      start += chord.beats
+    }
+    const bytes = buildSmf({
+      name: "Chord Sketch",
+      tempoBpm: 80,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [{ name: "Chords", notes: chords }, { name: "Bass", notes: bass }],
+    })
+    const analysis = analyzeMidiImport(bytes, "chord-sketch.mid")
+    expect(analysis.melodyTrackIndex).toBe(-1)
+    expect(analysis.warnings.some((warning) => warning.includes("主旋律と判定できるトラックがない"))).toBe(true)
+
+    const { project } = createMidiProjectFromAnalysis(analysis, { reviewConfirmed: true })
+    expect(project.melodyVariants).toHaveLength(0)
+    expect(project.chords.map((chord) => (chord.bass ? `${chord.symbol}/${chord.bass}` : chord.symbol))).toEqual([
+      "Am7", "Fmaj7", "G/B", "E7",
+    ])
+    // 最後の和音は小節線まで(3.5拍で切れない)
+    expect(project.chords.at(-1)?.durationBeats).toBe(4)
+  })
+
+  it("7thが鳴っていない区間は三和音のまま推定し、フラット系のキーではフラットで綴る", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Flat Key",
+      tempoBpm: 90,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      keySignature: { sharpsFlats: -4, minor: true },
+      tracks: [{
+        name: "Piano Chords",
+        notes: [
+          ...[53, 56, 60].map((pitch) => ({ pitch, start: 0, duration: 4 * beat, velocity: 70, channel: 0 })), // Fm
+          ...[49, 53, 56].map((pitch) => ({ pitch, start: 4 * beat, duration: 4 * beat, velocity: 70, channel: 0 })), // Db
+        ],
+      }],
+    })
+    const analysis = analyzeMidiImport(bytes, "flat-key.mid")
+    const { project } = createMidiProjectFromAnalysis(analysis, { reviewConfirmed: true })
+    expect(project.chords.map((chord) => chord.symbol)).toEqual(["Fm", "Db"])
+  })
+
   it("壊れたファイルをMIDIとして受理しない", () => {
     expect(() => parseMidi(new Uint8Array([1, 2, 3, 4]))).toThrow()
   })

@@ -213,7 +213,7 @@ export function CounterWorkspace() {
 
       {!activeMelody && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
-          「詳細調整 → 主旋律」で、このセクションに採用する主旋律を設定してください。
+          「個別調整 → 主旋律」で、このセクションに採用する主旋律を設定してください。
         </p>
       )}
       {chords.length === 0 && (
