@@ -139,6 +139,7 @@ function buildCandidate(
   )
 
   let firstMotifCore: MotifCore | undefined
+  let contrastMotifCore: MotifCore | undefined
   const notes: MelodyNote[] = []
   const plans: PhrasePlan[] = []
   const placementDiagnostics = createPlacementDiagnostics()
@@ -147,16 +148,22 @@ function buildCandidate(
   for (let phraseIdx = 0; phraseIdx < phraseLengths.length; phraseIdx++) {
     const phraseLen = Math.min(phraseLengths[phraseIdx], input.totalBeats - phraseStart)
     if (phraseLen <= 0) break
-    const hookRole = hookPhraseRole(phraseIdx, phraseLengths.length, generatorProfile)
-    const isAnswer = hookRole === "answer" || (hookRole === undefined && phraseIdx === 1)
+    const hookRole = hookPhraseRole(phraseIdx, phraseLengths.length, generatorProfile, input.sectionRole)
+    const isAnswer = hookRole === "answer" || hookRole === "contrast-answer" || (hookRole === undefined && phraseIdx === 1)
     const reuseMotif = phraseIdx > 0 && firstMotifCore && rng.chance(params.motifRepeatTarget)
     const phraseMotif = hookRole === undefined
       ? (reuseMotif ? firstMotifCore : undefined)
-      : hookRole === "contrast" || phraseIdx === 0
+      : hookRole === "contrast" || hookRole === "statement"
         ? undefined
         : hookRole === "answer" && firstMotifCore
           ? answerHook(firstMotifCore)
-          : firstMotifCore ? returningHook(firstMotifCore) : undefined
+          : hookRole === "return" && firstMotifCore
+            ? returningHook(firstMotifCore)
+            : hookRole === "contrast-answer" && contrastMotifCore
+              ? answerHook(contrastMotifCore)
+              : hookRole === "contrast-return" && contrastMotifCore
+                ? returningHook(contrastMotifCore)
+                : undefined
 
     const phraseRange = rangeForPhrase(input.range, candidateMelodyDNA, phraseIdx, phraseLengths.length)
     const result = assemblePhrase(
@@ -178,6 +185,7 @@ function buildCandidate(
     if (phraseIdx === 0) firstMotifCore = hookRole !== undefined
       ? capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
       : result.firstMotifCore
+    if (hookRole === "contrast") contrastMotifCore = capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
     notes.push(...result.notes)
     plans.push(result.plan)
     phraseStart += phraseLen

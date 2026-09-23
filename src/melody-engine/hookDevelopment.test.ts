@@ -15,6 +15,16 @@ describe("planned hook development", () => {
     expect(Array.from({ length: 2 }, (_, i) => hookPhraseRole(i, 2))).toEqual(["statement", "answer"])
     expect(hookPhraseRole(0, 1)).toBeUndefined()
   })
+  it("repeats both ideas in longer choruses while preserving other section roles", () => {
+    expect(Array.from({ length: 4 }, (_, i) => hookPhraseRole(i, 4, "standard", "chorus")))
+      .toEqual(["statement", "answer", "contrast", "contrast-answer"])
+    expect(Array.from({ length: 8 }, (_, i) => hookPhraseRole(i, 8, "cinematic", "grand-chorus")))
+      .toEqual(["statement", "answer", "return", "answer", "contrast", "contrast-answer", "contrast-return", "contrast-answer"])
+    expect(Array.from({ length: 3 }, (_, i) => hookPhraseRole(i, 3, "standard", "chorus")))
+      .toEqual(["statement", "answer", "return"])
+    expect(Array.from({ length: 4 }, (_, i) => hookPhraseRole(i, 4, "standard", "verse")))
+      .toEqual(["statement", "answer", "contrast", "return"])
+  })
   it("preserves the defining head and rhythm while varying the answer without mutating the source", () => {
     const original = structuredClone(source)
     const answer = answerHook(source)
@@ -60,5 +70,30 @@ describe("planned hook development", () => {
         expect(note.startBeat + note.durationBeats).toBeLessThanOrEqual(32)
       }
     }
+  })
+  it("brings back the contrasting chorus head on a later phrase", () => {
+    const chords = ["Am", "F", "C", "G", "Am", "F", "C", "G"].map((symbol, i) => ({
+      id: `c${i}`, sectionId: "s", startBeat: i * 4, durationBeats: 4, symbol, bass: null,
+    }))
+    const candidates = generateFromChordsWithProfiles({
+      chords, sectionId: "s", sectionRole: "chorus", songProfile: "original-custom",
+      density: "balanced", range: { low: 60, high: 77 }, drama: "growing",
+      totalBeats: 32, seed: 7, profiles: ["standard"],
+    }).candidates
+    const head = (notes: typeof candidates[number]["notes"], start: number, length: number) => {
+      const phrase = notes.filter(n => n.startBeat >= start && n.startBeat < start + length).slice(0, 3)
+      return phrase.length < 3 ? [] : phrase.map(n => [n.startBeat - phrase[0].startBeat, n.durationBeats])
+    }
+    const hasDistinctRepeatedContrast = candidates.some(candidate => {
+      const plans = candidate.plans
+      if (plans.length < 4) return false
+      const contrastIndex = Math.floor(plans.length / 2)
+      const first = head(candidate.notes, plans[0].phraseStartBeat, plans[0].phraseLengthBeats)
+      const contrast = head(candidate.notes, plans[contrastIndex].phraseStartBeat, plans[contrastIndex].phraseLengthBeats)
+      const contrastAnswer = head(candidate.notes, plans[contrastIndex + 1].phraseStartBeat, plans[contrastIndex + 1].phraseLengthBeats)
+      return contrast.length === 3 && JSON.stringify(first) !== JSON.stringify(contrast) &&
+        JSON.stringify(contrast) === JSON.stringify(contrastAnswer)
+    })
+    expect(hasDistinctRepeatedContrast).toBe(true)
   })
 })

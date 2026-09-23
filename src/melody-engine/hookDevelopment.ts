@@ -1,20 +1,32 @@
 import type { MelodyGeneratorProfile, MelodyNote } from "@/core/melody"
+import type { SectionRole } from "@/core/section"
 import type { MotifCore } from "./motifCore"
 
-export type HookPhraseRole = "statement" | "answer" | "contrast" | "return"
+export type HookPhraseRole = "statement" | "answer" | "contrast" | "return" | "contrast-answer" | "contrast-return"
 
 /**
  * フレーズ長・音域・内部の展開方法は既存DNAへ任せ、素材の回帰だけを計画する。
- * 短いセクションはA→A′、A→A′→A。4フレーズ以上はA→A′→B→A。
+ * 短いセクションはA→A′、A→A′→A。通常はA→A′→B→A、
+ * 4フレーズ以上のサビはAとBをそれぞれ反復する。
  * 専用の生成文法を持つProfileやMinimalには適用しない。
  */
 export function hookPhraseRole(
   phraseIndex: number,
   phraseCount: number,
   profile: MelodyGeneratorProfile = "standard",
+  sectionRole?: SectionRole,
 ): HookPhraseRole | undefined {
   if (profile !== "standard" && profile !== "cinematic") return undefined
   if (phraseCount < 2 || phraseIndex < 0 || phraseIndex >= phraseCount) return undefined
+  // サビでは同じ核を二度聴かせ、後半の対照的な核も二度聴かせる。
+  // 8フレーズなら A A′ A A′ / B B′ B B′。短い区間は従来の回帰を保つ。
+  if ((sectionRole === "chorus" || sectionRole === "grand-chorus") && phraseCount >= 4) {
+    const contrastStart = Math.floor(phraseCount / 2)
+    if (phraseIndex === 0) return "statement"
+    if (phraseIndex < contrastStart) return phraseIndex % 2 === 1 ? "answer" : "return"
+    if (phraseIndex === contrastStart) return "contrast"
+    return (phraseIndex - contrastStart) % 2 === 1 ? "contrast-answer" : "contrast-return"
+  }
   if (phraseIndex === 0) return "statement"
   if (phraseIndex === phraseCount - 1 && phraseCount >= 3) return "return"
   return (["statement", "answer", "contrast", "return"] as const)[phraseIndex % 4]
