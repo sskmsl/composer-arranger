@@ -37,6 +37,8 @@ interface ParsedMidiSong {
   tempoBpm: number
   timeSignature: { numerator: number; denominator: number }
   keySignature: { sharpsFlats: number; minor: boolean } | null
+  /** 曲中のすべての調号(tick順)。2つ以上あれば転調がある */
+  keyChanges: Array<{ tick: number; sharpsFlats: number; minor: boolean }>
   markers: ParsedMidiMarker[]
   tracks: ParsedMidiTrack[]
   endTick: number
@@ -196,6 +198,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
   tempoBpm: number | null
   timeSignature: ParsedMidiSong["timeSignature"] | null
   keySignature: ParsedMidiSong["keySignature"]
+  keyChanges: ParsedMidiSong["keyChanges"]
   endTick: number
 } {
   let tick = 0
@@ -205,6 +208,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
   let tempoBpm: number | null = null
   let timeSignature: ParsedMidiSong["timeSignature"] | null = null
   let keySignature: ParsedMidiSong["keySignature"] = null
+  const keyChanges: ParsedMidiSong["keyChanges"] = []
   const markers: ParsedMidiMarker[] = []
   const notes: ParsedMidiNote[] = []
   const active = new Map<string, Array<{ startTick: number; velocity: number }>>()
@@ -259,7 +263,10 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
         timeSignature = { numerator, denominator }
       } else if (type === 0x59 && length >= 2) {
         const raw = reader.byte()
-        keySignature = { sharpsFlats: raw > 127 ? raw - 256 : raw, minor: reader.byte() === 1 }
+        const signature = { sharpsFlats: raw > 127 ? raw - 256 : raw, minor: reader.byte() === 1 }
+        keyChanges.push({ tick, ...signature })
+        // 曲の調は冒頭の調号。途中の転調(セクションごとの調号)で上書きしない
+        if (!keySignature) keySignature = signature
       }
       reader.seek(dataStart + length)
       if (type === 0x2f) break
@@ -308,6 +315,7 @@ function parseTrack(reader: MidiReader, endOffset: number, trackIndex: number): 
     tempoBpm,
     timeSignature,
     keySignature,
+    keyChanges,
     endTick: tick,
   }
 }
@@ -331,6 +339,7 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
   let tempoBpm = 120
   let timeSignature = { numerator: 4, denominator: 4 }
   let keySignature: ParsedMidiSong["keySignature"] = null
+  const keyChanges: ParsedMidiSong["keyChanges"] = []
   let endTick = 0
   let tempoFound = false
   let timeSignatureFound = false
@@ -352,6 +361,7 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
       timeSignature = parsed.timeSignature
       timeSignatureFound = true
     }
+    keyChanges.push(...parsed.keyChanges)
     if (!keyFound && parsed.keySignature) {
       keySignature = parsed.keySignature
       keyFound = true
@@ -369,7 +379,8 @@ export function parseMidi(bytes: Uint8Array): ParsedMidiSong {
   const lastMarkerEnd = markers.reduce((latest, marker) => Math.max(latest, marker.tick + barTicks), 0)
   const musicalEnd = Math.max(lastNoteEnd, lastMarkerEnd)
   if (musicalEnd > 0) endTick = Math.min(endTick, Math.ceil(musicalEnd / barTicks) * barTicks)
-  return { format, ppq: division, title, tempoBpm, timeSignature, keySignature, markers, tracks, endTick }
+  keyChanges.sort((left, right) => left.tick - right.tick)
+  return { format, ppq: division, title, tempoBpm, timeSignature, keySignature, keyChanges, markers, tracks, endTick }
 }
 
 const SHARP_KEYS = ["C", "G", "D", "A", "E", "B", "F#", "C#"]
@@ -433,6 +444,14 @@ export function inferMidiKey(notes: ParsedMidiNote[]): MidiKeyInference {
   }
 }
 
+/** その拍の時点で有効な調(転調を含むMIDIのみ)。調号が1つ以下なら null */
+function keyAtBeat(song: ParsedMidiSong, beat: number): string | null {
+  if (song.keyChanges.length < 2) return null
+  const tick = Math.round(beat * song.ppq)
+  const active = song.keyChanges.filter((change) => change.tick <= tick).at(-1)
+  return active ? keyFromSignature(active) : null
+}
+
 function isDrumTrack(track: ParsedMidiTrack): boolean {
   return track.notes.length > 0 && track.notes.filter((note) => note.channel === 9).length / track.notes.length > 0.5
 }
@@ -453,10 +472,30 @@ function melodyTrackScore(track: ParsedMidiTrack): number {
   return named * 4 + monophony * 3 + Math.min(1, sorted.length / 24) + averagePitch / 127 - accompanimentNamed * 2
 }
 
-function chooseMelodyTrack(tracks: ParsedMidiTrack[]): { track: ParsedMidiTrack; index: number; confidence: number } {
+/**
+ * 主旋律になり得ないトラックか。伴奏・低音を名乗り、かつ主旋律を名乗らないトラックと、
+ * 同時発音が大半を占める(和音で弾いている)トラックは候補にしない。
+ * Composer Chord GeneratorのMIDI(Chords/Bassの2トラック)のように主旋律を含まない曲で、
+ * 和音トラックを主旋律と誤認してコード推定の材料から外してしまうのを防ぐ。
+ */
+function isMelodyCandidate(track: ParsedMidiTrack): boolean {
+  const named = /(melody|lead|vocal|vox|voice|theme|メロディ|主旋律)/i.test(track.name)
+  if (named) return true
+  if (/(chord|pad|bass|drum|伴奏|コード|ベース|和音)/i.test(track.name)) return false
+  const sorted = [...track.notes].sort((left, right) => left.startTick - right.startTick || left.pitch - right.pitch)
+  let overlapCount = 0
+  let latestEnd = -1
+  for (const note of sorted) {
+    if (note.startTick < latestEnd) overlapCount += 1
+    latestEnd = Math.max(latestEnd, note.startTick + note.durationTicks)
+  }
+  return 1 - overlapCount / Math.max(1, sorted.length) >= 0.35
+}
+
+function chooseMelodyTrack(tracks: ParsedMidiTrack[]): { index: number; confidence: number } {
   const nameGroups = new Map<string, number[]>()
   tracks.forEach((track, index) => {
-    if (track.notes.length === 0 || isDrumTrack(track)) return
+    if (track.notes.length === 0 || isDrumTrack(track) || !isMelodyCandidate(track)) return
     const key = normalizedTrackName(track.name) || `track:${index}`
     nameGroups.set(key, [...(nameGroups.get(key) ?? []), index])
   })
@@ -466,13 +505,13 @@ function chooseMelodyTrack(tracks: ParsedMidiTrack[]): { track: ParsedMidiTrack;
       const groupBonus = Math.min(2.4, Math.log2(indices.length + 1) * 0.72)
       const coverageBonus = Math.min(1.2, track.notes.length / 160)
       const rolePenalty = /(final.?lift|decoration|transition|fx|effect|riser|reverse|pad|stabs?|bass|drum|装飾)/i.test(track.name) ? 3 : 0
-      return { track: tracks[indices[0]], index: indices[0], score: melodyTrackScore(track) + groupBonus + coverageBonus - rolePenalty }
+      return { index: indices[0], score: melodyTrackScore(track) + groupBonus + coverageBonus - rolePenalty }
     })
     .filter((candidate) => Number.isFinite(candidate.score))
     .sort((left, right) => right.score - left.score)
-  if (ranked.length === 0) throw new Error("読み込める音符トラックがありません。")
+  if (ranked.length === 0) return { index: -1, confidence: 0 }
   const gap = ranked.length > 1 ? ranked[0].score - ranked[1].score : 3
-  return { track: ranked[0].track, index: ranked[0].index, confidence: Number(Math.min(0.98, 0.58 + gap * 0.1).toFixed(2)) }
+  return { index: ranked[0].index, confidence: Number(Math.min(0.98, 0.58 + gap * 0.1).toFixed(2)) }
 }
 
 function normalizedTrackName(name: string): string {
@@ -640,11 +679,38 @@ const CHORD_TEMPLATES = [
   { suffix: "", intervals: [0, 4, 7] },
   { suffix: "m", intervals: [0, 3, 7] },
   { suffix: "dim", intervals: [0, 3, 6] },
+  { suffix: "aug", intervals: [0, 4, 8] },
   { suffix: "sus2", intervals: [0, 2, 7] },
   { suffix: "sus4", intervals: [0, 5, 7] },
+  { suffix: "7", intervals: [0, 4, 7, 10] },
+  { suffix: "maj7", intervals: [0, 4, 7, 11] },
+  { suffix: "m7", intervals: [0, 3, 7, 10] },
+  { suffix: "m7b5", intervals: [0, 3, 6, 10] },
+  { suffix: "6", intervals: [0, 4, 7, 9] },
+  { suffix: "m6", intervals: [0, 3, 7, 9] },
+  { suffix: "7sus4", intervals: [0, 5, 7, 10] },
+  { suffix: "mMaj7", intervals: [0, 3, 7, 11] },
+  { suffix: "add9", intervals: [0, 2, 4, 7] },
+  { suffix: "m(add9)", intervals: [0, 2, 3, 7] },
 ] as const
 
-function inferChordForWindow(notes: ParsedMidiNote[], startTick: number, endTick: number): { symbol: string; score: number } | null {
+const FLAT_PC_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+const FLAT_KEY_NAMES = new Set(["F", "Bb", "Eb", "Ab", "Db", "Gb", "Cb", "Dm", "Gm", "Cm", "Fm", "Bbm", "Ebm", "Abm"])
+
+/** キーの調号に合わせた音名(フラット系のキーでは Db / Eb / Ab …) */
+function pitchNamesForKey(key: string): readonly string[] {
+  return FLAT_KEY_NAMES.has(key.trim()) ? FLAT_PC_NAMES : PC_NAMES
+}
+
+/** この長さ(区間の音量の割合)未満しか鳴っていない構成音は「鳴っていない」とみなす */
+const PRESENT_TONE_RATIO = 0.04
+
+function inferChordForWindow(
+  notes: ParsedMidiNote[],
+  startTick: number,
+  endTick: number,
+  names: readonly string[] = PC_NAMES,
+): { symbol: string; bass: string | null; score: number } | null {
   const weights = Array.from({ length: 12 }, () => 0)
   let lowest: ParsedMidiNote | null = null
   for (const note of notes) {
@@ -655,19 +721,34 @@ function inferChordForWindow(notes: ParsedMidiNote[], startTick: number, endTick
   }
   const total = weights.reduce((sum, value) => sum + value, 0)
   if (total === 0) return null
-  let best = { symbol: "C", score: -Infinity }
+  const lowestPc = lowest ? lowest.pitch % 12 : null
+  let best: { symbol: string; bass: string | null; score: number; root: number; tones: Set<number> } | null = null
   for (let root = 0; root < 12; root += 1) {
     for (const template of CHORD_TEMPLATES) {
       const tones = new Set(template.intervals.map((interval) => (root + interval) % 12))
       const inside = weights.reduce((sum, value, pc) => sum + (tones.has(pc) ? value : 0), 0)
+      // 鳴っていない構成音がある形は下げる。これで7th・6thが鳴っていない区間は三和音のまま、
+      // 鳴っている区間だけ4和音になる(4和音は三和音の音をすべて含むので、この項がないと常に勝つ)
+      const missing = [...tones].filter((pc) => weights[pc] / total < PRESENT_TONE_RATIO).length
       const rootWeight = weights[root] / total
-      const bassBonus = lowest && lowest.pitch % 12 === root ? 0.12 : 0
-      const complexityPenalty = template.suffix.startsWith("sus") ? 0.025 : template.suffix === "dim" ? 0.015 : 0
-      const score = inside / total * 0.84 + rootWeight * 0.16 + bassBonus - complexityPenalty
-      if (score > best.score) best = { symbol: `${PC_NAMES[root]}${template.suffix}`, score }
+      const bassBonus = lowestPc === root ? 0.12 : 0
+      const complexityPenalty = template.suffix.startsWith("sus")
+        ? 0.025
+        : template.suffix === "dim" || template.suffix === "aug"
+          ? 0.02
+          : template.intervals.length > 3
+            ? 0.01
+            : 0
+      const score = inside / total * 0.84 + rootWeight * 0.16 + bassBonus - complexityPenalty - missing * 0.12
+      if (!best || score > best.score) {
+        best = { symbol: `${names[root]}${template.suffix}`, bass: null, score, root, tones }
+      }
     }
   }
-  return best
+  if (!best) return null
+  // 最低音が根音以外の構成音なら転回形(C/E など)として残す
+  const bass = lowestPc !== null && lowestPc !== best.root && best.tones.has(lowestPc) ? names[lowestPc] : null
+  return { symbol: best.symbol, bass, score: Math.max(0, best.score) }
 }
 
 function inferChords(
@@ -678,23 +759,30 @@ function inferChords(
 ): { chords: ChordEvent[]; confidence: number } {
   const beatsPerBar = song.timeSignature.numerator * 4 / song.timeSignature.denominator
   const slotBeats = Math.max(1, beatsPerBar / 2)
-  const slots: Array<{ startBeat: number; durationBeats: number; symbol: string; score: number }> = []
+  const slots: Array<{ startBeat: number; durationBeats: number; symbol: string; bass: string | null; score: number }> = []
   let previousSymbol = fallbackKey.replace(/m$/, "") || "C"
-  for (let startBeat = 0; startBeat < song.endTick / song.ppq; startBeat += slotBeats) {
-    const durationBeats = Math.min(slotBeats, song.endTick / song.ppq - startBeat)
+  let previousBass: string | null = null
+  const names = pitchNamesForKey(fallbackKey)
+  // 曲尾は小節線まで伸ばす(End of Trackが最後の音の直後にあるMIDIで、最後の和音が3.98拍などの半端な長さになるのを防ぐ)
+  const endBeat = Math.max(beatsPerBar, Math.ceil(song.endTick / song.ppq / beatsPerBar - 1e-6) * beatsPerBar)
+  for (let startBeat = 0; startBeat < endBeat - 1e-6; startBeat += slotBeats) {
+    const durationBeats = Math.min(slotBeats, endBeat - startBeat)
     const inferred = inferChordForWindow(
       accompanimentNotes,
       Math.round(startBeat * song.ppq),
       Math.round((startBeat + durationBeats) * song.ppq),
+      names,
     )
     const symbol = inferred?.symbol ?? previousSymbol
-    slots.push({ startBeat, durationBeats, symbol, score: inferred?.score ?? 0.25 })
+    const bass: string | null = inferred ? inferred.bass : previousBass
+    slots.push({ startBeat, durationBeats, symbol, bass, score: inferred?.score ?? 0.25 })
     previousSymbol = symbol
+    previousBass = bass
   }
   const merged: typeof slots = []
   for (const slot of slots) {
     const previous = merged[merged.length - 1]
-    if (previous && previous.symbol === slot.symbol && Math.abs(previous.startBeat + previous.durationBeats - slot.startBeat) < 0.001) {
+    if (previous && previous.symbol === slot.symbol && previous.bass === slot.bass && Math.abs(previous.startBeat + previous.durationBeats - slot.startBeat) < 0.001) {
       const totalDuration = previous.durationBeats + slot.durationBeats
       previous.score = (previous.score * previous.durationBeats + slot.score * slot.durationBeats) / totalDuration
       previous.durationBeats = totalDuration
@@ -712,7 +800,7 @@ function inferChords(
         startBeat: start - window.startBeat,
         durationBeats: end - start,
         symbol: chord.symbol,
-        bass: null,
+        bass: chord.bass,
       })
     }
   }
@@ -764,7 +852,8 @@ export function analyzeMidiImport(bytes: Uint8Array, fileName: string): MidiImpo
   const warnings: string[] = []
   if (!fromMarkers) warnings.push("セクションマーカーがないため、曲全体を1セクションとして候補化しました。")
   if (!song.keySignature) warnings.push("キー情報がないため、ノート分布から推定しました。")
-  if (melody.confidence < 0.72) warnings.push("メロディトラックの判定候補が拮抗しています。主旋律トラックを確認してください。")
+  if (melody.index < 0) warnings.push("主旋律と判定できるトラックがないため、コードと構成だけを読み込みます。主旋律がある場合は確認画面で選んでください。")
+  else if (melody.confidence < 0.72) warnings.push("メロディトラックの判定候補が拮抗しています。主旋律トラックを確認してください。")
   return {
     fileName,
     title: song.title || cleanFileName(fileName),
@@ -898,7 +987,11 @@ export function createMidiProjectFromAnalysis(
       tempo: Math.max(20, Math.min(300, Number(options.tempo) || analysis.tempo)),
       timeSignature: `${song.timeSignature.numerator}/${song.timeSignature.denominator}`,
     },
-    sections: windows.map((window) => window.section),
+    sections: windows.map((window) => {
+      // 調号で転調が示されていれば、そのセクションだけの調として残す(曲の調と同じなら指定しない)
+      const sectionKey = keyAtBeat(song, window.startBeat)
+      return sectionKey && sectionKey !== key ? { ...window.section, key: sectionKey } : window.section
+    }),
     chords,
     melodyVariants: variants,
     activeMelodyId: variants[0]?.id ?? null,

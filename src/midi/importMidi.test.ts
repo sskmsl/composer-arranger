@@ -272,7 +272,120 @@ describe("MIDI project import", () => {
     })
   })
 
+  it("主旋律を含まない和音+ベースのMIDIは、和音トラックを主旋律と誤認せずコード推定に使う", () => {
+    const beat = TICKS_PER_QUARTER
+    // Chord Generatorの書き出しと同じ形: Chords(和音)とBass(転回形のベース音)の2トラック
+    const progression = [
+      { tones: [57, 60, 64, 67], bass: 45, beats: 4 }, // Am7
+      { tones: [53, 57, 60, 64], bass: 41, beats: 4 }, // Fmaj7
+      { tones: [55, 59, 62], bass: 47, beats: 4 }, // G/B
+      { tones: [52, 56, 59, 62], bass: 40, beats: 3.5 }, // E7(End of Trackが小節の手前)
+    ]
+    let start = 0
+    const chords: Array<{ pitch: number; start: number; duration: number; velocity: number; channel: number }> = []
+    const bass: typeof chords = []
+    for (const chord of progression) {
+      for (const pitch of chord.tones) chords.push({ pitch, start: start * beat, duration: chord.beats * beat, velocity: 70, channel: 0 })
+      bass.push({ pitch: chord.bass, start: start * beat, duration: chord.beats * beat, velocity: 80, channel: 1 })
+      start += chord.beats
+    }
+    const bytes = buildSmf({
+      name: "Chord Sketch",
+      tempoBpm: 80,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [{ name: "Chords", notes: chords }, { name: "Bass", notes: bass }],
+    })
+    const analysis = analyzeMidiImport(bytes, "chord-sketch.mid")
+    expect(analysis.melodyTrackIndex).toBe(-1)
+    expect(analysis.warnings.some((warning) => warning.includes("主旋律と判定できるトラックがない"))).toBe(true)
+
+    const { project } = createMidiProjectFromAnalysis(analysis, { reviewConfirmed: true })
+    expect(project.melodyVariants).toHaveLength(0)
+    expect(project.chords.map((chord) => (chord.bass ? `${chord.symbol}/${chord.bass}` : chord.symbol))).toEqual([
+      "Am7", "Fmaj7", "G/B", "E7",
+    ])
+    // 最後の和音は小節線まで(3.5拍で切れない)
+    expect(project.chords.at(-1)?.durationBeats).toBe(4)
+  })
+
+  it("途中で転調する調号があっても、曲の調は冒頭の調号から読む", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Key Change",
+      tempoBpm: 90,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      keySignature: { sharpsFlats: 3, minor: true },
+      tracks: [{ name: "Lead Melody", notes: [{ pitch: 66, start: 0, duration: beat * 16, velocity: 80, channel: 0 }] }],
+    })
+    // 8拍目に G#m(♯5)への転調を示す調号を足す(Chord Generatorのセクションごとの調号と同じ形)
+    const withChange = insertConductorKeySignature(bytes, beat * 8, 5, true)
+    const analysis = analyzeMidiImport(withChange, "key-change.mid")
+    expect(analysis.key).toBe("F#m")
+    // 転調後のセクションには、そのセクションだけの調を残す
+    const { project } = createMidiProjectFromAnalysis(analysis, {
+      sections: [
+        { id: "a", name: "Verse", role: "verse", startBar: 1 },
+        { id: "b", name: "Chorus", role: "chorus", startBar: 3 },
+      ],
+      reviewConfirmed: true,
+    })
+    expect(project.sections.map((section) => section.key)).toEqual([undefined, "G#m"])
+  })
+
+  it("7thが鳴っていない区間は三和音のまま推定し、フラット系のキーではフラットで綴る", () => {
+    const beat = TICKS_PER_QUARTER
+    const bytes = buildSmf({
+      name: "Flat Key",
+      tempoBpm: 90,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      keySignature: { sharpsFlats: -4, minor: true },
+      tracks: [{
+        name: "Piano Chords",
+        notes: [
+          ...[53, 56, 60].map((pitch) => ({ pitch, start: 0, duration: 4 * beat, velocity: 70, channel: 0 })), // Fm
+          ...[49, 53, 56].map((pitch) => ({ pitch, start: 4 * beat, duration: 4 * beat, velocity: 70, channel: 0 })), // Db
+        ],
+      }],
+    })
+    const analysis = analyzeMidiImport(bytes, "flat-key.mid")
+    const { project } = createMidiProjectFromAnalysis(analysis, { reviewConfirmed: true })
+    expect(project.chords.map((chord) => chord.symbol)).toEqual(["Fm", "Db"])
+  })
+
   it("壊れたファイルをMIDIとして受理しない", () => {
     expect(() => parseMidi(new Uint8Array([1, 2, 3, 4]))).toThrow()
   })
 })
+
+/** コンダクタートラック(1本目のMTrk)の End of Track の直前に調号メタイベントを差し込む */
+function insertConductorKeySignature(bytes: Uint8Array, tick: number, sharpsFlats: number, minor: boolean): Uint8Array {
+  const data = [...bytes]
+  const trackStart = 14
+  const length = (data[trackStart + 4] << 24) | (data[trackStart + 5] << 16) | (data[trackStart + 6] << 8) | data[trackStart + 7]
+  const bodyStart = trackStart + 8
+  const endOfTrack = bodyStart + length - 4
+  // End of Track の直前イベントからの差分tickを求めるのは複雑なので、End of Track のdeltaを使って挿入する
+  const vlq = (value: number) => {
+    const out = [value & 0x7f]
+    let v = value >> 7
+    while (v > 0) {
+      out.unshift((v & 0x7f) | 0x80)
+      v >>= 7
+    }
+    return out
+  }
+  const insert = [...vlq(tick), 0xff, 0x59, 0x02, sharpsFlats & 0xff, minor ? 1 : 0]
+  const eot = data.slice(endOfTrack)
+  if (eot[0] !== 0x00) throw new Error("unexpected End of Track delta")
+  const body = [...data.slice(bodyStart, endOfTrack), ...insert, ...eot]
+  const newLength = body.length
+  return new Uint8Array([
+    ...data.slice(0, trackStart + 4),
+    (newLength >>> 24) & 0xff, (newLength >>> 16) & 0xff, (newLength >>> 8) & 0xff, newLength & 0xff,
+    ...body,
+    ...data.slice(bodyStart + length),
+  ])
+}

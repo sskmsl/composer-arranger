@@ -195,7 +195,7 @@ export function AuditionWorkspace() {
       )}
       {section && variants.length === 0 && (
         <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[12px] text-amber-200">
-          比較できる主旋律候補がありません。「詳細調整 → 主旋律」で候補を生成すると再生できます。
+          比較できる主旋律候補がありません。「個別調整 → 主旋律」で候補を生成すると再生できます。
         </p>
       )}
       {section && variants.length === 1 && (
