@@ -7,11 +7,12 @@ import { accompanimentEnabled } from "@/core/sectionContent"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import { distinctMelodyVariantsForAudition, immediateAuditionRange, leadNotesForAudition } from "@/core/auditionMaterial"
 import { Button, Pill, Select, TextInput } from "@/ui/primitives"
+import type { MainTab } from "./App"
 import { applyArrangementTimelineToSectionEvents } from "@/core/arrangementTimelineConstraints"
 
 const SLOT_LABELS = ["A", "B", "C"] as const
 
-export function AuditionWorkspace() {
+export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) => void } = {}) {
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const selectSection = useProjectStore((state) => state.selectSection)
@@ -194,9 +195,11 @@ export function AuditionWorkspace() {
         </p>
       )}
       {section && variants.length === 0 && (
-        <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[12px] text-amber-200">
-          比較できる主旋律候補がありません。「個別調整 → 主旋律」で候補を生成すると再生できます。
-        </p>
+        // 比べる候補がないときは、使えない試聴設定やA/B/C枠を並べず、次にすることだけを示す
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-3 text-[12px] text-amber-200">
+          <p>比較できる主旋律候補がありません。主旋律の候補を作ると、ここでA/B/Cを聴き比べられます。</p>
+          {onNavigate && <Button onClick={() => onNavigate("melody")}>主旋律の候補を作る</Button>}
+        </div>
       )}
       {section && variants.length === 1 && (
         <p className="rounded-md border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[12px] text-sky-100">
@@ -204,6 +207,7 @@ export function AuditionWorkspace() {
         </p>
       )}
 
+      {variants.length > 0 && (<>
       <section className="rounded-lg border border-hairline bg-surface-tile-1 p-3" aria-labelledby="audition-settings-heading">
         <h3 id="audition-settings-heading" className="mb-2 text-[13px] font-semibold text-body-on-dark">試聴方法</h3>
         <div className="flex flex-wrap items-center gap-2">
@@ -351,6 +355,7 @@ export function AuditionWorkspace() {
           </div>
         </section>
       )}
+      </>)}
     </main>
   )
 }

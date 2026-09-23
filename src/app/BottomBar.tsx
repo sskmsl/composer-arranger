@@ -214,6 +214,13 @@ export function BottomBar() {
 
       <div className="ml-auto" />
 
+      {/* 曲全体の再生・書き出しは「結果・書出し」画面の上部。ここは選択中のセクションだけを扱う */}
+      {section && (
+        <span className="hidden max-w-40 truncate text-[11px] text-body-muted md:inline" title="この下の再生・書き出しの対象">
+          対象: {section.name}
+        </span>
+      )}
+
       {!hasPlayableMaterial && (
         <span className="hidden text-[11px] text-body-muted md:inline">
           再生するにはコードまたは候補を用意してください
@@ -229,7 +236,7 @@ export function BottomBar() {
       <IconButton
         onClick={playing ? () => stop() : () => play()}
         disabled={!hasPlayableMaterial}
-        title={playing ? "停止 (Space)" : "再生 (Space)"}
+        title={playing ? "停止 (Space)" : "このセクションを再生 (Space)"}
         className="bg-primary text-on-primary hover:bg-primary-focus"
       >
         {playing ? <Square size={14} /> : <Play size={14} />}
@@ -242,7 +249,7 @@ export function BottomBar() {
         onClick={exportMidi}
         disabled={!hasPlayableMaterial}
       >
-        <Download size={13} /> <span className="hidden sm:inline">MIDI書き出し</span>
+        <Download size={13} /> <span className="hidden sm:inline">セクションMIDI</span>
       </Button>
 
       {totalBeats > 0 && (
