@@ -1,18 +1,26 @@
-import { useEffect, useState } from "react"
+import { lazy, Suspense, useEffect, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { TopBar } from "./TopBar"
 import { LeftPanel } from "./LeftPanel"
 import { RightPanel } from "./RightPanel"
 import { BottomBar } from "./BottomBar"
-import { MelodyWorkspace } from "./MelodyWorkspace"
 import { TimingMigrationBanner } from "./TimingMigrationBanner"
-import { ArrangementWorkspace } from "./ArrangementWorkspace"
-import { AuditionWorkspace } from "./AuditionWorkspace"
-import { PhraseWorkspace } from "./PhraseWorkspace"
-import { CounterWorkspace } from "./CounterWorkspace"
-import { DecorationWorkspace } from "./DecorationWorkspace"
-import { SignaturePhraseWorkspace } from "./SignaturePhraseWorkspace"
-import { AiPartnerWorkspace } from "./AiPartnerWorkspace"
+
+// 作業画面は開いたときに読み込む(最初の画面=ホームで使わないコードを初回の読み込みから外す)
+const MelodyWorkspace = lazy(() => import("./MelodyWorkspace").then((m) => ({ default: m.MelodyWorkspace })))
+const ArrangementWorkspace = lazy(() => import("./ArrangementWorkspace").then((m) => ({ default: m.ArrangementWorkspace })))
+const AuditionWorkspace = lazy(() => import("./AuditionWorkspace").then((m) => ({ default: m.AuditionWorkspace })))
+const PhraseWorkspace = lazy(() => import("./PhraseWorkspace").then((m) => ({ default: m.PhraseWorkspace })))
+const CounterWorkspace = lazy(() => import("./CounterWorkspace").then((m) => ({ default: m.CounterWorkspace })))
+const DecorationWorkspace = lazy(() => import("./DecorationWorkspace").then((m) => ({ default: m.DecorationWorkspace })))
+const SignaturePhraseWorkspace = lazy(() =>
+  import("./SignaturePhraseWorkspace").then((m) => ({ default: m.SignaturePhraseWorkspace })),
+)
+const AiPartnerWorkspace = lazy(() => import("./AiPartnerWorkspace").then((m) => ({ default: m.AiPartnerWorkspace })))
+
+function WorkspaceLoading() {
+  return <div className="flex flex-1 items-center justify-center text-[12px] text-body-muted">読み込み中…</div>
+}
 import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
 import { ImportStartGuide } from "./ImportStartGuide"
 import { HomeWorkspace } from "./HomeWorkspace"
@@ -33,6 +41,12 @@ export function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
   const hydrated = useProjectStore((s) => s.hydrated)
   const [tab, setTab] = useState<MainTab>("home")
+  const [aiPartnerOpened, setAiPartnerOpened] = useState(false)
+  // 一度開いたAI Partnerは以降も保持する(この描画中に開いた場合も即座に表示する)
+  const aiPartnerVisited = aiPartnerOpened || tab === "ai-partner"
+  useEffect(() => {
+    if (tab === "ai-partner") setAiPartnerOpened(true)
+  }, [tab])
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
   const [importGuideOpen, setImportGuideOpen] = useState(false)
@@ -92,6 +106,7 @@ export function App() {
       />
       <TimingMigrationBanner />
       <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>
+        <Suspense fallback={<WorkspaceLoading />}>
         {returnToAiPartner && tab !== "ai-partner" && (
           <button
             type="button"
@@ -192,15 +207,19 @@ export function App() {
             )}
           </>
         )}
-        <div className={tab === "ai-partner" ? "contents" : "hidden"}>
-          <AiPartnerWorkspace
-            onNavigate={navigateFromAiPartner}
-            initialPrompt={aiPartnerInitialPrompt}
-            onInitialPromptConsumed={() => setAiPartnerInitialPrompt(null)}
-          />
-        </div>
+        {/* AI Partnerは会話の状態を保つため、一度開いたら他の画面へ移っても隠して保持する */}
+        {aiPartnerVisited && (
+          <div className={tab === "ai-partner" ? "contents" : "hidden"}>
+            <AiPartnerWorkspace
+              onNavigate={navigateFromAiPartner}
+              initialPrompt={aiPartnerInitialPrompt}
+              onInitialPromptConsumed={() => setAiPartnerInitialPrompt(null)}
+            />
+          </div>
+        )}
         {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
         {tab === "audition" && <AuditionWorkspace />}
+        </Suspense>
       </div>
       {tab !== "home" &&
         tab !== "phrase" &&
