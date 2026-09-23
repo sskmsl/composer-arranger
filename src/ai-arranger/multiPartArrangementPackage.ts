@@ -191,6 +191,10 @@ function partsForSection(
   const hasPattern = Boolean(project.sectionAccompanimentPatternAssignments[plan.sectionId])
   const hasCounter = Boolean(project.sectionReactiveLayerAssignments?.[plan.sectionId])
   const hasDecoration = Boolean(project.sectionDecorationLayerAssignments?.[plan.sectionId])
+  const hasShortMaterial = Boolean(
+    project.sectionSignaturePhraseAssignments?.[plan.sectionId] ||
+    project.sectionPhraseAssignments?.[plan.sectionId],
+  )
   const hasChords = project.chords.some((chord) => chord.sectionId === plan.sectionId)
   const lowEnergy = plan.targetEnergy <= 2
   const isIntro = section.role === "intro"
@@ -306,12 +310,12 @@ function partsForSection(
     : null
   parts.push(planPart({
     id: `${plan.sectionId}:color`, sectionId: plan.sectionId, sectionName: plan.sectionName,
-    partRole: "color", state: colorWanted ? (isIntro ? "enter" : recovery ? "hold" : "transform") : hasDecoration ? "withdraw" : "silence",
-    purpose: colorWanted ? (isIntro ? "冒頭だけで世界を識別できる音色と間を作る" : "次の主要アタックを奪わず時間を接続する") : "装飾の希少性を守る",
+    partRole: "color", state: colorWanted ? (hasShortMaterial ? "continue" : isIntro ? "enter" : recovery ? "hold" : "transform") : hasDecoration || hasShortMaterial ? "withdraw" : "silence",
+    purpose: hasShortMaterial ? "採用済みの短いモチーフを音色・音域・末尾だけ変えて再提示する" : colorWanted ? (isIntro ? "冒頭だけで世界を識別できる音色と間を作る" : "次の主要アタックを奪わず時間を接続する") : "装飾の希少性を守る",
     register: isIntro ? "middle" : "high", distance: "distant", intensity: colorWanted ? Math.max(1, plan.targetEnergy - 1) as 1 | 2 | 3 | 4 | 5 : 1,
     stage: colorExecution ? "color" : null,
     execution: colorExecution,
-    implementation: hasDecoration ? "active" : colorExecution ? "generator" : "withheld",
+    implementation: hasDecoration || hasShortMaterial ? "active" : colorExecution ? "generator" : "withheld",
   }))
 
   parts.push(planPart({

@@ -264,7 +264,11 @@ function activeForRole(
     return Boolean(project.sectionReactiveLayerAssignments?.[sectionId])
   }
   if (role === "transition-color") {
-    return Boolean(project.sectionDecorationLayerAssignments?.[sectionId])
+    return Boolean(
+      project.sectionDecorationLayerAssignments?.[sectionId] ||
+      project.sectionSignaturePhraseAssignments?.[sectionId] ||
+      project.sectionPhraseAssignments?.[sectionId],
+    )
   }
   return false
 }

@@ -45,6 +45,26 @@ function feedbackFor(project: ComposerProject): string {
   return `採用 ${favorites}件・Reject ${rejected}件を次の優先順位へ反映しています。`
 }
 
+function existingMotifAdvice(project: ComposerProject, sectionId: string | null, brief: string): string | null {
+  if (!sectionId) return null
+  if (!/(?:フレーズ|リフ|モチーフ|イントロ|装飾|何か足|物足りな)/.test(brief)) return null
+  const explicitNewPhrase = /(?:新しい|新規).{0,12}(?:フレーズ|リフ|モチーフ|イントロ)|(?:フレーズ|リフ|モチーフ|イントロ).{0,12}(?:新しく|新規|生成)/.test(brief)
+  if (explicitNewPhrase) return null
+  const localSignature = project.signaturePhraseCandidates.find((candidate) =>
+    candidate.id === project.sectionSignaturePhraseAssignments?.[sectionId] && candidate.sectionId === sectionId)
+  const localPhrase = project.phraseCandidates.find((candidate) =>
+    candidate.id === project.sectionPhraseAssignments?.[sectionId] && candidate.sectionId === sectionId)
+  if (localSignature || localPhrase) {
+    return "このSectionには短いモチーフが既にあります。新規生成より、音色・音域・最後の1音・休符を一つだけ変えて再提示する案を先に試聴してください。"
+  }
+  const earlierSignature = project.sections
+    .filter((section) => section.startBar < (project.sections.find((candidate) => candidate.id === sectionId)?.startBar ?? 0))
+    .some((section) => Boolean(project.sectionSignaturePhraseAssignments?.[section.id]))
+  return earlierSignature
+    ? "既出のSignature MotifをこのSectionで薄く再登場させる余地があります。新しいフレーズを足す前に、音域か音色だけ変えた再提示を試してください。"
+    : null
+}
+
 function existingArrangementAdvice(project: ComposerProject, sectionId: string | null, brief: string): string | null {
   if (!sectionId || !project.fullSongArrangement) return null
   // 具体的な役割を指名された依頼は尊重する。「何か足したい」だけでは追加の根拠にしない。
@@ -100,6 +120,7 @@ export function buildAiPartnerOrchestrationPlan(
   const direction = program.directions.find((candidate) => candidate.id === directionId)
     ?? program.directions[0]
   const subtractionAdvice = existingArrangementAdvice(project, selectedSectionId, brief)
+    ?? existingMotifAdvice(project, selectedSectionId, brief)
   const rejected = rejectedGenerators(project)
   const available = direction.actions
     .filter((action) => action.status === "available")

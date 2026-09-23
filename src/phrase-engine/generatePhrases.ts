@@ -35,6 +35,10 @@ export interface GeneratePhrasesInput {
   beatsPerBar: number
   totalBeats: number
   seed: number
+  /** 既に鳴る主旋律。応答位置と音域の競合を避けるために使用する。 */
+  referenceMelody?: MelodyNote[]
+  /** 既存伴奏・短い素材の音数／拍。高密度の上へさらに埋めない。 */
+  supportNotesPerBeat?: number
   lengthBars?: PhraseLengthBars
   candidateCount?: number
   composerRules?: ResolvedComposerRules
@@ -204,13 +208,21 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
     input.composerRules,
   )
   const densityBase = input.density === "sparse" ? 0.35 : input.density === "active" ? 0.78 : 0.56
-  const density = clamp01(densityBase + (rng.next() - 0.5) * 0.22)
-  const restRatio =
+  const melodyCoverage = clamp01(
+    (input.referenceMelody ?? []).reduce((sum, note) => sum + note.durationBeats, 0) /
+      Math.max(1, input.totalBeats),
+  )
+  const density = clamp01(
+    densityBase + (rng.next() - 0.5) * 0.22 - melodyCoverage * 0.17 -
+      Math.min(0.14, (input.supportNotesPerBeat ?? 0) * 0.12),
+  )
+  const restRatioBase =
     rhythmCharacter === "breathing"
       ? 0.3 + rng.next() * 0.15
       : rhythmCharacter === "sustained"
         ? 0.18 + rng.next() * 0.12
         : 0.08 + rng.next() * 0.16
+  const restRatio = clamp01(restRatioBase + melodyCoverage * 0.13)
   const leapBase = input.drama === "restrained" ? 0.18 : input.drama === "open" ? 0.58 : 0.38
   const leapAmount = clamp01(leapBase + (rng.next() - 0.5) * 0.25)
   const climaxPreference =
@@ -270,6 +282,11 @@ export function planPhraseIntent(input: GeneratePhrasesInput, seed: number, pool
       : undefined
 
   return {
+    materialRole: input.sectionRole === "intro"
+      ? "ostinato"
+      : (input.referenceMelody?.length ?? 0) > 0
+        ? "response"
+        : "transition",
     lengthBars,
     contour,
     rhythmCharacter,
@@ -492,11 +509,30 @@ function endingPitch(
   return { pitch, role: color.includes(pitchClass(pitch)) ? "tension-hold" : "chord-tone" }
 }
 
+function complementaryPhraseRange(
+  range: RangeSetting,
+  referenceMelody: readonly MelodyNote[],
+  phraseLengthBeats: number,
+): RangeSetting {
+  const active = referenceMelody.filter((note) => note.startBeat < phraseLengthBeats)
+  if (active.length < 2) return range
+  const center = active.reduce((sum, note) => sum + note.pitch, 0) / active.length
+  const middle = (range.low + range.high) / 2
+  const below = { low: range.low, high: Math.min(range.high, Math.floor(center - 6)) }
+  const above = { low: Math.max(range.low, Math.ceil(center + 6)), high: range.high }
+  const preferred = center >= middle ? below : above
+  const alternate = center >= middle ? above : below
+  if (preferred.high - preferred.low >= 2) return preferred
+  if (alternate.high - alternate.low >= 2) return alternate
+  return range
+}
+
 function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: number): BuiltPhrase {
   const intent = planPhraseIntent(input, seed, poolIndex)
   const phraseLengthBeats = Math.min(input.totalBeats, intent.lengthBars * input.beatsPerBar)
   const chords = phraseChords(input, phraseLengthBeats)
   const map = buildHarmonicMap(chords)
+  const range = complementaryPhraseRange(input.range, input.referenceMelody ?? [], phraseLengthBeats)
   const rng = new SeededRandom(seed ^ 0x9e3779b9)
   const keyScale = keyScalePitchClasses(input.key)
   const events = rhythmEvents(intent, phraseLengthBeats, seed)
@@ -505,7 +541,7 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
   }
 
   const firstEntry = chordAtBeat(map, events[0].start) ?? map[0]
-  let previousPitch = chooseOpeningPitch(intent, firstEntry, input.range, keyScale, rng)
+  let previousPitch = chooseOpeningPitch(intent, firstEntry, range, keyScale, rng)
   let previousInterval = 0
   const notes: MelodyNote[] = []
 
@@ -579,14 +615,14 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
     const allowed = isRecovering
       ? [...new Set([...allUsablePitchClasses(entry.parsed), ...keyScale])]
       : desiredPitchClasses(intent, entry, nextEntry, event.start, strongBeat, keyScale)
-    let placed = nearestPitchForClasses(desired, allowed, input.range)
+    let placed = nearestPitchForClasses(desired, allowed, range)
     const repeatedRun =
       index > 1 && placed === previousPitch && notes[index - 1]?.pitch === notes[index - 2]?.pitch
     if (repeatedRun) {
       placed = nearestDistinctPitchForClasses(
         desired + Math.sign(transformedInterval || contourDrift || 1),
         allowed,
-        input.range,
+        range,
         previousPitch,
         Math.sign(transformedInterval || contourDrift),
       )
@@ -644,7 +680,7 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
     const lastEntry = chordAtBeat(map, last.startBeat) ?? map[map.length - 1]
     const followingEntry = input.chords.find((chord) => chord.startBeat >= phraseLengthBeats)
     const followingMap = followingEntry ? buildHarmonicMap([followingEntry])[0] : undefined
-    const ending = endingPitch(intent, last.pitch, lastEntry, followingMap, input.range)
+    const ending = endingPitch(intent, last.pitch, lastEntry, followingMap, range)
     last.pitch = ending.pitch
     last.plannedToneRole = ending.role
     last.plannedResolution = undefined
@@ -676,11 +712,14 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
     }
   }
 
-  const qualityScore = scorePhrase(articulatedNotes, intent, map, phraseLengthBeats)
+  const qualityScore = scorePhrase(articulatedNotes, intent, map, phraseLengthBeats, {
+    referenceMelody: input.referenceMelody,
+    supportNotesPerBeat: input.supportNotesPerBeat,
+  })
   const finalNotes = enforceHarmonicIntegrity(
     articulatedNotes,
     chords,
-    input.range,
+    range,
   ).notes
 
   return {
@@ -706,6 +745,7 @@ export function scorePhrase(
   intent: PhraseIntent,
   map: HarmonicMapEntry[],
   phraseLengthBeats: number,
+  context: { referenceMelody?: readonly MelodyNote[]; supportNotesPerBeat?: number } = {},
 ): number {
   if (notes.length < 4) return 0
   const strongNotes = notes.filter((note) => Math.abs(note.startBeat - Math.round(note.startBeat)) < 0.06)
@@ -734,7 +774,7 @@ export function scorePhrase(
   const densityPerBeat = notes.length / phraseLengthBeats
   const targetDensity = 0.45 + intent.density * 0.8
   const densityFit = 1 - Math.min(1, Math.abs(densityPerBeat - targetDensity) / 0.9)
-  const singableRange = range <= 19 ? 1 : Math.max(0, 1 - (range - 19) / 12)
+  const compactRange = range <= 12 ? 1 : Math.max(0, 1 - (range - 12) / 14)
   // Harmony can change the pitches, but a short contour with a recognizable rhythm should survive.
   const motifWindows = notes.slice(0, -2).map((note, index) => ({
     index,
@@ -756,6 +796,37 @@ export function scorePhrase(
     }
     return best
   }, 0)
+  const gaps = notes.slice(1).map((note, index) =>
+    Math.round((note.startBeat - notes[index].startBeat) * 4) / 4,
+  )
+  const rhythmCells = gaps.slice(1).map((gap, index) => `${gaps[index]}:${gap}`)
+  const rhythmicReturn = rhythmCells.length > 0
+    ? 1 - new Set(rhythmCells).size / rhythmCells.length
+    : 0
+  const rhythmicIdentity = clamp01(
+    (new Set(gaps).size <= 4 ? 0.35 : 0.1) + rhythmicReturn * 0.65,
+  )
+  const simplicity = clamp01(1 - Math.max(0, densityPerBeat - 0.65) / 0.8)
+  const colorNotes = notes.filter((note) =>
+    note.plannedToneRole === "approach-tone" ||
+    note.plannedToneRole === "suspension" ||
+    note.plannedToneRole === "tension-hold",
+  ).length
+  const colorRatio = colorNotes / notes.length
+  const controlledTension = colorRatio > 0 && colorRatio <= 0.25 ? 1 : 0
+  const reference = context.referenceMelody ?? []
+  const competingNotes = notes.filter((note) => reference.some((lead) =>
+    note.startBeat < lead.startBeat + lead.durationBeats &&
+    lead.startBeat < note.startBeat + note.durationBeats &&
+    Math.abs(note.pitch - lead.pitch) < 7,
+  )).length / notes.length
+  const attackCollisions = notes.filter((note) => reference.some((lead) =>
+    Math.abs(note.startBeat - lead.startBeat) < 0.1,
+  )).length / notes.length
+  const melodyConflict = competingNotes * 0.8 + attackCollisions * 0.2
+  const supportOverfill = clamp01(
+    (densityPerBeat + (context.supportNotesPerBeat ?? 0) - 1.1) / 0.8,
+  )
   const peakPitch = Math.max(...pitches)
   const firstPeak = notes.find((note) => note.pitch === peakPitch)!
   const peakPosition = firstPeak.startBeat / Math.max(1, phraseLengthBeats)
@@ -771,13 +842,18 @@ export function scorePhrase(
   const score =
     strongFit * 18 +
     (leaps.length === 0 ? 0.85 : recovered) * 20 +
-    singableRange * 12 +
-    Math.min(1, durationVariety / 3) * 7 +
+    compactRange * 8 +
+    Math.min(1, durationVariety / 3) * 5 +
     restFit * 10 +
-    densityFit * 7 +
-    cadenceFit * 10 +
-    motifReturn * 9 +
-    peakFit * 7 -
+    densityFit * 6 +
+    cadenceFit * 8 +
+    motifReturn * 11 +
+    peakFit * 3 +
+    rhythmicIdentity * 5 +
+    simplicity * 6 +
+    controlledTension * 3 -
+    melodyConflict * 24 -
+    supportOverfill * 8 -
     Math.min(24, unresolvedLargeLeaps * 12)
   return Math.round(Math.max(0, Math.min(100, score)) * 100) / 100
 }

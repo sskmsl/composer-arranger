@@ -83,6 +83,18 @@ function rhythmSignature(candidate: ReturnType<typeof generateSignaturePhraseCan
 }
 
 describe("Signature Phrase Generator", () => {
+  it("曲の入口以外も役割を分け、1〜2音の核を候補に残す", () => {
+    const interlude = generateSignaturePhraseCandidates({
+      ...input(17), sectionRole: "instrumental", finalCandidateCount: 12,
+    })
+    expect(interlude.every((candidate) => candidate.plan.role === "interlude")).toBe(true)
+    expect(interlude.some((candidate) => candidate.plan.motifSize <= 2)).toBe(true)
+    const transition = generateSignaturePhraseCandidates({
+      ...input(18), sectionRole: "pre-chorus", finalCandidateCount: 3,
+    })
+    expect(transition.every((candidate) => candidate.plan.role === "transition")).toBe(true)
+  })
+
   it("近接進行・解決する半音・長い句のフックを評価し、リフや未解決音は優遇しない", () => {
     const balanced = {
       stepwiseMotionRatio: 0.42,
@@ -516,7 +528,7 @@ describe("Signature Phrase Generator", () => {
     expect(
       candidates.every(
         (candidate) =>
-          candidate.plan.motifSize >= 3 && candidate.plan.motifSize <= 5,
+          candidate.plan.motifSize >= 1 && candidate.plan.motifSize <= 5,
       ),
     ).toBe(true)
   })

@@ -36,6 +36,28 @@ function input(seed = 41, role: GeneratePhrasesInput["sectionRole"] = "verse"): 
 }
 
 describe("Phrase Generator", () => {
+  it("密な主旋律がある時は短い応答を疎にし、前景の音域を避ける", () => {
+    const lead = Array.from({ length: 16 }, (_, index) => ({
+      id: `lead-${index}`, pitch: 69 + index % 3, startBeat: index,
+      durationBeats: 0.85, velocity: 80, locks: [],
+    }))
+    const base = generatePhraseCandidates({ ...input(3079), lengthBars: 2 })
+    const supported = generatePhraseCandidates({
+      ...input(3079), lengthBars: 2, referenceMelody: lead,
+    })
+    const averageNotes = (items: typeof base) =>
+      items.reduce((sum, item) => sum + item.notes.length, 0) / items.length
+    const conflicts = (items: typeof base) => items.flatMap((item) => item.notes)
+      .filter((note) => lead.some((voice) =>
+        note.startBeat < voice.startBeat + voice.durationBeats &&
+        voice.startBeat < note.startBeat + note.durationBeats &&
+        Math.abs(note.pitch - voice.pitch) < 7,
+      )).length
+    expect(supported.every((item) => item.intent.materialRole === "response")).toBe(true)
+    expect(averageNotes(supported)).toBeLessThan(averageNotes(base))
+    expect(conflicts(supported)).toBeLessThan(conflicts(base))
+  })
+
   it("同じ音数・音域なら計画した後半の最高音を高く評価する", () => {
     const intent = { ...planPhraseIntent(input(41), 41, 0), climaxPosition: 0.75 }
     const notes = (pitches: number[]) => pitches.map((pitch, index) => ({

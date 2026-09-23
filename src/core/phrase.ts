@@ -16,6 +16,8 @@ export type PhraseMotifDevelopment =
  * UI入力ではなく、コード進行・Section Role・Song Profileから候補ごとに計画する。
  */
 export interface PhraseIntent {
+  /** 歌唱線ではない短い素材が、現在のSectionで担う役割。旧候補では未設定。 */
+  materialRole?: "response" | "transition" | "ostinato"
   lengthBars: PhraseLengthBars
   contour: PhraseContour
   rhythmCharacter: PhraseRhythmCharacter

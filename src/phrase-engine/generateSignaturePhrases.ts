@@ -345,19 +345,19 @@ const CONTOURS: PhraseContour[] = [
  */
 const MOTIF_PATHS: Record<SignaturePhraseArchetype, readonly number[][]> = {
   "atmospheric-gateway": [
-    [0, 2, -1],
+    [0],
     [0, -1, 3],
     [0, 3, -2, 0],
     [0, -2, 1, 0],
   ],
   "obsessive-motor": [
-    [0, 0, -1, 0],
+    [0, 0],
     [0, -1, 0, 2],
     [0, 3, -3, 1],
     [0, 0, 3, -1, 0],
   ],
   "kinetic-hook": [
-    [0, 4, -2, -3],
+    [0, 4],
     [0, -5, 2, 4],
     [0, 2, 3, -4, 1],
     [0, -3, 5, -2],
@@ -686,7 +686,7 @@ function planSignaturePhrase(
     "kinetic-hook": "opening-and-ending",
   }
   const motifOptions = MOTIF_PATHS[archetype]
-  const motifVariant = ((poolIndex * 5 + seed) % motifOptions.length) as
+  const motifVariant = ((poolIndex * 5 + input.seed) % motifOptions.length) as
     | 0
     | 1
     | 2
@@ -734,7 +734,15 @@ function planSignaturePhrase(
     }
   }
   return {
-    role: "intro",
+    role: input.sectionRole === "intro"
+      ? "intro"
+      : input.sectionRole === "instrumental"
+        ? "interlude"
+        : input.sectionRole === "outro"
+          ? "outro"
+          : input.sectionRole === "pre-chorus" || input.sectionRole === "bridge"
+            ? "transition"
+            : "instrumental-hook",
     lengthBars,
     archetype,
     architecture,
@@ -2812,7 +2820,15 @@ function selectDiversePool(
   )
   const source =
     hookEligible.length >= finalCount
-      ? hookEligible
+      ? [
+          ...hookEligible,
+          ...qualityEligible.filter((candidate) =>
+            candidate.plan.motifSize <= 2 &&
+            candidate.score.worldBuilding >= 0.5 &&
+            candidate.score.motifMemorability >= 0.45 &&
+            !hookEligible.includes(candidate),
+          ),
+        ]
       : qualityEligible.length >= finalCount
         ? qualityEligible
       : [...pool].sort((left, right) => right.score.overall - left.score.overall)
@@ -2912,6 +2928,12 @@ function selectDiversePool(
         soundingTimeRatio(candidate.leadNotes, candidate.phraseLengthBeats) < 0.62
           ? 12
           : 0
+      const compactMotifCoverageBonus =
+        selected.length < 8 &&
+        candidate.plan.motifSize <= 2 &&
+        !selected.some((item) => item.candidate.plan.motifSize <= 2)
+          ? 24
+          : 0
       const creativeRiskCoverageBonus =
         candidate.plan.creativeRisk.risk === "radical" &&
         selectedRadical < radicalTarget
@@ -2938,6 +2960,7 @@ function selectDiversePool(
         archetypeCoverageBonus +
         voicingCoverageBonus +
         sparseAtmosphereCoverageBonus +
+        compactMotifCoverageBonus +
         creativeRiskCoverageBonus +
         opportunityCoverageBonus +
         controlledAdventureBonus

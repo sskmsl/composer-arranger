@@ -59,6 +59,15 @@ export function resolveRange(settings: GenerationSettings): RangeSetting {
   return settings.rangePreset === "custom" ? settings.customRange : RANGE_PRESETS[settings.rangePreset]
 }
 
+function activeShortMaterialNotes(project: ComposerProject, sectionId: string): MelodyNote[] {
+  const phraseId = project.sectionPhraseAssignments?.[sectionId]
+  const signatureId = project.sectionSignaturePhraseAssignments?.[sectionId]
+  return [
+    ...(project.phraseCandidates.find((item) => item.id === phraseId && item.sectionId === sectionId)?.notes ?? []),
+    ...(project.signaturePhraseCandidates.find((item) => item.id === signatureId && item.sectionId === sectionId)?.notes ?? []),
+  ]
+}
+
 export function phraseGenerationInput(
   project: ComposerProject,
   sectionId: string,
@@ -80,6 +89,12 @@ export function phraseGenerationInput(
   ) {
     return null
   }
+  const activeMelodyId = project.sectionMelodyAssignments[sectionId]
+  const activeMelody = project.melodyVariants.find(
+    (candidate) => candidate.id === activeMelodyId && candidate.sectionId === sectionId,
+  )
+  const existingSupportCount = activeShortMaterialNotes(project, sectionId).length +
+    (project.sectionAccompanimentPatternAssignments?.[sectionId] ? section.lengthBars * 2 : 0)
   return {
     chords,
     sectionId,
@@ -93,6 +108,8 @@ export function phraseGenerationInput(
     totalBeats,
     seed,
     lengthBars,
+    referenceMelody: activeMelody?.notes ?? [],
+    supportNotesPerBeat: existingSupportCount / totalBeats,
     composerRules: resolvePublicComposerRules({
       generatorTarget: "phrase",
       sectionRole: section.role,
@@ -289,7 +306,7 @@ export function decorationGenerationInput(
       project.sectionAccompanimentPatternAssignments?.[targetSectionId]
         ? 4
         : 0
-    return reactiveNoteCount + accompanimentEstimate
+    return reactiveNoteCount + accompanimentEstimate + activeShortMaterialNotes(project, targetSectionId).length
   }
   const favoritePlans = reactiveCandidates
     .flatMap((candidate) =>
@@ -328,6 +345,7 @@ export function decorationGenerationInput(
         activeMelody ? notesByPartRole(activeMelody, "lead") : [],
       ),
       ...(activeCounter?.notes ?? []),
+      ...activeShortMaterialNotes(project, sectionId),
     ],
     existingReactiveLayers: activeCounter ? [activeCounter] : [],
     previousSectionRole: previousSection?.role,

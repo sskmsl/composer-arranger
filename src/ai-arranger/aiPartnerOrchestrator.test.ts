@@ -3,6 +3,7 @@ import { createEmptyProject } from "@/core/project"
 import type { MelodyVariant } from "@/core/melody"
 import { buildAiPartnerOrchestrationPlan } from "./aiPartnerOrchestrator"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { resolveWholeSongActionStatus } from "./wholeSongDirectionPlan"
 
 function project() {
   const value = createEmptyProject("AI Orchestrator")
@@ -40,6 +41,18 @@ function project() {
 }
 
 describe("AI Partner orchestration plan", () => {
+  it("採用済みの短いモチーフがあれば漠然とした追加依頼より再提示を勧める", () => {
+    const value = project()
+    value.arrangementDirectorWorkspace!.brief = "何か足したい"
+    value.signaturePhraseCandidates = [{ id: "intro:motif", sectionId: "intro", notes: [] } as never]
+    value.sectionSignaturePhraseAssignments = { intro: "intro:motif" }
+    const plan = buildAiPartnerOrchestrationPlan(value, "intro")
+    expect(plan.nextAction).toBeNull()
+    expect(plan.nextActionReason).toContain("音色・音域")
+    expect(resolveWholeSongActionStatus(value, "intro", "signature", "transition-color").status)
+      .toBe("already-active")
+  })
+
   it("全Sectionが密度上限なら追加生成を勧めない", () => {
     const value = project()
     value.arrangementSettings.maximumParts = 2
