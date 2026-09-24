@@ -215,7 +215,8 @@ export function ArrangementWorkspace({
 
   const versions = project.arrangementChat?.versions ?? []
   const hasArrangement = Boolean(project.fullSongArrangement)
-  const activeDetailTab: DetailTabId = detailTab === "parts" && !hasArrangement ? "flow" : detailTab
+  // 全曲アレンジがまだないときは「パート別」を出せないので、軽い「セクションの順番」を開く
+  const activeDetailTab: DetailTabId = detailTab === "parts" && !hasArrangement ? "sections" : detailTab
 
   return (
     <div className="flex w-full min-w-0 flex-1">
@@ -223,7 +224,7 @@ export function ArrangementWorkspace({
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto min-w-0">
           <h2 className="text-[16px] font-semibold">アレンジ・書出し</h2>
-          <p className="mt-1 text-[12px] text-body-muted">
+          <p className="mt-1 text-[13px] text-body-muted">
             {hasArrangement ? `いまの版: ${chatModel.versionLabel}` : "まず全曲の方向を選び、できたら相談しながら仕上げます"}
           </p>
         </div>
@@ -253,7 +254,7 @@ export function ArrangementWorkspace({
       {project.sections.length > 0 && (
         <section className="min-w-0 max-w-full rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5" aria-labelledby="whole-song-preview-heading">
           <h3 id="whole-song-preview-heading" className="mb-2 text-[13px] font-semibold text-body-on-dark">曲全体を確認</h3>
-          <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+          <div className="mb-1.5 flex items-center justify-between gap-3 text-[12px] text-body-muted">
             <span>
               {playingSectionId
                 ? `${chatModel.matrix.find((section) => section.sectionId === playingSectionId)?.name ?? "セクション"}を再生中`
@@ -310,13 +311,13 @@ export function ArrangementWorkspace({
             onPlaySection={playSection}
           />
           {!hasArrangement && (
-            <p className="text-[12px] text-body-muted">
+            <p className="text-[13px] text-body-muted">
               いまは追加パートなし（原曲のみ）です。上で方向を選ぶか、版の履歴から戻せます。
             </p>
           )}
           {versions.length > 0 && (
             <div className="flex flex-col gap-2 border-t border-hairline pt-3">
-              <div className="text-[12px] font-medium text-body-on-dark">版の履歴</div>
+              <div className="text-[13px] font-medium text-body-on-dark">版の履歴</div>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {[...versions].reverse().map((version) => {
                   const current = version.id === chatModel.currentVersionId
@@ -334,10 +335,10 @@ export function ArrangementWorkspace({
                           : "bg-surface-tile-2 hover:bg-white/10"
                       }`}
                     >
-                      <span className={`text-[11px] ${current ? "text-primary-on-dark" : "text-ink-muted-48"}`}>
+                      <span className={`text-[12px] ${current ? "text-primary-on-dark" : "text-ink-soft"}`}>
                         版 {version.number}{current ? " · いまの版" : " · 押すと戻す"}
                       </span>
-                      <span className="truncate text-[12px] text-body-on-dark">{version.label}</span>
+                      <span className="truncate text-[13px] text-body-on-dark">{version.label}</span>
                     </button>
                   )
                 })}
@@ -348,15 +349,10 @@ export function ArrangementWorkspace({
       )}
 
       {project.sections.length > 0 && (
-        <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
-          <summary className="cursor-pointer text-[13px] font-medium text-body-on-dark">
-            詳しい調整
-            <span className="ml-2 text-[11px] font-normal text-ink-muted-48">
-              パート別のミュート・MIDI／盛り上げ方と楽器の役割／セクションの順番／Logic Proの音源と設定
-            </span>
-          </summary>
-          <div className="mt-4 flex flex-col gap-4">
-            {/* 中身は開閉を重ねず、タブで1つずつ切り替える */}
+        <section aria-labelledby="detail-heading" className="rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:p-4">
+          <h3 id="detail-heading" className="text-[14px] font-semibold text-body-on-dark">詳しい調整</h3>
+          <div className="mt-3 flex flex-col gap-4">
+            {/* 開閉はせず、4つの項目をタブで1つずつ切り替える */}
             <div role="tablist" aria-label="詳しい調整の項目" className="flex flex-wrap gap-1.5">
               {DETAIL_TABS.filter((item) => item.id !== "parts" || hasArrangement).map((item) => (
                 <Pill
@@ -377,7 +373,7 @@ export function ArrangementWorkspace({
             <section className="flex flex-col gap-2" aria-labelledby="section-order-heading">
               <div>
                 <h3 id="section-order-heading" className="text-[14px] font-semibold text-body-on-dark">セクションの順番と主旋律</h3>
-                <p className="mt-1 text-[11px] text-body-muted">ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選びます。</p>
+                <p className="mt-1 text-[12px] text-body-muted">ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選びます。</p>
               </div>
             {project.sections.map((section, index) => {
               const variants = project.melodyVariants
@@ -398,10 +394,10 @@ export function ArrangementWorkspace({
                   className="flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:flex-row sm:items-center"
                 >
                   <div className="flex items-center gap-2 sm:w-60">
-                    <GripVertical size={16} className="cursor-grab text-ink-muted-48" />
+                    <GripVertical size={16} className="cursor-grab text-ink-soft" />
                     <button className="min-w-0 flex-1 text-left" onClick={() => selectSection(section.id)}>
                       <span className="block truncate text-[14px] font-medium">{section.name}</span>
-                      <span className="text-[11px] text-ink-muted-48">
+                      <span className="text-[12px] text-ink-soft">
                         {SECTION_ROLE_LABELS[section.role]} · {section.startBar}–{section.startBar + section.lengthBars - 1}小節
                       </span>
                     </button>
@@ -423,7 +419,7 @@ export function ArrangementWorkspace({
                     </div>
                   </div>
 
-                  <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[12px] text-ink-muted-48">
+                  <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[13px] text-ink-soft">
                     採用する主旋律
                     <CandidateStatusBadge status={assignedId ? "applied" : variants.length > 0 ? "candidate" : "not-created"} />
                     <Select
@@ -462,13 +458,13 @@ export function ArrangementWorkspace({
             </section>
             )}
           </div>
-        </details>
+        </section>
       )}
 
       {project.sections.length === 0 && (
         <div className="rounded-lg border border-dashed border-hairline p-8 text-center">
           <p className="text-[15px] font-semibold text-body-on-dark">アレンジする曲がまだありません</p>
-          <p className="mt-2 text-[12px] text-body-muted">先にMIDIを読み込むか、新しい曲のセクションを作成してください。</p>
+          <p className="mt-2 text-[13px] text-body-muted">先にMIDIを読み込むか、新しい曲のセクションを作成してください。</p>
           <Button className="mt-4" onClick={() => onNavigate("home")}>ホームで曲を準備する</Button>
         </div>
       )}

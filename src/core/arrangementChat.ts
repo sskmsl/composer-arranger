@@ -79,6 +79,8 @@ export interface ArrangementChatMessage {
   appliedProposalId?: string
   appliedVersionId?: string
   dismissed?: boolean
+  /** この返事にかかったAIの使用量(概算) */
+  usage?: { costUsd: number; inputTokens: number; outputTokens: number; cached: boolean }
 }
 
 export interface ArrangementChatState {

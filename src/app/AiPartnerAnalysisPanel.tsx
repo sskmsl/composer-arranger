@@ -55,15 +55,15 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
       <SectionCard>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
               <Waypoints size={15} className="text-primary-on-dark" /> 曲全体の流れ
             </div>
-            <p className="mt-1 text-[11px] leading-5 text-body-muted">
+            <p className="mt-1 text-[12px] leading-5 text-body-muted">
               どこを静かにし、どこで広げるかをAIが曲全体から判断しています。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1 text-[11px] text-body-muted">
+            <label className="flex items-center gap-1 text-[12px] text-body-muted">
               最も盛り上げる場所
               <Select
                 value={project.arrangementDirectorOverrides?.climaxSectionId ?? "auto"}
@@ -72,7 +72,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                     event.target.value === "auto" ? null : event.target.value,
                   )
                 }
-                className="!py-1 text-[11px]"
+                className="!py-1 text-[12px]"
               >
                 <option value="auto">自動</option>
                 {project.sections.map((candidate) => (
@@ -88,14 +88,14 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
           <div className="mt-3 rounded-sm border border-hairline bg-white/[0.025] p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <div className="text-[11px] font-semibold text-body-on-dark">
+                <div className="text-[12px] font-semibold text-body-on-dark">
                   AIの確認結果
                 </div>
-                <p className="mt-1 text-[11px] leading-4 text-body-muted">
+                <p className="mt-1 text-[12px] leading-4 text-body-muted">
                   {plainDirectionText(wholeSongReview.summary)}
                 </p>
               </div>
-              <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(wholeSongReview.status)}`}>
+              <span className={`rounded-pill px-2.5 py-1 text-[12px] font-medium ${reviewStatusClass(wholeSongReview.status)}`}>
                 {reviewStatusLabel(wholeSongReview.status)}
               </span>
             </div>
@@ -103,7 +103,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
               .filter((finding) => finding.severity !== "pass")
               .slice(0, 2)
               .map((finding) => (
-                <p key={finding.id} className="mt-2 text-[11px] leading-4 text-amber-100">
+                <p key={finding.id} className="mt-2 text-[12px] leading-4 text-amber-100">
                   • {plainDirectionText(finding.recommendation)}
                 </p>
               ))}
@@ -123,14 +123,14 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[11px] font-medium text-body-on-dark">
+                  <span className="truncate text-[12px] font-medium text-body-on-dark">
                     {plan.sectionName}
                   </span>
-                  <span className="shrink-0 rounded-pill bg-primary/10 px-2 py-0.5 text-[11px] text-primary-on-dark">
+                  <span className="shrink-0 rounded-pill bg-primary/10 px-2 py-0.5 text-[12px] text-primary-on-dark">
                     {energyLabel(plan.targetEnergy)}
                   </span>
                 </div>
-                <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-body-muted">
+                <div className="mt-1 line-clamp-2 text-[12px] leading-4 text-body-muted">
                   {plainDirectionText(plan.transitionIntent)}
                 </div>
               </button>
@@ -139,7 +139,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
         </div>
         {currentDirectorPlan && (
           <div className="mt-3 space-y-2">
-            <div className="grid gap-2 text-[11px] sm:grid-cols-3">
+            <div className="grid gap-2 text-[12px] sm:grid-cols-3">
               <DirectorNote
                 label="ここで加える"
                 value={currentDirectorPlan.introduce.join(" / ")}
@@ -156,9 +156,9 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
               />
             </div>
             <div className="rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
-              <div className="text-[11px] font-medium text-body-on-dark">この部分の強さを手動で調整</div>
+              <div className="text-[12px] font-medium text-body-on-dark">この部分の強さを手動で調整</div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-1 text-[11px] text-body-muted">
+              <label className="flex items-center gap-1 text-[12px] text-body-muted">
                 強さ
                 <Select
                   value={project.arrangementDirectorOverrides?.sections[effectiveSectionId ?? ""]?.targetEnergy ?? "auto"}
@@ -173,7 +173,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                       },
                     )
                   }
-                  className="!py-1 text-[11px]"
+                  className="!py-1 text-[12px]"
                 >
                   <option value="auto">AIに任せる</option>
                   {[1, 2, 3, 4, 5].map((value) => (
@@ -181,7 +181,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                   ))}
                 </Select>
               </label>
-              <label className="flex items-center gap-1 text-[11px] text-body-muted">
+              <label className="flex items-center gap-1 text-[12px] text-body-muted">
                 同時に使う役割数
                 <Select
                   value={project.arrangementDirectorOverrides?.sections[effectiveSectionId ?? ""]?.densityCeiling ?? "auto"}
@@ -195,7 +195,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                       },
                     )
                   }
-                  className="!py-1 text-[11px]"
+                  className="!py-1 text-[12px]"
                 >
                   <option value="auto">AIに任せる</option>
                   {Array.from(
@@ -207,7 +207,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                 </Select>
               </label>
               {currentDirectorPlan.climaxPolicy === "express" && (
-                <span className="text-[11px] text-primary-on-dark">最も盛り上げる場所なので「最も強い」で固定</span>
+                <span className="text-[12px] text-primary-on-dark">最も盛り上げる場所なので「最も強い」で固定</span>
               )}
               </div>
             </div>
@@ -217,17 +217,17 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
           <div className="mt-4 border-t border-hairline pt-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
                   {arrangementReview.status === "strong"
                     ? <CircleCheck size={15} className="text-emerald-300" />
                     : <TriangleAlert size={15} className="text-amber-300" />}
                   この部分の状態
                 </div>
-                <p className="mt-1 text-[11px] leading-5 text-body-muted">
+                <p className="mt-1 text-[12px] leading-5 text-body-muted">
                   {plainDirectionText(arrangementReview.summary)}
                 </p>
               </div>
-              <div className={`rounded-pill px-3 py-1 text-[11px] font-medium ${reviewStatusClass(arrangementReview.status)}`}>
+              <div className={`rounded-pill px-3 py-1 text-[12px] font-medium ${reviewStatusClass(arrangementReview.status)}`}>
                 {reviewStatusLabel(arrangementReview.status)}
               </div>
             </div>
@@ -240,7 +240,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                     key={finding.id}
                     className="rounded-sm border border-hairline bg-white/[0.025] px-3 py-2"
                   >
-                    <p className={`text-[11px] leading-4 ${finding.severity === "blocking"
+                    <p className={`text-[12px] leading-4 ${finding.severity === "blocking"
                       ? "text-red-100"
                       : "text-amber-100"
                     }`}>
@@ -259,10 +259,10 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
       <SectionCard>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-body-on-dark">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
               <Layers3 size={15} className="text-primary-on-dark" /> 楽器と演奏の役割
             </div>
-            <p className="mt-1 max-w-3xl text-[11px] leading-5 text-body-muted">
+            <p className="mt-1 max-w-3xl text-[12px] leading-5 text-body-muted">
               {plainDirectionText(orchestrationPlan.performanceArc)}
             </p>
           </div>
@@ -271,17 +271,17 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
           <div className="mt-3 rounded-sm border border-hairline bg-white/[0.025] p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-[11px] font-medium text-body-on-dark">
+                <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
                   {orchestrationReview.status === "strong"
                     ? <CircleCheck size={14} className="text-emerald-300" />
                     : <TriangleAlert size={14} className={orchestrationReview.status === "revise" ? "text-red-300" : "text-amber-200"} />}
                   楽器の重なりで確認が必要です
                 </div>
-                <p className="mt-1 text-[11px] leading-4 text-body-muted">
+                <p className="mt-1 text-[12px] leading-4 text-body-muted">
                   {plainDirectionText(orchestrationReview.summary)}
                 </p>
               </div>
-              <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(orchestrationReview.status)}`}>
+              <span className={`rounded-pill px-2.5 py-1 text-[12px] font-medium ${reviewStatusClass(orchestrationReview.status)}`}>
                 {reviewStatusLabel(orchestrationReview.status)}
               </span>
             </div>
@@ -292,7 +292,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                   .slice(0, 2)
                   .map((finding) => (
                     <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
-                      <p className={finding.severity === "blocking" ? "text-[11px] leading-4 text-red-100" : "text-[11px] leading-4 text-amber-100"}>
+                      <p className={finding.severity === "blocking" ? "text-[12px] leading-4 text-red-100" : "text-[12px] leading-4 text-amber-100"}>
                         • {plainDirectionText(finding.recommendation)}
                       </p>
                     </div>
@@ -305,17 +305,17 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
           <div className="mt-3 rounded-sm border border-hairline bg-white/[0.025] p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-[11px] font-medium text-body-on-dark">
+                <div className="flex items-center gap-2 text-[12px] font-medium text-body-on-dark">
                   {audibleLayerReview.status === "strong"
                     ? <CircleCheck size={14} className="text-emerald-300" />
                     : <AudioLines size={14} className={audibleLayerReview.status === "revise" ? "text-red-300" : "text-amber-200"} />}
                   音の重なりで確認が必要です
                 </div>
-                <p className="mt-1 text-[11px] leading-4 text-body-muted">
+                <p className="mt-1 text-[12px] leading-4 text-body-muted">
                   {plainDirectionText(audibleLayerReview.summary)}
                 </p>
               </div>
-              <span className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${reviewStatusClass(audibleLayerReview.status)}`}>
+              <span className={`rounded-pill px-2.5 py-1 text-[12px] font-medium ${reviewStatusClass(audibleLayerReview.status)}`}>
                 {reviewStatusLabel(audibleLayerReview.status)}
               </span>
             </div>
@@ -326,7 +326,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                   .slice(0, 2)
                   .map((finding) => (
                     <div key={finding.id} className="rounded-sm bg-white/[0.04] px-3 py-2">
-                      <p className={finding.severity === "blocking" ? "text-[11px] leading-4 text-red-100" : "text-[11px] leading-4 text-amber-100"}>
+                      <p className={finding.severity === "blocking" ? "text-[12px] leading-4 text-red-100" : "text-[12px] leading-4 text-amber-100"}>
                         • {plainDirectionText(finding.recommendation)}
                       </p>
                     </div>
@@ -346,22 +346,22 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
               className="min-w-0 rounded-sm border border-hairline bg-white/[0.025] p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-[11px] font-medium text-body-on-dark">
+                <div className="text-[12px] font-medium text-body-on-dark">
                   {orchestrationRoleLabel(part.role)} · {orchestrationFamilyLabel(part.family)}
                 </div>
-                <span className={`rounded-pill px-2 py-0.5 text-[11px] ${part.sourceState === "active"
+                <span className={`rounded-pill px-2 py-0.5 text-[12px] ${part.sourceState === "active"
                   ? "bg-emerald-400/10 text-emerald-200"
                   : "bg-primary/10 text-primary-on-dark"
                 }`}>
                   {part.sourceState === "active" ? "現在使用中" : "導入候補"}
                 </span>
               </div>
-              <p className="mt-2 text-[11px] leading-4 text-body-muted">
+              <p className="mt-2 text-[12px] leading-4 text-body-muted">
                 <strong className="text-body-on-dark">役割：</strong>{plainDirectionText(part.purpose)}
               </p>
               {part.role !== "intentional-silence" && effectiveSectionId && (
                 <div className="mt-2 border-t border-hairline pt-2">
-                  <div className="text-[11px] font-medium text-primary-on-dark">
+                  <div className="text-[12px] font-medium text-primary-on-dark">
                     演奏の調整{override ? " · 固定あり" : ""}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -371,13 +371,13 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                     <Tag>{dynamicLabel(part.dynamic)}</Tag>
                     <Tag>{timingLabel(part.timing)}</Tag>
                   </div>
-                  <p className="mt-2 text-[11px] leading-4 text-body-muted">
+                  <p className="mt-2 text-[12px] leading-4 text-body-muted">
                     鳴り始め：{plainDirectionText(part.entry)}　鳴り終わり：{plainDirectionText(part.exit)}
                   </p>
-                  <p className="mt-1 text-[11px] text-ink-muted-48">
+                  <p className="mt-1 text-[12px] text-ink-soft">
                     音の強さ {part.velocityRange[0]}–{part.velocityRange[1]}
                   </p>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-3">
                     <OrchestrationOverrideSelect
                       label="楽器の種類"
                       value={override?.family ?? "auto"}
@@ -442,7 +442,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                     />
                     <button
                       type="button"
-                      className="self-end rounded-sm border border-hairline px-2 py-1.5 text-[11px] text-body-muted hover:text-body-on-dark"
+                      className="self-end rounded-sm border border-hairline px-2 py-1.5 text-[12px] text-body-muted hover:text-body-on-dark"
                       onClick={() => setSectionOrchestrationOverride(effectiveSectionId, part.role, null)}
                     >
                       すべて自動へ戻す
@@ -455,7 +455,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
           })}
         </div>
         {orchestrationPlan.withheldGestures.length > 0 && (
-          <div className="mt-3 rounded-sm border border-dashed border-hairline px-3 py-2 text-[11px] leading-4 text-body-muted">
+          <div className="mt-3 rounded-sm border border-dashed border-hairline px-3 py-2 text-[12px] leading-4 text-body-muted">
             <strong className="text-primary-on-dark">このSectionでは温存：</strong>
             {orchestrationPlan.withheldGestures.map(plainDirectionText).join(" / ")}
           </div>

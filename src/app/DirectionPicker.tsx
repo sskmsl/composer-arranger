@@ -82,13 +82,13 @@ export function DirectionPicker({
           <h3 id="direction-picker-heading" className={clsx("font-semibold text-body-on-dark", firstTime ? "text-[17px]" : "text-[14px]")}>
             {firstTime ? "どんな方向で全曲をアレンジしますか？" : "全曲の方向を選び直す"}
           </h3>
-          <p className="mt-1 text-[12px] leading-5 text-body-muted">
+          <p className="mt-1 text-[13px] leading-5 text-body-muted">
             主旋律とコードはそのままで、選んだ方向に合うパートを曲全体に足します。
             {firstTime ? "できたらパート構成を見ながら、アレンジ相談で細かく直せます。" : "いまの版は履歴に残るので、いつでも戻せます。"}
           </p>
         </div>
         {onCancel && (
-          <button type="button" onClick={onCancel} className="text-[12px] text-ink-muted-48 hover:text-body-on-dark">
+          <button type="button" onClick={onCancel} className="text-[13px] text-ink-soft hover:text-body-on-dark">
             閉じる
           </button>
         )}
@@ -114,9 +114,9 @@ export function DirectionPicker({
                 <span className="mr-auto text-[14px] font-semibold text-body-on-dark">{DIRECTION_NAMES[direction.id]}</span>
                 {selected && <Check size={15} className="shrink-0 text-primary-on-dark" aria-hidden="true" />}
               </span>
-              <span className="text-[12px] leading-5 text-body-muted">{conciseDirectionText(plainDirectionText(direction.subtitle), 40)}</span>
+              <span className="text-[13px] leading-5 text-body-muted">{conciseDirectionText(plainDirectionText(direction.subtitle), 40)}</span>
               {recommended && (
-                <span className="self-start rounded-pill sm:mt-auto bg-emerald-400/12 px-2 py-0.5 text-[11px] text-emerald-200">この曲におすすめ</span>
+                <span className="self-start rounded-pill sm:mt-auto bg-emerald-400/12 px-2 py-0.5 text-[12px] text-emerald-200">この曲におすすめ</span>
               )}
             </button>
           )
@@ -128,14 +128,14 @@ export function DirectionPicker({
           {busy ? <LoaderCircle size={15} className="animate-spin" /> : <Sparkles size={15} />}
           {busy ? "全曲を作っています…" : `「${DIRECTION_NAMES[chosen.id]}」で全曲を作る`}
         </Button>
-        <p className="min-w-0 flex-1 text-[12px] leading-5 text-body-muted">
+        <p className="min-w-0 flex-1 text-[13px] leading-5 text-body-muted">
           {chosen.id === program.recommendedDirectionId
             ? `おすすめの理由：${conciseDirectionText(plainDirectionText(program.recommendationReason), 70)}`
             : conciseDirectionText(plainDirectionText(chosen.summary), 80)}
         </p>
       </div>
       {error && (
-        <p role="alert" className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-200">
+        <p role="alert" className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-200">
           {error}
         </p>
       )}
