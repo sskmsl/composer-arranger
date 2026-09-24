@@ -98,7 +98,7 @@ describe("Issue #71 / Decoration store workflow", () => {
     useProjectStore.getState().setChordText("a", "Dm | Bb | F | C")
     useProjectStore.getState().assignReactiveLayer(target!.id)
     expect(useProjectStore.getState().project.sectionDecorationLayerAssignments?.a).toBeUndefined()
-    expect(useProjectStore.getState().workflowNotice).toContain("再生成")
+    expect(useProjectStore.getState().workflowNotice).toContain("生成し直して")
   })
 
   it("採用後に構造が変わったDecorationは曲全体再生へ混入しない", () => {

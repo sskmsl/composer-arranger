@@ -76,7 +76,7 @@ export function createReactiveLayerActions(
     if (!input) {
       set({
         workflowNotice:
-          "Counter生成には、有効なコード進行と採用済みActive Melodyが必要です。",
+          "対旋律の生成には、有効なコード進行と採用済みの主旋律が必要です。",
       })
       return
     }
@@ -137,7 +137,7 @@ export function createReactiveLayerActions(
     if (generated.length === 0) {
       set({
         workflowNotice:
-          "主旋律を尊重できる十分な隙間がありません。Melodyの休符または音価を調整してください。",
+          "主旋律に対旋律を入れる十分な隙間がありません。主旋律の休符や音の長さを調整するか、別のセクションで試してください。",
       })
       return
     }
@@ -211,7 +211,7 @@ export function createReactiveLayerActions(
       workflowNotice:
         candidates.length <
         COUNTER_CANDIDATE_CONFIG.finalCandidateCount
-          ? `品質下限を満たすCounter候補は${candidates.length}件でした。`
+          ? `品質の基準を満たす対旋律候補は${candidates.length}件でした。`
           : null,
     })
     get().persist()
@@ -228,7 +228,7 @@ export function createReactiveLayerActions(
     if (!current) return
     const input = counterGenerationInput(prev, current.sectionId, current.seed)
     if (!input || input.melody.id !== current.targetMelodyVariantId) {
-      set({ workflowNotice: "Active Melodyが変更されています。Counterを新しく生成してください。" })
+      set({ workflowNotice: "主旋律が変わっています。対旋律を新しく生成してください。" })
       return
     }
     const ruleContext = {
@@ -336,7 +336,7 @@ export function createReactiveLayerActions(
     if (!input) {
       set({
         workflowNotice:
-          "Decoration生成には、有効なコード進行を持つセクションが必要です。",
+          "装飾の生成には、有効なコード進行を持つセクションが必要です。",
       })
       return
     }
@@ -395,7 +395,7 @@ export function createReactiveLayerActions(
       })),
     )
     if (generated.length === 0) {
-      set({ workflowNotice: "品質下限を満たすDecoration候補を生成できませんでした。" })
+      set({ workflowNotice: "品質の基準を満たす装飾候補を生成できませんでした。" })
       return
     }
     const batchId = crypto.randomUUID()
@@ -466,7 +466,7 @@ export function createReactiveLayerActions(
       activeReactiveCandidateIndex: 0,
       workflowNotice:
         candidates.length < (experimentPreset ? 20 : 10)
-          ? `品質下限を満たすDecoration候補は${candidates.length}件でした。`
+          ? `品質の基準を満たす装飾候補は${candidates.length}件でした。`
           : need.level === "silence"
             ? `${need.reason} 比較用に控えめなGestureも生成しました。`
             : need.level === "optional"
@@ -744,7 +744,7 @@ export function createReactiveLayerActions(
       siblings,
     )
     if (!generated) {
-      set({ workflowNotice: "別のDecoration案を生成できませんでした。" })
+      set({ workflowNotice: "別の装飾案を生成できませんでした。" })
       return
     }
     const replacement: ReactiveLayerCandidate = {
@@ -824,7 +824,7 @@ export function createReactiveLayerActions(
       prev.sectionMelodyAssignments[candidate.sectionId] !==
         candidate.targetMelodyVariantId
     ) {
-      set({ workflowNotice: "この候補は現在のActive Melody向けではありません。" })
+      set({ workflowNotice: "この候補は現在の主旋律向けではありません。" })
       return
     }
     if (candidate.kind === "decoration" && candidate.decorationPlan) {
@@ -853,7 +853,7 @@ export function createReactiveLayerActions(
       ) {
         set({
           workflowNotice:
-            "セクション構造またはコードが変更されています。Decorationを再生成してください。",
+            "セクション構造またはコードが変わっています。装飾を生成し直してください。",
         })
         return
       }

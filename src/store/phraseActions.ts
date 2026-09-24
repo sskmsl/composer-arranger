@@ -290,7 +290,7 @@ export function createPhraseActions(
     if (!input) {
       set({
         workflowNotice:
-          "Signature Phrase生成には、選択した長さを収められるセクションと有効なコード進行が必要です。",
+          "イントロフレーズの生成には、選んだ長さが収まるセクションと有効なコード進行が必要です。",
       })
       return
     }

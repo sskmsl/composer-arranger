@@ -97,7 +97,7 @@ describe("Issue #70 / Counter store workflow", () => {
     }))
     useProjectStore.getState().generateCounterForSection("s1")
     expect(useProjectStore.getState().project.reactiveLayerCandidates).toHaveLength(0)
-    expect(useProjectStore.getState().workflowNotice).toContain("Active Melody")
+    expect(useProjectStore.getState().workflowNotice).toContain("採用済みの主旋律")
   })
 
   it("Technique実験ではNormal 5案とTreatment 5案を同じbatchへ保存する", () => {
