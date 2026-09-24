@@ -863,7 +863,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       future: [],
       project: {
         ...prev,
-        sections: normalizeSectionTimeline([...prev.sections, copy]),
+        // 複製は元のセクションのすぐ後ろへ置く(末尾へ回すと並べ替えの手間が増える)
+        sections: normalizeSectionTimeline([
+          ...prev.sections.slice(0, prev.sections.indexOf(src) + 1),
+          copy,
+          ...prev.sections.slice(prev.sections.indexOf(src) + 1),
+        ]),
         chords: [...prev.chords, ...chordCopies],
         melodyVariants: variantCopy ? [...prev.melodyVariants, variantCopy] : prev.melodyVariants,
         sectionMelodyAssignments: variantCopy

@@ -672,3 +672,20 @@ describe("Arrangement Director Workspace", () => {
     })
   })
 })
+
+describe("セクションの複製", () => {
+  it("複製は元のセクションのすぐ後ろに入り、後ろのセクションはその分だけ後ろへずれる", () => {
+    const project = projectWithSection()
+    const sections = [
+      { ...project.sections[0], id: "a", name: "A", startBar: 1, lengthBars: 4 },
+      { ...project.sections[0], id: "b", name: "B", startBar: 5, lengthBars: 8 },
+      { ...project.sections[0], id: "c", name: "C", startBar: 13, lengthBars: 4 },
+    ]
+    useProjectStore.setState({ project: { ...project, sections } })
+    useProjectStore.getState().duplicateSection("b")
+    const after = useProjectStore.getState().project.sections
+    expect(after.map((section) => section.name)).toEqual(["A", "B", "B copy", "C"])
+    expect(after.map((section) => section.startBar)).toEqual([1, 5, 13, 21])
+    expect(useProjectStore.getState().selectedSectionId).toBe(after[2].id)
+  })
+})
