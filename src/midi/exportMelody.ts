@@ -1,4 +1,5 @@
 import { songTempoChanges } from "@/core/tempoMap"
+import { arrangementSmfTracks } from "./exportArrangement"
 import { effectiveSectionKey, type ChordEvent, type ComposerProject } from "@/core/project"
 import { keySignatureOf } from "@/core/scale"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
@@ -124,7 +125,11 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
   })
 }
 
-export function exportSongMidi(project: ComposerProject, includeChords = true): Uint8Array {
+/**
+ * 曲全体のMIDI。includeArrangement では全曲アレンジのパート(ミュート中を除く)も含め、
+ * 曲の全パートを1つのファイルにする(アレンジ画面の「曲全体MIDI」)。
+ */
+export function exportSongMidi(project: ComposerProject, includeChords = true, includeArrangement = false): Uint8Array {
   const ts = parseTimeSignature(project.song.timeSignature)
   const material = buildSongPlaybackMaterial(
     project,
@@ -173,6 +178,8 @@ export function exportSongMidi(project: ComposerProject, includeChords = true): 
       notes: material.signaturePhraseLayers.map(toSmfNote),
     })
   }
+
+  if (includeArrangement) tracks.push(...arrangementSmfTracks(project.fullSongArrangement))
 
   if (includeChords) {
     const chordNotes: SmfTrack["notes"] = []

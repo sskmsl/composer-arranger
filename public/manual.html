@@ -906,16 +906,17 @@
         <li><strong>演奏表情</strong> — 選ばれた各トラックへ、SectionのEnergyと役割に応じたVelocity、音価、microtiming、4小節単位の呼吸を適用します。Pitchは変更せず、試聴とMIDI書き出しへ同じ演奏結果を使用します。</li>
         <li><strong>役割別トラック</strong> — Kick、Snare、Closed／Open Hat、Tom、Field Drum、Gran Cassa、Crash、Bass、Pulse、Pad、High Glass、Transition、Final Lift、Stringsを固定名の独立MIDIトラックとして扱います。全役割を常時鳴らすのではなく、SectionのEnergyと余白で登場・退場を判断します。</li>
         <li><strong>Safe / Edge / Surprise</strong> — 装飾とTransitionは3系統を内部比較し、半音解決、主旋律休符、未使用音域、次SectionのEnergyなどの理由がある案だけを採用します。余白が不足する場合は無音を選びます。</li>
-        <li><strong>曲全体を再生／曲全体MIDI</strong> — 画面上部のボタンで、並べたセクションを通しで再生し、曲全体を1つのMIDIファイルとして書き出します。</li>
+        <li><strong>曲全体を再生／曲全体MIDI</strong> — 画面上部のボタンで、並べたセクションを通しで再生し、曲の全パート(コード・主旋律・伴奏・採用した対旋律や装飾・全曲アレンジのパート)を1つのMIDIファイル(SMF Type 1)に書き出します。ミュートしたパートは入りません。</li>
+        <li><strong>セクションだけを再生</strong> — パート構成表のセクション名を押すか、表の列を右クリックすると、そのセクションだけを鳴らします。もう一度押すと止まります。</li>
       </ul>
 
       <h3>詳しい調整</h3>
-      <p>画面下の閉じた欄「詳しい調整」に、普段は使わない操作をまとめています。</p>
+      <p>画面下の閉じた欄「詳しい調整」に、普段は使わない操作をまとめています。中は上のタブで切り替えます。</p>
       <ul>
-        <li><strong>パート別の確認と書き出し</strong> — 原曲のみ／原曲＋AI生成／AI生成のみの聴き比べ、パートごとのミュート・単独試聴・MIDI保存、全パートMIDI(SMF Type 1)。各MIDIトラックはLogic Proで別々のSoftware Instrumentへ割り当てられます。</li>
-        <li><strong>曲の流れと楽器の役割</strong> — 最も盛り上げる場所や、セクションごとの強さ・楽器の割り当てを細かく決めます。次に全曲アレンジを作るときに使われます。</li>
-        <li><strong>セクションの順番と主旋律</strong> — ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選び、複製・削除します。再生アイコンで前セクションとの繋ぎ目を前後1小節ずつ試聴できます。</li>
-        <li><strong>Logic Pro書き出し詳細</strong> — Logic Proへ読み込むときの配置などの詳しい情報です。</li>
+        <li><strong>パート別の確認・MIDI</strong> — 原曲のみ／原曲＋AI生成／AI生成のみの聴き比べと、パートごとのミュート・単独試聴・MIDI保存。個別MIDIは曲中の位置を保つので、Logic Proではすべて1小節目に置きます。</li>
+        <li><strong>盛り上げ方・楽器の役割</strong> — 最も盛り上げる場所や、セクションごとの強さ・楽器の割り当てを細かく決めます。次に全曲アレンジを作るときに使われます。</li>
+        <li><strong>セクションの順番</strong> — ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選び、複製・削除します。再生アイコンで前セクションとの繋ぎ目を前後1小節ずつ試聴できます。</li>
+        <li><strong>Logic Proの音源と設定</strong> — 曲全体MIDIに入るトラックごとに、おすすめ音源と一言の設定(演奏・定位・残響)を表で示します。</li>
       </ul>
     </section>
 
