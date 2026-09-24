@@ -95,6 +95,7 @@ import {
 import { snapshot } from "./storeHelpers"
 import { createPhraseActions } from "./phraseActions"
 import { createReactiveLayerActions } from "./reactiveLayerActions"
+import { createArrangementChatActions, type ArrangementChatActions } from "./arrangementChatActions"
 
 export type { RangePreset } from "./generationInputs"
 
@@ -105,7 +106,7 @@ export type TimingNotice =
   | { kind: "auto-converted"; factor: number; timeSignature: string }
   | { kind: "ambiguous"; timeSignature: string; reason: string }
 
-export interface ProjectState {
+export interface ProjectState extends ArrangementChatActions {
   project: ComposerProject
   selectedSectionId: string | null
   /** Melody Piano Rollで選んだ、セクション相対の試聴開始拍。 */
@@ -1295,6 +1296,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   ...createPhraseActions(set, get),
   ...createReactiveLayerActions(set, get),
+  ...createArrangementChatActions(set, get),
 
   setActiveMelody: (variantId) => {
     const prev = get().project

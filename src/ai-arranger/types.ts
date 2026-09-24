@@ -409,6 +409,11 @@ export interface AudibleLayerCollisionReview {
 export interface AiArrangementContext {
   /** AI相談の判断範囲。既定は曲全体、sectionは明示的な局所相談だけに使う。 */
   consultationScope: "whole-song" | "section"
+  /**
+   * アレンジ相談チャット: いま鳴っている全曲アレンジで、各セクションにどのパートが入っているか。
+   * 形になった曲の具体的な直しを相談するため、AIへ現状を伝える。
+   */
+  currentArrangement?: AiCurrentArrangementSummary
   /** AI・将来のDirector・各Generatorが共有する、固有名を含まない最上位判断原則。 */
   arrangementConstitution: AiArrangementConstitutionContext
   /** 曲全体の役割配分。現在Sectionの局所最適より先に参照する。 */
@@ -551,4 +556,15 @@ export interface AiArrangementRequest {
   context: AiArrangementContext
   conversation?: AiConversationContext
   audio?: AiAudioPayload
+}
+
+export interface AiCurrentArrangementSummary {
+  versionLabel: string
+  sections: Array<{
+    sectionId: string
+    sectionName: string
+    bars: string
+    hasMelody: boolean
+    parts: Array<{ part: string; notesPerBar: number }>
+  }>
 }

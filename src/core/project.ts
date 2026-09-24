@@ -21,6 +21,7 @@ import type {
 } from "./performanceExecution"
 import type { PerformanceBatchRecommendation } from "./performanceCandidateSelection"
 import type { FullSongArrangement } from "./arrangementGeneration"
+import type { ArrangementChatState } from "./arrangementChat"
 import type { AestheticSelection, GenreWeight } from "./musicContext"
 
 export type SongProfileId =
@@ -238,6 +239,8 @@ export interface ComposerProject {
   songMotifDNA?: SongMotifDNA
   /** AI Partnerの同一曲・同一Section単位の継続相談。音源データ自体は保存しない。 */
   aiPartnerSessions?: Record<string, AiPartnerSession>
+  /** アレンジ相談チャット(会話・変更案・全曲アレンジの版) */
+  arrangementChat?: ArrangementChatState
   /** AI Partnerが選んだ伴奏Performance Plan。動的生成される伴奏へ試聴/MIDI時に適用する。 */
   sectionPerformancePlans?: Record<
     string,
@@ -406,6 +409,7 @@ export function normalizeProject(raw: unknown): ComposerProject {
     generatorProfileRoles: r.generatorProfileRoles,
     songMotifDNA: r.songMotifDNA,
     aiPartnerSessions: r.aiPartnerSessions ?? {},
+    arrangementChat: r.arrangementChat,
     sectionPerformancePlans: r.sectionPerformancePlans ?? {},
     candidatePerformanceReviews: r.candidatePerformanceReviews ?? {},
     performanceBatchRecommendations: r.performanceBatchRecommendations ?? {},
