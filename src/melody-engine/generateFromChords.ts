@@ -1029,7 +1029,7 @@ export function toMelodyVariantFromProfile(
 ): MelodyVariant {
   return {
     id: crypto.randomUUID(),
-    name: `${GENERATOR_PROFILE_LABELS[candidate.generatorProfile]} · Pattern ${candidate.patternIndex}`,
+    name: `${GENERATOR_PROFILE_LABELS[candidate.generatorProfile]} · 案${candidate.patternIndex}`,
     sectionId,
     sourceMode: "generate",
     notes: candidate.notes,

@@ -13,7 +13,7 @@ import { GENERATOR_PROFILE_LABELS } from "@/melody-engine/generatorProfile"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import type { SeedOperation } from "@/melody-engine/developSeed"
-import { ArrowRight, Ear, Layers, Sparkles, Star } from "lucide-react"
+import { ArrowRight, Check, Ear, Layers, Sparkles, Star } from "lucide-react"
 import type { MainTab } from "./App"
 import { adoptedMelodyLayers, type MelodyLayerKind } from "@/core/melodyLayers"
 import type { PianoRollOverlay } from "./PianoRoll"
@@ -24,7 +24,6 @@ import {
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
-import { CandidateStatusBadge } from "./CandidateStatusBadge"
 
 const TRANSITION_LABELS = {
   resolved: "Resolved",
@@ -133,8 +132,8 @@ export function MelodyWorkspace({
       const label = v.techniqueExperiment
         ? `${baseLabel} · ${
             v.techniqueExperiment.mode === "baseline"
-              ? "Normal"
-              : "Technique"
+              ? "通常"
+              : "技法あり"
           }`
         : baseLabel
       let group = groups.find((g) => g.key === key)
@@ -158,177 +157,190 @@ export function MelodyWorkspace({
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-      <section className="rounded-lg border border-primary/30 bg-primary/[0.05] p-3">
-        <div className="grid grid-cols-3 gap-1.5 text-[11px] sm:gap-2">
-          {[
-            { label: "1 コード", done: chords.length > 0 && !chordHasError },
-            { label: "2 主旋律", done: Boolean(variant) },
-            { label: "3 全曲方針", done: false },
-          ].map((step, index) => (
+      {/* 手順の案内は、主旋律の候補ができるまでだけ出す(候補ができたらピアノロールを上へ詰める) */}
+      {!variant && (
+        <section className="rounded-lg border border-primary/30 bg-primary/[0.05] p-3">
+          <div className="grid grid-cols-3 gap-1.5 text-[11px] sm:gap-2">
+            {[
+              { label: "1 コード", done: chords.length > 0 && !chordHasError },
+              { label: "2 主旋律", done: Boolean(variant) },
+              { label: "3 全曲方針", done: false },
+            ].map((step, index) => (
+              <div
+                key={step.label}
+                className={`rounded-sm border px-2 py-2 text-center ${step.done ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : index === (chords.length === 0 || chordHasError ? 0 : variant ? 2 : 1) ? "border-primary/45 bg-primary/10 text-primary-on-dark" : "border-hairline text-body-muted"}`}
+              >
+                {step.done ? "✓ " : ""}{step.label}
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[12px] text-body-muted">
+              {chords.length === 0
+                ? "まずコード進行を入力します。"
+                : chordHasError
+                  ? "コード表記を直すと主旋律を生成できます。"
+                  : !variant
+                    ? "コードの準備ができました。主旋律候補を生成します。"
+                    : "主旋律を採用したら、AIと全曲の方針を決めます。"}
+            </p>
+            {chords.length === 0 && onOpenProjectPanel && (
+              <Button variant="secondary" onClick={onOpenProjectPanel}>コード進行を入力</Button>
+            )}
+            {chords.length > 0 && !chordHasError && !variant && (
+              <Button onClick={() => generateForSection(section.id)}><Sparkles size={14} /> 主旋律候補を生成</Button>
+            )}
+            {variant && onNavigate && (
+              <Button onClick={() => onNavigate("ai-partner")}>AIで全曲方針へ <ArrowRight size={13} /></Button>
+            )}
+          </div>
+        </section>
+      )}
+      {/* 候補の切り替えと操作を1行にまとめる */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1">
+          {/*
+            候補はProfileごとに行を分けて並べる。全候補を1つのflex-wrapへ流すと、
+            Profileが増えるほど「Profile名 · Pattern n」が横一列に折り返して
+            Profile名が3回ずつ繰り返され、さらに同じProfileの3案が行をまたいで
+            分断されてしまうため(6 Profile選択で18個)。
+            行頭にProfile名を1回だけ出し、ピルはPattern番号だけにする。
+          */}
+          {candidateGroups.length > 0 && (
+            /*
+              2列にするのは、Profile名が省略されずに収まる幅のときだけにする。
+              1024〜1179pxは左右パネルが固定表示になって中央が最も狭くなる帯で、
+              ここで2列にすると "Elegiac Cantabile" 等が切れるため1列へ戻す。
+
+              範囲が重ならない指定にしているのは、Tailwind v4が任意値の
+              ブレークポイントを名前付き(md/lg)より前に出力するため。
+              重なる指定にすると、あとに出力された名前付き側が常に勝ってしまう。
+            */
             <div
-              key={step.label}
-              className={`rounded-sm border px-2 py-2 text-center ${step.done ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : index === (chords.length === 0 || chordHasError ? 0 : variant ? 2 : 1) ? "border-primary/45 bg-primary/10 text-primary-on-dark" : "border-hairline text-body-muted"}`}
+              className="grid grid-cols-1 gap-x-5 gap-y-1 min-[768px]:max-[1024px]:grid-cols-2 min-[1180px]:grid-cols-2"
+              title="候補を選んだら Space で再生・停止できます"
             >
-              {step.done ? "✓ " : ""}{step.label}
+              {candidateGroups.map((group) => (
+                <div key={group.key} className="flex min-w-0 items-center gap-2">
+                  {/* セル幅が狭いときはラベル側を縮めて省略する(ピルは潰さない) */}
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-body-on-dark" title={group.label}>
+                    {group.label}
+                  </span>
+                  <div className="flex shrink-0 gap-1.5">
+                    {group.items.map((item) => (
+                      <Pill
+                        key={item.variant.id}
+                        active={item.index === currentIndex}
+                        onClick={() => setActiveCandidateIndex(item.index)}
+                        className="min-w-9 justify-center px-3 tabular-nums"
+                        title={item.variant.name}
+                        aria-label={item.variant.name}
+                      >
+                        {item.patternLabel}
+                      </Pill>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] text-body-muted">
-            {chords.length === 0
-              ? "まずコード進行を入力します。"
-              : chordHasError
-                ? "コード表記を直すと主旋律を生成できます。"
-                : !variant
-                  ? "コードの準備ができました。主旋律候補を生成します。"
-                  : "主旋律を採用したら、AIと全曲の方針を決めます。"}
-          </p>
-          {chords.length === 0 && onOpenProjectPanel && (
-            <Button variant="secondary" onClick={onOpenProjectPanel}>コード進行を入力</Button>
           )}
-          {chords.length > 0 && !chordHasError && !variant && (
-            <Button onClick={() => generateForSection(section.id)}><Sparkles size={14} /> 主旋律候補を生成</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
+          {sectionContent.lead !== "melody" && (
+            <Pill active>内容: {LEAD_CONTENT_LABELS[sectionContent.lead]}</Pill>
+          )}
+          {variant && (
+            <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
+              <Sparkles size={14} /> 作り直す
+            </Button>
           )}
           {variant && onNavigate && (
-            <Button onClick={() => onNavigate("ai-partner")}>AIで全曲方針へ <ArrowRight size={13} /></Button>
+            // 候補どうしを、再生位置を保ったまま A/B/C で聴き比べる(旧・比較試聴タブ)
+            <Button variant="secondary" onClick={() => onNavigate("audition")}>
+              <Ear size={13} /> 聴き比べ
+            </Button>
+          )}
+          {variant && (
+            <Button
+              variant={project.activeMelodyId === variant.id ? "secondary" : "primary"}
+              onClick={() => setActiveMelody(variant.id)}
+              disabled={project.activeMelodyId === variant.id}
+            >
+              {project.activeMelodyId === variant.id ? <><Check size={13} /> 採用中</> : <><Star size={13} /> この主旋律を採用</>}
+            </Button>
+          )}
+          {variant && onNavigate && (
+            <button
+              type="button"
+              onClick={() => onNavigate("ai-partner")}
+              className="flex items-center gap-1 text-[12px] text-primary-on-dark hover:underline"
+            >
+              次: AIで全曲方針 <ArrowRight size={12} />
+            </button>
           )}
         </div>
-      </section>
-      <div className="flex flex-wrap items-center gap-2">
-        {/* 最初の生成は上の手順カードのボタンで行う。候補ができた後だけ、作り直しをここに出す */}
-        {variant && (
-          <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
-            <Sparkles size={14} /> 主旋律を作り直す
-          </Button>
-        )}
-        {variant && onNavigate && (
-          // 候補どうしを、再生位置を保ったまま A/B/C で聴き比べる(旧・比較試聴タブ)
-          <Button variant="secondary" onClick={() => onNavigate("audition")}>
-            <Ear size={13} /> 聴き比べ
-          </Button>
-        )}
-        {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
-        {sectionContent.lead !== "melody" && (
-          <Pill active>Content: {LEAD_CONTENT_LABELS[sectionContent.lead]}</Pill>
-        )}
-        {chords.length > 0 && chordHasError && (
-          <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
-        )}
-
-        {variant && (
-          <CandidateStatusBadge status={project.activeMelodyId === variant.id ? "selected" : "candidate"} />
-        )}
-        {variant && (
-          <Button
-            variant="secondary"
-            onClick={() => setActiveMelody(variant.id)}
-            className={project.activeMelodyId === variant.id ? "opacity-50" : ""}
-          >
-            <Star size={13} /> {project.activeMelodyId === variant.id ? "採用中の主旋律" : "この主旋律を採用"}
-          </Button>
-        )}
-        <PerformanceReviewBadge
-          review={variant ? project.candidatePerformanceReviews?.[variant.id] : undefined}
-        />
-        {variant && (
-          <DirectorRecommendationBadge
-            recommendation={project.performanceBatchRecommendations?.[variant.batchId]}
-            candidateId={variant.id}
-          />
-        )}
-        {variant?.transitionPlan && (
-          <Pill>
-            接続: {TRANSITION_LABELS[variant.transitionPlan.strategy]} · 適合{" "}
-            {Math.round(variant.transitionPlan.transitionFitScore)}
-          </Pill>
-        )}
-        {variant?.contentQuality && (
-          <Pill
-            title={`Section ${Math.round(variant.contentQuality.sectionFit)} / Profile ${Math.round(variant.contentQuality.songProfileFit)} / Harmony ${Math.round(variant.contentQuality.harmonicInterest)} / Structure ${Math.round(variant.contentQuality.structuralClarity)} / Space ${Math.round(variant.contentQuality.spaceQuality)}`}
-          >
-            自動品質 {Math.round(variant.contentQuality.overallQuality)} ·{" "}
-            {variant.contentSelection?.reason === "highest-quality"
-              ? "Best Fit"
-              : variant.contentSelection?.reason === "content-diversity"
-                ? "Content Diversity"
-                : "Quality + Diversity"}
-          </Pill>
-        )}
-        {variant?.techniqueExperiment && (
-          <>
-            <Pill active>
-              A/B:{" "}
-              {variant.techniqueExperiment.mode === "baseline"
-                ? "Normal"
-                : variant.techniqueExperiment.presetLabel}
-            </Pill>
-            <Pill
-              title={`Quality ${Math.round(
-                variant.generationDiagnostics?.qualityScore ?? 0,
-              )}`}
-            >
-              Fit{" "}
-              {variant.generationDiagnostics?.techniqueFitScore ===
-              undefined
-                ? "—"
-                : `${Math.round(
-                    variant.generationDiagnostics
-                      .techniqueFitScore * 100,
-                  )}%`}
-            </Pill>
-          </>
-        )}
       </div>
-
-      {/*
-        候補はProfileごとに行を分けて並べる。全候補を1つのflex-wrapへ流すと、
-        Profileが増えるほど「Profile名 · Pattern n」が横一列に折り返して
-        Profile名が3回ずつ繰り返され、さらに同じProfileの3案が行をまたいで
-        分断されてしまうため(6 Profile選択で18個)。
-        行頭にProfile名を1回だけ出し、ピルはPattern番号だけにする。
-      */}
-      {candidateGroups.length > 0 && (
-        /*
-          2列にするのは、Profile名が省略されずに収まる幅のときだけにする。
-          1024〜1179pxは左右パネルが固定表示になって中央が最も狭くなる帯で、
-          ここで2列にすると "Elegiac Cantabile" 等が切れるため1列へ戻す。
-
-          範囲が重ならない指定にしているのは、Tailwind v4が任意値の
-          ブレークポイントを名前付き(md/lg)より前に出力するため。
-          重なる指定にすると、あとに出力された名前付き側が常に勝ってしまう。
-        */
-        <div
-          className="grid grid-cols-1 gap-x-5 gap-y-1 min-[768px]:max-[1024px]:grid-cols-2 min-[1180px]:grid-cols-2"
-          title="候補を選んだら Space で再生・停止できます"
-        >
-          {candidateGroups.map((group) => (
-            <div key={group.key} className="flex min-w-0 items-center gap-2">
-              {/* セル幅が狭いときはラベル側を縮めて省略する(ピルは潰さない) */}
-              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-body-on-dark" title={group.label}>
-                {group.label}
-              </span>
-              <div className="flex shrink-0 gap-1.5">
-                {group.items.map((item) => (
-                  <Pill
-                    key={item.variant.id}
-                    active={item.index === currentIndex}
-                    onClick={() => setActiveCandidateIndex(item.index)}
-                    className="min-w-9 justify-center px-3 tabular-nums"
-                    title={item.variant.name}
-                    aria-label={item.variant.name}
-                  >
-                    {item.patternLabel}
-                  </Pill>
-                ))}
-              </div>
-            </div>
-          ))}
+      {chords.length > 0 && chordHasError && (
+        <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
+      )}
+      {/* 候補の評価は小さな印にまとめて1行で見せる(詳しい理由は印にカーソルを合わせると出る) */}
+      {variant && (
+        <div className="flex flex-wrap items-center gap-2">
+          <ArrangementNecessityBadge necessity={variant.arrangementNecessity} compact />
+          <PerformanceReviewBadge
+            review={variant ? project.candidatePerformanceReviews?.[variant.id] : undefined}
+          />
+          {variant && (
+            <DirectorRecommendationBadge
+              recommendation={project.performanceBatchRecommendations?.[variant.batchId]}
+              candidateId={variant.id}
+            />
+          )}
+          {variant?.transitionPlan && (
+            <Pill>
+              接続: {TRANSITION_LABELS[variant.transitionPlan.strategy]} · 適合{" "}
+              {Math.round(variant.transitionPlan.transitionFitScore)}
+            </Pill>
+          )}
+          {variant?.contentQuality && (
+            <Pill
+              title={`Section ${Math.round(variant.contentQuality.sectionFit)} / Profile ${Math.round(variant.contentQuality.songProfileFit)} / Harmony ${Math.round(variant.contentQuality.harmonicInterest)} / Structure ${Math.round(variant.contentQuality.structuralClarity)} / Space ${Math.round(variant.contentQuality.spaceQuality)}`}
+            >
+              自動品質 {Math.round(variant.contentQuality.overallQuality)} ·{" "}
+              {variant.contentSelection?.reason === "highest-quality"
+                ? "最も適合"
+                : variant.contentSelection?.reason === "content-diversity"
+                  ? "内容の多様性"
+                  : "品質と多様性"}
+            </Pill>
+          )}
+          {variant?.techniqueExperiment && (
+            <>
+              <Pill active>
+                比較:{" "}
+                {variant.techniqueExperiment.mode === "baseline"
+                  ? "通常"
+                  : variant.techniqueExperiment.presetLabel}
+              </Pill>
+              <Pill
+                title={`Quality ${Math.round(
+                  variant.generationDiagnostics?.qualityScore ?? 0,
+                )}`}
+              >
+                適合{" "}
+                {variant.generationDiagnostics?.techniqueFitScore ===
+                undefined
+                  ? "—"
+                  : `${Math.round(
+                      variant.generationDiagnostics
+                        .techniqueFitScore * 100,
+                    )}%`}
+              </Pill>
+            </>
+          )}
         </div>
       )}
-
-      <ArrangementNecessityBadge
-        necessity={variant?.arrangementNecessity}
-      />
 
       {workflowNotice && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
@@ -337,7 +349,7 @@ export function MelodyWorkspace({
       )}
       {staleTransitionContext && (
         <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
-          前セクションのActive Melodyが変更されています。この候補のTransition Contextは古いため、接続を更新するには再生成してください。
+          前のセクションの採用中の主旋律が変わりました。この候補のつながりは古い前提のままなので、つながりを更新するには作り直してください。
         </p>
       )}
 
@@ -399,7 +411,7 @@ export function MelodyWorkspace({
         /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */
         <p className="text-[11px] text-ink-muted-48">
           {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
-          作り直す場合は「主旋律を作り直す」を実行してください。
+          作り直す場合は「作り直す」を実行してください。
         </p>
       )}
       {onNavigate && layers.length > 0 && (

@@ -351,7 +351,7 @@ export function toMelodyVariantFromContent(
 ): MelodyVariant {
   return {
     id: crypto.randomUUID(),
-    name: `${LEAD_CONTENT_LABELS[candidate.content]} · Pattern ${candidate.patternIndex}`,
+    name: `${LEAD_CONTENT_LABELS[candidate.content]} · 案${candidate.patternIndex}`,
     sectionId,
     sourceMode: "generate",
     notes: candidate.notes,

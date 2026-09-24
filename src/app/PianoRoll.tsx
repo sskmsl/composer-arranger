@@ -94,7 +94,7 @@ export function PianoRoll({
     <div className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
-        <h3 className="text-[12px] font-medium text-body-on-dark">Melody</h3>
+        <h3 className="text-[12px] font-medium text-body-on-dark">主旋律</h3>
         <span className="text-[11px] text-ink-muted-48">編集可能</span>
         {overlays.map((overlay) => (
           <span key={overlay.id} className="flex items-center gap-1 text-[11px] text-ink-muted-48">

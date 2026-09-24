@@ -146,12 +146,12 @@ export function AccompanimentPianoRoll(
   return (
     <ReadOnlyPianoRoll
       {...props}
-      title="Accompaniment Pattern"
-      subtitle="表示専用 · MIDI出力と同一"
+      title="伴奏パターン"
+      subtitle="表示のみ · MIDI書き出しと同じ"
       accentColor="#d79b45"
       accentStroke="#f3c56b"
-      ariaLabel="Accompaniment Pattern Piano Roll"
-      noteLabel="Accompaniment Pattern"
+      ariaLabel="伴奏パターンのピアノロール"
+      noteLabel="伴奏パターン"
     />
   )
 }
