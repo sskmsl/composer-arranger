@@ -5,8 +5,6 @@ import {
   FolderOpen,
   Music2,
   Plus,
-  SlidersHorizontal,
-  Sparkles,
 } from "lucide-react"
 import { isComposerSongExchange, prepareImportedProject } from "@/core/composerSongExchange"
 import { MIDI_IMPORT_ACCEPT, analyzeMidiProjectFile, type MidiImportAnalysis } from "@/midi/importMidi"
@@ -155,16 +153,6 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           </button>
         </div>
 
-        <section className="rounded-lg border border-hairline bg-surface-tile-1 p-4">
-          <div className="flex items-start gap-3">
-            <Sparkles size={17} className="mt-0.5 shrink-0 text-primary-on-dark" />
-            <div>
-              <h2 className="text-[13px] font-semibold text-body-on-dark">AIで全曲の方針を決められます</h2>
-              <p className="mt-1 text-[12px] leading-5 text-body-muted">曲を準備した後は、全曲診断 → 5つの方針 → 必要なパート生成の順で案内します。主旋律・短いフレーズ・対旋律などを直接調整したい場合だけ「個別調整」を開いてください。</p>
-            </div>
-            <SlidersHorizontal size={16} className="ml-auto hidden shrink-0 text-body-muted sm:block" />
-          </div>
-        </section>
       </section>
 
       {browserOpen && (
