@@ -10,6 +10,17 @@ const PX_PER_BEAT = 32
 const ROW_HEIGHT = 8
 const EMPTY_NOTES: MelodyNote[] = []
 
+/** 主旋律に薄く重ねて見せる、編集できない旋律(採用中の対旋律・装飾など) */
+export interface PianoRollOverlay {
+  id: string
+  label: string
+  /** 塗りの色(CSSの色) */
+  color: string
+  notes: Pick<MelodyNote, "id" | "startBeat" | "durationBeats" | "pitch">[]
+}
+
+const EMPTY_OVERLAYS: PianoRollOverlay[] = []
+
 export interface BeatRange {
   start: number
   end: number
@@ -30,6 +41,7 @@ export function PianoRoll({
   onSelectionChange,
   playbackStartBeat,
   onPlaybackStartChange,
+  overlays = EMPTY_OVERLAYS,
 }: {
   variant: MelodyVariant | undefined
   chords: ChordEvent[]
@@ -45,16 +57,18 @@ export function PianoRoll({
   onSelectionChange: (range: BeatRange | null) => void
   playbackStartBeat: number
   onPlaybackStartChange: (beat: number) => void
+  overlays?: PianoRollOverlay[]
 }) {
   const { beatsPerBar } = parseTimeSignature(timeSignature)
   const preferFlat = songKey ? keyPrefersFlatSpelling(songKey) : false
   const notes = variant?.notes ?? EMPTY_NOTES
 
   const { low, high } = useMemo(() => {
-    if (notes.length === 0) return { low: 55, high: 79 }
-    const pitches = notes.map((n) => n.pitch)
+    // 重ねた旋律も音域に含める(主旋律より高い装飾が枠の外に切れないように)
+    const pitches = [...notes, ...overlays.flatMap((overlay) => overlay.notes)].map((n) => n.pitch)
+    if (pitches.length === 0) return { low: 55, high: 79 }
     return { low: Math.min(...pitches) - 3, high: Math.max(...pitches) + 3 }
-  }, [notes])
+  }, [notes, overlays])
 
   const rows = high - low + 1
   const width = Math.max(totalBeats * PX_PER_BEAT, 200)
@@ -82,6 +96,12 @@ export function PianoRoll({
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
         <h3 className="text-[12px] font-medium text-body-on-dark">Melody</h3>
         <span className="text-[11px] text-ink-muted-48">編集可能</span>
+        {overlays.map((overlay) => (
+          <span key={overlay.id} className="flex items-center gap-1 text-[11px] text-ink-muted-48">
+            <span className="h-2.5 w-2.5 rounded-sm opacity-60" style={{ background: overlay.color }} aria-hidden="true" />
+            {overlay.label}(表示のみ)
+          </span>
+        ))}
         {bars > 8 && (
           <span className="ml-auto text-[11px] text-primary-on-dark">全{bars}小節・下のバーで横移動</span>
         )}
@@ -198,6 +218,23 @@ export function PianoRoll({
               stroke="#0071e3"
             />
           )}
+
+          {/* 重ねた旋律(表示のみ・クリックは主旋律や範囲選択へ通す) */}
+          {overlays.map((overlay) => (
+            <g key={overlay.id} opacity={0.45} pointerEvents="none">
+              {overlay.notes.map((n) => (
+                <rect
+                  key={n.id}
+                  x={n.startBeat * PX_PER_BEAT + 1}
+                  y={yForPitch(n.pitch) + 1}
+                  width={Math.max(4, n.durationBeats * PX_PER_BEAT - 2)}
+                  height={ROW_HEIGHT - 2}
+                  rx={2}
+                  fill={overlay.color}
+                />
+              ))}
+            </g>
+          ))}
 
           {/* ノート */}
           {notes.map((n) => {

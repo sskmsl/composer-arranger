@@ -24,6 +24,7 @@ function WorkspaceLoading() {
 import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
 import { ImportStartGuide } from "./ImportStartGuide"
 import { HomeWorkspace } from "./HomeWorkspace"
+import { MelodyColumn } from "./MelodySubTabs"
 
 export type MainTab =
   | "home"
@@ -123,10 +124,12 @@ export function App() {
         {tab === "melody" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <MelodyWorkspace
-              onNavigate={setTab}
-              onOpenProjectPanel={() => setLeftOpen(true)}
-            />
+            <MelodyColumn tab={tab} onChange={setTab}>
+              <MelodyWorkspace
+                onNavigate={setTab}
+                onOpenProjectPanel={() => setLeftOpen(true)}
+              />
+            </MelodyColumn>
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} />
             {(leftOpen || rightOpen) && (
               <div
@@ -142,7 +145,9 @@ export function App() {
         {tab === "phrase" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <PhraseWorkspace />
+            <MelodyColumn tab={tab} onChange={setTab}>
+              <PhraseWorkspace />
+            </MelodyColumn>
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="phrase" />
             {(leftOpen || rightOpen) && (
               <div
@@ -158,7 +163,9 @@ export function App() {
         {tab === "signature" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <SignaturePhraseWorkspace />
+            <MelodyColumn tab={tab} onChange={setTab}>
+              <SignaturePhraseWorkspace />
+            </MelodyColumn>
             <RightPanel
               open={rightOpen}
               onClose={() => setRightOpen(false)}
@@ -178,7 +185,9 @@ export function App() {
         {tab === "counter" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <CounterWorkspace onNavigate={setTab} />
+            <MelodyColumn tab={tab} onChange={setTab}>
+              <CounterWorkspace onNavigate={setTab} />
+            </MelodyColumn>
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="counter" />
             {(leftOpen || rightOpen) && (
               <div
@@ -194,7 +203,9 @@ export function App() {
         {tab === "decoration" && (
           <>
             <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
-            <DecorationWorkspace />
+            <MelodyColumn tab={tab} onChange={setTab}>
+              <DecorationWorkspace />
+            </MelodyColumn>
             <RightPanel open={rightOpen} onClose={() => setRightOpen(false)} mode="decoration" />
             {(leftOpen || rightOpen) && (
               <div
@@ -218,7 +229,12 @@ export function App() {
           </div>
         )}
         {tab === "arrangement" && <ArrangementWorkspace onNavigate={setTab} />}
-        {tab === "audition" && <AuditionWorkspace onNavigate={setTab} />}
+        {tab === "audition" && (
+          // 聴き比べは主旋律の中の表示。旋律タブの切り替えを上に出したまま全幅で使う
+          <MelodyColumn tab={tab} onChange={setTab}>
+            <AuditionWorkspace onNavigate={setTab} />
+          </MelodyColumn>
+        )}
         </Suspense>
       </div>
       {tab !== "home" &&

@@ -13,7 +13,10 @@ import { GENERATOR_PROFILE_LABELS } from "@/melody-engine/generatorProfile"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
 import type { SeedOperation } from "@/melody-engine/developSeed"
-import { ArrowRight, Sparkles, Star } from "lucide-react"
+import { ArrowRight, Ear, Layers, Sparkles, Star } from "lucide-react"
+import type { MainTab } from "./App"
+import { adoptedMelodyLayers, type MelodyLayerKind } from "@/core/melodyLayers"
+import type { PianoRollOverlay } from "./PianoRoll"
 import type { MelodyVariant, RangeRegenerationLocks } from "@/core/melody"
 import { isTransitionContextStale } from "@/melody-engine/sectionTransition"
 import {
@@ -46,7 +49,7 @@ export function MelodyWorkspace({
   onNavigate,
   onOpenProjectPanel,
 }: {
-  onNavigate?: (tab: "ai-partner") => void
+  onNavigate?: (tab: MainTab) => void
   onOpenProjectPanel?: () => void
 } = {}) {
   const project = useProjectStore((s) => s.project)
@@ -90,6 +93,15 @@ export function MelodyWorkspace({
   const isMelodyVariant = variantContent === "melody"
   const staleTransitionContext = variant ? isTransitionContextStale(project, variant) : false
 
+  // 採用中の対旋律・装飾・イントロ。主旋律に重ねて表示し、下の状況カードにも使う
+  const layers = useMemo(
+    () => (selectedSectionId ? adoptedMelodyLayers(project, selectedSectionId) : []),
+    [project, selectedSectionId],
+  )
+  const [overlayKinds, setOverlayKinds] = useState<Set<MelodyLayerKind>>(() => new Set(["counter", "decoration"]))
+  const overlays: PianoRollOverlay[] = layers
+    .filter((layer) => overlayKinds.has(layer.kind) && layer.notes.length > 0)
+    .map((layer) => ({ id: layer.kind, label: LAYER_META[layer.kind].label, color: LAYER_META[layer.kind].color, notes: layer.notes }))
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set())
   const [selection, setSelection] = useState<BeatRange | null>(null)
   const [continuationBars, setContinuationBars] = useState(2)
@@ -187,6 +199,12 @@ export function MelodyWorkspace({
         {variant && (
           <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
             <Sparkles size={14} /> 主旋律を作り直す
+          </Button>
+        )}
+        {variant && onNavigate && (
+          // 候補どうしを、再生位置を保ったまま A/B/C で聴き比べる(旧・比較試聴タブ)
+          <Button variant="secondary" onClick={() => onNavigate("audition")}>
+            <Ear size={13} /> 聴き比べ
           </Button>
         )}
         {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
@@ -323,7 +341,33 @@ export function MelodyWorkspace({
         </p>
       )}
 
+      {layers.some((layer) => layer.notes.length > 0) && (
+        <div className="flex flex-wrap items-center gap-3 text-[12px] text-body-muted">
+          <span className="flex items-center gap-1.5"><Layers size={13} /> 重ねて表示</span>
+          {layers.filter((layer) => layer.notes.length > 0).map((layer) => (
+            <label key={layer.kind} className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={overlayKinds.has(layer.kind)}
+                onChange={(event) =>
+                  setOverlayKinds((prev) => {
+                    const next = new Set(prev)
+                    if (event.target.checked) next.add(layer.kind)
+                    else next.delete(layer.kind)
+                    return next
+                  })
+                }
+              />
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: LAYER_META[layer.kind].color }} aria-hidden="true" />
+              {LAYER_META[layer.kind].label}
+            </label>
+          ))}
+          <span className="text-ink-muted-48">編集できるのは主旋律だけです。重ねた旋律は薄く表示します</span>
+        </div>
+      )}
+
       <PianoRoll
+        overlays={overlays}
         variant={variant}
         chords={chords}
         totalBeats={totalBeats}
@@ -357,6 +401,34 @@ export function MelodyWorkspace({
           {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
           作り直す場合は「主旋律を作り直す」を実行してください。
         </p>
+      )}
+      {onNavigate && layers.length > 0 && (
+        <section aria-label="このセクションの旋律" className="grid gap-2 sm:grid-cols-3">
+          {layers.map((layer) => {
+            const meta = LAYER_META[layer.kind]
+            const status = layer.name
+              ? "採用中"
+              : layer.candidateCount > 0
+                ? `候補${layer.candidateCount}件・未採用`
+                : "まだ作っていません"
+            return (
+              <button
+                key={layer.kind}
+                type="button"
+                onClick={() => onNavigate(meta.tab)}
+                className="flex flex-col gap-1 rounded-lg border border-hairline bg-surface-tile-1 p-3 text-left transition hover:border-primary/60 hover:bg-white/5"
+              >
+                <span className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
+                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: meta.color }} aria-hidden="true" />
+                  {meta.label}
+                  <ArrowRight size={12} className="ml-auto text-body-muted" />
+                </span>
+                <span className="text-[12px] text-body-muted">{status}</span>
+                {layer.name && <span className="truncate text-[11px] text-ink-muted-48">{layer.name}</span>}
+              </button>
+            )
+          })}
+        </section>
       )}
       {accompanimentPatternNotes.length > 0 && (
         <AccompanimentPianoRoll
@@ -488,4 +560,11 @@ export function MelodyWorkspace({
       )}
     </main>
   )
+}
+
+/** 旋律タブの色分け(旋律タブ上部の切り替えの色と揃える) */
+const LAYER_META: Record<MelodyLayerKind, { label: string; color: string; tab: "counter" | "decoration" | "signature" }> = {
+  counter: { label: "対旋律", color: "#fbbf24", tab: "counter" },
+  decoration: { label: "装飾", color: "#e879f9", tab: "decoration" },
+  intro: { label: "イントロ", color: "#7dd3fc", tab: "signature" },
 }

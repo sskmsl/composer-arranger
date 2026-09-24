@@ -32,7 +32,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
         <div className="max-w-3xl">
           <p className="text-[12px] font-semibold tracking-[0.2em] text-primary-on-dark">COMPOSER ARRANGER</p>
           <p className="mt-4 max-w-2xl text-[14px] leading-6 text-body-muted">
-            最初に素材の準備方法を選んでください。専門的な生成設定は、必要になった時だけ「個別調整」から開けます。
+            最初に素材の準備方法を選んでください。主旋律・対旋律・装飾などは「旋律」でまとめて作れます。
           </p>
         </div>
 
