@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import {
   AudioLines,
   CircleCheck,
@@ -28,15 +28,14 @@ import {
 /**
  * アレンジ画面の「曲の流れと楽器の役割」。曲全体の流れ(どこを静かにし、どこで広げるか)、
  * 編曲の評価、楽器の割り当てを表示・調整する。変更は全曲アレンジの生成に使われる。
- * 親から context を受け取り、変更はストアへ直接送る。
+ * 変更はストアへ直接送る。
  */
 export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectionId: string | null }) {
   const project = useProjectStore((state) => state.project)
-  // 解析は重いので、欄を開いている間だけ行う
-  const [open, setOpen] = useState(false)
+  // 解析は重いので、このパネルを表示している間だけ行う(親がタブで出し入れする)
   const context = useMemo(
-    () => (open && effectiveSectionId ? buildAiArrangementContext(project, effectiveSectionId, "section") : null),
-    [effectiveSectionId, open, project],
+    () => (effectiveSectionId ? buildAiArrangementContext(project, effectiveSectionId, "section") : null),
+    [effectiveSectionId, project],
   )
   const selectSection = useProjectStore((state) => state.selectSection)
   const setArrangementDirectorClimax = useProjectStore((state) => state.setArrangementDirectorClimax)
@@ -51,14 +50,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
   const audibleLayerReview = context?.audibleLayerReview
 
   return (
-    <details
-      className="rounded-lg border border-hairline bg-white/[0.015] p-3"
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">
-        曲の流れと楽器の役割（盛り上げる場所・強さを細かく決める）
-      </summary>
-      <div className="mt-3 flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {director && director.sections.length > 0 && (
       <SectionCard>
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -163,10 +155,8 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                 value={currentDirectorPlan.transitionIntent}
               />
             </div>
-            <details className="rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
-              <summary className="cursor-pointer text-[11px] text-body-muted hover:text-body-on-dark">
-                この部分の強さを手動で調整
-              </summary>
+            <div className="rounded-sm border border-hairline bg-white/[0.02] px-3 py-2">
+              <div className="text-[11px] font-medium text-body-on-dark">この部分の強さを手動で調整</div>
               <div className="mt-2 flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-1 text-[11px] text-body-muted">
                 強さ
@@ -220,7 +210,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                 <span className="text-[11px] text-primary-on-dark">最も盛り上げる場所なので「最も強い」で固定</span>
               )}
               </div>
-            </details>
+            </div>
           </div>
         )}
         {arrangementReview && (
@@ -370,10 +360,10 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                 <strong className="text-body-on-dark">役割：</strong>{plainDirectionText(part.purpose)}
               </p>
               {part.role !== "intentional-silence" && effectiveSectionId && (
-                <details className="mt-2 border-t border-hairline pt-2">
-                  <summary className="cursor-pointer text-[11px] text-primary-on-dark">
-                    演奏の詳細・調整{override ? " · 固定あり" : ""}
-                  </summary>
+                <div className="mt-2 border-t border-hairline pt-2">
+                  <div className="text-[11px] font-medium text-primary-on-dark">
+                    演奏の調整{override ? " · 固定あり" : ""}
+                  </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <Tag>{registerLabel(part.register)}</Tag>
                     <Tag>{orchestrationDistanceLabel(part.distance)}</Tag>
@@ -458,7 +448,7 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
                       すべて自動へ戻す
                     </button>
                   </div>
-                </details>
+                </div>
               )}
             </div>
             )
@@ -472,7 +462,6 @@ export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectio
         )}
       </SectionCard>
       )}
-      </div>
-    </details>
+    </div>
   )
 }

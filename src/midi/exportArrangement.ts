@@ -49,6 +49,13 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
   }
 }
 
+/** 全曲アレンジのうち、鳴らしている(ミュートしていない)トラックをSMFトラックにする */
+export function arrangementSmfTracks(arrangement: FullSongArrangement | null | undefined): SmfTrack[] {
+  return (arrangement?.tracks ?? [])
+    .filter((track) => !track.muted && track.notes.length > 0)
+    .map(toSmfTrack)
+}
+
 function song(
   project: ComposerProject,
   tracks: GeneratedArrangementTrack[],

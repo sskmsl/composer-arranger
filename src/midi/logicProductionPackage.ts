@@ -3,6 +3,7 @@ import { voiceChord } from "@/audio/chordVoicing"
 import { parseChordSymbol } from "@/core/chord"
 import type { MelodyNote } from "@/core/melody"
 import type { ComposerProject } from "@/core/project"
+import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import {
@@ -334,4 +335,78 @@ export function downloadProductionGuide(markdownText: string, filename: string):
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
+}
+
+/** アレンジ画面「Logic Pro用の書き出し」の1行。曲全体MIDIのトラック名と、おすすめ音源・一言の設定 */
+export interface LogicSoundRow {
+  trackName: string
+  role: string
+  product: string
+  setting: string
+}
+
+/** 曲全体MIDI(exportSongMidi)で使うトラック名 */
+const SONG_MIDI_TRACK_NAMES: Partial<Record<LogicProductionTrackId, string>> = {
+  "chord-guide": "Chords",
+  "active-melody": "Active Melodies",
+  "melody-accompaniment": "Accompaniment",
+  pulse: "Accompaniment Pattern",
+  counter: "Selected Counter Melody",
+  decoration: "Selected Decoration",
+  "selected-phrase": "Selected Phrases",
+  "selected-intro-phrase": "Selected Intro Phrases",
+}
+
+const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; product: string; setting: string }> = [
+  { match: (id) => id.startsWith("dr-"), role: "ドラム", product: "Battery 4", setting: "KickとSnareを基準に、Hatは控えめ／定位 Center〜±30／残響 Short Room" },
+  { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
+  { match: (id) => id === "syn-pulse" || id === "syn-stabs", role: "シンセの刻み", product: "Repro-1", setting: "短く歯切れよく／定位 ±20／残響 Tempo Delay少し" },
+  { match: (id) => id === "syn-dark-pad", role: "パッド", product: "Repro-5", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 Long Hall" },
+  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", product: "Playbox", setting: "音量は控えめに、一音ずつ置く／定位 ±40／残響 Long Plate" },
+  { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", product: "Playbox", setting: "セクションの境目だけで鳴らす／定位 ±30／残響 Long Hall" },
+  { match: (id) => id === "str-cello" || id === "str-viola", role: "弦（低音）", product: "Session Strings Pro 2", setting: "レガートで長めに／定位 ±20／残響 Hall" },
+  { match: (id) => id.startsWith("str-"), role: "弦（高音）", product: "Session Strings Pro 2", setting: "レガート、頂点だけ強く／定位 ±30／残響 Hall" },
+]
+
+function sourceSetting(source: TrackSource): string {
+  return [
+    source.performance.split("。")[0],
+    `定位 ${source.panorama}`,
+    `残響 ${source.reverb.split("。")[0]}`,
+  ].filter(Boolean).join("／")
+}
+
+/**
+ * 曲全体MIDIに入るトラックごとの、おすすめ音源と一言の設定。
+ * トラックの並びと名前は曲全体MIDIと同じにする(Logicで開いたときに対応が分かるように)。
+ */
+export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
+  const byId = new Map(sources(project).map((source) => [source.id, source]))
+  const order: LogicProductionTrackId[] = [
+    "chord-guide",
+    "active-melody",
+    "melody-accompaniment",
+    "pulse",
+    "counter",
+    "decoration",
+    "selected-phrase",
+    "selected-intro-phrase",
+  ]
+  const rows: LogicSoundRow[] = order.flatMap((id) => {
+    const source = byId.get(id)
+    if (!source || source.notes.length === 0) return []
+    return [{
+      trackName: SONG_MIDI_TRACK_NAMES[id] ?? source.name,
+      role: id === "chord-guide" ? "コード（ベース音を含む）" : source.role,
+      product: source.recommendations[0]?.product ?? "—",
+      setting: sourceSetting(source),
+    }]
+  })
+  for (const track of project.fullSongArrangement?.tracks ?? []) {
+    if (track.muted || track.notes.length === 0) continue
+    const sound = ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
+    if (!sound) continue
+    rows.push({ trackName: track.name, role: sound.role, product: sound.product, setting: sound.setting })
+  }
+  return rows
 }

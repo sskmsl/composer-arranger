@@ -1,4 +1,5 @@
 import { clsx } from "clsx"
+import { Play, Square } from "lucide-react"
 import {
   ARRANGEMENT_PART_ROWS,
   type ArrangementCellChange,
@@ -24,10 +25,16 @@ export function ArrangementPartTable({
   matrix,
   marks,
   pendingChanges = [],
+  playingSectionId = null,
+  onPlaySection,
 }: {
   matrix: ArrangementMatrixSection[]
   marks: Map<string, PartCellMark>
   pendingChanges?: ArrangementCellChange[]
+  /** いま単独で鳴らしているセクション */
+  playingSectionId?: string | null
+  /** セクション名を押すか、表を右クリックしたときに、そのセクションだけを鳴らす */
+  onPlaySection?: (sectionId: string) => void
 }) {
   if (matrix.length === 0) return null
   const columns = `7.5rem ${matrix.map((section) => `minmax(2.75rem, ${Math.max(1, section.lengthBars)}fr)`).join(" ")}`
@@ -40,15 +47,45 @@ export function ArrangementPartTable({
 
   return (
     <div className="overflow-x-auto">
-      <div role="table" aria-label="パート構成" className="flex flex-col gap-1.5" style={{ minWidth }}>
+      <div
+        role="table"
+        aria-label="パート構成"
+        className="flex flex-col gap-1.5"
+        style={{ minWidth }}
+        onContextMenu={(event) => {
+          // 右クリックした列(セクション)だけを鳴らす。セクションの外(パート名など)は通常のメニューのまま
+          const sectionId = (event.target as HTMLElement).closest<HTMLElement>("[data-section-id]")?.dataset.sectionId
+          if (!sectionId || !onPlaySection) return
+          event.preventDefault()
+          onPlaySection(sectionId)
+        }}
+      >
         <div role="row" className="grid items-end gap-1.5 pb-1" style={{ gridTemplateColumns: columns }}>
           <div role="columnheader" className="text-[11px] text-ink-muted-48">パート</div>
-          {matrix.map((section) => (
-            <div role="columnheader" key={section.sectionId} className="min-w-0">
-              <div className="truncate text-[12px] font-medium text-body-on-dark" title={section.name}>{section.name}</div>
-              <div className="text-[11px] tabular-nums text-ink-muted-48">{section.startBar}–{section.endBar}</div>
-            </div>
-          ))}
+          {matrix.map((section) => {
+            const isPlaying = playingSectionId === section.sectionId
+            return (
+              <div role="columnheader" key={section.sectionId} data-section-id={section.sectionId} className="min-w-0">
+                <button
+                  type="button"
+                  disabled={!onPlaySection}
+                  onClick={() => onPlaySection?.(section.sectionId)}
+                  title={isPlaying ? "停止" : `${section.name}だけを再生（表の右クリックでも再生）`}
+                  aria-label={isPlaying ? `${section.name}の再生を停止` : `${section.name}だけを再生`}
+                  className={clsx(
+                    "flex w-full min-w-0 items-center gap-1 rounded-sm text-left text-[12px] font-medium",
+                    isPlaying ? "text-primary-on-dark" : "text-body-on-dark hover:text-primary-on-dark",
+                  )}
+                >
+                  {isPlaying ? <Square size={10} className="shrink-0" aria-hidden="true" /> : <Play size={10} className="shrink-0 opacity-60" aria-hidden="true" />}
+                  <span className="truncate">{section.name}</span>
+                </button>
+                <div className={clsx("text-[11px] tabular-nums", isPlaying ? "text-primary-on-dark" : "text-ink-muted-48")}>
+                  {isPlaying ? "再生中" : `${section.startBar}–${section.endBar}`}
+                </div>
+              </div>
+            )
+          })}
         </div>
         <SourceRow
           label="主旋律"
@@ -90,6 +127,7 @@ export function ArrangementPartTable({
                 <div
                   role="cell"
                   key={section.sectionId}
+                  data-section-id={section.sectionId}
                   aria-label={`${section.name}の${row.label}: ${playing ? `1小節あたり${Math.round(cell.notesPerBar * 10) / 10}音` : "なし"}${label ? `（${label}）` : ""}`}
                   className={clsx(
                     "relative flex h-7 items-center justify-center overflow-hidden rounded-[6px] text-[11px]",
@@ -126,6 +164,7 @@ export function ArrangementPartTable({
             提案中（まだ適用していない）
           </span>
           <span>色が濃いほど音数が多い</span>
+          {onPlaySection && <span>セクション名を押すか、表を右クリックすると、その箇所だけ再生</span>}
         </div>
       </div>
     </div>
@@ -156,6 +195,7 @@ function SourceRow({
         <div
           role="cell"
           key={sectionIds[index]}
+          data-section-id={sectionIds[index]}
           aria-label={`${label}: ${value ? "あり" : "なし"}`}
           className="h-3 rounded-full"
           style={{ background: value ? color : "rgba(255,255,255,0.04)", opacity: value ? 0.45 : 1 }}

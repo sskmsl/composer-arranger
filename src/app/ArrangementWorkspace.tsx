@@ -7,7 +7,7 @@ import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
-import { Button, IconButton, Select } from "@/ui/primitives"
+import { Button, IconButton, Pill, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
 import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
 import { FullSongArrangementPanel } from "./FullSongArrangementPanel"
@@ -17,6 +17,15 @@ import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 import { DirectionPicker } from "./DirectionPicker"
 import { AiPartnerAnalysisPanel } from "./AiPartnerAnalysisPanel"
+
+type DetailTabId = "parts" | "flow" | "sections" | "logic"
+
+const DETAIL_TABS: Array<{ id: DetailTabId; label: string }> = [
+  { id: "parts", label: "パート別の確認・MIDI" },
+  { id: "flow", label: "盛り上げ方・楽器の役割" },
+  { id: "sections", label: "セクションの順番" },
+  { id: "logic", label: "Logic Proの音源と設定" },
+]
 
 export function ArrangementWorkspace({
   onNavigate,
@@ -41,6 +50,7 @@ export function ArrangementWorkspace({
   const [draft, setDraft] = useState("")
   const [chatOpen, setChatOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [detailTab, setDetailTab] = useState<DetailTabId>("parts")
   // 取り込み案内などから相談の文面を渡されたら入力欄へ入れる(この画面を開いたままでも受け取る)。
   // スマホでは相談を開いた状態にする
   useEffect(() => {
@@ -51,6 +61,7 @@ export function ArrangementWorkspace({
   }, [chatDraft, onChatDraftConsumed])
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
+  const [playingSectionId, setPlayingSectionId] = useState<string | null>(null)
   const [playbackBeat, setPlaybackBeat] = useState(0)
   const playbackRunRef = useRef(0)
   const seekingRef = useRef(false)
@@ -75,6 +86,7 @@ export function ArrangementWorkspace({
     playbackRunRef.current = runId
     setPlaybackBeat(startBeat)
     setPlaying(true)
+    setPlayingSectionId(null)
     const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.playContinuous({
       bpm: project.song.tempo,
@@ -119,6 +131,7 @@ export function ArrangementWorkspace({
     playbackRunRef.current += 1
     previewPlayer.stop()
     setPlaying(false)
+    setPlayingSectionId(null)
     setPlaybackBeat(reset ? 0 : Math.max(0, Math.min(material.totalBeats, currentBeat)))
   }
 
@@ -163,8 +176,46 @@ export function ArrangementWorkspace({
     })
   }
 
+  /** パート構成表から、そのセクションだけを鳴らす(同じセクションでもう一度押すと止める) */
+  const playSection = (sectionId: string) => {
+    if (playingSectionId === sectionId) {
+      stop()
+      return
+    }
+    const section = chatModel.matrix.find((candidate) => candidate.sectionId === sectionId)
+    if (!section) return
+    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const range = {
+      startBeat: (section.startBar - 1) * beatsPerBar,
+      endBeat: Math.min(material.totalBeats, section.endBar * beatsPerBar),
+    }
+    const runId = playbackRunRef.current + 1
+    playbackRunRef.current = runId
+    setPlaybackBeat(range.startBeat)
+    setPlaying(true)
+    setPlayingSectionId(sectionId)
+    const importedSource = project.sourceImport?.type === "midi"
+    previewPlayer.play({
+      bpm: project.song.tempo,
+      tempoChanges: songTempo,
+      chords: importedSource ? [] : material.chords,
+      melody: material.melody,
+      accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
+      arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
+      mode: "chords-melody",
+      range,
+      onEnded: () => {
+        if (playbackRunRef.current !== runId) return
+        setPlaybackBeat(range.endBeat)
+        setPlaying(false)
+        setPlayingSectionId(null)
+      },
+    })
+  }
+
   const versions = project.arrangementChat?.versions ?? []
   const hasArrangement = Boolean(project.fullSongArrangement)
+  const activeDetailTab: DetailTabId = detailTab === "parts" && !hasArrangement ? "flow" : detailTab
 
   return (
     <div className="flex w-full min-w-0 flex-1">
@@ -189,7 +240,7 @@ export function ArrangementWorkspace({
           variant="dark"
           disabled={project.sections.length === 0}
           onClick={() => {
-            const bytes = exportSongMidi(project, true)
+            const bytes = exportSongMidi(project, true, true)
             downloadMidi(bytes, `${project.title}-full-song`)
           }}
         >
@@ -203,7 +254,11 @@ export function ArrangementWorkspace({
         <section className="min-w-0 max-w-full rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5" aria-labelledby="whole-song-preview-heading">
           <h3 id="whole-song-preview-heading" className="mb-2 text-[13px] font-semibold text-body-on-dark">曲全体を確認</h3>
           <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
-            <span>{playing ? "曲全体を再生中" : "曲全体の再生位置"}</span>
+            <span>
+              {playingSectionId
+                ? `${chatModel.matrix.find((section) => section.sectionId === playingSectionId)?.name ?? "セクション"}を再生中`
+                : playing ? "曲全体を再生中" : "曲全体の再生位置"}
+            </span>
             <span className="tabular-nums text-body-on-dark">
               {formatPlaybackTime(playbackBeat, project.song.tempo, songTempo)} / {formatPlaybackTime(material.totalBeats, project.song.tempo, songTempo)}
             </span>
@@ -251,6 +306,8 @@ export function ArrangementWorkspace({
             matrix={chatModel.matrix}
             marks={partCellMarks(chatModel.versionChanges, chatModel.pendingChanges)}
             pendingChanges={chatModel.pendingChanges}
+            playingSectionId={playingSectionId}
+            onPlaySection={playSection}
           />
           {!hasArrangement && (
             <p className="text-[12px] text-body-muted">
@@ -295,17 +352,28 @@ export function ArrangementWorkspace({
           <summary className="cursor-pointer text-[13px] font-medium text-body-on-dark">
             詳しい調整
             <span className="ml-2 text-[11px] font-normal text-ink-muted-48">
-              パート別のミュート・MIDI／盛り上げる場所／セクションの順番／Logic Pro書き出し
+              パート別のミュート・MIDI／盛り上げ方と楽器の役割／セクションの順番／Logic Proの音源と設定
             </span>
           </summary>
-          <div className="mt-4 flex flex-col gap-5">
-            {hasArrangement && (
-              <section aria-labelledby="part-detail-heading" className="flex flex-col gap-2">
-                <h3 id="part-detail-heading" className="text-[14px] font-semibold text-body-on-dark">パート別の確認と書き出し</h3>
-                <FullSongArrangementPanel />
-              </section>
-            )}
-            <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />
+          <div className="mt-4 flex flex-col gap-4">
+            {/* 中身は開閉を重ねず、タブで1つずつ切り替える */}
+            <div role="tablist" aria-label="詳しい調整の項目" className="flex flex-wrap gap-1.5">
+              {DETAIL_TABS.filter((item) => item.id !== "parts" || hasArrangement).map((item) => (
+                <Pill
+                  key={item.id}
+                  role="tab"
+                  aria-selected={activeDetailTab === item.id}
+                  active={activeDetailTab === item.id}
+                  onClick={() => setDetailTab(item.id)}
+                >
+                  {item.label}
+                </Pill>
+              ))}
+            </div>
+            {activeDetailTab === "parts" && hasArrangement && <FullSongArrangementPanel />}
+            {activeDetailTab === "flow" && <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />}
+            {activeDetailTab === "logic" && <LogicProductionPackagePanel />}
+            {activeDetailTab === "sections" && (
             <section className="flex flex-col gap-2" aria-labelledby="section-order-heading">
               <div>
                 <h3 id="section-order-heading" className="text-[14px] font-semibold text-body-on-dark">セクションの順番と主旋律</h3>
@@ -392,10 +460,7 @@ export function ArrangementWorkspace({
               )
             })}
             </section>
-            <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
-              <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">Logic Pro書き出し詳細</summary>
-              <div className="mt-3"><LogicProductionPackagePanel /></div>
-            </details>
+            )}
           </div>
         </details>
       )}

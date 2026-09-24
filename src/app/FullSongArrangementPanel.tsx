@@ -11,7 +11,7 @@ import {
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
-import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
+import { arrangementTrackPlacement, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button } from "@/ui/primitives"
 
@@ -236,21 +236,14 @@ export function FullSongArrangementPanel() {
             </p>
           </div>
 
-          <section className="rounded-lg border border-hairline bg-black/10 p-3" aria-labelledby="arrangement-midi-heading">
-            <h4 id="arrangement-midi-heading" className="text-[13px] font-semibold text-body-on-dark">MIDIを書き出す</h4>
-            <p className="mt-1 text-[11px] leading-4 text-body-muted">全パートをまとめて保存できます。各パートは下の一覧から個別にも保存できます。</p>
-            <Button className="mt-3" variant="dark" onClick={() => downloadMidi(exportArrangementMidi(project, arrangement), `${project.title}-arrangement`)}>
-              <Download size={14} /> 全パートMIDI
-            </Button>
-            <p className="mt-3 rounded-sm border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[11px] leading-5 text-sky-100">
-              個別MIDIは曲中の位置を保持しています。Logic Proでは、すべて<strong className="mx-1 text-body-on-dark">1小節目</strong>に配置してください。先頭の無音を詰めないでください。
-            </p>
-          </section>
 
           <section className="space-y-3" aria-labelledby="generated-parts-heading">
             <div>
               <h4 id="generated-parts-heading" className="text-[13px] font-semibold text-body-on-dark">パートごとに確認する</h4>
-              <p className="mt-1 text-[11px] leading-4 text-body-muted">パートごとにミュート・単独試聴・MIDI保存ができます。</p>
+              <p className="mt-1 text-[11px] leading-4 text-body-muted">
+                パートごとにミュート・単独試聴・MIDI保存ができます。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。
+                個別MIDIは曲中の位置を保っているので、Logic Proではすべて1小節目に置いてください。
+              </p>
             </div>
 
             <div className="grid gap-2 lg:grid-cols-2">
