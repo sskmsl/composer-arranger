@@ -28,6 +28,7 @@ import type { MainTab } from "./App"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
+import { CandidatePicker } from "./CandidatePicker"
 
 const STYLE_LABELS: Record<string, string> = {
   "bell-response": "ベル",
@@ -193,23 +194,131 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
     downloadMidi(bytes, `${project.title}-${section.name}-${candidate.name}`)
   }
 
+  const generateButton = (
+    <Button
+      onClick={() => generate(section.id)}
+      disabled={!activeMelody || chords.length === 0 || chordHasError}
+    >
+      <Sparkles size={14} /> {batch.length > 0 ? "作り直す" : "対旋律を10候補生成"}
+    </Button>
+  )
+  const activePosition = activeCandidate
+    ? batch.findIndex((candidate) => candidate.id === activeCandidate.id)
+    : -1
+
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-      <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-        <div className="mr-auto">
-          <h2 className="text-[15px] font-semibold text-body-on-dark">
-            対旋律
-          </h2>
-          <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            主旋律の隙間に入り、受け答えする別の旋律を10案生成します
-          </p>
-        </div>
-        <Button
-          onClick={() => generate(section.id)}
-          disabled={!activeMelody || chords.length === 0 || chordHasError}
-        >
-          <Sparkles size={14} /> 対旋律を10候補生成
-        </Button>
+      {/* 主旋律と同じ並び: 候補番号 → 選んだ候補の操作 → ピアノロール */}
+      <section className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+        {batch.length > 0 ? (
+          <CandidatePicker
+            items={batch.map((candidate) => ({
+              id: candidate.id,
+              adopted: assignedId === candidate.id,
+              favorite: candidate.reviewState === "favorite",
+              rejected: candidate.reviewState === "rejected",
+            }))}
+            activeId={activeCandidate?.id}
+            onSelect={setActiveIndex}
+            trailing={generateButton}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="mr-auto text-[12px] text-body-muted">
+              主旋律の隙間に入り、受け答えする別の旋律を10案生成します
+            </p>
+            {generateButton}
+          </div>
+        )}
+        {activeCandidate && (
+          <div className="flex flex-col gap-2 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
+                候補 {activePosition + 1}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {activeCandidate.notes.length}音
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {STYLE_LABELS[activeCandidate.generatorStyle ?? ""] ?? "対旋律"}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {ROLE_LABELS[activeCandidate.role] ?? activeCandidate.role}
+              </span>
+              {activeCandidate.counterPlan && (
+                <>
+                  <span
+                    className={`rounded-pill px-2 py-0.5 text-[11px] ${
+                      activeCandidate.counterPlan.creativeRisk === "radical"
+                        ? "bg-fuchsia-400/20 text-fuchsia-200"
+                        : activeCandidate.counterPlan.creativeRisk === "bold"
+                          ? "bg-orange-400/20 text-orange-200"
+                          : "bg-white/6 text-body-muted"
+                    }`}
+                  >
+                    {RISK_LABELS[activeCandidate.counterPlan.creativeRisk]}
+                  </span>
+                  <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                    {CONTOUR_LABELS[activeCandidate.counterPlan.contour]}
+                  </span>
+                </>
+              )}
+              {activeCandidate.collisions.hasBlockingCollision && (
+                <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[11px] text-red-300">
+                  主旋律とぶつかる可能性
+                </span>
+              )}
+            </div>
+            <CandidatePlacementHint
+              section={section}
+              notes={activeCandidate.notes}
+              beatsPerBar={beatsPerBar}
+            />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={assignedId === activeCandidate.id ? "secondary" : "primary"}
+                onClick={() => assign(activeCandidate.id)}
+              >
+                <Check size={13} />
+                {assignedId === activeCandidate.id ? "採用中(外す)" : "全曲に採用"}
+              </Button>
+              <Button variant="dark" onClick={() => play(activeCandidate)}>
+                {playingId === activeCandidate.id ? <Square size={12} /> : <Play size={12} />}
+                試聴
+              </Button>
+              <Button variant="dark" onClick={() => regenerate(activeCandidate.id)}>
+                <RefreshCw size={12} /> この案を再生成
+              </Button>
+              <Button variant="dark" onClick={() => exportCandidate(activeCandidate)}>
+                <Download size={12} /> MIDI
+              </Button>
+              <Button
+                variant="dark"
+                aria-pressed={activeCandidate.reviewState === "favorite"}
+                onClick={() =>
+                  setReview(
+                    activeCandidate.id,
+                    activeCandidate.reviewState === "favorite" ? null : "favorite",
+                  )
+                }
+              >
+                <Heart size={12} className={activeCandidate.reviewState === "favorite" ? "fill-current" : ""} /> お気に入り
+              </Button>
+              <Button
+                variant="dark"
+                aria-pressed={activeCandidate.reviewState === "rejected"}
+                onClick={() =>
+                  setReview(
+                    activeCandidate.id,
+                    activeCandidate.reviewState === "rejected" ? null : "rejected",
+                  )
+                }
+              >
+                <X size={12} /> {activeCandidate.reviewState === "rejected" ? "却下を取り消す" : "却下"}
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
 
       {!activeMelody && (
@@ -234,136 +343,21 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
         </p>
       )}
 
-      {batch.length > 0 && (
+      {activeCandidate ? (
         <>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-            {batch.map((candidate, index) => (
-              <article
-                key={candidate.id}
-                className={`rounded-lg border p-3 transition ${
-                  candidate.id === activeCandidate?.id
-                    ? "border-primary-focus bg-primary/10"
-                    : "border-hairline bg-surface-tile-1"
-                }`}
-              >
-                <button
-                  className="w-full text-left"
-                  onClick={() => setActiveIndex(index)}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="truncate text-[13px] font-semibold text-body-on-dark">
-                      候補 {index + 1}
-                    </h3>
-                    <span className="shrink-0 text-[11px] text-ink-muted-48">
-                      {candidate.notes.length}音
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {STYLE_LABELS[candidate.generatorStyle ?? ""] ?? "対旋律"}
-                    </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {ROLE_LABELS[candidate.role] ?? candidate.role}
-                    </span>
-                    {candidate.counterPlan && (
-                      <>
-                        <span
-                          className={`rounded-pill px-2 py-0.5 text-[11px] ${
-                            candidate.counterPlan.creativeRisk === "radical"
-                              ? "bg-fuchsia-400/20 text-fuchsia-200"
-                              : candidate.counterPlan.creativeRisk === "bold"
-                                ? "bg-orange-400/20 text-orange-200"
-                                : "bg-white/6 text-body-muted"
-                          }`}
-                        >
-                          {RISK_LABELS[candidate.counterPlan.creativeRisk]}
-                        </span>
-                        <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                          {CONTOUR_LABELS[candidate.counterPlan.contour]}
-                        </span>
-                      </>
-                    )}
-                    {candidate.collisions.hasBlockingCollision && (
-                      <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[11px] text-red-300">
-                        主旋律とぶつかる可能性
-                      </span>
-                    )}
-                    {assignedId === candidate.id && (
-                      <span className="rounded-pill bg-primary/20 px-2 py-0.5 text-[11px] text-primary-on-dark">
-                        採用済み
-                      </span>
-                    )}
-                  </div>
-                  <CandidatePlacementHint
-                    section={section}
-                    notes={candidate.notes}
-                    beatsPerBar={beatsPerBar}
-                  />
-                </button>
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  <Button
-                    variant="dark"
-                    className="!px-2 !text-[11px]"
-                    onClick={() => play(candidate)}
-                  >
-                    {playingId === candidate.id ? (
-                      <Square size={12} />
-                    ) : (
-                      <Play size={12} />
-                    )}
-                    試聴
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="!px-2 !text-[11px]"
-                    onClick={() => regenerate(candidate.id)}
-                  >
-                    <RefreshCw size={12} /> 再生成
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="!px-2 !text-[11px]"
-                    onClick={() => exportCandidate(candidate)}
-                  >
-                    <Download size={12} /> MIDI
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="!px-2 !text-[11px]"
-                    onClick={() =>
-                      setReview(
-                        candidate.id,
-                        candidate.reviewState === "favorite" ? null : "favorite",
-                      )
-                    }
-                  >
-                    <Heart size={12} /> Favorite
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="!px-2 !text-[11px]"
-                    onClick={() =>
-                      setReview(
-                        candidate.id,
-                        candidate.reviewState === "rejected" ? null : "rejected",
-                      )
-                    }
-                  >
-                    <X size={12} /> Reject
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="!px-2 !text-[11px]"
-                    onClick={() => assign(candidate.id)}
-                  >
-                    <Check size={12} />
-                    {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-
+          <ReadOnlyPianoRoll
+            notes={activeCandidate.notes}
+            chords={chords}
+            totalBeats={totalBeats}
+            timeSignature={project.song.timeSignature}
+            songKey={section?.key?.trim() || project.song.key}
+            title={`候補 ${activePosition + 1}`}
+            subtitle="表示専用 · MIDI出力と同じ内容"
+            accentColor="#b38cff"
+            accentStroke="#ddc8ff"
+            ariaLabel="対旋律候補のピアノロール"
+            noteLabel="対旋律"
+          />
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
@@ -388,22 +382,6 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
             </Select>
           </div>
         </>
-      )}
-
-      {activeCandidate ? (
-        <ReadOnlyPianoRoll
-          notes={activeCandidate.notes}
-          chords={chords}
-          totalBeats={totalBeats}
-          timeSignature={project.song.timeSignature}
-          songKey={section?.key?.trim() || project.song.key}
-          title={`候補 ${batch.findIndex((candidate) => candidate.id === activeCandidate.id) + 1}`}
-          subtitle="表示専用 · MIDI出力と同じ内容"
-          accentColor="#b38cff"
-          accentStroke="#ddc8ff"
-          ariaLabel="Counter Candidate Piano Roll"
-          noteLabel="Counter Candidate"
-        />
       ) : (
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>

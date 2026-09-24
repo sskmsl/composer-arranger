@@ -23,6 +23,7 @@ import { Button, Select } from "@/ui/primitives"
 import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
+import { CandidatePicker } from "./CandidatePicker"
 
 const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
   "atmospheric-gateway": "余白から始まる",
@@ -190,50 +191,135 @@ export function SignaturePhraseWorkspace() {
     )
   }
 
+  const generateControls = (
+    <>
+    <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+      長さ
+      <Select
+        value={String(lengthBars)}
+        onChange={(event) =>
+          setLengthBars(
+            Number(event.target.value) as SignaturePhraseLengthBars,
+          )
+        }
+        className="!py-1"
+      >
+        <option value="1">1小節</option>
+        <option value="2" disabled={section.lengthBars < 2}>
+          2小節
+        </option>
+        <option value="4" disabled={section.lengthBars < 4}>
+          4小節
+        </option>
+        <option value="8" disabled={section.lengthBars < 8}>
+          8小節
+        </option>
+      </Select>
+    </label>
+      <Button
+        onClick={() => generate(section.id, lengthBars)}
+        disabled={
+          section.lengthBars < lengthBars ||
+          allChords.length === 0 ||
+          chordHasError
+        }
+      >
+        <Sparkles size={14} /> {batch.length > 0 ? "作り直す" : "12候補を生成"}
+      </Button>
+    </>
+  )
+  const activePosition = activeCandidate
+    ? batch.findIndex((candidate) => candidate.id === activeCandidate.id)
+    : -1
+
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-      <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-        <div className="mr-auto max-w-3xl">
-          <h2 className="text-[15px] font-semibold text-body-on-dark">
-            イントロフレーズ
-          </h2>
-          <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            イントロや間奏で使える、耳に残る短いフレーズを生成します
-          </p>
-        </div>
-        <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
-          長さ
-          <Select
-            value={String(lengthBars)}
-            onChange={(event) =>
-              setLengthBars(
-                Number(event.target.value) as SignaturePhraseLengthBars,
-              )
-            }
-            className="!py-1"
-          >
-            <option value="1">1小節</option>
-            <option value="2" disabled={section.lengthBars < 2}>
-              2小節
-            </option>
-            <option value="4" disabled={section.lengthBars < 4}>
-              4小節
-            </option>
-            <option value="8" disabled={section.lengthBars < 8}>
-              8小節
-            </option>
-          </Select>
-        </label>
-        <Button
-          onClick={() => generate(section.id, lengthBars)}
-          disabled={
-            section.lengthBars < lengthBars ||
-            allChords.length === 0 ||
-            chordHasError
-          }
-        >
-          <Sparkles size={14} /> 12候補を生成
-        </Button>
+      {/* 主旋律と同じ並び: 候補番号 → 選んだ候補の操作 → ピアノロール */}
+      <section className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+        {batch.length > 0 ? (
+          <CandidatePicker
+            items={batch.map((candidate) => ({
+              id: candidate.id,
+              adopted: assignedId === candidate.id,
+            }))}
+            activeId={activeCandidate?.id}
+            onSelect={setActiveIndex}
+            trailing={generateControls}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="mr-auto text-[12px] text-body-muted">
+              イントロや間奏で使える、耳に残る短いフレーズを生成します
+            </p>
+            {generateControls}
+          </div>
+        )}
+        {activeCandidate && (
+          <div className="flex flex-col gap-2 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
+                候補 {activePosition + 1}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {activeCandidate.plan.lengthBars}小節
+              </span>
+              {activeCandidate.plan.compositionContext && (
+                <span className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-200">
+                  {activeCandidate.plan.compositionContext.source === "chords-and-melody"
+                    ? "主旋律を参考"
+                    : "コードを参考"}
+                </span>
+              )}
+              <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
+                {ARCHETYPE_LABELS[candidateArchetype(activeCandidate)]}
+              </span>
+              {activeCandidate.plan.creativeRisk && (
+                <span className={`rounded-pill px-2 py-0.5 text-[11px] ${
+                  activeCandidate.plan.creativeRisk.risk === "radical"
+                    ? "bg-fuchsia-400/20 text-fuchsia-200"
+                    : activeCandidate.plan.creativeRisk.risk === "bold"
+                      ? "bg-orange-400/20 text-orange-200"
+                      : "bg-white/6 text-body-muted"
+                }`}>
+                  {RISK_LABELS[activeCandidate.plan.creativeRisk.risk]}
+                </span>
+              )}
+              <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[11px] text-amber-200">
+                {VOICING_MODE_LABELS[activeCandidate.plan.voicingMode]}
+              </span>
+            </div>
+            <CandidatePlacementHint
+              section={section}
+              notes={activeCandidate.notes}
+              beatsPerBar={beatsPerBar}
+            />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={assignedId === activeCandidate.id ? "secondary" : "primary"}
+                onClick={() => toggleAssignment(activeCandidate.id)}
+              >
+                <Check size={13} />
+                {assignedId === activeCandidate.id ? "採用中(外す)" : "全曲に採用"}
+              </Button>
+              <Button variant="dark" onClick={() => play(activeCandidate)}>
+                {playingId === activeCandidate.id ? <Square size={12} /> : <Play size={12} />}
+                試聴
+              </Button>
+              <Button
+                variant="dark"
+                onClick={() => {
+                  if (playingId === activeCandidate.id) stop()
+                  regenerate(activeCandidate.id)
+                }}
+              >
+                <RefreshCw size={12} /> この案を再生成
+              </Button>
+              <Button variant="dark" onClick={() => exportCandidate(activeCandidate)}>
+                <Download size={12} /> MIDI
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
 
       {allChords.length === 0 && (
@@ -252,107 +338,23 @@ export function SignaturePhraseWorkspace() {
         </p>
       )}
 
-      {batch.length > 0 && (
+      {activeCandidate ? (
         <>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {batch.map((candidate, index) => (
-              <article
-                key={candidate.id}
-                className={`rounded-lg border p-3 transition ${
-                  candidate.id === activeCandidate?.id
-                    ? "border-primary-focus bg-primary/10"
-                    : "border-hairline bg-surface-tile-1"
-                }`}
-              >
-                <button
-                  className="w-full text-left"
-                  onClick={() => setActiveIndex(index)}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[13px] font-semibold text-body-on-dark">
-                      候補 {index + 1}
-                    </h3>
-                    <span className="shrink-0 text-[11px] text-ink-muted-48">
-                      {candidate.plan.lengthBars}小節
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {candidate.plan.compositionContext && (
-                      <span className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-200">
-                        {candidate.plan.compositionContext.source === "chords-and-melody"
-                          ? "主旋律を参考"
-                          : "コードを参考"}
-                      </span>
-                    )}
-                    <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
-                      {ARCHETYPE_LABELS[candidateArchetype(candidate)]}
-                    </span>
-                    {candidate.plan.creativeRisk && (
-                      <>
-                        <span className={`rounded-pill px-2 py-0.5 text-[11px] ${
-                          candidate.plan.creativeRisk.risk === "radical"
-                            ? "bg-fuchsia-400/20 text-fuchsia-200"
-                            : candidate.plan.creativeRisk.risk === "bold"
-                              ? "bg-orange-400/20 text-orange-200"
-                              : "bg-white/6 text-body-muted"
-                        }`}>
-                          {RISK_LABELS[candidate.plan.creativeRisk.risk]}
-                        </span>
-                      </>
-                    )}
-                    <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[11px] text-amber-200">
-                      {VOICING_MODE_LABELS[candidate.plan.voicingMode]}
-                    </span>
-                  </div>
-                  <CandidatePlacementHint
-                    section={section}
-                    notes={candidate.notes}
-                    beatsPerBar={beatsPerBar}
-                  />
-                </button>
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  <Button
-                    variant="dark"
-                    className="min-w-0 flex-1 !px-2 !text-[11px]"
-                    onClick={() => play(candidate)}
-                  >
-                    {playingId === candidate.id ? (
-                      <Square size={12} />
-                    ) : (
-                      <Play size={12} />
-                    )}
-                    試聴
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="min-w-0 flex-1 !px-2 !text-[11px]"
-                    onClick={() => {
-                      if (playingId === candidate.id) stop()
-                      regenerate(candidate.id)
-                    }}
-                  >
-                    <RefreshCw size={12} /> 再生成
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="min-w-0 flex-1 !px-2 !text-[11px]"
-                    onClick={() => exportCandidate(candidate)}
-                  >
-                    <Download size={12} /> MIDI
-                  </Button>
-                  <Button
-                    variant={assignedId === candidate.id ? "dark" : "primary"}
-                    className="min-w-0 !px-2 !text-[11px]"
-                    onClick={() => toggleAssignment(candidate.id)}
-                  >
-                    <Check size={12} />
-                    {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-
+          <ReadOnlyPianoRoll
+            notes={activeCandidate.notes}
+            chords={allChords.filter(
+              (chord) => chord.startBeat < activeCandidate.phraseLengthBeats,
+            )}
+            totalBeats={activeCandidate.phraseLengthBeats}
+            timeSignature={project.song.timeSignature}
+            songKey={section?.key?.trim() || project.song.key}
+            title={`候補 ${activePosition + 1}`}
+            subtitle="表示専用 · MIDI出力と同じ内容"
+            accentColor="#c084fc"
+            accentStroke="#e9d5ff"
+            ariaLabel="イントロフレーズ候補のピアノロール"
+            noteLabel="イントロフレーズ"
+          />
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
@@ -370,26 +372,6 @@ export function SignaturePhraseWorkspace() {
               <option value="chords-melody">コード＋フレーズ</option>
             </Select>
           </div>
-        </>
-      )}
-
-      {activeCandidate ? (
-        <>
-          <ReadOnlyPianoRoll
-            notes={activeCandidate.notes}
-            chords={allChords.filter(
-              (chord) => chord.startBeat < activeCandidate.phraseLengthBeats,
-            )}
-            totalBeats={activeCandidate.phraseLengthBeats}
-            timeSignature={project.song.timeSignature}
-            songKey={section?.key?.trim() || project.song.key}
-            title={`候補 ${batch.findIndex((candidate) => candidate.id === activeCandidate.id) + 1}`}
-            subtitle="表示専用 · MIDI出力と同じ内容"
-            accentColor="#c084fc"
-            accentStroke="#e9d5ff"
-            ariaLabel="Signature Phrase Piano Roll"
-            noteLabel="Signature Phrase"
-          />
         </>
       ) : (
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">

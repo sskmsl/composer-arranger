@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Check, Download, Play, RefreshCw, Sparkles, Square } from "lucide-react"
 import { previewPlayer, type PreviewMode } from "@/audio/previewPlayer"
+import type { PhraseContour } from "@/core/melody"
 import type { PhraseCandidate, PhraseLengthBars } from "@/core/phrase"
 import { parseTimeSignature } from "@/core/section"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
@@ -15,6 +16,15 @@ import {
 import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
+import { CandidatePicker } from "./CandidatePicker"
+
+const CONTOUR_LABELS: Record<PhraseContour, string> = {
+  ascending: "上がっていく",
+  descending: "下がっていく",
+  arch: "上がって戻る",
+  "inverted-arch": "下がって戻る",
+  wave: "上下に動く",
+}
 
 const RHYTHM_LABELS: Record<PhraseCandidate["intent"]["rhythmCharacter"], string> = {
   flowing: "流れるリズム",
@@ -141,36 +151,140 @@ export function PhraseWorkspace() {
     lengthChoice === "auto" ? undefined : (Number(lengthChoice) as PhraseLengthBars)
   const maxLength = Math.min(8, section.lengthBars)
 
+  const generateControls = (
+    <>
+    <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+      長さ
+      <Select
+        value={lengthChoice}
+        onChange={(event) => setLengthChoice(event.target.value as LengthChoice)}
+        className="!py-1"
+      >
+        <option value="auto">自動</option>
+        {[2, 3, 4, 5, 6, 7, 8].map((bars) => (
+          <option key={bars} value={bars} disabled={bars > maxLength}>
+            {bars}小節
+          </option>
+        ))}
+      </Select>
+    </label>
+      <Button
+        onClick={() => generate(section.id, requestedLength)}
+        disabled={section.lengthBars < 2 || allChords.length === 0 || chordHasError}
+      >
+        <Sparkles size={14} /> {batch.length > 0 ? "作り直す" : "フレーズ候補を生成"}
+      </Button>
+    </>
+  )
+  const activePosition = activeCandidate
+    ? batch.findIndex((candidate) => candidate.id === activeCandidate.id)
+    : -1
+
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-      <section className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-        <div className="mr-auto">
-          <h2 className="text-[15px] font-semibold text-body-on-dark">短いフレーズ</h2>
-          <p className="mt-0.5 text-[11px] text-ink-muted-48">
-            コードとセクションの役割から、Logic Proで組み合わせられる2〜8小節の独立した着想を作ります
-          </p>
-        </div>
-        <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
-          長さ
-          <Select
-            value={lengthChoice}
-            onChange={(event) => setLengthChoice(event.target.value as LengthChoice)}
-            className="!py-1"
-          >
-            <option value="auto">自動</option>
-            {[2, 3, 4, 5, 6, 7, 8].map((bars) => (
-              <option key={bars} value={bars} disabled={bars > maxLength}>
-                {bars}小節
-              </option>
-            ))}
-          </Select>
-        </label>
-        <Button
-          onClick={() => generate(section.id, requestedLength)}
-          disabled={section.lengthBars < 2 || allChords.length === 0 || chordHasError}
-        >
-          <Sparkles size={14} /> フレーズ候補を生成
-        </Button>
+      {/* 主旋律と同じ並び: 候補番号 → 選んだ候補の操作 → ピアノロール */}
+      <section className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+        {batch.length > 0 ? (
+          <CandidatePicker
+            items={batch.map((candidate) => ({
+              id: candidate.id,
+              adopted: assignedId === candidate.id,
+            }))}
+            activeId={activeCandidate?.id}
+            onSelect={setActiveIndex}
+            trailing={generateControls}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="mr-auto text-[12px] text-body-muted">
+              コードとセクションの役割から、Logic Proで組み合わせられる2〜8小節の独立した着想を作ります
+            </p>
+            {generateControls}
+          </div>
+        )}
+        {activeCandidate && (
+          <div className="flex flex-col gap-2 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
+                候補 {activePosition + 1}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {activeCandidate.intent.lengthBars}小節
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                品質 {Math.round(activeCandidate.qualityScore)}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {CONTOUR_LABELS[activeCandidate.intent.contour]}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {RHYTHM_LABELS[activeCandidate.intent.rhythmCharacter]}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {HARMONY_LABELS[activeCandidate.intent.harmonicApproach]}
+              </span>
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                {CADENCE_LABELS[activeCandidate.intent.cadence]}
+              </span>
+              {activeCandidate.techniqueExperiment && (
+                <span
+                  className="rounded-pill border border-primary-focus/50 px-2 py-0.5 text-[11px] text-primary-on-dark"
+                  title={
+                    activeCandidate.techniqueFitScore === undefined
+                      ? undefined
+                      : `適合 ${Math.round(activeCandidate.techniqueFitScore * 100)}%`
+                  }
+                >
+                  比較:{" "}
+                  {activeCandidate.techniqueExperiment.mode === "baseline"
+                    ? "通常"
+                    : activeCandidate.techniqueExperiment.presetLabel}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ArrangementNecessityBadge necessity={activeCandidate.arrangementNecessity} compact />
+              <PerformanceReviewBadge
+                review={project.candidatePerformanceReviews?.[activeCandidate.id]}
+                compact
+              />
+              <DirectorRecommendationBadge
+                recommendation={project.performanceBatchRecommendations?.[activeCandidate.batchId]}
+                candidateId={activeCandidate.id}
+              />
+            </div>
+            <CandidatePlacementHint
+              section={section}
+              notes={activeCandidate.notes}
+              beatsPerBar={beatsPerBar}
+            />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant={assignedId === activeCandidate.id ? "secondary" : "primary"}
+                onClick={() => toggleAssignment(activeCandidate.id)}
+              >
+                <Check size={13} />
+                {assignedId === activeCandidate.id ? "採用中(外す)" : "全曲に採用"}
+              </Button>
+              <Button variant="dark" onClick={() => play(activeCandidate)}>
+                {playingId === activeCandidate.id ? <Square size={12} /> : <Play size={12} />}
+                試聴
+              </Button>
+              <Button
+                variant="dark"
+                onClick={() => {
+                  if (playingId === activeCandidate.id) stop()
+                  regenerate(activeCandidate.id)
+                }}
+              >
+                <RefreshCw size={12} /> この案を再生成
+              </Button>
+              <Button variant="dark" onClick={() => exportCandidate(activeCandidate)}>
+                <Download size={12} /> MIDI
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
 
       {section.lengthBars < 2 && (
@@ -194,118 +308,26 @@ export function PhraseWorkspace() {
         </p>
       )}
 
-      {batch.length > 0 && (
+      {activeCandidate ? (
         <>
-          <div className="grid gap-2 lg:grid-cols-3">
-            {batch.map((candidate, index) => (
-              <article
-                key={candidate.id}
-                className={`rounded-lg border p-3 transition ${
-                  candidate.id === activeCandidate?.id
-                    ? "border-primary-focus bg-primary/10"
-                    : "border-hairline bg-surface-tile-1"
-                }`}
-              >
-                <button className="w-full text-left" onClick={() => setActiveIndex(index)}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[13px] font-semibold text-body-on-dark">{candidate.name}</h3>
-                    <span className="text-[11px] text-ink-muted-48">
-                      {candidate.intent.lengthBars}小節 · Quality {Math.round(candidate.qualityScore)}
-                    </span>
-                  </div>
-                  <div className="mt-1.5">
-                    <PerformanceReviewBadge
-                      review={project.candidatePerformanceReviews?.[candidate.id]}
-                      compact
-                    />
-                    <DirectorRecommendationBadge
-                      recommendation={project.performanceBatchRecommendations?.[candidate.batchId]}
-                      candidateId={candidate.id}
-                    />
-                  </div>
-                  {candidate.techniqueExperiment && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                      <span className="rounded-full border border-primary-focus/50 px-1.5 py-0.5 text-primary-on-dark">
-                        A/B:{" "}
-                        {candidate.techniqueExperiment.mode ===
-                        "baseline"
-                          ? "Normal"
-                          : candidate.techniqueExperiment
-                              .presetLabel}
-                      </span>
-                      <span className="text-ink-muted-48">
-                        Fit{" "}
-                        {candidate.techniqueFitScore === undefined
-                          ? "—"
-                          : `${Math.round(
-                              candidate.techniqueFitScore * 100,
-                            )}%`}
-                      </span>
-                    </div>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {candidate.intent.contour}
-                    </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {RHYTHM_LABELS[candidate.intent.rhythmCharacter]}
-                    </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {HARMONY_LABELS[candidate.intent.harmonicApproach]}
-                    </span>
-                    <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
-                      {CADENCE_LABELS[candidate.intent.cadence]}
-                    </span>
-                  </div>
-                  <ArrangementNecessityBadge
-                    necessity={candidate.arrangementNecessity}
-                  />
-                  <CandidatePlacementHint
-                    section={section}
-                    notes={candidate.notes}
-                    beatsPerBar={beatsPerBar}
-                  />
-                </button>
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  <Button variant="dark" className="min-w-0 flex-1 !px-2 !text-[11px]" onClick={() => play(candidate)}>
-                    {playingId === candidate.id ? <Square size={12} /> : <Play size={12} />}
-                    試聴
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="min-w-0 flex-1 !px-2 !text-[11px]"
-                    onClick={() => {
-                      if (playingId === candidate.id) stop()
-                      regenerate(candidate.id)
-                    }}
-                  >
-                    <RefreshCw size={12} /> 再生成
-                  </Button>
-                  <Button
-                    variant="dark"
-                    className="min-w-0 flex-1 !px-2 !text-[11px]"
-                    onClick={() => exportCandidate(candidate)}
-                  >
-                    <Download size={12} /> MIDI
-                  </Button>
-                  <Button
-                    variant={assignedId === candidate.id ? "dark" : "primary"}
-                    className="min-w-0 !px-2 !text-[11px]"
-                    onClick={() => toggleAssignment(candidate.id)}
-                  >
-                    <Check size={12} />
-                    {assignedId === candidate.id ? "採用を外す" : "全曲に採用"}
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-
+          <ReadOnlyPianoRoll
+            notes={activeCandidate.notes}
+            chords={phraseChords}
+            totalBeats={activeCandidate.phraseLengthBeats}
+            timeSignature={project.song.timeSignature}
+            songKey={section?.key?.trim() || project.song.key}
+            title={`候補 ${activePosition + 1}`}
+            subtitle="表示専用 · MIDI出力と同じ内容"
+            accentColor="#4ea8de"
+            accentStroke="#90d7ff"
+            ariaLabel="短いフレーズ候補のピアノロール"
+            noteLabel="短いフレーズ"
+          />
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
             </span>
-            <span className="text-[11px] text-ink-muted-48">試聴:</span>
+            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -314,27 +336,11 @@ export function PhraseWorkspace() {
               }}
               className="!py-1"
             >
-              <option value="melody-only">Phrase Only</option>
-              <option value="chords-melody">Chords + Phrase</option>
+              <option value="melody-only">フレーズのみ</option>
+              <option value="chords-melody">コード＋フレーズ</option>
             </Select>
           </div>
         </>
-      )}
-
-      {activeCandidate ? (
-        <ReadOnlyPianoRoll
-          notes={activeCandidate.notes}
-          chords={phraseChords}
-          totalBeats={activeCandidate.phraseLengthBeats}
-          timeSignature={project.song.timeSignature}
-          songKey={section?.key?.trim() || project.song.key}
-          title={activeCandidate.name}
-          subtitle="表示専用 · MIDI出力と同一"
-          accentColor="#4ea8de"
-          accentStroke="#90d7ff"
-          ariaLabel="Phrase Candidate Piano Roll"
-          noteLabel="Phrase Candidate"
-        />
       ) : (
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>
