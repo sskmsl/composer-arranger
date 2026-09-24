@@ -62,7 +62,7 @@ function IgnoredNote({ setting, selected }: { setting: GenerationSettingKey; sel
   const ignoring = profilesIgnoring(setting, selected)
   if (ignoring.length === 0) return null
   return (
-    <p className="flex items-start gap-1 text-[11px] text-amber-400/90">
+    <p className="flex items-start gap-1 text-[12px] text-amber-400/90">
       <AlertCircle size={11} className="mt-0.5 shrink-0" />
       <span className="min-w-0 break-words">{ignoring.map((p) => GENERATOR_PROFILE_LABELS[p]).join("・")} では{GENERATION_SETTING_LABELS[setting]}は生成へ反映されません</span>
     </p>
@@ -197,14 +197,14 @@ export function RightPanel({
       </SectionCard>
 
       <details className="w-full rounded-md border border-hairline bg-surface-tile-1">
-        <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-body-on-dark hover:bg-white/5">
+        <summary className="cursor-pointer list-none px-3 py-3 text-[13px] font-semibold text-body-on-dark hover:bg-white/5">
           詳細な生成設定を開く
-          <span className="mt-1 block text-[11px] font-normal text-body-muted">候補の作り方・音域・密度を細かく調整します</span>
+          <span className="mt-1 block text-[12px] font-normal text-body-muted">候補の作り方・音域・密度を細かく調整します</span>
         </summary>
         <div className="flex flex-col gap-3 border-t border-hairline p-2">
 
       {mode === "melody" && <SectionCard title="主旋律の作り方" className="w-full min-w-0">
-        <p className="mb-2 text-[11px] text-ink-muted-48">
+        <p className="mb-2 text-[12px] text-ink-soft">
           選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
         </p>
         <div className="flex flex-col gap-1.5">
@@ -214,14 +214,14 @@ export function RightPanel({
               <label
                 key={p}
                 className={clsx(
-                  "flex cursor-pointer items-start gap-2 rounded-sm border px-2 py-1.5 text-[12px]",
+                  "flex cursor-pointer items-start gap-2 rounded-sm border px-2 py-1.5 text-[13px]",
                   checked ? "border-primary-focus bg-primary/10" : "border-transparent bg-white/5 hover:bg-white/10",
                 )}
               >
                 <input type="checkbox" className="mt-0.5 accent-primary" checked={checked} onChange={() => toggleGeneratorProfile(p)} />
                 <span className="flex min-w-0 flex-col">
                   <span className="font-medium text-body-on-dark">{GENERATOR_PROFILE_LABELS[p]}</span>
-                  <span className="break-words text-ink-muted-48">{GENERATOR_PROFILE_DESCRIPTIONS[p]}</span>
+                  <span className="break-words text-ink-soft">{GENERATOR_PROFILE_DESCRIPTIONS[p]}</span>
                 </span>
               </label>
             )
@@ -240,7 +240,7 @@ export function RightPanel({
           title="技法ライブラリ比較（実験）"
           className="w-full min-w-0"
         >
-          <label className="flex cursor-pointer items-start gap-2 text-[12px]">
+          <label className="flex cursor-pointer items-start gap-2 text-[13px]">
             <input
               type="checkbox"
               className="mt-0.5 accent-primary"
@@ -308,7 +308,7 @@ export function RightPanel({
                       ] ?? []
                     return (
                       <>
-                  <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[12px]">
                     <span
                       className={clsx(
                         "rounded-full border px-1.5 py-0.5",
@@ -323,7 +323,7 @@ export function RightPanel({
                     </span>
                     {mode === "melody" &&
                       preset.recommendedProfiles.length > 0 && (
-                      <span className="text-ink-muted-48">
+                      <span className="text-ink-soft">
                         推奨:{" "}
                         {preset.recommendedProfiles
                           .map(
@@ -335,7 +335,7 @@ export function RightPanel({
                     )}
                     {generatorTarget !== "melody" &&
                       recommendedSectionRoles.length > 0 && (
-                        <span className="text-ink-muted-48">
+                        <span className="text-ink-soft">
                           推奨:{" "}
                           {recommendedSectionRoles
                             .map(
@@ -346,10 +346,10 @@ export function RightPanel({
                         </span>
                       )}
                   </div>
-                  <p className="text-[11px] text-ink-muted-48">
+                  <p className="text-[12px] text-ink-soft">
                     {preset.description}
                   </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] text-ink-muted-48">
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-[12px] text-ink-soft">
                     {preset.techniqueNames.map((name) => (
                       <li key={name}>{name}</li>
                     ))}
@@ -359,7 +359,7 @@ export function RightPanel({
                     !selected.some((profile) =>
                       preset.recommendedProfiles.includes(profile),
                     ) && (
-                      <p className="mt-2 text-[11px] text-amber-300/90">
+                      <p className="mt-2 text-[12px] text-amber-300/90">
                         現在選択中のGenerator Profileは自動検証済みの推奨対象外です。
                       </p>
                     )}
@@ -369,7 +369,7 @@ export function RightPanel({
                     !recommendedSectionRoles.includes(
                       selectedSection.role,
                     ) && (
-                      <p className="mt-2 text-[11px] text-amber-300/90">
+                      <p className="mt-2 text-[12px] text-amber-300/90">
                         現在のSection Roleは自動検証済みの推奨対象外です。
                       </p>
                     )}
@@ -378,7 +378,7 @@ export function RightPanel({
                   })()}
                 </div>
               ))}
-              <p className="border-t border-hairline pt-2 text-[11px] text-amber-300/90">
+              <p className="border-t border-hairline pt-2 text-[12px] text-amber-300/90">
                 Draftの状態は変更しません。通常3案と適用3案を同時生成し、この設定はプロジェクトへ保存されません。
               </p>
             </div>
@@ -437,7 +437,7 @@ export function RightPanel({
               </div>
             )}
             {generationSettings.rangePreset === "custom" && (
-              <p className="text-[11px] text-ink-muted-48">
+              <p className="text-[12px] text-ink-soft">
                 音名(例: C4, F#5, Bb3)で入力。最高音が最低音以下になる入力・音域外は無視されます。
               </p>
             )}
@@ -452,7 +452,7 @@ export function RightPanel({
             </FieldGroup>
             {mode === "melody" && <IgnoredNote setting="drama" selected={selected} />}
           </div>
-          <p className="mt-1 border-t border-hairline pt-2 text-[11px] text-ink-muted-48">
+          <p className="mt-1 border-t border-hairline pt-2 text-[12px] text-ink-soft">
             {mode === "phrase" || mode === "signature"
               ? `${mode === "signature" ? "Signature Phrase" : "Phrase"}ではDensity / Range / Dramaを利用します。Generator ProfileはMelody専用です。`
               : "生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。"}
@@ -463,19 +463,19 @@ export function RightPanel({
 
       {mode === "melody" && <SectionCard title="特徴量" className="w-full min-w-0">
         {variant?.generatorProfile && (
-          <p className="mb-1 text-[12px] text-primary-on-dark">
+          <p className="mb-1 text-[13px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
             {variant.patternIndex && ` · Pattern ${variant.patternIndex}`}
           </p>
         )}
         {variant?.openingIntent && (
-          <p className="mb-2 text-[11px] text-ink-muted-48">
+          <p className="mb-2 text-[12px] text-ink-soft">
             入口: {OPENING_ENTRY_LABELS[variant.openingIntent.entryType]} · {OPENING_EMOTION_LABELS[variant.openingIntent.emotionalFunction]} ·{" "}
             {OPENING_REGISTER_LABELS[variant.openingIntent.register]} · {OPENING_DIRECTION_LABELS[variant.openingIntent.initialDirection]}
           </p>
         )}
         {variant?.techniqueExperiment && (
-          <div className="mb-3 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-2 text-[11px]">
+          <div className="mb-3 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-2 text-[12px]">
             <p className="font-medium text-primary-on-dark">
               {variant.techniqueExperiment.mode === "baseline"
                 ? "A/B · Normal"
@@ -483,7 +483,7 @@ export function RightPanel({
             </p>
             {variant.generationDiagnostics?.techniqueFitScore !==
               undefined && (
-              <p className="mt-1 text-ink-muted-48">
+              <p className="mt-1 text-ink-soft">
                 Technique Fit{" "}
                 {Math.round(
                   variant.generationDiagnostics.techniqueFitScore *
@@ -498,23 +498,23 @@ export function RightPanel({
           </div>
         )}
         {variant?.features ? (
-          <dl className="grid grid-cols-2 gap-x-2 gap-y-2 text-[12px]">
+          <dl className="grid grid-cols-2 gap-x-2 gap-y-2 text-[13px]">
             {FEATURE_LABELS.map(([key, label, fmt]) => (
               <div key={key} className="flex flex-col">
-                <dt className="text-ink-muted-48">{label}</dt>
+                <dt className="text-ink-soft">{label}</dt>
                 <dd className="text-body-on-dark">{fmt((variant.features as never)[key])}</dd>
               </div>
             ))}
           </dl>
         ) : (
-          <p className="text-[12px] text-ink-muted-48">候補を生成すると表示されます</p>
+          <p className="text-[13px] text-ink-soft">候補を生成すると表示されます</p>
         )}
         {variant?.advancedMetrics && Object.keys(variant.advancedMetrics).length > 0 && (
-          <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-2 border-t border-hairline pt-3 text-[12px]">
+          <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-2 border-t border-hairline pt-3 text-[13px]">
             {ADVANCED_FEATURE_LABELS.filter(([key]) => (variant.advancedMetrics as Record<string, number>)[key] !== undefined).map(
               ([key, label]) => (
                 <div key={key} className="flex flex-col">
-                  <dt className="text-ink-muted-48">{label}</dt>
+                  <dt className="text-ink-soft">{label}</dt>
                   <dd className="text-body-on-dark">{`${Math.round((variant.advancedMetrics as Record<string, number>)[key] * 100)}%`}</dd>
                 </div>
               ),
@@ -531,12 +531,12 @@ export function RightPanel({
             <span className="min-w-0 break-words">この主旋律から動機の特徴を取り出す</span>
           </Button>
         )}
-        {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">曲の動機の特徴を保存済み(ほかのセクションの生成に軽く反映されます)</p>}
+        {project.songMotifDNA && <p className="mt-2 text-[12px] text-ink-soft">曲の動機の特徴を保存済み(ほかのセクションの生成に軽く反映されます)</p>}
       </SectionCard>}
 
       {mode === "melody" && variant && candidateEvidence && (
         <SectionCard title="候補の根拠" className="w-full min-w-0">
-          <p className="mb-3 text-[11px] leading-4 text-ink-muted-48">
+          <p className="mb-3 text-[12px] leading-4 text-ink-soft">
             AIの感想ではなく、表示中のMIDI・コード・生成計画から確認できる事実です。
           </p>
           {candidateEvidence.items.length > 0 ? (
@@ -546,18 +546,18 @@ export function RightPanel({
                   key={item.id}
                   className="rounded-sm border border-hairline bg-surface-tile-2 p-2.5"
                 >
-                  <p className="text-[11px] font-semibold text-body-on-dark">
+                  <p className="text-[12px] font-semibold text-body-on-dark">
                     {item.title}
                   </p>
-                  <p className="mt-1 text-[11px] leading-4 text-body-muted">
+                  <p className="mt-1 text-[12px] leading-4 text-body-muted">
                     {item.observation}
                   </p>
-                  <p className="mt-1.5 border-t border-hairline pt-1.5 text-[11px] leading-4 text-ink-muted-48">
+                  <p className="mt-1.5 border-t border-hairline pt-1.5 text-[12px] leading-4 text-ink-soft">
                     {item.interpretation}
                   </p>
                   <Button
                     variant="dark"
-                    className="mt-2 h-7 px-2 text-[11px]"
+                    className="mt-2 h-7 px-2 text-[12px]"
                     onClick={() =>
                       previewPlayer.play({
                         bpm: project.song.tempo,
@@ -575,14 +575,14 @@ export function RightPanel({
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-ink-muted-48">
+            <p className="text-[12px] text-ink-soft">
               現在の候補から、十分に具体的な根拠を抽出できませんでした。
             </p>
           )}
           {candidateEvidence.cautions.length > 0 && (
             <div className="mt-3 rounded-sm border border-amber-400/25 bg-amber-400/5 p-2.5">
-              <p className="text-[11px] font-semibold text-amber-300">採用前の確認点</p>
-              <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-[11px] leading-4 text-body-muted">
+              <p className="text-[12px] font-semibold text-amber-300">採用前の確認点</p>
+              <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4 text-[12px] leading-4 text-body-muted">
                 {candidateEvidence.cautions.map((caution) => (
                   <li key={caution}>{caution}</li>
                 ))}

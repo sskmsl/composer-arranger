@@ -14,7 +14,7 @@ export function CandidatePlacementHint({
   const placement = candidatePlacement(section, notes, beatsPerBar)
   if (!placement) return null
   return (
-    <p className="mt-2 rounded-sm bg-primary/10 px-2 py-1.5 text-[11px] font-medium text-primary-on-dark">
+    <p className="mt-2 rounded-sm bg-primary/10 px-2 py-1.5 text-[12px] font-medium text-primary-on-dark">
       {placement.label}
     </p>
   )

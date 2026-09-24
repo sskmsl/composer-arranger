@@ -22,7 +22,7 @@ export function EmptySectionState({
         <Button className="mt-5" onClick={() => addSection("Aメロ", "verse", 8)}>
           <Plus size={14} /> Aメロを追加して始める
         </Button>
-        <p className="mt-3 flex items-center justify-center gap-1 text-[11px] text-body-muted">
+        <p className="mt-3 flex items-center justify-center gap-1 text-[12px] text-body-muted">
           <ArrowLeft size={11} /> 詳細な種類や長さは左パネルで変更できます
         </p>
       </section>

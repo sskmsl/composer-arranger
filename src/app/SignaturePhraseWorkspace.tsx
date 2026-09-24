@@ -193,7 +193,7 @@ export function SignaturePhraseWorkspace() {
 
   const generateControls = (
     <>
-    <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+    <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
       長さ
       <Select
         value={String(lengthBars)}
@@ -248,7 +248,7 @@ export function SignaturePhraseWorkspace() {
           />
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-[12px] text-body-muted">
+            <p className="mr-auto text-[13px] text-body-muted">
               イントロや間奏で使える、耳に残る短いフレーズを生成します
             </p>
             {generateControls}
@@ -260,21 +260,21 @@ export function SignaturePhraseWorkspace() {
               <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
                 候補 {activePosition + 1}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {activeCandidate.plan.lengthBars}小節
               </span>
               {activeCandidate.plan.compositionContext && (
-                <span className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-200">
+                <span className="rounded-pill bg-emerald-400/15 px-2 py-0.5 text-[12px] text-emerald-200">
                   {activeCandidate.plan.compositionContext.source === "chords-and-melody"
                     ? "主旋律を参考"
                     : "コードを参考"}
                 </span>
               )}
-              <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] text-primary-on-dark">
+              <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[12px] text-primary-on-dark">
                 {ARCHETYPE_LABELS[candidateArchetype(activeCandidate)]}
               </span>
               {activeCandidate.plan.creativeRisk && (
-                <span className={`rounded-pill px-2 py-0.5 text-[11px] ${
+                <span className={`rounded-pill px-2 py-0.5 text-[12px] ${
                   activeCandidate.plan.creativeRisk.risk === "radical"
                     ? "bg-fuchsia-400/20 text-fuchsia-200"
                     : activeCandidate.plan.creativeRisk.risk === "bold"
@@ -284,7 +284,7 @@ export function SignaturePhraseWorkspace() {
                   {RISK_LABELS[activeCandidate.plan.creativeRisk.risk]}
                 </span>
               )}
-              <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[11px] text-amber-200">
+              <span className="rounded-pill bg-amber-400/15 px-2 py-0.5 text-[12px] text-amber-200">
                 {VOICING_MODE_LABELS[activeCandidate.plan.voicingMode]}
               </span>
             </div>
@@ -323,17 +323,17 @@ export function SignaturePhraseWorkspace() {
       </section>
 
       {allChords.length === 0 && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           左パネルの「コード進行」を入力すると、イントロフレーズを生成できます。
         </p>
       )}
       {chordHasError && (
-        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
+        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-300">
           無効なコードがあります。左のパネルで修正してください。
         </p>
       )}
       {workflowNotice && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           {workflowNotice}
         </p>
       )}
@@ -356,10 +356,10 @@ export function SignaturePhraseWorkspace() {
             noteLabel="イントロフレーズ"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-emerald-200">
+            <span className="text-[12px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
             </span>
-            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
+            <span className="text-[12px] text-ink-soft">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -379,7 +379,7 @@ export function SignaturePhraseWorkspace() {
             <p className="text-[13px] text-body-muted">
               まだイントロフレーズ候補がありません
             </p>
-            <p className="mt-1 text-[11px] text-ink-muted-48">
+            <p className="mt-1 text-[12px] text-ink-soft">
               コードの並びではなく、記憶に残るリズムと輪郭を持つ12案を生成します
             </p>
           </div>

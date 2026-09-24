@@ -153,7 +153,7 @@ export function PhraseWorkspace() {
 
   const generateControls = (
     <>
-    <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+    <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
       長さ
       <Select
         value={lengthChoice}
@@ -196,7 +196,7 @@ export function PhraseWorkspace() {
           />
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-[12px] text-body-muted">
+            <p className="mr-auto text-[13px] text-body-muted">
               コードとセクションの役割から、Logic Proで組み合わせられる2〜8小節の独立した着想を作ります
             </p>
             {generateControls}
@@ -208,27 +208,27 @@ export function PhraseWorkspace() {
               <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
                 候補 {activePosition + 1}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {activeCandidate.intent.lengthBars}小節
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 品質 {Math.round(activeCandidate.qualityScore)}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {CONTOUR_LABELS[activeCandidate.intent.contour]}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {RHYTHM_LABELS[activeCandidate.intent.rhythmCharacter]}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {HARMONY_LABELS[activeCandidate.intent.harmonicApproach]}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {CADENCE_LABELS[activeCandidate.intent.cadence]}
               </span>
               {activeCandidate.techniqueExperiment && (
                 <span
-                  className="rounded-pill border border-primary-focus/50 px-2 py-0.5 text-[11px] text-primary-on-dark"
+                  className="rounded-pill border border-primary-focus/50 px-2 py-0.5 text-[12px] text-primary-on-dark"
                   title={
                     activeCandidate.techniqueFitScore === undefined
                       ? undefined
@@ -288,22 +288,22 @@ export function PhraseWorkspace() {
       </section>
 
       {section.lengthBars < 2 && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           フレーズ生成には2小節以上のセクションが必要です。
         </p>
       )}
       {allChords.length === 0 && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           左パネルの「コード進行」を入力すると、フレーズ候補を生成できます。
         </p>
       )}
       {chordHasError && (
-        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
+        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-300">
           無効なコードがあります。左のパネルで修正してください。
         </p>
       )}
       {workflowNotice && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           {workflowNotice}
         </p>
       )}
@@ -324,10 +324,10 @@ export function PhraseWorkspace() {
             noteLabel="短いフレーズ"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-emerald-200">
+            <span className="text-[12px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
             </span>
-            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
+            <span className="text-[12px] text-ink-soft">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -345,7 +345,7 @@ export function PhraseWorkspace() {
         <div className="flex min-h-64 items-center justify-center rounded-lg border border-dashed border-hairline bg-surface-tile-1 text-center">
           <div>
             <p className="text-[13px] text-body-muted">まだフレーズ候補がありません</p>
-            <p className="mt-1 text-[11px] text-ink-muted-48">
+            <p className="mt-1 text-[12px] text-ink-soft">
               現在のコード進行から、始まり・展開・着地点を持つ3案を生成します
             </p>
           </div>

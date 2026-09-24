@@ -18,7 +18,7 @@ const SignaturePhraseWorkspace = lazy(() =>
 )
 
 function WorkspaceLoading() {
-  return <div className="flex flex-1 items-center justify-center text-[12px] text-body-muted">読み込み中…</div>
+  return <div className="flex flex-1 items-center justify-center text-[13px] text-body-muted">読み込み中…</div>
 }
 import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
 import { ImportStartGuide } from "./ImportStartGuide"

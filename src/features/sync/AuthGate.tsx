@@ -60,7 +60,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <>
       {syncing && (
-        <div className="pointer-events-none fixed right-3 top-[4.25rem] z-[90] flex items-center gap-1.5 rounded-pill border border-primary/20 bg-surface-tile-1/95 px-3 py-1.5 text-[11px] text-body-muted shadow-lg backdrop-blur">
+        <div className="pointer-events-none fixed right-3 top-[4.25rem] z-[90] flex items-center gap-1.5 rounded-pill border border-primary/20 bg-surface-tile-1/95 px-3 py-1.5 text-[12px] text-body-muted shadow-lg backdrop-blur">
           <LoaderCircle className="animate-spin" size={13} /> Cloud同期中
         </div>
       )}
@@ -68,7 +68,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-3 z-[100] flex w-[calc(100%-1.5rem)] max-w-[28rem] justify-end sm:bottom-3">
           <div
             role="alert"
-            className="pointer-events-auto w-full rounded-lg border border-amber-200/50 bg-amber-500/95 p-3 text-[12px] text-black shadow-xl"
+            className="pointer-events-auto w-full rounded-lg border border-amber-200/50 bg-amber-500/95 p-3 text-[13px] text-black shadow-xl"
           >
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
@@ -147,11 +147,11 @@ function LoginForm() {
         <div className="text-center">
           <Cloud className="mx-auto mb-2 text-primary-on-dark" size={28} />
           <h1 className="text-lg font-semibold">Composer Arranger</h1>
-          <p className="mt-1 text-[12px] text-body-muted">
+          <p className="mt-1 text-[13px] text-body-muted">
             コードジェネレーターと同じアカウントでログイン
           </p>
         </div>
-        <label className="flex flex-col gap-1 text-[12px] text-body-muted">
+        <label className="flex flex-col gap-1 text-[13px] text-body-muted">
           メールアドレス
           <TextInput
             type="email"
@@ -161,7 +161,7 @@ function LoginForm() {
             required
           />
         </label>
-        <label className="flex flex-col gap-1 text-[12px] text-body-muted">
+        <label className="flex flex-col gap-1 text-[13px] text-body-muted">
           パスワード
           <TextInput
             type="password"
@@ -171,7 +171,7 @@ function LoginForm() {
             required
           />
         </label>
-        {error && <p className="text-[12px] text-red-300">{error}</p>}
+        {error && <p className="text-[13px] text-red-300">{error}</p>}
         <Button variant="primary" type="submit" disabled={busy}>
           {busy ? "ログイン中…" : "ログイン"}
         </Button>

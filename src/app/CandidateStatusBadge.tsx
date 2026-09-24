@@ -18,7 +18,7 @@ const CLASSES: Record<CandidateStatus, string> = {
 
 export function CandidateStatusBadge({ status }: { status: CandidateStatus }) {
   return (
-    <span className={`shrink-0 rounded-pill px-2.5 py-1 text-[11px] ${CLASSES[status]}`}>
+    <span className={`shrink-0 rounded-pill px-2.5 py-1 text-[12px] ${CLASSES[status]}`}>
       {LABELS[status]}
     </span>
   )

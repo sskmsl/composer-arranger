@@ -94,16 +94,16 @@ export function PianoRoll({
     <div className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1">
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
-        <h3 className="text-[12px] font-medium text-body-on-dark">主旋律</h3>
-        <span className="text-[11px] text-ink-muted-48">編集可能</span>
+        <h3 className="text-[13px] font-medium text-body-on-dark">主旋律</h3>
+        <span className="text-[12px] text-ink-soft">編集可能</span>
         {overlays.map((overlay) => (
-          <span key={overlay.id} className="flex items-center gap-1 text-[11px] text-ink-muted-48">
+          <span key={overlay.id} className="flex items-center gap-1 text-[12px] text-ink-soft">
             <span className="h-2.5 w-2.5 rounded-sm opacity-60" style={{ background: overlay.color }} aria-hidden="true" />
             {overlay.label}(表示のみ)
           </span>
         ))}
         {bars > 8 && (
-          <span className="ml-auto text-[11px] text-primary-on-dark">全{bars}小節・下のバーで横移動</span>
+          <span className="ml-auto text-[12px] text-primary-on-dark">全{bars}小節・下のバーで横移動</span>
         )}
       </div>
       <div
@@ -129,7 +129,7 @@ export function PianoRoll({
       >
         {/* 小節ヘッダー: クリックでBar Lock。水平スクロールは本体と連動し、縦スクロール時は上部に固定する */}
         <div
-          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[11px] text-ink-muted-48"
+          className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-hairline bg-surface-tile-2 text-[12px] text-ink-soft"
           style={{ width }}
         >
           {Array.from({ length: bars }).map((_, i) => {
@@ -151,7 +151,7 @@ export function PianoRoll({
                   {i + 1}
                 </button>
                 <button
-                  className={`mr-1 rounded-sm p-1 ${locked ? "text-primary-on-dark" : "text-ink-muted-48 hover:text-body-on-dark"}`}
+                  className={`mr-1 rounded-sm p-1 ${locked ? "text-primary-on-dark" : "text-ink-soft hover:text-body-on-dark"}`}
                   onClick={() => onToggleBarLock(i + 1)}
                   title={locked ? "小節ロックを解除" : "この小節をロック"}
                   aria-label={locked ? `${i + 1}小節目のロックを解除` : `${i + 1}小節目をロック`}
@@ -174,7 +174,7 @@ export function PianoRoll({
                 height={height}
                 fill={i % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.045)"}
               />
-              <text x={c.startBeat * PX_PER_BEAT + 4} y={12} fontSize={11} fill="rgba(255,255,255,0.4)">
+              <text x={c.startBeat * PX_PER_BEAT + 4} y={12} fontSize={12} fill="rgba(255,255,255,0.65)">
                 {c.symbol}
               </text>
             </g>

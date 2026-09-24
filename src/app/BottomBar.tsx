@@ -218,13 +218,13 @@ export function BottomBar() {
 
       {/* 曲全体の再生・書き出しは「アレンジ・書出し」画面の上部。ここは選択中のセクションだけを扱う */}
       {section && (
-        <span className="hidden max-w-40 truncate text-[11px] text-body-muted md:inline" title="この下の再生・書き出しの対象">
+        <span className="hidden max-w-40 truncate text-[12px] text-body-muted md:inline" title="この下の再生・書き出しの対象">
           対象: {section.name}
         </span>
       )}
 
       {!hasPlayableMaterial && (
-        <span className="hidden text-[11px] text-body-muted md:inline">
+        <span className="hidden text-[12px] text-body-muted md:inline">
           再生するにはコードまたは候補を用意してください
         </span>
       )}
@@ -255,7 +255,7 @@ export function BottomBar() {
       </Button>
 
       {totalBeats > 0 && (
-        <div className="order-last flex w-full basis-full items-center gap-2 pb-1 text-[11px] text-body-muted sm:pb-2">
+        <div className="order-last flex w-full basis-full items-center gap-2 pb-1 text-[12px] text-body-muted sm:pb-2">
           <span className="w-16 shrink-0 tabular-nums">
             {formatPlaybackTime(playbackBeat, project.song.tempo, selectedSectionId ? sectionTempoChanges(project, selectedSectionId) : undefined)}
           </span>
@@ -291,14 +291,14 @@ export function BottomBar() {
 
       {historyOpen && (
         <div className="absolute bottom-full left-3 z-50 mb-1 max-h-72 w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border border-hairline bg-surface-tile-1 p-2 shadow-[3px_5px_30px_rgba(0,0,0,0.4)] sm:w-80">
-          {sectionVariants.length === 0 && <p className="p-2 text-[12px] text-ink-muted-48">まだ候補がありません</p>}
+          {sectionVariants.length === 0 && <p className="p-2 text-[13px] text-ink-soft">まだ候補がありません</p>}
           {sectionVariants.map((v) => (
-            <div key={v.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] hover:bg-white/5">
+            <div key={v.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] hover:bg-white/5">
               <button className="flex-1 truncate text-left" onClick={() => selectVariantFromHistory(v.id)}>
                 {v.name} {project.activeMelodyId === v.id && "★"}
               </button>
-              <span className="text-ink-muted-48">{v.sourceMode}</span>
-              <button className="text-ink-muted-48 hover:text-body-on-dark" onClick={() => deleteVariant(v.id)}>
+              <span className="text-ink-soft">{v.sourceMode}</span>
+              <button className="text-ink-soft hover:text-body-on-dark" onClick={() => deleteVariant(v.id)}>
                 削除
               </button>
             </div>

@@ -224,7 +224,7 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
           />
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-[12px] text-body-muted">
+            <p className="mr-auto text-[13px] text-body-muted">
               主旋律の隙間に入り、受け答えする別の旋律を10案生成します
             </p>
             {generateButton}
@@ -236,19 +236,19 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
               <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
                 候補 {activePosition + 1}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {activeCandidate.notes.length}音
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {STYLE_LABELS[activeCandidate.generatorStyle ?? ""] ?? "対旋律"}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {ROLE_LABELS[activeCandidate.role] ?? activeCandidate.role}
               </span>
               {activeCandidate.counterPlan && (
                 <>
                   <span
-                    className={`rounded-pill px-2 py-0.5 text-[11px] ${
+                    className={`rounded-pill px-2 py-0.5 text-[12px] ${
                       activeCandidate.counterPlan.creativeRisk === "radical"
                         ? "bg-fuchsia-400/20 text-fuchsia-200"
                         : activeCandidate.counterPlan.creativeRisk === "bold"
@@ -258,13 +258,13 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
                   >
                     {RISK_LABELS[activeCandidate.counterPlan.creativeRisk]}
                   </span>
-                  <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+                  <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                     {CONTOUR_LABELS[activeCandidate.counterPlan.contour]}
                   </span>
                 </>
               )}
               {activeCandidate.collisions.hasBlockingCollision && (
-                <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[11px] text-red-300">
+                <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[12px] text-red-300">
                   主旋律とぶつかる可能性
                 </span>
               )}
@@ -322,23 +322,23 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
       </section>
 
       {!activeMelody && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           <p>対旋律は主旋律に応答して作るため、先にこのセクションの主旋律を採用してください。</p>
           {onNavigate && <Button variant="secondary" onClick={() => onNavigate("melody")}>主旋律を開く</Button>}
         </div>
       )}
       {chords.length === 0 && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           左パネルの「コード進行」を入力すると、対旋律候補を生成できます。
         </p>
       )}
       {chordHasError && (
-        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
+        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-300">
           無効なコードがあります。左のパネルで修正してください。
         </p>
       )}
       {workflowNotice && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           {workflowNotice}
         </p>
       )}
@@ -359,10 +359,10 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
             noteLabel="対旋律"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-emerald-200">
+            <span className="text-[12px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
             </span>
-            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
+            <span className="text-[12px] text-ink-soft">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -388,7 +388,7 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
             <p className="text-[13px] text-body-muted">
               まだ対旋律候補がありません
             </p>
-            <p className="mt-1 text-[11px] text-ink-muted-48">
+            <p className="mt-1 text-[12px] text-ink-soft">
               主旋律の隙間に入る10案を生成します
             </p>
           </div>

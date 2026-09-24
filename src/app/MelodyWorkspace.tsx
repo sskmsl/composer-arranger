@@ -160,7 +160,7 @@ export function MelodyWorkspace({
       {/* 手順の案内は、主旋律の候補ができるまでだけ出す(候補ができたらピアノロールを上へ詰める) */}
       {!variant && (
         <section className="rounded-lg border border-primary/30 bg-primary/[0.05] p-3">
-          <div className="grid grid-cols-3 gap-1.5 text-[11px] sm:gap-2">
+          <div className="grid grid-cols-3 gap-1.5 text-[12px] sm:gap-2">
             {[
               { label: "1 コード", done: chords.length > 0 && !chordHasError },
               { label: "2 主旋律", done: Boolean(variant) },
@@ -175,7 +175,7 @@ export function MelodyWorkspace({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[12px] text-body-muted">
+            <p className="text-[13px] text-body-muted">
               {chords.length === 0
                 ? "まずコード進行を入力します。"
                 : chordHasError
@@ -274,7 +274,7 @@ export function MelodyWorkspace({
             <button
               type="button"
               onClick={() => onNavigate("arrangement")}
-              className="flex items-center gap-1 text-[12px] text-primary-on-dark hover:underline"
+              className="flex items-center gap-1 text-[13px] text-primary-on-dark hover:underline"
             >
               次: 全曲のアレンジ <ArrowRight size={12} />
             </button>
@@ -282,7 +282,7 @@ export function MelodyWorkspace({
         </div>
       </div>
       {chords.length > 0 && chordHasError && (
-        <span className="text-[12px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
+        <span className="text-[13px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
       )}
       {/* 候補の評価は小さな印にまとめて1行で見せる(詳しい理由は印にカーソルを合わせると出る) */}
       {variant && (
@@ -343,18 +343,18 @@ export function MelodyWorkspace({
       )}
 
       {workflowNotice && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           {workflowNotice}
         </p>
       )}
       {staleTransitionContext && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           前のセクションの採用中の主旋律が変わりました。この候補のつながりは古い前提のままなので、つながりを更新するには作り直してください。
         </p>
       )}
 
       {layers.some((layer) => layer.notes.length > 0) && (
-        <div className="flex flex-wrap items-center gap-3 text-[12px] text-body-muted">
+        <div className="flex flex-wrap items-center gap-3 text-[13px] text-body-muted">
           <span className="flex items-center gap-1.5"><Layers size={13} /> 重ねて表示</span>
           {layers.filter((layer) => layer.notes.length > 0).map((layer) => (
             <label key={layer.kind} className="flex items-center gap-1.5">
@@ -374,7 +374,7 @@ export function MelodyWorkspace({
               {LAYER_META[layer.kind].label}
             </label>
           ))}
-          <span className="text-ink-muted-48">編集できるのは主旋律だけです。重ねた旋律は薄く表示します</span>
+          <span className="text-ink-soft">編集できるのは主旋律だけです。重ねた旋律は薄く表示します</span>
         </div>
       )}
 
@@ -403,13 +403,13 @@ export function MelodyWorkspace({
         onPlaybackStartChange={setPreviewStartBeat}
       />
       {isMelodyVariant ? (
-        <p className="text-[11px] text-ink-muted-48">
+        <p className="text-[12px] text-ink-soft">
           上部の小節番号をクリックすると、下の再生ボタンがその小節から始まります。鍵アイコンで小節を固定できます。
           ノート選択・音程固定・範囲を選んだ作り直しにも対応しています。
         </p>
       ) : (
         /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */
-        <p className="text-[11px] text-ink-muted-48">
+        <p className="text-[12px] text-ink-soft">
           {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
           作り直す場合は「作り直す」を実行してください。
         </p>
@@ -435,8 +435,8 @@ export function MelodyWorkspace({
                   {meta.label}
                   <ArrowRight size={12} className="ml-auto text-body-muted" />
                 </span>
-                <span className="text-[12px] text-body-muted">{status}</span>
-                {layer.name && <span className="truncate text-[11px] text-ink-muted-48">{layer.name}</span>}
+                <span className="text-[13px] text-body-muted">{status}</span>
+                {layer.name && <span className="truncate text-[12px] text-ink-soft">{layer.name}</span>}
               </button>
             )
           })}
@@ -463,7 +463,7 @@ export function MelodyWorkspace({
       {variant && isMelodyVariant && selection && selection.end - selection.start >= 0.25 && (
         <div className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-ink-muted-48">
+            <span className="text-[13px] text-ink-soft">
               選択範囲: {selection.start.toFixed(1)}拍 – {selection.end.toFixed(1)}拍
             </span>
             <div className="ml-auto flex flex-wrap gap-1">
@@ -497,7 +497,7 @@ export function MelodyWorkspace({
               </Button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-[12px] text-ink-muted-48">
+          <div className="flex flex-wrap gap-3 text-[13px] text-ink-soft">
             {(Object.keys(regenerationLocks) as (keyof RangeRegenerationLocks)[]).map((key) => (
               <label key={key} className="flex items-center gap-1.5">
                 <input
@@ -512,7 +512,7 @@ export function MelodyWorkspace({
             ))}
           </div>
           {(regenerationLocks.pitch || regenerationLocks.motif) && regenerationLocks.rhythm && (
-            <p className="text-[11px] text-amber-300">
+            <p className="text-[12px] text-amber-300">
               Pitch/MotifとRhythmを同時に保持すると選択範囲の実音が固定されます。Lockは自動解除されません。
             </p>
           )}
@@ -529,7 +529,7 @@ export function MelodyWorkspace({
 
       {variant && isMelodyVariant && selectedNoteIds.size > 0 && (
         <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
-          <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-muted-48">
+          <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-soft">
             <span>Develop a Seed — 選択中 {selectedNoteIds.size} 音</span>
             <label className="flex items-center gap-1">
               Continue拍数

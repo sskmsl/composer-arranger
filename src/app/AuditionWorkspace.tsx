@@ -179,9 +179,9 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto">
           <h2 className="text-[16px] font-semibold">聴き比べ</h2>
-          <p className="mt-0.5 text-[12px] text-ink-muted-48">主旋律の候補を、再生位置を保ったまま A/B/C で切り替えます(1〜3キー)</p>
+          <p className="mt-0.5 text-[13px] text-ink-soft">主旋律の候補を、再生位置を保ったまま A/B/C で切り替えます(1〜3キー)</p>
         </div>
-        <label className="flex items-center gap-2 text-[12px] text-ink-muted-48">
+        <label className="flex items-center gap-2 text-[13px] text-ink-soft">
           セクション
           <Select value={selectedSectionId ?? ""} onChange={(event) => selectSection(event.target.value || null)}>
             <option value="">選択してください</option>
@@ -200,19 +200,19 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
       </div>
 
       {!section && (
-        <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-2 text-[13px] text-amber-200">
           比較するセクションがありません。先にホームから曲を準備してください。
         </p>
       )}
       {section && variants.length === 0 && (
         // 比べる候補がないときは、使えない試聴設定やA/B/C枠を並べず、次にすることだけを示す
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-3 text-[12px] text-amber-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-400/30 bg-amber-400/8 px-3 py-3 text-[13px] text-amber-200">
           <p>比較できる主旋律候補がありません。主旋律の候補を作ると、ここでA/B/Cを聴き比べられます。</p>
           {onNavigate && <Button onClick={() => onNavigate("melody")}>主旋律の候補を作る</Button>}
         </div>
       )}
       {section && variants.length === 1 && (
-        <p className="rounded-md border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[12px] text-sky-100">
+        <p className="rounded-md border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[13px] text-sky-100">
           音が異なる主旋律候補は1件です。同じ演奏の複製は比較枠へ表示しません。3案を比べる場合は、主旋律で候補を作り直してください。
         </p>
       )}
@@ -226,7 +226,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
             <option value="chords-melody">コード＋主旋律</option>
             <option value="chords-only">コードのみ</option>
           </Select>
-          <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
+          <label className="flex items-center gap-1 text-[13px] text-ink-soft">
             開始
             <TextInput
               type="number"
@@ -238,7 +238,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
               className="w-20"
             />
           </label>
-          <label className="flex items-center gap-1 text-[12px] text-ink-muted-48">
+          <label className="flex items-center gap-1 text-[13px] text-ink-soft">
             終了
             <TextInput
               type="number"
@@ -250,7 +250,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
               className="w-20"
             />
           </label>
-          <label className="flex items-center gap-1.5 text-[12px] text-ink-muted-48">
+          <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
             <input type="checkbox" checked={loop} onChange={(event) => setLoop(event.target.checked)} />
             繰り返す
           </label>
@@ -262,12 +262,12 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
             {playing ? "停止" : "再生"}
           </Button>
           {isUnsegmentedLongMidi && (
-            <span className="text-[11px] text-primary-on-dark">
+            <span className="text-[12px] text-primary-on-dark">
               セクション未分割のため、全{section?.lengthBars ?? 0}小節を再生します
             </span>
           )}
           {project.sourceImport?.type === "midi" && !isUnsegmentedLongMidi && totalBeats > rangeEnd - rangeStart && (
-            <span className="text-[11px] text-ink-muted-48">
+            <span className="text-[12px] text-ink-soft">
               Imported MIDIは主旋律開始付近の8小節を先に試聴します
             </span>
           )}
@@ -290,9 +290,9 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
                 <Pill active={activeSlot === slot} onClick={() => switchTo(slot)}>
                   {label}
                 </Pill>
-                <span className="text-[11px] text-ink-muted-48">キー {slot + 1}</span>
+                <span className="text-[12px] text-ink-soft">キー {slot + 1}</span>
                 {variant?.reviewState === "favorite" && <Star size={13} className="ml-auto text-primary-on-dark" />}
-                {variant?.reviewState === "rejected" && <ThumbsDown size={13} className="ml-auto text-ink-muted-48" />}
+                {variant?.reviewState === "rejected" && <ThumbsDown size={13} className="ml-auto text-ink-soft" />}
               </div>
 
               {!blind ? (
@@ -315,14 +315,14 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
                     ))}
                   </Select>
                   {variant && (
-                    <div className="text-[11px] text-ink-muted-48">
+                    <div className="text-[12px] text-ink-soft">
                       <div>{variant.generatorProfile ?? "profileなし"}</div>
                       <div>{variant.patternIndex ? `Pattern ${variant.patternIndex}` : variant.sourceMode}</div>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="flex min-h-16 items-center justify-center rounded-sm bg-black/20 text-[13px] text-ink-muted-48">
+                <div className="flex min-h-16 items-center justify-center rounded-sm bg-black/20 text-[13px] text-ink-soft">
                   Candidate {label}
                 </div>
               )}
@@ -340,7 +340,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
         <section className="rounded-lg border border-hairline bg-surface-tile-1 p-3" aria-labelledby="audition-decision-heading">
           <h3 id="audition-decision-heading" className="text-[13px] font-semibold text-body-on-dark">候補を決める</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="mr-auto text-[12px] text-ink-muted-48">
+            <span className="mr-auto text-[13px] text-ink-soft">
               {blind ? `Candidate ${SLOT_LABELS[activeSlot]}を判定` : activeVariant.name}
             </span>
             <Button

@@ -14,7 +14,7 @@ export function ArrangementNecessityBadge({
   if (compact) {
     return (
       <span
-        className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+        className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[12px] font-medium ${
           surprise
             ? "border-fuchsia-300/30 bg-fuchsia-300/10 text-fuchsia-100"
             : "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-100"
@@ -28,7 +28,7 @@ export function ArrangementNecessityBadge({
   }
   return (
     <div
-      className={`mt-2 rounded-sm border px-2.5 py-2 text-[11px] leading-4 ${
+      className={`mt-2 rounded-sm border px-2.5 py-2 text-[12px] leading-4 ${
         surprise
           ? "border-fuchsia-300/30 bg-fuchsia-300/10 text-fuchsia-100"
           : "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-100"
