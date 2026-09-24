@@ -357,21 +357,20 @@
     <a href="#counter">Counterワークスペース</a>
     <a href="#ai-partner">AI Partnerワークスペース</a>
     <a href="#arrangement">Arrangementワークスペース</a>
-    <a href="#audition">Auditionワークスペース</a>
+    <a href="#audition">聴き比べ</a>
   </nav>
 
   <main>
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「曲を準備する → AIと全曲方針を選ぶ → 必要なパートを生成して試聴する」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律や対旋律などの専門機能は、必要なときだけ<strong>個別調整</strong>から開きます。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
+      <p class="chapter-intro">Composer Arrangerは「曲を準備する → AIと全曲方針を選ぶ → 必要なパートを生成して試聴する」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律・対旋律・装飾・イントロ・短いフレーズは、<strong>旋律</strong>タブにまとめてあります。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
 
       <div class="tab-pill-row">
         <span class="tab-pill active">ホーム</span>
         <span class="tab-pill">AIで方針</span>
+        <span class="tab-pill">旋律</span>
         <span class="tab-pill">結果・書出し</span>
-        <span class="tab-pill">比較試聴</span>
-        <span class="tab-pill">個別調整</span>
       </div>
 
       <div class="kv-table-wrap">
@@ -380,9 +379,8 @@
           <tbody>
             <tr><td>ホーム</td><td>MIDI読込、新規作成、保存曲の再開から制作を始める</td></tr>
             <tr><td>AIで方針</td><td>曲全体を診断し、5つの方向性から必要なパート生成へ進む</td></tr>
+            <tr><td>旋律</td><td>主旋律を中心に、対旋律・装飾・イントロ・短いフレーズを同じ画面で切り替えて作る。採用した対旋律・装飾は主旋律に重ねて表示し、主旋律の候補は「聴き比べ」でA/B/Cを切り替えながら判定する</td></tr>
             <tr><td>結果・書出し</td><td>曲の強弱、生成パート、採用状態を試聴し、MIDIを書き出す</td></tr>
-            <tr><td>比較試聴</td><td>主旋律候補をA/B/Cで切り替えながら判定する</td></tr>
-            <tr><td>個別調整</td><td>主旋律・短いフレーズ・イントロ・対旋律・装飾を個別に調整する</td></tr>
           </tbody>
         </table>
       </div>
@@ -402,7 +400,7 @@
         <div class="card"><h4>MIDIからアレンジする</h4><p>Logic／外部曲のコード・主旋律・テンポ・セクションを解析し、確認後にAI相談へ進みます。</p></div>
         <div class="card"><h4>コードから新しく作る</h4><p>8小節のAメロを自動作成します。コード進行を入力して主旋律生成またはAI相談へ進めます。</p></div>
         <div class="card"><h4>保存した曲を開く</h4><p>自動保存またはCloud同期された曲を開き、AI相談を入口として続きから再開します。</p></div>
-        <div class="card"><h4>詳細調整</h4><p>主旋律・短いフレーズ・イントロ・対旋律・装飾を直接編集したい場合にだけ開きます。</p></div>
+        <div class="card"><h4>旋律</h4><p>主旋律・対旋律・装飾・イントロ・短いフレーズを、旋律タブの中で切り替えて作ります。</p></div>
       </div>
     </section>
 
@@ -419,8 +417,7 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>ホーム / AIで方針 / 結果・書出し / 比較試聴</td><td>制作の主要な流れを切り替えます。</td></tr>
-            <tr><td>個別調整</td><td>主旋律・短いフレーズ・イントロ・対旋律・装飾を個別に開きます。</td></tr>
+            <tr><td>ホーム / AIで方針 / 旋律 / 結果・書出し</td><td>制作の主要な流れを切り替えます。旋律タブの中では、上部で主旋律・対旋律・装飾・イントロ・短いフレーズを切り替えます。</td></tr>
           </tbody>
         </table>
       </div>
@@ -930,8 +927,8 @@
 
     <section class="chapter" id="audition">
       <span class="chapter-num">15</span>
-      <h2>Auditionワークスペース</h2>
-      <p class="chapter-intro">複数の生成候補を客観的に比較するためのA/B/C試聴タブです。</p>
+      <h2>聴き比べ(主旋律のA/B/C)</h2>
+      <p class="chapter-intro">旋律タブの主旋律で「聴き比べ」を押すと開く、複数の主旋律候補を客観的に比較するための表示です。「聴き比べを閉じる」で主旋律に戻ります。</p>
       <ul>
         <li>3つまでの候補をA・B・Cのスロットに割り当て、シームレスに切り替えながら聴き比べられます。</li>
         <li><strong>Blindモード</strong> — 候補名を隠し「Candidate Xを判定」とだけ表示することで、先入観のない比較ができます。</li>

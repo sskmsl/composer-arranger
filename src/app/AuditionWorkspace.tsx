@@ -177,7 +177,10 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto text-[16px] font-semibold">主旋律のA/B/C比較</h2>
+        <div className="mr-auto">
+          <h2 className="text-[16px] font-semibold">聴き比べ</h2>
+          <p className="mt-0.5 text-[12px] text-ink-muted-48">主旋律の候補を、再生位置を保ったまま A/B/C で切り替えます(1〜3キー)</p>
+        </div>
         <label className="flex items-center gap-2 text-[12px] text-ink-muted-48">
           セクション
           <Select value={selectedSectionId ?? ""} onChange={(event) => selectSection(event.target.value || null)}>
@@ -189,6 +192,11 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
             ))}
           </Select>
         </label>
+        {onNavigate && (
+          <Button variant="secondary" onClick={() => onNavigate("melody")}>
+            聴き比べを閉じる
+          </Button>
+        )}
       </div>
 
       {!section && (
@@ -205,7 +213,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
       )}
       {section && variants.length === 1 && (
         <p className="rounded-md border border-sky-300/25 bg-sky-400/[0.06] px-3 py-2 text-[12px] text-sky-100">
-          音が異なる主旋律候補は1件です。同じ演奏の複製は比較枠へ表示しません。3案を比べる場合は「個別調整 → 主旋律」で候補を生成してください。
+          音が異なる主旋律候補は1件です。同じ演奏の複製は比較枠へ表示しません。3案を比べる場合は、主旋律で候補を作り直してください。
         </p>
       )}
 

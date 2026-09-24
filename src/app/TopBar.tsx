@@ -1,24 +1,25 @@
 import { hasTempoChanges, songTempoChanges } from "@/core/tempoMap"
-import { useEffect, useRef, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { IconButton, Pill, TextInput } from "@/ui/primitives"
-import { CircleHelp, House, PanelLeft, PanelRight, SlidersHorizontal } from "lucide-react"
+import { CircleHelp, House, PanelLeft, PanelRight } from "lucide-react"
 import type { MainTab } from "./App"
+import { isMelodyGroupTab } from "./melodyTabs"
 
+/**
+ * 主要な画面。主旋律・対旋律・装飾・イントロ・短いフレーズ・聴き比べは、どれも主旋律を
+ * 中心にした作業なので「旋律」1つにまとめ、中の切り替えは旋律画面の上部(MelodySubTabs)で行う。
+ */
 const PRIMARY_TABS: { id: MainTab; label: string; mobileLabel: string }[] = [
   { id: "home", label: "ホーム", mobileLabel: "ホーム" },
   { id: "ai-partner", label: "AIで方針", mobileLabel: "方針" },
+  { id: "melody", label: "旋律", mobileLabel: "旋律" },
   { id: "arrangement", label: "結果・書出し", mobileLabel: "結果" },
-  { id: "audition", label: "比較試聴", mobileLabel: "試聴" },
 ]
 
-const DETAIL_TABS: { id: MainTab; label: string; description: string }[] = [
-  { id: "melody", label: "主旋律", description: "セクション全体のメロディ" },
-  { id: "phrase", label: "短いフレーズ", description: "2〜8小節の着想" },
-  { id: "signature", label: "イントロ", description: "記憶に残る導入フレーズ" },
-  { id: "counter", label: "対旋律", description: "主旋律へ応答する第二の線" },
-  { id: "decoration", label: "装飾", description: "隙間を生かす短い演出" },
-]
+/** 旋律タブの中の画面にいるときも「旋律」を選択中として示す */
+function isActivePrimary(primary: MainTab, tab: MainTab): boolean {
+  return primary === "melody" ? isMelodyGroupTab(tab) : primary === tab
+}
 
 export function TopBar({
   tab,
@@ -36,32 +37,7 @@ export function TopBar({
   const hasSidePanels = ["melody", "phrase", "signature", "counter", "decoration"].includes(tab)
   const projectReady = project.sections.length > 0
   const songTempo = hasTempoChanges(project) ? songTempoChanges(project) : []
-  const [detailMenuOpen, setDetailMenuOpen] = useState(false)
-  const mobileDetailMenuRef = useRef<HTMLDivElement>(null)
-  const desktopDetailMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!detailMenuOpen) return
-    const closeOnOutside = (event: PointerEvent) => {
-      const target = event.target as Node
-      if (mobileDetailMenuRef.current?.contains(target) || desktopDetailMenuRef.current?.contains(target)) return
-      setDetailMenuOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDetailMenuOpen(false)
-    }
-    document.addEventListener("pointerdown", closeOnOutside)
-    document.addEventListener("keydown", closeOnEscape)
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutside)
-      document.removeEventListener("keydown", closeOnEscape)
-    }
-  }, [detailMenuOpen])
-
-  const selectTab = (nextTab: MainTab) => {
-    setDetailMenuOpen(false)
-    onTabChange(nextTab)
-  }
+  const selectTab = (nextTab: MainTab) => onTabChange(nextTab)
 
   return (
     <header className="flex shrink-0 flex-col gap-2 border-b border-hairline bg-surface-black px-3 py-2 lg:h-11 lg:flex-row lg:items-center lg:gap-4 lg:px-4 lg:py-0">
@@ -111,11 +87,11 @@ export function TopBar({
         </a>
       </div>
 
-      <nav className="grid w-full min-w-0 grid-cols-5 gap-1 lg:hidden" aria-label="主要機能">
+      <nav className="grid w-full min-w-0 grid-cols-4 gap-1 lg:hidden" aria-label="主要機能">
         {PRIMARY_TABS.map((t) => (
           <Pill
             key={t.id}
-            active={tab === t.id}
+            active={isActivePrimary(t.id, tab)}
             disabled={!projectReady && t.id !== "home"}
             title={!projectReady && t.id !== "home" ? "先にホームで曲を準備してください" : undefined}
             onClick={() => selectTab(t.id)}
@@ -124,31 +100,6 @@ export function TopBar({
             {t.mobileLabel}
           </Pill>
         ))}
-        {projectReady ? (
-          <div ref={mobileDetailMenuRef} className="relative min-w-0">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={detailMenuOpen}
-              onClick={() => setDetailMenuOpen((open) => !open)}
-              className="flex min-h-7 w-full items-center justify-center gap-1 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted hover:bg-white/10 hover:text-body-on-dark"
-            >
-              <SlidersHorizontal size={11} /> 調整
-            </button>
-            {detailMenuOpen && <div role="menu" className="fixed left-3 right-3 top-[7.25rem] z-[70] rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
-              {DETAIL_TABS.map((item) => (
-                <button key={item.id} type="button" role="menuitem" onClick={() => selectTab(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
-                  <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
-                  <span className="text-[11px] text-body-muted">{item.description}</span>
-                </button>
-              ))}
-            </div>}
-          </div>
-        ) : (
-          <button type="button" disabled className="min-w-0 rounded-pill border border-hairline px-1 py-1.5 text-[11px] text-body-muted opacity-35">
-            調整
-          </button>
-        )}
       </nav>
 
       {tab !== "home" && <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
@@ -194,29 +145,10 @@ export function TopBar({
 
       <nav className="hidden shrink-0 items-center gap-1.5 lg:ml-auto lg:flex">
         {PRIMARY_TABS.map((t) => (
-          <Pill key={t.id} active={tab === t.id} disabled={!projectReady && t.id !== "home"} onClick={() => selectTab(t.id)}>
+          <Pill key={t.id} active={isActivePrimary(t.id, tab)} disabled={!projectReady && t.id !== "home"} onClick={() => selectTab(t.id)}>
             {t.label}
           </Pill>
         ))}
-        <div ref={desktopDetailMenuRef} className={`relative ${projectReady ? "" : "pointer-events-none opacity-35"}`}>
-          <button
-            type="button"
-            aria-haspopup="menu"
-            aria-expanded={detailMenuOpen}
-            onClick={() => setDetailMenuOpen((open) => !open)}
-            className="flex items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark"
-          >
-            <SlidersHorizontal size={12} /> 個別調整
-          </button>
-          {detailMenuOpen && <div role="menu" className="absolute right-0 top-9 z-[70] w-60 rounded-md border border-hairline bg-surface-tile-1 p-1.5 shadow-xl">
-            {DETAIL_TABS.map((item) => (
-              <button key={item.id} type="button" role="menuitem" onClick={() => selectTab(item.id)} className="flex w-full flex-col rounded-sm px-3 py-2 text-left hover:bg-white/8">
-                <span className="text-[12px] font-medium text-body-on-dark">{item.label}</span>
-                <span className="text-[11px] text-body-muted">{item.description}</span>
-              </button>
-            ))}
-          </div>}
-        </div>
         <a
           href="./manual.html"
           target="_blank"
