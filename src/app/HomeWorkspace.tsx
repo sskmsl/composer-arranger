@@ -29,13 +29,6 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
   return (
     <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface-black">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-7 px-4 py-8 sm:px-7 lg:py-12">
-        <div className="max-w-3xl">
-          <p className="text-[13px] font-semibold tracking-[0.2em] text-primary-on-dark">COMPOSER ARRANGER</p>
-          <p className="mt-4 max-w-2xl text-[14px] leading-6 text-body-muted">
-            最初に素材の準備方法を選んでください。主旋律・対旋律・装飾などは「旋律」でまとめて作れます。
-          </p>
-        </div>
-
         {hasMusic && (
           <section className="flex flex-col gap-3 rounded-lg border border-primary/35 bg-primary/10 p-4 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
