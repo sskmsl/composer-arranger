@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
-import { Download, Play, RefreshCw, Square, Volume2, VolumeX } from "lucide-react"
+import { Download, Play, Square, Volume2, VolumeX } from "lucide-react"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { arrangementStructureChangeLabel } from "@/ai-arranger/structureChanges"
@@ -13,9 +13,8 @@ import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi } from "@/midi/exportMelody"
 import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
-import { Button, Select } from "@/ui/primitives"
+import { Button } from "@/ui/primitives"
 
-const CHARACTER_LABEL = { safe: "Safe", edge: "Edge", surprise: "Surprise", silence: "無音" }
 type AuditionMix = "source" | "combined" | "generated"
 
 const AUDITION_MIX_LABEL: Record<AuditionMix, string> = {
@@ -24,10 +23,13 @@ const AUDITION_MIX_LABEL: Record<AuditionMix, string> = {
   generated: "AI生成のみ",
 }
 
+/**
+ * アレンジ画面「詳しい調整」の中の、パート別の確認と書き出し。
+ * 原曲との聴き比べ、パートごとのミュート・単独試聴・MIDI保存だけを扱う
+ * (全曲アレンジを作る・変えるのは、方向選びとアレンジ相談で行う)。
+ */
 export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)
-  const generate = useProjectStore((state) => state.generateFullSongArrangement)
-  const regenerate = useProjectStore((state) => state.regenerateFullSongArrangementTarget)
   const setMuted = useProjectStore((state) => state.setArrangementTrackMuted)
   const arrangement = project.fullSongArrangement
   const timelineConstraints = arrangement?.plan.directive?.timelineConstraints
@@ -39,9 +41,6 @@ export function FullSongArrangementPanel() {
   const appliedSoundInstruction = arrangement?.plan.directive?.soundInstruction
     ?? (arrangement ? arrangementSoundInstructionFromText(`${arrangement.plan.brief} ${arrangement.plan.directive?.intention ?? ""}`) : undefined)
   const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | "all" | null>(null)
-  const [targetSectionId, setTargetSectionId] = useState<string>("")
-  const [regenerating, setRegenerating] = useState(false)
-  const [generationNotice, setGenerationNotice] = useState<string | null>(null)
   const [playbackBeat, setPlaybackBeat] = useState(0)
   const [auditionMix, setAuditionMix] = useState<AuditionMix>("combined")
   const playbackRunRef = useRef(0)
@@ -138,53 +137,9 @@ export function FullSongArrangementPanel() {
     if (wasSeeking && playingTrack) playNotes(playingTrack, beat, auditionMix)
   }
 
-  const rebuild = async () => {
-    if (regenerating) return
-    stop(true)
-    setRegenerating(true)
-    setGenerationNotice(null)
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-    try {
-      generate()
-      setGenerationNotice("新しい全曲案を作り直しました。")
-    } finally {
-      setRegenerating(false)
-    }
-  }
-
   return (
-    <section className="min-w-0 max-w-full rounded-lg border border-primary/35 bg-primary/[0.055] p-3 sm:p-4">
-      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-on-dark">全曲パート生成</p>
-          <h3 className="mt-1 text-[16px] font-semibold">必要なパートだけを生成</h3>
-          <p className="mt-1 text-[12px] leading-5 text-body-muted">
-            コード・保護中の主旋律・セクション・制作意図を分析し、必要な役割を独立トラックとして生成します。
-          </p>
-        </div>
-        <div className="relative z-10 flex min-w-0 justify-stretch sm:justify-start lg:justify-end">
-          <Button
-            className="min-h-11 w-full shrink-0 sm:w-auto"
-            onClick={() => void rebuild()}
-            disabled={regenerating || project.sections.length === 0 || project.chords.length === 0}
-          >
-            <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} /> {regenerating ? "全曲案を生成中…" : arrangement ? "全曲案を作り直す" : "全曲パートを生成"}
-          </Button>
-        </div>
-      </div>
-
-      {generationNotice && (
-        <p className="mt-3 rounded-sm border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2 text-[11px] text-emerald-100">
-          {generationNotice}
-        </p>
-      )}
-
-      {!arrangement ? (
-        <div className="mt-4 rounded-md border border-dashed border-hairline p-5 text-[12px] text-body-muted">
-          生成前です。AIで決めた制作意図を反映してパートを作ります。主旋律は変更しません。
-        </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-4">
+    arrangement && (
+        <div className="flex min-w-0 max-w-full flex-col gap-4">
           {timelineConstraints && hasTimelineInstructions && (
             <div className="rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2.5 text-[12px] text-emerald-50">
               <strong className="font-semibold">指定した小節を反映済み</strong>
@@ -224,59 +179,10 @@ export function FullSongArrangementPanel() {
               <span className="ml-2 text-[11px] text-violet-100/85">{arrangementSoundInstructionLabel(appliedSoundInstruction)}</span>
             </div>
           )}
-          <details className="rounded-md border border-hairline bg-black/10 p-3">
-            <summary className="cursor-pointer text-[13px] font-semibold">セクション別の生成設計</summary>
-            <div className="mt-3 grid gap-2 xl:grid-cols-2">
-              {arrangement.plan.sections.map((section) => (
-                <article key={section.sectionId} className="min-w-0 overflow-hidden rounded-md border border-hairline bg-white/[0.025] p-3">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <strong className="min-w-0 break-words text-[13px]">{section.sectionName}</strong>
-                    <span className="text-[11px] text-body-muted">強度 {section.energy} · 密度 {section.density}</span>
-                    <span className="ml-auto rounded-full border border-primary/30 px-2 py-0.5 text-[11px] text-primary-on-dark">
-                      {CHARACTER_LABEL[section.selectedTransitionCharacter]}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[12px] leading-5 text-body-muted">{section.intention}</p>
-                  <p className="mt-2 text-[11px] text-body-muted">
-                    {section.activeRoles.map((role) => arrangement.tracks.find((track) => track.id === role)?.name ?? role).join(" · ")}
-                  </p>
-                  {section.transitionCandidates.some((candidate) => candidate.character === section.selectedTransitionCharacter) && (
-                    <p className="mt-2 border-l-2 border-primary/50 pl-2 text-[11px] leading-4 text-body-muted">
-                      {section.transitionCandidates.find((candidate) => candidate.character === section.selectedTransitionCharacter)?.reason}
-                    </p>
-                  )}
-                  {section.decorationCandidates.some((candidate) => candidate.character === section.selectedDecorationCharacter) && (
-                    <p className="mt-1 border-l-2 border-violet-300/50 pl-2 text-[11px] leading-4 text-body-muted">
-                      装飾: {section.decorationCandidates.find((candidate) => candidate.character === section.selectedDecorationCharacter)?.reason}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(["safe", "edge", "surprise"] as const).map((character) => (
-                      <button
-                        key={character}
-                        className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-                          section.selectedTransitionCharacter === character
-                            ? "border-primary bg-primary/15 text-primary-on-dark"
-                            : "border-hairline text-body-muted hover:border-primary/40 hover:text-body-on-dark"
-                        }`}
-                        onClick={() => {
-                          regenerate({ trackId: "syn-transition-phrase", sectionId: section.sectionId, character })
-                          regenerate({ trackId: "syn-high-glass", sectionId: section.sectionId, character })
-                        }}
-                      >
-                        {CHARACTER_LABEL[character]}
-                      </button>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </details>
-
           <div className="rounded-lg border border-primary/30 bg-primary/[0.055] p-3">
-            <h4 className="text-[13px] font-semibold text-body-on-dark">生成前後を聴き比べる</h4>
+            <h4 className="text-[13px] font-semibold text-body-on-dark">原曲と聴き比べる</h4>
             <p className="mt-1 text-[11px] leading-4 text-body-muted">
-              「原曲＋AI生成」で、読み込んだ演奏を変えずにAIが加えたパートだけを重ねて確認できます。
+              「原曲＋AI生成」で、原曲を変えずに足したパートだけを重ねて確認できます。
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               {(["source", "combined", "generated"] as const).map((mix) => {
@@ -342,67 +248,16 @@ export function FullSongArrangementPanel() {
           </section>
 
           <section className="space-y-3" aria-labelledby="generated-parts-heading">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h4 id="generated-parts-heading" className="text-[13px] font-semibold text-body-on-dark">パートを個別に確認・作り直す</h4>
-                <p className="mt-1 text-[11px] leading-4 text-body-muted">パートごとに試聴・再生成・MIDI保存ができます。</p>
-              </div>
-              <label className="flex min-w-0 max-w-full flex-wrap items-center gap-2 text-[11px] text-body-muted">
-                作り直す範囲
-                <Select className="min-w-0 max-w-full" value={targetSectionId} onChange={(event) => setTargetSectionId(event.target.value)}>
-                  <option value="">トラック全体</option>
-                  {arrangement.plan.sections.map((section) => <option key={section.sectionId} value={section.sectionId}>{section.sectionName}</option>)}
-                </Select>
-              </label>
-            </div>
-
-            <div className="flex min-w-0 items-center gap-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
-              <Button
-                variant="dark"
-                className="shrink-0"
-                onClick={playingTrack ? () => stop() : () => playNotes("all", playbackBeat, auditionMix)}
-              >
-                {playingTrack ? <Square size={14} /> : <Play size={14} />}
-                {playingTrack ? "停止" : "再生"}
-              </Button>
-              <div className="min-w-0 flex-1">
-                <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
-                  <span className="truncate">{playingTrack === "all" ? AUDITION_MIX_LABEL[auditionMix] : playingTrack ? arrangement.tracks.find((track) => track.id === playingTrack)?.name : AUDITION_MIX_LABEL[auditionMix]}</span>
-                  <span className="shrink-0 tabular-nums text-body-on-dark">
-                    {formatPlaybackTime(playbackBeat, project.song.tempo, songTempoChanges(project))} / {formatPlaybackTime(material.totalBeats, project.song.tempo, songTempoChanges(project))}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0.25, material.totalBeats)}
-                  step={0.25}
-                  value={Math.min(playbackBeat, material.totalBeats)}
-                  aria-label="全曲試聴の再生位置"
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/12 accent-primary"
-                  onChange={(event) => setPlaybackBeat(Number(event.currentTarget.value))}
-                  onPointerDown={beginSeeking}
-                  onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
-                  onPointerCancel={(event) => commitSeek(Number(event.currentTarget.value))}
-                  onKeyDown={(event) => {
-                    if (["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
-                      beginSeeking()
-                    }
-                  }}
-                  onKeyUp={(event) => {
-                    if (!["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return
-                    commitSeek(Number(event.currentTarget.value))
-                  }}
-                  onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
-                />
-              </div>
+            <div>
+              <h4 id="generated-parts-heading" className="text-[13px] font-semibold text-body-on-dark">パートごとに確認する</h4>
+              <p className="mt-1 text-[11px] leading-4 text-body-muted">パートごとにミュート・単独試聴・MIDI保存ができます。</p>
             </div>
 
             <div className="grid gap-2 lg:grid-cols-2">
             {arrangement.tracks.map((track) => {
               const placement = arrangementTrackPlacement(project, track)
               return <article key={track.id} className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-hairline bg-surface-tile-1 p-3">
-                <button title={track.muted ? "Mute解除" : "Mute"} onClick={() => setMuted(track.id, !track.muted)} className="text-body-muted hover:text-body-on-dark">
+                <button title={track.muted ? "ミュート解除" : "ミュート"} aria-label={`${track.name}を${track.muted ? "ミュート解除" : "ミュート"}`} onClick={() => setMuted(track.id, !track.muted)} className="text-body-muted hover:text-body-on-dark">
                   {track.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 </button>
                 <div className="min-w-0 flex-1">
@@ -414,13 +269,10 @@ export function FullSongArrangementPanel() {
                     </p>
                   )}
                 </div>
-                <button title="試聴" onClick={() => playingTrack === track.id ? stop() : playNotes(track.id)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
+                <button title="単独で試聴" aria-label={`${track.name}を単独で試聴`} onClick={() => playingTrack === track.id ? stop() : playNotes(track.id)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
                   {playingTrack === track.id ? <Square size={14} /> : <Play size={14} />}
                 </button>
-                <button title={targetSectionId ? "選択セクションだけ再生成" : "このトラックだけ再生成"} onClick={() => regenerate({ trackId: track.id, sectionId: targetSectionId || undefined })} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
-                  <RefreshCw size={14} />
-                </button>
-                <button title="MIDI出力（Logicの1小節目へ配置）" onClick={() => downloadMidi(exportArrangementTrackMidi(project, arrangement, track.id), `${track.name}-bar-1`)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
+                <button title="MIDI保存（Logicの1小節目へ配置）" aria-label={`${track.name}のMIDIを保存`} onClick={() => downloadMidi(exportArrangementTrackMidi(project, arrangement, track.id), `${track.name}-bar-1`)} className="rounded-full p-2 text-primary-on-dark hover:bg-white/8">
                   <Download size={14} />
                 </button>
               </article>
@@ -428,7 +280,6 @@ export function FullSongArrangementPanel() {
             </div>
           </section>
         </div>
-      )}
-    </section>
+    )
   )
 }

@@ -9,8 +9,6 @@ import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
-import { WholeSongDirectorPanel } from "./WholeSongDirectorPanel"
-import { MultiPartArrangementPanel } from "./MultiPartArrangementPanel"
 import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
 import { FullSongArrangementPanel } from "./FullSongArrangementPanel"
 import { CandidateStatusBadge } from "./CandidateStatusBadge"
@@ -293,115 +291,113 @@ export function ArrangementWorkspace({
       )}
 
       {project.sections.length > 0 && (
-        <>
-          {hasArrangement && (
-            <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
-              <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">パートごとの試聴・ミュート・MIDI</summary>
-              <div className="mt-3"><FullSongArrangementPanel /></div>
-            </details>
-          )}
-          <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
-            <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">詳細な設計と個別生成</summary>
-            <div className="mt-3 space-y-4">
-              <WholeSongDirectorPanel onNavigate={onNavigate} />
-              <MultiPartArrangementPanel onNavigate={onNavigate} />
-            </div>
-          </details>
-          <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />
-          <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
-            <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">Logic Pro書き出し詳細</summary>
-            <div className="mt-3"><LogicProductionPackagePanel /></div>
-          </details>
-        </>
-      )}
-
-      {project.sections.length > 0 && (
-        <section className="flex flex-col gap-2" aria-labelledby="section-order-heading">
-          <div>
-            <h3 id="section-order-heading" className="text-[14px] font-semibold text-body-on-dark">セクションの順番と主旋律</h3>
-            <p className="mt-1 text-[11px] text-body-muted">ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選びます。</p>
-          </div>
-        {project.sections.map((section, index) => {
-          const variants = project.melodyVariants
-            .filter((variant) => variant.sectionId === section.id)
-            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-          const assignedId = project.sectionMelodyAssignments[section.id] ?? ""
-          return (
-            <article
-              key={section.id}
-              draggable
-              onDragStart={() => setDraggedSectionId(section.id)}
-              onDragEnd={() => setDraggedSectionId(null)}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={() => {
-                if (draggedSectionId) moveSection(draggedSectionId, index)
-                setDraggedSectionId(null)
-              }}
-              className="flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:flex-row sm:items-center"
-            >
-              <div className="flex items-center gap-2 sm:w-60">
-                <GripVertical size={16} className="cursor-grab text-ink-muted-48" />
-                <button className="min-w-0 flex-1 text-left" onClick={() => selectSection(section.id)}>
-                  <span className="block truncate text-[14px] font-medium">{section.name}</span>
-                  <span className="text-[11px] text-ink-muted-48">
-                    {SECTION_ROLE_LABELS[section.role]} · {section.startBar}–{section.startBar + section.lengthBars - 1}小節
-                  </span>
-                </button>
-                <div className="flex">
-                  <IconButton
-                    title="上へ"
-                    disabled={index === 0}
-                    onClick={() => moveSection(section.id, index - 1)}
-                  >
-                    <ChevronUp size={13} />
-                  </IconButton>
-                  <IconButton
-                    title="下へ"
-                    disabled={index === project.sections.length - 1}
-                    onClick={() => moveSection(section.id, index + 1)}
-                  >
-                    <ChevronDown size={13} />
-                  </IconButton>
-                </div>
+        <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
+          <summary className="cursor-pointer text-[13px] font-medium text-body-on-dark">
+            詳しい調整
+            <span className="ml-2 text-[11px] font-normal text-ink-muted-48">
+              パート別のミュート・MIDI／盛り上げる場所／セクションの順番／Logic Pro書き出し
+            </span>
+          </summary>
+          <div className="mt-4 flex flex-col gap-5">
+            {hasArrangement && (
+              <section aria-labelledby="part-detail-heading" className="flex flex-col gap-2">
+                <h3 id="part-detail-heading" className="text-[14px] font-semibold text-body-on-dark">パート別の確認と書き出し</h3>
+                <FullSongArrangementPanel />
+              </section>
+            )}
+            <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />
+            <section className="flex flex-col gap-2" aria-labelledby="section-order-heading">
+              <div>
+                <h3 id="section-order-heading" className="text-[14px] font-semibold text-body-on-dark">セクションの順番と主旋律</h3>
+                <p className="mt-1 text-[11px] text-body-muted">ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選びます。</p>
               </div>
-
-              <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[12px] text-ink-muted-48">
-                採用する主旋律
-                <CandidateStatusBadge status={assignedId ? "applied" : variants.length > 0 ? "candidate" : "not-created"} />
-                <Select
-                  className="min-w-0 flex-1"
-                  value={assignedId}
-                  onChange={(event) => assignVariant(section.id, event.target.value || null)}
+            {project.sections.map((section, index) => {
+              const variants = project.melodyVariants
+                .filter((variant) => variant.sectionId === section.id)
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+              const assignedId = project.sectionMelodyAssignments[section.id] ?? ""
+              return (
+                <article
+                  key={section.id}
+                  draggable
+                  onDragStart={() => setDraggedSectionId(section.id)}
+                  onDragEnd={() => setDraggedSectionId(null)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (draggedSectionId) moveSection(draggedSectionId, index)
+                    setDraggedSectionId(null)
+                  }}
+                  className="flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:flex-row sm:items-center"
                 >
-                  <option value="">未選択</option>
-                  {variants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.name}
-                      {variant.generatorProfile ? ` · ${variant.generatorProfile}` : ""}
-                      {variant.patternIndex ? ` · Pattern ${variant.patternIndex}` : ""}
-                    </option>
-                  ))}
-                </Select>
-              </label>
+                  <div className="flex items-center gap-2 sm:w-60">
+                    <GripVertical size={16} className="cursor-grab text-ink-muted-48" />
+                    <button className="min-w-0 flex-1 text-left" onClick={() => selectSection(section.id)}>
+                      <span className="block truncate text-[14px] font-medium">{section.name}</span>
+                      <span className="text-[11px] text-ink-muted-48">
+                        {SECTION_ROLE_LABELS[section.role]} · {section.startBar}–{section.startBar + section.lengthBars - 1}小節
+                      </span>
+                    </button>
+                    <div className="flex">
+                      <IconButton
+                        title="上へ"
+                        disabled={index === 0}
+                        onClick={() => moveSection(section.id, index - 1)}
+                      >
+                        <ChevronUp size={13} />
+                      </IconButton>
+                      <IconButton
+                        title="下へ"
+                        disabled={index === project.sections.length - 1}
+                        onClick={() => moveSection(section.id, index + 1)}
+                      >
+                        <ChevronDown size={13} />
+                      </IconButton>
+                    </div>
+                  </div>
 
-              {/* Issue #58: セクション編集画面へ戻らずアレンジ画面から直接複製・削除できるようにする */}
-              <div className="flex shrink-0 gap-1">
-                {index > 0 && (
-                  <IconButton title="前セクションとの境界を再生" onClick={() => playBoundary(section.startBar)}>
-                    <Play size={13} />
-                  </IconButton>
-                )}
-                <IconButton title="複製" onClick={() => duplicateSection(section.id)}>
-                  <Copy size={13} />
-                </IconButton>
-                <IconButton title="削除" onClick={() => removeSection(section.id)}>
-                  <Trash2 size={13} />
-                </IconButton>
-              </div>
-            </article>
-          )
-        })}
-        </section>
+                  <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[12px] text-ink-muted-48">
+                    採用する主旋律
+                    <CandidateStatusBadge status={assignedId ? "applied" : variants.length > 0 ? "candidate" : "not-created"} />
+                    <Select
+                      className="min-w-0 flex-1"
+                      value={assignedId}
+                      onChange={(event) => assignVariant(section.id, event.target.value || null)}
+                    >
+                      <option value="">未選択</option>
+                      {variants.map((variant) => (
+                        <option key={variant.id} value={variant.id}>
+                          {variant.name}
+                          {variant.generatorProfile ? ` · ${variant.generatorProfile}` : ""}
+                          {variant.patternIndex ? ` · Pattern ${variant.patternIndex}` : ""}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+
+                  {/* Issue #58: セクション編集画面へ戻らずアレンジ画面から直接複製・削除できるようにする */}
+                  <div className="flex shrink-0 gap-1">
+                    {index > 0 && (
+                      <IconButton title="前セクションとの境界を再生" onClick={() => playBoundary(section.startBar)}>
+                        <Play size={13} />
+                      </IconButton>
+                    )}
+                    <IconButton title="複製" onClick={() => duplicateSection(section.id)}>
+                      <Copy size={13} />
+                    </IconButton>
+                    <IconButton title="削除" onClick={() => removeSection(section.id)}>
+                      <Trash2 size={13} />
+                    </IconButton>
+                  </div>
+                </article>
+              )
+            })}
+            </section>
+            <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
+              <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">Logic Pro書き出し詳細</summary>
+              <div className="mt-3"><LogicProductionPackagePanel /></div>
+            </details>
+          </div>
+        </details>
       )}
 
       {project.sections.length === 0 && (

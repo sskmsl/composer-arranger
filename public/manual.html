@@ -906,13 +906,16 @@
         <li><strong>演奏表情</strong> — 選ばれた各トラックへ、SectionのEnergyと役割に応じたVelocity、音価、microtiming、4小節単位の呼吸を適用します。Pitchは変更せず、試聴とMIDI書き出しへ同じ演奏結果を使用します。</li>
         <li><strong>役割別トラック</strong> — Kick、Snare、Closed／Open Hat、Tom、Field Drum、Gran Cassa、Crash、Bass、Pulse、Pad、High Glass、Transition、Final Lift、Stringsを固定名の独立MIDIトラックとして扱います。全役割を常時鳴らすのではなく、SectionのEnergyと余白で登場・退場を判断します。</li>
         <li><strong>Safe / Edge / Surprise</strong> — 装飾とTransitionは3系統を内部比較し、半音解決、主旋律休符、未使用音域、次SectionのEnergyなどの理由がある案だけを採用します。余白が不足する場合は無音を選びます。</li>
-        <li><strong>部分再生成</strong> — 対象Sectionを選んでから各トラックの再生成ボタンを押すと、そのSection・その役割だけを置換します。他のSectionとトラックは変更しません。</li>
-        <li><strong>試聴・MIDI</strong> — 全パートをコード・Melodyと一緒に試聴するほか、Mute、トラック単独試聴、個別MIDI、全パートSMF Type 1出力ができます。各MIDIトラックはLogic Proで別々のSoftware Instrumentへ割り当てられます。</li>
-        <li><strong>曲全体タイムライン</strong> — セクションをドラッグして並び替え、曲の構成を組み替えます。</li>
-        <li><strong>採用主旋律</strong> — 各セクションごとに、どの生成候補を曲の再生・書き出しに使うかをドロップダウンで選びます(「詳細調整 → 主旋律」の「この主旋律を採用」と連動)。</li>
-        <li><strong>境界を再生</strong> — 各セクション(先頭を除く)の再生アイコンから、前セクションとの繋ぎ目を前後1小節ずつ試聴できます。セクションを繋げたときの接続の自然さを確認するのに使います。</li>
-        <li><strong>曲全体を再生</strong> — 並べたセクションを通しで再生します。</li>
-        <li><strong>曲全体MIDI</strong> — 曲全体を1つのMIDIファイルとして書き出します。</li>
+        <li><strong>曲全体を再生／曲全体MIDI</strong> — 画面上部のボタンで、並べたセクションを通しで再生し、曲全体を1つのMIDIファイルとして書き出します。</li>
+      </ul>
+
+      <h3>詳しい調整</h3>
+      <p>画面下の閉じた欄「詳しい調整」に、普段は使わない操作をまとめています。</p>
+      <ul>
+        <li><strong>パート別の確認と書き出し</strong> — 原曲のみ／原曲＋AI生成／AI生成のみの聴き比べ、パートごとのミュート・単独試聴・MIDI保存、全パートMIDI(SMF Type 1)。各MIDIトラックはLogic Proで別々のSoftware Instrumentへ割り当てられます。</li>
+        <li><strong>曲の流れと楽器の役割</strong> — 最も盛り上げる場所や、セクションごとの強さ・楽器の割り当てを細かく決めます。次に全曲アレンジを作るときに使われます。</li>
+        <li><strong>セクションの順番と主旋律</strong> — ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選び、複製・削除します。再生アイコンで前セクションとの繋ぎ目を前後1小節ずつ試聴できます。</li>
+        <li><strong>Logic Pro書き出し詳細</strong> — Logic Proへ読み込むときの配置などの詳しい情報です。</li>
       </ul>
     </section>
 
