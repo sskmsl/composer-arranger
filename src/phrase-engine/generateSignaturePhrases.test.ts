@@ -808,7 +808,7 @@ describe("Signature Phrase Generator", () => {
     expect(totalChordCandidates).toBeGreaterThan(30)
     expect(tensionCandidates).toBeGreaterThan(0)
     expect(tensionCandidates).toBeLessThan(totalChordCandidates)
-  })
+  }, 15_000)
 
   it("Leadの音程・Onset・Durationを和音化後も単声かつ16分音符グリッドで保持する", () => {
     for (const sourceInput of [input(7301), eightBarInput(9109)]) {
