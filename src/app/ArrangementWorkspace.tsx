@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
-import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass } from "lucide-react"
+import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass, AudioLines, TrendingUp, ListOrdered, SlidersHorizontal, type LucideIcon } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
-import { Button, IconButton, Pill, Select } from "@/ui/primitives"
+import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
 import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
 import { FullSongArrangementPanel } from "./FullSongArrangementPanel"
@@ -20,11 +20,12 @@ import { AiPartnerAnalysisPanel } from "./AiPartnerAnalysisPanel"
 
 type DetailTabId = "parts" | "flow" | "sections" | "logic"
 
-const DETAIL_TABS: Array<{ id: DetailTabId; label: string }> = [
-  { id: "parts", label: "パート別の確認・MIDI" },
-  { id: "flow", label: "盛り上げ方・楽器の役割" },
-  { id: "sections", label: "セクションの順番" },
-  { id: "logic", label: "Logic Proの音源と設定" },
+/** short は狭い画面(スマホ)で使う短い名前。途中で折り返して読みにくくならないようにする */
+const DETAIL_TABS: Array<{ id: DetailTabId; label: string; short: string; icon: LucideIcon }> = [
+  { id: "parts", label: "パート別の確認・MIDI", short: "パート・MIDI", icon: AudioLines },
+  { id: "flow", label: "盛り上げ方・楽器の役割", short: "盛り上げ方", icon: TrendingUp },
+  { id: "sections", label: "セクションの順番", short: "セクション順", icon: ListOrdered },
+  { id: "logic", label: "Logic Proの音源と設定", short: "Logic Pro", icon: SlidersHorizontal },
 ]
 
 export function ArrangementWorkspace({
@@ -217,6 +218,7 @@ export function ArrangementWorkspace({
   const hasArrangement = Boolean(project.fullSongArrangement)
   // 全曲アレンジがまだないときは「パート別」を出せないので、軽い「セクションの順番」を開く
   const activeDetailTab: DetailTabId = detailTab === "parts" && !hasArrangement ? "sections" : detailTab
+  const visibleDetailTabs = DETAIL_TABS.filter((item) => item.id !== "parts" || hasArrangement)
 
   return (
     <div className="flex w-full min-w-0 flex-1">
@@ -349,22 +351,57 @@ export function ArrangementWorkspace({
       )}
 
       {project.sections.length > 0 && (
-        <section aria-labelledby="detail-heading" className="rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:p-4">
+        <section aria-labelledby="detail-heading" className="@container rounded-lg border border-hairline bg-surface-tile-1 p-3 sm:p-4">
           <h3 id="detail-heading" className="text-[14px] font-semibold text-body-on-dark">詳しい調整</h3>
           <div className="mt-3 flex flex-col gap-4">
             {/* 開閉はせず、4つの項目をタブで1つずつ切り替える */}
-            <div role="tablist" aria-label="詳しい調整の項目" className="flex flex-wrap gap-1.5">
-              {DETAIL_TABS.filter((item) => item.id !== "parts" || hasArrangement).map((item) => (
-                <Pill
-                  key={item.id}
-                  role="tab"
-                  aria-selected={activeDetailTab === item.id}
-                  active={activeDetailTab === item.id}
-                  onClick={() => setDetailTab(item.id)}
-                >
-                  {item.label}
-                </Pill>
-              ))}
+            {/*
+              大きめの切り替え。選んだ項目は面を明るくして青の印を付ける(青で塗りつぶすと、
+              上の「全曲を作る」ボタンや画面上部のタブより目立ってしまうため)
+            */}
+            <div
+              role="tablist"
+              aria-label="詳しい調整の項目"
+              className={`grid gap-1 rounded-lg border border-hairline bg-surface-black/50 p-1 ${
+                // 並べる幅は画面ではなくこの枠の幅で決める(相談パネルの有無で枠の幅が変わるため)
+                visibleDetailTabs.length === 4 ? "grid-cols-2 @3xl:grid-cols-4" : "grid-cols-3"
+              }`}
+              onKeyDown={(event) => {
+                // 左右キーで隣の項目へ(タブの一般的な操作)
+                const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0
+                if (!step) return
+                event.preventDefault()
+                const index = visibleDetailTabs.findIndex((item) => item.id === activeDetailTab)
+                const next = visibleDetailTabs[(index + step + visibleDetailTabs.length) % visibleDetailTabs.length]
+                setDetailTab(next.id)
+                event.currentTarget.querySelector<HTMLButtonElement>(`[data-tab-id="${next.id}"]`)?.focus()
+              }}
+            >
+              {visibleDetailTabs.map((item) => {
+                const selected = activeDetailTab === item.id
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    data-tab-id={item.id}
+                    aria-selected={selected}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => setDetailTab(item.id)}
+                    className={`relative flex min-h-12 items-center justify-center gap-2 rounded-md px-3 py-2 text-center text-[14px] leading-tight transition ${
+                      selected
+                        ? "bg-surface-tile-2 font-semibold text-body-on-dark shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                        : "text-body-muted hover:bg-white/[0.06] hover:text-body-on-dark"
+                    }`}
+                  >
+                    <Icon size={17} className={`shrink-0 ${selected ? "text-primary-on-dark" : "opacity-70"}`} aria-hidden="true" />
+                    <span className="hidden @md:inline">{item.label}</span>
+                    <span className="@md:hidden">{item.short}</span>
+                    {selected && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary-on-dark" aria-hidden="true" />}
+                  </button>
+                )
+              })}
             </div>
             {activeDetailTab === "parts" && hasArrangement && <FullSongArrangementPanel />}
             {activeDetailTab === "flow" && <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />}
