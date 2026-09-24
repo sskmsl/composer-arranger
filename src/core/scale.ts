@@ -31,7 +31,7 @@ export function keyScalePitchClasses(key: string): number[] {
   return steps.map((s) => (parsed.rootPc + s) % 12)
 }
 
-/** 長調の主音ピッチクラス → 調号(シャープ正/フラット負)。F#/Gb(6)は表記の好みで決める */
+/** 長調の主音ピッチクラス → 調号(シャープ正/フラット負)。F#/Gb(6)とC#/Db(1)は表記で決める */
 const MAJOR_SHARPS_BY_PC: Record<number, number> = { 0: 0, 7: 1, 2: 2, 9: 3, 4: 4, 11: 5, 6: 6, 1: -5, 8: -4, 3: -3, 10: -2, 5: -1 }
 
 /**
@@ -44,6 +44,8 @@ export function keySignatureOf(key: string): { sharpsFlats: number; minor: boole
   const majorPc = parsed.isMinor ? (parsed.rootPc + 3) % 12 : parsed.rootPc
   let sharpsFlats = MAJOR_SHARPS_BY_PC[majorPc]
   if (majorPc === 6 && keyPrefersFlatSpelling(key)) sharpsFlats = -6
+  // C#・A#m(♯7つ)は♯で書かれていれば♯の調号にする(Db・Bbmと同じ音だが表記を合わせる)
+  if (majorPc === 1 && /^[A-Ga-g]#/.test(key.trim())) sharpsFlats = 7
   return { sharpsFlats, minor: parsed.isMinor }
 }
 

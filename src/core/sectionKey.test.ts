@@ -56,6 +56,11 @@ describe("セクションごとの調", () => {
     expect(keySignatureOf("Bbm")).toEqual({ sharpsFlats: -5, minor: true })
     expect(keySignatureOf("F#")).toEqual({ sharpsFlats: 6, minor: false })
     expect(keySignatureOf("Gb")).toEqual({ sharpsFlats: -6, minor: false })
+    expect(keySignatureOf("D#m")).toEqual({ sharpsFlats: 6, minor: true })
+    expect(keySignatureOf("Ebm")).toEqual({ sharpsFlats: -6, minor: true })
+    expect(keySignatureOf("C#")).toEqual({ sharpsFlats: 7, minor: false })
+    expect(keySignatureOf("A#m")).toEqual({ sharpsFlats: 7, minor: true })
+    expect(keySignatureOf("Db")).toEqual({ sharpsFlats: -5, minor: false })
     expect(keySignatureOf("???")).toBeNull()
   })
 
