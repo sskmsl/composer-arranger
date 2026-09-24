@@ -65,6 +65,44 @@ function isArrangementResponse(value: unknown): value is AiArrangementResponse {
   )
 }
 
+/** 中継処理(Edge Function)が返した英語の理由を、次に何をすればよいか分かる日本語へ直す */
+const SERVER_ERROR_MESSAGES: Record<string, string> = {
+  "AI secret is not configured":
+    "AI相談用のOpenAIキーがSupabaseに設定されていません。SupabaseのEdge Function Secretsへ COMPOSER_ARRANGER_OPENAI_API_KEY を登録してください。",
+  "Authentication required": "AI相談にはログインが必要です。いったんログアウトして、もう一度ログインしてください。",
+  "Invalid session": "ログインの有効期限が切れています。いったんログアウトして、もう一度ログインしてください。",
+  "Request is too large": "送る内容が大きすぎます。音源を外すか、相談内容を短くしてください。",
+  "AI response was incomplete": "AIの応答が途中で終わりました。もう一度お試しください。",
+  "AI response could not be parsed": "AIの応答を読み取れませんでした。もう一度お試しください。",
+}
+
+export function describeServerError(status: number | undefined, serverMessage: string | undefined): string {
+  if (serverMessage && SERVER_ERROR_MESSAGES[serverMessage]) return SERVER_ERROR_MESSAGES[serverMessage]
+  if (serverMessage) return `AI相談に失敗しました: ${serverMessage}`
+  if (status === 404) {
+    return "AI相談の処理(composer-arranger-ai)がSupabaseに公開されていません。Edge Functionをデプロイしてください。"
+  }
+  return status
+    ? `AI相談に失敗しました(応答コード ${status})。少し時間を置いて再試行してください。`
+    : "AI相談の処理に接続できませんでした。通信状態を確認して再試行してください。"
+}
+
+async function describeInvokeError(error: unknown): Promise<string> {
+  // 2xx以外の応答では、本文の { error } が data ではなく error.context(Response)に入る
+  const context = (error as { context?: unknown }).context
+  if (context instanceof Response) {
+    let serverMessage: string | undefined
+    try {
+      const body = await context.clone().json() as { error?: unknown }
+      if (typeof body?.error === "string") serverMessage = body.error
+    } catch {
+      // 本文がJSONでない(関数が存在しない等)ときは応答コードだけで判断する
+    }
+    return describeServerError(context.status, serverMessage)
+  }
+  return describeServerError(undefined, undefined)
+}
+
 export async function requestArrangementAdvice(
   request: AiArrangementRequest,
   options: { bypassCache?: boolean } = {},
@@ -83,7 +121,7 @@ export async function requestArrangementAdvice(
   const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
     body: normalized,
   })
-  if (error) throw new Error(`AI相談に失敗しました: ${error.message}`)
+  if (error) throw new Error(await describeInvokeError(error))
   if (!isArrangementResponse(data)) {
     const message =
       data && typeof data === "object" && "error" in data
