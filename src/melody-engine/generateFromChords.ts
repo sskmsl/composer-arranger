@@ -76,6 +76,7 @@ import type { ResolvedMusicContext } from "@/core/musicContext"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 import { selectCoreMotif } from "./hookFirst"
 import { subtleHookVariation } from "./hookDevelopment"
+import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -106,9 +107,10 @@ interface Candidate {
   coreHookability?: number
   coreRetention?: number
   hookScore?: number
+  emotionalScore?: number
 }
 
-const GENERATOR_VERSION = "2.1"
+const GENERATOR_VERSION = "2.2"
 
 /**
  * Issue #13: UIのDensity設定を、bespoke ProfileのnoteDensity(0..1)へ寄せるための目標値。
@@ -222,61 +224,75 @@ function buildCandidate(
     phraseStart += phraseLen
   }
 
-  const narrativeNotes = candidateMelodyDNA
-    ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
-    : notes
-  const arrivalNotes = applyMelodicArrival(narrativeNotes, harmonicMap, input.range, input.totalBeats, input.drama, generatorProfile)
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
-  const profileNotes = applyProfileExpression(
-    arrivalNotes,
-    profileExpressionPlan,
-    harmonicMap,
-    input.range,
-    input.totalBeats,
-  )
-  const releasedNotes = shapeMelodicRelease(
-    profileNotes,
-    harmonicMap,
-    input.totalBeats,
-    generatorProfile,
-    input.sectionRole,
-    candidateMelodyDNA,
-    plans,
-  )
-  const dynamicNotes = shapeGrowingMelodyDynamics(
-    shapePhraseBreaths(releasedNotes, plans, generatorProfile),
-    input.totalBeats,
-    generatorProfile,
-    input.sectionRole,
-    input.drama,
-    candidateMelodyDNA,
-  )
-  const expressiveNotes = placeExpressiveChromaticTurn(
-    dynamicNotes,
-    harmonicMap,
-    input.range,
-    input.totalBeats,
-    generatorProfile,
-  )
-  const finalNotes = enforceHarmonicIntegrity(
-    reconcileFinalToneRoles(
-      expressiveNotes,
-      harmonicMap,
-      input.range,
-    ),
-    input.chords,
-    input.range,
-    { preserveExpressiveChordRoles: true },
-  ).notes
+  const finish = (latePeak: boolean, emotionalShape = latePeak) => {
+    const narrativeNotes = candidateMelodyDNA
+      ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA,
+        latePeak && selectedCore ? {
+          protectedUntilBeat: selectedCore.core.lengthBeats,
+          targetFraction: emotionalTargetFraction(input.sectionRole),
+        } : undefined)
+      : notes
+    const arrivalNotes = applyMelodicArrival(narrativeNotes, harmonicMap, input.range,
+      input.totalBeats, input.drama, generatorProfile)
+    const profileNotes = applyProfileExpression(arrivalNotes, profileExpressionPlan,
+      harmonicMap, input.range, input.totalBeats)
+    const emotionalNotes = emotionalShape && selectedCore
+      ? shapeEmotionalArc(profileNotes, harmonicMap, input.range, input.totalBeats,
+        input.sectionRole, selectedCore.core.lengthBeats)
+      : profileNotes
+    const releasedNotes = shapeMelodicRelease(emotionalNotes, harmonicMap, input.totalBeats,
+      generatorProfile, input.sectionRole, candidateMelodyDNA, plans)
+    const dynamicNotes = shapeGrowingMelodyDynamics(
+      shapePhraseBreaths(releasedNotes, plans, generatorProfile),
+      input.totalBeats, generatorProfile, input.sectionRole, input.drama, candidateMelodyDNA)
+    const expressiveNotes = placeExpressiveChromaticTurn(dynamicNotes, harmonicMap, input.range,
+      input.totalBeats, generatorProfile)
+    const finalNotes = enforceHarmonicIntegrity(
+      reconcileFinalToneRoles(expressiveNotes, harmonicMap, input.range),
+      input.chords, input.range, { preserveExpressiveChordRoles: true },
+    ).notes
+    const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
+    const score = scoreCandidate(features, params, generatorProfile,
+      finalNotes.length / Math.max(1, input.totalBeats))
+    const arc = selectedCore
+      ? assessEmotionalArc(finalNotes, harmonicMap, input.totalBeats,
+        input.sectionRole, selectedCore.core.lengthBeats)
+      : undefined
+    return { finalNotes, features, score, arc }
+  }
+  const established = finish(false)
+  const arcFloor = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .9
+    : input.sectionRole === "pre-chorus" ? .87 : .78
+  const shouldExplore = Boolean(selectedCore && input.totalBeats >= 16 &&
+    (established.arc?.score ?? 1) < arcFloor)
+  const proposals = shouldExplore ? [finish(false, true)] : []
+  const earliestPeak = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .66
+    : input.sectionRole === "pre-chorus" ? .62 : .4
+  if (shouldExplore && (established.arc?.peakPosition ?? 1) < earliestPeak) {
+    proposals.push(finish(true, true))
+  }
+  // 後段の理論整合よりHookが弱くなる案、毒が露出する案、改善しない案は採用しない。
+  const chosen = proposals.filter((proposal) => Boolean(established.arc && proposal.arc &&
+    proposal.arc.score >= established.arc.score + .015 &&
+    (proposal.features.hookStrength ?? 0) >= (established.features.hookStrength ?? 0) - .025 &&
+    (proposal.features.exposedUnresolvedRatio ?? 0) <=
+      (established.features.exposedUnresolvedRatio ?? 0) + .001 &&
+    proposal.score >= established.score - 2 &&
+    proposal.finalNotes.length <= established.finalNotes.length))
+    .reduce((best, proposal) => (proposal.arc!.score > (best.arc?.score ?? 0) ? proposal : best), established)
+  const { finalNotes, features, score } = chosen
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
-  const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
-  const score = scoreCandidate(features, params, generatorProfile, finalNotes.length / Math.max(1, input.totalBeats))
   const coreRetention = selectedCore ? features.hookStrength ?? 0 : undefined
   const hookScore = selectedCore ? 100 * (
     selectedCore.judgment.humability * .35 +
     selectedCore.judgment.hookability * .35 +
     (coreRetention ?? 0) * .3
   ) : undefined
+  // 感情点だけで弱いHookを押し上げない。核の再登場が薄い案では二段階目の重みを下げる。
+  const emotionalScore = chosen.arc
+    ? chosen.arc.score * 100 * Math.min(1, (features.hookStrength ?? 0) / .85)
+    : undefined
   const signature = buildSignature(finalNotes, finalPlans[0]?.contour ?? "wave")
 
   return {
@@ -292,6 +308,7 @@ function buildCandidate(
     coreHookability: selectedCore?.judgment.hookability,
     coreRetention,
     hookScore,
+    emotionalScore,
   }
 }
 
@@ -536,6 +553,7 @@ export interface ProfileCandidate {
   coreHumability?: number
   coreHookability?: number
   coreRetention?: number
+  emotionalArcScore?: number
 }
 
 /** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
@@ -563,6 +581,7 @@ interface BuiltPattern {
   coreHumability?: number
   coreHookability?: number
   coreRetention?: number
+  emotionalScore?: number
 }
 
 /**
@@ -798,6 +817,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreHumability: c.coreHumability,
         coreHookability: c.coreHookability,
         coreRetention: c.coreRetention,
+        emotionalScore: c.emotionalScore,
       }
     }
 
@@ -882,7 +902,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           minimumTransitionFitScore: input.transitionContext ? 55 : undefined,
           techniqueFitWeight: techniqueSelectionWeight(),
           hookWeight: profile === "standard" || profile === "cinematic"
-            ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .16 : .08
+            ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .16
+              : input.sectionRole === "pre-chorus" ? .12 : .08
+            : 0,
+          emotionalWeight: profile === "standard" || profile === "cinematic"
+            ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .1
+              : input.sectionRole === "pre-chorus" ? .1 : .05
             : 0,
         },
       )
@@ -942,6 +967,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreHumability: pattern.coreHumability,
         coreHookability: pattern.coreHookability,
         coreRetention: pattern.coreRetention,
+        emotionalArcScore: pattern.emotionalScore,
         profileFitScore: pattern.profileFitScore,
         techniqueFitScore: pattern.techniqueFitScore,
         selectionScore: diagnosticSelectionScore,
@@ -986,6 +1012,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreHumability: pattern.coreHumability,
         coreHookability: pattern.coreHookability,
         coreRetention: pattern.coreRetention,
+        emotionalArcScore: pattern.emotionalScore,
       })
     })
   })

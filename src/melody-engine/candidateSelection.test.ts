@@ -49,6 +49,16 @@ describe("品質下限つき多様性選抜", () => {
     expect(selected.selected[0].candidate.candidatePoolIndex).toBe(1)
     expect(selectDiverseCandidates([plain, memorable], map, 45, 1).selected[0].candidate.candidatePoolIndex).toBe(0)
   })
+  it("同じHookの候補なら感情曲線で選び、理論品質の下限は緩めない", () => {
+    const flat = { ...candidate(0, 81, [60, 62, 64, 65]), hookScore: 90, emotionalScore: 25 }
+    const arc = { ...candidate(1, 80, [67, 65, 64, 62]), hookScore: 90, emotionalScore: 95 }
+    const weak = { ...candidate(2, 30, [60, 64, 61, 67]), hookScore: 95, emotionalScore: 100 }
+    const selected = selectDiverseCandidates([flat, arc, weak], map, 45, 1, {
+      hookWeight: .16, emotionalWeight: .14,
+    })
+    expect(selected.selected[0].candidate.candidatePoolIndex).toBe(1)
+    expect(selected.belowQualityFloor).toContainEqual(expect.objectContaining({ candidatePoolIndex: 2 }))
+  })
   it("単純なQuality上位3件ではなく、品質を保った異なる候補を選ぶ", () => {
     const pool = [
       candidate(0, 95, [60, 62, 64, 65, 67]),

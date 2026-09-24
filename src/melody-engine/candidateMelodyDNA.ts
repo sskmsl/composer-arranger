@@ -409,14 +409,19 @@ export function applyCandidateNarrative(
   totalBeats: number,
   range: RangeSetting,
   candidateDNA: CandidateMelodyDNA,
+  emotionalArc?: { protectedUntilBeat: number; targetFraction: number },
 ): MelodyNote[] {
   const notes = source.map((note) => ({ ...note }))
   if (notes.length === 0) return notes
   notes.sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch)
 
-  const targetBeat = totalBeats * candidateDNA.climaxPlan.targetFraction
+  const targetBeat = totalBeats * (emotionalArc?.targetFraction ?? candidateDNA.climaxPlan.targetFraction)
   // 終止音はEnding Strategyの役割を優先する。頂点候補は、音が1つしかない場合を除き終止音の手前から選ぶ。
-  const climaxCandidates = notes.length > 1 ? notes.slice(0, -1) : notes
+  const eligible = emotionalArc
+    ? notes.slice(0, -1).filter((note) =>
+      note.startBeat >= emotionalArc.protectedUntilBeat && note.startBeat <= totalBeats * .86)
+    : []
+  const climaxCandidates = eligible.length > 0 ? eligible : notes.length > 1 ? notes.slice(0, -1) : notes
   const climax = climaxCandidates.reduce((best, note) =>
     Math.abs(note.startBeat - targetBeat) < Math.abs(best.startBeat - targetBeat) ? note : best,
   )
@@ -501,7 +506,10 @@ export function applyCandidateNarrative(
         : 0
   const desiredPeak = Math.min(range.high, Math.max(existingMax, climax.pitch + intendedLift))
   const peakCandidates: number[] = []
-  for (let pitch = Math.max(range.low, existingMax); pitch <= range.high; pitch++) {
+  const protectedHigh = emotionalArc
+    ? Math.max(range.low - 1, ...notes.filter((note) => note.startBeat < emotionalArc.protectedUntilBeat).map((note) => note.pitch))
+    : range.low - 1
+  for (let pitch = Math.max(range.low, existingMax, protectedHigh + (emotionalArc ? 1 : 0)); pitch <= range.high; pitch++) {
     if (climaxAllowed.includes(pitchClass(pitch))) peakCandidates.push(pitch)
   }
   const peakPitch =
@@ -514,6 +522,7 @@ export function applyCandidateNarrative(
   climax.plannedToneRole = climaxChordTones.includes(pitchClass(peakPitch)) ? "chord-tone" : "tension-hold"
   for (const note of notes) {
     if (note === climax || note.pitch < peakPitch) continue
+    if (emotionalArc && note.startBeat < emotionalArc.protectedUntilBeat) continue
     const originalPitchClass = pitchClass(note.pitch)
     let lowered = note.pitch
     while (lowered >= peakPitch && lowered - 12 >= range.low) lowered -= 12

@@ -45,6 +45,8 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   qualityScore: number
   /** 完成形の理論品質とは独立した、短いCoreの記憶性。 */
   hookScore?: number
+  /** 反復したCoreから感情的な到達点と余韻へ育った度合い。 */
+  emotionalScore?: number
   profileFitScore: number
   techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
@@ -78,6 +80,8 @@ export interface CandidateSelectionOptions {
   techniqueFitWeight?: number
   /** ChorusではVerseより強くCoreの記憶性を候補選抜へ反映する。 */
   hookWeight?: number
+  /** Hook選抜の後段だけで効く。理論品質の最低線は維持する。 */
+  emotionalWeight?: number
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
@@ -86,8 +90,11 @@ function normalizedQuality(candidate: SelectableCandidate): number {
 
 function normalizedSelectionQuality(candidate: SelectableCandidate, options: CandidateSelectionOptions): number {
   const hookWeight = candidate.hookScore === undefined ? 0 : Math.max(0, Math.min(.2, options.hookWeight ?? 0))
-  return normalizedQuality(candidate) * (1 - hookWeight) +
-    Math.max(0, Math.min(1, (candidate.hookScore ?? 0) / 100)) * hookWeight
+  const emotionalWeight = candidate.emotionalScore === undefined ? 0 :
+    Math.max(0, Math.min(.16, options.emotionalWeight ?? 0))
+  return normalizedQuality(candidate) * (1 - hookWeight - emotionalWeight) +
+    Math.max(0, Math.min(1, (candidate.hookScore ?? 0) / 100)) * hookWeight +
+    Math.max(0, Math.min(1, (candidate.emotionalScore ?? 0) / 100)) * emotionalWeight
 }
 
 function normalizedTechniqueFit(candidate: SelectableCandidate): number {

@@ -97,6 +97,7 @@ export interface CandidateGenerationDiagnostics {
   coreHumability?: number
   coreHookability?: number
   coreRetention?: number
+  emotionalArcScore?: number
   profileFitScore: number
   /** 解決済みTechnique Ruleと候補DNAの適合度(0..1)。Ruleがない場合は未定義。 */
   techniqueFitScore?: number
