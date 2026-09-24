@@ -86,21 +86,21 @@ export function ImportStartGuide({
             <div><p className="text-ink-muted-48">Key confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sourceImport?.keyInferenceSource === "user-confirmed" ? "確認済み" : `${Math.round((project.sourceImport?.keyInferenceConfidence ?? 0) * 100)}%`}</p></div>
           </div>
 
-          <StepCard number={1} complete title="読み込み結果を確認" description="Section、コード、Melody、各トラックの役割が意図どおりかをArrangementで確認します。推定結果は必要なら後から修正できます。">
-            <Button variant="dark" onClick={onReview}><ListChecks size={14} /> Arrangementで確認</Button>
+          <StepCard number={1} complete title="読み込み結果を確認" description="セクション、コード、主旋律、各トラックの役割が意図どおりかを「アレンジ」画面で確認します。推定結果は必要なら後から修正できます。">
+            <Button variant="dark" onClick={onReview}><ListChecks size={14} /> アレンジ画面で確認</Button>
           </StepCard>
 
-          <StepCard number={2} recommended title={`最優先：${next.title}`} description={next.reason}>
-            <Button onClick={() => onConsult(next.prompt)}><Drum size={14} /> おすすめをAIに相談 <ArrowRight size={14} /></Button>
-          </StepCard>
-
-          <StepCard number={3} title="Directionを選び、実音を生成" description="AIは方向性だけを設計します。納得したDirectionの「この案を生成」を押すと、既存Generatorが音程・リズム・衝突を検証してMIDIを作ります。">
-            <Button variant="secondary" onClick={() => onConsult("現在の構成を尊重し、次に着手すべきパートを一つだけ選んで3案を提案して。不要なら音を追加しない案も含めて。")}>
-              <WandSparkles size={14} /> AI Partnerを開く
+          <StepCard number={2} title="全曲の方向を選んで作る" description="アレンジ画面で5つの方向から1つを選ぶと、主旋律とコードはそのままで、合うパートを曲全体に足します。">
+            <Button variant="secondary" onClick={onReview}>
+              <WandSparkles size={14} /> 方向を選ぶ
             </Button>
           </StepCard>
 
-          <p className="text-center text-[11px] leading-4 text-ink-muted-48">機能を全部使う必要はありません。このガイドは左パネルの「開始ガイド」から再表示できます。</p>
+          <StepCard number={3} recommended title={`相談して詰める：${next.title}`} description={next.reason}>
+            <Button onClick={() => onConsult(next.prompt)}><Drum size={14} /> この内容でAIに相談 <ArrowRight size={14} /></Button>
+          </StepCard>
+
+          <p className="text-center text-[11px] leading-4 text-ink-muted-48">機能を全部使う必要はありません。このガイドは上部の「曲」メニューの「開始ガイド」から再表示できます。</p>
         </div>
       </div>
     </div>,

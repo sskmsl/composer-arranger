@@ -5,10 +5,11 @@ import {
   emptyArrangementChat,
   MAX_ARRANGEMENT_CHAT_MESSAGES,
   pushArrangementVersion,
+  recipeFromArrangement,
   type ArrangementChatMessage,
   type ArrangementChatState,
 } from "@/core/arrangementChat"
-import type { FullSongArrangement } from "@/core/arrangementGeneration"
+import type { ArrangementGenerationDirective, FullSongArrangement } from "@/core/arrangementGeneration"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { snapshot } from "./storeHelpers"
 import type { ProjectState } from "./useProjectStore"
@@ -26,6 +27,8 @@ export interface ArrangementChatActions {
   restoreArrangementVersion: (versionId: string) => void
   /** 会話と確定した条件だけを消す(版の履歴は残す) */
   resetArrangementChatConversation: () => void
+  /** 選んだ全曲の方向で全曲アレンジを作り、版として積む */
+  generateDirectionArrangement: (label: string, brief: string, directive: ArrangementGenerationDirective) => void
 }
 
 function chatOf(state: ProjectState): ArrangementChatState {
@@ -137,6 +140,42 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
             ),
           },
         },
+      })
+      get().persist()
+    },
+
+    generateDirectionArrangement: (label, brief, directive) => {
+      const prev = get().project
+      if (prev.sections.length === 0) return
+      const current = prev.fullSongArrangement
+      const chat = chatOf(get())
+      const revision = current ? Math.max(0, ...current.tracks.map((track) => track.generationRevision)) + 1 : 0
+      // 相談で決めた小節指定(無音区間など)は、方向を選び直しても引き継ぐ
+      const arrangement = generateFullSongArrangement(prev, {
+        seed: current ? current.plan.seed + 1 : undefined,
+        brief,
+        revision,
+        directive: {
+          ...directive,
+          timelineConstraints: directive.timelineConstraints ?? current?.plan.directive?.timelineConstraints,
+          structureChanges: directive.structureChanges ?? current?.plan.directive?.structureChanges,
+        },
+      })
+      const next = { ...prev, fullSongArrangement: arrangement }
+      const createdAt = new Date().toISOString()
+      const withVersion = pushArrangementVersion(chat, current, {
+        id: `version:direction:${createdAt}`,
+        label,
+        createdAt,
+        recipe: recipeFromArrangement(arrangement),
+        arrangementId: arrangement.id,
+        changes: diffArrangementMatrices(arrangementPartMatrix(prev, current), arrangementPartMatrix(next, arrangement)),
+        source: "direction",
+      })
+      set({
+        history: [...get().history, snapshot(prev)],
+        future: [],
+        project: { ...next, arrangementChat: withVersion },
       })
       get().persist()
     },

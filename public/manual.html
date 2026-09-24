@@ -355,7 +355,6 @@
     <a href="#phrase">Phraseワークスペース</a>
     <a href="#signature">Signatureワークスペース</a>
     <a href="#counter">Counterワークスペース</a>
-    <a href="#ai-partner">AI Partnerワークスペース</a>
     <a href="#arrangement">Arrangementワークスペース</a>
     <a href="#audition">聴き比べ</a>
   </nav>
@@ -364,13 +363,12 @@
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
       <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「曲を準備する → AIと全曲方針を選ぶ → 必要なパートを生成して試聴する」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律・対旋律・装飾・イントロ・短いフレーズは、<strong>旋律</strong>タブにまとめてあります。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
+      <p class="chapter-intro">Composer Arrangerは「曲を準備する → 全曲の方向を選んでアレンジする → AIと相談しながら仕上げて書き出す」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律・対旋律・装飾・イントロ・短いフレーズは、<strong>旋律</strong>タブにまとめてあります。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
 
       <div class="tab-pill-row">
         <span class="tab-pill active">ホーム</span>
-        <span class="tab-pill">AIで方針</span>
         <span class="tab-pill">旋律</span>
-        <span class="tab-pill">結果・書出し</span>
+        <span class="tab-pill">アレンジ・書出し</span>
       </div>
 
       <div class="kv-table-wrap">
@@ -378,9 +376,8 @@
           <thead><tr><th>タブ</th><th>用途</th></tr></thead>
           <tbody>
             <tr><td>ホーム</td><td>MIDI読込、新規作成、保存曲の再開から制作を始める</td></tr>
-            <tr><td>AIで方針</td><td>曲全体を診断し、5つの方向性から必要なパート生成へ進む</td></tr>
             <tr><td>旋律</td><td>主旋律を中心に、対旋律・装飾・イントロ・短いフレーズを同じ画面で切り替えて作る。採用した対旋律・装飾は主旋律に重ねて表示し、主旋律の候補は「聴き比べ」でA/B/Cを切り替えながら判定する</td></tr>
-            <tr><td>結果・書出し</td><td>パート構成を見ながらAIとアレンジを相談し、変更案を聴き比べて適用する。曲を試聴し、MIDIを書き出す</td></tr>
+            <tr><td>アレンジ・書出し</td><td>全曲の方向を5つから選んで全曲アレンジを作り、パート構成を見ながらAIとアレンジを相談して仕上げる。曲を試聴し、MIDIを書き出す</td></tr>
           </tbody>
         </table>
       </div>
@@ -417,7 +414,7 @@
             <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
             <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
             <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>ホーム / AIで方針 / 旋律 / 結果・書出し</td><td>制作の主要な流れを切り替えます。旋律タブの中では、上部で主旋律・対旋律・装飾・イントロ・短いフレーズを切り替えます。</td></tr>
+            <tr><td>ホーム / 旋律 / アレンジ・書出し</td><td>制作の主要な流れを切り替えます。旋律タブの中では、上部で主旋律・対旋律・装飾・イントロ・短いフレーズを切り替えます。</td></tr>
           </tbody>
         </table>
       </div>
@@ -470,15 +467,15 @@
       <p class="chapter-intro">「Logic／外部曲 MIDI」で内容を確定すると、読み込み直後に3ステップの開始ガイドが開きます。機能を全部試す必要はなく、ここに表示された順番だけでアレンジを始められます。</p>
 
       <ol>
-        <li><strong>読み込み結果を確認</strong> — 「Arrangementで確認」からSection、コード、Melody、Key、各トラックの役割を確認します。Key Signatureがない場合は音価加重のPitch Class分布からKey・信頼度・代替候補を表示します。</li>
-        <li><strong>最優先の次パートを相談</strong> — 読み込んだ役割を調べ、主旋律、リズム、Bass、第二の顔、曲全体整理のうち、最初に検討すべき一つだけを表示します。</li>
-        <li><strong>全曲方針を選び、実音を生成</strong> — AI PartnerがMinimal / Cinematic / Rhythmic / Dark・Experimental / Balancedの5案を比較し、選択した1案だけを既存Generator群でMIDI化します。</li>
+        <li><strong>読み込み結果を確認</strong> — 「アレンジ画面で確認」からSection、コード、Melody、Key、各トラックの役割を確認します。Key Signatureがない場合は音価加重のPitch Class分布からKey・信頼度・代替候補を表示します。</li>
+        <li><strong>全曲の方向を選んで作る</strong> — アレンジ画面で「余白を生かす／壮大に盛り上げる／リズムで押し進める／陰影と意外性／バランスよく」から1つ選ぶと、主旋律とコードはそのままで曲全体にパートを足します。</li>
+        <li><strong>相談して詰める</strong> — 読み込んだ役割を調べ、最初に検討すべき一つ(リズム、ベースなど)を相談文として用意します。「この内容でAIに相談」でアレンジ相談の入力欄に入ります。</li>
       </ol>
 
       <div class="note">
         <p><strong>コードとMelodyだけを読み込んだ場合</strong>は、通常「リズム設計」が最優先として表示されます。音を増やす前に曲の呼吸と推進力を決めるためです。DrumsがあればBass、主要パートが揃っていればCounter／Decorationの必要性、さらに揃っていれば曲全体の密度整理へ進みます。</p>
       </div>
-      <p>開始ガイドを閉じても、左パネルの読み込み情報にある<strong>「開始ガイド」</strong>からいつでも再表示できます。AI Partnerへ移動しただけではGeneratorは実行されず、APIへの相談も送信されません。相談文を確認して「AIに3案を相談」を押した時点で初めてAI分析が始まります。</p>
+      <p>開始ガイドを閉じても、上部の<strong>「曲」メニュー</strong>にある「開始ガイド」からいつでも再表示できます。アレンジ画面へ移動しただけでは何も生成されず、AIへの相談も送信されません。方向を選んで「全曲を作る」を押す、または相談文を送信した時点で初めて処理が始まります。</p>
     </section>
 
     <section class="chapter" id="sections">
@@ -882,41 +879,20 @@
       <p>候補カードには、想定音色、演出の種類、音の動き、Logic Proへ置く<strong>推奨小節</strong>だけを簡潔に表示します。内部評価点は表示せず、主旋律とぶつかる可能性がある場合だけ警告します。</p>
     </section>
 
-    <section class="chapter" id="ai-partner">
-      <span class="chapter-num">13A</span>
-      <h2>AI Partnerワークスペース</h2>
-      <p class="chapter-intro">AI Partnerは、曲全体・選択中Section・会話で確定した制約・Favorite／Rejectを見て、性格の異なる5つの全曲アレンジ方針を提案する統括画面です。最初の画面は「曲を診断 → 方針を選ぶ → 生成して試聴」の3段階だけを追えば進められます。</p>
-      <h3>Safe / Surprise・Tension</h3>
-      <p>生成候補は、自然に適合する<strong>Safe</strong>と、前後の文脈によって成立する<strong>Surprise / Tension</strong>の共通評価を受けます。Surpriseはランダムな外れ音ではありません。次コードへ半音で解決する、主旋律の休符だけを使う、未使用高域を短時間だけ使って退場する、既出Motifを反転する、次Sectionへ向けた上行をSection頭で止める、など<strong>逸脱と回収の両方</strong>を確認できる場合だけ表示されます。</p>
-      <p>通常はSafeが基本で、Surprise候補は1つの候補群につき最大2件です。文脈上の機会がなければSurpriseを無理に生成しません。直前までの密度が高い場合は、音を足さない<strong>Intentional Silence</strong>も有効な提案として扱います。候補カードには「なぜ成立するか」と、必要な場合は「どこで回収するか」が表示されます。</p>
-      <ol>
-        <li><strong>この曲の診断</strong>で、和声・旋律・Section構成から読み取った全曲の流れを確認する</li>
-        <li><strong>どの方向で進めますか？</strong>で、Minimal / Cinematic / Rhythmic / Dark・Experimental / Balancedから1案を選ぶ</li>
-        <li>AI推奨案と短い理由を参考にし、<strong>この方針で全曲候補を生成</strong>を押す</li>
-        <li><strong>生成結果を試聴</strong>から該当Generatorへ移動し、Favorite／Reject／Set Activeを判断する</li>
-        <li>必要なら<strong>AIへ追加相談</strong>で方針を修正する。相談範囲の既定は<strong>曲全体</strong>で、局所修正時だけ「このSectionだけ」を選ぶ</li>
-      </ol>
-      <div class="note">
-        <p>AI Partnerは確認なしにGeneratorを実行せず、生成候補を自動採用しません。会話で確定した「メロディは変えない」「音数を増やさない」等の制約は、以降の全曲判断でも保護対象として維持されます。</p>
-      </div>
-      <h3>AI追加相談の範囲</h3>
-      <p><strong>曲全体（標準）</strong>では、全Sectionのコード、Active Melody、音域、発音密度、既存レイヤー、Energy、Climax方針、前後の接続をまとめてAIへ渡します。返された3案は全曲Directionとして扱われ、「この案を全曲へ展開・生成」を押した後にDirectorがSectionごとにSignature、Counter、Decoration、Accompaniment、追加なしを選び分けます。</p>
-      <p>生成後は全Sectionの結果が一覧になり、対象Sectionの候補画面へ移動して個別試聴できます。<strong>このSectionだけ</strong>は、特定箇所の再検討に限って使います。曲全体とSection限定の会話履歴・確定制約は混在せず、それぞれ独立して保持されます。</p>
-      <h3>Full Song Arrangement</h3>
-      <p>5案のカードを選んだだけでは音は生成されません。「この案を全曲へ展開・生成」を押すと、選択した意図を構造化してArrangement Generatorへ渡し、既存のSection候補に加えてEnergy Curve、役割構成、Bass・Drums・Synth・Strings・Transitionの独立MIDIを生成します。コードとMelodyは保護され、自動採用もしません。</p>
-    </section>
-
     <section class="chapter" id="arrangement">
       <span class="chapter-num">14</span>
-      <h2>Arrangementワークスペース</h2>
-      <p class="chapter-intro">セクション単体ではなく、曲全体を組み立てるためのタブです。</p>
+      <h2>アレンジ・書出し</h2>
+      <p class="chapter-intro">曲全体をアレンジして仕上げ、書き出すタブです。まず全曲の方向を選んで全曲アレンジを作り、パート構成を見ながらAIと相談して細かく直します。</p>
+
+      <h3>全曲の方向を選ぶ</h3>
+      <p>まだ全曲アレンジがない曲では、画面の一番上に5つの方向が並びます。「余白を生かす」「壮大に盛り上げる」「リズムで押し進める」「陰影と意外性」「バランスよく」から1つ選び、「〇〇で全曲を作る」を押すと、主旋律とコードはそのままで、方向に合うパートを曲全体に足します。曲を解析しておすすめの方向には「この曲におすすめ」と表示されます。作ったあとで別の方向を試すときは、パート構成の「方向を選び直す」から選べます。どの結果も版として残るので、いつでも戻れます。</p>
 
       <h3>パート構成とアレンジ相談</h3>
       <p><strong>パート構成</strong>は、セクションを列、パート（ドラム・ベース・シンセの刻み・パッド・高音のきらめき・つなぎのフレーズ・弦）を行にした表です。色が濃いほど音数が多く、青い枠はこの版で足した・変えた所、青い点線はこの版で外した所、黄色の点線は提案中でまだ適用していない所です。</p>
       <p>PCでは画面の右側、スマホでは上部の「アレンジ相談」から、形になった曲について言葉で相談できます。</p>
       <ol>
         <li>「サビをもう少し開けた感じにしたい。パッドは引いてほしい」のように、直したい所を送る（Ctrl/⌘+Enterでも送信）</li>
-        <li>AIの返事と一緒に<strong>変更案</strong>が届く。案A・B・Cを切り替えると、いまの版から実際に何が変わるか（「サビ：弦（高音）を足す、パッドを外す」など）と表の黄色の印が切り替わる</li>
+        <li>AIの返事と一緒に<strong>変更案</strong>が1つ届く。いまの版から実際に何が変わるか（「サビ：弦（高音）を足す、パッドを外す」など）が書かれ、表には黄色の印が付く。ほかの方向も見たいときは「別の案にする」または「別の案もほしい」を押す</li>
         <li>「変更前を聴く」「変更後を聴く」で、変わるセクションだけを聴き比べる</li>
         <li>良ければ「適用する」。結果は<strong>版</strong>として残り、「元に戻す」や「版の履歴」からいつでも前の版へ戻せる</li>
       </ol>

@@ -103,7 +103,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           <label className="group relative flex min-h-48 cursor-pointer flex-col rounded-lg border border-primary/45 bg-surface-tile-1 p-5 transition hover:border-primary hover:bg-primary/8">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/18 text-primary-on-dark"><FileMusic size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">MIDIからアレンジする</span>
-            <span className="mt-2 text-[12px] leading-5 text-body-muted">Logic／外部曲のコード・メロディ・テンポを解析し、AIで全曲方針を提案します。</span>
+            <span className="mt-2 text-[12px] leading-5 text-body-muted">Logic／外部曲のコード・メロディ・テンポを読み込み、全曲の方向を選んでアレンジします。AIと相談しながら仕上げられます。</span>
             <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">{importing ? "MIDIを解析中…" : "MIDIを選択"} →</span>
             <input
               type="file"
@@ -168,7 +168,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           onConfirm={(importedProject) => {
             loadProject(importedProject)
             setAnalysis(null)
-            onNavigate("ai-partner")
+            onNavigate("arrangement")
           }}
         />
       )}

@@ -30,7 +30,8 @@ const FIRST_SUGGESTIONS = [
   "イントロをもっと印象的にしたい",
 ]
 
-const FOLLOW_UP_SUGGESTIONS = ["理由をもっと詳しく", "別の案もほしい", "ほかに気になる所は？"]
+const ANOTHER_PROPOSAL = "別の案もほしい"
+const FOLLOW_UP_SUGGESTIONS = ["理由をもっと詳しく", ANOTHER_PROPOSAL, "ほかに気になる所は？"]
 
 type ListenKey = `${string}:${"before" | "after"}`
 
@@ -40,10 +41,13 @@ type ListenKey = `${string}:${"before" | "after"}`
  */
 export function ArrangementChatPanel({
   model,
+  initialInput = "",
   onClose,
   className,
 }: {
   model: ArrangementChatModel
+  /** ほかの画面から渡された相談の文面 */
+  initialInput?: string
   onClose?: () => void
   className?: string
 }) {
@@ -55,7 +59,10 @@ export function ArrangementChatPanel({
   const dismissProposals = useProjectStore((state) => state.dismissArrangementChatProposals)
   const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
   const resetConversation = useProjectStore((state) => state.resetArrangementChatConversation)
-  const [input, setInput] = useState("")
+  const [input, setInput] = useState(initialInput)
+  useEffect(() => {
+    if (initialInput) setInput(initialInput)
+  }, [initialInput])
   const [sendingText, setSendingText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [listening, setListening] = useState<ListenKey | null>(null)
@@ -169,6 +176,22 @@ export function ArrangementChatPanel({
     if (index > 0) restoreVersion(versions[index - 1].id)
   }
 
+  /**
+   * 「別の案もほしい」: 返事に付いてきた、まだ見ていない案があればそれを出す(AIへ聞き直さない)。
+   * 最後の案まで見たら、AIに新しく頼む。
+   */
+  const askAnother = () => {
+    const open = model.openMessage
+    const proposals = open?.proposals ?? []
+    const index = proposals.findIndex((proposal) => proposal.id === model.selectedProposal?.id)
+    if (open && index >= 0 && index < proposals.length - 1) {
+      stopListening()
+      model.selectProposal(proposals[index + 1].id)
+      return
+    }
+    void send(ANOTHER_PROPOSAL)
+  }
+
   const suggestions = messages.length === 0 ? FIRST_SUGGESTIONS : FOLLOW_UP_SUGGESTIONS
 
   return (
@@ -204,8 +227,9 @@ export function ArrangementChatPanel({
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         {messages.length === 0 && !sendingText && (
           <div className="rounded-lg border border-hairline bg-white/[0.03] p-3 text-[12px] leading-6 text-body-muted">
-            いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。AIの提案は「変更案」として届き、
-            変更前と変更後を聴き比べてから適用できます。適用した結果は版として残り、いつでも戻せます。
+            {model.project.fullSongArrangement
+              ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。AIの提案は「変更案」として1つずつ届き、変更前と変更後を聴き比べてから適用できます。適用した結果は版として残り、いつでも戻せます。"
+              : "まず全曲の方向を選んで全曲アレンジを作ると、それを土台に相談できます。いきなり「こんな感じにしたい」と伝えて始めることもできます。"}
           </div>
         )}
         {messages.map((message) =>
@@ -229,6 +253,10 @@ export function ArrangementChatPanel({
               onApply={(proposal) => apply(message, proposal)}
               onDismiss={() => dismissProposals(message.id)}
               onUndo={() => message.appliedVersionId && undoApplied(message.appliedVersionId)}
+              onNextProposal={(proposalId) => {
+                stopListening()
+                model.selectProposal(proposalId)
+              }}
             />
           ),
         )}
@@ -256,7 +284,7 @@ export function ArrangementChatPanel({
               key={suggestion}
               type="button"
               disabled={Boolean(sendingText)}
-              onClick={() => void send(suggestion)}
+              onClick={() => (suggestion === ANOTHER_PROPOSAL ? askAnother() : void send(suggestion))}
               className="shrink-0 rounded-pill bg-white/6 px-3 py-1.5 text-[12px] text-body-muted hover:bg-white/12 hover:text-body-on-dark disabled:opacity-40"
             >
               {suggestion}
@@ -297,7 +325,7 @@ export function ArrangementChatPanel({
           </button>
         </form>
         <p className="text-[11px] leading-5 text-ink-muted-48">
-          Ctrl/⌘+Enterで送信。送る内容：曲の構成・コード・各パートの要約とこの会話（音源は送りません）
+          <span className="hidden sm:inline">Ctrl/⌘+Enterで送信。</span>送る内容：曲の構成・コード・各パートの要約とこの会話（音源は送りません）
         </p>
       </div>
     </section>
@@ -315,6 +343,7 @@ function AssistantMessage({
   onApply,
   onDismiss,
   onUndo,
+  onNextProposal,
 }: {
   message: ArrangementChatMessage
   model: ArrangementChatModel
@@ -326,10 +355,12 @@ function AssistantMessage({
   onApply: (proposal: ArrangementChatProposal) => void
   onDismiss: () => void
   onUndo: () => void
+  onNextProposal: (proposalId: string) => void
 }) {
   const proposals = message.proposals ?? []
   const applied = proposals.find((proposal) => proposal.id === message.appliedProposalId)
   const shown = applied ?? (isOpen ? model.selectedProposal : null)
+  const shownIndex = shown ? Math.max(0, proposals.findIndex((proposal) => proposal.id === shown.id)) : 0
   // 開いている案は、いまの版と実際に作った全曲アレンジを比べた変化を表示する
   const changes = isOpen && shown ? model.pendingChanges : []
   const points = isOpen && shown
@@ -357,31 +388,7 @@ function AssistantMessage({
               {applied ? `適用済み${versionNumber ? ` · 版 ${versionNumber}` : ""}` : "提案中"}
             </span>
           </div>
-          {!applied && proposals.length > 1 && (
-            <div role="radiogroup" aria-label="案の選択" className="flex flex-wrap gap-1.5">
-              {proposals.map((proposal) => (
-                <button
-                  key={proposal.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={proposal.id === shown.id}
-                  onClick={() => model.selectProposal(proposal.id)}
-                  className={clsx(
-                    "max-w-full truncate rounded-pill px-3 py-1.5 text-[12px]",
-                    proposal.id === shown.id
-                      ? "bg-primary text-on-primary"
-                      : "bg-white/6 text-body-muted hover:bg-white/12 hover:text-body-on-dark",
-                  )}
-                  title={proposal.title}
-                >
-                  {proposal.label} {proposal.title}
-                </button>
-              ))}
-            </div>
-          )}
-          {(applied || proposals.length === 1) && (
-            <p className="text-[12px] font-medium text-body-on-dark">{shown.label} {shown.title}</p>
-          )}
+          <p className="text-[13px] font-medium text-body-on-dark">{shown.title}</p>
           {shown.summary && <p className="text-[12px] leading-5 text-body-muted">{shown.summary}</p>}
           <p className="text-[11px] text-ink-muted-48">
             作り直す範囲：
@@ -414,6 +421,15 @@ function AssistantMessage({
               >
                 {listening === `${shown.id}:after` ? <><Square size={12} /> 停止</> : <><Play size={12} /> 変更後を聴く</>}
               </Button>
+              {proposals.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onNextProposal(proposals[(shownIndex + 1) % proposals.length].id)}
+                  className="px-2 text-[12px] text-primary-on-dark hover:underline"
+                >
+                  別の案にする（{shownIndex + 1}/{proposals.length}）
+                </button>
+              )}
               <button type="button" onClick={onDismiss} className="px-2 text-[12px] text-ink-muted-48 hover:text-body-on-dark">
                 やめる
               </button>

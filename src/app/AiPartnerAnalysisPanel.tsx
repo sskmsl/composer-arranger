@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react"
 import {
   AudioLines,
   CircleCheck,
@@ -25,18 +26,18 @@ import {
 } from "./aiPartnerLabels"
 
 /**
- * 「AIで方針」画面の「詳細設定・分析を開く」の中身。曲全体の流れ(Arrangement Director)、
- * 編曲の評価、オーケストレーションの割り当てを表示・調整する。
- * AiPartnerWorkspace から分けた表示部分で、親から context を受け取り、変更はストアへ直接送る。
+ * アレンジ画面の「曲の流れと楽器の役割」。曲全体の流れ(どこを静かにし、どこで広げるか)、
+ * 編曲の評価、楽器の割り当てを表示・調整する。変更は全曲アレンジの生成に使われる。
+ * 親から context を受け取り、変更はストアへ直接送る。
  */
-export function AiPartnerAnalysisPanel({
-  context,
-  effectiveSectionId,
-}: {
-  context: ReturnType<typeof buildAiArrangementContext> | null
-  effectiveSectionId: string | null
-}) {
+export function AiPartnerAnalysisPanel({ effectiveSectionId }: { effectiveSectionId: string | null }) {
   const project = useProjectStore((state) => state.project)
+  // 解析は重いので、欄を開いている間だけ行う
+  const [open, setOpen] = useState(false)
+  const context = useMemo(
+    () => (open && effectiveSectionId ? buildAiArrangementContext(project, effectiveSectionId, "section") : null),
+    [effectiveSectionId, open, project],
+  )
   const selectSection = useProjectStore((state) => state.selectSection)
   const setArrangementDirectorClimax = useProjectStore((state) => state.setArrangementDirectorClimax)
   const setArrangementDirectorSectionOverride = useProjectStore((state) => state.setArrangementDirectorSectionOverride)
@@ -50,9 +51,12 @@ export function AiPartnerAnalysisPanel({
   const audibleLayerReview = context?.audibleLayerReview
 
   return (
-    <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
-      <summary className="cursor-pointer text-[11px] font-medium text-body-muted hover:text-body-on-dark">
-        詳細設定・分析を開く
+    <details
+      className="rounded-lg border border-hairline bg-white/[0.015] p-3"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">
+        曲の流れと楽器の役割（盛り上げる場所・強さを細かく決める）
       </summary>
       <div className="mt-3 flex flex-col gap-4">
       {director && director.sections.length > 0 && (

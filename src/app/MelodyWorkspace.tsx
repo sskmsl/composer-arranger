@@ -164,7 +164,7 @@ export function MelodyWorkspace({
             {[
               { label: "1 コード", done: chords.length > 0 && !chordHasError },
               { label: "2 主旋律", done: Boolean(variant) },
-              { label: "3 全曲方針", done: false },
+              { label: "3 全曲アレンジ", done: false },
             ].map((step, index) => (
               <div
                 key={step.label}
@@ -182,7 +182,7 @@ export function MelodyWorkspace({
                   ? "コード表記を直すと主旋律を生成できます。"
                   : !variant
                     ? "コードの準備ができました。主旋律候補を生成します。"
-                    : "主旋律を採用したら、AIと全曲の方針を決めます。"}
+                    : "主旋律を採用したら、全曲の方向を選んでアレンジします。"}
             </p>
             {chords.length === 0 && onOpenProjectPanel && (
               <Button variant="secondary" onClick={onOpenProjectPanel}>コード進行を入力</Button>
@@ -191,7 +191,7 @@ export function MelodyWorkspace({
               <Button onClick={() => generateForSection(section.id)}><Sparkles size={14} /> 主旋律候補を生成</Button>
             )}
             {variant && onNavigate && (
-              <Button onClick={() => onNavigate("ai-partner")}>AIで全曲方針へ <ArrowRight size={13} /></Button>
+              <Button onClick={() => onNavigate("arrangement")}>全曲のアレンジへ <ArrowRight size={13} /></Button>
             )}
           </div>
         </section>
@@ -273,10 +273,10 @@ export function MelodyWorkspace({
           {variant && onNavigate && (
             <button
               type="button"
-              onClick={() => onNavigate("ai-partner")}
+              onClick={() => onNavigate("arrangement")}
               className="flex items-center gap-1 text-[12px] text-primary-on-dark hover:underline"
             >
-              次: AIで全曲方針 <ArrowRight size={12} />
+              次: 全曲のアレンジ <ArrowRight size={12} />
             </button>
           )}
         </div>

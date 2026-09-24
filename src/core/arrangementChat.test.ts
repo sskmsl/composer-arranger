@@ -282,3 +282,24 @@ describe("アレンジ相談チャット: パートを外す指示", () => {
     expect(drumNotes(removed, false)).toBe(drumNotes(arrangement, false))
   })
 })
+
+describe("アレンジ相談チャット: 全曲の方向から作る", () => {
+  it("方向で作った全曲アレンジを版として積み、履歴から同じものへ戻せる", () => {
+    useProjectStore.setState({ project: song(), history: [], future: [], persist: () => {} })
+    useProjectStore.getState().generateDirectionArrangement("余白を生かす", "Minimal", {
+      intention: "余白を守る",
+      character: "minimal",
+      energyDelta: -8,
+    })
+    const first = useProjectStore.getState().project
+    expect(first.arrangementChat?.versions.map((version) => [version.number, version.source, version.label])).toEqual([
+      [1, "original", "追加パートなし（原曲のみ）"],
+      [2, "direction", "余白を生かす"],
+    ])
+    const arrangementId = first.fullSongArrangement!.id
+    useProjectStore.getState().restoreArrangementVersion(first.arrangementChat!.versions[0].id)
+    expect(useProjectStore.getState().project.fullSongArrangement).toBeUndefined()
+    useProjectStore.getState().restoreArrangementVersion(first.arrangementChat!.versions[1].id)
+    expect(useProjectStore.getState().project.fullSongArrangement?.id).toBe(arrangementId)
+  })
+})

@@ -216,7 +216,7 @@ export function BottomBar() {
 
       <div className="ml-auto" />
 
-      {/* 曲全体の再生・書き出しは「結果・書出し」画面の上部。ここは選択中のセクションだけを扱う */}
+      {/* 曲全体の再生・書き出しは「アレンジ・書出し」画面の上部。ここは選択中のセクションだけを扱う */}
       {section && (
         <span className="hidden max-w-40 truncate text-[11px] text-body-muted md:inline" title="この下の再生・書き出しの対象">
           対象: {section.name}

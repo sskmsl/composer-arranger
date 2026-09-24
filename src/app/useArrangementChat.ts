@@ -59,7 +59,7 @@ export function partCellMarks(
   return marks
 }
 
-/** 結果・書出しの表と相談パネルで共有する、アレンジ相談の状態 */
+/** アレンジ・書出し画面の表と相談パネルで共有する、アレンジ相談の状態 */
 export function useArrangementChat(): ArrangementChatModel {
   const project = useProjectStore((state) => state.project)
   const chat = project.arrangementChat

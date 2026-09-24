@@ -44,7 +44,7 @@ export interface ArrangementVersion {
   number: number
   label: string
   createdAt: string
-  source: "original" | "existing" | "chat"
+  source: "original" | "existing" | "chat" | "direction"
   /** original(追加パートなし)は持たない */
   recipe?: ArrangementRecipe
   /** この版の全曲アレンジのID。相談の外で作り直されたかどうかの判定に使う */
@@ -317,7 +317,15 @@ export function currentArrangementVersion(
 export function pushArrangementVersion(
   chat: ArrangementChatState,
   previousArrangement: FullSongArrangement | null | undefined,
-  next: { id: string; label: string; createdAt: string; recipe: ArrangementRecipe; arrangementId: string; changes: ArrangementCellChange[] },
+  next: {
+    id: string
+    label: string
+    createdAt: string
+    recipe: ArrangementRecipe
+    arrangementId: string
+    changes: ArrangementCellChange[]
+    source?: "chat" | "direction"
+  },
 ): ArrangementChatState {
   let versions = [...chat.versions]
   const baseline = currentArrangementVersion(chat, previousArrangement)
@@ -337,7 +345,7 @@ export function pushArrangementVersion(
   versions.push({
     ...next,
     number: 0,
-    source: "chat",
+    source: next.source ?? "chat",
     ...(next.recipe.scopeSectionIds?.length ? { baseVersionId } : {}),
   })
   versions = versions.slice(-MAX_ARRANGEMENT_VERSIONS)
