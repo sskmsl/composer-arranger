@@ -20,15 +20,15 @@ export const GENERATOR_PROFILES: MelodyGeneratorProfile[] = [
 ]
 
 export const GENERATOR_PROFILE_LABELS: Record<MelodyGeneratorProfile, string> = {
-  standard: "Standard",
-  minimal: "Minimal",
-  leaping: "Leaping",
-  rhythmic: "Rhythmic",
-  chromatic: "Chromatic",
-  cinematic: "Cinematic",
-  "elegiac-cantabile": "Elegiac Cantabile",
-  "speech-rhythmic": "Speech-Rhythmic",
-  incantatory: "Incantatory",
+  standard: "標準",
+  minimal: "ミニマル",
+  leaping: "跳躍型",
+  rhythmic: "リズム型",
+  chromatic: "半音階型",
+  cinematic: "シネマティック",
+  "elegiac-cantabile": "エレジー(歌うように)",
+  "speech-rhythmic": "語りのリズム",
+  incantatory: "呪文のような反復",
 }
 
 /** 固有名詞・特定ジャンル名を使わない、旋律語彙としての説明(7.3) */

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useProjectStore } from "./useProjectStore"
 import { createEmptyProject } from "@/core/project"
-import { DEFAULT_SECTION_CONTENT, notesBeforeEntryOffset } from "@/core/sectionContent"
+import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS, notesBeforeEntryOffset } from "@/core/sectionContent"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import type { ComposerProject } from "@/core/project"
 import { parseChordInputText } from "@/core/chordInput"
@@ -169,7 +169,7 @@ describe("Issue #41 / generateForSectionがContent設定で経路を切り替え
       expect(variant.layers?.[0].partRole).toBe("accompaniment")
       expect(variant.contentPlan).toBeDefined()
       // 候補名にContent Modeが出る(候補カード表示用)
-      expect(variant.name).toContain("Drone")
+      expect(variant.name).toContain(LEAD_CONTENT_LABELS.drone)
     }
   })
 

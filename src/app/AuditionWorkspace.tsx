@@ -349,7 +349,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
                 setReviewState(activeVariant.id, activeVariant.reviewState === "favorite" ? null : "favorite")
               }
             >
-              <Star size={13} /> Favorite
+              <Star size={13} /> お気に入り
             </Button>
             <Button
               variant="dark"
@@ -357,7 +357,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
                 setReviewState(activeVariant.id, activeVariant.reviewState === "rejected" ? null : "rejected")
               }
             >
-              <ThumbsDown size={13} /> Reject
+              <ThumbsDown size={13} /> 却下
             </Button>
             <Button variant="secondary" onClick={() => setActiveMelody(activeVariant.id)}>
               <Check size={13} /> この主旋律を採用

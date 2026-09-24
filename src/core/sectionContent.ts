@@ -30,12 +30,12 @@ export const LEAD_CONTENTS: LeadContent[] = ["auto", "melody", "motif", "ostinat
 export const RESOLVED_LEAD_CONTENTS: ResolvedLeadContent[] = ["melody", "motif", "ostinato", "drone", "none"]
 
 export const LEAD_CONTENT_LABELS: Record<LeadContent, string> = {
-  auto: "Auto",
-  melody: "Melody",
-  motif: "Motif",
-  ostinato: "Ostinato",
-  drone: "Drone",
-  none: "None",
+  auto: "おまかせ",
+  melody: "歌の旋律",
+  motif: "短い動機",
+  ostinato: "反復音型",
+  drone: "持続音",
+  none: "なし",
 }
 
 /**
@@ -83,13 +83,13 @@ export interface ContentPreset {
 }
 
 export const CONTENT_PRESETS: ContentPreset[] = [
-  { id: "auto", label: "Auto", lead: "auto", accompaniment: "chords" },
-  { id: "melody", label: "Melody", lead: "melody", accompaniment: "chords" },
-  { id: "motif", label: "Motif", lead: "motif", accompaniment: "chords" },
-  { id: "ostinato", label: "Ostinato", lead: "ostinato", accompaniment: "chords" },
-  { id: "drone", label: "Drone", lead: "drone", accompaniment: "chords" },
-  { id: "chords-only", label: "Chords Only", lead: "none", accompaniment: "chords" },
-  { id: "silence", label: "Silence", lead: "none", accompaniment: "none" },
+  { id: "auto", label: "おまかせ", lead: "auto", accompaniment: "chords" },
+  { id: "melody", label: "歌の旋律", lead: "melody", accompaniment: "chords" },
+  { id: "motif", label: "短い動機", lead: "motif", accompaniment: "chords" },
+  { id: "ostinato", label: "反復音型", lead: "ostinato", accompaniment: "chords" },
+  { id: "drone", label: "持続音", lead: "drone", accompaniment: "chords" },
+  { id: "chords-only", label: "コードのみ", lead: "none", accompaniment: "chords" },
+  { id: "silence", label: "無音", lead: "none", accompaniment: "none" },
 ]
 
 /** 現在の設定に一致するプリセットID(一致しない組み合わせはnull) */

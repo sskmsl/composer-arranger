@@ -163,7 +163,7 @@ export function RightPanel({
               </Select>
             </FieldGroup>
           )}
-          <FieldGroup label="Genreブレンド（最大3要素）">
+          <FieldGroup label="ジャンルの配合（最大3つ）">
             <div className="flex flex-col gap-1">
               {[0, 1, 2].map((index) => {
                 const entry = project.song.genreBlend?.[index]
@@ -180,7 +180,7 @@ export function RightPanel({
               })}
             </div>
           </FieldGroup>
-          <FieldGroup label="Sound Image（Genreとは別軸）">
+          <FieldGroup label="音像（ジャンルとは別に指定）">
             <Select className="w-full" value={project.song.aesthetic?.image ?? "neutral"}
               onChange={(event) => updateSongField("aesthetic", {
                 image: event.target.value as "neutral" | "atmospheric-depth",
@@ -190,7 +190,7 @@ export function RightPanel({
               <option value="atmospheric-depth">奥行き・透明感・長い余韻</option>
             </Select>
             {project.song.aesthetic?.image === "atmospheric-depth" && <input className="mt-1 w-full" type="range" min="0" max="100"
-              aria-label="Sound Imageの強さ" value={Math.round((project.song.aesthetic.amount ?? 1) * 100)}
+              aria-label="音像の強さ" value={Math.round((project.song.aesthetic.amount ?? 1) * 100)}
               onChange={(event) => updateSongField("aesthetic", { image: "atmospheric-depth", amount: Number(event.target.value) / 100 })} />}
           </FieldGroup>
         </div>
@@ -262,7 +262,7 @@ export function RightPanel({
           </label>
           {generationSettings.techniqueExperimentPresetId && (
             <div className="mt-3 flex flex-col gap-2">
-              <FieldGroup label="Draft Preset">
+              <FieldGroup label="下書きの設定">
                 <Select
                   className="w-full min-w-0"
                   value={
@@ -390,26 +390,26 @@ export function RightPanel({
       <SectionCard title="生成パラメータ" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
-            <FieldGroup label="Density">
+            <FieldGroup label="音の密度">
               <Select className="w-full min-w-0" value={generationSettings.density} onChange={(e) => setGenerationSettings({ density: e.target.value as Density })}>
-                <option value="sparse">Sparse</option>
-                <option value="balanced">Balanced</option>
-                <option value="active">Active</option>
+                <option value="sparse">少なめ</option>
+                <option value="balanced">ほどよく</option>
+                <option value="active">多め</option>
               </Select>
             </FieldGroup>
             {mode === "melody" && <IgnoredNote setting="density" selected={selected} />}
           </div>
           <div className="flex flex-col gap-1">
-            <FieldGroup label="Range">
+            <FieldGroup label="音域">
               <Select
                 className="w-full min-w-0"
                 value={generationSettings.rangePreset}
                 onChange={(e) => setGenerationSettings({ rangePreset: e.target.value as RangePreset })}
               >
-                <option value="low">Low (G3–C5)</option>
-                <option value="middle">Middle (C4–F5)</option>
-                <option value="high">High (E4–A5)</option>
-                <option value="custom">Custom</option>
+                <option value="low">低め (G3–C5)</option>
+                <option value="middle">中音域 (C4–F5)</option>
+                <option value="high">高め (E4–A5)</option>
+                <option value="custom">指定する</option>
               </Select>
             </FieldGroup>
             {generationSettings.rangePreset === "custom" && (
@@ -443,11 +443,11 @@ export function RightPanel({
             )}
           </div>
           <div className="flex flex-col gap-1">
-            <FieldGroup label="Drama">
+            <FieldGroup label="盛り上がり">
               <Select className="w-full min-w-0" value={generationSettings.drama} onChange={(e) => setGenerationSettings({ drama: e.target.value as Drama })}>
-                <option value="restrained">Restrained</option>
-                <option value="growing">Growing</option>
-                <option value="open">Open</option>
+                <option value="restrained">抑えめ</option>
+                <option value="growing">だんだん高まる</option>
+                <option value="open">大きく開く</option>
               </Select>
             </FieldGroup>
             {mode === "melody" && <IgnoredNote setting="drama" selected={selected} />}
@@ -528,10 +528,10 @@ export function RightPanel({
             onClick={() => extractMotifDNAFromVariant(variant.id)}
           >
             <Dna size={13} className="shrink-0" />
-            <span className="min-w-0 break-words">このメロディからMotif DNAを抽出</span>
+            <span className="min-w-0 break-words">この主旋律から動機の特徴を取り出す</span>
           </Button>
         )}
-        {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">Song Motif DNA保存済み(他セクション生成へ軽く反映されます)</p>}
+        {project.songMotifDNA && <p className="mt-2 text-[11px] text-ink-muted-48">曲の動機の特徴を保存済み(ほかのセクションの生成に軽く反映されます)</p>}
       </SectionCard>}
 
       {mode === "melody" && variant && candidateEvidence && (

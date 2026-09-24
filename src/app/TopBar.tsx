@@ -4,6 +4,7 @@ import { IconButton, Pill, TextInput } from "@/ui/primitives"
 import { CircleHelp, House, PanelLeft, PanelRight } from "lucide-react"
 import type { MainTab } from "./App"
 import { isMelodyGroupTab } from "./melodyTabs"
+import { ProjectMenu } from "./ProjectMenu"
 
 /**
  * 主要な画面。主旋律・対旋律・装飾・イントロ・短いフレーズ・聴き比べは、どれも主旋律を
@@ -26,11 +27,13 @@ export function TopBar({
   onTabChange,
   onToggleLeft,
   onToggleRight,
+  onOpenImportGuide,
 }: {
   tab: MainTab
   onTabChange: (t: MainTab) => void
   onToggleLeft: () => void
   onToggleRight: () => void
+  onOpenImportGuide?: () => void
 }) {
   const project = useProjectStore((s) => s.project)
   const updateSongField = useProjectStore((s) => s.updateSongField)
@@ -69,6 +72,7 @@ export function TopBar({
             className="w-28 min-w-0 flex-1 !bg-transparent !border-transparent text-[13px] hover:!border-hairline sm:w-40 sm:flex-none"
           />
         )}
+        {tab !== "home" && <ProjectMenu onOpenImportGuide={onOpenImportGuide} />}
 
         {hasSidePanels && (
           <IconButton onClick={onToggleRight} className="lg:hidden" title="詳細設定を開く">

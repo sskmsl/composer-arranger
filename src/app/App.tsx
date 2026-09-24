@@ -104,6 +104,7 @@ export function App() {
         onTabChange={changeTopTab}
         onToggleLeft={() => setLeftOpen((v) => !v)}
         onToggleRight={() => setRightOpen((v) => !v)}
+        onOpenImportGuide={() => setImportGuideOpen(true)}
       />
       <TimingMigrationBanner />
       <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>
@@ -123,7 +124,7 @@ export function App() {
         {tab === "home" && <HomeWorkspace onNavigate={changeTopTab} />}
         {tab === "melody" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <MelodyColumn tab={tab} onChange={setTab}>
               <MelodyWorkspace
                 onNavigate={setTab}
@@ -144,7 +145,7 @@ export function App() {
         )}
         {tab === "phrase" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <MelodyColumn tab={tab} onChange={setTab}>
               <PhraseWorkspace />
             </MelodyColumn>
@@ -162,7 +163,7 @@ export function App() {
         )}
         {tab === "signature" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <MelodyColumn tab={tab} onChange={setTab}>
               <SignaturePhraseWorkspace />
             </MelodyColumn>
@@ -184,7 +185,7 @@ export function App() {
         )}
         {tab === "counter" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <MelodyColumn tab={tab} onChange={setTab}>
               <CounterWorkspace onNavigate={setTab} />
             </MelodyColumn>
@@ -202,7 +203,7 @@ export function App() {
         )}
         {tab === "decoration" && (
           <>
-            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} onOpenImportGuide={() => setImportGuideOpen(true)} />
+            <LeftPanel open={leftOpen} onClose={() => setLeftOpen(false)} />
             <MelodyColumn tab={tab} onChange={setTab}>
               <DecorationWorkspace />
             </MelodyColumn>
