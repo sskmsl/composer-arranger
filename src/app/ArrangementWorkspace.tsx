@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
-import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
+import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
@@ -14,6 +14,9 @@ import { MultiPartArrangementPanel } from "./MultiPartArrangementPanel"
 import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
 import { FullSongArrangementPanel } from "./FullSongArrangementPanel"
 import { CandidateStatusBadge } from "./CandidateStatusBadge"
+import { ArrangementChatPanel } from "./ArrangementChatPanel"
+import { ArrangementPartTable } from "./ArrangementPartTable"
+import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 
 export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
   const project = useProjectStore((state) => state.project)
@@ -22,6 +25,9 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const assignVariant = useProjectStore((state) => state.assignVariantToSection)
   const duplicateSection = useProjectStore((state) => state.duplicateSection)
   const removeSection = useProjectStore((state) => state.removeSection)
+  const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
+  const chatModel = useArrangementChat()
+  const [chatOpen, setChatOpen] = useState(false)
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [playbackBeat, setPlaybackBeat] = useState(0)
@@ -136,13 +142,21 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
     })
   }
 
+  const versions = project.arrangementChat?.versions ?? []
+
   return (
+    <div className="flex w-full min-w-0 flex-1">
     <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-x-clip px-3 py-4 sm:p-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto min-w-0">
           <h2 className="text-[16px] font-semibold">生成結果と書き出し</h2>
-          <p className="mt-1 text-[12px] text-body-muted">AIで決めた方針の実音・採用状態・MIDIを確認します。</p>
+          <p className="mt-1 text-[12px] text-body-muted">いまの版: {chatModel.versionLabel}</p>
         </div>
+        {project.sections.length > 0 && (
+          <Button className="lg:hidden" onClick={() => setChatOpen(true)}>
+            <MessageCircle size={14} /> アレンジ相談
+          </Button>
+        )}
         <Button variant="secondary" onClick={() => onNavigate("ai-partner")}>AIで方針を見直す</Button>
         <Button variant="dark" onClick={playing ? () => stop() : () => playSong()} disabled={project.sections.length === 0}>
           {playing ? <Square size={14} /> : <Play size={14} />}
@@ -195,11 +209,53 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         </section>
       )}
 
-      <section className="grid gap-2 rounded-lg border border-hairline bg-white/[0.025] p-3 sm:grid-cols-3">
-        <div className="text-[12px] text-body-on-dark"><b className="mr-2 text-primary-on-dark">1</b>AIが加えたパートを確認</div>
-        <div className="text-[12px] text-body-on-dark"><b className="mr-2 text-primary-on-dark">2</b>原曲と生成後を聴き比べる</div>
-        <div className="text-[12px] text-body-on-dark"><b className="mr-2 text-primary-on-dark">3</b>良ければMIDIを書き出す</div>
-      </section>
+      {project.sections.length > 0 && (
+        <section aria-labelledby="part-table-heading" className="flex min-w-0 flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 id="part-table-heading" className="mr-auto text-[13px] font-semibold text-body-on-dark">パート構成</h3>
+          </div>
+          <ArrangementPartTable
+            matrix={chatModel.matrix}
+            marks={partCellMarks(chatModel.versionChanges, chatModel.pendingChanges)}
+            pendingChanges={chatModel.pendingChanges}
+          />
+          {!project.fullSongArrangement && (
+            <p className="text-[12px] text-body-muted">
+              まだ追加パートがありません。「AIで方針」で全曲の方向を決めるか、アレンジ相談で希望を伝えてください。
+            </p>
+          )}
+          {versions.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-hairline pt-3">
+              <div className="text-[12px] font-medium text-body-on-dark">版の履歴</div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {[...versions].reverse().map((version) => {
+                  const current = version.id === chatModel.currentVersionId
+                  return (
+                    <button
+                      key={version.id}
+                      type="button"
+                      aria-pressed={current}
+                      disabled={current}
+                      onClick={() => restoreVersion(version.id)}
+                      title={current ? "いまの版" : "この版に戻す"}
+                      className={`flex w-48 shrink-0 flex-col gap-0.5 rounded-md px-3 py-2 text-left ${
+                        current
+                          ? "bg-primary/20 outline outline-1 outline-primary-on-dark/60"
+                          : "bg-surface-tile-2 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className={`text-[11px] ${current ? "text-primary-on-dark" : "text-ink-muted-48"}`}>
+                        版 {version.number}{current ? " · いまの版" : " · 押すと戻す"}
+                      </span>
+                      <span className="truncate text-[12px] text-body-on-dark">{version.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {project.sections.length > 0 && (
         <>
@@ -315,5 +371,21 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         </div>
       )}
     </main>
+    {project.sections.length > 0 && (
+      <>
+        {/* PCでは右側に相談を常に出し、ページをスクロールしても見えるよう貼り付ける(高さは上部バーの分を引いて入力欄が隠れないように) */}
+        <ArrangementChatPanel
+          model={chatModel}
+          className="sticky top-0 hidden h-[calc(100dvh-2.75rem)] w-[400px] shrink-0 border-l border-hairline lg:flex xl:w-[440px]"
+        />
+        {/* スマホ・タブレットでは全画面で開く */}
+        {chatOpen && (
+          <div className="fixed inset-0 z-[60] flex lg:hidden">
+            <ArrangementChatPanel model={chatModel} onClose={() => setChatOpen(false)} className="flex-1" />
+          </div>
+        )}
+      </>
+    )}
+    </div>
   )
 }
