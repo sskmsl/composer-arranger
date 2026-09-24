@@ -13,6 +13,8 @@
   --color-ink-muted-80: #333333;
   /* Small secondary copy must remain WCAG AA on every dark tile (#252527–#2a2a2c). */
   --color-ink-muted-48: #a8a8ad;
+  /* 暗い背景の上の補足文字。ink-muted-48より明るくして読みやすくする */
+  --color-ink-soft: #c6c6cb;
 
   --color-divider-soft: #f0f0f0;
   --color-hairline: rgba(255, 255, 255, 0.12);

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { clsx } from "clsx"
 import { ArrowLeft, ArrowUp, Check, LoaderCircle, Play, Square, Undo2 } from "lucide-react"
 import { previewPlayer } from "@/audio/previewPlayer"
@@ -9,6 +9,15 @@ import {
   proposalsFromResponse,
 } from "@/ai-arranger/arrangementChatAdvice"
 import { plainDirectionText } from "@/ai-arranger/directionPresentation"
+import {
+  entriesInMonth,
+  formatTokens,
+  formatUsd,
+  OPENAI_USAGE_URL,
+  readAiUsage,
+  recordAiUsage,
+  summarizeAiUsage,
+} from "@/ai-arranger/usageLog"
 import {
   describeArrangementChanges,
   type ArrangementCellChange,
@@ -70,6 +79,13 @@ export function ArrangementChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
   // PCの横パネルとスマホの全画面が同時に存在しうるので、入力欄のIDはパネルごとに分ける
   const inputId = useId()
+  const [usageOpen, setUsageOpen] = useState(false)
+  // 使用量の記録は端末(localStorage)にあるので、相談のたびに読み直す
+  const [usageEntries, setUsageEntries] = useState(() => readAiUsage())
+  const monthUsage = useMemo(() => summarizeAiUsage(entriesInMonth(usageEntries)), [usageEntries])
+  const chatUsage = summarizeAiUsage(
+    messages.flatMap((message) => (message.usage ? [{ at: message.createdAt, ...message.usage }] : [])),
+  )
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -110,7 +126,15 @@ export function ArrangementChatPanel({
         createdAt: now,
         text: plainDirectionText(response.partnerReply),
         proposals,
+        usage: {
+          costUsd: response.cached ? 0 : response.usage.estimatedCostUsd,
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+          cached: Boolean(response.cached),
+        },
       }
+      recordAiUsage({ at: now, ...reply.usage! })
+      setUsageEntries(readAiUsage())
       appendMessages(
         [{ id: `user:${now}`, role: "user", createdAt: now, text }, reply],
         response.confirmedConstraints,
@@ -209,12 +233,20 @@ export function ArrangementChatPanel({
         )}
         <div className="mr-auto min-w-0">
           <h2 className="text-[15px] font-semibold text-body-on-dark">アレンジ相談</h2>
-          <p className="mt-0.5 text-[12px] text-ink-muted-48">主旋律とコードは変えずに相談します · いま: {model.versionLabel}</p>
+          <p className="mt-0.5 text-[13px] text-ink-soft">主旋律とコードは変えずに相談します · いま: {model.versionLabel}</p>
+          <button
+            type="button"
+            aria-expanded={usageOpen}
+            onClick={() => setUsageOpen((value) => !value)}
+            className="mt-1 text-[12px] text-primary-on-dark hover:underline"
+          >
+            AIの使用量：今月 {monthUsage.requests}回・{formatUsd(monthUsage.costUsd)}
+          </button>
         </div>
         {messages.length > 0 && (
           <button
             type="button"
-            className="shrink-0 rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-body-muted hover:text-body-on-dark"
+            className="shrink-0 rounded-pill border border-hairline px-3 py-1.5 text-[13px] text-body-muted hover:text-body-on-dark"
             onClick={() => {
               if (window.confirm("これまでの会話を消して、新しく相談を始めますか？（版の履歴は残ります）")) resetConversation()
             }}
@@ -224,9 +256,30 @@ export function ArrangementChatPanel({
         )}
       </div>
 
+      {usageOpen && (
+        <div className="border-b border-hairline bg-white/[0.03] px-4 py-3 text-[13px] leading-6 text-body-muted">
+          <div className="grid grid-cols-[auto_1fr] gap-x-3">
+            <span className="text-ink-soft">この会話</span>
+            <span className="text-body-on-dark">
+              {chatUsage.requests}回・{formatUsd(chatUsage.costUsd)}・入力 {formatTokens(chatUsage.inputTokens)}／出力 {formatTokens(chatUsage.outputTokens)} トークン
+            </span>
+            <span className="text-ink-soft">今月（この端末）</span>
+            <span className="text-body-on-dark">
+              {monthUsage.requests}回・{formatUsd(monthUsage.costUsd)}・入力 {formatTokens(monthUsage.inputTokens)}／出力 {formatTokens(monthUsage.outputTokens)} トークン
+              {monthUsage.cachedRequests > 0 ? `（うち${monthUsage.cachedRequests}回は同じ相談の再利用で利用料なし）` : ""}
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] text-ink-soft">
+            金額はアプリが受け取った概算です。請求の正確な金額は
+            <a href={OPENAI_USAGE_URL} target="_blank" rel="noreferrer" className="mx-1 text-primary-on-dark underline">OpenAIの利用状況ページ</a>
+            で確認できます。
+          </p>
+        </div>
+      )}
+
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         {messages.length === 0 && !sendingText && (
-          <div className="rounded-lg border border-hairline bg-white/[0.03] p-3 text-[12px] leading-6 text-body-muted">
+          <div className="rounded-lg border border-hairline bg-white/[0.03] p-3 text-[13px] leading-6 text-body-muted">
             {model.project.fullSongArrangement
               ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。AIの提案は「変更案」として1つずつ届き、変更前と変更後を聴き比べてから適用できます。適用した結果は版として残り、いつでも戻せます。"
               : "まず全曲の方向を選んで全曲アレンジを作ると、それを土台に相談できます。いきなり「こんな感じにしたい」と伝えて始めることもできます。"}
@@ -265,7 +318,7 @@ export function ArrangementChatPanel({
             <p className="max-w-[86%] self-end whitespace-pre-wrap rounded-[14px_14px_4px_14px] bg-primary/30 px-3 py-2 text-[13px] leading-6 text-body-on-dark">
               {sendingText}
             </p>
-            <p className="flex items-center gap-2 text-[12px] text-body-muted">
+            <p className="flex items-center gap-2 text-[13px] text-body-muted">
               <LoaderCircle size={14} className="animate-spin" /> いまの全曲アレンジを見て考えています…
             </p>
           </>
@@ -274,7 +327,7 @@ export function ArrangementChatPanel({
 
       <div className="flex flex-col gap-2 border-t border-hairline px-4 pb-4 pt-3">
         {error && (
-          <p role="alert" className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-200">
+          <p role="alert" className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-200">
             {error}
           </p>
         )}
@@ -285,7 +338,7 @@ export function ArrangementChatPanel({
               type="button"
               disabled={Boolean(sendingText)}
               onClick={() => (suggestion === ANOTHER_PROPOSAL ? askAnother() : void send(suggestion))}
-              className="shrink-0 rounded-pill bg-white/6 px-3 py-1.5 text-[12px] text-body-muted hover:bg-white/12 hover:text-body-on-dark disabled:opacity-40"
+              className="shrink-0 rounded-pill bg-white/6 px-3 py-1.5 text-[13px] text-body-muted hover:bg-white/12 hover:text-body-on-dark disabled:opacity-40"
             >
               {suggestion}
             </button>
@@ -313,7 +366,7 @@ export function ArrangementChatPanel({
               }
             }}
             placeholder="例：アウトロは余韻を残して、ピアノだけで終わらせたい"
-            className="min-h-0 flex-1 resize-none bg-transparent py-1.5 text-[14px] leading-6 text-body-on-dark outline-none placeholder:text-ink-muted-48"
+            className="min-h-0 flex-1 resize-none bg-transparent py-1.5 text-[14px] leading-6 text-body-on-dark outline-none placeholder:text-ink-soft"
           />
           <button
             type="submit"
@@ -324,7 +377,7 @@ export function ArrangementChatPanel({
             {sendingText ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowUp size={16} />}
           </button>
         </form>
-        <p className="text-[11px] leading-5 text-ink-muted-48">
+        <p className="text-[12px] leading-5 text-ink-soft">
           <span className="hidden sm:inline">Ctrl/⌘+Enterで送信。</span>送る内容：曲の構成・コード・各パートの要約とこの会話（音源は送りません）
         </p>
       </div>
@@ -370,6 +423,13 @@ function AssistantMessage({
   return (
     <div className="flex flex-col gap-2">
       <p className="whitespace-pre-wrap text-[13px] leading-7 text-[#e8e8ea]">{message.text}</p>
+      {message.usage && (
+        <p className="text-[12px] text-ink-soft">
+          {message.usage.cached
+            ? "同じ相談の再利用（利用料なし）"
+            : `AI利用 ${formatUsd(message.usage.costUsd)}（入力 ${formatTokens(message.usage.inputTokens)}・出力 ${formatTokens(message.usage.outputTokens)} トークン）`}
+        </p>
+      )}
       {proposals.length > 0 && (applied || isOpen) && shown && (
         <div
           className={clsx(
@@ -381,7 +441,7 @@ function AssistantMessage({
             <span className="text-[13px] font-medium text-body-on-dark">変更案</span>
             <span
               className={clsx(
-                "ml-auto rounded-pill px-2 py-0.5 text-[11px]",
+                "ml-auto rounded-pill px-2 py-0.5 text-[12px]",
                 applied ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-300/15 text-amber-200",
               )}
             >
@@ -389,8 +449,8 @@ function AssistantMessage({
             </span>
           </div>
           <p className="text-[13px] font-medium text-body-on-dark">{shown.title}</p>
-          {shown.summary && <p className="text-[12px] leading-5 text-body-muted">{shown.summary}</p>}
-          <p className="text-[11px] text-ink-muted-48">
+          {shown.summary && <p className="text-[13px] leading-5 text-body-muted">{shown.summary}</p>}
+          <p className="text-[12px] text-ink-soft">
             作り直す範囲：
             {shown.recipe.scopeSectionIds?.length
               ? model.matrix
@@ -399,7 +459,7 @@ function AssistantMessage({
                   .join("・") + "（ほかはいまの版のまま）"
               : "曲全体"}
           </p>
-          <ul className="flex flex-col gap-1 text-[12px] leading-5 text-body-on-dark">
+          <ul className="flex flex-col gap-1 text-[13px] leading-5 text-body-on-dark">
             {(points.length > 0 ? points : ["いまの版とほとんど変わりません"]).map((point) => (
               <li key={point}>{point}</li>
             ))}
@@ -425,12 +485,12 @@ function AssistantMessage({
                 <button
                   type="button"
                   onClick={() => onNextProposal(proposals[(shownIndex + 1) % proposals.length].id)}
-                  className="px-2 text-[12px] text-primary-on-dark hover:underline"
+                  className="px-2 text-[13px] text-primary-on-dark hover:underline"
                 >
                   別の案にする（{shownIndex + 1}/{proposals.length}）
                 </button>
               )}
-              <button type="button" onClick={onDismiss} className="px-2 text-[12px] text-ink-muted-48 hover:text-body-on-dark">
+              <button type="button" onClick={onDismiss} className="px-2 text-[13px] text-ink-soft hover:text-body-on-dark">
                 やめる
               </button>
             </div>
@@ -439,7 +499,7 @@ function AssistantMessage({
             <button
               type="button"
               onClick={onUndo}
-              className="flex items-center gap-1 self-start text-[12px] text-primary-on-dark hover:underline"
+              className="flex items-center gap-1 self-start text-[13px] text-primary-on-dark hover:underline"
             >
               <Undo2 size={12} /> 元に戻す
             </button>
@@ -447,7 +507,7 @@ function AssistantMessage({
         </div>
       )}
       {proposals.length > 0 && !applied && !isOpen && (
-        <p className="text-[11px] text-ink-muted-48">
+        <p className="text-[12px] text-ink-soft">
           {message.dismissed ? "この変更案は見送りました" : "新しい相談があるため、この変更案は閉じました"}
         </p>
       )}

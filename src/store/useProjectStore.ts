@@ -95,6 +95,7 @@ import {
 import { snapshot } from "./storeHelpers"
 import { createPhraseActions } from "./phraseActions"
 import { createReactiveLayerActions } from "./reactiveLayerActions"
+import { realignArrangementToSections } from "@/core/arrangementRealign"
 import { createArrangementChatActions, type ArrangementChatActions } from "./arrangementChatActions"
 
 export type { RangePreset } from "./generationInputs"
@@ -105,6 +106,24 @@ export type { RangePreset } from "./generationInputs"
 export type TimingNotice =
   | { kind: "auto-converted"; factor: number; timeSignature: string }
   | { kind: "ambiguous"; timeSignature: string; reason: string }
+
+/**
+ * セクションの並びや長さを変えたときに、全曲アレンジ(AIのパート)を新しい並びへ追従させる。
+ * copiedFrom は複製したセクション(新ID → 元ID)。
+ */
+function followSections(
+  prev: ComposerProject,
+  nextSections: Section[],
+  copiedFrom: Record<string, string> = {},
+): ComposerProject["fullSongArrangement"] {
+  return realignArrangementToSections(
+    prev.fullSongArrangement,
+    normalizeSectionTimeline(prev.sections),
+    nextSections,
+    parseTimeSignature(prev.song.timeSignature).beatsPerBar,
+    copiedFrom,
+  )
+}
 
 export interface ProjectState extends ArrangementChatActions {
   project: ComposerProject
@@ -717,10 +736,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ? { ...s, ...patch, lengthBars: patch.lengthBars === undefined ? s.lengthBars : Math.max(1, patch.lengthBars) }
         : s,
     )
+    const nextSections = normalizeSectionTimeline(sections)
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, sections: normalizeSectionTimeline(sections) },
+      project: {
+        ...prev,
+        sections: nextSections,
+        fullSongArrangement: followSections(prev, nextSections),
+      },
     })
     get().persist()
   },
@@ -792,6 +816,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: {
         ...prev,
         sections: normalizeSectionTimeline(prev.sections.filter((s) => s.id !== sectionId)),
+        fullSongArrangement: followSections(prev, normalizeSectionTimeline(prev.sections.filter((s) => s.id !== sectionId))),
         chords: prev.chords.filter((c) => c.sectionId !== sectionId),
         melodyVariants: prev.melodyVariants.filter((v) => v.sectionId !== sectionId),
         phraseCandidates: prev.phraseCandidates.filter((candidate) => candidate.sectionId !== sectionId),
@@ -848,6 +873,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (!src) return
     const newId = crypto.randomUUID()
     const copy: Section = { ...src, id: newId, name: `${src.name} copy`, startBar: 1 }
+    const duplicatedSections = normalizeSectionTimeline([
+      ...prev.sections.slice(0, prev.sections.indexOf(src) + 1),
+      copy,
+      ...prev.sections.slice(prev.sections.indexOf(src) + 1),
+    ])
     const chordCopies = prev.chords.filter((c) => c.sectionId === sectionId).map((c) => ({ ...c, id: crypto.randomUUID(), sectionId: newId }))
     const assignedVariantId = prev.sectionMelodyAssignments[sectionId]
     const assignedVariant = assignedVariantId
@@ -864,11 +894,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: {
         ...prev,
         // 複製は元のセクションのすぐ後ろへ置く(末尾へ回すと並べ替えの手間が増える)
-        sections: normalizeSectionTimeline([
-          ...prev.sections.slice(0, prev.sections.indexOf(src) + 1),
-          copy,
-          ...prev.sections.slice(prev.sections.indexOf(src) + 1),
-        ]),
+        sections: duplicatedSections,
+        // 全曲アレンジ(AIのパート)も、複製したセクションへ元の音を写し、後ろの音をずらす
+        fullSongArrangement: followSections(prev, duplicatedSections, { [newId]: sectionId }),
         chords: [...prev.chords, ...chordCopies],
         melodyVariants: variantCopy ? [...prev.melodyVariants, variantCopy] : prev.melodyVariants,
         sectionMelodyAssignments: variantCopy
@@ -918,7 +946,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       history: [...get().history, snapshot(prev)],
       future: [],
-      project: { ...prev, sections: moveSectionInTimeline(prev.sections, sectionId, targetIndex) },
+      project: {
+        ...prev,
+        sections: moveSectionInTimeline(prev.sections, sectionId, targetIndex),
+        fullSongArrangement: followSections(prev, moveSectionInTimeline(prev.sections, sectionId, targetIndex)),
+      },
     })
     get().persist()
   },
@@ -983,6 +1015,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         chords: [...prev.chords, ...copies],
         sections: normalizeSectionTimeline(
           prev.sections.map((s) => (s.id === sectionId ? { ...s, lengthBars: newLengthBars } : s)),
+        ),
+        fullSongArrangement: followSections(
+          prev,
+          normalizeSectionTimeline(prev.sections.map((s) => (s.id === sectionId ? { ...s, lengthBars: newLengthBars } : s))),
         ),
       },
     })

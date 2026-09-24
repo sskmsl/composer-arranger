@@ -37,13 +37,13 @@ export function ArrangementPartTable({
   onPlaySection?: (sectionId: string) => void
 }) {
   if (matrix.length === 0) return null
-  const columns = `7.5rem ${matrix.map((section) => `minmax(2.75rem, ${Math.max(1, section.lengthBars)}fr)`).join(" ")}`
+  const columns = `9rem ${matrix.map((section) => `minmax(2.75rem, ${Math.max(1, section.lengthBars)}fr)`).join(" ")}`
   const maxDensity = Math.max(
     1,
     ...matrix.flatMap((section) => ARRANGEMENT_PART_ROWS.map((row) => section.cells[row.id].notesPerBar)),
   )
   const pendingByKey = new Map(pendingChanges.map((change) => [markKey(change.sectionId, change.rowId), change]))
-  const minWidth = `${7.5 * 16 + matrix.length * 52}px`
+  const minWidth = `${9 * 16 + matrix.length * 52}px`
 
   return (
     <div className="overflow-x-auto">
@@ -61,7 +61,7 @@ export function ArrangementPartTable({
         }}
       >
         <div role="row" className="grid items-end gap-1.5 pb-1" style={{ gridTemplateColumns: columns }}>
-          <div role="columnheader" className="text-[11px] text-ink-muted-48">パート</div>
+          <div role="columnheader" className="text-[12px] text-ink-soft">パート</div>
           {matrix.map((section) => {
             const isPlaying = playingSectionId === section.sectionId
             return (
@@ -73,14 +73,14 @@ export function ArrangementPartTable({
                   title={isPlaying ? "停止" : `${section.name}だけを再生（表の右クリックでも再生）`}
                   aria-label={isPlaying ? `${section.name}の再生を停止` : `${section.name}だけを再生`}
                   className={clsx(
-                    "flex w-full min-w-0 items-center gap-1 rounded-sm text-left text-[12px] font-medium",
+                    "flex w-full min-w-0 items-center gap-1 rounded-sm text-left text-[13px] font-medium",
                     isPlaying ? "text-primary-on-dark" : "text-body-on-dark hover:text-primary-on-dark",
                   )}
                 >
                   {isPlaying ? <Square size={10} className="shrink-0" aria-hidden="true" /> : <Play size={10} className="shrink-0 opacity-60" aria-hidden="true" />}
                   <span className="truncate">{section.name}</span>
                 </button>
-                <div className={clsx("text-[11px] tabular-nums", isPlaying ? "text-primary-on-dark" : "text-ink-muted-48")}>
+                <div className={clsx("text-[12px] tabular-nums", isPlaying ? "text-primary-on-dark" : "text-ink-soft")}>
                   {isPlaying ? "再生中" : `${section.startBar}–${section.endBar}`}
                 </div>
               </div>
@@ -103,7 +103,7 @@ export function ArrangementPartTable({
         />
         {ARRANGEMENT_PART_ROWS.map((row) => (
           <div role="row" key={row.id} className="grid items-center gap-1.5" style={{ gridTemplateColumns: columns }}>
-            <div role="rowheader" className="flex min-w-0 items-center gap-2 text-[12px] text-body-muted">
+            <div role="rowheader" className="flex min-w-0 items-center gap-2 text-[13px] text-body-muted">
               <span className="size-2 shrink-0 rounded-full" style={{ background: row.color }} aria-hidden="true" />
               <span className="truncate">{row.label}</span>
             </div>
@@ -130,7 +130,7 @@ export function ArrangementPartTable({
                   data-section-id={section.sectionId}
                   aria-label={`${section.name}の${row.label}: ${playing ? `1小節あたり${Math.round(cell.notesPerBar * 10) / 10}音` : "なし"}${label ? `（${label}）` : ""}`}
                   className={clsx(
-                    "relative flex h-7 items-center justify-center overflow-hidden rounded-[6px] text-[11px]",
+                    "relative flex h-7 items-center justify-center overflow-hidden rounded-[6px] text-[12px]",
                     !playing && "bg-white/[0.03]",
                     mark === "removed" && "border-[1.5px] border-dashed border-primary-on-dark text-primary-on-dark",
                     (mark === "changed" || mark === "added") && "outline outline-2 outline-offset-1 outline-primary-on-dark",
@@ -150,7 +150,7 @@ export function ArrangementPartTable({
             })}
           </div>
         ))}
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-2 text-[11px] text-ink-muted-48">
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-2 text-[12px] text-ink-soft">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-3.5 rounded-[3px] bg-white/40 outline outline-2 outline-primary-on-dark" aria-hidden="true" />
             この版で追加・変更
@@ -186,10 +186,10 @@ function SourceRow({
 }) {
   return (
     <div role="row" className="grid items-center gap-1.5" style={{ gridTemplateColumns: columns }}>
-      <div role="rowheader" className="flex min-w-0 items-center gap-2 text-[12px] text-body-muted">
+      <div role="rowheader" className="flex min-w-0 items-center gap-2 text-[13px] text-body-muted">
         <span className="size-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
         <span className="truncate">{label}</span>
-        <span className="text-[11px] text-ink-muted-48">原曲</span>
+        <span className="text-[12px] text-ink-soft">原曲</span>
       </div>
       {values.map((value, index) => (
         <div

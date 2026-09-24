@@ -141,9 +141,9 @@ export function FullSongArrangementPanel() {
     arrangement && (
         <div className="flex min-w-0 max-w-full flex-col gap-4">
           {timelineConstraints && hasTimelineInstructions && (
-            <div className="rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2.5 text-[12px] text-emerald-50">
+            <div className="rounded-md border border-emerald-300/25 bg-emerald-400/[0.07] px-3 py-2.5 text-[13px] text-emerald-50">
               <strong className="font-semibold">指定した小節を反映済み</strong>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-emerald-100/85">
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-emerald-100/85">
                 <span>主旋律の音程・リズムは変更しません</span>
                 {timelineConstraints.melodyStartBar && timelineConstraints.melodyStartBar > 1 && (
                   <span>主旋律：{timelineConstraints.melodyStartBar}小節目から</span>
@@ -166,22 +166,22 @@ export function FullSongArrangementPanel() {
             </div>
           )}
           {(arrangement.plan.directive?.structureChanges?.length ?? 0) > 0 && (
-            <div className="rounded-md border border-sky-300/25 bg-sky-400/[0.07] px-3 py-2.5 text-[12px] text-sky-50">
+            <div className="rounded-md border border-sky-300/25 bg-sky-400/[0.07] px-3 py-2.5 text-[13px] text-sky-50">
               <strong className="font-semibold">曲構成へ反映済み</strong>
-              <div className="mt-1 text-[11px] text-sky-100/85">
+              <div className="mt-1 text-[12px] text-sky-100/85">
                 {arrangement.plan.directive?.structureChanges?.map(arrangementStructureChangeLabel).join(" ／ ")}
               </div>
             </div>
           )}
           {appliedSoundInstruction && (
-            <div className="rounded-md border border-violet-300/25 bg-violet-400/[0.07] px-3 py-2.5 text-[12px] text-violet-50">
+            <div className="rounded-md border border-violet-300/25 bg-violet-400/[0.07] px-3 py-2.5 text-[13px] text-violet-50">
               <strong className="font-semibold">指定を音へ反映済み</strong>
-              <span className="ml-2 text-[11px] text-violet-100/85">{arrangementSoundInstructionLabel(appliedSoundInstruction)}</span>
+              <span className="ml-2 text-[12px] text-violet-100/85">{arrangementSoundInstructionLabel(appliedSoundInstruction)}</span>
             </div>
           )}
           <div className="rounded-lg border border-primary/30 bg-primary/[0.055] p-3">
             <h4 className="text-[13px] font-semibold text-body-on-dark">原曲と聴き比べる</h4>
-            <p className="mt-1 text-[11px] leading-4 text-body-muted">
+            <p className="mt-1 text-[12px] leading-4 text-body-muted">
               「原曲＋AI生成」で、原曲を変えずに足したパートだけを重ねて確認できます。
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -201,7 +201,7 @@ export function FullSongArrangementPanel() {
               })}
             </div>
             <div className="mt-3 rounded-md border border-hairline bg-black/15 px-3 py-2.5">
-              <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-body-muted">
+              <div className="mb-1.5 flex items-center justify-between gap-3 text-[12px] text-body-muted">
                 <span>{AUDITION_MIX_LABEL[auditionMix]}の再生位置</span>
                 <span className="shrink-0 tabular-nums text-body-on-dark">
                   {formatPlaybackTime(playbackBeat, project.song.tempo, songTempoChanges(project))} / {formatPlaybackTime(material.totalBeats, project.song.tempo, songTempoChanges(project))}
@@ -229,7 +229,7 @@ export function FullSongArrangementPanel() {
                 onBlur={(event) => commitSeek(Number(event.currentTarget.value))}
               />
             </div>
-            <p className="mt-2 text-[11px] text-body-muted">
+            <p className="mt-2 text-[12px] text-body-muted">
               {project.sourceImport?.type === "midi"
                 ? "原曲側は、MIDIから読み込んだ主旋律と伴奏ノートをそのまま使用します。"
                 : "原曲側は、現在のコード・主旋律・採用中の伴奏を使用します。"}
@@ -240,7 +240,7 @@ export function FullSongArrangementPanel() {
           <section className="space-y-3" aria-labelledby="generated-parts-heading">
             <div>
               <h4 id="generated-parts-heading" className="text-[13px] font-semibold text-body-on-dark">パートごとに確認する</h4>
-              <p className="mt-1 text-[11px] leading-4 text-body-muted">
+              <p className="mt-1 text-[12px] leading-4 text-body-muted">
                 パートごとにミュート・単独試聴・MIDI保存ができます。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。
                 個別MIDIは曲中の位置を保っているので、Logic Proではすべて1小節目に置いてください。
               </p>
@@ -254,10 +254,10 @@ export function FullSongArrangementPanel() {
                   {track.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium">{track.name}</p>
-                  <p className="truncate text-[11px] text-body-muted">{track.notes.length}音 · {track.purpose}</p>
+                  <p className="truncate text-[13px] font-medium">{track.name}</p>
+                  <p className="truncate text-[12px] text-body-muted">{track.notes.length}音 · {track.purpose}</p>
                   {placement && (
-                    <p className="truncate text-[11px] text-sky-100">
+                    <p className="truncate text-[12px] text-sky-100">
                       Logic配置: {placement.importBar}小節目 · 最初の音: {placement.firstSoundingBar}小節目
                     </p>
                   )}
