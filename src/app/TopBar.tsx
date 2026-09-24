@@ -12,9 +12,8 @@ import { ProjectMenu } from "./ProjectMenu"
  */
 const PRIMARY_TABS: { id: MainTab; label: string; mobileLabel: string }[] = [
   { id: "home", label: "ホーム", mobileLabel: "ホーム" },
-  { id: "ai-partner", label: "AIで方針", mobileLabel: "方針" },
   { id: "melody", label: "旋律", mobileLabel: "旋律" },
-  { id: "arrangement", label: "結果・書出し", mobileLabel: "結果" },
+  { id: "arrangement", label: "アレンジ・書出し", mobileLabel: "アレンジ" },
 ]
 
 /** 旋律タブの中の画面にいるときも「旋律」を選択中として示す */

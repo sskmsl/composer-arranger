@@ -508,7 +508,7 @@ export function MidiImportReviewDialog({
                 })}
               </div>
               <p className="mt-2 text-[11px] text-ink-muted-48">
-                コード推定 {Math.round(result.report.chordInferenceConfidence * 100)}%。修正値は確定プロジェクトとAI Partnerへ渡されます。
+                コード推定 {Math.round(result.report.chordInferenceConfidence * 100)}%。修正値は確定したプロジェクトとアレンジ相談へ渡されます。
               </p>
               {invalidChordCount > 0 && <p className="mt-1 text-[11px] text-red-300">解釈できないコードが{invalidChordCount}件あります。</p>}
             </section>
@@ -518,7 +518,7 @@ export function MidiImportReviewDialog({
 
         <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-hairline px-4 py-3">
           <p className="flex items-center gap-1.5 text-[11px] text-body-muted">
-            <Check size={12} className="text-emerald-400" /> 外部曲でも全パートを保持し、確定後にAI Partner／Arrangementで解析できます
+            <Check size={12} className="text-emerald-400" /> 外部曲でも全パートを保持し、確定後にアレンジ画面で全曲の方向を選び、相談しながら仕上げられます
           </p>
           <div className="ml-auto flex gap-2">
             <Button variant="dark" onClick={onCancel}>キャンセル</Button>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { ArrowRight, Check, CircleAlert, MessageCircle, Sparkles, WandSparkles } from "lucide-react"
+import { ArrowRight, Check, CircleAlert, Sparkles, WandSparkles } from "lucide-react"
 import { executeArrangementAction } from "@/ai-arranger/arrangementActionExecution"
 import { generationResultLinks } from "@/ai-arranger/generationResultNavigation"
 import {
@@ -223,9 +223,6 @@ export function WholeSongDirectorPanel({ onNavigate }: { onNavigate: (tab: MainT
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button onClick={generateSelected} disabled={selectedCount === 0}>
             <WandSparkles size={14} /> 選択した{selectedCount}件を生成
-          </Button>
-          <Button variant="ghost" onClick={() => onNavigate("ai-partner")}>
-            <MessageCircle size={14} /> AI Partnerで方向を詰める
           </Button>
           {generationResultLinks(resultTargets).map((result) => (
             <Button key={result.tab} variant="secondary" onClick={() => onNavigate(result.tab)}>

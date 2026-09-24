@@ -10,7 +10,6 @@ const RESULT_LABELS: Record<MainTab, string> = {
   signature: "Signature",
   counter: "Counter",
   decoration: "Decoration",
-  "ai-partner": "AI Partner",
   arrangement: "Arrangement",
   audition: "Audition",
 }

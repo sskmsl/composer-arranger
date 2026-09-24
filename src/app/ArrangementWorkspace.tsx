@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
-import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle } from "lucide-react"
+import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
@@ -17,8 +17,19 @@ import { CandidateStatusBadge } from "./CandidateStatusBadge"
 import { ArrangementChatPanel } from "./ArrangementChatPanel"
 import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
+import { DirectionPicker } from "./DirectionPicker"
+import { AiPartnerAnalysisPanel } from "./AiPartnerAnalysisPanel"
 
-export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => void }) {
+export function ArrangementWorkspace({
+  onNavigate,
+  chatDraft,
+  onChatDraftConsumed,
+}: {
+  onNavigate: (tab: MainTab) => void
+  /** ほかの画面から「この内容で相談」と渡された文面(入力欄に入れておく) */
+  chatDraft?: string | null
+  onChatDraftConsumed?: () => void
+}) {
   const project = useProjectStore((state) => state.project)
   const moveSection = useProjectStore((state) => state.moveSection)
   const selectSection = useProjectStore((state) => state.selectSection)
@@ -27,7 +38,19 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   const removeSection = useProjectStore((state) => state.removeSection)
   const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
   const chatModel = useArrangementChat()
+  const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
+  const effectiveSectionId = selectedSectionId ?? project.sections[0]?.id ?? null
+  const [draft, setDraft] = useState("")
   const [chatOpen, setChatOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  // 取り込み案内などから相談の文面を渡されたら入力欄へ入れる(この画面を開いたままでも受け取る)。
+  // スマホでは相談を開いた状態にする
+  useEffect(() => {
+    if (!chatDraft) return
+    setDraft(chatDraft)
+    if (window.matchMedia("(max-width: 1023px)").matches) setChatOpen(true)
+    onChatDraftConsumed?.()
+  }, [chatDraft, onChatDraftConsumed])
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [playbackBeat, setPlaybackBeat] = useState(0)
@@ -143,21 +166,23 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
   }
 
   const versions = project.arrangementChat?.versions ?? []
+  const hasArrangement = Boolean(project.fullSongArrangement)
 
   return (
     <div className="flex w-full min-w-0 flex-1">
     <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-4 overflow-x-clip px-3 py-4 sm:p-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto min-w-0">
-          <h2 className="text-[16px] font-semibold">生成結果と書き出し</h2>
-          <p className="mt-1 text-[12px] text-body-muted">いまの版: {chatModel.versionLabel}</p>
+          <h2 className="text-[16px] font-semibold">アレンジ・書出し</h2>
+          <p className="mt-1 text-[12px] text-body-muted">
+            {hasArrangement ? `いまの版: ${chatModel.versionLabel}` : "まず全曲の方向を選び、できたら相談しながら仕上げます"}
+          </p>
         </div>
         {project.sections.length > 0 && (
           <Button className="lg:hidden" onClick={() => setChatOpen(true)}>
             <MessageCircle size={14} /> アレンジ相談
           </Button>
         )}
-        <Button variant="secondary" onClick={() => onNavigate("ai-partner")}>AIで方針を見直す</Button>
         <Button variant="dark" onClick={playing ? () => stop() : () => playSong()} disabled={project.sections.length === 0}>
           {playing ? <Square size={14} /> : <Play size={14} />}
           {playing ? "停止" : "曲全体を再生"}
@@ -173,6 +198,8 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
           <Download size={14} /> 曲全体MIDI
         </Button>
       </div>
+
+      {project.sections.length > 0 && !hasArrangement && <DirectionPicker firstTime />}
 
       {project.sections.length > 0 && (
         <section className="min-w-0 max-w-full rounded-md border border-hairline bg-surface-tile-1 px-3 py-2.5" aria-labelledby="whole-song-preview-heading">
@@ -209,19 +236,27 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         </section>
       )}
 
-      {project.sections.length > 0 && (
+      {project.sections.length > 0 && (hasArrangement || versions.length > 0) && (
         <section aria-labelledby="part-table-heading" className="flex min-w-0 flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2">
             <h3 id="part-table-heading" className="mr-auto text-[13px] font-semibold text-body-on-dark">パート構成</h3>
+            {hasArrangement && !pickerOpen && (
+              <Button variant="secondary" onClick={() => setPickerOpen(true)}>
+                <Compass size={14} /> 方向を選び直す
+              </Button>
+            )}
           </div>
+          {hasArrangement && pickerOpen && (
+            <DirectionPicker firstTime={false} onDone={() => setPickerOpen(false)} onCancel={() => setPickerOpen(false)} />
+          )}
           <ArrangementPartTable
             matrix={chatModel.matrix}
             marks={partCellMarks(chatModel.versionChanges, chatModel.pendingChanges)}
             pendingChanges={chatModel.pendingChanges}
           />
-          {!project.fullSongArrangement && (
+          {!hasArrangement && (
             <p className="text-[12px] text-body-muted">
-              まだ追加パートがありません。「AIで方針」で全曲の方向を決めるか、アレンジ相談で希望を伝えてください。
+              いまは追加パートなし（原曲のみ）です。上で方向を選ぶか、版の履歴から戻せます。
             </p>
           )}
           {versions.length > 0 && (
@@ -259,7 +294,12 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
 
       {project.sections.length > 0 && (
         <>
-          <FullSongArrangementPanel />
+          {hasArrangement && (
+            <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
+              <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">パートごとの試聴・ミュート・MIDI</summary>
+              <div className="mt-3"><FullSongArrangementPanel /></div>
+            </details>
+          )}
           <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
             <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">詳細な設計と個別生成</summary>
             <div className="mt-3 space-y-4">
@@ -267,6 +307,7 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
               <MultiPartArrangementPanel onNavigate={onNavigate} />
             </div>
           </details>
+          <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />
           <details className="rounded-lg border border-hairline bg-white/[0.015] p-3">
             <summary className="cursor-pointer text-[12px] font-medium text-body-on-dark">Logic Pro書き出し詳細</summary>
             <div className="mt-3"><LogicProductionPackagePanel /></div>
@@ -376,12 +417,13 @@ export function ArrangementWorkspace({ onNavigate }: { onNavigate: (tab: MainTab
         {/* PCでは右側に相談を常に出し、ページをスクロールしても見えるよう貼り付ける(高さは上部バーの分を引いて入力欄が隠れないように) */}
         <ArrangementChatPanel
           model={chatModel}
+          initialInput={draft}
           className="sticky top-0 hidden h-[calc(100dvh-2.75rem)] w-[400px] shrink-0 border-l border-hairline lg:flex xl:w-[440px]"
         />
         {/* スマホ・タブレットでは全画面で開く */}
         {chatOpen && (
           <div className="fixed inset-0 z-[60] flex lg:hidden">
-            <ArrangementChatPanel model={chatModel} onClose={() => setChatOpen(false)} className="flex-1" />
+            <ArrangementChatPanel model={chatModel} initialInput={draft} onClose={() => setChatOpen(false)} className="flex-1" />
           </div>
         )}
       </>
