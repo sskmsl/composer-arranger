@@ -235,7 +235,7 @@ export function DecorationWorkspace() {
           />
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-[12px] text-body-muted">
+            <p className="mr-auto text-[13px] text-body-muted">
               主旋律の隙間やセクションの切り替わりに置く、短い演出を提案します
             </p>
             {generateButton}
@@ -243,11 +243,11 @@ export function DecorationWorkspace() {
         )}
         {/* 設定は「自動」のままで足りることが多いので、閉じておく */}
         <details className="group">
-          <summary className="cursor-pointer select-none text-[12px] text-body-muted hover:text-body-on-dark">
+          <summary className="cursor-pointer select-none text-[13px] text-body-muted hover:text-body-on-dark">
             生成の設定
           </summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-            <label className="text-[11px] text-ink-muted-48">
+            <label className="text-[12px] text-ink-soft">
               種類
               <Select
                 value={settings.type}
@@ -265,7 +265,7 @@ export function DecorationWorkspace() {
                 <option value="ending-fill">終わりを彩る</option>
               </Select>
             </label>
-            <label className="text-[11px] text-ink-muted-48">
+            <label className="text-[12px] text-ink-soft">
               音色
               <Select
                 value={settings.character}
@@ -284,7 +284,7 @@ export function DecorationWorkspace() {
                 <option value="generic">その他</option>
               </Select>
             </label>
-            <label className="text-[11px] text-ink-muted-48">
+            <label className="text-[12px] text-ink-soft">
               長さ
               <Select
                 value={String(settings.length)}
@@ -303,7 +303,7 @@ export function DecorationWorkspace() {
                 <option value="bar">1小節</option>
               </Select>
             </label>
-            <label className="text-[11px] text-ink-muted-48">
+            <label className="text-[12px] text-ink-soft">
               音の量
               <Select
                 value={settings.density}
@@ -320,7 +320,7 @@ export function DecorationWorkspace() {
                 <option value="rich">多め</option>
               </Select>
             </label>
-            <label className="text-[11px] text-ink-muted-48">
+            <label className="text-[12px] text-ink-soft">
               音の動き
               <Select
                 value={settings.direction}
@@ -338,7 +338,7 @@ export function DecorationWorkspace() {
                 <option value="mixed">上下に動く</option>
               </Select>
             </label>
-            <label className="text-[11px] text-ink-muted-48">
+            <label className="text-[12px] text-ink-soft">
               別案番号
               <TextInput
                 type="number"
@@ -357,20 +357,20 @@ export function DecorationWorkspace() {
               <span className="mr-1 text-[13px] font-semibold text-body-on-dark">
                 候補 {activePosition + 1}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {activeCandidate.notes.length}音
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {TYPE_LABELS[activePlan?.type ?? ""] ?? "装飾"}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {SHAPE_LABELS[activePlan?.shape ?? ""] ?? activePlan?.shape}
               </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[11px] text-body-muted">
+              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {CHARACTER_LABELS[activePlan?.character ?? ""] ?? "その他"}
               </span>
               {activeCandidate.collisions.hasBlockingCollision && (
-                <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[11px] text-red-300">
+                <span className="rounded-pill bg-red-400/15 px-2 py-0.5 text-[12px] text-red-300">
                   主旋律とぶつかる可能性
                 </span>
               )}
@@ -428,18 +428,18 @@ export function DecorationWorkspace() {
       </section>
 
       {chords.length === 0 && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           左パネルの「コード進行」を入力すると、装飾候補を生成できます。
         </p>
       )}
 
       {chordHasError && (
-        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[12px] text-red-300">
+        <p className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-300">
           無効なコードがあります。左のパネルで修正してください。
         </p>
       )}
       {workflowNotice && (
-        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-200">
+        <p className="rounded-sm border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[13px] text-amber-200">
           {workflowNotice}
         </p>
       )}
@@ -460,10 +460,10 @@ export function DecorationWorkspace() {
             noteLabel="装飾"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-emerald-200">
+            <span className="text-[12px] text-emerald-200">
               採用した候補は曲全体再生と曲全体MIDIに入ります
             </span>
-            <span className="text-[11px] text-ink-muted-48">試聴方法</span>
+            <span className="text-[12px] text-ink-soft">試聴方法</span>
             <Select
               value={previewMode}
               onChange={(event) => {
@@ -491,7 +491,7 @@ export function DecorationWorkspace() {
             <p className="text-[13px] text-body-muted">
               まだ装飾フレーズ候補がありません
             </p>
-            <p className="mt-1 text-[11px] text-ink-muted-48">
+            <p className="mt-1 text-[12px] text-ink-soft">
               コードとセクションの切り替わりから候補を生成します
             </p>
           </div>

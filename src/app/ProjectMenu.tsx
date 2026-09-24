@@ -47,7 +47,7 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-1 rounded-pill border border-hairline px-2.5 py-1 text-[12px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark"
+        className="flex items-center gap-1 rounded-pill border border-hairline px-2.5 py-1 text-[13px] text-body-muted transition hover:bg-white/10 hover:text-body-on-dark"
         title="新しい曲・開く・保存・読み込み"
       >
         <FolderOpen size={13} /> 曲 <ChevronDown size={12} />
@@ -122,11 +122,11 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
                 />
               </label>
             </div>
-            <p className="mt-2 text-[11px] leading-4 text-ink-muted-48">
+            <p className="mt-2 text-[12px] leading-4 text-ink-soft">
               Logic Proでは「ファイル ＞ 書き出す ＞ 選択範囲をMIDIファイルとして」でSMFを書き出してください。.logicx／MP3はこの入口ではなく、標準MIDIを使用します。
             </p>
             {project.sourceImport?.type === "midi" && (
-              <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[11px] leading-relaxed text-body-muted">
+              <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[12px] leading-relaxed text-body-muted">
                 <p className="font-medium text-body-on-dark">
                   {project.sourceImport.sourceKind === "logic-project" ? "Logic Pro往復プロジェクト" : "外部曲MIDI解析プロジェクト"}
                 </p>
@@ -153,7 +153,7 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
                   <p key={warning} className="mt-1 text-amber-300">・{warning}</p>
                 ))}
                 {onOpenImportGuide && (
-                  <Button variant="secondary" className="mt-2 !px-3 !py-1.5 !text-[11px]" onClick={onOpenImportGuide}>
+                  <Button variant="secondary" className="mt-2 !px-3 !py-1.5 !text-[12px]" onClick={onOpenImportGuide}>
                     <Route size={12} /> 開始ガイド
                   </Button>
                 )}

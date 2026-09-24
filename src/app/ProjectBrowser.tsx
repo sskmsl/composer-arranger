@@ -112,7 +112,7 @@ export function ProjectBrowser({
           <div>
             <h2 className="text-[15px] font-semibold text-body-on-dark">保存済みプロジェクト</h2>
             {isCloudSyncConfigured() && (
-              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-primary-on-dark">
+              <p className="mt-0.5 flex items-center gap-1 text-[12px] text-primary-on-dark">
                 <Cloud size={10} /> Cloud同期有効
               </p>
             )}
@@ -127,7 +127,7 @@ export function ProjectBrowser({
         </div>
 
         {recentlyDeleted && (
-          <div className="flex items-center justify-between gap-2 border-b border-hairline bg-amber-500/10 px-4 py-2 text-[12px] text-body-on-dark">
+          <div className="flex items-center justify-between gap-2 border-b border-hairline bg-amber-500/10 px-4 py-2 text-[13px] text-body-on-dark">
             <span>「{recentlyDeleted.summary.title}」を削除しました</span>
             <Button variant="secondary" onClick={restoreDeleted}>
               元に戻す
@@ -137,9 +137,9 @@ export function ProjectBrowser({
 
         <div className="flex-1 overflow-y-auto p-2">
           {loading ? (
-            <p className="p-4 text-center text-[13px] text-ink-muted-48">読み込み中…</p>
+            <p className="p-4 text-center text-[13px] text-ink-soft">読み込み中…</p>
           ) : visible.length === 0 ? (
-            <p className="p-4 text-center text-[13px] text-ink-muted-48">保存済みプロジェクトがありません</p>
+            <p className="p-4 text-center text-[13px] text-ink-soft">保存済みプロジェクトがありません</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visible.map((s) => (
@@ -165,15 +165,15 @@ export function ProjectBrowser({
                       ) : (
                         <p className="flex items-center gap-1.5 truncate text-[13px] font-medium text-body-on-dark">
                           {s.title}
-                          {s.projectId === currentId && <span className="rounded-sm bg-primary/20 px-1 text-[11px] text-primary-on-dark">編集中</span>}
+                          {s.projectId === currentId && <span className="rounded-sm bg-primary/20 px-1 text-[12px] text-primary-on-dark">編集中</span>}
                           {s.timingAmbiguous && (
-                            <span className="flex items-center gap-0.5 rounded-sm bg-amber-500/20 px-1 text-[11px] text-amber-400" title="時間単位を自動判定できません。開いた際に確認できます">
+                            <span className="flex items-center gap-0.5 rounded-sm bg-amber-500/20 px-1 text-[12px] text-amber-400" title="時間単位を自動判定できません。開いた際に確認できます">
                               <AlertTriangle size={9} /> 移行要確認
                             </span>
                           )}
                         </p>
                       )}
-                      <p className="mt-0.5 text-[11px] text-ink-muted-48">
+                      <p className="mt-0.5 text-[12px] text-ink-soft">
                         {s.sectionCount}セクション · {s.key} · {s.tempo}bpm · {s.timeSignature} · {fmtTime(s.savedAt)}
                         {s.projectId === lastOpenedId && <span className="ml-1 text-primary-on-dark">(最後に開いた)</span>}
                       </p>
@@ -181,7 +181,7 @@ export function ProjectBrowser({
                   </div>
                   {confirmDeleteId === s.projectId ? (
                     <div className="mt-2 flex items-center justify-end gap-1.5">
-                      <span className="mr-auto text-[11px] text-amber-400">削除しますか?(元に戻せます)</span>
+                      <span className="mr-auto text-[12px] text-amber-400">削除しますか?(元に戻せます)</span>
                       <Button variant="secondary" onClick={() => setConfirmDeleteId(null)}>
                         やめる
                       </Button>

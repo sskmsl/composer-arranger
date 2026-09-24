@@ -30,36 +30,18 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
     <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface-black">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-7 px-4 py-8 sm:px-7 lg:py-12">
         <div className="max-w-3xl">
-          <p className="text-[12px] font-semibold tracking-[0.2em] text-primary-on-dark">COMPOSER ARRANGER</p>
+          <p className="text-[13px] font-semibold tracking-[0.2em] text-primary-on-dark">COMPOSER ARRANGER</p>
           <p className="mt-4 max-w-2xl text-[14px] leading-6 text-body-muted">
             最初に素材の準備方法を選んでください。主旋律・対旋律・装飾などは「旋律」でまとめて作れます。
           </p>
         </div>
 
-        <ol className="grid gap-2 sm:grid-cols-3" aria-label="制作の流れ">
-          {[
-            ["1", "曲を準備", "Chord Generator・MIDI読込・新規作成"],
-            ["2", "方針を選ぶ", "AIが全曲を診断して提案"],
-            ["3", "生成して試聴", "候補を比較してMIDI出力"],
-          ].map(([number, title, description]) => (
-            <li key={number} className="rounded-md border border-hairline bg-surface-tile-1 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[12px] font-semibold text-primary-on-dark">{number}</span>
-                <div>
-                  <p className="text-[13px] font-semibold text-body-on-dark">{title}</p>
-                  <p className="mt-0.5 text-[11px] text-body-muted">{description}</p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-
         {hasMusic && (
           <section className="flex flex-col gap-3 rounded-lg border border-primary/35 bg-primary/10 p-4 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-semibold text-primary-on-dark">編集中の曲</p>
+              <p className="text-[13px] font-semibold text-primary-on-dark">編集中の曲</p>
               <h2 className="mt-1 truncate text-[17px] font-semibold text-body-on-dark">{project.title}</h2>
-              <p className="mt-1 text-[12px] text-body-muted">
+              <p className="mt-1 text-[13px] text-body-muted">
                 {project.sections.length}セクション · {project.song.key} · {project.song.tempo} BPM
               </p>
             </div>
@@ -73,8 +55,8 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           <label className="group relative flex min-h-48 cursor-pointer flex-col rounded-lg border border-primary/45 bg-surface-tile-1 p-5 transition hover:border-primary hover:bg-primary/8">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/18 text-primary-on-dark"><Music2 size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">Chord Generatorの曲から始める</span>
-            <span className="mt-2 text-[12px] leading-5 text-body-muted">Chord Generatorで書き出した曲(.composer-song.json)を開き、曲名・テンポ・セクション・コード・転調・スタイルを引き継ぎます。</span>
-            <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">ファイルを選択 →</span>
+            <span className="mt-2 text-[13px] leading-5 text-body-muted">Chord Generatorで書き出した曲(.composer-song.json)を開き、曲名・テンポ・セクション・コード・転調・スタイルを引き継ぎます。</span>
+            <span className="mt-auto pt-4 text-[13px] font-medium text-primary-on-dark">ファイルを選択 →</span>
             <input
               type="file"
               accept="application/json,.json"
@@ -103,8 +85,8 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           <label className="group relative flex min-h-48 cursor-pointer flex-col rounded-lg border border-primary/45 bg-surface-tile-1 p-5 transition hover:border-primary hover:bg-primary/8">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/18 text-primary-on-dark"><FileMusic size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">MIDIからアレンジする</span>
-            <span className="mt-2 text-[12px] leading-5 text-body-muted">Logic／外部曲のコード・メロディ・テンポを読み込み、全曲の方向を選んでアレンジします。AIと相談しながら仕上げられます。</span>
-            <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">{importing ? "MIDIを解析中…" : "MIDIを選択"} →</span>
+            <span className="mt-2 text-[13px] leading-5 text-body-muted">Logic／外部曲のコード・メロディ・テンポを読み込み、全曲の方向を選んでアレンジします。AIと相談しながら仕上げられます。</span>
+            <span className="mt-auto pt-4 text-[13px] font-medium text-primary-on-dark">{importing ? "MIDIを解析中…" : "MIDIを選択"} →</span>
             <input
               type="file"
               accept={MIDI_IMPORT_ACCEPT}
@@ -137,8 +119,8 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-white/8 text-body-on-dark"><Plus size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">コードから新しく作る</span>
-            <span className="mt-2 text-[12px] leading-5 text-body-muted">最初のAメロを自動で用意します。コードを入力したら、主旋律や各パートを生成できます。</span>
-            <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">新しい曲を作る →</span>
+            <span className="mt-2 text-[13px] leading-5 text-body-muted">最初のAメロを自動で用意します。コードを入力したら、主旋律や各パートを生成できます。</span>
+            <span className="mt-auto pt-4 text-[13px] font-medium text-primary-on-dark">新しい曲を作る →</span>
           </button>
 
           <button
@@ -148,8 +130,8 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-white/8 text-body-on-dark"><FolderOpen size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">保存した曲を開く</span>
-            <span className="mt-2 text-[12px] leading-5 text-body-muted">端末またはCloudに保存したComposer Projectを開き、前回の続きから再開します。</span>
-            <span className="mt-auto pt-4 text-[12px] font-medium text-primary-on-dark">プロジェクトを選ぶ →</span>
+            <span className="mt-2 text-[13px] leading-5 text-body-muted">端末またはCloudに保存したComposer Projectを開き、前回の続きから再開します。</span>
+            <span className="mt-auto pt-4 text-[13px] font-medium text-primary-on-dark">プロジェクトを選ぶ →</span>
           </button>
         </div>
 

@@ -30,15 +30,15 @@ function StepCard({
   return (
     <section className={`rounded-lg border p-3 sm:p-4 ${recommended ? "border-primary/60 bg-primary/8" : "border-hairline bg-white/[0.025]"}`}>
       <div className="flex items-start gap-3">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${complete ? "bg-emerald-400/15 text-emerald-300" : recommended ? "bg-primary text-on-primary" : "bg-white/8 text-body-muted"}`}>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold ${complete ? "bg-emerald-400/15 text-emerald-300" : recommended ? "bg-primary text-on-primary" : "bg-white/8 text-body-muted"}`}>
           {complete ? <Check size={14} /> : number}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-[13px] font-semibold text-body-on-dark">{title}</h3>
-            {recommended && <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary-on-dark">おすすめ</span>}
+            {recommended && <span className="rounded-pill bg-primary/15 px-2 py-0.5 text-[12px] font-medium text-primary-on-dark">おすすめ</span>}
           </div>
-          <p className="mt-1 text-[11px] leading-5 text-body-muted">{description}</p>
+          <p className="mt-1 text-[12px] leading-5 text-body-muted">{description}</p>
           {children && <div className="mt-3">{children}</div>}
         </div>
       </div>
@@ -68,7 +68,7 @@ export function ImportStartGuide({
           <div>
             <div className="flex items-center gap-2 text-primary-on-dark">
               <Sparkles size={16} />
-              <span className="text-[11px] font-medium uppercase tracking-[0.16em]">Arrangement Start Guide</span>
+              <span className="text-[12px] font-medium uppercase tracking-[0.16em]">Arrangement Start Guide</span>
             </div>
             <h2 className="mt-1 text-[17px] font-semibold text-body-on-dark">読み込み完了。次はこの順番だけで大丈夫です</h2>
           </div>
@@ -78,12 +78,12 @@ export function ImportStartGuide({
         </header>
 
         <div className="space-y-3 p-3 sm:p-5">
-          <div className="grid grid-cols-2 gap-2 rounded-lg bg-white/[0.035] p-3 text-[11px] sm:grid-cols-5">
-            <div><p className="text-ink-muted-48">Section</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sections.length}</p></div>
-            <div><p className="text-ink-muted-48">Imported tracks</p><p className="mt-1 text-[13px] text-body-on-dark">{trackCount}</p></div>
-            <div><p className="text-ink-muted-48">Imported notes</p><p className="mt-1 text-[13px] text-body-on-dark">{noteCount}</p></div>
-            <div><p className="text-ink-muted-48">Chord confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{Math.round((project.sourceImport?.chordInferenceConfidence ?? 0) * 100)}%</p></div>
-            <div><p className="text-ink-muted-48">Key confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sourceImport?.keyInferenceSource === "user-confirmed" ? "確認済み" : `${Math.round((project.sourceImport?.keyInferenceConfidence ?? 0) * 100)}%`}</p></div>
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-white/[0.035] p-3 text-[12px] sm:grid-cols-5">
+            <div><p className="text-ink-soft">Section</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sections.length}</p></div>
+            <div><p className="text-ink-soft">Imported tracks</p><p className="mt-1 text-[13px] text-body-on-dark">{trackCount}</p></div>
+            <div><p className="text-ink-soft">Imported notes</p><p className="mt-1 text-[13px] text-body-on-dark">{noteCount}</p></div>
+            <div><p className="text-ink-soft">Chord confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{Math.round((project.sourceImport?.chordInferenceConfidence ?? 0) * 100)}%</p></div>
+            <div><p className="text-ink-soft">Key confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sourceImport?.keyInferenceSource === "user-confirmed" ? "確認済み" : `${Math.round((project.sourceImport?.keyInferenceConfidence ?? 0) * 100)}%`}</p></div>
           </div>
 
           <StepCard number={1} complete title="読み込み結果を確認" description="セクション、コード、主旋律、各トラックの役割が意図どおりかを「アレンジ」画面で確認します。推定結果は必要なら後から修正できます。">
@@ -100,7 +100,7 @@ export function ImportStartGuide({
             <Button onClick={() => onConsult(next.prompt)}><Drum size={14} /> この内容でAIに相談 <ArrowRight size={14} /></Button>
           </StepCard>
 
-          <p className="text-center text-[11px] leading-4 text-ink-muted-48">機能を全部使う必要はありません。このガイドは上部の「曲」メニューの「開始ガイド」から再表示できます。</p>
+          <p className="text-center text-[12px] leading-4 text-ink-soft">機能を全部使う必要はありません。このガイドは上部の「曲」メニューの「開始ガイド」から再表示できます。</p>
         </div>
       </div>
     </div>,

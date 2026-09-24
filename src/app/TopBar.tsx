@@ -98,14 +98,14 @@ export function TopBar({
             disabled={!projectReady && t.id !== "home"}
             title={!projectReady && t.id !== "home" ? "先にホームで曲を準備してください" : undefined}
             onClick={() => selectTab(t.id)}
-            className="min-w-0 !px-1 !py-1.5 !text-[11px]"
+            className="min-w-0 !px-1 !py-1.5 !text-[12px]"
           >
             {t.mobileLabel}
           </Pill>
         ))}
       </nav>
 
-      {tab !== "home" && <div className="flex shrink-0 flex-wrap items-center gap-3 text-[12px] text-ink-muted-48">
+      {tab !== "home" && <div className="flex shrink-0 flex-wrap items-center gap-3 text-[13px] text-ink-soft">
         <label className="flex items-center gap-1">
           Key
           <TextInput
@@ -128,7 +128,7 @@ export function TopBar({
           {songTempo.length > 0 && (
             // テンポが途中で変わる曲。数値を変えると、途中のテンポも同じ比率で変わる
             <span
-              className="rounded-pill border border-hairline px-1.5 py-0.5 text-[11px] text-body-muted"
+              className="rounded-pill border border-hairline px-1.5 py-0.5 text-[12px] text-body-muted"
               title={`テンポが途中で変わります: ${[project.song.tempo, ...songTempo.map((change) => change.bpm)].join(" → ")} BPM。数値を変えると途中のテンポも同じ比率で変わります。`}
             >
               可変

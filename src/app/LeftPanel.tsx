@@ -58,11 +58,11 @@ function ChordDiagnosisRow({ d }: { d: ChordDiagnosis }) {
     <li className="flex items-start gap-1.5 py-0.5">
       {icon}
       <span className="flex flex-col">
-        <span className="text-[11px] text-body-on-dark">
+        <span className="text-[12px] text-body-on-dark">
           <span className="font-medium">{d.symbol || "(空)"}</span>
           {d.status !== "ok" && d.reason && <span className={clsx("ml-1", d.status === "error" ? "text-red-400" : "text-amber-400")}>— {d.reason}</span>}
         </span>
-        {preview && <span className="text-[11px] text-ink-muted-48">{preview}</span>}
+        {preview && <span className="text-[12px] text-ink-soft">{preview}</span>}
       </span>
     </li>
   )
@@ -132,9 +132,9 @@ export function LeftPanel({
                 s.id === selectedSectionId ? "border-primary-focus bg-primary/15" : "border-transparent bg-white/5 hover:bg-white/10"
               } ${draggedSectionId === s.id ? "opacity-40" : ""}`}
             >
-              <GripVertical size={13} className="shrink-0 cursor-grab text-ink-muted-48" />
+              <GripVertical size={13} className="shrink-0 cursor-grab text-ink-soft" />
               <span className="flex-1 truncate">{s.name}</span>
-              <span className="text-[11px] text-ink-muted-48">{SECTION_ROLE_LABELS[s.role]}</span>
+              <span className="text-[12px] text-ink-soft">{SECTION_ROLE_LABELS[s.role]}</span>
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation()
@@ -227,7 +227,7 @@ export function LeftPanel({
                   </option>
                 ))}
               </Select>
-              <p className="mt-1 text-[11px] text-ink-muted-48">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
+              <p className="mt-1 text-[12px] text-ink-soft">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
             </FieldGroup>
 
             <FieldGroup label="伴奏パターン">
@@ -242,7 +242,7 @@ export function LeftPanel({
                   </option>
                 ))}
               </Select>
-              <p className="mt-1 text-[11px] text-ink-muted-48">
+              <p className="mt-1 text-[12px] text-ink-soft">
                 度数＋リズムのテンプレートを現在のコードへ自動変換し、専用MIDIトラックへ出力します
               </p>
             </FieldGroup>
@@ -260,7 +260,7 @@ export function LeftPanel({
                   setSectionContent(section.id, { entryOffsetBeats: bars * ts.beatsPerBar })
                 }}
               />
-              <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-ink-muted-48">
+              <label className="mt-1.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
                 <input
                   type="checkbox"
                   className="accent-primary"
@@ -296,7 +296,7 @@ export function LeftPanel({
                 <div className="mt-2 rounded-sm border border-hairline bg-surface-tile-2 p-2">
                   {/* セクション充足状況 */}
                   {diagnostics.coverage.status === "under" && (
-                    <div className="mb-1.5 flex flex-col gap-1 text-[11px] text-amber-400">
+                    <div className="mb-1.5 flex flex-col gap-1 text-[12px] text-amber-400">
                       <span className="flex items-center gap-1">
                         <AlertTriangle size={12} /> セクション({section.lengthBars}小節)に対しコードが{Math.round((diagnostics.coverage.gapBeats / ts.beatsPerBar) * 100) / 100}小節分不足しています
                       </span>
@@ -306,17 +306,17 @@ export function LeftPanel({
                     </div>
                   )}
                   {diagnostics.coverage.status === "over" && (
-                    <p className="mb-1.5 flex items-center gap-1 text-[11px] text-amber-400">
+                    <p className="mb-1.5 flex items-center gap-1 text-[12px] text-amber-400">
                       <AlertTriangle size={12} /> セクション終端を{Math.round((diagnostics.coverage.overflowBeats / ts.beatsPerBar) * 100) / 100}小節分超過しています(超過部分は生成で切り詰められます)
                     </p>
                   )}
                   {diagnostics.coverage.overlaps.length > 0 && (
-                    <p className="mb-1.5 flex items-center gap-1 text-[11px] text-amber-400">
+                    <p className="mb-1.5 flex items-center gap-1 text-[12px] text-amber-400">
                       <AlertTriangle size={12} /> コード区間が重複しています
                     </p>
                   )}
                   {diagnostics.hasError && (
-                    <p className="mb-1.5 flex items-center gap-1 text-[11px] text-red-400">
+                    <p className="mb-1.5 flex items-center gap-1 text-[12px] text-red-400">
                       <XCircle size={12} /> 無効なコードがあります。修正しないと C major として生成されます
                     </p>
                   )}

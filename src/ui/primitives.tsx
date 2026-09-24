@@ -49,7 +49,7 @@ export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInput
   return (
     <input
       className={clsx(
-        "rounded-sm border border-hairline bg-surface-tile-2 px-2.5 py-1.5 text-[13px] text-body-on-dark outline-none placeholder:text-ink-muted-48 focus:border-primary-focus",
+        "rounded-sm border border-hairline bg-surface-tile-2 px-2.5 py-1.5 text-[13px] text-body-on-dark outline-none placeholder:text-ink-soft focus:border-primary-focus",
         className,
       )}
       {...props}
@@ -58,7 +58,7 @@ export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInput
 }
 
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
-  return <label className={clsx("text-[11px] font-medium uppercase tracking-wide text-ink-muted-48", className)}>{children}</label>
+  return <label className={clsx("text-[12px] font-medium uppercase tracking-wide text-ink-soft", className)}>{children}</label>
 }
 
 export function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
