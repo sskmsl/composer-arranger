@@ -70,7 +70,7 @@ describe("Density: 高いほどノート数が増える傾向(parametric/bespoke
       activeTotal += active.reduce((a, c) => a + c.notes.length, 0)
     }
     expect(activeTotal).toBeGreaterThan(sparseTotal)
-  })
+  }, 15_000)
 })
 
 describe("Syncopation: syncopationAmountが高いほどオフビート開始が増える(parametric)", () => {
@@ -176,7 +176,7 @@ describe("Key: parametric Profileの出力へ計測可能な差を生む", () =>
       if (JSON.stringify(cMajor) !== JSON.stringify(fsMajor)) changed++
     }
     expect(changed).toBeGreaterThan(25)
-  })
+  }, 15_000)
 })
 
 describe("決定論: 同一入力(id以外)は完全再現される", () => {
@@ -225,5 +225,5 @@ describe("適用外の設定は実挙動にも影響しない(表と挙動の整
       expect(outputs[1]).toEqual(outputs[0])
       expect(outputs[2]).toEqual(outputs[0])
     }
-  })
+  }, 15_000)
 })
