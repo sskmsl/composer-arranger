@@ -59,7 +59,7 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
                 variant="dark"
                 onClick={() => {
                   // 現在のプロジェクトは自動保存済み(プロジェクトブラウザーから再度開ける)。念のため確認する
-                  if (window.confirm("新規プロジェクトを作成します。現在のプロジェクトは自動保存済みで、「開く」から再度開けます。よろしいですか?")) {
+                  if (window.confirm("新しい曲を作ります。いまの曲は自動で保存されているので、「開く」からまた開けます。よろしいですか？")) {
                     newProject()
                   }
                 }}
@@ -70,10 +70,10 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
                 <FolderOpen size={13} /> 開く
               </Button>
               <Button variant="dark" onClick={() => downloadProjectFile(project)}>
-                <Download size={13} /> 保存用JSON
+                <Download size={13} /> ファイルに保存
               </Button>
               <label className="relative inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm bg-white/10 px-[15px] py-[8px] text-[13px] font-normal text-body-on-dark transition hover:bg-white/15 active:scale-95">
-                <Upload size={13} /> JSONを開く
+                <Upload size={13} /> ファイルから開く
                 <input
                   type="file"
                   accept="application/json,.json"
@@ -99,7 +99,7 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
                   midiImportBusy ? "cursor-wait opacity-60" : "cursor-pointer",
                 )}
               >
-                <Music2 size={13} /> {midiImportBusy ? "MIDI解析中…" : "Logic／外部曲 MIDI"}
+                <Music2 size={13} /> {midiImportBusy ? "MIDI解析中…" : "MIDIを読み込む"}
                 <input
                   type="file"
                   accept={MIDI_IMPORT_ACCEPT}
@@ -123,7 +123,7 @@ export function ProjectMenu({ onOpenImportGuide }: { onOpenImportGuide?: () => v
               </label>
             </div>
             <p className="mt-2 text-[12px] leading-4 text-ink-soft">
-              Logic Proでは「ファイル ＞ 書き出す ＞ 選択範囲をMIDIファイルとして」でSMFを書き出してください。.logicx／MP3はこの入口ではなく、標準MIDIを使用します。
+              Logic Proでは「ファイル ＞ 書き出す ＞ 選択範囲をMIDIファイルとして」で書き出してください（.logicx や MP3 は読み込めません）。
             </p>
             {project.sourceImport?.type === "midi" && (
               <div className="mt-3 rounded-sm border border-primary/30 bg-primary/8 p-2 text-[12px] leading-relaxed text-body-muted">

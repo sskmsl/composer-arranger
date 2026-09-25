@@ -61,7 +61,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <>
       {syncing && (
         <div className="pointer-events-none fixed right-3 top-[4.25rem] z-[90] flex items-center gap-1.5 rounded-pill border border-primary/20 bg-surface-tile-1/95 px-3 py-1.5 text-[12px] text-body-muted shadow-lg backdrop-blur">
-          <LoaderCircle className="animate-spin" size={13} /> Cloud同期中
+          <LoaderCircle className="animate-spin" size={13} /> クラウド同期中
         </div>
       )}
       {error && (
@@ -72,7 +72,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           >
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">Cloud同期を一時停止しました</p>
+                <p className="font-semibold">クラウド同期を一時停止しました</p>
                 <p className="mt-0.5 leading-5">
                   ローカルデータで続行できます。{error}
                 </p>

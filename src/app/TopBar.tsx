@@ -83,7 +83,7 @@ export function TopBar({
           href="./manual.html"
           target="_blank"
           rel="noreferrer"
-          title="操作マニュアルを開く"
+          title="使い方を開く"
           className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-body-muted transition hover:bg-white/10 hover:text-body-on-dark active:scale-95 lg:hidden"
         >
           <CircleHelp size={16} />
@@ -107,7 +107,7 @@ export function TopBar({
 
       {tab !== "home" && <div className="flex shrink-0 flex-wrap items-center gap-3 text-[13px] text-ink-soft">
         <label className="flex items-center gap-1">
-          Key
+          キー
           <TextInput
             defaultValue={project.song.key}
             key={`key-${project.projectId}`}
@@ -116,7 +116,7 @@ export function TopBar({
           />
         </label>
         <label className="flex items-center gap-1">
-          Tempo
+          テンポ
           <TextInput
             defaultValue={String(project.song.tempo)}
             key={`tempo-${project.projectId}`}
@@ -156,7 +156,7 @@ export function TopBar({
           href="./manual.html"
           target="_blank"
           rel="noreferrer"
-          title="操作マニュアルを開く"
+          title="使い方を開く"
           className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-body-muted transition hover:bg-white/10 hover:text-body-on-dark active:scale-95"
         >
           <CircleHelp size={16} />

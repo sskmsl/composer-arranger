@@ -4,15 +4,15 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { SectionCard } from "@/ui/primitives"
 
 const ROLE_LABELS: Record<string, string> = {
-  melody: "Melody",
-  harmony: "Harmony",
-  accompaniment: "Accompaniment",
-  bass: "Bass",
-  drums: "Drums",
-  strings: "Strings",
-  counter: "Counter",
-  decoration: "Decoration",
-  other: "Other",
+  melody: "主旋律",
+  harmony: "コード",
+  accompaniment: "伴奏",
+  bass: "ベース",
+  drums: "ドラム",
+  strings: "弦",
+  counter: "対旋律",
+  decoration: "装飾",
+  other: "その他",
 }
 
 export function ImportedArrangementAnalysisPanel() {
@@ -23,21 +23,20 @@ export function ImportedArrangementAnalysisPanel() {
     return analysis ? [analysis] : []
   })
   const totalTracks = project.importedArrangement.tracks.length
-  const totalNotes = project.importedArrangement.tracks.reduce((sum, track) => sum + track.notes.length, 0)
 
   return (
     <SectionCard className="border-primary/20 bg-primary/[0.025]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[13px] font-semibold text-body-on-dark">
-            <AudioLines size={16} className="text-primary-on-dark" /> Imported Arrangement Analysis
+            <AudioLines size={16} className="text-primary-on-dark" /> 読み込んだ曲のパート
           </div>
           <p className="mt-1 max-w-3xl text-[12px] leading-5 text-body-muted">
-            推定コードだけでなく、Logic／外部曲MIDIの原演奏を使って、役割・密度・余白・音域・主旋律衝突をSection単位で解析します。
+            読み込んだMIDIの演奏から、セクションごとにどのパートが鳴っているかをまとめました。
           </p>
         </div>
         <span className="rounded-pill bg-primary/10 px-3 py-1 text-[12px] text-primary-on-dark">
-          {project.importedArrangement.sourceKind === "logic-project" ? "Logic Pro" : "External Song"} · {totalTracks} tracks · {totalNotes} notes
+          {project.importedArrangement.sourceKind === "logic-project" ? "Logic Pro" : "ほかで作った曲"} · {totalTracks}トラック
         </span>
       </div>
 
@@ -53,7 +52,7 @@ export function ImportedArrangementAnalysisPanel() {
               </div>
               <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[12px] ${analysis.melodyCollisionCount > 0 ? "bg-amber-300/10 text-amber-100" : "bg-emerald-400/10 text-emerald-200"}`}>
                 {analysis.melodyCollisionCount > 0 ? <AlertTriangle size={9} /> : <CheckCircle2 size={9} />}
-                Melody衝突 {analysis.melodyCollisionCount}
+                {analysis.melodyCollisionCount > 0 ? `主旋律とぶつかる所 ${analysis.melodyCollisionCount}` : "主旋律とぶつからない"}
               </span>
             </div>
 
@@ -65,27 +64,12 @@ export function ImportedArrangementAnalysisPanel() {
               ))}
             </div>
 
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              <div className="rounded-sm bg-black/10 px-2 py-1.5">
-                <p className="text-[12px] text-ink-soft">余白</p>
-                <p className="text-[12px] text-body-on-dark">{Math.round(analysis.silenceRatio * 100)}%</p>
-              </div>
-              <div className="rounded-sm bg-black/10 px-2 py-1.5">
-                <p className="text-[12px] text-ink-soft">同時Attack</p>
-                <p className="text-[12px] text-body-on-dark">最大 {analysis.maximumSimultaneousAttacks}</p>
-              </div>
-              <div className="rounded-sm bg-black/10 px-2 py-1.5">
-                <p className="text-[12px] text-ink-soft">Active Role</p>
-                <p className="text-[12px] text-body-on-dark">{analysis.activeRoles.length}</p>
-              </div>
-            </div>
-
             <div className="mt-2 space-y-1">
               {analysis.roles.map((role) => (
                 <div key={role.role} className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)_4rem] gap-2 text-[12px] leading-4 text-body-muted">
                   <span className="text-primary-on-dark">{ROLE_LABELS[role.role] ?? role.role}</span>
                   <span className="truncate">{role.trackNames.join(" / ")}</span>
-                  <span className="text-right">{role.notesPerBar}/bar</span>
+                  <span className="text-right">{role.notesPerBar}音/小節</span>
                 </div>
               ))}
             </div>

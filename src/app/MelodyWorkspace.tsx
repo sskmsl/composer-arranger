@@ -23,25 +23,23 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
-import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 
-const TRANSITION_LABELS = {
-  resolved: "Resolved",
-  suspended: "Suspended",
-  open: "Open",
-  "carry-over": "Carry-over",
-  "pickup-to-next": "Pickup",
-  "motif-call-response": "Call & Response",
-} as const
+const REGENERATION_LOCK_LABELS: Record<keyof RangeRegenerationLocks, string> = {
+  pitch: "音の高さ",
+  rhythm: "リズム",
+  motif: "音型",
+  opening: "入り方",
+  ending: "終わり方",
+}
 
 const SEED_OPS: { id: SeedOperation; label: string }[] = [
-  { id: "continue", label: "Continue" },
-  { id: "variation-rhythm", label: "Variation (rhythm)" },
-  { id: "variation-pitch", label: "Variation (pitch)" },
-  { id: "answer-phrase", label: "Answer Phrase" },
-  { id: "expand", label: "Expand" },
-  { id: "lift", label: "Lift" },
-  { id: "restrain", label: "Restrain" },
+  { id: "continue", label: "続きを作る" },
+  { id: "variation-rhythm", label: "リズムを変える" },
+  { id: "variation-pitch", label: "音の高さを変える" },
+  { id: "answer-phrase", label: "答えのフレーズ" },
+  { id: "expand", label: "長く広げる" },
+  { id: "lift", label: "持ち上げる" },
+  { id: "restrain", label: "抑える" },
 ]
 
 export function MelodyWorkspace({
@@ -284,61 +282,14 @@ export function MelodyWorkspace({
       {chords.length > 0 && chordHasError && (
         <span className="text-[13px] text-red-400">無効なコードがあります。左のパネルで修正してください</span>
       )}
-      {/* 候補の評価は小さな印にまとめて1行で見せる(詳しい理由は印にカーソルを合わせると出る) */}
+      {/* 候補に添える印は「おすすめ」と、演奏上の注意がある時だけ(点数や内部の判定名は出さない) */}
       {variant && (
-        <div className="flex flex-wrap items-center gap-2">
-          <ArrangementNecessityBadge necessity={variant.arrangementNecessity} compact />
-          <PerformanceReviewBadge
-            review={variant ? project.candidatePerformanceReviews?.[variant.id] : undefined}
+        <div className="flex flex-wrap items-center gap-2 empty:hidden">
+          <DirectorRecommendationBadge
+            recommendation={project.performanceBatchRecommendations?.[variant.batchId]}
+            candidateId={variant.id}
           />
-          {variant && (
-            <DirectorRecommendationBadge
-              recommendation={project.performanceBatchRecommendations?.[variant.batchId]}
-              candidateId={variant.id}
-            />
-          )}
-          {variant?.transitionPlan && (
-            <Pill>
-              接続: {TRANSITION_LABELS[variant.transitionPlan.strategy]} · 適合{" "}
-              {Math.round(variant.transitionPlan.transitionFitScore)}
-            </Pill>
-          )}
-          {variant?.contentQuality && (
-            <Pill
-              title={`Section ${Math.round(variant.contentQuality.sectionFit)} / Profile ${Math.round(variant.contentQuality.songProfileFit)} / Harmony ${Math.round(variant.contentQuality.harmonicInterest)} / Structure ${Math.round(variant.contentQuality.structuralClarity)} / Space ${Math.round(variant.contentQuality.spaceQuality)}`}
-            >
-              自動品質 {Math.round(variant.contentQuality.overallQuality)} ·{" "}
-              {variant.contentSelection?.reason === "highest-quality"
-                ? "最も適合"
-                : variant.contentSelection?.reason === "content-diversity"
-                  ? "内容の多様性"
-                  : "品質と多様性"}
-            </Pill>
-          )}
-          {variant?.techniqueExperiment && (
-            <>
-              <Pill active>
-                比較:{" "}
-                {variant.techniqueExperiment.mode === "baseline"
-                  ? "通常"
-                  : variant.techniqueExperiment.presetLabel}
-              </Pill>
-              <Pill
-                title={`Quality ${Math.round(
-                  variant.generationDiagnostics?.qualityScore ?? 0,
-                )}`}
-              >
-                適合{" "}
-                {variant.generationDiagnostics?.techniqueFitScore ===
-                undefined
-                  ? "—"
-                  : `${Math.round(
-                      variant.generationDiagnostics
-                        .techniqueFitScore * 100,
-                    )}%`}
-              </Pill>
-            </>
-          )}
+          <PerformanceReviewBadge review={project.candidatePerformanceReviews?.[variant.id]} />
         </div>
       )}
 
@@ -475,13 +426,13 @@ export function MelodyWorkspace({
                   })
                 }
               >
-                Opening
+                冒頭
               </Button>
               <Button
                 variant="dark"
                 onClick={() => setSelection({ start: totalBeats * 0.25, end: totalBeats * 0.75 })}
               >
-                Middle
+                中ほど
               </Button>
               <Button
                 variant="dark"
@@ -492,7 +443,7 @@ export function MelodyWorkspace({
                   })
                 }
               >
-                Ending
+                終わり
               </Button>
             </div>
           </div>
@@ -506,13 +457,13 @@ export function MelodyWorkspace({
                     setRegenerationLocks((current) => ({ ...current, [key]: event.target.checked }))
                   }
                 />
-                {key[0].toUpperCase() + key.slice(1)}を保持
+                {REGENERATION_LOCK_LABELS[key]}を残す
               </label>
             ))}
           </div>
           {(regenerationLocks.pitch || regenerationLocks.motif) && regenerationLocks.rhythm && (
             <p className="text-[12px] text-amber-300">
-              Pitch/MotifとRhythmを同時に保持すると選択範囲の実音が固定されます。Lockは自動解除されません。
+              音の高さ(または音型)とリズムを両方残すと、選んだ範囲はほとんど変わりません。
             </p>
           )}
           <div>
@@ -520,7 +471,7 @@ export function MelodyWorkspace({
               variant="secondary"
               onClick={() => regenerateRange(variant.id, selection.start, selection.end, regenerationLocks)}
             >
-              保持条件から最大3候補を生成
+              選んだ範囲だけ作り直す(3案まで)
             </Button>
           </div>
         </div>
@@ -529,9 +480,9 @@ export function MelodyWorkspace({
       {variant && isMelodyVariant && selectedNoteIds.size > 0 && (
         <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-soft">
-            <span>Develop a Seed — 選択中 {selectedNoteIds.size} 音</span>
+            <span>選んだ{selectedNoteIds.size}音から育てる</span>
             <label className="flex items-center gap-1">
-              Continue拍数
+              続きの長さ
               <TextInput
                 type="number"
                 className="w-14 px-1.5 py-0.5"
@@ -541,7 +492,7 @@ export function MelodyWorkspace({
               小節
             </label>
             <label className="flex items-center gap-1">
-              Expand目標
+              広げる長さ
               <TextInput
                 type="number"
                 className="w-14 px-1.5 py-0.5"

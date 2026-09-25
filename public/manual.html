@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#147DE3">
 <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <link rel="shortcut icon" href="./favicon.svg">
-<title>Composer Arranger — 操作マニュアル</title>
+<title>Composer Arranger — 使い方</title>
 <style>
   :root {
     --ink: #18181b;
@@ -332,637 +332,227 @@
 <body>
 <div class="manual-shell">
   <div class="masthead">
-    <span class="eyebrow">User Manual</span>
-    <h1>Composer Arranger 操作マニュアル</h1>
-    <p>コード進行から旋律を生成し、育て、曲全体に組み上げるための作曲支援アプリ「Composer Arranger」の全機能ガイド。左のメニューから項目へジャンプできます。</p>
+    <span class="eyebrow">使い方</span>
+    <h1>Composer Arranger 使い方</h1>
+    <p>コードと主旋律から、対旋律・合いの手・伴奏を足してアレンジし、Logic Pro へ MIDI で渡すためのアプリです。左の目次から項目へ移動できます。</p>
   </div>
 
   <nav class="toc" aria-label="目次">
-    <p class="toc-label">Contents</p>
-    <a href="#intro">アプリの全体像</a>
-    <a href="#home">ホームから始める</a>
-    <a href="#topbar">上部バーと曲の基本情報</a>
-    <a href="#project">プロジェクトの管理</a>
-    <a href="#midi-import-start">MIDI読込後の開始ガイド</a>
-    <a href="#sections">セクションの管理</a>
-    <a href="#content">Content（鳴らす内容）</a>
-    <a href="#accompaniment">伴奏パターン</a>
-    <a href="#chords">コード進行の入力</a>
-    <a href="#melody">Melodyワークスペース</a>
-    <a href="#seed">Develop a Seed</a>
-    <a href="#rightpanel">生成設定パネル</a>
-    <a href="#bottombar">再生・書き出し・履歴</a>
-    <a href="#phrase">Phraseワークスペース</a>
-    <a href="#signature">Signatureワークスペース</a>
-    <a href="#counter">Counterワークスペース</a>
-    <a href="#arrangement">Arrangementワークスペース</a>
-    <a href="#audition">聴き比べ</a>
+    <p class="toc-label">目次</p>
+    <a href="#intro">全体の流れ</a>
+    <a href="#home">始め方</a>
+    <a href="#song">曲の基本と保存</a>
+    <a href="#sections">セクションとコード</a>
+    <a href="#melody">主旋律を作る</a>
+    <a href="#layers">対旋律・装飾・イントロ・短いフレーズ</a>
+    <a href="#arrangement">アレンジ・書出し</a>
+    <a href="#consult">アレンジ相談</a>
+    <a href="#logic">Logic Pro へ渡す</a>
   </nav>
 
   <main>
     <section class="chapter" id="intro">
       <span class="chapter-num">00</span>
-      <h2>アプリの全体像</h2>
-      <p class="chapter-intro">Composer Arrangerは「曲を準備する → 全曲の方向を選んでアレンジする → AIと相談しながら仕上げて書き出す」という流れで使います。最初に開くホームから、MIDI読込・コードからの新規作成・保存曲の再開を選べます。主旋律・対旋律・装飾・イントロ・短いフレーズは、<strong>旋律</strong>タブにまとめてあります。公開版ではコードジェネレーターと同じアカウントでログインし、保存プロジェクトを端末間で同期できます。</p>
-
+      <h2>全体の流れ</h2>
+      <p class="chapter-intro">「曲を用意する → 主旋律を決める → 全曲の方向を選んでアレンジする → 相談して直す → MIDIで書き出す」の順に使います。画面は上の3つのタブで切り替えます。</p>
       <div class="tab-pill-row">
         <span class="tab-pill active">ホーム</span>
         <span class="tab-pill">旋律</span>
         <span class="tab-pill">アレンジ・書出し</span>
       </div>
-
       <div class="kv-table-wrap">
         <table>
-          <thead><tr><th>タブ</th><th>用途</th></tr></thead>
+          <thead><tr><th>タブ</th><th>すること</th></tr></thead>
           <tbody>
-            <tr><td>ホーム</td><td>MIDI読込、新規作成、保存曲の再開から制作を始める</td></tr>
-            <tr><td>旋律</td><td>主旋律を中心に、対旋律・装飾・イントロ・短いフレーズを同じ画面で切り替えて作る。採用した対旋律・装飾は主旋律に重ねて表示し、主旋律の候補は「聴き比べ」でA/B/Cを切り替えながら判定する</td></tr>
-            <tr><td>アレンジ・書出し</td><td>全曲の方向を5つから選んで全曲アレンジを作り、パート構成を見ながらAIとアレンジを相談して仕上げる。曲を試聴し、MIDIを書き出す</td></tr>
+            <tr><td>ホーム</td><td>曲を読み込む、新しく作る、保存した曲を開く</td></tr>
+            <tr><td>旋律</td><td>主旋律の候補を作って選ぶ。対旋律・装飾・イントロ・短いフレーズもここで作れる</td></tr>
+            <tr><td>アレンジ・書出し</td><td>全曲の方向を選んでパートを足し、相談しながら直して、MIDIを書き出す</td></tr>
           </tbody>
         </table>
       </div>
-
-      <p>セクションごとに「何を鳴らすか」を <a href="#content">Content</a>（メロディ／モチーフ／オスティナート／ドローン／コードのみ／無音）で選べるため、イントロや間奏を歌メロ以外の内容で作れます。</p>
-
       <div class="note">
-        <p><strong>編集内容は自動保存されます。</strong>コード入力欄からフォーカスが外れた瞬間や、生成・編集操作のたびにブラウザのIndexedDBへ保存されるため、明示的な「保存」ボタンはありません。プロジェクトを閉じても「開く」からいつでも復元できます。</p>
+        <p><strong>保存ボタンはありません。</strong>操作のたびに自動で保存されます。ログインしていれば、ほかの端末とも同期されます。</p>
       </div>
     </section>
 
     <section class="chapter" id="home">
       <span class="chapter-num">01</span>
-      <h2>ホームから始める</h2>
-      <p class="chapter-intro">起動後はホームが表示されます。専門機能を先に選ぶ必要はありません。</p>
+      <h2>始め方</h2>
       <div class="grid-2">
-        <div class="card"><h4>MIDIからアレンジする</h4><p>Logic／外部曲のコード・主旋律・テンポ・セクションを解析し、確認後にAI相談へ進みます。</p></div>
-        <div class="card"><h4>コードから新しく作る</h4><p>8小節のAメロを自動作成します。コード進行を入力して主旋律生成またはAI相談へ進めます。</p></div>
-        <div class="card"><h4>保存した曲を開く</h4><p>自動保存またはCloud同期された曲を開き、AI相談を入口として続きから再開します。</p></div>
-        <div class="card"><h4>旋律</h4><p>主旋律・対旋律・装飾・イントロ・短いフレーズを、旋律タブの中で切り替えて作ります。</p></div>
+        <div class="card"><h4>Chord Generatorの曲から始める</h4><p>Chord Generator で書き出したファイルを開くと、曲名・テンポ・セクション・コード・転調・スタイルを引き継ぎます。</p></div>
+        <div class="card"><h4>MIDIからアレンジする</h4><p>Logic Pro などで書き出した MIDI から、コード・主旋律・テンポ・セクションを読み取ります。読み取った結果を確認して「このまま進む」を押せば始められます。気になる所だけ直すこともできます。</p></div>
+        <div class="card"><h4>コードから新しく作る</h4><p>8小節のAメロを1つ用意します。コードを入力して、主旋律を作るところから始めます。</p></div>
+        <div class="card"><h4>保存した曲を開く</h4><p>前に作った曲を一覧から選んで、続きから再開します。一覧では検索・複製・名前の変更・削除（元に戻せます）ができます。</p></div>
       </div>
+      <p>MIDIを読み込んだあとは「開始ガイド」が開き、次にすることを3つだけ案内します。閉じても、上の「曲」メニューの「開始ガイド」からまた開けます。</p>
     </section>
 
-    <section class="chapter" id="topbar">
-      <span class="chapter-num">01</span>
-      <h2>上部バーと曲の基本情報</h2>
-      <p class="chapter-intro">画面最上部には、プロジェクト名と曲全体に関わる基本パラメータ、そしてタブ切り替えがあります。</p>
-
+    <section class="chapter" id="song">
+      <span class="chapter-num">02</span>
+      <h2>曲の基本と保存</h2>
       <div class="kv-table-wrap">
         <table>
-          <thead><tr><th>項目</th><th>説明</th></tr></thead>
+          <thead><tr><th>場所</th><th>内容</th></tr></thead>
           <tbody>
-            <tr><td>プロジェクト名</td><td>クリックして編集。フォーカスを外すと保存されます。</td></tr>
-            <tr><td class="mono">Key</td><td>曲のキー(例: <code>C</code>, <code>Am</code>)。テキストで自由入力。</td></tr>
-            <tr><td class="mono">Tempo</td><td>BPM。再生・MIDI書き出しの速度に反映されます。</td></tr>
-            <tr><td>拍子</td><td>例: <code>4/4</code>, <code>3/4</code>, <code>6/8</code>。セクションの小節数からビート数を計算する基準になります。</td></tr>
-            <tr><td>ホーム / 旋律 / アレンジ・書出し</td><td>制作の主要な流れを切り替えます。旋律タブの中では、上部で主旋律・対旋律・装飾・イントロ・短いフレーズを切り替えます。</td></tr>
+            <tr><td>曲の名前</td><td>押すと書き換えられます</td></tr>
+            <tr><td>キー・テンポ・拍子</td><td>曲全体の設定です。例：キー <code>Am</code>、拍子 <code>4/4</code></td></tr>
+            <tr><td>「曲」メニュー</td><td>新しい曲・開く・ファイルに保存・ファイルから開く・MIDIを読み込む</td></tr>
+            <tr><td>？</td><td>この使い方を開きます</td></tr>
           </tbody>
         </table>
       </div>
-      <p>Key・拍子・Song Profile(右パネル)はプロジェクトの一部として保存されます。一方でDensity/Range/Drama/Generator Profileといった生成設定はセッション限りで、プロジェクトファイルには保存されません(<a href="#rightpanel">生成設定パネル</a>を参照)。</p>
-    </section>
-
-    <section class="chapter" id="project">
-      <span class="chapter-num">02</span>
-      <h2>プロジェクトの管理</h2>
-      <p class="chapter-intro">左パネル最上部「曲とプロジェクト」カードから、プロジェクト単位の操作を行います。基本的な開始操作はホームにもまとめられています。</p>
-
-      <div class="grid-2">
-        <div class="card">
-          <h4>新しい曲</h4>
-          <p>新規プロジェクトと最初のAメロを作成します。現在編集中のプロジェクトは自動保存済みのため、あとから「開く」で戻れます。</p>
-        </div>
-        <div class="card">
-          <h4>開く</h4>
-          <p>これまで保存された全プロジェクトの一覧(プロジェクトブラウザー)を開きます。検索・並び替え・複製・名前変更・削除(元に戻す付き)ができます。</p>
-        </div>
-        <div class="card">
-          <h4>Export</h4>
-          <p>現在のプロジェクトをJSONファイルとしてダウンロードします。バックアップや他端末への移動に使えます。</p>
-        </div>
-        <div class="card">
-          <h4>Project JSON</h4>
-          <p>JSONファイルを選択してプロジェクトを読み込みます。古いスキーマのファイルも自動的に現行仕様へ変換されます。</p>
-        </div>
-        <div class="card">
-          <h4>Logic／外部曲 MIDI</h4>
-          <p>Logic Proなどから書き出した標準MIDIを解析し、Melody、コード、Section、役割別の原演奏を持つプロジェクトを作成します。読込後は、Key・Tempo・主要トラック役割・Section数をまとめた解析結果が表示されます。信頼度が十分な項目は自動採用され、Melody判定、Key、コード、Section境界など要確認の項目だけが優先表示されます。</p>
-        </div>
-      </div>
-
-      <h3>MIDI解析結果の承認</h3>
-      <p>通常は解析サマリーを確認して<strong>「このまま進む」</strong>だけで開始できます。低信頼度の項目がある場合はAI推奨値が選択済みで表示され、<strong>「この判定でOK」</strong>または必要な値の変更だけを行います。従来のトラック役割一覧、基本情報、Section境界、コード一覧、試聴は削除されず、<strong>「詳細を確認」</strong>から展開できます。</p>
-
-      <h3>プロジェクトブラウザーでできること</h3>
-      <ul>
-        <li><strong>検索・並び替え</strong> — タイトルで絞り込み、更新日時などで並び替え。</li>
-        <li><strong>複製</strong> — 新しいIDで全データを丸ごとコピー。編集前のバックアップ代わりにも使えます。</li>
-        <li><strong>名前変更</strong> — 保存済みプロジェクトのタイトルのみを変更(最終編集日時は変わりません)。</li>
-        <li><strong>削除</strong> — 一覧から削除します。誤操作時は「元に戻す」で復元可能。今まさに編集中のプロジェクトを削除した場合のみ編集画面へ復元され、それ以外のプロジェクトを復元した場合は現在の編集セッションに影響しません。</li>
-      </ul>
-    </section>
-
-    <section class="chapter" id="midi-import-start">
-      <span class="chapter-num">02A</span>
-      <h2>MIDI読込後の開始ガイド</h2>
-      <p class="chapter-intro">「Logic／外部曲 MIDI」で内容を確定すると、読み込み直後に3ステップの開始ガイドが開きます。機能を全部試す必要はなく、ここに表示された順番だけでアレンジを始められます。</p>
-
-      <ol>
-        <li><strong>読み込み結果を確認</strong> — 「アレンジ画面で確認」からSection、コード、Melody、Key、各トラックの役割を確認します。Key Signatureがない場合は音価加重のPitch Class分布からKey・信頼度・代替候補を表示します。</li>
-        <li><strong>全曲の方向を選んで作る</strong> — アレンジ画面で「余白を生かす／壮大に盛り上げる／リズムで押し進める／陰影と意外性／バランスよく」から1つ選ぶと、主旋律とコードはそのままで曲全体にパートを足します。</li>
-        <li><strong>相談して詰める</strong> — 読み込んだ役割を調べ、最初に検討すべき一つ(リズム、ベースなど)を相談文として用意します。「この内容でAIに相談」でアレンジ相談の入力欄に入ります。</li>
-      </ol>
-
-      <div class="note">
-        <p><strong>コードとMelodyだけを読み込んだ場合</strong>は、通常「リズム設計」が最優先として表示されます。音を増やす前に曲の呼吸と推進力を決めるためです。DrumsがあればBass、主要パートが揃っていればCounter／Decorationの必要性、さらに揃っていれば曲全体の密度整理へ進みます。</p>
-      </div>
-      <p>開始ガイドを閉じても、上部の<strong>「曲」メニュー</strong>にある「開始ガイド」からいつでも再表示できます。アレンジ画面へ移動しただけでは何も生成されず、AIへの相談も送信されません。方向を選んで「全曲を作る」を押す、または相談文を送信した時点で初めて処理が始まります。</p>
+      <p>「ファイルに保存」は、バックアップや別の環境へ移すときに使います。ふだんは自動保存だけで大丈夫です。</p>
     </section>
 
     <section class="chapter" id="sections">
       <span class="chapter-num">03</span>
-      <h2>セクションの管理</h2>
-      <p class="chapter-intro">曲はセクション(イントロ・Aメロ・サビ…)の集まりとして構成します。左パネル「セクション」カードで一覧・追加・複製・削除、「セクション設定」カードで選択中セクションの詳細を編集します。</p>
-
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>Role</th><th>表示ラベル</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">intro</td><td>イントロ</td></tr>
-            <tr><td class="mono">verse</td><td>Aメロ</td></tr>
-            <tr><td class="mono">pre-chorus</td><td>Bメロ</td></tr>
-            <tr><td class="mono">chorus</td><td>サビ</td></tr>
-            <tr><td class="mono">breakdown-chorus</td><td>落ちサビ</td></tr>
-            <tr><td class="mono">grand-chorus</td><td>大サビ</td></tr>
-            <tr><td class="mono">c-melody</td><td>Cメロ</td></tr>
-            <tr><td class="mono">bridge</td><td>ブリッジ</td></tr>
-            <tr><td class="mono">instrumental</td><td>間奏</td></tr>
-            <tr><td class="mono">outro</td><td>アウトロ</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>セクション設定</h3>
+      <h2>セクションとコード</h2>
+      <p class="chapter-intro">曲はセクション（イントロ・Aメロ・サビ…）の並びです。旋律タブの左側で、追加・複製・削除と、選んだセクションの設定をします。</p>
       <ul>
-        <li><strong>名前</strong> — 自由入力。フォーカスを外すと保存。</li>
-        <li><strong>セクションの役割</strong> — 上表のいずれか。曲のスタイルの解釈や展開に影響します。</li>
-        <li><strong>小節数</strong> — セクションの長さ。拍子と掛け合わせてビート数が決まります。</li>
-        <li><strong>コード進行</strong> — <a href="#chords">後述</a>。</li>
+        <li><strong>名前・セクションの役割・小節数</strong> — 役割（Aメロ・サビなど）によって、旋律の高さや盛り上がり方が変わります。</li>
+        <li><strong>コード進行</strong> — <code>|</code> で区切って入力します。例：<code>F#m(add9) | E | D | Dsus2</code>。1小節より長く・短くしたいときは <code>:拍数</code> を付けます（例：<code>Am:2 | E:6</code>）。</li>
+        <li><strong>繰り返して2倍</strong> — 入力したコード進行を繰り返して、長さを2倍にします。</li>
       </ul>
-      <p>ふだん触らない設定は、その下の「こだわり設定」を開くと出てきます(変えてあるときは「変更あり」と表示されます)。</p>
+      <p>コード欄の下には、読めたコードの構成音が出ます。足りない・はみ出している・読めないコードがあるときは、そこに知らせが出ます。読めないコードが残っていると候補は作れません。</p>
+
+      <h3>こだわり設定（ふだんは触らなくて大丈夫です）</h3>
       <ul>
-        <li><strong>このセクションの調</strong> — 転調するときだけ入力します。</li>
-        <li><strong>このセクションで鳴らす内容</strong> — <a href="#content">次章</a>で詳しく説明します。</li>
-        <li><strong>伴奏パターン</strong> — 伴奏の型。<a href="#accompaniment">後述</a>。</li>
-        <li><strong>リード開始位置 / 弱起</strong> — 冒頭を無音にする長さと、次セクションへの弱起。</li>
+        <li><strong>このセクションの調</strong> — 転調するセクションだけ入力します。</li>
+        <li><strong>このセクションで鳴らす内容</strong> — おまかせ／歌の旋律／短い動機／反復音型／持続音／コードのみ／無音。イントロや間奏を、歌の旋律以外で作りたいときに使います。</li>
+        <li><strong>伴奏パターン</strong> — 分散和音などの型を選ぶと、このセクションのコードに合わせて鳴らします（別のトラックで書き出します）。</li>
+        <li><strong>旋律の入り</strong> — セクションの最初を何小節休むか。</li>
+        <li><strong>弱起</strong> — 次のセクションの直前から旋律を始めます。</li>
       </ul>
-      <p>セクション一覧の各行では、コピーアイコンで複製、ゴミ箱アイコンで削除ができます。複製したセクションは、元のセクションのすぐ後ろに入ります。全曲アレンジ(AIのパート)がある場合は、複製・並べ替え・削除・長さの変更に合わせてAIのパートも自動で動きます(複製したセクションには元のセクションのパートが写り、短くしたセクションからはみ出す音は外れます)。</p>
-    </section>
-
-    <section class="chapter" id="content">
-      <span class="chapter-num">04</span>
-      <h2>Content（このセクションで鳴らす内容）</h2>
-      <p class="chapter-intro">セクションで鳴らす内容は、Roleとは<strong>独立した軸</strong>です。イントロを必ず歌メロにする必要はなく、短いモチーフだけ、ドローンの保持だけ、コード伴奏だけ、あるいは無音から始めることができます。セクション設定の「Content」から7つのプリセットで選びます。</p>
-
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>プリセット</th><th>鳴る内容</th></tr></thead>
-          <tbody>
-            <tr><td>Auto</td><td>Role・Song Profile・コード進行から、妥当な入口を候補ごとに選ぶ（3案で複数種類を提示）</td></tr>
-            <tr><td>Melody</td><td>通常の歌唱メロディ</td></tr>
-            <tr><td>Motif</td><td>2〜5音の短い象徴的モチーフを、余白を挟んで疎に提示</td></tr>
-            <tr><td>Ostinato</td><td>短い音型を周期的に反復（伴奏パートとして書き出し）</td></tr>
-            <tr><td>Drone</td><td>1〜2音を長く保持。コード境界をまたいで保持され、途中で分割されない（伴奏パート）</td></tr>
-            <tr><td>Chords Only</td><td>リードを鳴らさず、コード伴奏だけ</td></tr>
-            <tr><td>Silence</td><td>リードも伴奏も鳴らさない</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="note">
-        <p>内部的には「<strong>リードの内容</strong>」と「<strong>伴奏の有無</strong>」の2軸で保持されています。そのため <strong>Chords Only</strong>（リードなし・伴奏あり）と <strong>Silence</strong>（リードなし・伴奏なし）は、曲全体の再生やMIDI書き出しでもきちんと別の結果になります。</p>
-      </div>
-
-      <h3>リード開始位置（冒頭を無音にする）</h3>
-      <p>「先頭から何小節を無音にするか」を小節単位（0.25刻み）で指定します。指定した区間にはリードの音が1つも入りません。セクション長と同じ値にすれば完全な無音になります。</p>
-      <p>この設定は <strong>Melody にも効きます</strong>。「前半2小節は休みで、3小節目から歌が入る」といった作りが、Content を Melody のまま実現できます。</p>
-
-      <h3>Pickup（次セクション直前の弱起）</h3>
-      <p>チェックを入れると、セクション末尾に次セクションへ向かう弱起が別レイヤーとして作られます。「イントロは無音 → Aメロ直前に弱起だけ置く」という形も、Silence + Pickup で表現できます。</p>
-
-      <div class="card">
-        <h4>候補が成立しないとき</h4>
-        <p>たとえば Motif を選びながらリード開始位置をセクション終端ぎりぎりにすると、2〜5音の核が入りません。そうした場合は候補を作り直したうえで、それでも成立しなければ「<em>一部の候補がMotifとして成立していません</em>」という警告が表示されます。リード開始位置やセクション長を見直してください。</p>
-      </div>
-
-      <div class="note warn">
-        <p>Motif / Ostinato / Drone / Chords Only / Silence の候補には、<strong>Seedの発展操作と範囲の部分再生成は使えません</strong>（歌唱メロディ専用の処理のため）。作り直す場合は Generate を実行します。</p>
-      </div>
-    </section>
-
-    <section class="chapter" id="accompaniment">
-      <span class="chapter-num">05</span>
-      <h2>伴奏パターン（Accompaniment Pattern）</h2>
-      <p class="chapter-intro">セクション設定の「Accompaniment Pattern」で、伴奏の型をセクションごとに割り当てられます。度数（1・3・5・7・9・11）とリズムのテンプレートが、そのセクションのコードへ自動変換されます。専用のMIDIトラックとして書き出されます。</p>
-
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>パターン</th><th>形</th></tr></thead>
-          <tbody>
-            <tr><td>Pulse (1+5)</td><td>ルートと5度を刻む（2拍周期）</td></tr>
-            <tr><td>Arpeggio Up (1-3-5-7)</td><td>1拍ずつ上行するアルペジオ</td></tr>
-            <tr><td>Chord Entry (1+3+5 → 7-9-5)</td><td>和音で入り、後半をアルペジオで動かす</td></tr>
-            <tr><td>5-Note Arpeggio (1-3-5-7-9)</td><td>9thまで含む5音のアルペジオ</td></tr>
-            <tr><td>6-Note Arpeggio (1-3-5-7-9-11)</td><td>11thまで含む6音の連続アルペジオ</td></tr>
-            <tr><td>Broken Ninth (1-5-9-3)</td><td>細かく分散させた8音の動き</td></tr>
-            <tr><td>Syncopated (1-5-3-7)</td><td>拍の裏を使うシンコペーション</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>「None」を選べば伴奏パターンは付きません。パターンは旋律に合わせて音域・密度が調整されます。</p>
-    </section>
-
-    <section class="chapter" id="chords">
-      <span class="chapter-num">06</span>
-      <h2>コード進行の入力</h2>
-      <p class="chapter-intro">セクション設定の「コード進行」テキストエリアに、コードを区切り文字で並べて入力します。旋律生成の元になる最も重要な入力です。</p>
-
-      <div class="card">
-        <h4>記法</h4>
-        <p>区切りは <code>|</code> <code>-</code> <code>–</code>(EN DASH) <code>—</code>(EM DASH) のいずれか。<code>-</code>は前後に空白がある場合のみ区切りとみなされるため、<code>C-7</code>のようなマイナー表記とは区別されます。</p>
-        <p>長さを変えたい場合は <code>:拍数</code> を付けます(省略時は1小節分)。</p>
-        <p style="margin-bottom:0">例: <code>F#m(add9) | E | D | Dsus2</code>、または <code>F#m(add9):2 | E:6</code></p>
-      </div>
-
-      <h3>診断メッセージの見方</h3>
-      <p>入力欄の下に、コード進行がセクション長を過不足なく満たしているか、各コードが正しく解釈できているかが自動表示されます。</p>
-
-      <div class="card">
-        <div class="diagnostic-row"><span class="chip ok">OK</span><span>正しく解釈できたコード。ルート・構成音・テンションのプレビューが添えられます。</span></div>
-        <div class="diagnostic-row"><span class="chip warn">不足</span><span>セクションの小節数に対しコードが足りません。「最後のコードを延長して埋める」ボタンでワンクリック補完できます。</span></div>
-        <div class="diagnostic-row"><span class="chip warn">超過 / 重複</span><span>セクション終端を超えている場合は超過分が生成時に切り詰められます。コード区間が重なっている場合も警告されます。</span></div>
-        <div class="diagnostic-row"><span class="chip err">エラー</span><span>認識できない記号を含むコード。<strong>この状態のまま生成すると、そのコードが暗黙にCメジャーとして扱われてしまうため、Generateボタンはエラーが解消されるまで無効化されます。</strong></span></div>
-      </div>
-
-      <p>「繰り返して2倍」ボタンは、現在入力済みのコード進行をそのまま複製して長さを2倍にします(例: 4小節→8小節)。</p>
     </section>
 
     <section class="chapter" id="melody">
-      <span class="chapter-num">07</span>
-      <h2>Melodyワークスペース</h2>
-      <p class="chapter-intro">選択中セクションのコード進行から旋律候補を生成し、ピアノロール上で確認・編集します。</p>
+      <span class="chapter-num">04</span>
+      <h2>主旋律を作る</h2>
+      <p class="chapter-intro">旋律タブの「主旋律」で、選んだセクションのコードから主旋律の候補を作ります。</p>
+      <ol>
+        <li>「作る」（2回目からは「作り直す」）を押すと、候補が3つできます。</li>
+        <li>上の番号で候補を切り替えて聴きます。<span class="keycap">Space</span> で再生・停止できます。「聴き比べ」を押すと、再生位置を保ったまま候補を切り替えて比べられます。</li>
+        <li>気に入った候補で「この主旋律を採用」を押します。曲全体の再生・書き出し・アレンジは、採用した主旋律を使います。</li>
+      </ol>
+      <p>候補の上に「おすすめ」と出るのは、3つの中でいちばん使いやすそうな候補です。演奏上の注意がある候補には、その印も出ます（印にカーソルを合わせると理由が出ます）。</p>
 
-      <h3>生成と候補の選択</h3>
+      <h3>候補の仕上げ（自動）</h3>
+      <p>作った候補には、旋律づくりの基本に沿った仕上げが自動でかかります。</p>
       <ul>
-        <li><strong>Generate from Chords</strong> — コード進行から新しい候補群を生成します。右パネルで選択したGenerator Profileの数 × 3パターン分の候補が一度に作られます。</li>
-        <li>生成後は候補がピル(タブ)として並び、クリックで切り替えて聴き比べられます。候補ピルの近くにマウスを乗せると「<span class="keycap">Space</span>で再生・停止」のヒントが表示されます(下部バーの再生ボタンまでマウスを移動しなくても試聴できます)。</li>
-        <li><strong>この主旋律を採用</strong> — 表示中の候補をそのセクションの「採用旋律」に設定します。全曲アレンジでの再生・MIDI書き出しはこの主旋律を使います。</li>
-      </ul>
-
-      <h3>候補の仕上げ</h3>
-      <p>作った候補には、旋律の作り方の基本に沿った仕上げが自動でかかります。</p>
-      <ul>
-        <li>同じ音の3連打以上や、同じ数音の中を回り続ける所をほどく</li>
+        <li>同じ音の連打や、同じ数音の中を回り続ける所をほどく</li>
         <li>大きく跳んだら、次の音で逆向きに戻る</li>
-        <li>サビはAメロより高い所で歌い、後半に1つはっきりした頂点を作る（Aメロは少し低め）</li>
+        <li>サビはAメロより高い所で歌い、後半に1つはっきりした頂点を作る</li>
         <li>セクションの最後はコードの音で、サビ・アウトロは主音で落ち着いて終わる</li>
-        <li>拍の頭で、旋律とベースが同じ向きに動いて5度・8度が続く所（平行5度・8度）を別のコードの音にする</li>
-        <li>属和音（ドミナント）の上の導音はコードが変わったら主音へ上がり、属七の7度は1〜2半音下がる</li>
-        <li>16拍以上のセクションは、前半を主音で閉じずに後半へつなぐ（問いと答え）</li>
-        <li>セクションに1か所だけ、長い音の頭を1段上の音から下がって入る形（ため息の音型）にする</li>
+        <li>拍の頭で、旋律とベースが同じ向きに動いて5度・8度が続く所（平行5度・8度）を避ける</li>
+        <li>ドミナント（属和音）の上の導音は主音へ上がり、属七の7度は1〜2半音下がる</li>
+        <li>長いセクションは、前半を主音で閉じずに後半へつなぐ（問いと答え）</li>
+        <li>セクションに1か所だけ、長い音に上から下がって入る形（ため息の音型）を入れる</li>
       </ul>
-      <p>これらはクラシックの旋律づくりで一般的とされる原則を取り入れたもので、特定の曲の型をなぞるものではありません。</p>
-      <p>冒頭の入り方と、作り方ごとの持ち味（跳躍型の大きな跳躍、半音の動き、掛留、語りの連打など）には手を加えません。選んだ音域の外にも出しません。</p>
-      <p>MIDI書き出しでは、試聴用の細かな揺らぎ（数十ミリ秒の前後）をグリッドに戻すので、Logic Proで読み込むと拍・小節線とそろいます。</p>
+      <p>これらはクラシックの旋律づくりで一般的とされる原則で、特定の曲の型をなぞるものではありません。冒頭の入り方と、作り方ごとの持ち味には手を加えず、選んだ音域の外にも出しません。</p>
 
-      <h3>候補に添えられるバッジ</h3>
-      <ul>
-        <li><strong>Transition</strong> — 前セクションの終止・音域・Motifの傾向を踏まえた接続戦略(Resolved / Suspended / Open / Carry-over / Pickup / Call & Response)と、接続の当てはまり度(Fit)を表示します。前セクションの採用旋律を変更すると、この情報が古くなった旨の注意書きが表示されるので、その場合は再生成してください。</li>
-        <li><strong>Auto Quality</strong> — ContentをAutoにして生成した候補にのみ表示され、セクション適合度・Song Profile適合度・和声的な面白さ・構造の明瞭さ・間の心地よさを合成した総合スコアと、選ばれた理由(Best Fit / Content Diversity / Quality + Diversity)を示します。カーソルを乗せると各観点の内訳が見られます。</li>
-      </ul>
-
-      <h3>3つのピアノロール</h3>
-      <p>中央には役割ごとに分かれた3つのピアノロールが縦に並びます。編集できるのは一番上のリード（旋律）だけで、残り2つは確認用の表示です。</p>
+      <h3>音を直す</h3>
       <div class="kv-table-wrap">
         <table>
-          <thead><tr><th>表示</th><th>内容</th></tr></thead>
+          <thead><tr><th>操作</th><th>できること</th></tr></thead>
           <tbody>
-            <tr><td>リード（最上段）</td><td>旋律・モチーフ。クリック/ドラッグで編集できる</td></tr>
-            <tr><td>Accompaniment</td><td>Ostinato / Drone や伴奏パターンの音（確認用）</td></tr>
-            <tr><td>Chords</td><td>コードの構成音（確認用）</td></tr>
+            <tr><td>音をクリック</td><td>その音を選ぶ。選んだ音から「続きを作る」「リズムを変える」「答えのフレーズ」などで育てられる</td></tr>
+            <tr><td>音をダブルクリック</td><td>その音の高さを固定する（作り直しても変わらない）</td></tr>
+            <tr><td>小節番号を押す</td><td>その小節から再生する</td></tr>
+            <tr><td>鍵のアイコン</td><td>その小節を固定する</td></tr>
+            <tr><td>ピアノロールをドラッグ</td><td>選んだ範囲だけ作り直す（音の高さ・リズムなど、残したいものを選べる）</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h3>ピアノロールの操作</h3>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>操作</th><th>効果</th></tr></thead>
-          <tbody>
-            <tr><td>ノートをクリック</td><td>Seedとして選択(下記「Develop a Seed」の対象になる)</td></tr>
-            <tr><td>ノートをダブルクリック</td><td>Pitch Lockの切り替え(その音の高さを再生成時に固定)</td></tr>
-            <tr><td>上部の小節番号をクリック</td><td>Bar Lockの切り替え(その小節全体を再生成対象から保護)</td></tr>
-            <tr><td>五線内をドラッグ</td><td>範囲を選択し、部分再生成(下記)を行う</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>範囲を選んで部分再生成</h3>
-      <p>ピアノロール上をドラッグして範囲を選ぶと、その範囲だけを対象にした再生成パネルが現れます。<span class="keycap">Opening</span> <span class="keycap">Middle</span> <span class="keycap">Ending</span> ボタンで代表的な範囲へすぐジャンプできます。</p>
-      <p>保持条件(チェックボックス)で、再生成時に何を変えず残すかを選べます:</p>
-      <ul>
-        <li><strong>Pitch</strong> — 音高を保持</li>
-        <li><strong>Rhythm</strong> — リズムを保持</li>
-        <li><strong>Motif</strong> — モチーフ(音型の特徴)を保持</li>
-        <li><strong>Opening</strong> — 選択範囲の入り方を保持</li>
-        <li><strong>Ending</strong> — 選択範囲の終わり方を保持</li>
-      </ul>
-      <div class="note warn">
-        <p>Pitch(またはMotif)とRhythmを同時に保持すると、選択範囲の実音がほぼ固定されます。Lockは自動解除されないため、意図せず変化しない場合は保持条件を見直してください。</p>
-      </div>
-      <p>「保持条件から最大3候補を生成」で、指定範囲のみを差し替えた候補が最大3つ作られます。</p>
+      <h3>右側の設定</h3>
+      <p>ふだんは「曲全体のスタイル」だけで足ります。セクションごとのスタイル、主旋律の作り方（標準・ミニマル・跳躍型など）、音数・音域・起伏は「こだわり設定」の中にあります。</p>
+      <p>MIDIの書き出しでは、試聴用の細かな揺らぎをグリッドに戻すので、Logic Pro で読み込むと拍・小節線とそろいます。</p>
     </section>
 
-    <section class="chapter" id="seed">
-      <span class="chapter-num">08</span>
-      <h2>Develop a Seed(部分的な旋律操作)</h2>
-      <p class="chapter-intro">ピアノロールで1つ以上のノートを選択すると「Develop a Seed」パネルが現れ、選んだ音を種(Seed)として、そこから旋律を発展させる操作が行えます。</p>
-
+    <section class="chapter" id="layers">
+      <span class="chapter-num">05</span>
+      <h2>対旋律・装飾・イントロ・短いフレーズ</h2>
+      <p class="chapter-intro">旋律タブの上で切り替えます。どれも「候補を作る → 番号で選んで聴く → 全曲に採用」の同じ流れです。</p>
       <div class="kv-table-wrap">
         <table>
-          <thead><tr><th>操作</th><th>内容</th></tr></thead>
+          <thead><tr><th>タブ</th><th>作るもの</th></tr></thead>
           <tbody>
-            <tr><td>Continue</td><td>選択した音の続きを、指定した小節数ぶん自然に伸ばします。</td></tr>
-            <tr><td>Variation (rhythm)</td><td>音高の輪郭は保ちつつ、リズムだけを変化させます。</td></tr>
-            <tr><td>Variation (pitch)</td><td>リズムは保ちつつ、音高だけを変化させます。</td></tr>
-            <tr><td>Answer Phrase</td><td>選択部分を「問い」と見立て、それに応える「答え」のフレーズを作ります。</td></tr>
-            <tr><td>Expand</td><td>選択した音型を、指定した目標小節数まで引き伸ばして展開します。</td></tr>
-            <tr><td>Lift</td><td>選択部分を高揚させる方向に変化させます。</td></tr>
-            <tr><td>Restrain</td><td>選択部分を抑制的・静かな方向に変化させます。</td></tr>
+            <tr><td>対旋律</td><td>主旋律に答えるもう1本の旋律（10案）。先にそのセクションの主旋律を採用しておきます</td></tr>
+            <tr><td>装飾</td><td>フレーズのすき間に入る短い音（10案）</td></tr>
+            <tr><td>イントロ</td><td>曲の入りに使う、印象に残る短いフレーズ（1〜8小節・12案）</td></tr>
+            <tr><td>短いフレーズ</td><td>2〜8小節の単独のアイデア（3案）</td></tr>
           </tbody>
         </table>
       </div>
-      <p><strong>Continue拍数</strong>と<strong>Expand目標</strong>の数値入力で、ContinueとExpandがそれぞれ何小節分作用するかを調整できます。</p>
-    </section>
-
-    <section class="chapter" id="rightpanel">
-      <span class="chapter-num">09</span>
-      <h2>生成設定パネル(右パネル)</h2>
-      <p class="chapter-intro">旋律生成の「方向性」を決めるパラメータ群です。ふだん表示されるのは「曲全体のスタイル」だけで、それ以外(セクションごとのスタイル・ジャンルの配合・音像・候補の作り方・音数・音域・起伏)は「こだわり設定」を開くと出てきます。曲全体のスタイルだけが曲に保存され、候補の作り方・音数・音域・起伏は開いている間だけの一時設定です。</p>
-
-      <h3>Song Profile</h3>
-      <p>曲全体の作風を決める5種類のプロファイル。特定セクションだけ上書きすることも可能です。</p>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>Profile</th></tr></thead>
-          <tbody>
-            <tr><td>Dark Romantic</td></tr>
-            <tr><td>Cinematic French Pop</td></tr>
-            <tr><td>Minimal Tension</td></tr>
-            <tr><td>Dramatic Synth Pop</td></tr>
-            <tr><td>Original Custom</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>Generator Profile(旋律の生成ロジック、複数選択可)</h3>
-      <p>選択したProfile × 3パターン分の候補が生成されます。1つだけでなく複数選んで一度に聴き比べることもできます。</p>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>Profile</th><th>優先する性質</th></tr></thead>
-          <tbody>
-            <tr><td>Standard</td><td>コード進行に沿ったバランス型の旋律</td></tr>
-            <tr><td>Minimal</td><td>静けさと余白、少ない音数</td></tr>
-            <tr><td>Leaping</td><td>跳躍と起伏の大きい輪郭</td></tr>
-            <tr><td>Rhythmic</td><td>リズムの識別性と推進力</td></tr>
-            <tr><td>Chromatic</td><td>半音階的な経過音とテンション</td></tr>
-            <tr><td>Cinematic</td><td>複数小節にわたる展開とクライマックス設計</td></tr>
-            <tr><td>Elegiac Cantabile</td><td>長い旋律弧と遅延解決</td></tr>
-            <tr><td>Speech-Rhythmic</td><td>狭い音域と発話アクセント</td></tr>
-            <tr><td>Incantatory</td><td>短い核モチーフの反復と微細な変形</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>一部の設定(Density/Drama/Keyなど)は、選んだProfileによっては生成へ反映されないことがあり、その場合はパネル内に注意書きが表示されます。</p>
-
-      <h3>生成パラメータ</h3>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>項目</th><th>選択肢</th><th>効果</th></tr></thead>
-          <tbody>
-            <tr><td>Density</td><td>Sparse / Balanced / Active</td><td>音数の密度</td></tr>
-            <tr><td>Range</td><td>Low(G3–C5) / Middle(C4–F5) / High(E4–A5) / Custom</td><td>使用する音域。Customは音名(例: <code>C4</code>, <code>F#5</code>, <code>Bb3</code>)で最低音・最高音を直接指定</td></tr>
-            <tr><td>Drama</td><td>Restrained / Growing / Open</td><td>曲中の起伏・盛り上がり方</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="note">
-        <p>Density / Range / Drama / Generator Profileはこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。</p>
-      </div>
-
-      <h3>特徴量とMotif DNA</h3>
-      <p>候補を生成すると、その旋律の音域・跳躍幅・休符率・テンション使用率・シンコペーション率などの特徴量が数値で一覧表示されます。気に入った候補があれば「このメロディからMotif DNAを抽出」で、その旋律の核となる音型を保存し、以降の他セクション生成に軽く反映させることができます。</p>
-
-      <h3>候補の根拠</h3>
-      <p>Melody候補を生成すると、特徴量の下に<strong>「候補の根拠」</strong>が表示されます。ここに表示される文章はAIによる感想や自由作文ではなく、表示中のMIDIノート・コード進行・生成計画から自動抽出した事実です。「感動的」「心が震える」といった効果を断定するものではなく、候補を採用するか自分の耳で判断するための手掛かりとして使います。</p>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>根拠</th><th>表示される内容</th></tr></thead>
-          <tbody>
-            <tr><td>緊張音と実際の解決</td><td>どの小節・拍の、どのコード上で何の音を倚音・掛留音・先取音などとして置き、何拍後のどの音へ到着したか</td></tr>
-            <tr><td>Motifの初出と回帰</td><td>冒頭の音程列がどこで再登場したか。同じ音高か、何半音移高したか、音価が拡大・縮小されたか</td></tr>
-            <tr><td>最高音の使用位置</td><td>最高音の音名、初出の小節・拍、Section全体に対する位置、使用回数</td></tr>
-            <tr><td>実際に置かれた余白</td><td>メロディが発音しない区間の位置と長さ</td></tr>
-            <tr><td>跳躍と回収</td><td>5半音以上の跳躍と、その直後に反対方向へ戻る動きを実際の音名で表示</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>各項目の<strong>「該当箇所を聴く」</strong>を押すと、その根拠が現れる前後だけをコード＋メロディで再生します。Sectionの最後まで待つ必要はありません。再生を止める場合は下部バーの停止ボタン、または別の根拠の試聴を実行します。</p>
-      <div class="note warn">
-        <p><strong>採用前の確認点</strong>には、計画された到着音を確認できない非和声音、最高音の反復による希少性低下、明確な休止の不足、意味づけされていない和声衝突、終端音とEnding計画などが表示されます。警告がある候補を一律に不採用にするのではなく、その不安定さが作品に必要かを試聴して判断してください。</p>
-      </div>
-    </section>
-
-    <section class="chapter" id="bottombar">
-      <span class="chapter-num">10</span>
-      <h2>再生・書き出し・履歴(下部バー)</h2>
-
-      <div class="grid-2">
-        <div class="card">
-          <h4>再生</h4>
-          <p>再生モードを Melody Only / Chords + Melody / Chords Only / Arpeggio Only から選び、再生・停止ボタンで試聴します。伴奏なし設定のセクションでは、モードに関わらずコードは鳴りません。テキスト入力にフォーカスしていなければ、<span class="keycap">Space</span>キーでも再生・停止を切り替えられます。</p>
-        </div>
-        <div class="card">
-          <h4>MIDI書き出し</h4>
-          <p>選択中セクションの、現在アクティブな候補をMIDIファイルとしてダウンロードします。役割ごとにトラックが分かれます。</p>
-        </div>
-        <div class="card">
-          <h4>生成履歴</h4>
-          <p>そのセクションで過去に生成した候補すべてを一覧表示。クリックで呼び戻し、不要なものは削除できます。★は現在のActive Melody。</p>
-        </div>
-        <div class="card">
-          <h4>Undo / Redo</h4>
-          <p>直前の編集操作を取り消し・やり直しします。</p>
-        </div>
-      </div>
-
-      <h3>MIDIのトラック構成</h3>
-      <p>書き出されるMIDIは役割ごとにトラックが分かれているため、DAW側でそれぞれ別の音源に割り当てられます。すべてソフトウェア音源用のチャンネルで出力されます。</p>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>トラック</th><th>内容</th></tr></thead>
-          <tbody>
-            <tr><td>Active Melody / Active Melodies</td><td>リード（旋律・モチーフ・弱起）</td></tr>
-            <tr><td>Accompaniment</td><td>Ostinato / Drone（伴奏パートのリード内容）</td></tr>
-            <tr><td>Accompaniment Pattern</td><td>割り当てた伴奏パターン</td></tr>
-            <tr><td>Counter and Decoration</td><td>採用したCounter / Decoration候補（曲全体書き出し時）</td></tr>
-            <tr><td>Chords</td><td>コードの構成音</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>音の出ないトラックは作られません。長い保持音はコード境界で分割されず、開始拍・無音区間もそのまま保たれます。</p>
-    </section>
-
-    <section class="chapter" id="phrase">
-      <span class="chapter-num">11</span>
-      <h2>Phraseワークスペース</h2>
-      <p class="chapter-intro">セクション1つ分ではなく、<strong>2〜8小節の短いフレーズ</strong>だけを作って聴き比べるタブです。「まずワンフレーズだけ決めたい」というときに使います。フレーズはMelodyを切り詰めたものではなく、長さ・輪郭・リズム性格・和声の扱い・終止の意図を先に決めてから作られます。</p>
-
-      <h3>使い方</h3>
-      <ol>
-        <li>左パネルでセクションを選び、コード進行を入力しておく</li>
-        <li>フレーズの長さを選ぶ（Auto、または2〜8小節）</li>
-        <li>生成すると複数の候補が並ぶ</li>
-        <li>各候補を再生して聴き比べ、気に入らなければその候補だけ作り直す</li>
-      </ol>
-
-      <h3>候補に表示される「意図」</h3>
-      <p>候補ごとに、そのフレーズが何を狙ったものかが表示されます。</p>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>軸</th><th>表示される値</th></tr></thead>
-          <tbody>
-            <tr><td>リズム性格</td><td>流れるリズム / シンコペーション / 余白と呼吸 / ロングトーン</td></tr>
-            <tr><td>和声の扱い</td><td>コードを軸に展開 / 共通音を保持 / 緊張から解決 / 次コードを先取り</td></tr>
-            <tr><td>終止</td><td>解決 / 余韻 / 未解決 / 次へ接続</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>候補ごとに再生・作り直し・MIDI書き出しができます。再生モードはこのタブ内で個別に選べます。</p>
-    </section>
-
-    <section class="chapter" id="counter">
-      <span class="chapter-num">12</span>
-      <h2>Counterワークスペース</h2>
-      <p class="chapter-intro">主旋律(Active Melody)には手を加えず、その意味を強める第二声部を提案するタブです。コードの緊張・解決・共通音と、主旋律のPhrase・Motif・Accent・余白を同じ時間軸で解析し、何を返すか、どこで黙るか、どの緊張を残すかを先に計画します。</p>
-
-      <div class="note warn">
-        <p>「詳細調整 → 主旋律」で、このセクションの<strong>採用主旋律を設定してから</strong>使います。採用主旋律が無い状態では生成できません。</p>
-      </div>
-
-      <h3>使い方</h3>
-      <ol>
-        <li>「詳細調整 → 主旋律」で採用旋律を決めておく</li>
-        <li>旋律タブの「対旋律」で <strong>対旋律を10候補生成</strong> を実行すると、120候補のプールから品質・多様性で選ばれた10案が並ぶ</li>
-        <li>各候補を試聴し、気に入らなければその候補だけ再生成する</li>
-      </ol>
-
-      <h3>候補の選び方と見方</h3>
-      <p>対旋律・装飾・イントロ・短いフレーズは、主旋律と同じ並びです。上の<strong>候補番号</strong>を押すと、その下に選んだ候補の情報と操作（全曲に採用・試聴・この案を再生成・MIDI など）が出て、すぐ下のピアノロールに音符が表示されます。番号の横の✓は採用中、♥はお気に入り、薄い番号は却下した候補です。</p>
-      <p>候補の情報には、想定音色、主旋律に対する役割、音の動き、安定／大胆／冒険的の違いだけを表示します。内部の評価点は画面へ出さず、主旋律とぶつかる可能性がある場合だけ警告します。</p>
-      <p><strong>推奨配置</strong>には、Logic Proへ置く曲全体の小節番号と、選択中セクション内の小節位置が表示されます。短いフレーズ、イントロ、装飾フレーズも同じ表示です。</p>
-      <p>試聴方法は「現在の伴奏と一緒」「対旋律のみ」「主旋律＋対旋律」「コード＋主旋律＋対旋律」から選べます。お気に入り／却下／採用、個別のMIDI書き出しにも対応しています。</p>
-    </section>
-
-    <section class="chapter" id="signature">
-      <span class="chapter-num">13</span>
-      <h2>Signatureワークスペース</h2>
-      <p class="chapter-intro">イントロや間奏で使える短いフレーズを作り、反復・応答・音域移動・余白・装飾によって最大8小節へ育てる機能です。設定済みの主旋律とコード進行を参考にしながら、主旋律をコピーせず、曲を印象づける別のフレーズを作ります。</p>
-
-      <h3>生成設定</h3>
-      <div class="kv-table-wrap">
-        <table>
-          <thead><tr><th>項目</th><th>選択肢</th></tr></thead>
-          <tbody>
-            <tr><td>Length</td><td>1 / 2 / 4 / 8小節。選択中セクションより長い値は選べません。</td></tr>
-            <tr><td>Archetype</td><td>余白と残響 / 反復と不穏な運動 / リズムと強い輪郭を、曲設定に合わせて配分します。</td></tr>
-            <tr><td>Voicing</td><td>Single Line / Block Chord / Broken Chord。和音は全音へ付けず、構造上重要な位置だけへ配置します。</td></tr>
-            <tr><td>Voicing Style</td><td>Close / Open Spread / Drop 2 / Pedal / Inner Motion。候補カードに実際の配置方針を表示します。</td></tr>
-            <tr><td>Voice Motion</td><td>Smooth / Contrary / Oblique。低声と内声が前の和音を参照し、移動量・反行・共通音保持を計画します。</td></tr>
-            <tr><td>Phrase Architecture</td><td>Identity Return / Question &amp; Answer / Slow Burn。8小節では小節ごとの発展段階も表示します。</td></tr>
-            <tr><td>Creative Risk</td><td>Focused / Bold / Radical。BoldとRadicalは破調、非対称リズム、大跳躍、偽の開始・回帰などを計画し、直後の回収まで含めて生成します。</td></tr>
-            <tr><td>Signature Opportunity</td><td>Motif Foreshadow / Rhythmic Counter / Harmonic Identity / Tension Premonition / Register Contrast / Section Threshold。候補カードで、その案が曲中で担う目的を確認できます。</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p><strong>12案を生成</strong>すると、内部の多数候補から、識別性・冒頭の強さ・リズム・輪郭・発展可能性・単独での強さ・長期整合性・変化量・和音品質・声部進行に加え、Harmony / Theme / Complement / Purposeを評価した候補が並びます。Active Melodyがある候補はMelody Linked、ない場合はChord Drivenと表示されます。候補はFocusedだけに偏らず、BoldとRadicalを計画的に含みます。Radicalは単なるランダム音ではなく、Metric Shift、Silence Fracture、Interval Signature、Chromatic Side-step、False Start、False Returnなどの意図をカードへ表示し、AudacityとControlを別々に評価します。同じコードを機械的に連打せず、最初の核が後半で意味を持って戻る構成を優先します。</p>
-      <p>Block ChordやBroken Chordを選んでも、核となるLeadの音程・開始位置・音価は変わりません。Broken ChordはLeadを後ろへ移動せず、その後ろで支援声部だけを展開します。装飾音はLeadと重ならない実際の余白へ配置されます。</p>
-      <p>候補ごとに個別試聴とMIDI書き出しができます。統合Decorationも同じMIDIへ含まれるため、別タブでFillを後付けする必要はありません。以前のプロジェクトに保存されたDecorationデータは互換性のため保持されます。</p>
-      <p>候補カードには、想定音色、演出の種類、音の動き、Logic Proへ置く<strong>推奨小節</strong>だけを簡潔に表示します。内部評価点は表示せず、主旋律とぶつかる可能性がある場合だけ警告します。</p>
+      <p>候補には「推奨配置」として、Logic Pro に置く小節の位置が出ます。採用した候補は、曲全体の再生と曲全体MIDIに入ります。お気に入り・却下・MIDIの個別書き出しもできます。</p>
+      <p>曲全体の中で対旋律や合いの手を足したいときは、アレンジ相談に言葉で頼む方が手早くできます（<a href="#consult">アレンジ相談</a>）。</p>
     </section>
 
     <section class="chapter" id="arrangement">
-      <span class="chapter-num">14</span>
+      <span class="chapter-num">06</span>
       <h2>アレンジ・書出し</h2>
-      <p class="chapter-intro">曲全体をアレンジして仕上げ、書き出すタブです。まず全曲の方向を選んで全曲アレンジを作り、パート構成を見ながらAIと相談して細かく直します。</p>
-
       <h3>全曲の方向を選ぶ</h3>
-      <p>まだ全曲アレンジがない曲では、画面の一番上に5つの方向が並びます。「余白を生かす」「壮大に盛り上げる」「リズムで押し進める」「陰影と意外性」「バランスよく」から1つ選び、「〇〇で全曲を作る」を押すと、主旋律とコードはそのままで、方向に合うパートを曲全体に足します。曲を解析しておすすめの方向には「この曲におすすめ」と表示されます。作ったあとで別の方向を試すときは、パート構成の「方向を選び直す」から選べます。どの結果も版として残るので、いつでも戻れます。</p>
+      <p>まだアレンジがない曲では、5つの方向が並びます。1つ選んで「〇〇で全曲を作る」を押すと、主旋律とコードはそのままで、曲全体にパートを足します。曲に合いそうな方向には「この曲におすすめ」と出ます。</p>
+      <div class="kv-table-wrap">
+        <table>
+          <thead><tr><th>方向</th><th>どんな仕上がりか</th></tr></thead>
+          <tbody>
+            <tr><td>余白を生かす</td><td>音を足しすぎず、響きと余韻で広がりを出す</td></tr>
+            <tr><td>壮大に盛り上げる</td><td>弦などを少しずつ重ねて、山場へ盛り上げる</td></tr>
+            <tr><td>リズムで押し進める</td><td>ドラムやベースの刻みで、曲を前へ進める</td></tr>
+            <tr><td>陰影と意外性</td><td>暗い響きや意外な音で、陰影をつける</td></tr>
+            <tr><td>バランスよく</td><td>主旋律を引き立てる、自然な編成</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>作ったあとで別の方向を試すときは「方向を選び直す」を押します。どの結果も版として残るので、いつでも戻れます。</p>
 
-      <h3>パート構成とアレンジ相談</h3>
-      <p><strong>パート構成</strong>は、セクションを列、パート（対旋律・合いの手・ドラム・ベース・シンセの刻み・パッド・高音のきらめき・つなぎのフレーズ・弦）を行にした表です。色が濃いほど音数が多く、青い枠はこの版で足した・変えた所、青い点線はこの版で外した所、黄色の点線は提案中でまだ適用していない所です。</p>
-      <p>PCでは画面の右側、スマホでは上部の「アレンジ相談」から、形になった曲について言葉で相談できます。</p>
-      <ol>
-        <li>「サビをもう少し開けた感じにしたい。パッドは引いてほしい」のように、直したい所を送る（Ctrl/⌘+Enterでも送信）</li>
-        <li>AIの返事と一緒に<strong>変更案</strong>が1つ届く。いまの版から実際に何が変わるか（「サビ：弦（高音）を足す、パッドを外す」など）が書かれ、表には黄色の印が付く。ほかの方向も見たいときは「別の案にする」または「別の案もほしい」を押す</li>
-        <li>「変更前を聴く」「変更後を聴く」で、変わるセクションだけを聴き比べる</li>
-        <li>良ければ「適用する」。結果は<strong>版</strong>として残り、「元に戻す」や「版の履歴」からいつでも前の版へ戻せる</li>
-      </ol>
-      <p>相談文や案にセクション名（「サビ」「Aメロ」など）が出てくると、そのセクションだけを作り直し、ほかはいまの版の音をそのまま残します。「曲全体」と書くか、セクション名がなければ曲全体を作り直します。「〇〇を外す／抜く／引く」と書いたパートは、その範囲から外します。</p>
-      <h4>対旋律・合いの手を頼む</h4>
-      <p>「サビでメロディの後ろに対旋律を流したい」「Aメロのフレーズの切れ目にピアノで合いの手を」のように頼むと、伴奏パートはそのままで、<strong>対旋律</strong>または<strong>合いの手</strong>だけを作ります（外すときは「対旋律は外して」）。表の一番上の2行に表示され、ほかの変更と同じく聴き比べてから適用し、版として残ります。曲全体の再生と曲全体MIDIにも入ります。</p>
-      <ul>
-        <li><strong>対旋律</strong>は3通りの案が届きます。「主旋律の下で流れる」「主旋律の上で流れる」は、コードの音をなめらかにつなぐ長い線で、主旋律が伸ばす所で動き、細かく動く所では伸ばします。「主旋律に答える」は、主旋律の休みにだけ短く答えます。「上で」「下で」「答えるように」と書けば、その作り方になります。</li>
-        <li>「弦で」「ピアノで」「控えめに」「大胆に」などの言葉も読み取ります（音色そのものはLogic Proで割り当てます）。</li>
-        <li>対旋律は主旋律に合わせて作るので、主旋律を採用していないセクションには作れません（案の中に理由が表示されます）。合いの手はコード進行があれば作れます。</li>
-      </ul>
-      <p>相談パネル上部の「AIの使用量」を押すと、この会話と今月(この端末)の相談回数・概算の利用料・トークン数が見られます。AIの返事ごとにも利用料が表示されます。金額はアプリが受け取った概算で、請求の正確な金額はOpenAIの利用状況ページで確認できます。</p>
-      <p>AIへ送るのは、曲の構成・コード・各パートの要約と会話です（音源は送りません）。主旋律とコードは変更しません。AI相談にはログインと、管理者によるAIの設定が必要です。使えないときは、送信欄の上に理由が表示されます。</p>
-
-      <h3>全曲アレンジの仕組み</h3>
-      <ul>
-        <li><strong>Arrangement Generator</strong> — BPM、Key、コード、保護中のMelody、休符、Section反復、Climaxを先に解析し、0〜100のEnergy CurveとSection別Planを確定してから必要な役割だけを生成します。</li>
-        <li><strong>候補選抜</strong> — 1回の生成で余白・推進力・対旋律・起伏・モチーフを主役にした8案を実音まで作り、コード適合、主旋律との衝突、反復、密度変化、制作意図への適合を比較して1案を採用します。</li>
-        <li><strong>演奏表情</strong> — 選ばれた各トラックへ、SectionのEnergyと役割に応じたVelocity、音価、microtiming、4小節単位の呼吸を適用します。Pitchは変更せず、試聴とMIDI書き出しへ同じ演奏結果を使用します。</li>
-        <li><strong>役割別トラック</strong> — Kick、Snare、Closed／Open Hat、Tom、Field Drum、Gran Cassa、Crash、Bass、Pulse、Pad、High Glass、Transition、Final Lift、Stringsを固定名の独立MIDIトラックとして扱います。全役割を常時鳴らすのではなく、SectionのEnergyと余白で登場・退場を判断します。</li>
-        <li><strong>Safe / Edge / Surprise</strong> — 装飾とTransitionは3系統を内部比較し、半音解決、主旋律休符、未使用音域、次SectionのEnergyなどの理由がある案だけを採用します。余白が不足する場合は無音を選びます。</li>
-        <li><strong>曲全体を再生／曲全体MIDI</strong> — 画面上部のボタンで、並べたセクションを通しで再生し、曲の全パート(コード・主旋律・伴奏・採用した対旋律や装飾・全曲アレンジのパート)を1つのMIDIファイル(SMF Type 1)に書き出します。ミュートしたパートは入りません。</li>
-        <li><strong>セクションだけを再生</strong> — パート構成表のセクション名を押すか、表の列を右クリックすると、そのセクションだけを鳴らします。もう一度押すと止まります。</li>
-      </ul>
+      <h3>パート構成</h3>
+      <p>セクションを列、パート（対旋律・合いの手・ドラム・ベース・パッド・弦など）を行にした表です。色が濃いほど音が多く、青い枠はこの版で足した・変えた所、黄色の点線は提案中でまだ適用していない所です。セクション名を押すか表を右クリックすると、そのセクションだけ再生します。</p>
 
       <h3>詳しい調整</h3>
-      <p>画面下の「詳しい調整」に、普段は使わない操作をまとめています。4つのタブで切り替えます。</p>
       <ul>
-        <li><strong>パート別の確認・MIDI</strong> — パート(キック・ベース・パッドなど)ごとのミュート・単独再生・MIDI保存。1パートだけのMIDIは曲中の位置を保つので、Logic Proでは1小節目に置きます。</li>
-        <li><strong>盛り上げ方</strong> — 最も盛り上げる場所と、セクションごとの強さ(自動／静か〜最も強い)。ふだんは自動のままで大丈夫です。変えると「この強さで作り直す」が出て、押すと新しい版として作り直します。楽器ごとの細かい変更は、アレンジ相談に言葉で頼むか、Logic Pro側で行います。</li>
-        <li><strong>セクションの順番</strong> — ドラッグまたは上下ボタンで並べ替え、各セクションで使う主旋律を選び、複製・削除します。再生アイコンで前セクションとの繋ぎ目を前後1小節ずつ試聴できます。</li>
-        <li><strong>Logic Proの音源と設定</strong> — 曲全体MIDIに入るトラックごとに、おすすめ音源と一言の設定(演奏・定位・残響)を表で示します。</li>
+        <li><strong>パート別の確認・MIDI</strong> — パートごとのミュート・単独再生・MIDI保存</li>
+        <li><strong>盛り上げ方</strong> — いちばん盛り上げる場所と、セクションごとの強さ（ふだんは自動で大丈夫です）</li>
+        <li><strong>セクションの順番</strong> — 並べ替えと、各セクションで使う主旋律の選択</li>
+        <li><strong>Logic Proの音源と設定</strong> — トラックごとのおすすめ音源と、一言の設定</li>
       </ul>
     </section>
 
-    <section class="chapter" id="audition">
-      <span class="chapter-num">15</span>
-      <h2>聴き比べ(主旋律のA/B/C)</h2>
-      <p class="chapter-intro">旋律タブの主旋律で「聴き比べ」を押すと開く、複数の主旋律候補を客観的に比較するための表示です。「聴き比べを閉じる」で主旋律に戻ります。</p>
+    <section class="chapter" id="consult">
+      <span class="chapter-num">07</span>
+      <h2>アレンジ相談</h2>
+      <p class="chapter-intro">できたアレンジについて、直したい所を言葉で頼めます。PCでは画面の右側、スマホでは上部の「アレンジ相談」から使います。</p>
+      <ol>
+        <li>「サビをもう少し開けた感じにしたい。パッドは引いてほしい」のように送ります（<span class="keycap">Ctrl</span>/<span class="keycap">⌘</span>+<span class="keycap">Enter</span> でも送信）。</li>
+        <li>返事と一緒に「変更案」が1つ届きます。何が変わるかが書かれ、表には黄色の印が付きます。ほかの案が見たいときは「別の案にする」を押します。</li>
+        <li>「変更前を聴く」「変更後を聴く」で、変わるセクションだけを聴き比べます。</li>
+        <li>良ければ「適用する」。結果は版として残り、「元に戻す」や版の履歴から戻せます。</li>
+      </ol>
+      <p>セクション名（「サビ」など）を書くとそのセクションだけを、書かなければ曲全体を作り直します。「〇〇を外して」と書いたパートは外します。</p>
+      <h3>対旋律・合いの手を頼む</h3>
       <ul>
-        <li>3つまでの候補をA・B・Cのスロットに割り当て、シームレスに切り替えながら聴き比べられます。</li>
-        <li><strong>Blindモード</strong> — 候補名を隠し「Candidate Xを判定」とだけ表示することで、先入観のない比較ができます。</li>
-        <li>各候補に対して <strong>Favorite</strong>(お気に入り)・<strong>Reject</strong>(却下)・<strong>Set Active</strong>(採用)を記録できます。</li>
+        <li>「サビでメロディの後ろに対旋律を流したい」「Aメロのフレーズの切れ目にピアノで合いの手を」のように頼むと、伴奏はそのままで対旋律か合いの手だけを作ります。</li>
+        <li>対旋律は「主旋律の下で流れる」「主旋律の上で流れる」「主旋律に答える」の3通りで届きます。「上で」「下で」「答えるように」と書けば、その作り方になります。</li>
+        <li>「弦で」「控えめに」などの言葉も読み取ります（音色そのものは Logic Pro で割り当てます）。対旋律は、主旋律を採用したセクションにだけ作れます。</li>
       </ul>
+      <p>AIへ送るのは、曲の構成・コード・各パートの要約と会話だけです（音源は送りません）。主旋律とコードは変えません。「AIの使用量」を押すと、相談の回数と概算の利用料が見られます。</p>
+    </section>
+
+    <section class="chapter" id="logic">
+      <span class="chapter-num">08</span>
+      <h2>Logic Pro へ渡す</h2>
+      <ul>
+        <li><strong>曲全体MIDI</strong>（画面上部）— 全パートを1つのMIDIファイルに書き出します。Logic Pro の新規プロジェクトに読み込み、テンポ情報を使ってください。ミュートしたパートは入りません。</li>
+        <li><strong>セクションMIDI</strong>（画面下部）— 選んでいるセクションだけを書き出します。</li>
+        <li><strong>パートごとのMIDI</strong> — 「詳しい調整 → パート別の確認・MIDI」から。曲の中の位置を保っているので、Logic Pro では1小節目に置きます。</li>
+      </ul>
+      <p>トラックはパートごとに分かれているので、それぞれに別の音源を割り当てられます。おすすめの音源は「詳しい調整 → Logic Proの音源と設定」にあります。</p>
     </section>
   </main>
 
   <footer class="manual-footer">
-    Composer Arranger — User Manual
+    Composer Arranger — 使い方
   </footer>
 </div>
 </body>

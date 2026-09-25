@@ -449,3 +449,18 @@ export function accompanimentPatternNotesForSection(
     melodyNotes: resolvedMelodyNotes,
   }).notes
 }
+
+/** 画面に出す伴奏パターンの名前。組み込みの型は日本語で、自作の型は付けた名前のまま(MIDIのトラック名は元の名前を使う) */
+const BUILT_IN_PATTERN_LABELS: Record<string, string> = {
+  "pulse-root-fifth": "根音と5度を刻む",
+  "arpeggio-up": "上がる分散和音（4音）",
+  "chord-entry": "和音で入り、上の音でつなぐ",
+  "arpeggio-five": "分散和音（5音・9度まで）",
+  "arpeggio-six": "分散和音（6音・11度まで）",
+  "broken-ninth": "9度を含む崩した分散和音",
+  syncopated: "食い気味の分散和音",
+}
+
+export function accompanimentPatternLabel(pattern: { id: string; name: string }): string {
+  return BUILT_IN_PATTERN_LABELS[pattern.id] ?? pattern.name
+}

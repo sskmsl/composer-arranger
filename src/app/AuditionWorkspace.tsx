@@ -268,7 +268,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
           )}
           {project.sourceImport?.type === "midi" && !isUnsegmentedLongMidi && totalBeats > rangeEnd - rangeStart && (
             <span className="text-[12px] text-ink-soft">
-              Imported MIDIは主旋律開始付近の8小節を先に試聴します
+              読み込んだMIDIは、主旋律が始まるあたりの8小節から試聴します
             </span>
           )}
         </div>

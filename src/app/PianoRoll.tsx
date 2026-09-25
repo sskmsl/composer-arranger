@@ -95,7 +95,6 @@ export function PianoRoll({
       <div className="flex items-center gap-2 border-b border-hairline bg-surface-tile-2 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
         <h3 className="text-[13px] font-medium text-body-on-dark">主旋律</h3>
-        <span className="text-[12px] text-ink-soft">編集可能</span>
         {overlays.map((overlay) => (
           <span key={overlay.id} className="flex items-center gap-1 text-[12px] text-ink-soft">
             <span className="h-2.5 w-2.5 rounded-sm opacity-60" style={{ background: overlay.color }} aria-hidden="true" />

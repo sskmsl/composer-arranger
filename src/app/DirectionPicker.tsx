@@ -9,7 +9,7 @@ import {
   type WholeSongDirectionId,
 } from "@/ai-arranger/wholeSongDirectionPlan"
 import { useProjectStore } from "@/store/useProjectStore"
-import { DIRECTION_NAMES } from "./directionNames"
+import { DIRECTION_DESCRIPTIONS, DIRECTION_DETAILS, DIRECTION_NAMES } from "./directionNames"
 import { Button } from "@/ui/primitives"
 
 const ENERGY_DELTA: Record<WholeSongArrangementDirection["character"], number> = {
@@ -114,7 +114,7 @@ export function DirectionPicker({
                 <span className="mr-auto text-[14px] font-semibold text-body-on-dark">{DIRECTION_NAMES[direction.id]}</span>
                 {selected && <Check size={15} className="shrink-0 text-primary-on-dark" aria-hidden="true" />}
               </span>
-              <span className="text-[13px] leading-5 text-body-muted">{conciseDirectionText(plainDirectionText(direction.subtitle), 40)}</span>
+              <span className="text-[13px] leading-5 text-body-muted">{DIRECTION_DESCRIPTIONS[direction.id]}</span>
               {recommended && (
                 <span className="self-start rounded-pill sm:mt-auto bg-emerald-400/12 px-2 py-0.5 text-[12px] text-emerald-200">この曲におすすめ</span>
               )}
@@ -131,7 +131,7 @@ export function DirectionPicker({
         <p className="min-w-0 flex-1 text-[13px] leading-5 text-body-muted">
           {chosen.id === program.recommendedDirectionId
             ? `おすすめの理由：${conciseDirectionText(plainDirectionText(program.recommendationReason), 70)}`
-            : conciseDirectionText(plainDirectionText(chosen.summary), 80)}
+            : DIRECTION_DETAILS[chosen.id]}
         </p>
       </div>
       {error && (

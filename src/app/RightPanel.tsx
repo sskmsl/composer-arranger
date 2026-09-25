@@ -3,59 +3,20 @@ import { useProjectStore } from "@/store/useProjectStore"
 import { SONG_PROFILE_LABELS, type SongProfileId } from "@/core/project"
 import { GENRE_IDS, GENRE_LABELS, type GenreId, type GenreWeight } from "@/core/musicContext"
 import type { MelodyGeneratorProfile } from "@/core/melody"
-import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
+import { parseTimeSignature } from "@/core/section"
 import { noteName, parseNoteName } from "@/core/note"
 import { Select, FieldGroup, SectionCard, IconButton, Button, TextInput, Label } from "@/ui/primitives"
 import type { Density, Drama } from "@/melody-engine/generationParams"
 import { GENERATOR_PROFILES, GENERATOR_PROFILE_LABELS, GENERATOR_PROFILE_DESCRIPTIONS } from "@/melody-engine/generatorProfile"
-import {
-  OPENING_ENTRY_LABELS,
-  OPENING_EMOTION_LABELS,
-  OPENING_REGISTER_LABELS,
-  OPENING_DIRECTION_LABELS,
-} from "@/melody-engine/openingIntent"
 import { GENERATION_SETTING_LABELS, profilesIgnoring, type GenerationSettingKey } from "@/melody-engine/settingsApplicability"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
 import { X, Dna, AlertCircle, Play } from "lucide-react"
-import {
-  TECHNIQUE_EXPERIMENT_PRESETS,
-  type TechniqueExperimentPresetId,
-} from "@/composer-intelligence"
 import { explainMelodyCandidate } from "@/melody-engine/melodyEvidence"
 import { previewPlayer } from "@/audio/previewPlayer"
 
 const PROFILE_OPTIONS = Object.keys(SONG_PROFILE_LABELS) as SongProfileId[]
 
-const ADVANCED_FEATURE_LABELS: [key: string, label: string][] = [
-  ["stepwiseMotionRatio", "順次進行率"],
-  ["appoggiaturaRatio", "倚音率"],
-  ["delayedResolutionRatio", "遅延解決率"],
-  ["climaxUniqueness", "クライマックスの希少性"],
-  ["phraseArcLength", "旋律弧の長さ"],
-  ["pickupRatio", "弱起率"],
-  ["phraseAsymmetry", "フレーズ非対称性"],
-  ["speechContourAmount", "発話的輪郭度"],
-  ["finalMelodicLift", "終端の旋律的上昇"],
-  ["motifMutationRatio", "モチーフ変異率"],
-  ["cyclicPhraseAmount", "循環度"],
-  ["mutationPeriodicity", "変異周期性"],
-  ["contourRetention", "輪郭保持度"],
-]
-
-const FEATURE_LABELS: [key: string, label: string, fmt: (v: number) => string][] = [
-  ["rangeLow", "音域(下)", (v) => String(Math.round(v))],
-  ["rangeHigh", "音域(上)", (v) => String(Math.round(v))],
-  ["maxLeap", "最大跳躍", (v) => `${Math.round(v)}半音`],
-  ["avgLeap", "平均跳躍", (v) => v.toFixed(1)],
-  ["restRatio", "休符率", (v) => `${Math.round(v * 100)}%`],
-  ["repeatedNoteRatio", "同音反復率", (v) => `${Math.round(v * 100)}%`],
-  ["tensionUsageRatio", "テンション使用率", (v) => `${Math.round(v * 100)}%`],
-  ["chordToneUsageRatio", "コードトーン使用率", (v) => `${Math.round(v * 100)}%`],
-  ["syncopationRatio", "シンコペーション率", (v) => `${Math.round(v * 100)}%`],
-  ["motifRepeatRatio", "モチーフ反復率", (v) => `${Math.round(v * 100)}%`],
-  ["peakPosition", "最高音の位置", (v) => `${Math.round(v * 100)}%`],
-]
 
 /** ある設定が、選択中のProfileのうち一部で効かない場合に注意書きを出す */
 function IgnoredNote({ setting, selected }: { setting: GenerationSettingKey; selected: MelodyGeneratorProfile[] }) {
@@ -237,159 +198,6 @@ export function RightPanel({
         </div>
       </SectionCard>}
 
-      {(mode === "melody" ||
-        mode === "phrase" ||
-        mode === "counter" ||
-        mode === "decoration") && (
-        <SectionCard
-          title="技法ライブラリ比較（実験）"
-          className="w-full min-w-0"
-        >
-          <label className="flex cursor-pointer items-start gap-2 text-[13px]">
-            <input
-              type="checkbox"
-              className="mt-0.5 accent-primary"
-              checked={
-                generationSettings.techniqueExperimentPresetId !==
-                null
-              }
-              onChange={(event) =>
-                setGenerationSettings({
-                  techniqueExperimentPresetId: event.target.checked
-                    ? TECHNIQUE_EXPERIMENT_PRESETS[0].id
-                    : null,
-                })
-              }
-            />
-            <span className="min-w-0">
-              同じ出発点で2案を聴き比べる
-            </span>
-          </label>
-          {generationSettings.techniqueExperimentPresetId && (
-            <div className="mt-3 flex flex-col gap-2">
-              <FieldGroup label="下書きの設定">
-                <Select
-                  className="w-full min-w-0"
-                  value={
-                    generationSettings.techniqueExperimentPresetId
-                  }
-                  onChange={(event) =>
-                    setGenerationSettings({
-                      techniqueExperimentPresetId:
-                        event.target
-                          .value as TechniqueExperimentPresetId,
-                    })
-                  }
-                >
-                  {TECHNIQUE_EXPERIMENT_PRESETS.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </Select>
-              </FieldGroup>
-              {TECHNIQUE_EXPERIMENT_PRESETS.filter(
-                (preset) =>
-                  preset.id ===
-                  generationSettings.techniqueExperimentPresetId,
-              ).map((preset) => (
-                <div key={preset.id}>
-                  {(() => {
-                    const generatorTarget =
-                      mode === "phrase"
-                        ? "phrase"
-                        : mode === "counter"
-                          ? "counter"
-                          : mode === "decoration"
-                            ? "decoration"
-                            : "melody"
-                    const validationLevel =
-                      preset.targetValidationLevels[
-                        generatorTarget
-                      ] ?? "exploratory"
-                    const recommendedSectionRoles =
-                      preset.recommendedSectionRolesByTarget?.[
-                        generatorTarget
-                      ] ?? []
-                    return (
-                      <>
-                  <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[12px]">
-                    <span
-                      className={clsx(
-                        "rounded-full border px-1.5 py-0.5",
-                        validationLevel === "confirmed"
-                          ? "border-emerald-400/40 text-emerald-300"
-                          : "border-amber-400/40 text-amber-300",
-                      )}
-                    >
-                      {validationLevel === "confirmed"
-                        ? "100 seed確認済み"
-                        : "探索中"}
-                    </span>
-                    {mode === "melody" &&
-                      preset.recommendedProfiles.length > 0 && (
-                      <span className="text-ink-soft">
-                        推奨:{" "}
-                        {preset.recommendedProfiles
-                          .map(
-                            (profile) =>
-                              GENERATOR_PROFILE_LABELS[profile],
-                          )
-                          .join("・")}
-                      </span>
-                    )}
-                    {generatorTarget !== "melody" &&
-                      recommendedSectionRoles.length > 0 && (
-                        <span className="text-ink-soft">
-                          推奨:{" "}
-                          {recommendedSectionRoles
-                            .map(
-                              (role) =>
-                                SECTION_ROLE_LABELS[role],
-                            )
-                            .join("・")}
-                        </span>
-                      )}
-                  </div>
-                  <p className="text-[12px] text-ink-soft">
-                    {preset.description}
-                  </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-[12px] text-ink-soft">
-                    {preset.techniqueNames.map((name) => (
-                      <li key={name}>{name}</li>
-                    ))}
-                  </ul>
-                  {mode === "melody" &&
-                    preset.recommendedProfiles.length > 0 &&
-                    !selected.some((profile) =>
-                      preset.recommendedProfiles.includes(profile),
-                    ) && (
-                      <p className="mt-2 text-[12px] text-amber-300/90">
-                        いま選んでいる作り方は、自動確認でのおすすめ対象外です。
-                      </p>
-                    )}
-                  {generatorTarget !== "melody" &&
-                    recommendedSectionRoles.length > 0 &&
-                    selectedSection &&
-                    !recommendedSectionRoles.includes(
-                      selectedSection.role,
-                    ) && (
-                      <p className="mt-2 text-[12px] text-amber-300/90">
-                        このセクションの役割は、自動確認でのおすすめ対象外です。
-                      </p>
-                    )}
-                      </>
-                    )
-                  })()}
-                </div>
-              ))}
-              <p className="border-t border-hairline pt-2 text-[12px] text-amber-300/90">
-                Draftの状態は変更しません。通常3案と適用3案を同時生成し、この設定はプロジェクトへ保存されません。
-              </p>
-            </div>
-          )}
-        </SectionCard>
-      )}
 
       {(mode === "melody" || mode === "phrase" || mode === "signature") && (
       <SectionCard title="音数・音域・起伏" className="w-full min-w-0">
@@ -466,66 +274,14 @@ export function RightPanel({
       </SectionCard>
       )}
 
-      {mode === "melody" && <SectionCard title="この候補の特徴" className="w-full min-w-0">
+      {mode === "melody" && <SectionCard title="この候補" className="w-full min-w-0">
         {variant?.generatorProfile && (
           <p className="mb-1 text-[13px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
             {variant.patternIndex && ` · 候補${variant.patternIndex}`}
           </p>
         )}
-        {variant?.openingIntent && (
-          <p className="mb-2 text-[12px] text-ink-soft">
-            入口: {OPENING_ENTRY_LABELS[variant.openingIntent.entryType]} · {OPENING_EMOTION_LABELS[variant.openingIntent.emotionalFunction]} ·{" "}
-            {OPENING_REGISTER_LABELS[variant.openingIntent.register]} · {OPENING_DIRECTION_LABELS[variant.openingIntent.initialDirection]}
-          </p>
-        )}
-        {variant?.techniqueExperiment && (
-          <div className="mb-3 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-2 text-[12px]">
-            <p className="font-medium text-primary-on-dark">
-              {variant.techniqueExperiment.mode === "baseline"
-                ? "A/B · Normal"
-                : `A/B · ${variant.techniqueExperiment.presetLabel}`}
-            </p>
-            {variant.generationDiagnostics?.techniqueFitScore !==
-              undefined && (
-              <p className="mt-1 text-ink-soft">
-                Technique Fit{" "}
-                {Math.round(
-                  variant.generationDiagnostics.techniqueFitScore *
-                    100,
-                )}
-                % · Quality{" "}
-                {Math.round(
-                  variant.generationDiagnostics.qualityScore,
-                )}
-              </p>
-            )}
-          </div>
-        )}
-        {variant?.features ? (
-          <dl className="grid grid-cols-2 gap-x-2 gap-y-2 text-[13px]">
-            {FEATURE_LABELS.map(([key, label, fmt]) => (
-              <div key={key} className="flex flex-col">
-                <dt className="text-ink-soft">{label}</dt>
-                <dd className="text-body-on-dark">{fmt((variant.features as never)[key])}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <p className="text-[13px] text-ink-soft">候補を生成すると表示されます</p>
-        )}
-        {variant?.advancedMetrics && Object.keys(variant.advancedMetrics).length > 0 && (
-          <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-2 border-t border-hairline pt-3 text-[13px]">
-            {ADVANCED_FEATURE_LABELS.filter(([key]) => (variant.advancedMetrics as Record<string, number>)[key] !== undefined).map(
-              ([key, label]) => (
-                <div key={key} className="flex flex-col">
-                  <dt className="text-ink-soft">{label}</dt>
-                  <dd className="text-body-on-dark">{`${Math.round((variant.advancedMetrics as Record<string, number>)[key] * 100)}%`}</dd>
-                </div>
-              ),
-            )}
-          </dl>
-        )}
+        {!variant && <p className="text-[13px] text-ink-soft">候補を作ると表示されます</p>}
         {variant && (
           <Button
             variant="dark"

@@ -13,7 +13,6 @@ import {
   DirectorRecommendationBadge,
   PerformanceReviewBadge,
 } from "./PerformanceReviewBadge"
-import { ArrangementNecessityBadge } from "./ArrangementNecessityBadge"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
 import { CandidatePicker } from "./CandidatePicker"
@@ -212,9 +211,6 @@ export function PhraseWorkspace() {
                 {activeCandidate.intent.lengthBars}小節
               </span>
               <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
-                品質 {Math.round(activeCandidate.qualityScore)}
-              </span>
-              <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {CONTOUR_LABELS[activeCandidate.intent.contour]}
               </span>
               <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
@@ -226,28 +222,9 @@ export function PhraseWorkspace() {
               <span className="rounded-pill bg-white/6 px-2 py-0.5 text-[12px] text-body-muted">
                 {CADENCE_LABELS[activeCandidate.intent.cadence]}
               </span>
-              {activeCandidate.techniqueExperiment && (
-                <span
-                  className="rounded-pill border border-primary-focus/50 px-2 py-0.5 text-[12px] text-primary-on-dark"
-                  title={
-                    activeCandidate.techniqueFitScore === undefined
-                      ? undefined
-                      : `適合 ${Math.round(activeCandidate.techniqueFitScore * 100)}%`
-                  }
-                >
-                  比較:{" "}
-                  {activeCandidate.techniqueExperiment.mode === "baseline"
-                    ? "通常"
-                    : activeCandidate.techniqueExperiment.presetLabel}
-                </span>
-              )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ArrangementNecessityBadge necessity={activeCandidate.arrangementNecessity} compact />
-              <PerformanceReviewBadge
-                review={project.candidatePerformanceReviews?.[activeCandidate.id]}
-                compact
-              />
+            <div className="flex flex-wrap items-center gap-2 empty:hidden">
+              <PerformanceReviewBadge review={project.candidatePerformanceReviews?.[activeCandidate.id]} />
               <DirectorRecommendationBadge
                 recommendation={project.performanceBatchRecommendations?.[activeCandidate.batchId]}
                 candidateId={activeCandidate.id}

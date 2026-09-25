@@ -1143,7 +1143,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         // 作り直しの上限まで構造検証を満たせなかった場合は理由を伝える
         workflowNotice:
           unresolvedCandidates.length > 0
-            ? `一部の候補が${LEAD_CONTENT_LABELS[unresolvedCandidates[0].content]}として成立していません(${unresolvedCandidates[0].problems[0]})。リード開始位置やセクション長を見直してください。`
+            ? `一部の候補が${LEAD_CONTENT_LABELS[unresolvedCandidates[0].content]}としてうまく作れていません。「旋律の入り」かセクションの長さを見直してください。`
             : null,
       })
       get().persist()
@@ -1160,7 +1160,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const windowChords = fullSection ? chords : chordsForWindow(chords, window)
     const windowBeats = windowLengthBeats(window)
     if (windowChords.length === 0 || windowBeats <= 0) {
-      set({ workflowNotice: "リード開始位置がセクション終端に達しているため、Melodyを生成できません。" })
+      set({ workflowNotice: "旋律の入りがセクションの終わりに達しているので、主旋律を作れません。「旋律の入り」を短くしてください。" })
       return
     }
 
@@ -1573,7 +1573,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // Issue #41: 部分再生成は歌唱メロディ専用の処理。melody以外のcontent候補へ通すと
     // 生成結果がMelody Engineの出力に置き換わり、leadContent/layersが失われてしまう。
     if (resolvedLeadContent(variant) !== "melody") {
-      set({ workflowNotice: "この候補はメロディ以外の内容(Motif/Ostinato/Drone等)のため、範囲の部分再生成は使えません。Generateで作り直してください。" })
+      set({ workflowNotice: "この候補は歌の旋律ではない(短い動機・反復音型・持続音など)ので、範囲だけの作り直しは使えません。「作り直す」を使ってください。" })
       return
     }
     const chords = prev.chords.filter((c) => c.sectionId === variant.sectionId)
@@ -1669,7 +1669,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       activeBatchId: batchId,
       activeCandidateIndex: 0,
       workflowNotice: result.overConstrained
-        ? "Pitch/MotifとRhythmを保持したため実音は固定されています。Lockは解除していません。"
+        ? "音の高さ(または音型)とリズムを両方残したので、選んだ範囲はほとんど変わっていません。"
         : result.candidates.length < 3
           ? `品質下限を維持できた${result.candidates.length}候補だけを返しました。`
           : null,
@@ -1685,7 +1685,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // Issue #41: Seed発展操作も歌唱メロディ専用。melody以外のcontent候補へは適用しない
     // (適用するとMelody Engineの出力へ置き換わり、Content Modeが失われる)。
     if (resolvedLeadContent(source) !== "melody") {
-      set({ workflowNotice: "この候補はメロディ以外の内容(Motif/Ostinato/Drone等)のため、Seedの発展操作は使えません。" })
+      set({ workflowNotice: "この候補は歌の旋律ではない(短い動機・反復音型・持続音など)ので、選んだ音から育てる操作は使えません。" })
       return
     }
     const seedNotes = source.notes.filter((n) => seedNoteIds.includes(n.id))

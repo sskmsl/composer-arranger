@@ -123,7 +123,7 @@ export function HomeWorkspace({ onNavigate }: { onNavigate: (tab: MainTab) => vo
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-white/8 text-body-on-dark"><FolderOpen size={20} /></span>
             <span className="mt-5 text-[16px] font-semibold text-body-on-dark">保存した曲を開く</span>
-            <span className="mt-2 text-[13px] leading-5 text-body-muted">端末またはCloudに保存したComposer Projectを開き、前回の続きから再開します。</span>
+            <span className="mt-2 text-[13px] leading-5 text-body-muted">端末またはクラウドに保存した曲を開き、前回の続きから再開します。</span>
             <span className="mt-auto pt-4 text-[13px] font-medium text-primary-on-dark">プロジェクトを選ぶ →</span>
           </button>
         </div>

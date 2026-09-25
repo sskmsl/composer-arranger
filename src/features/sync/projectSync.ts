@@ -86,7 +86,7 @@ function syncStageError(stage: string, reason: unknown): Error {
   const detail = isTransientCloudSyncError(reason)
     ? "Cloudへの通信が途中で切断されました。大きいProjectは圧縮して再送します。少し待ってから再試行してください。"
     : errorMessage(reason)
-  return new Error(`Cloud同期(${stage}): ${detail}`)
+  return new Error(`クラウド同期(${stage}): ${detail}`)
 }
 
 async function runCloudRpc<T>(

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { accompanimentPatternLabel } from "@/core/accompanimentPattern"
 import { clsx } from "clsx"
 import { useProjectStore } from "@/store/useProjectStore"
 import { SECTION_ROLE_LABELS, type SectionRole } from "@/core/section"
@@ -24,14 +25,14 @@ const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 
 /** Issue #41: 各プリセットが音楽的に何を意味するかの短い説明 */
 const CONTENT_PRESET_HINTS: Record<string, string> = {
-  auto: "セクションの役割・曲のスタイル・コード進行から、自然な入り方を候補ごとに選びます",
-  melody: "通常の歌唱メロディを生成します",
-  motif: "2〜5音の短い象徴的モチーフを、余白を挟んで提示します",
-  ostinato: "短い音型を周期的に反復します(伴奏パートとして書き出し)",
-  drone: "1〜2音を長く保持します(コード境界をまたいで保持・伴奏パート)",
-  "chords-only": "リードを鳴らさず、コード伴奏だけで始めます",
-  silence: "リードも伴奏も鳴らしません(弱起のみ作ることもできます)",
-  "": "リードと伴奏の組み合わせがプリセットに一致しません",
+  auto: "セクションの役割やコードに合わせて、候補ごとに入り方を選びます",
+  melody: "ふつうの歌の旋律を作ります",
+  motif: "2〜5音の短い音型を、間をあけて置きます",
+  ostinato: "短い音型をくり返します(伴奏として書き出します)",
+  drone: "1〜2音を長く伸ばします(伴奏として書き出します)",
+  "chords-only": "旋律は鳴らさず、コードだけにします",
+  silence: "旋律もコードも鳴らしません(弱起だけ置くこともできます)",
+  "": "旋律とコードの組み合わせが、どの選択肢とも違います",
 }
 
 /** Issue #12: 1コードの診断行 */
@@ -169,7 +170,7 @@ export function LeftPanel({
         <Button
           variant="dark"
           className="mt-2 w-full justify-center"
-          onClick={() => addSection(`Section ${project.sections.length + 1}`, "verse", 8)}
+          onClick={() => addSection(`セクション ${project.sections.length + 1}`, "verse", 8)}
         >
           <Plus size={13} /> セクション追加
         </Button>
@@ -257,7 +258,7 @@ export function LeftPanel({
                   )}
                   {diagnostics.hasError && (
                     <p className="mb-1.5 flex items-center gap-1 text-[12px] text-red-400">
-                      <XCircle size={12} /> 無効なコードがあります。修正しないと C major として生成されます
+                      <XCircle size={12} /> 読めないコードがあります。直さないとCメジャーとして扱われます
                     </p>
                   )}
                   {/* コード単位の解析結果 */}
@@ -315,16 +316,16 @@ export function LeftPanel({
                   <option value="">なし</option>
                   {project.accompanimentPatterns.map((pattern) => (
                     <option key={pattern.id} value={pattern.id}>
-                      {pattern.name}
+                      {accompanimentPatternLabel(pattern)}
                     </option>
                   ))}
                 </Select>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  度数＋リズムのテンプレートを現在のコードへ自動変換し、専用MIDIトラックへ出力します
+                  選んだ型を、このセクションのコードに合わせて鳴らします（別のトラックで書き出します）
                 </p>
               </FieldGroup>
 
-              <FieldGroup label={`リード開始位置(先頭から${entryOffsetBars}小節を無音にする)`}>
+              <FieldGroup label={`旋律の入り（最初の${entryOffsetBars}小節は休む）`}>
                 <TextInput
                   type="number"
                   min={0}
@@ -344,7 +345,7 @@ export function LeftPanel({
                     checked={sectionContent.pickup}
                     onChange={(e) => setSectionContent(section.id, { pickup: e.target.checked })}
                   />
-                  次セクション直前に弱起(Pickup)を作る
+                  次のセクションの直前から旋律を始める（弱起）
                 </label>
               </FieldGroup>
               </div>
