@@ -66,23 +66,40 @@ describe.skipIf(!directory)("実在曲の物差しを集計する", () => {
   })
 
   it("古典らしさの物差しを作って書き出す(古典=100)", () => {
-    // 古典 = Bach のコラールと、古典派・ロマン派の最上声部。2つの曲集は同じ重みにする
-    const groups = ["bach", "classical"]
+    // 古典 = 4つの群を同じ重みにする: コラール / 歌曲の歌の旋律 / ロマン派〜近代のピアノ曲 / 古典派のソナタ・四重奏
+    const groups: Record<string, string[]> = {
+      chorale: ["bach"],
+      lied: ["lied"],
+      romantic: ["romantic"],
+      classicalEra: ["classical_era", "classical"],
+    }
     const measured: Array<{ group: string; piece: string; metrics: MelodyCraftMetrics }> = []
-    for (const group of groups) {
-      const units = readFileSync(join(directory!, `${group}.jsonl`), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line) as ReferenceUnit)
-      for (const unit of units) {
-        const { notes, chords } = referenceUnitToMelody(unit)
-        if (chords.length === 0) continue
-        measured.push({ group, piece: unit.piece, metrics: measureMelodyCraft(notes, chords, unit.key) })
+    const groupSizes: Record<string, { units: number; pieces: number }> = {}
+    for (const [group, files] of Object.entries(groups)) {
+      const pieces = new Set<string>()
+      for (const file of files) {
+        const path = join(directory!, `${file}.jsonl`)
+        if (!existsSync(path)) continue
+        const units = readFileSync(path, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line) as ReferenceUnit)
+        for (const unit of units) {
+          const { notes, chords } = referenceUnitToMelody(unit)
+          if (chords.length === 0) continue
+          pieces.add(`${file}:${unit.piece}`)
+          measured.push({ group, piece: `${file}:${unit.piece}`, metrics: measureMelodyCraft(notes, chords, unit.key, unit.beatsPerBar ?? 4) })
+        }
       }
+      groupSizes[group] = { units: measured.filter((item) => item.group === group).length, pieces: pieces.size }
     }
     // 曲ごとに 5 つに 1 つを「学習に使わない」組にする(同じ曲の単位は同じ組に入れる)
+    // 組み合わせ(同時分布)の物差しは Python(tools/melody-reference/fit_joint_model.py)で作るので、特徴量を書き出す
+    writeFileSync(join(directory!, "features.jsonl"), measured.map((item) => JSON.stringify({
+      group: item.group, piece: item.piece, features: classicalFeatureValues(item.metrics),
+    })).join("\n") + "\n")
     const holdoutPiece = (piece: string) => [...piece].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7) % 5 === 0
     const weightOf = (list: typeof measured) => {
       const counts = new Map<string, number>()
       for (const item of list) counts.set(item.group, (counts.get(item.group) ?? 0) + 1)
-      return (item: (typeof measured)[number]) => 0.5 / (counts.get(item.group) ?? 1)
+      return (item: (typeof measured)[number]) => 1 / counts.size / (counts.get(item.group) ?? 1)
     }
     const fit = measured.filter((item) => !holdoutPiece(item.piece))
     const holdout = measured.filter((item) => holdoutPiece(item.piece))
@@ -93,8 +110,9 @@ describe.skipIf(!directory)("実在曲の物差しを集計する", () => {
       buildFeatureModel(fit.map((item) => ({ value: classicalFeatureValues(item.metrics)[feature.key], weight: fitWeight(item) })), feature),
     ])) as ClassicalModel["features"]
     const draft: ClassicalModel = {
-      source: "music21 10.5.0 同梱コーパス(パブリックドメイン): Bach のコラール、古典派・ロマン派の最上声部",
-      corpora: groups,
+      source: "music21 同梱コーパス(Bach のコラールほか、パブリックドメイン)、DCML コーパス(CC BY-NC-SA 4.0)、OpenScore Lieder(CC0)。統計のみを使用",
+      corpora: Object.keys(groups),
+      groups: groupSizes,
       units: { fit: fit.length, holdout: holdout.length },
       features,
       normalization: 1,

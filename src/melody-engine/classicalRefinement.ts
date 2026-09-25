@@ -5,7 +5,7 @@ import { isChordTone, isTensionTone } from "@/core/chord"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 import type { RangeSetting } from "./generationParams"
 import { measureMelodyCraft } from "./melodyCraftMetrics"
-import { classicalLikeness, type ClassicalModel } from "./classicalLikeness"
+import { classicalLikeness, type ClassicalModels } from "./classicalLikeness"
 
 /**
  * 推敲: 古典らしさ(古典=100)に近づくよう、音を1つずつ置き換えてみて、点が上がる変更だけを残す。
@@ -27,7 +27,7 @@ export interface ClassicalRefinementContext {
   totalBeats: number
   sectionRole: SectionRole
   key?: string
-  model: ClassicalModel
+  models: ClassicalModels
   /** 何周まで試すか */
   passes?: number
 }
@@ -40,7 +40,7 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
   }
   const chords = context.harmonicMap.map((entry) => entry.chord)
   const scale = keyScalePitchClasses(key)
-  const score = (list: MelodyNote[]) => classicalLikeness(measureMelodyCraft(list, chords, key), context.model).score
+  const score = (list: MelodyNote[]) => classicalLikeness(measureMelodyCraft(list, chords, key), context.models).score
 
   const entryAt = (beat: number) => chordAtBeat(context.harmonicMap, beat)
   const chordTone = (beat: number, pitch: number) => {

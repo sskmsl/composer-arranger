@@ -61,6 +61,8 @@ export interface ReferenceUnit {
   key: string
   final: boolean
   totalBeats: number
+  /** 強拍の判定に使う1小節の拍数(省略時は4。6/8は3) */
+  beatsPerBar?: number
   notes: Array<[startBeat: number, durationBeats: number, pitch: number]>
   chords: Array<[startBeat: number, durationBeats: number, symbol: string, bass: string | null]>
 }

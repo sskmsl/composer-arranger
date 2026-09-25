@@ -8,8 +8,8 @@ import { generateFromChordsWithProfiles } from "./generateFromChords"
 import { measureMelodyCraft, scoreMelodyCraft, type MelodyCraftMetrics } from "./melodyCraftMetrics"
 import type { MelodyReferenceStats } from "./melodyReference"
 import referenceStats from "./reference/melodyReferenceStats.json"
-import { classicalLikeness, type ClassicalModel } from "./classicalLikeness"
-import classicalModel from "./reference/classicalModel.json"
+import { classicalLikeness } from "./classicalLikeness"
+import { CLASSICAL_MODELS } from "./classicalModels"
 
 const REFERENCE = referenceStats as MelodyReferenceStats
 /** 実在曲(Essen 民謡集)で多くの曲が収まる範囲 */
@@ -20,6 +20,8 @@ const essenBand = (key: "repeatedPitch" | "stepwise" | "leapRate" | "leapRecover
 /** 仕上げ後の作りの良さで候補を選び、経過音でつなぐ作り方 */
 /** 実在曲の分布を根拠にした作りの良さの下限(経過音でつなぐ前 76.2 → 後 77.8) */
 const CRAFT_SCORE_FLOOR = 76.5
+/** 古典らしさの下位4分の1の下限(推敲と候補選びの後は100) */
+const CLASSICAL_P25_FLOOR = 95
 const CRAFTED_PROFILES: MelodyGeneratorProfile[] = ["standard", "minimal", "rhythmic", "cinematic"]
 
 /**
@@ -109,7 +111,7 @@ describe("主旋律の作りの良さ", () => {
   }
   const crafted = samples.filter((sample) => CRAFTED_PROFILES.includes(sample.profile)).map((sample) => sample.metrics)
   const classicalScores = samples.filter((sample) => CRAFTED_PROFILES.includes(sample.profile))
-    .map((sample) => classicalLikeness(sample.metrics, classicalModel as ClassicalModel).score)
+    .map((sample) => classicalLikeness(sample.metrics, CLASSICAL_MODELS).score)
     .sort((a, b) => a - b)
   const classical = {
     mean: mean(classicalScores),
@@ -181,11 +183,11 @@ describe("主旋律の作りの良さ", () => {
     expect(summary.sighsPerSection).toBeLessThanOrEqual(1)
   })
   it("実在曲の分布を根拠にした作りの良さ", () => expect(summary.craftScore).toBeGreaterThanOrEqual(CRAFT_SCORE_FLOOR))
-  // 古典らしさ(学習に使っていない古典の旋律の真ん中=100、古典の下位4分の1は86)。
-  // 推敲と候補選びの前後: 中央値 86.7 → 100、平均 84.8 → 96.9、下位4分の1 → 古典と同じ水準
+  // 古典らしさ(物差しの組み合わせで見る。学習に使っていない古典の旋律の真ん中=100)。
+  // 古典 = コラール・歌曲・ロマン派〜近代のピアノ曲・古典派(約7,300単位)。推敲と候補選びの前後: 平均 61.7 → 98.9、中央値 68 → 100
   it("古典らしさが古典の旋律の水準に近い(古典=100)", () => {
     expect(classical.median).toBeGreaterThanOrEqual(97)
     expect(classical.mean).toBeGreaterThanOrEqual(93)
-    expect(classical.p25).toBeGreaterThanOrEqual((classicalModel as ClassicalModel).holdout.p25)
+    expect(classical.p25).toBeGreaterThanOrEqual(CLASSICAL_P25_FLOOR)
   })
 })
