@@ -338,11 +338,13 @@ export function downloadProductionGuide(markdownText: string, filename: string):
   URL.revokeObjectURL(url)
 }
 
-/** アレンジ画面「Logic Pro用の書き出し」の1行。曲全体MIDIのトラック名と、おすすめ音源・一言の設定 */
+/** アレンジ画面「Logic Pro用の書き出し」の1行。曲全体MIDIのトラック名と、おすすめ音源・プリセット・一言の設定 */
 export interface LogicSoundRow {
   trackName: string
   role: string
   product: string
+  /** 音源のプリセットブラウザで検索すると合うものが見つかる言葉(製品の版で名前が変わるため、決まった名前ではなく検索語で示す) */
+  preset: string
   setting: string
 }
 
@@ -370,15 +372,15 @@ const SONG_TRACK_ROLES: Partial<Record<LogicProductionTrackId, string>> = {
   "selected-intro-phrase": "イントロのフレーズ",
 }
 
-const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; product: string; setting: string }> = [
-  { match: (id) => id.startsWith("dr-"), role: "ドラム", product: "Battery 4", setting: "KickとSnareを基準に、Hatは控えめ／定位 Center〜±30／残響 Short Room" },
-  { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
-  { match: (id) => id === "syn-pulse" || id === "syn-stabs", role: "シンセの刻み", product: "Repro-1", setting: "短く歯切れよく／定位 ±20／残響 Tempo Delay少し" },
-  { match: (id) => id === "syn-dark-pad", role: "パッド", product: "Repro-5", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 Long Hall" },
-  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", product: "Playbox", setting: "音量は控えめに、一音ずつ置く／定位 ±40／残響 Long Plate" },
-  { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", product: "Playbox", setting: "セクションの境目だけで鳴らす／定位 ±30／残響 Long Hall" },
-  { match: (id) => id === "str-cello" || id === "str-viola", role: "弦（低音）", product: "Session Strings Pro 2", setting: "レガートで長めに／定位 ±20／残響 Hall" },
-  { match: (id) => id.startsWith("str-"), role: "弦（高音）", product: "Session Strings Pro 2", setting: "レガート、頂点だけ強く／定位 ±30／残響 Hall" },
+const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; product: string; preset: string; setting: string }> = [
+  { match: (id) => id.startsWith("dr-"), role: "ドラム", product: "Battery 4", preset: "dry electronic kit", setting: "KickとSnareを基準に、Hatは控えめ／定位 Center〜±30／残響 Short Room" },
+  { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", preset: "dark mono bass", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
+  { match: (id) => id === "syn-pulse" || id === "syn-stabs", role: "シンセの刻み", product: "Repro-1", preset: "muted sequence", setting: "短く歯切れよく／定位 ±20／残響 Tempo Delay少し" },
+  { match: (id) => id === "syn-dark-pad", role: "パッド", product: "Repro-5", preset: "soft poly pad", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 Long Hall" },
+  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", product: "Playbox", preset: "glass bell", setting: "音量は控えめに、一音ずつ置く／定位 ±40／残響 Long Plate" },
+  { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", product: "Playbox", preset: "reverse tonal", setting: "セクションの境目だけで鳴らす／定位 ±30／残響 Long Hall" },
+  { match: (id) => id === "str-cello" || id === "str-viola", role: "弦（低音）", product: "Session Strings Pro 2", preset: "cellos legato", setting: "レガートで長めに／定位 ±20／残響 Hall" },
+  { match: (id) => id.startsWith("str-"), role: "弦（高音）", product: "Session Strings Pro 2", preset: "soft legato ensemble", setting: "レガート、頂点だけ強く／定位 ±30／残響 Hall" },
 ]
 
 function sourceSetting(source: TrackSource): string {
@@ -412,6 +414,7 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
       trackName: SONG_MIDI_TRACK_NAMES[id] ?? source.name,
       role: SONG_TRACK_ROLES[id] ?? source.role,
       product: source.recommendations[0]?.product ?? "—",
+      preset: source.recommendations[0]?.searchTerms[0] ?? "—",
       setting: sourceSetting(source),
     }]
   })
@@ -420,7 +423,7 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
     const sound = ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue
     const label = arrangementTrackLabel(track.id)
-    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, setting: sound.setting })
+    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: sound.preset, setting: sound.setting })
   }
   return rows
 }

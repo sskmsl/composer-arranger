@@ -17,6 +17,7 @@ export function LogicProductionPackagePanel() {
         <p className="mt-1 text-[13px] leading-5 text-body-muted">
           画面上部の「曲全体MIDI」を書き出してLogic Proの新規プロジェクトへ読み込み、テンポ情報を使ってください。
           下の表のトラックがすべて入っています。各トラックに、表の音源を割り当てます。
+          プリセット欄は、音源のプリセットブラウザで検索すると合うものが見つかる言葉です。
         </p>
       </div>
 
@@ -24,11 +25,12 @@ export function LogicProductionPackagePanel() {
         <p className="text-[13px] text-body-muted">書き出せる音がまだありません。</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-hairline">
-          <table className="w-full min-w-[36rem] text-left text-[13px]">
+          <table className="w-full min-w-[44rem] text-left text-[13px]">
             <thead className="bg-white/[0.04] text-[12px] text-ink-soft">
               <tr>
                 <th scope="col" className="px-3 py-2 font-medium">トラック</th>
                 <th scope="col" className="px-3 py-2 font-medium">おすすめ音源</th>
+                <th scope="col" className="px-3 py-2 font-medium">プリセット</th>
                 <th scope="col" className="px-3 py-2 font-medium">設定</th>
               </tr>
             </thead>
@@ -40,6 +42,7 @@ export function LogicProductionPackagePanel() {
                     <div className="text-[12px] text-ink-soft">{row.role}</div>
                   </td>
                   <td className="px-3 py-2 text-body-on-dark">{row.product}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-body-on-dark">{row.preset}</td>
                   <td className="px-3 py-2 leading-5 text-body-muted">{row.setting}</td>
                 </tr>
               ))}
