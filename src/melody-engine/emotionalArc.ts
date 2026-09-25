@@ -22,6 +22,8 @@ export interface EmotionalArcAssessment {
   harmonyInteraction: number
   afterglow: number
   motifRetention: number
+  /** フレーズごとの最高音が、頂点まで少しずつ上がっていくか(一度に跳ね上がらない) */
+  gradualGrowth: number
 }
 
 function harmonicRole(note: MelodyNote, map: HarmonicMapEntry[]): string {
@@ -40,6 +42,23 @@ function peakIndexOf(notes: MelodyNote[], target: number): number {
       ? index : best, 0)
 }
 
+/**
+ * 小さな素材が時間とともに大きくなる(Sibelius 的な長い弧)。フレーズごとの最高音が、頂点のフレーズまで
+ * 下がらずに少しずつ(5半音以内ずつ)上がっていくほど高い。頂点が早すぎる場合は伸ばしきれていないとみなす。
+ */
+export function measureGradualGrowth(notes: readonly MelodyNote[], totalBeats: number, phraseBeats: number, peakBeat: number): number {
+  const peaks: number[] = []
+  for (let start = 0; start < totalBeats; start += phraseBeats) {
+    const phrase = notes.filter((note) => note.startBeat >= start && note.startBeat < start + phraseBeats)
+    if (phrase.length) peaks.push(Math.max(...phrase.map((note) => note.pitch)))
+  }
+  const top = Math.min(peaks.length - 1, Math.floor(peakBeat / phraseBeats))
+  if (peaks.length < 3 || top <= 0) return 0
+  const steps = peaks.slice(1, top + 1).map((peak, index) => peak - peaks[index])
+  const rising = steps.filter((step) => step >= 0 && step <= 5).length / steps.length
+  return clamp01(rising * Math.min(1, top / Math.max(1, peaks.length - 1) / .6))
+}
+
 /** 聴感の代理指標。量ではなく、反復後に一度だけ緊張し、到達後に引く時間配置を測る。 */
 export function assessEmotionalArc(
   source: MelodyNote[],
@@ -51,7 +70,7 @@ export function assessEmotionalArc(
   const empty: EmotionalArcAssessment = {
     score: 0, peakPosition: 0, climaxTiming: 0, registerDevelopment: 0,
     expectationSurprise: 0, delayedResolution: 0, phraseBreathing: 0,
-    harmonyInteraction: 0, afterglow: 0, motifRetention: 0,
+    harmonyInteraction: 0, afterglow: 0, motifRetention: 0, gradualGrowth: 0,
   }
   if (source.length < 6 || totalBeats <= 0) return empty
   const notes = [...source].sort((a, b) => a.startBeat - b.startBeat)
@@ -149,14 +168,15 @@ export function assessEmotionalArc(
     tail.filter((note) => note.startBeat >= totalBeats * .82).length <=
       notes.filter((note) => note.startBeat >= totalBeats * .55 && note.startBeat < totalBeats * .73).length + 1
   const afterglow = (lowerTail ? .45 : 0) + (longLanding ? .3 : 0) + (lighterTail ? .25 : 0)
+  const gradualGrowth = measureGradualGrowth(notes, totalBeats, Math.max(4, coreLengthBeats * 2), peak.startBeat)
   const score = clamp01(
-    climaxTiming * .18 + registerDevelopment * .14 + expectationSurprise * .13 +
-    delayedResolution * .11 + phraseBreathing * .1 + harmonyInteraction * .08 +
-    afterglow * .16 + motifRetention * .1,
+    climaxTiming * .16 + registerDevelopment * .13 + expectationSurprise * .13 +
+    delayedResolution * .1 + phraseBreathing * .1 + harmonyInteraction * .08 +
+    afterglow * .14 + motifRetention * .1 + gradualGrowth * .06,
   )
   return {
     score, peakPosition, climaxTiming, registerDevelopment, expectationSurprise,
-    delayedResolution, phraseBreathing, harmonyInteraction, afterglow, motifRetention,
+    delayedResolution, phraseBreathing, harmonyInteraction, afterglow, motifRetention, gradualGrowth,
   }
 }
 
