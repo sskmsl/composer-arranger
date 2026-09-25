@@ -342,7 +342,7 @@ export function ArrangementWorkspace({
                       }`}
                     >
                       <span className={`text-[12px] ${current ? "text-primary-on-dark" : "text-ink-soft"}`}>
-                        版 {version.number}{current ? " · いまの版" : " · 押すと戻す"}
+                        版 {version.number}
                       </span>
                       <span className="truncate text-[13px] text-body-on-dark">{version.label}</span>
                     </button>
