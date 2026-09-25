@@ -75,6 +75,7 @@ import type { ResolvedComposerRules } from "@/composer-intelligence"
 import type { ResolvedMusicContext } from "@/core/musicContext"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 import { applyMelodicCraft } from "./melodicCraft"
+import { measureMelodyCraft, scoreMelodyCraft } from "./melodyCraftMetrics"
 import { selectCoreMotif } from "./hookFirst"
 import { subtleHookVariation } from "./hookDevelopment"
 import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
@@ -583,7 +584,25 @@ interface BuiltPattern {
   coreHookability?: number
   coreRetention?: number
   emotionalScore?: number
+  /** 仕上げ(applyMelodicCraft)とコード整合を済ませた、画面に出す形の音 */
+  craftedNotes?: MelodyNote[]
+  /** 仕上げ後の作りの良さ(0..100)。候補選びに使う */
+  craftScore?: number
 }
+
+/** 仕上げ後の作りの良さを候補選びにどれだけ効かせるか。独自の設計(跳躍・半音・語り・反復)を持つ作り方には使わない */
+const CRAFT_SELECTION_WEIGHT: Record<MelodyGeneratorProfile, number> = {
+  standard: 0.4,
+  cinematic: 0.4,
+  rhythmic: 0.4,
+  minimal: 0.4,
+  "elegiac-cantabile": 0,
+  leaping: 0,
+  chromatic: 0,
+  "speech-rhythmic": 0,
+  incantatory: 0,
+}
+const CRAFT_RESOLVING_ROLES = new Set<SectionRole>(["chorus", "grand-chorus", "breakdown-chorus", "outro"])
 
 /**
  * Melody Candidate Diversity v1.2 + 冒頭設計: 選択したGenerator Profileごとに3つの独立Patternを生成する。
@@ -838,12 +857,39 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       }
     }
 
+    // 仕上げは選んだ後ではなく候補ごとに先に済ませ、仕上げ後の形で作りの良さを測って選抜に使う
+    const craftSelection = Boolean(input.key) && CRAFT_SELECTION_WEIGHT[profile] > 0
+    const poolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftCandidatePoolSize : CANDIDATE_SELECTION_CONFIG.candidatePoolSize
+    const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
+    const craftNotes = (notes: MelodyNote[]) => enforceHarmonicIntegrity(
+      applyMelodicCraft(notes, {
+        harmonicMap,
+        range: input.range,
+        totalBeats: input.totalBeats,
+        sectionRole: input.sectionRole,
+        profile,
+        key: input.key,
+      }),
+      input.chords,
+      input.range,
+      { preserveExpressiveChordRoles: true },
+    ).notes
+    const withCraft = (pattern: BuiltPattern): BuiltPattern => {
+      // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
+      if (!craftSelection) return pattern
+      const craftedNotes = craftNotes(pattern.notes)
+      const craftScore = scoreMelodyCraft(measureMelodyCraft(craftedNotes, input.chords, input.key!), {
+        resolving: CRAFT_RESOLVING_ROLES.has(input.sectionRole),
+      })
+      return { ...pattern, craftedNotes, craftScore }
+    }
+
     const pool: BuiltPattern[] = []
     const appendCandidate = () => {
       const poolIndex = pool.length
-      pool.push(buildOne(baseSeed + poolIndex * 7919, intentForPoolIndex(poolIndex), poolIndex))
+      pool.push(withCraft(buildOne(baseSeed + poolIndex * 7919, intentForPoolIndex(poolIndex), poolIndex)))
     }
-    while (pool.length < CANDIDATE_SELECTION_CONFIG.candidatePoolSize) appendCandidate()
+    while (pool.length < poolSize) appendCandidate()
 
     // 従来の3 Pattern相当となる先頭3件が似た場合は、後側の該当候補だけを
     // 新しいIntent・Plan・seedで作り直す。候補全体のコピーや開始音だけの差し替えは行わない。
@@ -870,14 +916,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       if (target < 0 && distinctStarts >= 2) break
       if (target < 0) target = 2
       const replacementIntent = intentForPoolIndex(
-        CANDIDATE_SELECTION_CONFIG.candidatePoolSize + attempt * 3 + target,
+        poolSize + attempt * 3 + target,
       )
-      pool[target] = buildOne(
+      pool[target] = withCraft(buildOne(
         baseSeed + target * 7919 + attempt * 15485863,
         replacementIntent,
         target,
         attempt,
-      )
+      ))
     }
 
     const techniqueSelectionWeight = (): number =>
@@ -910,6 +956,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .1
               : input.sectionRole === "pre-chorus" ? .1 : .05
             : 0,
+          craftWeight: CRAFT_SELECTION_WEIGHT[profile],
         },
       )
 
@@ -919,12 +966,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     // 変えずに再評価回数だけを抑える。
     let selection = runSelection()
     while (
-      pool.length < CANDIDATE_SELECTION_CONFIG.maximumPoolSize &&
+      pool.length < maximumPoolSize &&
       (selection.selected.length < CANDIDATE_SELECTION_CONFIG.finalCandidateCount ||
         selection.selected.some((item) => item.reason === "insufficient-diversity-fallback"))
     ) {
       const nextPoolSize = Math.min(
-        CANDIDATE_SELECTION_CONFIG.maximumPoolSize,
+        maximumPoolSize,
         pool.length + CANDIDATE_SELECTION_CONFIG.finalCandidateCount,
       )
       while (pool.length < nextPoolSize) appendCandidate()
@@ -995,22 +1042,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       const generationDiagnostics = allDiagnostics.find(
         (d) => d.batchBaseSeed === baseSeed && d.candidatePoolIndex === pattern.candidatePoolIndex,
       )
-      // 仕上げ: 同音連打・跳躍の回収・サビの頂点・終わり方。直した後もコードとの整合を取り直す
-      const craftedNotes = enforceHarmonicIntegrity(
-        applyMelodicCraft(pattern.notes, {
-          harmonicMap,
-          range: input.range,
-          totalBeats: input.totalBeats,
-          sectionRole: input.sectionRole,
-          profile,
-          key: input.key,
-        }),
-        input.chords,
-        input.range,
-        { preserveExpressiveChordRoles: true },
-      ).notes
+      // 仕上げ(同音連打・跳躍の回収・サビの頂点・終わり方など)は候補プールの段階で済ませてある
       results.push({
-        notes: craftedNotes,
+        notes: pattern.craftedNotes ?? craftNotes(pattern.notes),
         plans: pattern.plans,
         seed: pattern.seed,
         generatorProfile: profile,

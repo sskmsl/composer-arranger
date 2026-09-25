@@ -15,6 +15,9 @@ export const CANDIDATE_SELECTION_CONFIG = {
   candidatePoolSize: 12,
   finalCandidateCount: 3,
   maximumPoolSize: 21,
+  /** 仕上げ後の作りの良さで選ぶ作り方では、選ぶ幅を広げるため最初から多めに作る */
+  craftCandidatePoolSize: 18,
+  craftMaximumPoolSize: 27,
   qualityWeight: 0.6,
   diversityWeight: 0.4,
   /** Rule指定時だけ使用する。残り90%はquality/diversityの比率を維持する。 */
@@ -47,6 +50,8 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   hookScore?: number
   /** 反復したCoreから感情的な到達点と余韻へ育った度合い。 */
   emotionalScore?: number
+  /** 仕上げ後の旋律の作りの良さ(連打・跳躍の戻り・音の偏り・終わり方など、0..100)。 */
+  craftScore?: number
   profileFitScore: number
   techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
@@ -82,6 +87,8 @@ export interface CandidateSelectionOptions {
   hookWeight?: number
   /** Hook選抜の後段だけで効く。理論品質の最低線は維持する。 */
   emotionalWeight?: number
+  /** 仕上げ後の作りの良さの重み。理論品質の最低線は維持する。 */
+  craftWeight?: number
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
@@ -92,9 +99,11 @@ function normalizedSelectionQuality(candidate: SelectableCandidate, options: Can
   const hookWeight = candidate.hookScore === undefined ? 0 : Math.max(0, Math.min(.2, options.hookWeight ?? 0))
   const emotionalWeight = candidate.emotionalScore === undefined ? 0 :
     Math.max(0, Math.min(.16, options.emotionalWeight ?? 0))
-  return normalizedQuality(candidate) * (1 - hookWeight - emotionalWeight) +
+  const craftWeight = candidate.craftScore === undefined ? 0 : Math.max(0, Math.min(.4, options.craftWeight ?? 0))
+  return normalizedQuality(candidate) * (1 - hookWeight - emotionalWeight - craftWeight) +
     Math.max(0, Math.min(1, (candidate.hookScore ?? 0) / 100)) * hookWeight +
-    Math.max(0, Math.min(1, (candidate.emotionalScore ?? 0) / 100)) * emotionalWeight
+    Math.max(0, Math.min(1, (candidate.emotionalScore ?? 0) / 100)) * emotionalWeight +
+    Math.max(0, Math.min(1, (candidate.craftScore ?? 0) / 100)) * craftWeight
 }
 
 function normalizedTechniqueFit(candidate: SelectableCandidate): number {
