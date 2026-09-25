@@ -5,6 +5,7 @@ import { composerSongExchangeToProject } from "@/core/composerSongExchange"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { logicSoundRows } from "./logicProductionPackage"
 import { exportSongMidi } from "./exportMelody"
+import { parseMidi } from "./importMidi"
 
 const fixture = JSON.parse(
   readFileSync(resolve(__dirname, "../../contracts/composer-song-exchange.v2.example.json"), "utf8"),
@@ -46,5 +47,23 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       expect(row.setting.length).toBeGreaterThan(0)
     }
     expect(rows.map((row) => row.trackName)).toEqual(expect.arrayContaining(playing.map((track) => track.name)))
+  })
+
+  it("試聴用の細かな揺らぎはグリッドへ戻して書き出す(Logic Proで拍とそろう)", () => {
+    const humanized = {
+      ...project,
+      fullSongArrangement: {
+        ...arrangement,
+        tracks: arrangement.tracks.map((track) => ({
+          ...track,
+          notes: track.notes.map((note, index) => ({ ...note, startBeat: note.startBeat + (index % 2 === 0 ? 0.012 : -0.009) })),
+        })),
+      },
+    }
+    const song = parseMidi(exportSongMidi(humanized, true, true))
+    const notes = song.tracks.flatMap((track) => track.notes)
+    const onGrid = (tick: number) => tick % (song.ppq / 4) === 0 || tick % (song.ppq / 3) === 0
+    expect(notes.length).toBeGreaterThan(0)
+    expect(notes.filter((note) => !onGrid(note.startTick)).length / notes.length).toBeLessThan(0.02)
   })
 })
