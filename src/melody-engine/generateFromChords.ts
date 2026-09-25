@@ -80,6 +80,7 @@ import { classicalLikeness } from "./classicalLikeness"
 import { refineTowardClassical } from "./classicalRefinement"
 import { CLASSICAL_MODELS } from "./classicalModels"
 import { selectCoreMotif } from "./hookFirst"
+import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
 import { subtleHookVariation } from "./hookDevelopment"
 import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
 
@@ -140,6 +141,7 @@ function buildCandidate(
   const harmonicMap = buildHarmonicMap(input.chords)
   let params = resolveGenerationParams(input.songProfile, input.sectionRole, input.density, input.drama, input.key)
   if (paramsHook) params = paramsHook(params)
+  params = applyMelodyReferenceToParams(params, input.musicContext?.reference?.melody)
   if (candidateMelodyDNA) params = applyCandidateMelodyDNA(params, candidateMelodyDNA, generatorProfile)
   if (forcedContourWeight !== undefined) {
     for (const key of Object.keys(params.contourWeights) as (keyof typeof params.contourWeights)[]) {
@@ -591,6 +593,7 @@ interface BuiltPattern {
   craftedNotes?: MelodyNote[]
   /** 仕上げ後の古典らしさ(古典=100)。候補選びに使う */
   craftScore?: number
+  referenceScore?: number
 }
 
 /**
@@ -627,6 +630,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
   const dna = input.motifDNA
   const dnaImpliedDensity = dna ? 1 - dna.repeatedNoteTendency : undefined
   const uiDensityTarget = DENSITY_UI_TARGET[input.density]
+  // 曲にすでに核の動機があるときは、参考曲を理由に旋律を大きく変えない
+  const melodyReference = input.musicContext?.reference?.melody
+  const referenceStrength = melodyReferenceStrength(melodyReference, Boolean(dna))
+  const musicContext = input.musicContext && melodyReference
+    ? { ...input.musicContext, reference: { ...input.musicContext.reference, melody: { ...melodyReference, strength: referenceStrength } } }
+    : input.musicContext
 
   input.profiles.forEach((profile, profileIdx) => {
     const kind = GENERATOR_PROFILE_KIND[profile]
@@ -644,7 +653,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       totalBeats: input.totalBeats,
       seed: baseSeed,
       key: input.key,
-      musicContext: input.musicContext,
+      musicContext,
     }
     const hook = (params: GenerationParams) => applyMotifDNA(applyProfileOverride(params, profile, intensity), input.motifDNA)
     const applicability = SETTINGS_APPLICABILITY[profile]
@@ -879,7 +888,10 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       input.range,
       { preserveExpressiveChordRoles: true },
     ).notes
-    const withCraft = (pattern: BuiltPattern): BuiltPattern => {
+    const withCraft = (built: BuiltPattern): BuiltPattern => {
+      const pattern = melodyReference && referenceStrength > 0
+        ? { ...built, referenceScore: melodyReferenceFitScore(built.notes, input.totalBeats, melodyReference) }
+        : built
       // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
       if (!craftSelection) return pattern
       const craftedNotes = craftNotes(pattern.notes)
@@ -960,6 +972,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
               : input.sectionRole === "pre-chorus" ? .1 : .05
             : 0,
           craftWeight: CRAFT_SELECTION_WEIGHT[profile],
+          referenceWeight: referenceStrength * .25,
         },
       )
 

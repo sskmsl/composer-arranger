@@ -659,7 +659,7 @@ function planSignaturePhrase(
       : opportunityRhythms[
           (poolIndex + rng.intBetween(0, 2)) % opportunityRhythms.length
         ]
-  const rhythmicPressure = style?.genres.length
+  const rhythmicPressure = style?.styleActive
     ? style.genre.rhythmDensity * .65 + (1 - style.genre.space) * .35
     : .5
   const rankedRhythms = [...opportunityRhythms].sort((left, right) =>
@@ -2973,7 +2973,7 @@ function selectDiversePool(
           : candidate.score.audacity * 8 +
             candidate.score.controlledRisk * 8 +
             candidate.score.surpriseCoherence * 6
-      const genreFit = musicContext?.genres.length
+      const genreFit = musicContext?.styleActive
         ? candidate.score.motifMemorability * musicContext.genre.repetition * 5
           + candidate.score.rhythmicIdentity * musicContext.genre.syncopation * 2
           + candidate.score.silenceUse * musicContext.genre.space * 3

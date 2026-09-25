@@ -11,6 +11,7 @@ import { GENERATOR_PROFILES, GENERATOR_PROFILE_LABELS, GENERATOR_PROFILE_DESCRIP
 import { GENERATION_SETTING_LABELS, profilesIgnoring, type GenerationSettingKey } from "@/melody-engine/settingsApplicability"
 import type { RangePreset } from "@/store/useProjectStore"
 import { useActiveVariant } from "./useActiveVariant"
+import { ReferenceInfluenceField } from "./ReferenceInfluenceField"
 import { X, Dna, AlertCircle, Play } from "lucide-react"
 import { explainMelodyCandidate } from "@/melody-engine/melodyEvidence"
 import { previewPlayer } from "@/audio/previewPlayer"
@@ -115,7 +116,7 @@ export function RightPanel({
       <details className="w-full rounded-md border border-hairline bg-surface-tile-1">
         <summary className="cursor-pointer list-none px-3 py-3 text-[13px] font-semibold text-body-on-dark hover:bg-white/5">
           こだわり設定
-          <span className="mt-1 block text-[12px] font-normal text-body-muted">セクションごとのスタイル・ジャンルの配合・音像・候補の作り方</span>
+          <span className="mt-1 block text-[12px] font-normal text-body-muted">セクションごとのスタイル・ジャンルの配合・音像・参考曲・候補の作り方</span>
         </summary>
         <div className="flex flex-col gap-3 border-t border-hairline p-2">
       <SectionCard title="スタイルの細かい指定" className="w-full min-w-0">
@@ -166,6 +167,7 @@ export function RightPanel({
               aria-label="音像の強さ" value={Math.round((project.song.aesthetic.amount ?? 1) * 100)}
               onChange={(event) => updateSongField("aesthetic", { image: "atmospheric-depth", amount: Number(event.target.value) / 100 })} />}
           </FieldGroup>
+          <ReferenceInfluenceField />
         </div>
       </SectionCard>
 

@@ -1,4 +1,5 @@
 import type { Section } from "./section"
+import { parseReferenceProfile, type ReferenceInfluenceSetting, type ReferenceProfile } from "./referenceProfile"
 import type { GeneratorProfileRole, MelodyGeneratorProfile, MelodyVariant, SongMotifDNA } from "./melody"
 import type { PhraseCandidate } from "./phrase"
 import type { SignaturePhraseCandidate } from "./signaturePhrase"
@@ -195,6 +196,10 @@ export interface ComposerProject {
     genreBlend?: GenreWeight[]
     /** Genreから独立した空間・距離・質感の指定。 */
     aesthetic?: AestheticSelection
+    /** 参考曲から抽象化した特徴(数値だけ)。旋律・コード・音型は含まない。 */
+    referenceProfiles?: ReferenceProfile[]
+    /** どの参考曲を、どの用途に、どれだけ使うか。Genre / Aesthetic より下の層として合成する。 */
+    referenceInfluences?: ReferenceInfluenceSetting[]
   }
   arrangementSettings: ArrangementSettings
   /** 作曲者が明示的に確定したDirector判断。未指定項目は自動設計を使う。 */
@@ -274,6 +279,8 @@ export function createEmptyProject(title = "Untitled"): ComposerProject {
       sectionProfileOverrides: [],
       genreBlend: [],
       aesthetic: { image: "neutral", amount: 0 },
+      referenceProfiles: [],
+      referenceInfluences: [],
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS },
     arrangementDirectorOverrides: { sections: {} },
@@ -369,6 +376,11 @@ export function normalizeProject(raw: unknown): ComposerProject {
       sectionProfileOverrides: r.song?.sectionProfileOverrides ?? [],
       genreBlend: r.song?.genreBlend ?? [],
       aesthetic: r.song?.aesthetic ?? { image: "neutral", amount: 0 },
+      // 読み込み時も数値の特徴だけを通す(具体的な素材が紛れ込んだプロファイルは捨てる)
+      referenceProfiles: (r.song?.referenceProfiles ?? []).flatMap((profile) => {
+        try { return [parseReferenceProfile(profile)] } catch { return [] }
+      }),
+      referenceInfluences: r.song?.referenceInfluences ?? [],
     },
     arrangementSettings: { ...DEFAULT_ARRANGEMENT_SETTINGS, ...r.arrangementSettings },
     arrangementDirectorOverrides: {
