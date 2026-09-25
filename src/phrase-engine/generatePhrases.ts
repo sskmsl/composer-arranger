@@ -867,7 +867,7 @@ export function scorePhrase(
     supportOverfill * 8 -
     Math.min(24, unresolvedLargeLeaps * 12)
   const music = context.musicContext
-  const styleFit = music?.genres.length
+  const styleFit = music?.styleActive
     ? (1 - Math.abs(actualRestRatio - (.25 + music.genre.space * .45))) * 3
       + motifReturn * music.genre.repetition * 2
       - Math.max(0, densityPerBeat - (.35 + music.genre.phraseDensity * .65)) * 4

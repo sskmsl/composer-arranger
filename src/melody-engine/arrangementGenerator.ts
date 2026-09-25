@@ -1,6 +1,7 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
 import { parseChordSymbol } from "@/core/chord"
-import { resolveMusicContext } from "@/core/musicContext"
+import { hasActiveSoundImage, resolveMusicContext } from "@/core/musicContext"
+import { applyReferenceArc } from "@/core/referenceProfile"
 import type { MelodyNote } from "@/core/melody"
 import {
   arrangementSoundInstructionAppliesTo,
@@ -230,6 +231,10 @@ export function analyzeFullSongArrangement(project: ComposerProject): Arrangemen
   const manualClimaxId = project.arrangementDirectorOverrides?.climaxSectionId
   const climaxId = (manualClimaxId && sections.some((section) => section.id === manualClimaxId) ? manualClimaxId : null)
     ?? semanticFinal?.id ?? lastChorus?.id ?? director.climaxSectionId
+  // 参考曲の感情の弧(使うよう選ばれたときだけ)。役割から推定したエネルギーを少し寄せるだけ
+  const referenceArc = resolveMusicContext(project).reference?.emotionalArc
+  const songBars = Math.max(1, ...sections.map((section) => section.startBar - 1 + section.lengthBars))
+  const climaxOrder = Math.max(0, sections.findIndex((section) => section.id === climaxId))
   let previousEnergy: number | null = null
   let previousSemanticRole: ArrangementAnalysisSection["semanticRole"]
   let previousWasInferred = false
@@ -253,7 +258,12 @@ export function analyzeFullSongArrangement(project: ComposerProject): Arrangemen
       ? 100
       : manualEnergy
         ? MANUAL_ENERGY[manualEnergy]
-        : Math.max(10, Math.min(94, Math.round(semanticEnergy * 0.82 + directorEnergy * 20 * 0.18)))
+        : applyReferenceArc(
+          Math.max(10, Math.min(94, Math.round(semanticEnergy * 0.82 + directorEnergy * 20 * 0.18))),
+          (section.startBar - 1 + section.lengthBars / 2) / songBars,
+          order < climaxOrder,
+          referenceArc,
+        )
     const start = sectionOffset(section.startBar, beatsPerBar)
     const end = start + section.lengthBars * beatsPerBar
     const melody = notesInRange(material.lead, start, end)
@@ -1562,8 +1572,7 @@ export function generateFullSongArrangement(
       const targetSupport = Math.max(0, (genre.phraseDensity + genre.decorationDensity) * .35 - (aesthetic.layerTransparency - .5) * .3)
       return sum + Math.max(0, 100 - Math.abs(rhythm - targetRhythm) * 90 - Math.abs(support - targetSupport) * 70)
     }, 0) / Math.max(1, candidate.plan.sections.length)
-    const hasExplicitContext = Boolean(project.song.genreBlend?.length)
-      || project.song.aesthetic?.image === "atmospheric-depth" && project.song.aesthetic.amount > 0
+    const hasExplicitContext = resolveMusicContext(project).styleActive || hasActiveSoundImage(project)
     const selectionScore = hasExplicitContext
       ? qualityScore * 0.68 + originalityScore * 0.13 + intentionFit * 0.11 + contextualFit * 0.08
       : qualityScore * 0.72 + originalityScore * 0.15 + intentionFit * 0.13

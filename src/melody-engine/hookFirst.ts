@@ -1,3 +1,4 @@
+import { coreReferenceFit } from "./referenceFit"
 import { SeededRandom } from "@/core/rng"
 import type { MelodyNote, MelodyOpeningPlan } from "@/core/melody"
 import type { SectionRole } from "@/core/section"
@@ -91,9 +92,12 @@ export function selectCoreMotif(
   const maximumBeats = Math.min(8, phraseLengthBeats)
   if (maximumBeats < 3) return null
   const chorus = sectionRole === "chorus" || sectionRole === "grand-chorus"
-  const poolSize = chorus ? 20 : 8
+  // 参考曲の傾向に合う核を探せるよう、効かせる強さに応じて候補を少しだけ増やす
+  const poolSize = (chorus ? 20 : 8) + Math.round((musicContext?.reference?.melody?.strength ?? 0) * 16)
   let best: SelectedCoreMotif | null = null
   let bestScore = -Infinity
+  const melodyReference = musicContext?.reference?.melody
+  const referenceShare = melodyReference ? Math.min(.3, melodyReference.strength * .5) : 0
   for (let index = 0; index < poolSize; index++) {
     const rng = new SeededRandom((seed ^ 0x45d9f3b) + index * 104729)
     const events = generateRhythmMotif(rng, density, params, opening, 3)
@@ -104,11 +108,15 @@ export function selectCoreMotif(
     if (placed.length < 3) continue
     const core = { ...candidate, pitches: placed.map((note) => note.pitch) }
     const judgment = judgeCoreMotif(placed, core.lengthBeats)
-    const genreRhythm = musicContext?.genres.length ? musicContext.genre.syncopation : .5
+    const genreRhythm = musicContext?.styleActive ? musicContext.genre.syncopation : .5
     const rhythmFit = 1 - Math.abs(judgment.rhythmicIdentity - (.48 + (genreRhythm - .5) * .12))
-    const score = chorus
+    const hookScore = chorus
       ? judgment.humability * .25 + judgment.hookability * .37 + judgment.rhythmicIdentity * .38
       : judgment.humability * .55 + judgment.hookability * .4 + rhythmFit * .05
+    // 参考曲の旋律傾向は Hook-first の判断を上書きしない(最大でも3割まで)。元の音列は持っていない
+    const score = referenceShare > 0
+      ? hookScore * (1 - referenceShare) + coreReferenceFit(judgment, placed, core.lengthBeats, melodyReference!.traits) * referenceShare
+      : hookScore
     if (score > bestScore) {
       bestScore = score
       best = { core, judgment }

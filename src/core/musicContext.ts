@@ -1,4 +1,5 @@
 import type { ComposerProject } from "./project"
+import { blendToward, resolveReferenceInfluence, type ResolvedReferenceInfluence } from "./referenceProfile"
 
 export const GENRE_IDS = [
   "ethereal", "romantic-dark", "cinematic", "new-wave", "hollywood-sadcore",
@@ -117,6 +118,62 @@ export interface ResolvedMusicContext {
   genres: GenreWeight[]
   genre: GenreTraits
   aesthetic: SoundImageTraits
+  /** Genre か Reference のどちらかが傾向値を動かしているか(どちらも無ければ従来どおり中立) */
+  styleActive: boolean
+  /** 参考曲から抽象化した参考値(旋律・感情の弧など、傾向値へ畳み込めないもの)。無ければ null */
+  reference: ResolvedReferenceInfluence | null
+}
+
+/**
+ * Reference は Genre / Aesthetic より下の層。明示的な Genre や音像の選択があるときは、
+ * そちらを優先して参考値へ近づける割合を半分にする。
+ */
+const REFERENCE_UNDER_EXPLICIT = .5
+
+function applyReferenceToGenre(traits: GenreTraits, reference: ResolvedReferenceInfluence, explicit: boolean): boolean {
+  const scale = explicit ? REFERENCE_UNDER_EXPLICIT : 1
+  let changed = false
+  const pull = (key: keyof GenreTraits, value: number, strength: number) => {
+    traits[key] = blendToward(traits[key], value, strength * scale)
+    changed = true
+  }
+  if (reference.rhythm) {
+    const { traits: rhythm, strength } = reference.rhythm
+    pull("rhythmDensity", rhythm.density, strength)
+    pull("syncopation", rhythm.syncopation, strength)
+    pull("repetition", rhythm.grooveTendency, strength * .5)
+  }
+  if (reference.bass) pull("bassMovement", reference.bass.traits.bassMovement, reference.bass.strength)
+  if (reference.harmony) {
+    const { traits: harmony, strength } = reference.harmony
+    pull("tension", harmony.tension, strength)
+    pull("harmonicDensity", harmony.harmonicRhythm, strength)
+  }
+  if (reference.arrangement) {
+    const { traits: arrangement, strength } = reference.arrangement
+    pull("phraseDensity", arrangement.phraseFrequency, strength)
+    pull("decorationDensity", arrangement.foregroundDensity, strength)
+    pull("sustain", arrangement.backgroundSustain, strength)
+    pull("space", 1 - arrangement.foregroundDensity, strength)
+    pull("dynamicContrast", arrangement.sectionContrast, strength)
+  }
+  return changed
+}
+
+function applyReferenceToImage(image: SoundImageTraits, reference: ResolvedReferenceInfluence, explicitAmount: number) {
+  if (!reference.aesthetic) return
+  const { traits, strength } = reference.aesthetic
+  const weight = strength * (1 - explicitAmount * (1 - REFERENCE_UNDER_EXPLICIT))
+  // 楽器を足すのではなく、いまある音の距離・余韻・立ち上がり・密度を動かす値だけに畳み込む
+  image.depth = blendToward(image.depth, traits.depth, weight)
+  image.decay = blendToward(image.decay, traits.decay, weight)
+  image.transientSoftness = blendToward(image.transientSoftness, traits.transientSoftness, weight)
+  image.timbreSoftness = blendToward(image.timbreSoftness, traits.transientSoftness, weight * .5)
+  image.stereoDiffusion = blendToward(image.stereoDiffusion, traits.stereoDiffusion, weight)
+  image.darkLuminousBalance = blendToward(image.darkLuminousBalance, traits.darkLuminousBalance, weight)
+  image.textureDensity = blendToward(image.textureDensity, traits.textureDensity, weight)
+  image.layerTransparency = blendToward(image.layerTransparency, 1 - traits.textureDensity, weight)
+  image.foregroundFocus = blendToward(image.foregroundFocus, .5 + (traits.depth - .5) * .5, weight)
 }
 
 export function resolveMusicContext(project: ComposerProject, sectionId?: string): ResolvedMusicContext {
@@ -135,5 +192,14 @@ export function resolveMusicContext(project: ComposerProject, sectionId?: string
   for (const key of Object.keys(aesthetic) as (keyof SoundImageTraits)[]) {
     aesthetic[key] = neutralImage[key] * (1 - amount) + atmosphericImage[key] * amount
   }
-  return { genres, genre: genreTraits, aesthetic }
+  const reference = resolveReferenceInfluence(project.song.referenceProfiles ?? [], project.song.referenceInfluences ?? [])
+  const referenceShapesStyle = reference ? applyReferenceToGenre(genreTraits, reference, genres.length > 0) : false
+  if (reference) applyReferenceToImage(aesthetic, reference, amount)
+  return { genres, genre: genreTraits, aesthetic, styleActive: genres.length > 0 || referenceShapesStyle, reference }
+}
+
+/** 音像(Aesthetic)が中立から動いているか。明示の選択か、参考曲の音像のどちらか */
+export function hasActiveSoundImage(project: ComposerProject): boolean {
+  return project.song.aesthetic?.image === "atmospheric-depth" && project.song.aesthetic.amount > 0
+    || (project.song.referenceInfluences ?? []).some((setting) => setting.targets.aesthetic !== undefined)
 }
