@@ -147,6 +147,18 @@ export function RightPanel({
               ))}
             </Select>
           </FieldGroup>
+        </div>
+      </SectionCard>
+
+      {/* ふだんは曲全体のスタイルだけで足りる。それ以外はここへまとめる */}
+      <details className="w-full rounded-md border border-hairline bg-surface-tile-1">
+        <summary className="cursor-pointer list-none px-3 py-3 text-[13px] font-semibold text-body-on-dark hover:bg-white/5">
+          こだわり設定
+          <span className="mt-1 block text-[12px] font-normal text-body-muted">セクションごとのスタイル・ジャンルの配合・音像・候補の作り方</span>
+        </summary>
+        <div className="flex flex-col gap-3 border-t border-hairline p-2">
+      <SectionCard title="スタイルの細かい指定" className="w-full min-w-0">
+        <div className="flex flex-col gap-2.5">
           {selectedSectionId && (
             <FieldGroup label="このセクションだけ上書き">
               <Select
@@ -196,16 +208,9 @@ export function RightPanel({
         </div>
       </SectionCard>
 
-      <details className="w-full rounded-md border border-hairline bg-surface-tile-1">
-        <summary className="cursor-pointer list-none px-3 py-3 text-[13px] font-semibold text-body-on-dark hover:bg-white/5">
-          詳細な生成設定を開く
-          <span className="mt-1 block text-[12px] font-normal text-body-muted">候補の作り方・音域・密度を細かく調整します</span>
-        </summary>
-        <div className="flex flex-col gap-3 border-t border-hairline p-2">
-
       {mode === "melody" && <SectionCard title="主旋律の作り方" className="w-full min-w-0">
         <p className="mb-2 text-[12px] text-ink-soft">
-          選択したProfile × 3 Pattern = {generationSettings.selectedGeneratorProfiles.length * 3}候補を生成します
+          選んだ作り方 × 3案 = {generationSettings.selectedGeneratorProfiles.length * 3}候補を作ります
         </p>
         <div className="flex flex-col gap-1.5">
           {GENERATOR_PROFILES.map((p) => {
@@ -257,7 +262,7 @@ export function RightPanel({
               }
             />
             <span className="min-w-0">
-              同じseedでA/B比較する
+              同じ出発点で2案を聴き比べる
             </span>
           </label>
           {generationSettings.techniqueExperimentPresetId && (
@@ -360,7 +365,7 @@ export function RightPanel({
                       preset.recommendedProfiles.includes(profile),
                     ) && (
                       <p className="mt-2 text-[12px] text-amber-300/90">
-                        現在選択中のGenerator Profileは自動検証済みの推奨対象外です。
+                        いま選んでいる作り方は、自動確認でのおすすめ対象外です。
                       </p>
                     )}
                   {generatorTarget !== "melody" &&
@@ -370,7 +375,7 @@ export function RightPanel({
                       selectedSection.role,
                     ) && (
                       <p className="mt-2 text-[12px] text-amber-300/90">
-                        現在のSection Roleは自動検証済みの推奨対象外です。
+                        このセクションの役割は、自動確認でのおすすめ対象外です。
                       </p>
                     )}
                       </>
@@ -387,7 +392,7 @@ export function RightPanel({
       )}
 
       {(mode === "melody" || mode === "phrase" || mode === "signature") && (
-      <SectionCard title="生成パラメータ" className="w-full min-w-0">
+      <SectionCard title="音数・音域・起伏" className="w-full min-w-0">
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
             <FieldGroup label="音の密度">
@@ -454,18 +459,18 @@ export function RightPanel({
           </div>
           <p className="mt-1 border-t border-hairline pt-2 text-[12px] text-ink-soft">
             {mode === "phrase" || mode === "signature"
-              ? `${mode === "signature" ? "Signature Phrase" : "Phrase"}ではDensity / Range / Dramaを利用します。Generator ProfileはMelody専用です。`
-              : "生成設定(Density / Range / Drama / Generator Profile)はこのセッション限りで、プロジェクトには保存されません。Key・拍子・Song Profileはプロジェクトに保存されます。"}
+              ? "ここでは音数・音域・起伏を使います。作り方の選択は主旋律でだけ使います。"
+              : "ここの設定(音数・音域・起伏・作り方)は、いま開いている間だけ有効で、曲には保存されません。キー・拍子・曲のスタイルは曲に保存されます。"}
           </p>
         </div>
       </SectionCard>
       )}
 
-      {mode === "melody" && <SectionCard title="特徴量" className="w-full min-w-0">
+      {mode === "melody" && <SectionCard title="この候補の特徴" className="w-full min-w-0">
         {variant?.generatorProfile && (
           <p className="mb-1 text-[13px] text-primary-on-dark">
             {GENERATOR_PROFILE_LABELS[variant.generatorProfile as MelodyGeneratorProfile]}
-            {variant.patternIndex && ` · Pattern ${variant.patternIndex}`}
+            {variant.patternIndex && ` · 候補${variant.patternIndex}`}
           </p>
         )}
         {variant?.openingIntent && (

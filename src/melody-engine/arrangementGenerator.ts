@@ -206,6 +206,9 @@ function semanticBaseEnergy(role: ReturnType<typeof semanticRoleFor>, occurrence
   return 44
 }
 
+/** 盛り上げ方で選ぶ強さ(1 静か〜5 最も強い)を、生成で使う0〜100の強さへ */
+const MANUAL_ENERGY: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 20, 2: 36, 3: 54, 4: 72, 5: 90 }
+
 export function analyzeFullSongArrangement(project: ComposerProject): ArrangementAnalysis {
   const sections = normalizeSectionTimeline(project.sections)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
@@ -223,7 +226,10 @@ export function analyzeFullSongArrangement(project: ComposerProject): Arrangemen
   const semanticRoles = sections.map(semanticRoleFor)
   const semanticFinal = [...sections].reverse().find((section) => semanticRoleFor(section) === "final")
   const lastChorus = [...sections].reverse().find((section) => semanticRoleFor(section) === "chorus")
-  const climaxId = semanticFinal?.id ?? lastChorus?.id ?? director.climaxSectionId
+  // 「最も盛り上げる場所」を人が選んだときは、曲の役割からの推定より優先する
+  const manualClimaxId = project.arrangementDirectorOverrides?.climaxSectionId
+  const climaxId = (manualClimaxId && sections.some((section) => section.id === manualClimaxId) ? manualClimaxId : null)
+    ?? semanticFinal?.id ?? lastChorus?.id ?? director.climaxSectionId
   let previousEnergy: number | null = null
   let previousSemanticRole: ArrangementAnalysisSection["semanticRole"]
   let previousWasInferred = false
@@ -241,9 +247,13 @@ export function analyzeFullSongArrangement(project: ComposerProject): Arrangemen
     previousWasInferred = isInferredSegment
     const directorEnergy = director.sections.find((plan) => plan.sectionId === section.id)?.targetEnergy ?? 2
     const semanticEnergy = semanticBaseEnergy(semanticRole, occurrence)
+    // 人が決めた強さはそのまま使う(推定と混ぜると、選んでも音がほとんど変わらないため)
+    const manualEnergy = project.arrangementDirectorOverrides?.sections[section.id]?.targetEnergy
     const energy = section.id === climaxId
       ? 100
-      : Math.max(10, Math.min(94, Math.round(semanticEnergy * 0.82 + directorEnergy * 20 * 0.18)))
+      : manualEnergy
+        ? MANUAL_ENERGY[manualEnergy]
+        : Math.max(10, Math.min(94, Math.round(semanticEnergy * 0.82 + directorEnergy * 20 * 0.18)))
     const start = sectionOffset(section.startBar, beatsPerBar)
     const end = start + section.lengthBars * beatsPerBar
     const melody = notesInRange(material.lead, start, end)
