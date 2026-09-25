@@ -170,11 +170,19 @@ export function jointPercentile(logDensity: number, joint: ClassicalJointModel):
  * 学習に使っていない古典の旋律の真ん中が 100(それより典型的な旋律も 100)、古典の下位1割に当たる旋律は 20。
  * 内訳(items)は、1つずつの物差しで見た古典の中でのふつうさ。
  */
-export function classicalLikeness(metrics: MelodyCraftMetrics, models: ClassicalModels): { score: number; items: ClassicalLikenessItem[] } {
+export function classicalLikeness(metrics: MelodyCraftMetrics, models: ClassicalModels): {
+  score: number
+  /** 古典の中心への近さ(0〜1、上限なし側)。古典の旋律の中で下から何割の典型さか。推敲と候補選びの目標に使う */
+  typicality: number
+  /** 物差しの組み合わせの分布の高さ(対数)。推敲で少しの改善も比べられるよう、そのまま返す */
+  logDensity: number
+  items: ClassicalLikenessItem[]
+} {
   const values = classicalFeatureValues(metrics)
   const { items } = rawClassicalTypicality(values, models.marginal)
-  const percentile = jointPercentile(jointLogDensity(values, models.joint), models.joint)
-  return { score: Math.min(100, percentile * 200), items }
+  const logDensity = jointLogDensity(values, models.joint)
+  const typicality = jointPercentile(logDensity, models.joint)
+  return { score: Math.min(100, typicality * 200), typicality, logDensity, items }
 }
 
 /** 重み付きのデータから、なめらかにした度数分布(ガウスの山を重ねたもの)を作る */

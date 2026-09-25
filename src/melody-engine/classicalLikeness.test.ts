@@ -54,7 +54,10 @@ describe("古典らしさ(古典=100)", () => {
     const result = refineTowardClassical(locked, {
       harmonicMap: buildHarmonicMap(chords), range: { low: 55, high: 81 }, totalBeats: 32, sectionRole: "verse", key: "C", models: CLASSICAL_MODELS,
     })
-    expect(result.after).toBeGreaterThan(result.before + 5)
+    // 推敲は分布の高さ(対数)を上げる。点数(古典=100)でもはっきり上がる
+    expect(result.after).toBeGreaterThan(result.before)
+    const score = (notes: MelodyNote[]) => classicalLikeness(measureMelodyCraft(notes, chords, "C"), CLASSICAL_MODELS).score
+    expect(score(result.notes)).toBeGreaterThan(score(locked) + 5)
     expect(result.notes.map((note) => [note.startBeat, note.durationBeats])).toEqual(locked.map((note) => [note.startBeat, note.durationBeats]))
     for (const beat of [0, 1, 2, 3, 9, 31]) {
       expect(result.notes.find((note) => note.startBeat === beat)!.pitch).toBe(locked.find((note) => note.startBeat === beat)!.pitch)

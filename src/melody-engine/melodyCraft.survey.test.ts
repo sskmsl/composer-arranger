@@ -124,6 +124,7 @@ describe("主旋律の作りの良さ", () => {
     repeatedPitch: mean(crafted.map((m) => m.repeatedPitch)),
     leapRecovery: mean(crafted.map((m) => m.leapRecovery)),
     top3Share: mean(crafted.map((m) => m.top3Share)),
+    directionChangeRate: mean(crafted.map((m) => m.directionChangeRate)),
   }
 
   it("測定結果", () => {
@@ -154,8 +155,9 @@ describe("主旋律の作りの良さ", () => {
     expect(craftedSummary.stepwise).toBeGreaterThanOrEqual(essenBand("stepwise")[0] + 0.03)
     expect(craftedSummary.stepwise).toBeLessThanOrEqual(essenBand("stepwise")[1])
   })
-  it("5半音以上の跳躍が実在曲より多すぎない(0.21 → 0.16、民謡 0.07〜0.18)", () => {
-    expect(craftedSummary.leapRate).toBeLessThanOrEqual(essenBand("leapRate")[1])
+  // 推敲の目標を古典(コラール・歌曲・ピアノ曲・古典派)にしてからは、跳躍は古典の真ん中の半分(0.08〜0.24)に入る
+  it("5半音以上の跳躍が実在曲より多すぎない(0.21 → 0.18、古典 0.08〜0.24、民謡 0.07〜0.18)", () => {
+    expect(craftedSummary.leapRate).toBeLessThanOrEqual(0.2)
   })
   it("連打・跳躍の後の戻り・音の偏りが実在曲の範囲にある", () => {
     for (const key of ["repeatedPitch", "leapRecovery", "top3Share"] as const) {
@@ -185,6 +187,12 @@ describe("主旋律の作りの良さ", () => {
   it("実在曲の分布を根拠にした作りの良さ", () => expect(summary.craftScore).toBeGreaterThanOrEqual(CRAFT_SCORE_FLOOR))
   // 古典らしさ(物差しの組み合わせで見る。学習に使っていない古典の旋律の真ん中=100)。
   // 古典 = コラール・歌曲・ロマン派〜近代のピアノ曲・古典派(約7,300単位)。推敲と候補選びの前後: 平均 61.7 → 98.9、中央値 68 → 100
+  // 古典の中心へ寄せ続ける推敲(2026-09): 同じ数音の中を回る割合 0.70 → 0.66、上下の向きが変わる割合 0.61 → 0.56。
+  // 音数の近い古典の旋律(18〜32音)では 0.50〜0.65 / 0.43〜0.55 なので、その上端に近い
+  it("同じ数音の中を回りすぎず、ジグザグに動きすぎない", () => {
+    expect(craftedSummary.top3Share).toBeLessThanOrEqual(0.685)
+    expect(craftedSummary.directionChangeRate).toBeLessThanOrEqual(0.585)
+  })
   it("古典らしさが古典の旋律の水準に近い(古典=100)", () => {
     expect(classical.median).toBeGreaterThanOrEqual(97)
     expect(classical.mean).toBeGreaterThanOrEqual(93)
