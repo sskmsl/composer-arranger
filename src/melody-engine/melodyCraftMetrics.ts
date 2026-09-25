@@ -48,9 +48,24 @@ export interface MelodyCraftMetrics {
   antecedentOpen: boolean
   /** 拍頭のコード外の音が、1拍以内に2半音以内で下がってコードの音へ解決する「ため息」の数 */
   sighCount: number
+  /** 隣り合う音の音程の大きさの平均(半音) */
+  meanAbsInterval: number
+  /** 上下の向きが変わる割合(同じ高さの音をはさまない、隣り合う2つの動きのうち向きが逆になるもの) */
+  directionChangeRate: number
 }
 
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
+
+// 推敲では同じコードを何百回も測るので、コード記号の解析結果を覚えておく
+const parsedChordCache = new Map<string, ReturnType<typeof parseChordSymbol>>()
+function parseCached(symbol: string, bass?: string) {
+  const cacheKey = `${symbol}|${bass ?? ""}`
+  if (!parsedChordCache.has(cacheKey)) {
+    if (parsedChordCache.size > 2000) parsedChordCache.clear()
+    parsedChordCache.set(cacheKey, parseChordSymbol(symbol, bass))
+  }
+  return parsedChordCache.get(cacheKey)!
+}
 
 export function measureMelodyCraft(
   notes: MelodyNote[],
@@ -67,7 +82,7 @@ export function measureMelodyCraft(
   const chordAt = (beat: number) => chords.find((chord) => beat >= chord.startBeat - 1e-6 && beat < chord.startBeat + chord.durationBeats - 1e-6)
   const chordTone = (note: MelodyNote) => {
     const chord = chordAt(note.startBeat)
-    const parsed = chord ? parseChordSymbol(chord.symbol) : null
+    const parsed = chord ? parseCached(chord.symbol) : null
     return parsed ? parsed.tones.some((tone) => tone.pitchClass === pc(note.pitch)) : false
   }
   const half = beatsPerBar / 2
@@ -89,7 +104,7 @@ export function measureMelodyCraft(
   // --- ベースとの関係・導音・骨格・前半の終わり方・ため息 ---
   const parsedAt = (beat: number) => {
     const chord = chordAt(beat)
-    return chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
+    return chord ? parseCached(chord.symbol, chord.bass ?? undefined) : null
   }
   const soundingAt = (beat: number) => sorted.find((note) => beat >= note.startBeat - 1e-6 && beat < note.startBeat + note.durationBeats - 1e-6)
   const totalBeats = Math.max(...chords.map((chord) => chord.startBeat + chord.durationBeats), ...sorted.map((note) => note.startBeat + note.durationBeats), 0)
@@ -175,6 +190,11 @@ export function measureMelodyCraft(
     skeletonSmoothness: skeletonMoves.length > 0 ? skeletonMoves.filter((move) => move <= 3).length / skeletonMoves.length : 1,
     antecedentOpen: totalBeats < 16 || !firstHalfLast || pc(firstHalfLast.pitch) !== tonic,
     sighCount,
+    meanAbsInterval: ratio(abs.reduce((sum, value) => sum + value, 0), abs.length),
+    directionChangeRate: ratio(
+      intervals.slice(1).filter((interval, index) => interval !== 0 && intervals[index] !== 0 && Math.sign(interval) !== Math.sign(intervals[index])).length,
+      intervals.slice(1).filter((interval, index) => interval !== 0 && intervals[index] !== 0).length,
+    ),
   }
 }
 

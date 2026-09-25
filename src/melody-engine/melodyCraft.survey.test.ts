@@ -8,6 +8,8 @@ import { generateFromChordsWithProfiles } from "./generateFromChords"
 import { measureMelodyCraft, scoreMelodyCraft, type MelodyCraftMetrics } from "./melodyCraftMetrics"
 import type { MelodyReferenceStats } from "./melodyReference"
 import referenceStats from "./reference/melodyReferenceStats.json"
+import { classicalLikeness, type ClassicalModel } from "./classicalLikeness"
+import classicalModel from "./reference/classicalModel.json"
 
 const REFERENCE = referenceStats as MelodyReferenceStats
 /** 実在曲(Essen 民謡集)で多くの曲が収まる範囲 */
@@ -106,6 +108,14 @@ describe("主旋律の作りの良さ", () => {
     craftScore: mean(samples.map((s) => scoreMelodyCraft(s.metrics, { resolving: s.role === "chorus" }))),
   }
   const crafted = samples.filter((sample) => CRAFTED_PROFILES.includes(sample.profile)).map((sample) => sample.metrics)
+  const classicalScores = samples.filter((sample) => CRAFTED_PROFILES.includes(sample.profile))
+    .map((sample) => classicalLikeness(sample.metrics, classicalModel as ClassicalModel).score)
+    .sort((a, b) => a - b)
+  const classical = {
+    mean: mean(classicalScores),
+    median: classicalScores[Math.floor(classicalScores.length / 2)],
+    p25: classicalScores[Math.floor(classicalScores.length / 4)],
+  }
   const craftedSummary = {
     stepwise: mean(crafted.map((m) => m.stepwise)),
     leapRate: mean(crafted.map((m) => m.leapRate)),
@@ -131,7 +141,7 @@ describe("主旋律の作りの良さ", () => {
           sighs: Math.round(mean(ms.map((m) => m.sighCount)) * 100) / 100,
         }]
       }))
-      writeFileSync(process.env.MELODY_CRAFT_OUT, JSON.stringify({ ...rounded, crafted: craftedSummary, perProfile }, null, 2))
+      writeFileSync(process.env.MELODY_CRAFT_OUT, JSON.stringify({ ...rounded, crafted: craftedSummary, classical, perProfile }, null, 2))
     }
     expect(samples.length).toBeGreaterThan(0)
   })
@@ -171,4 +181,11 @@ describe("主旋律の作りの良さ", () => {
     expect(summary.sighsPerSection).toBeLessThanOrEqual(1)
   })
   it("実在曲の分布を根拠にした作りの良さ", () => expect(summary.craftScore).toBeGreaterThanOrEqual(CRAFT_SCORE_FLOOR))
+  // 古典らしさ(学習に使っていない古典の旋律の真ん中=100、古典の下位4分の1は86)。
+  // 推敲と候補選びの前後: 中央値 86.7 → 100、平均 84.8 → 96.9、下位4分の1 → 古典と同じ水準
+  it("古典らしさが古典の旋律の水準に近い(古典=100)", () => {
+    expect(classical.median).toBeGreaterThanOrEqual(97)
+    expect(classical.mean).toBeGreaterThanOrEqual(93)
+    expect(classical.p25).toBeGreaterThanOrEqual((classicalModel as ClassicalModel).holdout.p25)
+  })
 })
