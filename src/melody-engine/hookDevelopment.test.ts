@@ -12,9 +12,9 @@ const source: MotifCore = {
 describe("planned hook development", () => {
   it("develops the hook (small variation, then development) and returns it, including abbreviated sections", () => {
     expect(Array.from({ length: 4 }, (_, i) => hookPhraseRole(i, 4))).toEqual(["statement", "answer", "develop", "return"])
-    // 16小節: 8小節と同じ流れの後、一段高い再提示から二段上の頂点(Verse は6割弱の位置)、頂点の後は余韻
+    // 16小節: 提示と小変形を二度聴かせ、一段高い再提示から二段上の頂点(Verse は6割弱の位置)、頂点の後は余韻
     expect(Array.from({ length: 8 }, (_, i) => hookPhraseRole(i, 8))).toEqual(
-      ["statement", "answer", "develop", "return", "rise", "climax", "answer", "return"])
+      ["statement", "answer", "return", "answer", "rise", "climax", "answer", "return"])
     expect(Array.from({ length: 3 }, (_, i) => hookPhraseRole(i, 3))).toEqual(["statement", "answer", "return"])
     expect(Array.from({ length: 2 }, (_, i) => hookPhraseRole(i, 2))).toEqual(["statement", "answer"])
     expect(hookPhraseRole(0, 1)).toBeUndefined()
