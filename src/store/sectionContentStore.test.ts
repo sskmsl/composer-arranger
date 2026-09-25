@@ -239,7 +239,7 @@ describe("Issue #41 / Content Modeが操作で失われない", () => {
     // 候補は増えず、Content Modeも書き換わらない
     expect(useProjectStore.getState().project.melodyVariants).toHaveLength(before)
     expect(resolvedLeadContent(useProjectStore.getState().project.melodyVariants[0])).toBe("drone")
-    expect(useProjectStore.getState().workflowNotice).toContain("部分再生成")
+    expect(useProjectStore.getState().workflowNotice).toContain("範囲だけの作り直し")
   })
 
   it("melody以外の候補へはSeed発展操作を適用せず、理由を通知する", () => {
@@ -251,7 +251,7 @@ describe("Issue #41 / Content Modeが操作で失われない", () => {
     useProjectStore.getState().applySeedOperation(target.id, "continue", [target.notes[0].id])
 
     expect(useProjectStore.getState().project.melodyVariants).toHaveLength(before)
-    expect(useProjectStore.getState().workflowNotice).toContain("発展操作")
+    expect(useProjectStore.getState().workflowNotice).toContain("育てる操作")
   })
 
   it("melody候補では従来どおり部分再生成が動く(回帰)", () => {
@@ -407,7 +407,7 @@ describe("PR#43 fix3 / Melodyにも entryOffset / pickup が効く", () => {
     const before = useProjectStore.getState().project.melodyVariants.length
     useProjectStore.getState().generateForSection("s1")
     expect(useProjectStore.getState().project.melodyVariants).toHaveLength(before)
-    expect(useProjectStore.getState().workflowNotice).toContain("リード開始位置")
+    expect(useProjectStore.getState().workflowNotice).toContain("旋律の入り")
   })
 
   it("entryOffset/pickup未指定なら従来どおりGenerator Profile候補が出る(回帰)", () => {
@@ -427,7 +427,7 @@ describe("PR#43 fix4 / 構造検証を満たせない場合はUIへ通知する"
   it("Motifが成立しない設定では workflowNotice に理由が入る", () => {
     useProjectStore.getState().setSectionContent("s1", { lead: "motif", entryOffsetBeats: 15 })
     useProjectStore.getState().generateForSection("s1")
-    expect(useProjectStore.getState().workflowNotice).toContain("成立していません")
+    expect(useProjectStore.getState().workflowNotice).toContain("うまく作れていません")
   })
 
   it("成立する設定では通知が出ない", () => {

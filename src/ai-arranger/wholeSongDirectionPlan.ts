@@ -455,11 +455,11 @@ function recommendation(
     scores[id] += score
     reasons[id] = reason
   }
-  if (/(余白|静|抑制|少な|残響|空間|呼吸)/i.test(brief)) add("preserve-space", 8, "制作意図が余白・抑制・距離感を明示しています。")
-  if (/(映画|ドラマ|弦|ストリングス|壮大|クライマックス|上昇|盛り上|クレッシェンド)/i.test(brief)) add("controlled-escalation", 8, "Sectionの役割交代でドラマと頂点を作る意図に最も合います。")
-  if (/(推進|リズム|グルーヴ|ダンス|ビート|パルス|躍動)/i.test(brief)) add("rhythmic-propulsion", 9, "リズムと周期を中心に曲を前へ進める意図が明確です。")
-  if (/(モチーフ|記憶|反復|顔|フック|独創|不穏|暗|意外|実験)/i.test(brief)) add("motif-relay", 8, "記憶の核と不穏な変形をSection間で受け渡す余地があります。")
-  if (/(自然|バランス|歌|主旋律|王道|過不足|全体)/i.test(brief)) add("balanced-architecture", 6, "主旋律を中心に各役割を過不足なく配分する意図に合います。")
+  if (/(余白|静|抑制|少な|残響|空間|呼吸)/i.test(brief)) add("preserve-space", 8, "相談内容が、余白や抑えた響きを求めています。")
+  if (/(映画|ドラマ|弦|ストリングス|壮大|クライマックス|上昇|盛り上|クレッシェンド)/i.test(brief)) add("controlled-escalation", 8, "相談内容が、盛り上がりや山場を求めています。")
+  if (/(推進|リズム|グルーヴ|ダンス|ビート|パルス|躍動)/i.test(brief)) add("rhythmic-propulsion", 9, "相談内容が、リズムで前へ進む感じを求めています。")
+  if (/(モチーフ|記憶|反復|顔|フック|独創|不穏|暗|意外|実験)/i.test(brief)) add("motif-relay", 8, "相談内容が、暗さや意外性を求めています。")
+  if (/(自然|バランス|歌|主旋律|王道|過不足|全体)/i.test(brief)) add("balanced-architecture", 6, "相談内容が、主旋律を中心にした自然なアレンジを求めています。")
 
   const activeMelodySections = project.sections.filter(
     (section) => project.sectionMelodyAssignments[section.id],
@@ -476,16 +476,16 @@ function recommendation(
     )
   }).length
   if (noteCount > 0 && offBeatNotes / noteCount >= 0.3) {
-    add("rhythmic-propulsion", 3, "既存旋律に裏拍の動きがあり、リズムの個性を発展できます。")
+    add("rhythmic-propulsion", 3, "主旋律に裏拍の動きが多く、リズムを生かしやすい曲です。")
   }
   if (project.chords.length > 0 && colouredChords / project.chords.length >= 0.35) {
-    add("motif-relay", 3, "和声に未解決感と色彩があり、意外性を無理なく拡張できます。")
+    add("motif-relay", 3, "セブンスや分数コードなど色のあるコードが多く、陰影を生かしやすい曲です。")
   }
   if (project.sections.length >= 4) {
-    add("controlled-escalation", 2, "複数Sectionの高低差を利用して、頂点まで段階的に展開できます。")
+    add("controlled-escalation", 2, "セクションが多く、少しずつ盛り上げていけます。")
   }
   if (activeMelodySections < Math.max(1, project.sections.length / 2)) {
-    add("preserve-space", 1, "主旋律未確定のSectionを埋めず、余白として保護できます。")
+    add("preserve-space", 1, "主旋律がまだないセクションが多いので、音を足しすぎない方が合います。")
   }
 
   const recommendedDirectionId = (Object.entries(scores) as Array<[WholeSongDirectionId, number]>)
@@ -493,7 +493,7 @@ function recommendation(
   return {
     recommendedDirectionId,
     recommendationReason: reasons[recommendedDirectionId]
-      ?? "現在のMelody・コード・Section構成を最も自然に活かし、後から個別調整しやすい案です。",
+      ?? "いまの主旋律とコードをいちばん自然に生かせます。あとから相談で直しやすい案です。",
   }
 }
 

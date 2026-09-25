@@ -113,7 +113,7 @@ export function ProjectBrowser({
             <h2 className="text-[15px] font-semibold text-body-on-dark">保存済みプロジェクト</h2>
             {isCloudSyncConfigured() && (
               <p className="mt-0.5 flex items-center gap-1 text-[12px] text-primary-on-dark">
-                <Cloud size={10} /> Cloud同期有効
+                <Cloud size={10} /> クラウド同期中
               </p>
             )}
           </div>

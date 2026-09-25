@@ -58,8 +58,6 @@ export function ImportStartGuide({
   onConsult: (prompt: string) => void
 }) {
   const next = recommendImportNextStep(project)
-  const trackCount = project.importedArrangement?.tracks.length ?? 0
-  const noteCount = project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0
 
   return createPortal(
     <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/75 p-2 sm:p-5" onClick={onClose}>
@@ -68,7 +66,7 @@ export function ImportStartGuide({
           <div>
             <div className="flex items-center gap-2 text-primary-on-dark">
               <Sparkles size={16} />
-              <span className="text-[12px] font-medium uppercase tracking-[0.16em]">Arrangement Start Guide</span>
+              <span className="text-[12px] font-medium uppercase tracking-[0.16em]">開始ガイド</span>
             </div>
             <h2 className="mt-1 text-[17px] font-semibold text-body-on-dark">読み込み完了。次はこの順番だけで大丈夫です</h2>
           </div>
@@ -78,14 +76,6 @@ export function ImportStartGuide({
         </header>
 
         <div className="space-y-3 p-3 sm:p-5">
-          <div className="grid grid-cols-2 gap-2 rounded-lg bg-white/[0.035] p-3 text-[12px] sm:grid-cols-5">
-            <div><p className="text-ink-soft">Section</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sections.length}</p></div>
-            <div><p className="text-ink-soft">Imported tracks</p><p className="mt-1 text-[13px] text-body-on-dark">{trackCount}</p></div>
-            <div><p className="text-ink-soft">Imported notes</p><p className="mt-1 text-[13px] text-body-on-dark">{noteCount}</p></div>
-            <div><p className="text-ink-soft">Chord confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{Math.round((project.sourceImport?.chordInferenceConfidence ?? 0) * 100)}%</p></div>
-            <div><p className="text-ink-soft">Key confidence</p><p className="mt-1 text-[13px] text-body-on-dark">{project.sourceImport?.keyInferenceSource === "user-confirmed" ? "確認済み" : `${Math.round((project.sourceImport?.keyInferenceConfidence ?? 0) * 100)}%`}</p></div>
-          </div>
-
           <StepCard number={1} complete title="読み込み結果を確認" description="セクション、コード、主旋律、各トラックの役割が意図どおりかを「アレンジ」画面で確認します。推定結果は必要なら後から修正できます。">
             <Button variant="dark" onClick={onReview}><ListChecks size={14} /> アレンジ画面で確認</Button>
           </StepCard>

@@ -33,15 +33,15 @@ const SUPPORT_ROLES: Array<Exclude<MidiImportTrackRole, "melody">> = [
   "ignore",
 ]
 const ROLE_LABELS: Record<MidiImportTrackRole, string> = {
-  melody: "Melody",
-  harmony: "Harmony / Chords",
-  accompaniment: "Accompaniment / Pattern",
-  bass: "Bass",
-  drums: "Drums",
-  strings: "Strings",
-  counter: "Counter",
-  decoration: "Decoration / FX",
-  other: "Other",
+  melody: "主旋律",
+  harmony: "コード",
+  accompaniment: "伴奏",
+  bass: "ベース",
+  drums: "ドラム",
+  strings: "弦",
+  counter: "対旋律",
+  decoration: "装飾・効果音",
+  other: "その他",
   ignore: "読み込まない",
 }
 
@@ -191,7 +191,7 @@ export function MidiImportReviewDialog({
     if (startBar > analysis.totalBars) return
     setSections((current) => [...current, {
       id: crypto.randomUUID(),
-      name: `Section ${current.length + 1}`,
+      name: `セクション ${current.length + 1}`,
       role: "instrumental",
       startBar,
     }])
@@ -299,7 +299,7 @@ export function MidiImportReviewDialog({
                               setKey(event.target.value)
                               acknowledge("key")
                             }}
-                            aria-label="推定Key"
+                            aria-label="推定したキー"
                           />
                         )}
                         {!acknowledged && (
@@ -332,18 +332,18 @@ export function MidiImportReviewDialog({
                   <TextInput value={title} onChange={(event) => setTitle(event.target.value)} />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] text-ink-soft">Key</span>
+                  <span className="text-[12px] text-ink-soft">キー</span>
                   <TextInput value={key} onChange={(event) => setKey(event.target.value)} />
                   <span className="text-[12px] leading-4 text-cyan-200">
                     {key.trim() !== analysis.key
                       ? "手動確認済み"
                       : analysis.keyInference.source === "midi-signature"
-                        ? "MIDI Key Signature"
+                        ? "MIDIの調号から"
                         : `自動推定 ${Math.round(analysis.keyInference.confidence * 100)}%`}
                   </span>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] text-ink-soft">Tempo</span>
+                  <span className="text-[12px] text-ink-soft">テンポ</span>
                   <TextInput type="number" min={20} max={300} value={tempo} onChange={(event) => setTempo(Number(event.target.value))} />
                 </label>
                 <div className="flex flex-col gap-1">
@@ -356,7 +356,7 @@ export function MidiImportReviewDialog({
                   <span className="text-[12px] text-ink-soft">読み込み目的</span>
                   <Select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as typeof sourceKind)}>
                     <option value="logic-project">Logic Proから戻した制作中データ</option>
-                    <option value="external-song">Composer Arranger外で作られた曲を解析</option>
+                    <option value="external-song">ほかで作った曲</option>
                   </Select>
                 </label>
               </div>
@@ -368,7 +368,7 @@ export function MidiImportReviewDialog({
               {analysis.keyInference.alternatives.length > 0 && key.trim() === analysis.key && (
                 <div className="mt-2 rounded-sm border border-cyan-300/15 bg-cyan-300/5 px-2.5 py-2">
                   <p className="text-[12px] text-body-on-dark">
-                    Key候補: <strong>{analysis.keyInference.key}</strong>
+                    キーの候補: <strong>{analysis.keyInference.key}</strong>
                     {analysis.keyInference.alternatives.map((candidate) => ` / ${candidate.key}`).join("")}
                   </p>
                   {analysis.keyInference.evidence.map((item) => (
@@ -385,7 +385,7 @@ export function MidiImportReviewDialog({
                 <Select value={melodyTrackIndex} onChange={(event) => setMelodyTrackIndex(Number(event.target.value))}>
                   <option value={-1}>主旋律なし（伴奏・構成だけ解析）</option>
                   {analysis.tracks.filter((track) => track.averagePitch !== null).map((track) => (
-                    <option key={track.index} value={track.index}>{track.name} ({track.noteCount} notes)</option>
+                    <option key={track.index} value={track.index}>{track.name} ({track.noteCount}音)</option>
                   ))}
                 </Select>
               </label>
@@ -427,7 +427,7 @@ export function MidiImportReviewDialog({
 
             <section className="rounded-lg border border-hairline bg-surface-tile-2 p-3">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-[13px] font-semibold text-body-on-dark">3. Section境界とRole</h3>
+                <h3 className="text-[13px] font-semibold text-body-on-dark">3. セクションの区切りと役割</h3>
                 <Button variant="dark" className="!px-2 !py-1 text-[12px]" onClick={addSection} disabled={sections.length >= analysis.totalBars}>
                   <Plus size={11} /> 追加
                 </Button>
@@ -451,7 +451,7 @@ export function MidiImportReviewDialog({
                       <TextInput value={section.name} onChange={(event) => updateSection(section.id, { name: event.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1">
-                      <span className="text-[12px] text-ink-soft">Role</span>
+                      <span className="text-[12px] text-ink-soft">役割</span>
                       <Select className="w-full" value={section.role} onChange={(event) => updateSection(section.id, { role: event.target.value as SectionRole })}>
                         {SECTION_ROLES.map((role) => <option key={role} value={role}>{SECTION_ROLE_LABELS[role]}</option>)}
                       </Select>
@@ -471,7 +471,7 @@ export function MidiImportReviewDialog({
               <p className="mt-2 text-[12px] text-ink-soft">
                 {analysis.sectionsFromMarkers ? "MIDIマーカーを初期値に使用しています。" : "マーカーがないため、必要に応じて開始小節を追加してください。"}
               </p>
-              {duplicateSectionStarts && <p className="mt-1 text-[12px] text-red-300">同じ開始小節を複数のSectionへ設定できません。</p>}
+              {duplicateSectionStarts && <p className="mt-1 text-[12px] text-red-300">同じ開始小節を複数のセクションに設定できません。</p>}
             </section>
 
             <section className="rounded-lg border border-hairline bg-surface-tile-2 p-3">

@@ -207,10 +207,10 @@ export function BottomBar() {
 
       <div className="mx-1 hidden h-6 w-px bg-hairline sm:block" />
 
-      <IconButton onClick={undo} disabled={history.length === 0} title="Undo">
+      <IconButton onClick={undo} disabled={history.length === 0} title="元に戻す">
         <Undo2 size={15} />
       </IconButton>
-      <IconButton onClick={redo} disabled={future.length === 0} title="Redo">
+      <IconButton onClick={redo} disabled={future.length === 0} title="やり直す">
         <Redo2 size={15} />
       </IconButton>
 
