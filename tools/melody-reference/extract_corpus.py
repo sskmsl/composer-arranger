@@ -5,11 +5,13 @@ music21 に同梱されたパブリックドメインの楽譜から、旋律(�
 使い方:
   pip install music21
   python3 tools/melody-reference/extract_corpus.py reference-data/melody-corpus
+  python3 tools/melody-reference/extract_corpus.py reference-data/melody-corpus classical   # 一部だけ作り直す
 
 出力(1行1単位の JSON Lines。reference-data/ はコミットしない):
   bach.jsonl      Bach のコラール: ソプラノ + 全声部から求めた拍ごとの和音(ベース付き)
   essen.jsonl     Essen 民謡集(4/4・2/4): 旋律のみ
-  classical.jsonl 古典派の弦楽四重奏(4/4・2/4・2/2): 第1ヴァイオリン冒頭16小節 + 和音
+  classical.jsonl 古典派・ロマン派(Mozart・Haydn・Beethoven・Schumann ほか、4/4・2/4・2/2): 最上声部 + 和音。
+                  1曲が偏って効かないよう、1曲あたり最初の12単位(96小節)まで
 
 単位は 32拍(4/4 で8小節)ずつに区切る。曲の最後の単位には final=true を付ける(終わり方の物差しに使う)。
 弱起(最初の不完全小節)は除き、1小節目の頭を0拍とする。繰り返し記号は展開しない。
@@ -125,8 +127,9 @@ def meter_of(part) -> str | None:
     return ts[0].ratioString if ts else None
 
 
-def units(piece_id: str, corpus_name: str, key: str, melody, harmony, limit_beats: float | None = None):
-    end = max((s + d for s, d, _ in melody), default=0)
+def units(piece_id: str, corpus_name: str, key: str, melody, harmony, limit_beats: float | None = None, final_at_end: bool = False):
+    full_end = max((s + d for s, d, _ in melody), default=0)
+    end = full_end
     if limit_beats is not None:
         end = min(end, limit_beats)
     result = []
@@ -141,7 +144,7 @@ def units(piece_id: str, corpus_name: str, key: str, melody, harmony, limit_beat
             if len(notes) >= 8:
                 result.append({
                     "corpus": corpus_name, "piece": piece_id, "unit": index, "key": key,
-                    "final": stop >= end - 1e-6 and limit_beats is None,
+                    "final": stop >= full_end - 1e-6 and (limit_beats is None or final_at_end),
                     "totalBeats": round(stop - start, 4), "notes": notes, "chords": chords,
                 })
         start += UNIT_BEATS
@@ -202,28 +205,44 @@ def extract_classical(path: str):
     if not key:
         return []
     shift = pickup_shift(top)
-    # 主題として冒頭16小節分(4/4換算で64拍)だけを使う
-    limit = 64.0
+    # 1曲あたり最初の12単位(4/4で96小節)まで
+    limit = 12.0 * UNIT_BEATS
     melody = [event for event in melody_events(top, shift) if event[0] < limit]
     total = max((s + d for s, d, _ in melody), default=0)
     name = os.path.relpath(path, os.path.dirname(os.path.dirname(os.path.dirname(path))))
-    return units(name, "classical", key, melody, harmony_events(score, shift, total), limit_beats=limit)
+    return units(name, "classical", key, melody, harmony_events(score, shift, total), limit_beats=limit, final_at_end=True)
 
 
 def corpus_paths(folder: str, suffixes=(".mxl", ".xml", ".krn", ".abc", ".musicxml")):
-    return sorted(str(p) for p in corpus.getPaths() if f"/{folder}/" in str(p) and str(p).endswith(suffixes))
+    paths = sorted(str(p) for p in corpus.getPaths() if f"/{folder}/" in str(p) and str(p).endswith(suffixes))
+    # 同じ曲が複数の形式で入っている場合(movement1.krn と movement1.mxl など)は1つだけ使う
+    chosen: dict[str, str] = {}
+    for path in paths:
+        stem = os.path.splitext(path)[0]
+        if stem not in chosen or path.endswith(".mxl"):
+            chosen[stem] = path
+    return sorted(chosen.values())
+
+
+CLASSICAL_FOLDERS = (
+    "mozart", "haydn", "beethoven", "schumann_robert", "schumann_clara", "schubert",
+    "chopin", "corelli", "cpebach", "handel", "verdi", "weber",
+)
 
 
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else "reference-data/melody-corpus"
+    only = set(sys.argv[2].split(",")) if len(sys.argv) > 2 else None
     os.makedirs(out, exist_ok=True)
     jobs = [
         ("bach", extract_bach, [p for p in corpus_paths("bach", (".mxl", ".xml", ".musicxml")) if "bwv" in os.path.basename(p)]),
-        ("classical", extract_classical, [p for folder in ("mozart", "haydn", "beethoven") for p in corpus_paths(folder, (".mxl", ".xml", ".musicxml"))]),
+        ("classical", extract_classical, [p for folder in CLASSICAL_FOLDERS for p in corpus_paths(folder, (".mxl", ".xml", ".musicxml", ".krn"))]),
         ("essen", extract_essen, corpus_paths("essenFolksong", (".abc",))),
     ]
     with Pool(4) as pool:
         for name, function, paths in jobs:
+            if only and name not in only:
+                continue
             rows = [row for chunk in pool.map(function, paths, chunksize=1) for row in chunk]
             with open(os.path.join(out, f"{name}.jsonl"), "w") as handle:
                 for row in rows:

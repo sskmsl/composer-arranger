@@ -75,7 +75,12 @@ import type { ResolvedComposerRules } from "@/composer-intelligence"
 import type { ResolvedMusicContext } from "@/core/musicContext"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 import { applyMelodicCraft } from "./melodicCraft"
-import { measureMelodyCraft, scoreMelodyCraft } from "./melodyCraftMetrics"
+import { measureMelodyCraft } from "./melodyCraftMetrics"
+import { classicalLikeness, type ClassicalModel } from "./classicalLikeness"
+import { refineTowardClassical } from "./classicalRefinement"
+import classicalModelJson from "./reference/classicalModel.json"
+
+const CLASSICAL_MODEL = classicalModelJson as ClassicalModel
 import { selectCoreMotif } from "./hookFirst"
 import { subtleHookVariation } from "./hookDevelopment"
 import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
@@ -586,11 +591,14 @@ interface BuiltPattern {
   emotionalScore?: number
   /** 仕上げ(applyMelodicCraft)とコード整合を済ませた、画面に出す形の音 */
   craftedNotes?: MelodyNote[]
-  /** 仕上げ後の作りの良さ(0..100)。候補選びに使う */
+  /** 仕上げ後の古典らしさ(古典=100)。候補選びに使う */
   craftScore?: number
 }
 
-/** 仕上げ後の作りの良さを候補選びにどれだけ効かせるか。独自の設計(跳躍・半音・語り・反復)を持つ作り方には使わない */
+/**
+ * 仕上げ後の古典らしさ(古典=100)を候補選びにどれだけ効かせるか。選んだ3案はさらに推敲して古典らしさへ近づける。
+ * 独自の設計(跳躍・半音・語り・反復)を持つ作り方には使わない
+ */
 const CRAFT_SELECTION_WEIGHT: Record<MelodyGeneratorProfile, number> = {
   standard: 0.4,
   cinematic: 0.4,
@@ -602,7 +610,6 @@ const CRAFT_SELECTION_WEIGHT: Record<MelodyGeneratorProfile, number> = {
   "speech-rhythmic": 0,
   incantatory: 0,
 }
-const CRAFT_RESOLVING_ROLES = new Set<SectionRole>(["chorus", "grand-chorus", "breakdown-chorus", "outro"])
 
 /**
  * Melody Candidate Diversity v1.2 + 冒頭設計: 選択したGenerator Profileごとに3つの独立Patternを生成する。
@@ -878,10 +885,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
       if (!craftSelection) return pattern
       const craftedNotes = craftNotes(pattern.notes)
-      const craftScore = scoreMelodyCraft(measureMelodyCraft(craftedNotes, input.chords, input.key!), {
-        resolving: CRAFT_RESOLVING_ROLES.has(input.sectionRole),
-        totalBeats: input.totalBeats,
-      })
+      const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODEL).score
       return { ...pattern, craftedNotes, craftScore }
     }
 
@@ -1045,7 +1049,21 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       )
       // 仕上げ(同音連打・跳躍の回収・サビの頂点・終わり方など)は候補プールの段階で済ませてある
       results.push({
-        notes: pattern.craftedNotes ?? craftNotes(pattern.notes),
+        notes: craftSelection && pattern.craftedNotes
+          ? enforceHarmonicIntegrity(
+            refineTowardClassical(pattern.craftedNotes, {
+              harmonicMap,
+              range: input.range,
+              totalBeats: input.totalBeats,
+              sectionRole: input.sectionRole,
+              key: input.key,
+              model: CLASSICAL_MODEL,
+            }).notes,
+            input.chords,
+            input.range,
+            { preserveExpressiveChordRoles: true },
+          ).notes
+          : pattern.craftedNotes ?? craftNotes(pattern.notes),
         plans: pattern.plans,
         seed: pattern.seed,
         generatorProfile: profile,
