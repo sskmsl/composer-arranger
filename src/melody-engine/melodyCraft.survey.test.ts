@@ -5,7 +5,7 @@ import type { MelodyGeneratorProfile, MelodyNote } from "@/core/melody"
 import type { SectionRole } from "@/core/section"
 import { RANGE_PRESETS } from "./generationParams"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
-import { measureMelodyCraft, type MelodyCraftMetrics } from "./melodyCraftMetrics"
+import { measureMelodyCraft, scoreMelodyCraft, type MelodyCraftMetrics } from "./melodyCraftMetrics"
 
 /**
  * 主旋律の作りの良さを、いくつかのコード進行・作り方でまとめて測る回帰テスト。
@@ -89,6 +89,8 @@ describe("主旋律の作りの良さ", () => {
     skeletonSmoothness: mean(all.map((m) => m.skeletonSmoothness)),
     antecedentOpen: mean(all.map((m) => (m.antecedentOpen ? 1 : 0))),
     sighsPerSection: mean(all.map((m) => m.sighCount)),
+    // 物差しをまとめた作りの良さ(0〜100)
+    craftScore: mean(samples.map((s) => scoreMelodyCraft(s.metrics, { resolving: s.role === "chorus" }))),
   }
 
   it("測定結果", () => {
@@ -114,8 +116,8 @@ describe("主旋律の作りの良さ", () => {
   })
 
   // 仕上げ前 → 仕上げ後(2026-09)の値。数字は少し余裕を持たせた下限・上限
-  it("同じ音の連打が多すぎない(0.26 → 0.21)", () => expect(summary.repeatedPitch).toBeLessThanOrEqual(0.23))
-  it("跳躍の後に逆向きへ戻る(0.41 → 0.50)", () => expect(summary.leapRecovery).toBeGreaterThanOrEqual(0.46))
+  it("同じ音の連打が多すぎない(0.26 → 0.21 → 候補選び後 0.18)", () => expect(summary.repeatedPitch).toBeLessThanOrEqual(0.2))
+  it("跳躍の後に逆向きへ戻る(0.41 → 0.50 → 候補選び後 0.55)", () => expect(summary.leapRecovery).toBeGreaterThanOrEqual(0.52))
   it("同じ数音の中を回り続けない(上位3音の割合 0.76 → 0.70、音の種類 6.8 → 7.4)", () => {
     expect(summary.top3Share).toBeLessThanOrEqual(0.73)
     expect(summary.distinctPitches).toBeGreaterThanOrEqual(7.1)
@@ -126,7 +128,7 @@ describe("主旋律の作りの良さ", () => {
     expect(summary.endsOnChordTone).toBeGreaterThanOrEqual(0.99)
   })
   it("コードとの相性は保つ(強拍のコードの音 0.71 → 0.82、調の外の音 0.03)", () => {
-    expect(summary.strongBeatChordTone).toBeGreaterThanOrEqual(0.75)
+    expect(summary.strongBeatChordTone).toBeGreaterThanOrEqual(0.78)
     expect(summary.outOfScale).toBeLessThanOrEqual(0.05)
   })
   // 旋律の基本原理(2026-09)。クラシックの旋律づくりで一般的とされる原則で、特定の曲から測った値ではない
@@ -140,4 +142,6 @@ describe("主旋律の作りの良さ", () => {
     expect(summary.sighsPerSection).toBeGreaterThanOrEqual(0.2)
     expect(summary.sighsPerSection).toBeLessThanOrEqual(1)
   })
+  // 仕上げ後の作りの良さで候補を選ぶ(2026-09)。標準・シネマティック・リズム型・ミニマルで、候補を18案作って選ぶ
+  it("物差しをまとめた作りの良さ(70.2 → 73.9)", () => expect(summary.craftScore).toBeGreaterThanOrEqual(72))
 })

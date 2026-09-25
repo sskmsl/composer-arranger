@@ -3,7 +3,7 @@ import { parseChordInputText } from "@/core/chordInput"
 import type { MelodyNote } from "@/core/melody"
 import { buildHarmonicMap } from "./harmonicMap"
 import { applyMelodicCraft } from "./melodicCraft"
-import { measureMelodyCraft } from "./melodyCraftMetrics"
+import { measureMelodyCraft, scoreMelodyCraft } from "./melodyCraftMetrics"
 
 const chords = parseChordInputText("C | F | G | C", "s1", 4, "c")
 const base = { harmonicMap: buildHarmonicMap(chords), range: { low: 55, high: 79 }, totalBeats: 16, key: "C" }
@@ -91,5 +91,16 @@ describe("主旋律の仕上げ", () => {
       expect(measureMelodyCraft(crafted, five, "C").sighCount).toBe(1)
       expect(crafted.map((note) => note.id)).toHaveLength(new Set(crafted.map((note) => note.id)).size)
     })
+  })
+
+  it("作りの良さの点数は、連打が多く跳躍の後に戻らない旋律ほど低い", () => {
+    // 同じ音を繰り返し、大きく跳んで戻らない旋律
+    const poor = [n(0, 64), n(1, 64), n(2, 64), n(3, 64), n(4, 72), n(5, 79), n(6, 79), n(7, 79), n(8, 67), n(9, 60), n(10, 60), n(12, 64, 4)]
+    // 順次進行が中心で、跳んだら戻る旋律
+    const good = [n(0, 64), n(1, 65), n(2, 67), n(3, 65), n(4, 69), n(5, 72), n(6, 71), n(7, 69), n(8, 67), n(9, 74), n(10, 72), n(12, 72, 4)]
+    const score = (notes: MelodyNote[]) => scoreMelodyCraft(measureMelodyCraft(notes, chords, "C"), { resolving: true })
+    expect(score(good)).toBeGreaterThan(score(poor) + 15)
+    expect(score(good)).toBeLessThanOrEqual(100)
+    expect(score(poor)).toBeGreaterThanOrEqual(0)
   })
 })

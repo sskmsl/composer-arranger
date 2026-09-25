@@ -168,3 +168,30 @@ export function measureMelodyCraft(
     sighCount,
   }
 }
+
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
+
+/**
+ * 物差しをまとめた「作りの良さ」の点数(0〜100)。候補を選ぶときの参考に使う。
+ * 目安から外れるほど下がる。どれか1つが極端に悪い候補を避け、全体に整った候補を選ぶための重み付け。
+ * resolving はサビ・アウトロのように主音で落ち着いて終わりたいセクション。
+ */
+export function scoreMelodyCraft(metrics: MelodyCraftMetrics, options: { resolving: boolean }): number {
+  const parts: Array<[score: number, weight: number]> = [
+    // 同じ音の連打は15%程度までは自然。それを超えるほど下げる
+    [1 - clamp01((metrics.repeatedPitch - 0.15) / 0.25), 1.5],
+    // 順次進行(1〜2半音)が少なすぎると跳んでばかりの旋律になる
+    [clamp01(metrics.stepwise / 0.4), 1],
+    [metrics.leapRecovery, 1.2],
+    // 同じ数音の中を回り続けない
+    [1 - clamp01((metrics.top3Share - 0.55) / 0.35), 1.2],
+    [clamp01((metrics.strongBeatChordTone - 0.5) / 0.4), 1],
+    [1 - clamp01(metrics.parallelPerfectRate / 0.3), 0.6],
+    [(metrics.leadingToneResolution + metrics.seventhResolution) / 2, 0.6],
+    [metrics.skeletonSmoothness, 0.8],
+    [metrics.antecedentOpen ? 1 : 0, 0.4],
+    [options.resolving ? (metrics.endsOnTonic ? 1 : 0) : metrics.endsOnChordTone ? 1 : 0, 0.8],
+  ]
+  const total = parts.reduce((sum, [, weight]) => sum + weight, 0)
+  return (parts.reduce((sum, [score, weight]) => sum + score * weight, 0) / total) * 100
+}
