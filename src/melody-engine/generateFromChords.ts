@@ -883,7 +883,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
       if (!craftSelection) return pattern
       const craftedNotes = craftNotes(pattern.notes)
-      const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODELS).score
+      const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODELS).typicality * 100
       return { ...pattern, craftedNotes, craftScore }
     }
 
