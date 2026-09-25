@@ -83,6 +83,12 @@ describe("主旋律の作りの良さ", () => {
     // 主音のコードで終わるサビが、主音か3度(安定した音)で終わる割合
     chorusStableEnding: mean(samples.filter((s) => s.role === "chorus").map((s) => (s.metrics.endsOnTonic ? 1 : 0))),
     endsOnChordTone: mean(all.map((m) => (m.endsOnChordTone ? 1 : 0))),
+    parallelPerfectRate: mean(all.map((m) => m.parallelPerfectRate)),
+    leadingToneResolution: mean(all.map((m) => m.leadingToneResolution)),
+    seventhResolution: mean(all.map((m) => m.seventhResolution)),
+    skeletonSmoothness: mean(all.map((m) => m.skeletonSmoothness)),
+    antecedentOpen: mean(all.map((m) => (m.antecedentOpen ? 1 : 0))),
+    sighsPerSection: mean(all.map((m) => m.sighCount)),
   }
 
   it("測定結果", () => {
@@ -96,6 +102,10 @@ describe("主旋律の作りの良さ", () => {
           repeated: Math.round(mean(ms.map((m) => m.repeatedPitch)) * 100) / 100,
           recovery: Math.round(mean(ms.map((m) => m.leapRecovery)) * 100) / 100,
           notes: Math.round(mean(ms.map((m) => m.noteCount))),
+          parallel: Math.round(mean(ms.map((m) => m.parallelPerfectRate)) * 100) / 100,
+          skeleton: Math.round(mean(ms.map((m) => m.skeletonSmoothness)) * 100) / 100,
+          open: Math.round(mean(ms.map((m) => (m.antecedentOpen ? 1 : 0))) * 100) / 100,
+          sighs: Math.round(mean(ms.map((m) => m.sighCount)) * 100) / 100,
         }]
       }))
       writeFileSync(process.env.MELODY_CRAFT_OUT, JSON.stringify({ ...rounded, perProfile }, null, 2))
@@ -118,5 +128,16 @@ describe("主旋律の作りの良さ", () => {
   it("コードとの相性は保つ(強拍のコードの音 0.71 → 0.82、調の外の音 0.03)", () => {
     expect(summary.strongBeatChordTone).toBeGreaterThanOrEqual(0.75)
     expect(summary.outOfScale).toBeLessThanOrEqual(0.05)
+  })
+  // 旋律の基本原理(2026-09)。クラシックの旋律づくりで一般的とされる原則で、特定の曲から測った値ではない
+  it("拍頭で旋律とベースが平行5度・8度になる所を減らす(0.096 → 0.085)", () => expect(summary.parallelPerfectRate).toBeLessThanOrEqual(0.09))
+  it("導音は主音へ(0.89 → 0.92)、属七の7度は下へ(0.95 → 0.97)解決する", () => {
+    expect(summary.leadingToneResolution).toBeGreaterThanOrEqual(0.9)
+    expect(summary.seventhResolution).toBeGreaterThanOrEqual(0.95)
+  })
+  it("前半は主音で閉じずに後半へつなぐ(0.81 → 0.84)", () => expect(summary.antecedentOpen).toBeGreaterThanOrEqual(0.82))
+  it("ため息の形は入れすぎない(1セクション平均 0.13 → 0.27)", () => {
+    expect(summary.sighsPerSection).toBeGreaterThanOrEqual(0.2)
+    expect(summary.sighsPerSection).toBeLessThanOrEqual(1)
   })
 })

@@ -16,6 +16,12 @@ import type { RangeSetting } from "./generationParams"
  * 3. サビは後半に、ほかより高い頂点を1つ作る
  * 4. セクションの終わりはコードの音で、サビ・アウトロは主音で落ち着いて終わる
  *
+ * あわせて、クラシックの旋律づくりで基本とされる次の点も整える(特定の曲の型ではなく、一般的な原則として)。
+ * 5. ベースとの関係: 拍頭で旋律とベースが同じ向きに動いて5度・8度が続く所(平行5度・8度)を、別のコードの音にする
+ * 6. 向かう先を持つ音: 属和音の導音はコードが変わったら主音へ上がり、属七の7度は1〜2半音下がる
+ * 7. 問いと答え: 16拍以上のセクションは、前半の終わりを主音以外の音にして「開いた」まま後半へつなぐ
+ * 8. ため息: セクション中に1か所だけ、長い音の頭を1段上の音から下がって入る形(倚音)にする
+ *
  * 拍頭(1・3拍目)はコードの音だけ、裏拍は前後と2半音以内でつながるならテンションも使う(解決の要る非和声音は作らない)。
  * 作り方ごとに意図して置いた音(経過音・掛留・先取り・テンションなど)と、その解決先には触らない。
  * 選んだ音域の外にも出さない。
@@ -32,19 +38,20 @@ export interface MelodicCraftContext {
 
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 type CraftStep = "lift" | "sequence" | "repeats" | "variety" | "arch" | "leapRecovery" | "climax"
+  | "counterpoint" | "tendency" | "antecedent" | "sigh"
 
 /**
  * 作り方ごとに使う仕上げ。独自の設計(跳躍・半音の動き・掛留・語りの連打・動かない美しさ)を持つ作り方には、
  * その設計とぶつかる仕上げをかけない。終わり方(コードの音・主音で終わる)はすべての作り方に使う。
  */
 const PROFILE_STEPS: Record<MelodyGeneratorProfile, readonly CraftStep[]> = {
-  standard: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax"],
-  cinematic: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax"],
-  rhythmic: ["lift", "repeats", "variety", "arch", "leapRecovery", "climax"],
-  minimal: ["lift", "repeats", "leapRecovery", "climax"],
+  standard: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent", "sigh"],
+  cinematic: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent", "sigh"],
+  rhythmic: ["lift", "repeats", "variety", "arch", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent"],
+  minimal: ["lift", "repeats", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent"],
   leaping: ["climax"],
   chromatic: [],
-  "elegiac-cantabile": ["leapRecovery", "climax"],
+  "elegiac-cantabile": ["leapRecovery", "climax", "counterpoint", "tendency"],
   "speech-rhythmic": ["leapRecovery"],
   incantatory: [],
 }
@@ -337,7 +344,121 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  const peakPitch = Math.max(...notes.map((note) => note.pitch))
+  const isPeak = (index: number) => CLIMAX_ROLES.has(context.sectionRole) && notes[index].pitch === peakPitch
+  const entryAt = (beat: number) => chordAtBeat(context.harmonicMap, beat)
+  const lastIndexOf = notes.length - 1
+  /** index の音を、元の高さに近いコードの音の中から accept を満たすものに替える(前後と7半音以内でつながる音) */
+  const replaceWithChordTone = (index: number, accept: (pitch: number) => boolean, maxShift = 5) => {
+    const note = notes[index]
+    const previous = notes[index - 1]
+    const next = notes[index + 1]
+    const options: number[] = []
+    for (let shift = 1; shift <= maxShift; shift += 1) {
+      for (const pitch of [note.pitch - shift, note.pitch + shift]) {
+        if (!fits(index, pitch) || !chordPcs(note.startBeat).includes(pc(pitch)) || !accept(pitch)) continue
+        if (previous && Math.abs(pitch - previous.pitch) > 7) continue
+        if (next && Math.abs(next.pitch - pitch) > 7) continue
+        options.push(pitch)
+      }
+    }
+    if (options.length === 0) return false
+    setPitch(index, options[0])
+    return true
+  }
+
+  // 5. ベースとの関係: 拍頭で旋律とベースが同じ向きに動いて、5度・8度が続く所をほどく
+  if (steps.has("counterpoint")) {
+    const strongIndexes = notes.map((note, index) => ({ note, index })).filter(({ note }) => strong(note.startBeat)).map(({ index }) => index)
+    const perfect = (melody: number, bass: number) => {
+      const interval = pc(melody - bass)
+      return interval === 0 || interval === 7 ? interval : -1
+    }
+    const bassMove = (from: number, to: number) => {
+      const delta = pc(to - from)
+      return delta === 0 ? 0 : delta <= 6 ? 1 : -1
+    }
+    for (let position = 1; position < strongIndexes.length; position += 1) {
+      const beforeIndex = strongIndexes[position - 1]
+      const index = strongIndexes[position]
+      const before = notes[beforeIndex]
+      const note = notes[index]
+      if (note.startBeat - before.startBeat > 2 + 1e-6) continue
+      const beforeBass = entryAt(before.startBeat)?.parsed.bassPc
+      const bass = entryAt(note.startBeat)?.parsed.bassPc
+      if (beforeBass === undefined || bass === undefined) continue
+      const bassDirection = bassMove(beforeBass, bass)
+      const parallel = (pitch: number) => {
+        const melodyDirection = Math.sign(pitch - before.pitch)
+        const interval = perfect(pitch, bass)
+        return melodyDirection !== 0 && melodyDirection === bassDirection && interval >= 0 && interval === perfect(before.pitch, beforeBass)
+      }
+      if (!parallel(note.pitch) || locked(note) || isPeak(index) || index === lastIndexOf) continue
+      // なるべくベースと反対向きか、音程の変わる音へ
+      replaceWithChordTone(index, (pitch) => !parallel(pitch), 4)
+    }
+  }
+
+  // 6. 向かう先を持つ音: コードが変わる所で、導音は主音へ、属七の7度は下へ
+  if (steps.has("tendency") && tonic !== undefined) {
+    const dominantRoot = (tonic + 7) % 12
+    for (let index = 0; index + 1 < notes.length; index += 1) {
+      const note = notes[index]
+      const next = notes[index + 1]
+      const entry = entryAt(note.startBeat)
+      const nextEntry = entryAt(next.startBeat)
+      if (!entry || !nextEntry || entry === nextEntry || entry.parsed.rootPc !== dominantRoot) continue
+      if (next.startBeat - (note.startBeat + note.durationBeats) > 1.5 || locked(next)) continue
+      const nextChord = chordPcs(next.startBeat)
+      let wanted: number[] = []
+      if (pc(note.pitch) === (tonic + 11) % 12 && pc(next.pitch) !== tonic) wanted = [note.pitch + 1]
+      else if (pc(note.pitch) === (tonic + 5) % 12 && chordPcs(note.startBeat).includes((tonic + 5) % 12)
+        && !(note.pitch - next.pitch >= 1 && note.pitch - next.pitch <= 2)) wanted = [note.pitch - 1, note.pitch - 2]
+      const target = wanted.find((pitch) => nextChord.includes(pc(pitch)) && fits(index + 1, pitch))
+      if (target !== undefined) setPitch(index + 1, target)
+    }
+  }
+
+  // 7. 問いと答え: 前半の終わりは主音で閉じず、後半へ開いておく
+  if (steps.has("antecedent") && tonic !== undefined && context.totalBeats >= 16) {
+    const middle = notes.map((note, index) => ({ note, index })).filter(({ note }) => note.startBeat < context.totalBeats / 2).at(-1)
+    if (middle && pc(middle.note.pitch) === tonic && !locked(middle.note) && !isPeak(middle.index) && middle.index !== lastIndexOf) {
+      replaceWithChordTone(middle.index, (pitch) => pc(pitch) !== tonic, 4)
+    }
+  }
+
   recoverLeaps()
+
+  // 8. ため息: 長い音を1か所だけ、1段上の音(倚音)から下がって入る形にする
+  if (steps.has("sigh") && scale.length === 7) {
+    const target = context.totalBeats * 0.65
+    const candidate = notes
+      .map((note, index) => ({ note, index }))
+      .filter(({ note, index }) => {
+        if (index === 0 || index === lastIndexOf || locked(note) || isPeak(index) || !strong(note.startBeat) || note.durationBeats < 1) return false
+        if (!chordPcs(note.startBeat).includes(pc(note.pitch))) return false
+        const upper = moveInScale(note.pitch, 1, scale)
+        // 1段上がコードの音だと倚音にならない。前の音から大きく跳んで入らない
+        return upper - note.pitch <= 2 && upper <= high && !usable(note.startBeat).includes(pc(upper))
+          && Math.abs(upper - notes[index - 1].pitch) <= 5
+      })
+      .sort((a, b) => Math.abs(a.note.startBeat - target) - Math.abs(b.note.startBeat - target))[0]
+    if (candidate) {
+      const { note, index } = candidate
+      const first = note.durationBeats >= 2 ? 1 : 0.5
+      const appoggiatura: MelodyNote = {
+        ...note,
+        id: `${note.id}-sigh`,
+        pitch: moveInScale(note.pitch, 1, scale),
+        durationBeats: first,
+        plannedToneRole: "appoggiatura",
+        plannedResolution: { targetPitchClass: pc(note.pitch), targetBeat: note.startBeat + first, maximumDelayBeats: 1 },
+      }
+      note.startBeat += first
+      note.durationBeats -= first
+      notes.splice(index, 0, appoggiatura)
+    }
+  }
 
   // 4. 終わり方
   const lastIndex = notes.length - 1
