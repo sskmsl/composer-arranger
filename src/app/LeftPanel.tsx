@@ -24,7 +24,7 @@ const ROLE_OPTIONS = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 
 /** Issue #41: 各プリセットが音楽的に何を意味するかの短い説明 */
 const CONTENT_PRESET_HINTS: Record<string, string> = {
-  auto: "Role・Song Profile・コード進行から、妥当な入口を候補ごとに選びます",
+  auto: "セクションの役割・曲のスタイル・コード進行から、自然な入り方を候補ごとに選びます",
   melody: "通常の歌唱メロディを生成します",
   motif: "2〜5音の短い象徴的モチーフを、余白を挟んで提示します",
   ostinato: "短い音型を周期的に反復します(伴奏パートとして書き出し)",
@@ -94,6 +94,13 @@ export function LeftPanel({
   const ts = parseTimeSignature(project.song.timeSignature)
   const sectionContent = section?.content ?? DEFAULT_SECTION_CONTENT
   const entryOffsetBars = Math.round((sectionContent.entryOffsetBeats / ts.beatsPerBar) * 100) / 100
+  const advancedChanged = Boolean(section) && (
+    Boolean(section?.key)
+    || presetIdFor(sectionContent) !== presetIdFor(DEFAULT_SECTION_CONTENT)
+    || Boolean(section && project.sectionAccompanimentPatternAssignments[section.id])
+    || sectionContent.entryOffsetBeats > 0
+    || sectionContent.pickup
+  )
   const sectionChords = section ? project.chords.filter((c) => c.sectionId === section.id) : []
   const chordText = section ? chordEventsToText([...sectionChords].sort((a, b) => a.startBeat - b.startBeat), ts.beatsPerBar) : ""
   const coveredBars = sectionChords.length
@@ -134,7 +141,10 @@ export function LeftPanel({
             >
               <GripVertical size={13} className="shrink-0 cursor-grab text-ink-soft" />
               <span className="flex-1 truncate">{s.name}</span>
-              <span className="text-[12px] text-ink-soft">{SECTION_ROLE_LABELS[s.role]}</span>
+              {/* 名前と役割が同じ(「イントロ イントロ」)なら役割は出さない */}
+              {s.name !== SECTION_ROLE_LABELS[s.role] && (
+                <span className="text-[12px] text-ink-soft">{SECTION_ROLE_LABELS[s.role]}</span>
+              )}
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation()
@@ -199,78 +209,7 @@ export function LeftPanel({
                 onBlur={(e) => updateSection(section.id, { lengthBars: Math.max(1, Number(e.currentTarget.value) || 1) })}
               />
             </FieldGroup>
-            <FieldGroup label="このセクションの調(転調する場合のみ)">
-              <TextInput
-                defaultValue={section.key ?? ""}
-                key={`key-${section.id}-${section.key ?? ""}`}
-                placeholder={`曲の調に従う(${project.song.key})`}
-                onBlur={(e) => {
-                  const value = e.currentTarget.value.trim()
-                  updateSection(section.id, { key: value && value !== project.song.key ? value : undefined })
-                }}
-              />
-            </FieldGroup>
-
-            {/* Issue #41: 何を鳴らすかはRoleとは独立した軸。UIは7プリセットで提示し、内部は2軸で保持する */}
-            <FieldGroup label="このセクションで鳴らす内容">
-              <Select
-                value={presetIdFor(sectionContent) ?? ""}
-                onChange={(e) => {
-                  const preset = presetById(e.target.value)
-                  if (preset) setSectionContent(section.id, { lead: preset.lead, accompaniment: preset.accompaniment })
-                }}
-              >
-                {presetIdFor(sectionContent) === null && <option value="">(カスタム)</option>}
-                {CONTENT_PRESETS.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </Select>
-              <p className="mt-1 text-[12px] text-ink-soft">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
-            </FieldGroup>
-
-            <FieldGroup label="伴奏パターン">
-              <Select
-                value={project.sectionAccompanimentPatternAssignments[section.id] ?? ""}
-                onChange={(e) => setSectionAccompanimentPattern(section.id, e.target.value || null)}
-              >
-                <option value="">なし</option>
-                {project.accompanimentPatterns.map((pattern) => (
-                  <option key={pattern.id} value={pattern.id}>
-                    {pattern.name}
-                  </option>
-                ))}
-              </Select>
-              <p className="mt-1 text-[12px] text-ink-soft">
-                度数＋リズムのテンプレートを現在のコードへ自動変換し、専用MIDIトラックへ出力します
-              </p>
-            </FieldGroup>
-
-            <FieldGroup label={`リード開始位置(先頭から${entryOffsetBars}小節を無音にする)`}>
-              <TextInput
-                type="number"
-                min={0}
-                max={section.lengthBars}
-                step={0.25}
-                defaultValue={entryOffsetBars}
-                key={`entry-${section.id}-${sectionContent.entryOffsetBeats}`}
-                onBlur={(e) => {
-                  const bars = Math.max(0, Number(e.currentTarget.value) || 0)
-                  setSectionContent(section.id, { entryOffsetBeats: bars * ts.beatsPerBar })
-                }}
-              />
-              <label className="mt-1.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
-                <input
-                  type="checkbox"
-                  className="accent-primary"
-                  checked={sectionContent.pickup}
-                  onChange={(e) => setSectionContent(section.id, { pickup: e.target.checked })}
-                />
-                次セクション直前に弱起(Pickup)を作る
-              </label>
-            </FieldGroup>
-            <FieldGroup label='コード進行 ("|" "-" "–" いずれかの区切り。例: "F#m(add9) | E | D | Dsus2")'>
+            <FieldGroup label="コード進行">
               <textarea
                 defaultValue={chordText}
                 // 件数(sectionChords.length)だけをkeyにすると、延長のように件数を変えず
@@ -282,6 +221,7 @@ export function LeftPanel({
                 rows={4}
                 className="rounded-sm border border-hairline bg-surface-tile-2 px-2.5 py-1.5 text-[13px] text-body-on-dark outline-none focus:border-primary-focus"
               />
+              <p className="mt-1 text-[12px] text-ink-soft">「|」で区切ります（例: F#m(add9) | E | D | Dsus2）</p>
               <Button
                 variant="dark"
                 className="mt-1.5 w-full justify-center"
@@ -329,6 +269,86 @@ export function LeftPanel({
                 </div>
               )}
             </FieldGroup>
+            {/* ふだんは触らない設定。変えてある時は見出しで知らせる */}
+            <details className="rounded-sm border border-hairline">
+              <summary className="cursor-pointer select-none px-2.5 py-2 text-[13px] text-body-muted hover:text-body-on-dark">
+                こだわり設定{advancedChanged ? "（変更あり）" : ""}
+                <span className="ml-1 text-[12px] text-ink-soft">転調・鳴らす内容・伴奏パターン・入りの位置</span>
+              </summary>
+              <div className="flex flex-col gap-2.5 border-t border-hairline px-2.5 pb-2.5 pt-2">
+              <FieldGroup label="このセクションの調(転調する場合のみ)">
+                <TextInput
+                  defaultValue={section.key ?? ""}
+                  key={`key-${section.id}-${section.key ?? ""}`}
+                  placeholder={`曲の調に従う(${project.song.key})`}
+                  onBlur={(e) => {
+                    const value = e.currentTarget.value.trim()
+                    updateSection(section.id, { key: value && value !== project.song.key ? value : undefined })
+                  }}
+                />
+              </FieldGroup>
+
+              {/* Issue #41: 何を鳴らすかはRoleとは独立した軸。UIは7プリセットで提示し、内部は2軸で保持する */}
+              <FieldGroup label="このセクションで鳴らす内容">
+                <Select
+                  value={presetIdFor(sectionContent) ?? ""}
+                  onChange={(e) => {
+                    const preset = presetById(e.target.value)
+                    if (preset) setSectionContent(section.id, { lead: preset.lead, accompaniment: preset.accompaniment })
+                  }}
+                >
+                  {presetIdFor(sectionContent) === null && <option value="">(カスタム)</option>}
+                  {CONTENT_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-[12px] text-ink-soft">{CONTENT_PRESET_HINTS[presetIdFor(sectionContent) ?? ""]}</p>
+              </FieldGroup>
+
+              <FieldGroup label="伴奏パターン">
+                <Select
+                  value={project.sectionAccompanimentPatternAssignments[section.id] ?? ""}
+                  onChange={(e) => setSectionAccompanimentPattern(section.id, e.target.value || null)}
+                >
+                  <option value="">なし</option>
+                  {project.accompanimentPatterns.map((pattern) => (
+                    <option key={pattern.id} value={pattern.id}>
+                      {pattern.name}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-[12px] text-ink-soft">
+                  度数＋リズムのテンプレートを現在のコードへ自動変換し、専用MIDIトラックへ出力します
+                </p>
+              </FieldGroup>
+
+              <FieldGroup label={`リード開始位置(先頭から${entryOffsetBars}小節を無音にする)`}>
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={section.lengthBars}
+                  step={0.25}
+                  defaultValue={entryOffsetBars}
+                  key={`entry-${section.id}-${sectionContent.entryOffsetBeats}`}
+                  onBlur={(e) => {
+                    const bars = Math.max(0, Number(e.currentTarget.value) || 0)
+                    setSectionContent(section.id, { entryOffsetBeats: bars * ts.beatsPerBar })
+                  }}
+                />
+                <label className="mt-1.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
+                  <input
+                    type="checkbox"
+                    className="accent-primary"
+                    checked={sectionContent.pickup}
+                    onChange={(e) => setSectionContent(section.id, { pickup: e.target.checked })}
+                  />
+                  次セクション直前に弱起(Pickup)を作る
+                </label>
+              </FieldGroup>
+              </div>
+            </details>
           </div>
         </SectionCard>
       )}

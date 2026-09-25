@@ -16,14 +16,14 @@ import { ArrangementChatPanel } from "./ArrangementChatPanel"
 import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 import { DirectionPicker } from "./DirectionPicker"
-import { AiPartnerAnalysisPanel } from "./AiPartnerAnalysisPanel"
+import { ArrangementIntensityPanel } from "./ArrangementIntensityPanel"
 
 type DetailTabId = "parts" | "flow" | "sections" | "logic"
 
 /** short は狭い画面(スマホ)で使う短い名前。途中で折り返して読みにくくならないようにする */
 const DETAIL_TABS: Array<{ id: DetailTabId; label: string; short: string; icon: LucideIcon }> = [
   { id: "parts", label: "パート別の確認・MIDI", short: "パート・MIDI", icon: AudioLines },
-  { id: "flow", label: "盛り上げ方・楽器の役割", short: "盛り上げ方", icon: TrendingUp },
+  { id: "flow", label: "盛り上げ方", short: "盛り上げ方", icon: TrendingUp },
   { id: "sections", label: "セクションの順番", short: "セクション順", icon: ListOrdered },
   { id: "logic", label: "Logic Proの音源と設定", short: "Logic Pro", icon: SlidersHorizontal },
 ]
@@ -46,8 +46,6 @@ export function ArrangementWorkspace({
   const removeSection = useProjectStore((state) => state.removeSection)
   const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
   const chatModel = useArrangementChat()
-  const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
-  const effectiveSectionId = selectedSectionId ?? project.sections[0]?.id ?? null
   const [draft, setDraft] = useState("")
   const [chatOpen, setChatOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -404,7 +402,7 @@ export function ArrangementWorkspace({
               })}
             </div>
             {activeDetailTab === "parts" && hasArrangement && <FullSongArrangementPanel />}
-            {activeDetailTab === "flow" && <AiPartnerAnalysisPanel effectiveSectionId={effectiveSectionId} />}
+            {activeDetailTab === "flow" && <ArrangementIntensityPanel />}
             {activeDetailTab === "logic" && <LogicProductionPackagePanel />}
             {activeDetailTab === "sections" && (
             <section className="flex flex-col gap-2" aria-labelledby="section-order-heading">
@@ -468,8 +466,7 @@ export function ArrangementWorkspace({
                       {variants.map((variant) => (
                         <option key={variant.id} value={variant.id}>
                           {variant.name}
-                          {variant.generatorProfile ? ` · ${variant.generatorProfile}` : ""}
-                          {variant.patternIndex ? ` · Pattern ${variant.patternIndex}` : ""}
+                          {variant.patternIndex ? ` · 候補${variant.patternIndex}` : ""}
                         </option>
                       ))}
                     </Select>

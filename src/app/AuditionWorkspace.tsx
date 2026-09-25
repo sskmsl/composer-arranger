@@ -341,7 +341,7 @@ export function AuditionWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) 
           <h3 id="audition-decision-heading" className="text-[13px] font-semibold text-body-on-dark">候補を決める</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="mr-auto text-[13px] text-ink-soft">
-              {blind ? `Candidate ${SLOT_LABELS[activeSlot]}を判定` : activeVariant.name}
+              {blind ? `候補${SLOT_LABELS[activeSlot]}を判定` : activeVariant.name}
             </span>
             <Button
               variant="dark"

@@ -293,6 +293,24 @@ describe("Arrangement Generator", () => {
     expect(directedBass.every((note) => note.pitch % 12 === 0)).toBe(true)
   })
 
+  it("盛り上げ方で選んだ強さと最も盛り上げる場所を、推定より優先して使う", () => {
+    const input = project()
+    const auto = analyzeFullSongArrangement(input)
+    const energyOf = (analysis: typeof auto, id: string) => analysis.sections.find((section) => section.sectionId === id)!.energy
+    expect(energyOf(auto, "final")).toBe(100)
+
+    input.arrangementDirectorOverrides = {
+      climaxSectionId: "chorus-1",
+      sections: { intro: { targetEnergy: 5 }, "chorus-2": { targetEnergy: 1 } },
+    }
+    const manual = analyzeFullSongArrangement(input)
+    expect(energyOf(manual, "chorus-1")).toBe(100)
+    expect(energyOf(manual, "final")).toBeLessThan(100)
+    expect(energyOf(manual, "intro")).toBe(90)
+    expect(energyOf(manual, "chorus-2")).toBe(20)
+    expect(energyOf(manual, "intro")).toBeGreaterThan(energyOf(auto, "intro") + 40)
+  })
+
   it("同じ境界にPhraseとDecorationを重ねず、明示的な音色指定は尊重する", () => {
     const input = project()
     const analysis = analyzeFullSongArrangement(input)

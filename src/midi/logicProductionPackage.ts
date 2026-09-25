@@ -12,6 +12,7 @@ import {
 } from "@/ai-arranger/multiPartArrangementPackage"
 import type { WholeSongDirectionId } from "@/ai-arranger/wholeSongDirectionPlan"
 import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
+import { arrangementTrackLabel } from "@/core/arrangementChat"
 
 export type LogicProductionTrackId =
   | "bass-guide"
@@ -406,7 +407,8 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
     if (track.muted || track.notes.length === 0) continue
     const sound = ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue
-    rows.push({ trackName: track.name, role: sound.role, product: sound.product, setting: sound.setting })
+    const label = arrangementTrackLabel(track.id)
+    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, setting: sound.setting })
   }
   return rows
 }

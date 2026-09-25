@@ -404,13 +404,12 @@ export function MelodyWorkspace({
       />
       {isMelodyVariant ? (
         <p className="text-[12px] text-ink-soft">
-          上部の小節番号をクリックすると、下の再生ボタンがその小節から始まります。鍵アイコンで小節を固定できます。
-          ノート選択・音程固定・範囲を選んだ作り直しにも対応しています。
+          小節番号を押すとその小節から再生します。鍵アイコンで小節を固定できます。
         </p>
       ) : (
         /* Issue #41: Seed発展操作・部分再生成は歌唱メロディ専用のため、content候補では案内を変える */
         <p className="text-[12px] text-ink-soft">
-          {LEAD_CONTENT_LABELS[variantContent]} 候補です。Seedの発展操作と範囲の部分再生成は歌唱メロディ専用のため使えません。
+          {LEAD_CONTENT_LABELS[variantContent]} 候補です。候補を発展させる操作と、範囲を選んだ作り直しは歌の旋律でだけ使えます。
           作り直す場合は「作り直す」を実行してください。
         </p>
       )}

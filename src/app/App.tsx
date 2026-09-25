@@ -209,6 +209,7 @@ export function App() {
         </Suspense>
       </div>
       {tab !== "home" &&
+        tab !== "arrangement" &&
         tab !== "phrase" &&
         tab !== "signature" &&
         tab !== "counter" &&

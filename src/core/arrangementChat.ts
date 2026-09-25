@@ -142,6 +142,47 @@ const ROW_BY_TRACK = new Map<ArrangementTrackId, ArrangementPartRowId>(
   ARRANGEMENT_PART_ROWS.flatMap((row) => row.trackIds.map((trackId) => [trackId, row.id] as const)),
 )
 
+/** 画面に出すトラックの日本語名(MIDIのトラック名はLogic Proで探しやすい英略語のまま) */
+const TRACK_LABELS: Record<ArrangementTrackId, string> = {
+  "dr-kick": "キック",
+  "dr-snare": "スネア",
+  "dr-closed-hat": "ハイハット",
+  "dr-open-hat": "オープンハイハット",
+  "dr-low-tom": "低いタム",
+  "dr-high-tom": "高いタム",
+  "dr-field-drum": "マーチングドラム",
+  "dr-gran-cassa": "大太鼓",
+  "dr-crash": "シンバル",
+  "syn-bass": "ベース",
+  "syn-pulse": "シンセの刻み",
+  "syn-stabs": "シンセの短い和音",
+  "syn-dark-pad": "パッド",
+  "syn-high-glass": "高音のきらめき",
+  "syn-transition-phrase": "つなぎのフレーズ",
+  "syn-final-lift": "最後の盛り上げ",
+  "str-cello": "チェロ",
+  "str-viola": "ビオラ",
+  "str-violin-2": "第2バイオリン",
+  "str-violin-1": "第1バイオリン",
+  "str-upper": "高音の弦",
+}
+
+export function arrangementTrackLabel(trackId: ArrangementTrackId): string {
+  return TRACK_LABELS[trackId] ?? trackId
+}
+
+/** パート構成表と同じ並び(ドラム→ベース→…→弦)で並べるための順位 */
+export function arrangementTrackOrder(trackId: ArrangementTrackId): number {
+  const rowIndex = ARRANGEMENT_PART_ROWS.findIndex((row) => row.trackIds.includes(trackId))
+  const row = ARRANGEMENT_PART_ROWS[rowIndex]
+  return (rowIndex < 0 ? 99 : rowIndex) * 100 + (row ? row.trackIds.indexOf(trackId) : 0)
+}
+
+/** トラックが属するパート(行)の色 */
+export function arrangementTrackColor(trackId: ArrangementTrackId): string {
+  return ARRANGEMENT_PART_ROWS.find((row) => row.trackIds.includes(trackId))?.color ?? "#a8a8ad"
+}
+
 export function partRowLabel(rowId: ArrangementPartRowId): string {
   return ARRANGEMENT_PART_ROWS.find((row) => row.id === rowId)?.label ?? rowId
 }

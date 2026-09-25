@@ -418,7 +418,7 @@ export function MidiImportReviewDialog({
               <p className="mt-2 text-[12px] text-ink-soft">
                 自動選択信頼度 {Math.round(analysis.melodyTrackConfidence * 100)}%。
                 {melodyTrackIndices.length > 1 ? ` 同名の分割トラック${melodyTrackIndices.length}本を結合します。` : ""}
-                MelodyはActive Melodyへ変換し、読み込む全Roleの原ノートは解析素材として独立保存します。
+                主旋律は編集できる主旋律として取り込みます。ほかのパートの元の音は、分析用にそのまま保存します。
               </p>
               <p className="mt-1 text-[12px] text-cyan-200">
                 保存対象 {result.project.importedArrangement?.tracks.length ?? 0}トラック · {result.project.importedArrangement?.tracks.reduce((sum, track) => sum + track.notes.length, 0) ?? 0}ノート

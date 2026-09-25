@@ -48,7 +48,7 @@ export function ImportedArrangementAnalysisPanel() {
               <div>
                 <p className="text-[12px] font-semibold text-body-on-dark">{analysis.sectionName}</p>
                 <p className="mt-0.5 text-[12px] text-body-muted">
-                  {analysis.totalBars}小節 · {analysis.totalNotes} notes · {analysis.textureDensity}
+                  {analysis.totalBars}小節 · {analysis.totalNotes}音 · 音の量：{{ sparse: "少なめ", balanced: "ふつう", dense: "多め" }[analysis.textureDensity]}
                 </p>
               </div>
               <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[12px] ${analysis.melodyCollisionCount > 0 ? "bg-amber-300/10 text-amber-100" : "bg-emerald-400/10 text-emerald-200"}`}>
