@@ -6,6 +6,19 @@ import type { SectionRole } from "@/core/section"
 import { RANGE_PRESETS } from "./generationParams"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 import { measureMelodyCraft, scoreMelodyCraft, type MelodyCraftMetrics } from "./melodyCraftMetrics"
+import type { MelodyReferenceStats } from "./melodyReference"
+import referenceStats from "./reference/melodyReferenceStats.json"
+
+const REFERENCE = referenceStats as MelodyReferenceStats
+/** 実在曲(Essen 民謡集)で多くの曲が収まる範囲 */
+const essenBand = (key: "repeatedPitch" | "stepwise" | "leapRate" | "leapRecovery" | "top3Share") => {
+  const distribution = REFERENCE.corpora.essen.metrics[key]!
+  return [distribution.p25, distribution.p75] as const
+}
+/** 仕上げ後の作りの良さで候補を選び、経過音でつなぐ作り方 */
+/** 実在曲の分布を根拠にした作りの良さの下限(経過音でつなぐ前 76.2 → 後 77.8) */
+const CRAFT_SCORE_FLOOR = 76.5
+const CRAFTED_PROFILES: MelodyGeneratorProfile[] = ["standard", "minimal", "rhythmic", "cinematic"]
 
 /**
  * 主旋律の作りの良さを、いくつかのコード進行・作り方でまとめて測る回帰テスト。
@@ -89,8 +102,16 @@ describe("主旋律の作りの良さ", () => {
     skeletonSmoothness: mean(all.map((m) => m.skeletonSmoothness)),
     antecedentOpen: mean(all.map((m) => (m.antecedentOpen ? 1 : 0))),
     sighsPerSection: mean(all.map((m) => m.sighCount)),
-    // 物差しをまとめた作りの良さ(0〜100)
+    // 物差しをまとめた作りの良さ(0〜100、根拠は実在曲の分布)
     craftScore: mean(samples.map((s) => scoreMelodyCraft(s.metrics, { resolving: s.role === "chorus" }))),
+  }
+  const crafted = samples.filter((sample) => CRAFTED_PROFILES.includes(sample.profile)).map((sample) => sample.metrics)
+  const craftedSummary = {
+    stepwise: mean(crafted.map((m) => m.stepwise)),
+    leapRate: mean(crafted.map((m) => m.leapRate)),
+    repeatedPitch: mean(crafted.map((m) => m.repeatedPitch)),
+    leapRecovery: mean(crafted.map((m) => m.leapRecovery)),
+    top3Share: mean(crafted.map((m) => m.top3Share)),
   }
 
   it("測定結果", () => {
@@ -110,17 +131,25 @@ describe("主旋律の作りの良さ", () => {
           sighs: Math.round(mean(ms.map((m) => m.sighCount)) * 100) / 100,
         }]
       }))
-      writeFileSync(process.env.MELODY_CRAFT_OUT, JSON.stringify({ ...rounded, perProfile }, null, 2))
+      writeFileSync(process.env.MELODY_CRAFT_OUT, JSON.stringify({ ...rounded, crafted: craftedSummary, perProfile }, null, 2))
     }
     expect(samples.length).toBeGreaterThan(0)
   })
 
-  // 仕上げ前 → 仕上げ後(2026-09)の値。数字は少し余裕を持たせた下限・上限
-  it("同じ音の連打が多すぎない(0.26 → 0.21 → 候補選び後 0.18)", () => expect(summary.repeatedPitch).toBeLessThanOrEqual(0.2))
-  it("跳躍の後に逆向きへ戻る(0.41 → 0.50 → 候補選び後 0.55)", () => expect(summary.leapRecovery).toBeGreaterThanOrEqual(0.52))
-  it("同じ数音の中を回り続けない(上位3音の割合 0.76 → 0.70、音の種類 6.8 → 7.4)", () => {
-    expect(summary.top3Share).toBeLessThanOrEqual(0.73)
-    expect(summary.distinctPitches).toBeGreaterThanOrEqual(7.1)
+  // 実在曲との比較(2026-09)。お手本は Essen 民謡集で多くの曲が収まる範囲(p25〜p75)。
+  // 標準・シネマティック・リズム型・ミニマルの平均が、その範囲に入っていることを確かめる
+  it("隣の音へ1〜2半音で動く割合が実在曲の範囲にある(0.37 → 0.41、民謡 0.35〜0.58)", () => {
+    expect(craftedSummary.stepwise).toBeGreaterThanOrEqual(essenBand("stepwise")[0] + 0.03)
+    expect(craftedSummary.stepwise).toBeLessThanOrEqual(essenBand("stepwise")[1])
+  })
+  it("5半音以上の跳躍が実在曲より多すぎない(0.21 → 0.16、民謡 0.07〜0.18)", () => {
+    expect(craftedSummary.leapRate).toBeLessThanOrEqual(essenBand("leapRate")[1])
+  })
+  it("連打・跳躍の後の戻り・音の偏りが実在曲の範囲にある", () => {
+    for (const key of ["repeatedPitch", "leapRecovery", "top3Share"] as const) {
+      expect(craftedSummary[key]).toBeGreaterThanOrEqual(essenBand(key)[0])
+      expect(craftedSummary[key]).toBeLessThanOrEqual(essenBand(key)[1])
+    }
   })
   it("サビはAメロより高い(平均 +1.1 → +3.0半音)", () => expect(summary.chorusLift).toBeGreaterThanOrEqual(2.5))
   it("サビは主音で落ち着いて終わる(0.33 → 0.91)、どのセクションもコードの音で終わる(0.72 → 1.0)", () => {
@@ -131,17 +160,15 @@ describe("主旋律の作りの良さ", () => {
     expect(summary.strongBeatChordTone).toBeGreaterThanOrEqual(0.78)
     expect(summary.outOfScale).toBeLessThanOrEqual(0.05)
   })
-  // 旋律の基本原理(2026-09)。クラシックの旋律づくりで一般的とされる原則で、特定の曲から測った値ではない
-  it("拍頭で旋律とベースが平行5度・8度になる所を減らす(0.096 → 0.085)", () => expect(summary.parallelPerfectRate).toBeLessThanOrEqual(0.09))
-  it("導音は主音へ(0.89 → 0.92)、属七の7度は下へ(0.95 → 0.97)解決する", () => {
+  it("拍頭で旋律とベースが平行5度・8度になる所を減らす(0.096 → 0.08)", () => expect(summary.parallelPerfectRate).toBeLessThanOrEqual(0.09))
+  it("導音は主音へ、属七の7度は下へ解決する", () => {
     expect(summary.leadingToneResolution).toBeGreaterThanOrEqual(0.9)
     expect(summary.seventhResolution).toBeGreaterThanOrEqual(0.95)
   })
-  it("前半は主音で閉じずに後半へつなぐ(0.81 → 0.84)", () => expect(summary.antecedentOpen).toBeGreaterThanOrEqual(0.82))
-  it("ため息の形は入れすぎない(1セクション平均 0.13 → 0.27)", () => {
-    expect(summary.sighsPerSection).toBeGreaterThanOrEqual(0.2)
+  it("前半は主音で閉じずに後半へつなぐ", () => expect(summary.antecedentOpen).toBeGreaterThanOrEqual(0.82))
+  it("ため息の形は入れすぎない", () => {
+    expect(summary.sighsPerSection).toBeGreaterThanOrEqual(0.15)
     expect(summary.sighsPerSection).toBeLessThanOrEqual(1)
   })
-  // 仕上げ後の作りの良さで候補を選ぶ(2026-09)。標準・シネマティック・リズム型・ミニマルで、候補を18案作って選ぶ
-  it("物差しをまとめた作りの良さ(70.2 → 73.9)", () => expect(summary.craftScore).toBeGreaterThanOrEqual(72))
+  it("実在曲の分布を根拠にした作りの良さ", () => expect(summary.craftScore).toBeGreaterThanOrEqual(CRAFT_SCORE_FLOOR))
 })

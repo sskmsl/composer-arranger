@@ -103,4 +103,16 @@ describe("主旋律の仕上げ", () => {
     expect(score(good)).toBeLessThanOrEqual(100)
     expect(score(poor)).toBeGreaterThanOrEqual(0)
   })
+
+  it("跳躍の間にある裏拍の音を、前後を順次でつなぐ音(経過音)にする", () => {
+    // 1拍目E4 → 裏のC5(8半音上) → 2拍目F4(7半音下) のように、裏拍で跳ねて戻る所
+    const notes = [n(0, 64), n(1, 65), n(2, 67), n(3, 65), n(4, 65), n(4.5, 72, 0.5), n(5, 69), n(6, 69), n(6.5, 60, 0.5), n(7, 67), n(8, 67), n(9, 65), n(10, 64), n(12, 64, 4)]
+    const leaps = (list: MelodyNote[]) => list.slice(1).filter((note, index) => Math.abs(note.pitch - list[index].pitch) >= 5).length
+    const crafted = applyMelodicCraft(notes, { ...base, sectionRole: "bridge", profile: "standard" })
+    expect(leaps(crafted)).toBeLessThan(leaps(notes))
+    // 跳躍型は、独自の設計(大きな跳躍)を守るため手を加えない
+    const leaping = applyMelodicCraft(notes, { ...base, sectionRole: "bridge", profile: "leaping" })
+    expect(leaping.find((note) => note.startBeat === 4.5)!.pitch).toBe(72)
+  })
 })
+

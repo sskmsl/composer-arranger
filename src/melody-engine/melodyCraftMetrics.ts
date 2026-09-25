@@ -2,6 +2,10 @@ import { parseChordSymbol } from "@/core/chord"
 import type { MelodyNote } from "@/core/melody"
 import type { ChordEvent } from "@/core/project"
 import { keyScalePitchClasses } from "@/core/scale"
+import { scoreAgainstReference, type MelodyReferenceStats } from "./melodyReference"
+import referenceStats from "./reference/melodyReferenceStats.json"
+
+const MELODY_REFERENCE_STATS = referenceStats as MelodyReferenceStats
 
 /**
  * 主旋律の「作りの良さ」を数える物差し。生成の改善を前後で同じ条件で比べるために使う。
@@ -35,6 +39,9 @@ export interface MelodyCraftMetrics {
   leadingToneResolution: number
   /** 属七の7度の音が、コードが変わった次の音で2半音以内に下がる割合(該当がなければ1) */
   seventhResolution: number
+  /** 導音・属七の7度の該当数(実在曲との比較で、該当のある単位だけを集計するため) */
+  leadingToneCases: number
+  seventhCases: number
   /** 各小節の頭で鳴っている音(骨格)どうしが3半音以内でつながる割合 */
   skeletonSmoothness: number
   /** 前半(セクションの半分まで)の最後の音が主音以外で「開いて」終わるか(16拍未満のセクションは true) */
@@ -163,35 +170,19 @@ export function measureMelodyCraft(
     parallelPerfectRate: ratio(parallels, parallelPairs),
     leadingToneResolution: leadingCases > 0 ? leadingResolved / leadingCases : 1,
     seventhResolution: seventhCases > 0 ? seventhResolved / seventhCases : 1,
+    leadingToneCases: leadingCases,
+    seventhCases,
     skeletonSmoothness: skeletonMoves.length > 0 ? skeletonMoves.filter((move) => move <= 3).length / skeletonMoves.length : 1,
     antecedentOpen: totalBeats < 16 || !firstHalfLast || pc(firstHalfLast.pitch) !== tonic,
     sighCount,
   }
 }
 
-const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
-
 /**
- * 物差しをまとめた「作りの良さ」の点数(0〜100)。候補を選ぶときの参考に使う。
- * 目安から外れるほど下がる。どれか1つが極端に悪い候補を避け、全体に整った候補を選ぶための重み付け。
- * resolving はサビ・アウトロのように主音で落ち着いて終わりたいセクション。
+ * 物差しをまとめた「作りの良さ」の点数(0〜100)。候補を選ぶときに使う。
+ * 点数の根拠は実在曲(Essen 民謡集・Bach のコラール)の分布で、各物差しが多くの曲の収まる範囲にあるほど高い。
+ * 内訳は scoreAgainstReference で見られる。resolving はサビ・アウトロのように主音で落ち着いて終わりたいセクション。
  */
-export function scoreMelodyCraft(metrics: MelodyCraftMetrics, options: { resolving: boolean }): number {
-  const parts: Array<[score: number, weight: number]> = [
-    // 同じ音の連打は15%程度までは自然。それを超えるほど下げる
-    [1 - clamp01((metrics.repeatedPitch - 0.15) / 0.25), 1.5],
-    // 順次進行(1〜2半音)が少なすぎると跳んでばかりの旋律になる
-    [clamp01(metrics.stepwise / 0.4), 1],
-    [metrics.leapRecovery, 1.2],
-    // 同じ数音の中を回り続けない
-    [1 - clamp01((metrics.top3Share - 0.55) / 0.35), 1.2],
-    [clamp01((metrics.strongBeatChordTone - 0.5) / 0.4), 1],
-    [1 - clamp01(metrics.parallelPerfectRate / 0.3), 0.6],
-    [(metrics.leadingToneResolution + metrics.seventhResolution) / 2, 0.6],
-    [metrics.skeletonSmoothness, 0.8],
-    [metrics.antecedentOpen ? 1 : 0, 0.4],
-    [options.resolving ? (metrics.endsOnTonic ? 1 : 0) : metrics.endsOnChordTone ? 1 : 0, 0.8],
-  ]
-  const total = parts.reduce((sum, [, weight]) => sum + weight, 0)
-  return (parts.reduce((sum, [score, weight]) => sum + score * weight, 0) / total) * 100
+export function scoreMelodyCraft(metrics: MelodyCraftMetrics, options: { resolving: boolean; totalBeats?: number }): number {
+  return scoreAgainstReference(metrics, MELODY_REFERENCE_STATS, { resolving: options.resolving, totalBeats: options.totalBeats ?? 32 }).score
 }

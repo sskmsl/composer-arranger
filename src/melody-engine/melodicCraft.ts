@@ -17,6 +17,8 @@ import type { RangeSetting } from "./generationParams"
  * 4. セクションの終わりはコードの音で、サビ・アウトロは主音で落ち着いて終わる
  *
  * あわせて、クラシックの旋律づくりで基本とされる次の点も整える(特定の曲の型ではなく、一般的な原則として)。
+ * 4b. 順次進行でつなぐ: 実在の旋律(民謡・コラール)に比べて跳躍が多すぎるので、跳躍の間にある裏拍の音を
+ *     前後を1〜2半音でつなぐ音(経過音)に替え、3度の動きの前の長い音は末尾を経過音に分ける
  * 5. ベースとの関係: 拍頭で旋律とベースが同じ向きに動いて5度・8度が続く所(平行5度・8度)を、別のコードの音にする
  * 6. 向かう先を持つ音: 属和音の導音はコードが変わったら主音へ上がり、属七の7度は1〜2半音下がる
  * 7. 問いと答え: 16拍以上のセクションは、前半の終わりを主音以外の音にして「開いた」まま後半へつなぐ
@@ -38,17 +40,17 @@ export interface MelodicCraftContext {
 
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 type CraftStep = "lift" | "sequence" | "repeats" | "variety" | "arch" | "leapRecovery" | "climax"
-  | "counterpoint" | "tendency" | "antecedent" | "sigh"
+  | "conjunct" | "counterpoint" | "tendency" | "antecedent" | "sigh"
 
 /**
  * 作り方ごとに使う仕上げ。独自の設計(跳躍・半音の動き・掛留・語りの連打・動かない美しさ)を持つ作り方には、
  * その設計とぶつかる仕上げをかけない。終わり方(コードの音・主音で終わる)はすべての作り方に使う。
  */
 const PROFILE_STEPS: Record<MelodyGeneratorProfile, readonly CraftStep[]> = {
-  standard: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent", "sigh"],
-  cinematic: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent", "sigh"],
-  rhythmic: ["lift", "repeats", "variety", "arch", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent"],
-  minimal: ["lift", "repeats", "leapRecovery", "climax", "counterpoint", "tendency", "antecedent"],
+  standard: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax", "conjunct", "counterpoint", "tendency", "antecedent", "sigh"],
+  cinematic: ["lift", "sequence", "repeats", "variety", "arch", "leapRecovery", "climax", "conjunct", "counterpoint", "tendency", "antecedent", "sigh"],
+  rhythmic: ["lift", "repeats", "variety", "arch", "leapRecovery", "climax", "conjunct", "counterpoint", "tendency", "antecedent"],
+  minimal: ["lift", "repeats", "leapRecovery", "climax", "conjunct", "counterpoint", "tendency", "antecedent"],
   leaping: ["climax"],
   chromatic: [],
   "elegiac-cantabile": ["leapRecovery", "climax", "counterpoint", "tendency"],
@@ -365,6 +367,73 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     if (options.length === 0) return false
     setPitch(index, options[0])
     return true
+  }
+
+  // 4b. 順次進行でつなぐ(経過音)。跳躍そのものは旋律の表情なので、1セクションで直すのは跳躍の半分まで
+  if (steps.has("conjunct") && scale.length === 7) {
+    const inScale = (pitch: number) => scale.includes(pc(pitch))
+    const leapCount = notes.slice(1).filter((note, index) => Math.abs(note.pitch - notes[index].pitch) >= 5).length
+    let budget = Math.ceil(leapCount / 2)
+    // (1) 跳躍の間にある裏拍の音を、前後を順次でつなぐ音にする
+    for (let index = 1; index + 1 < notes.length && budget > 0; index += 1) {
+      const note = notes[index]
+      const previous = notes[index - 1]
+      const next = notes[index + 1]
+      if (strong(note.startBeat) || locked(note) || isPeak(index)) continue
+      if (note.startBeat - (previous.startBeat + previous.durationBeats) > 0.5 || next.startBeat - (note.startBeat + note.durationBeats) > 0.5) continue
+      const worst = Math.max(Math.abs(note.pitch - previous.pitch), Math.abs(next.pitch - note.pitch))
+      if (worst < 5) continue
+      const low = Math.min(previous.pitch, next.pitch) - 2
+      const high = Math.max(previous.pitch, next.pitch) + 2
+      const options: Array<{ pitch: number; worst: number }> = []
+      for (let pitch = low; pitch <= high; pitch += 1) {
+        if (pitch < context.range.low || pitch > context.range.high || !inScale(pitch) || pitch === previous.pitch || pitch === next.pitch) continue
+        const toNext = Math.abs(next.pitch - pitch)
+        const chordOk = chordPcs(note.startBeat).includes(pc(pitch)) || usable(note.startBeat).includes(pc(pitch))
+        // コードの音でなければ、次の音へ1〜2半音で進む経過音に限る
+        if (!chordOk && toNext > 2) continue
+        options.push({ pitch, worst: Math.max(Math.abs(pitch - previous.pitch), toNext) })
+      }
+      const best = options.sort((a, b) => a.worst - b.worst || Math.abs(a.pitch - note.pitch) - Math.abs(b.pitch - note.pitch))[0]
+      if (!best || best.worst > 4 || best.worst > worst - 2) continue
+      const chordTone = chordPcs(note.startBeat).includes(pc(best.pitch))
+      note.pitch = best.pitch
+      note.plannedToneRole = chordTone ? "chord-tone" : usable(note.startBeat).includes(pc(best.pitch)) ? "tension-hold" : "approach-tone"
+      if (note.plannedToneRole === "approach-tone") {
+        note.plannedResolution = { targetPitchClass: pc(next.pitch), targetBeat: next.startBeat, maximumDelayBeats: next.startBeat - note.startBeat }
+      } else {
+        delete note.plannedResolution
+      }
+      budget -= 1
+    }
+    // (2) 3度(3〜4半音)で動く前の長い音(1.5拍以上)は、末尾の半拍を間の音階の音(経過音)に分ける
+    let inserted = 0
+    const maximumInserted = Math.max(1, Math.round(context.totalBeats / 16))
+    for (let index = notes.length - 2; index >= 1 && inserted < maximumInserted; index -= 1) {
+      const note = notes[index]
+      const next = notes[index + 1]
+      const interval = next.pitch - note.pitch
+      if (Math.abs(interval) < 3 || Math.abs(interval) > 4 || note.durationBeats < 1.5 || locked(note) || locked(next) || isPeak(index)) continue
+      if (next.startBeat - (note.startBeat + note.durationBeats) > 1e-6) continue
+      const between = interval > 0 ? [note.pitch + 1, note.pitch + 2] : [note.pitch - 1, note.pitch - 2]
+      const passing = between.find((pitch) => inScale(pitch) && Math.abs(next.pitch - pitch) <= 2 && Math.abs(next.pitch - pitch) >= 1)
+      if (passing === undefined) continue
+      const start = note.startBeat + note.durationBeats - 0.5
+      if (strong(start)) continue
+      note.durationBeats -= 0.5
+      const chordTone = chordPcs(start).includes(pc(passing))
+      notes.splice(index + 1, 0, {
+        ...note,
+        id: `${note.id}-pass`,
+        startBeat: start,
+        durationBeats: 0.5,
+        pitch: passing,
+        plannedToneRole: chordTone ? "chord-tone" : "approach-tone",
+        plannedResolution: chordTone ? undefined : { targetPitchClass: pc(next.pitch), targetBeat: next.startBeat, maximumDelayBeats: 0.5 },
+        locks: [],
+      })
+      inserted += 1
+    }
   }
 
   // 5. ベースとの関係: 拍頭で旋律とベースが同じ向きに動いて、5度・8度が続く所をほどく
