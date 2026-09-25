@@ -880,6 +880,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       const craftedNotes = craftNotes(pattern.notes)
       const craftScore = scoreMelodyCraft(measureMelodyCraft(craftedNotes, input.chords, input.key!), {
         resolving: CRAFT_RESOLVING_ROLES.has(input.sectionRole),
+        totalBeats: input.totalBeats,
       })
       return { ...pattern, craftedNotes, craftScore }
     }
