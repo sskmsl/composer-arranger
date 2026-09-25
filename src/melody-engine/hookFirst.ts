@@ -14,6 +14,10 @@ export interface CoreMotifJudgment {
   rhythmicIdentity: number
   simplicity: number
   repeatability: number
+  /** 覚えやすい中に1か所だけ引っかかる所があるか(0〜1) */
+  thorn: number
+  /** 引っかかりの数(急な跳躍・裏拍の長い音・核の中の休み・不揃いな音価) */
+  thornCount: number
 }
 
 export interface SelectedCoreMotif {
@@ -46,7 +50,7 @@ function coreWithinTwoBars(events: MotifEvent[], pitches: number[], maximumBeats
 
 /** 歌いやすさと記憶性を別々に測る。音数の少なさ単独では高得点にしない。 */
 export function judgeCoreMotif(notes: readonly MelodyNote[], lengthBeats: number): CoreMotifJudgment {
-  if (notes.length < 3) return { humability: 0, hookability: 0, rhythmicIdentity: 0, simplicity: 0, repeatability: 0 }
+  if (notes.length < 3) return { humability: 0, hookability: 0, rhythmicIdentity: 0, simplicity: 0, repeatability: 0, thorn: 0, thornCount: 0 }
   const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
   const intervals = sorted.slice(1).map((note, index) => note.pitch - sorted[index].pitch)
   const gaps = sorted.slice(1).map((note, index) => note.startBeat - sorted[index].startBeat)
@@ -74,7 +78,36 @@ export function judgeCoreMotif(notes: readonly MelodyNote[], lengthBeats: number
   const hookability = clamp01(rhythmicIdentity * .28 + contourClarity * .18 +
     oneSignatureLeap * .15 + simplicity * .12 + repeatability * .17 +
     (breathing >= .1 && breathing <= .55 ? 1 : .25) * .1)
-  return { humability, hookability, rhythmicIdentity, simplicity, repeatability }
+  const { thorn, thornCount } = judgeThorn(sorted, intervals, simplicity)
+  return { humability, hookability, rhythmicIdentity, simplicity, repeatability, thorn, thornCount }
+}
+
+/**
+ * Janáček の弦楽四重奏(OpenScore、CC0)では、Schumann / Brahms より
+ * 割り切れない音価(33% 対 0〜10%)・急な跳躍(15%)・休符(22%)・アクセントが多かった。
+ * そのまま真似ると奇抜になるので、「単純で口ずさめるが1か所だけ耳に残る」ように、
+ * 引っかかりがちょうど1つの核を最も高く評価する。0個はやや平凡、2個以上はランダムに聞こえやすい。
+ * いまは評価・記録に使い、核の選抜には使っていない(selectCoreMotif のコメント参照)。
+ */
+export function judgeThorn(sorted: readonly MelodyNote[], intervals: readonly number[], simplicity: number): { thorn: number; thornCount: number } {
+  const suddenLeap = intervals.some((interval) => Math.abs(interval) >= 6)
+  const offbeatLong = sorted.some((note, index) => {
+    const offbeat = Math.abs(note.startBeat - Math.round(note.startBeat)) > .05
+    const neighbours = [sorted[index - 1], sorted[index + 1]].filter(Boolean)
+    const typical = neighbours.length ? neighbours.reduce((sum, other) => sum + other.durationBeats, 0) / neighbours.length : note.durationBeats
+    return offbeat && note.durationBeats >= 1 && note.durationBeats >= typical * 1.5
+  })
+  const innerRest = sorted.slice(1).some((note, index) => note.startBeat - (sorted[index].startBeat + sorted[index].durationBeats) >= .5)
+  const durations = sorted.map((note) => Math.round(note.durationBeats * 12))
+  const unevenPair = durations.slice(1).some((duration, index) => {
+    const pair = [durations[index], duration].sort((a, b) => a - b)
+    // 付点(3:1)か、3連符系(拍の3分割)の音価
+    return pair[1] === pair[0] * 3 || pair[0] % 3 !== 0 || pair[1] % 3 !== 0
+  })
+  const thornCount = [suddenLeap, offbeatLong, innerRest, unevenPair].filter(Boolean).length
+  const raw = thornCount === 1 ? 1 : thornCount === 0 ? .5 : thornCount === 2 ? .55 : .15
+  // 形が覚えにくい核では、引っかかりは「棘」ではなく混乱になる
+  return { thorn: raw * (simplicity >= .5 ? 1 : .5), thornCount }
 }
 
 /** 既存のMotif生成・和声配置を短いCore候補として先に走らせ、最良の核だけを長いPhraseへ渡す。 */
@@ -94,10 +127,10 @@ export function selectCoreMotif(
   const chorus = sectionRole === "chorus" || sectionRole === "grand-chorus"
   // 参考曲の傾向に合う核を探せるよう、効かせる強さに応じて候補を少しだけ増やす
   const poolSize = (chorus ? 20 : 8) + Math.round((musicContext?.reference?.melody?.strength ?? 0) * 16)
-  let best: SelectedCoreMotif | null = null
-  let bestScore = -Infinity
   const melodyReference = musicContext?.reference?.melody
   const referenceShare = melodyReference ? Math.min(.3, melodyReference.strength * .5) : 0
+  let best: SelectedCoreMotif | null = null
+  let bestScore = -Infinity
   for (let index = 0; index < poolSize; index++) {
     const rng = new SeededRandom((seed ^ 0x45d9f3b) + index * 104729)
     const events = generateRhythmMotif(rng, density, params, opening, 3)
@@ -110,6 +143,8 @@ export function selectCoreMotif(
     const judgment = judgeCoreMotif(placed, core.lengthBeats)
     const genreRhythm = musicContext?.styleActive ? musicContext.genre.syncopation : .5
     const rhythmFit = 1 - Math.abs(judgment.rhythmicIdentity - (.48 + (genreRhythm - .5) * .12))
+    // 棘(judgment.thorn)は選抜には使わない。核の段階で棘を優先すると、覚えやすさと部分的な作り直しやすさが下がったため。
+    // 1か所だけの引っかかりは、発展フレーズで1か所だけ音程を広げる処理(developHook)が担う
     const hookScore = chorus
       ? judgment.humability * .25 + judgment.hookability * .37 + judgment.rhythmicIdentity * .38
       : judgment.humability * .55 + judgment.hookability * .4 + rhythmFit * .05

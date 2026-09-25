@@ -1,6 +1,6 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
 import { parseChordSymbol } from "@/core/chord"
-import { hasActiveSoundImage, resolveMusicContext } from "@/core/musicContext"
+import { hasActiveSoundImage, resolveMusicContext, type GenreTraits, type SoundImageTraits } from "@/core/musicContext"
 import { applyReferenceArc } from "@/core/referenceProfile"
 import type { MelodyNote } from "@/core/melody"
 import {
@@ -532,6 +532,32 @@ function decorationCandidate(
   }
 }
 
+/**
+ * 和声を漂わせる度合い。Delius の弦楽四重奏・歌曲(OpenScore、CC0)では、Schumann / Brahms に比べて
+ * 付加音・7度の響き(82% 対 50〜55%)と長い持続(40% 対 20〜31%)が多く、4度・5度の根音進行(機能的な動き)が少なかった。
+ * ここでは音像の余韻・奥行きとジャンルの持続が高いときだけ、その方向へ今ある音の置き方を寄せる。
+ */
+function harmonicHazeFor(genre: GenreTraits, aesthetic: SoundImageTraits): number {
+  return Math.max(0, Math.min(1, .5 + (aesthetic.decay - .5) * .5 + (aesthetic.depth - .5) * .35 + (genre.sustain - .5) * .45))
+}
+
+/**
+ * 主旋律の休みで、核のリズムを既存パートへ一度だけ渡す。
+ * Schumann / Brahms では、フレーズあたり 0.3 回ほど低音へ、0.1〜0.17 回ほど内声へ動機が移り、
+ * その約6割は主旋律が薄い所だった。Boutonnat 的に削り、セクションに1回・休みが十分ある所だけに絞る。
+ */
+function motifEchoFor(
+  section: ArrangementAnalysisSection,
+  activeRoles: readonly ArrangementTrackId[],
+  energy: number,
+  isPeak: boolean,
+): ArrangementSectionPlan["motifEcho"] {
+  if (isPeak || section.melodyRestRatio < .15 || !["verse", "pre", "bridge", "chorus"].includes(section.semanticRole ?? "")) return undefined
+  if (energy >= 50 && activeRoles.includes("syn-bass")) return "bass"
+  if (activeRoles.includes("str-viola")) return "inner"
+  return undefined
+}
+
 export function buildFullSongArrangementPlan(
   project: ComposerProject,
   analysis: ArrangementAnalysis,
@@ -718,6 +744,8 @@ export function buildFullSongArrangementPlan(
           : genre.harmonicDensity > .72 && isPeak ? "register-expansion"
           : character === "minimal" ? "pedal-space" : character === "dark-experimental" ? "sparse-stabs" : character === "cinematic" && isPeak ? "register-expansion" : harmonyStrategyFor(section),
         roleEntryBeats,
+        harmonicHaze: harmonicHazeFor(genre, aesthetic),
+        motifEcho: motifEchoFor(section, uniqueRoles, effectiveEnergy, isPeak),
         transitionCandidates,
         selectedTransitionCharacter,
         decorationCandidates,
@@ -895,15 +923,22 @@ function sharedBassPedalPc(chords: ChordEvent[]): number | null {
 function quietPadVoicing(
   chord: NonNullable<ReturnType<typeof parseChordSymbol>>,
   previous: number[],
+  haze = .5,
 ): number[] {
-  const palette = [...chord.tones.slice(1), ...chord.tensions.slice(0, 1), chord.tones[0]]
+  // 漂わせるほど付加音(9th など)を残し、半音で動く声部を選ぶ(Delius 的な色)。中立(0.5)以下では従来どおり
+  const drift = Math.max(0, haze - .5) * 2
+  // 三和音しか書かれていなくても、漂わせる場面では 9th(根音の全音上)を色として残せる。減5度を含む和音には足さない
+  const ninth = drift > 0 && chord.tensions.length === 0 && !chord.tones.some((tone) => (tone.pitchClass - chord.rootPc + 12) % 12 === 6)
+    ? [{ ...chord.tones[0], pitchClass: (chord.rootPc + 2) % 12 }]
+    : []
+  const palette = [...chord.tones.slice(1), ...chord.tensions.slice(0, 1), ...ninth, chord.tones[0]]
     .filter((tone, index, all) => all.findIndex((candidate) => candidate.pitchClass === tone.pitchClass) === index)
   const anchors = [53, 60, 67]
   const options = anchors.map((anchor, voice) => palette.flatMap((tone) => {
     const nearest = midiForPc(tone.pitchClass, previous[voice] ?? anchor)
     return [nearest - 12, nearest, nearest + 12]
       .filter((pitch) => pitch >= 48 + voice * 4 && pitch <= 64 + voice * 5)
-      .map((pitch) => ({ pitch, pitchClass: tone.pitchClass, isTension: chord.tensions.some((item) => item.pitchClass === tone.pitchClass) }))
+      .map((pitch) => ({ pitch, pitchClass: tone.pitchClass, isTension: !chord.tones.some((item) => item.pitchClass === tone.pitchClass) }))
   }))
   let best: number[] | undefined
   let bestCost = Infinity
@@ -912,10 +947,13 @@ function quietPadVoicing(
     if (mid.pitch - low.pitch < 3 || high.pitch - mid.pitch < 3) continue
     if (mid.pitch - low.pitch > 12 || high.pitch - mid.pitch > 12) continue
     const choice = [low, mid, high]
-    const cost = choice.reduce((sum, note, voice) => sum
-      + Math.abs(note.pitch - (previous[voice] ?? anchors[voice]))
-      + Math.abs(note.pitch - anchors[voice]) * 0.12
-      + (note.isTension ? 0.8 : 0), 0)
+    const cost = choice.reduce((sum, note, voice) => {
+      const move = Math.abs(note.pitch - (previous[voice] ?? anchors[voice]))
+      return sum
+        + (move === 1 ? move * (1 - drift * .5) : move)
+        + Math.abs(note.pitch - anchors[voice]) * 0.12
+        + (note.isTension ? 0.8 - drift * 3 : 0)
+    }, 0)
     if (cost < bestCost) {
       bestCost = cost
       best = choice.map((note) => note.pitch)
@@ -1066,7 +1104,11 @@ function generateTonalTrack(
   }
   if (trackId === "syn-bass") {
     const strategy = section.bassStrategy ?? "melodic-pulse"
-    const bassPedal = strategy === "sustain" && ["intro", "breakdown", "bridge", "reprise", "outro"].includes(section.semanticRole ?? "")
+    // 持続低音: Janáček / Delius では同じ最低音が2小節以上続く時間が約1割(Schumann / Brahms の3〜5倍)。
+    // 漂わせる場面の静かな Verse にも、景色だけを変える保続低音を許す
+    // (初出の静かな Verse だけ。保続が曲の大半を占めないように)
+    const quietHaze = (section.harmonicHaze ?? .5) >= .65 && section.energy < 40 && section.semanticRole === "verse" && (section.developmentStage ?? 0) === 0
+    const bassPedal = (strategy === "sustain" && ["intro", "breakdown", "bridge", "reprise", "outro"].includes(section.semanticRole ?? "")) || quietHaze
       ? sharedBassPedalPc(sectionChords)
       : null
     const patterns: Record<NonNullable<ArrangementSectionPlan["bassStrategy"]>, number[]> = {
@@ -1154,6 +1196,7 @@ function generateTonalTrack(
     const stringPeriodBars = trackId === "str-upper" ? 4 : 2
     const segmentBeats = trackId === "syn-dark-pad" ? beatsPerBar : beatsPerBar * stringPeriodBars
     let previousPadPitches: number[] = []
+    const padVoiceNotes: GeneratedArrangementNote[] = []
     let previousPitch: number | undefined
     for (let localBeat = 0; localBeat < length - 0.01; localBeat += segmentBeats) {
       const chord = chordAtBeat(sectionChords, localBeat)
@@ -1161,15 +1204,24 @@ function generateTonalTrack(
       if (!parsed) continue
       const duration = Math.min(segmentBeats, length - localBeat) * 0.96
       if (trackId === "syn-dark-pad") {
-        const pitches = quietPadVoicing(parsed, previousPadPitches)
-        previousPadPitches = pitches
+        const haze = section.harmonicHaze ?? .5
+        const pitches = quietPadVoicing(parsed, previousPadPitches, haze)
         const padCycle = (Math.floor(localBeat / beatsPerBar) + revision) % 4
         const breathFactors = [0.96, 0.88, 0.94, 0.84]
         pitches.forEach((pitch, voice) => {
           const voiceOffset = padCycle === 2 && voice === 2 ? 0.25 : 0
-          add(localBeat + voiceOffset, Math.max(0.25, duration * breathFactors[padCycle] - voiceOffset), pitch, 30 + section.energy * 0.17,
+          // 漂わせる場面では、次の和音にも残る音を弾き直さず伸ばす(長い持続と共通音で境目を溶かす)
+          const held = haze > .6 && previousPadPitches[voice] === pitch ? padVoiceNotes[voice] : undefined
+          if (held && Math.abs(held.startBeat + held.durationBeats - (start + localBeat)) < beatsPerBar * .2) {
+            held.durationBeats = start + localBeat + Math.max(0.25, duration * breathFactors[padCycle]) - held.startBeat
+            held.reason = "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす"
+            return
+          }
+          add(localBeat + voiceOffset, Math.max(0.25, duration * (haze > .6 ? 1 : breathFactors[padCycle]) - voiceOffset), pitch, 30 + section.energy * 0.17,
             notes.length, "safe", "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す")
+          padVoiceNotes[voice] = notes[notes.length - 1]
         })
+        previousPadPitches = pitches
       } else {
         const phraseOffset = ((Math.floor(localBeat / segmentBeats) + revision) % 2) * (beatsPerBar / 2)
         const soundingChord = chordAtBeat(sectionChords, localBeat + phraseOffset)
@@ -1257,9 +1309,70 @@ function generateTrack(
         plan.directive?.sectionId,
       )
     }
+    const echoes = !plan.directive?.soundInstruction && (
+      trackId === "syn-bass" && sectionPlan.motifEcho === "bass" || trackId === "str-viola" && sectionPlan.motifEcho === "inner")
+    if (echoes) {
+      const chords = project.chords.filter((chord) => chord.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat)
+      generated = applyMotifEcho(generated, trackId, sectionPlan, offset, length, chords, material.lead, beatsPerBar)
+    }
     track.notes.push(...generated.filter((note) => note.startBeat + 0.001 >= entryBeat))
   }
   return track
+}
+
+/**
+ * 主旋律の休みに、核(セクション冒頭の3〜4音)のリズムだけを既存パートが一度受け継ぐ。
+ * 音はその場の和音の構成音から、核の上下の向きをなぞって選ぶ(旋律を複製せず、リズムと輪郭だけを渡す)。
+ * 休みが足りなければ何もしない。
+ */
+function applyMotifEcho(
+  generated: GeneratedArrangementNote[],
+  trackId: ArrangementTrackId,
+  section: ArrangementSectionPlan,
+  offset: number,
+  length: number,
+  chords: ChordEvent[],
+  lead: MelodyNote[],
+  beatsPerBar: number,
+): GeneratedArrangementNote[] {
+  const melody = lead.filter((note) => note.startBeat >= offset && note.startBeat < offset + length).sort((a, b) => a.startBeat - b.startBeat)
+  const head = melody.slice(0, 3)
+  if (head.length < 3) return generated
+  const span = head.at(-1)!.startBeat - head[0].startBeat + Math.min(1, head.at(-1)!.durationBeats)
+  if (span > beatsPerBar / 2) return generated
+  // 最初のフレーズの後で、主旋律が休むか長く伸ばしている間(2拍以上)に核が収まる所を探す
+  let echoStart: number | null = null
+  for (let index = 0; index < melody.length; index++) {
+    const note = melody[index]
+    if (note.startBeat < offset + beatsPerBar * 2) continue
+    const next = melody[index + 1]?.startBeat ?? offset + length
+    const from = note.durationBeats >= 2 ? note.startBeat + .5 : note.startBeat + note.durationBeats
+    const start = Math.ceil((from - 1e-6) * 2) / 2
+    if (next - start >= span) {
+      echoStart = start
+      break
+    }
+  }
+  if (echoStart === null) return generated
+  const echoEnd = echoStart + span
+  const center = trackId === "syn-bass" ? 43 : 62
+  const kept = generated.filter((note) => note.startBeat + note.durationBeats <= echoStart! || note.startBeat >= echoEnd)
+  let previous: number | undefined
+  const echo = head.map((note, index) => {
+    const beat = echoStart! + (note.startBeat - head[0].startBeat)
+    const pcs = chordTonePcs(chordAtBeat(chords, beat - offset))
+    const wanted = previous === undefined ? center : previous + (note.pitch - head[index - 1].pitch)
+    const pitch = pcs
+      .flatMap((pc) => [-12, 0, 12].map((octave) => midiForPc(pc, wanted) + octave))
+      .filter((candidate) => Math.abs(candidate - center) <= 9)
+      .sort((a, b) => Math.abs(a - wanted) - Math.abs(b - wanted))[0] ?? midiForPc(pcs[0], center)
+    previous = pitch
+    const duration = Math.max(.25, Math.min(note.durationBeats, (head[index + 1]?.startBeat ?? note.startBeat + note.durationBeats) - note.startBeat))
+    return makeNote(trackId, section.sectionId, 900 + index, beat, duration, pitch, 46 + section.energy * .25, trackId === "syn-bass"
+      ? "主旋律の休みで、核のリズムを低音が一度だけ受け継ぐ"
+      : "主旋律の休みで、核のリズムを内声が一度だけ受け継ぐ", "safe")
+  })
+  return [...kept, ...echo].sort((a, b) => a.startBeat - b.startBeat)
 }
 
 const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([

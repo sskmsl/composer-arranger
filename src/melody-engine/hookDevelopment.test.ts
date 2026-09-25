@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { answerHook, hookPhraseRole, returningHook } from "./hookDevelopment"
+import { answerHook, climaxHook, developHook, hookPhraseRole, restoreHookHeads, returningHook, shiftInScale } from "./hookDevelopment"
+import { buildHarmonicMap } from "./harmonicMap"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 import type { MotifCore } from "./motifCore"
 
@@ -9,8 +10,11 @@ const source: MotifCore = {
 }
 
 describe("planned hook development", () => {
-  it("provides contrast and an explicit return, including abbreviated sections", () => {
-    expect(Array.from({ length: 4 }, (_, i) => hookPhraseRole(i, 4))).toEqual(["statement", "answer", "contrast", "return"])
+  it("develops the hook (small variation, then development) and returns it, including abbreviated sections", () => {
+    expect(Array.from({ length: 4 }, (_, i) => hookPhraseRole(i, 4))).toEqual(["statement", "answer", "develop", "return"])
+    // 16小節: 8小節と同じ流れの後、一段高い再提示から二段上の頂点(Verse は6割弱の位置)、頂点の後は余韻
+    expect(Array.from({ length: 8 }, (_, i) => hookPhraseRole(i, 8))).toEqual(
+      ["statement", "answer", "develop", "return", "rise", "climax", "answer", "return"])
     expect(Array.from({ length: 3 }, (_, i) => hookPhraseRole(i, 3))).toEqual(["statement", "answer", "return"])
     expect(Array.from({ length: 2 }, (_, i) => hookPhraseRole(i, 2))).toEqual(["statement", "answer"])
     expect(hookPhraseRole(0, 1)).toBeUndefined()
@@ -23,7 +27,34 @@ describe("planned hook development", () => {
     expect(Array.from({ length: 3 }, (_, i) => hookPhraseRole(i, 3, "standard", "chorus")))
       .toEqual(["statement", "answer", "return"])
     expect(Array.from({ length: 4 }, (_, i) => hookPhraseRole(i, 4, "standard", "verse")))
-      .toEqual(["statement", "answer", "contrast", "return"])
+      .toEqual(["statement", "answer", "develop", "return"])
+  })
+  it("develops with the rhythm kept and restates it higher without new material", () => {
+    const scale = [0, 2, 4, 5, 7, 9, 11]
+    const developed = developHook(source, scale)
+    expect(developed.events.map((event) => event.offsetBeats)).toEqual(source.events.map((event) => event.offsetBeats))
+    expect(developed.pitches.slice(0, 3)).toEqual(source.pitches.slice(0, 3))
+    expect(developed.pitches[3]).toBeGreaterThan(source.pitches[3])
+    const climax = climaxHook(source, scale)
+    expect(climax.events).toEqual(source.events)
+    expect(climax.pitches).toEqual([64, 67, 65, 71])
+    expect(climaxHook(source, scale, 1).pitches).toEqual([62, 65, 64, 69])
+    expect(shiftInScale(71, 1, scale)).toBe(72)
+  })
+  it("restores the hook head moved by later polishing, only where its rhythm is still the same", () => {
+    const map = buildHarmonicMap([
+      { id: "a", sectionId: "s", startBeat: 0, durationBeats: 8, symbol: "C", bass: null },
+      { id: "b", sectionId: "s", startBeat: 8, durationBeats: 8, symbol: "C", bass: null },
+    ])
+    const note = (startBeat: number, pitch: number, durationBeats = 1) => ({ id: `${startBeat}`, startBeat, durationBeats, pitch, velocity: 80, locks: [] })
+    const first = [note(0, 60), note(1, 64), note(2, 67), note(3, 64, 2)]
+    const changed = [note(8, 60), note(9, 62), note(10, 67), note(11, 64, 2)]
+    const plan = { coreLengthBeats: 4, phrases: [{ startBeat: 0, lengthBeats: 8, role: "statement" as const }, { startBeat: 8, lengthBeats: 8, role: "return" as const }] }
+    const restored = restoreHookHeads([...first, ...changed], plan, map, { low: 55, high: 79 }, [0, 2, 4, 5, 7, 9, 11])
+    expect(restored.filter((n) => n.startBeat >= 8).slice(0, 2).map((n) => n.pitch)).toEqual([60, 64])
+    // 対照側や、頭のリズムが違うフレーズには触らない
+    const contrastPlan = { ...plan, phrases: [plan.phrases[0], { ...plan.phrases[1], role: "contrast" as const }] }
+    expect(restoreHookHeads([...first, ...changed], contrastPlan, map, { low: 55, high: 79 }).map((n) => n.pitch)).toEqual([...first, ...changed].map((n) => n.pitch))
   })
   it("preserves the defining head and rhythm while varying the answer without mutating the source", () => {
     const original = structuredClone(source)

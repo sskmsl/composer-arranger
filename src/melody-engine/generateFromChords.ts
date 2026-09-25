@@ -21,7 +21,7 @@ import { buildHarmonicMap } from "./harmonicMap"
 import { resolveGenerationParams, type Density, type Drama, type GenerationParams, type RangeSetting } from "./generationParams"
 import { assemblePhrase, createPlacementDiagnostics, type PlacementDiagnostics } from "./phraseAssembler"
 import type { MotifCore } from "./motifCore"
-import { answerHook, capturePlacedHook, hookPhraseRole, returningHook } from "./hookDevelopment"
+import { answerHook, capturePlacedHook, climaxHook, developHook, hookPhraseRole, restoreHookHeads, returningHook, type HookHeadPlan } from "./hookDevelopment"
 import { computeMelodyFeatures } from "./features"
 import { scoreCandidate } from "./scoring"
 import { buildSignature, countDistinctCandidates, differenceCount, type DiversitySignature } from "./diversityFilter"
@@ -80,6 +80,8 @@ import { classicalLikeness } from "./classicalLikeness"
 import { refineTowardClassical } from "./classicalRefinement"
 import { CLASSICAL_MODELS } from "./classicalModels"
 import { selectCoreMotif } from "./hookFirst"
+import { measureMotifDevelopment } from "./motifRecognition"
+import { keyScalePitchClasses } from "@/core/scale"
 import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
 import { subtleHookVariation } from "./hookDevelopment"
 import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
@@ -114,6 +116,7 @@ interface Candidate {
   coreRetention?: number
   hookScore?: number
   emotionalScore?: number
+  hookHeadPlan?: HookHeadPlan
 }
 
 const GENERATOR_VERSION = "2.2"
@@ -172,6 +175,7 @@ function buildCandidate(
 
   let firstMotifCore: MotifCore | undefined
   let contrastMotifCore: MotifCore | undefined
+  const hookPhrases: HookHeadPlan["phrases"] = []
   const notes: MelodyNote[] = []
   const plans: PhrasePlan[] = []
   const placementDiagnostics = createPlacementDiagnostics()
@@ -189,6 +193,12 @@ function buildCandidate(
         ? hookRole === "statement" ? selectedCore?.core : firstMotifCore ? subtleHookVariation(firstMotifCore, "contrast") : undefined
         : hookRole === "answer" && firstMotifCore
           ? answerHook(firstMotifCore)
+          : hookRole === "develop" && firstMotifCore
+            ? developHook(firstMotifCore, params.keyScalePitchClasses)
+          : hookRole === "rise" && firstMotifCore
+            ? climaxHook(firstMotifCore, params.keyScalePitchClasses, 1)
+          : hookRole === "climax" && firstMotifCore
+            ? climaxHook(firstMotifCore, params.keyScalePitchClasses, 2)
           : hookRole === "return" && firstMotifCore
             ? returningHook(firstMotifCore)
             : hookRole === "contrast-answer" && contrastMotifCore
@@ -228,9 +238,14 @@ function buildCandidate(
       : capturePlacedHook(result.firstMotifCore, result.notes, phraseStart)
     notes.push(...result.notes)
     plans.push(result.plan)
+    hookPhrases.push({ startBeat: phraseStart, lengthBeats: phraseLen, role: hookRole })
     phraseStart += phraseLen
   }
 
+  // 仕上げの各段で動いた核の頭を、最後に戻すための計画(Hook-first の核があるときだけ)
+  const hookHeadPlan: HookHeadPlan | undefined = selectedCore
+    ? { coreLengthBeats: selectedCore.core.lengthBeats, phrases: hookPhrases }
+    : undefined
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
   const finish = (latePeak: boolean, emotionalShape = latePeak) => {
     const narrativeNotes = candidateMelodyDNA
@@ -291,10 +306,16 @@ function buildCandidate(
   const { finalNotes, features, score } = chosen
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const coreRetention = selectedCore ? features.hookStrength ?? 0 : undefined
+  // 核が最後まで分かる形で戻り、しかも字義どおりの反復だけではないか(動機の育ち方)も Hook の強さに含める
+  // (サビで意図的に対照素材 B を置く計画では、最初の核との関係だけで測ると B を減点してしまうので使わない)
+  const usesContrast = hookPhrases.some((phrase) => phrase.role?.startsWith("contrast"))
+  const development = selectedCore && !usesContrast
+    ? measureMotifDevelopment(finalNotes, selectedCore.core.lengthBeats, input.totalBeats).score
+    : undefined
   const hookScore = selectedCore ? 100 * (
     selectedCore.judgment.humability * .35 +
     selectedCore.judgment.hookability * .35 +
-    (coreRetention ?? 0) * .3
+    (development === undefined ? (coreRetention ?? 0) * .3 : (coreRetention ?? 0) * .24 + development * .06)
   ) : undefined
   // 感情点だけで弱いHookを押し上げない。核の再登場が薄い案では二段階目の重みを下げる。
   const emotionalScore = chosen.arc
@@ -316,6 +337,7 @@ function buildCandidate(
     coreRetention,
     hookScore,
     emotionalScore,
+    hookHeadPlan,
   }
 }
 
@@ -594,6 +616,7 @@ interface BuiltPattern {
   /** 仕上げ後の古典らしさ(古典=100)。候補選びに使う */
   craftScore?: number
   referenceScore?: number
+  hookHeadPlan?: HookHeadPlan
 }
 
 /**
@@ -852,6 +875,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreHookability: c.coreHookability,
         coreRetention: c.coreRetention,
         emotionalScore: c.emotionalScore,
+        hookHeadPlan: c.hookHeadPlan,
       }
     }
 
@@ -875,15 +899,16 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const craftSelection = Boolean(input.key) && CRAFT_SELECTION_WEIGHT[profile] > 0
     const poolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftCandidatePoolSize : CANDIDATE_SELECTION_CONFIG.candidatePoolSize
     const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
-    const craftNotes = (notes: MelodyNote[]) => enforceHarmonicIntegrity(
-      applyMelodicCraft(notes, {
+    const scale = input.key ? keyScalePitchClasses(input.key) : undefined
+    const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => enforceHarmonicIntegrity(
+      restoreHookHeads(applyMelodicCraft(notes, {
         harmonicMap,
         range: input.range,
         totalBeats: input.totalBeats,
         sectionRole: input.sectionRole,
         profile,
         key: input.key,
-      }),
+      }), hookHeadPlan, harmonicMap, input.range, scale),
       input.chords,
       input.range,
       { preserveExpressiveChordRoles: true },
@@ -894,7 +919,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         : built
       // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
       if (!craftSelection) return pattern
-      const craftedNotes = craftNotes(pattern.notes)
+      const craftedNotes = craftNotes(pattern.notes, pattern.hookHeadPlan)
       const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODELS).typicality * 100
       return { ...pattern, craftedNotes, craftScore }
     }
@@ -1062,19 +1087,19 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       results.push({
         notes: craftSelection && pattern.craftedNotes
           ? enforceHarmonicIntegrity(
-            refineTowardClassical(pattern.craftedNotes, {
+            restoreHookHeads(refineTowardClassical(pattern.craftedNotes, {
               harmonicMap,
               range: input.range,
               totalBeats: input.totalBeats,
               sectionRole: input.sectionRole,
               key: input.key,
               models: CLASSICAL_MODELS,
-            }).notes,
+            }).notes, pattern.hookHeadPlan, harmonicMap, input.range, scale),
             input.chords,
             input.range,
             { preserveExpressiveChordRoles: true },
           ).notes
-          : pattern.craftedNotes ?? craftNotes(pattern.notes),
+          : pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan),
         plans: pattern.plans,
         seed: pattern.seed,
         generatorProfile: profile,
