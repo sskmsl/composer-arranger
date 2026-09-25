@@ -3,7 +3,7 @@ import type { FullSongArrangement, GeneratedArrangementTrack } from "@/core/arra
 import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
-import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
+import { buildSmf, gridAlignedTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 
 const SOFTWARE_INSTRUMENT_MIDI_CHANNEL = 0
 
@@ -35,8 +35,7 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
     name: track.name,
     notes: track.notes.map((note) => ({
       pitch: note.pitch,
-      start: Math.round(note.startBeat * TICKS_PER_QUARTER),
-      duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+      ...gridAlignedTicks(note.startBeat, note.durationBeats),
       velocity: note.velocity,
       channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
     })),
@@ -75,8 +74,7 @@ function song(
               name: "Selected Counter Melody",
               notes: selectedMaterial.counterLayers.map((note) => ({
                 pitch: note.pitch,
-                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
-                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                ...gridAlignedTicks(note.startBeat, note.durationBeats),
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
@@ -87,8 +85,7 @@ function song(
               name: "Selected Decoration",
               notes: selectedMaterial.decorationLayers.map((note) => ({
                 pitch: note.pitch,
-                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
-                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                ...gridAlignedTicks(note.startBeat, note.durationBeats),
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
@@ -99,8 +96,7 @@ function song(
               name: "Selected Phrases",
               notes: selectedMaterial.phraseLayers.map((note) => ({
                 pitch: note.pitch,
-                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
-                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                ...gridAlignedTicks(note.startBeat, note.durationBeats),
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
@@ -111,8 +107,7 @@ function song(
               name: "Selected Intro Phrases",
               notes: selectedMaterial.signaturePhraseLayers.map((note) => ({
                 pitch: note.pitch,
-                start: Math.round(note.startBeat * TICKS_PER_QUARTER),
-                duration: Math.max(1, Math.round(note.durationBeats * TICKS_PER_QUARTER)),
+                ...gridAlignedTicks(note.startBeat, note.durationBeats),
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),

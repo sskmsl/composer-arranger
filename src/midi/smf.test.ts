@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildSmf, TICKS_PER_QUARTER } from "./smf"
+import { buildSmf, gridAlignedTicks, TICKS_PER_QUARTER } from "./smf"
 import { parseTimeSignature } from "@/core/section"
 
 /** SMFバイト列からFF 58 04(拍子メタイベント)を探し、[分子, 分母(2^n)]を返す */
@@ -47,5 +47,16 @@ describe("buildSmf / time signature meta event (issue #6)", () => {
     const [numerator, denomPow2] = findTimeSignatureMeta(bytes)
     expect(numerator).toBe(4)
     expect(2 ** denomPow2).toBe(4)
+  })
+})
+
+describe("gridAlignedTicks", () => {
+  it("試聴用の小さな揺らぎは16分・3連のグリッドへ戻し、大きなずれは意図したリズムとして残す", () => {
+    expect(gridAlignedTicks(0.9994, 1.4856)).toEqual({ start: 480, duration: 720 })
+    expect(gridAlignedTicks(2.5083, 0.975)).toEqual({ start: 1200, duration: 480 })
+    // 3連(1/3拍)はそのまま
+    expect(gridAlignedTicks(1 / 3, 1 / 3)).toEqual({ start: 160, duration: 160 })
+    // 0.1拍のずれは意図したものとして残す
+    expect(gridAlignedTicks(2.1, 1)).toEqual({ start: 1008, duration: 480 })
   })
 })

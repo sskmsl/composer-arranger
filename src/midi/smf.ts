@@ -3,6 +3,29 @@
  */
 export const TICKS_PER_QUARTER = 480
 
+/** 16分・3連のグリッドへ寄せる距離(拍)。これより大きいずれは意図したリズムとして残す */
+const GRID_SNAP_BEATS = 0.06
+
+function snapBeat(beat: number): number {
+  const sixteenth = Math.round(beat * 4) / 4
+  const triplet = Math.round(beat * 3) / 3
+  const nearest = Math.abs(sixteenth - beat) <= Math.abs(triplet - beat) ? sixteenth : triplet
+  return Math.abs(nearest - beat) <= GRID_SNAP_BEATS ? nearest : beat
+}
+
+/**
+ * 音の開始と終わりを tick にする。試聴用の揺らぎ(数十ミリ秒の前後)はグリッドに戻し、
+ * Logic Pro で読み込んだときに小節線・拍とそろうようにする。
+ */
+export function gridAlignedTicks(startBeat: number, durationBeats: number): { start: number; duration: number } {
+  const start = snapBeat(startBeat)
+  const end = Math.max(start + 1 / 8, snapBeat(startBeat + durationBeats))
+  return {
+    start: Math.round(start * TICKS_PER_QUARTER),
+    duration: Math.max(1, Math.round((end - start) * TICKS_PER_QUARTER)),
+  }
+}
+
 export interface MidiNote {
   pitch: number
   start: number

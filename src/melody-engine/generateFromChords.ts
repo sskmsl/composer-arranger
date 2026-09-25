@@ -74,6 +74,7 @@ import {
 import type { ResolvedComposerRules } from "@/composer-intelligence"
 import type { ResolvedMusicContext } from "@/core/musicContext"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
+import { applyMelodicCraft } from "./melodicCraft"
 import { selectCoreMotif } from "./hookFirst"
 import { subtleHookVariation } from "./hookDevelopment"
 import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
@@ -994,8 +995,22 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       const generationDiagnostics = allDiagnostics.find(
         (d) => d.batchBaseSeed === baseSeed && d.candidatePoolIndex === pattern.candidatePoolIndex,
       )
+      // 仕上げ: 同音連打・跳躍の回収・サビの頂点・終わり方。直した後もコードとの整合を取り直す
+      const craftedNotes = enforceHarmonicIntegrity(
+        applyMelodicCraft(pattern.notes, {
+          harmonicMap,
+          range: input.range,
+          totalBeats: input.totalBeats,
+          sectionRole: input.sectionRole,
+          profile,
+          key: input.key,
+        }),
+        input.chords,
+        input.range,
+        { preserveExpressiveChordRoles: true },
+      ).notes
       results.push({
-        notes: pattern.notes,
+        notes: craftedNotes,
         plans: pattern.plans,
         seed: pattern.seed,
         generatorProfile: profile,

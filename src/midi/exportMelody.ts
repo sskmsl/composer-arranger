@@ -7,7 +7,7 @@ import { notesByPartRole } from "@/core/sectionLayers"
 import { parseTimeSignature } from "@/core/section"
 import { parseChordSymbol } from "@/core/chord"
 import { voiceChord } from "@/audio/chordVoicing"
-import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
+import { buildSmf, gridAlignedTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 
 /**
@@ -51,9 +51,8 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
   const inRange = (note: MelodyNote) => note.startBeat >= range.startBeat && note.startBeat < range.endBeat
   const toSmfNote = (note: MelodyNote) => ({
     pitch: note.pitch,
-    start: beatsToTicks(note.startBeat - range.startBeat),
     // 持続音はそのまま書き出す(コード境界での分割はしない)
-    duration: beatsToTicks(note.durationBeats),
+    ...gridAlignedTicks(note.startBeat - range.startBeat, note.durationBeats),
     velocity: note.velocity,
     channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
   })
@@ -137,8 +136,7 @@ export function exportSongMidi(project: ComposerProject, includeChords = true, i
   )
   const toSmfNote = (note: MelodyNote) => ({
     pitch: note.pitch,
-    start: beatsToTicks(note.startBeat),
-    duration: beatsToTicks(note.durationBeats),
+    ...gridAlignedTicks(note.startBeat, note.durationBeats),
     velocity: note.velocity,
     channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
   })
