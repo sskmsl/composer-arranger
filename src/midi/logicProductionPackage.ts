@@ -358,6 +358,18 @@ const SONG_MIDI_TRACK_NAMES: Partial<Record<LogicProductionTrackId, string>> = {
   "selected-intro-phrase": "Selected Intro Phrases",
 }
 
+/** Logic表の「パート」欄に出す日本語名 */
+const SONG_TRACK_ROLES: Partial<Record<LogicProductionTrackId, string>> = {
+  "chord-guide": "コード（ベース音を含む）",
+  "active-melody": "主旋律",
+  "melody-accompaniment": "主旋律の伴奏",
+  pulse: "伴奏パターン",
+  counter: "対旋律",
+  decoration: "合いの手・装飾",
+  "selected-phrase": "短いフレーズ",
+  "selected-intro-phrase": "イントロのフレーズ",
+}
+
 const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; product: string; setting: string }> = [
   { match: (id) => id.startsWith("dr-"), role: "ドラム", product: "Battery 4", setting: "KickとSnareを基準に、Hatは控えめ／定位 Center〜±30／残響 Short Room" },
   { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
@@ -398,7 +410,7 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
     if (!source || source.notes.length === 0) return []
     return [{
       trackName: SONG_MIDI_TRACK_NAMES[id] ?? source.name,
-      role: id === "chord-guide" ? "コード（ベース音を含む）" : source.role,
+      role: SONG_TRACK_ROLES[id] ?? source.role,
       product: source.recommendations[0]?.product ?? "—",
       setting: sourceSetting(source),
     }]

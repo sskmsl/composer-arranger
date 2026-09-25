@@ -6,6 +6,9 @@ import {
   describeArrangementChanges,
   diffArrangementMatrices,
   arrangementPartMatrix,
+  currentArrangementVersion,
+  projectWithLayerProposal,
+  recipeFromArrangement,
   type ArrangementChatProposal,
   type ArrangementChatState,
   type ArrangementRecipe,
@@ -21,6 +24,15 @@ import { directionAuditionDirectiveForIntent, directionAuditionSeed } from "./di
 import { conciseDirectionText, plainDirectionText } from "./directionPresentation"
 import { directiveWithTimelineConstraints } from "./timelineConstraints"
 import { MAX_AI_CONVERSATION_TURNS } from "./conversation"
+import {
+  buildLayerProposal,
+  COUNTER_MODE_TEXT,
+  counterModeFromText,
+  layerKindFromText,
+  layerLabel,
+  layerRemovalFromText,
+  removalLayerProposal,
+} from "./arrangementLayers"
 import type {
   AiArrangementContext,
   AiArrangementGenerator,
@@ -148,7 +160,69 @@ export function proposalsFromResponse(
   const sections = before.map((section) => ({ sectionId: section.sectionId, name: section.name }))
   const totalBars = project.sections.reduce((sum, section) => sum + Math.max(1, section.lengthBars), 0)
   const revision = current ? Math.max(0, ...current.tracks.map((track) => track.generationRevision)) + 1 : 0
-  return response.intents.map((intent, index) => {
+  // 対旋律・合いの手の相談は、伴奏パートを作り直さず、その層だけを作る(外す)案にする
+  const removal = layerRemovalFromText([userMessage])
+  const askedLayer = removal ? null : layerKindFromText([userMessage])
+  const currentRecipe = currentArrangementVersion(project.arrangementChat, current)?.recipe
+    ?? (current ? recipeFromArrangement(current) : undefined)
+  const layerProposal = (
+    intent: AiArrangementResponse["intents"][number],
+    index: number,
+    kind: "counter" | "fill",
+  ): ArrangementChatProposal => {
+    // 利用者がセクションを名指ししていればそれだけ。していなければAIの案の文面から
+    const scope = scopeSectionIdsFromText(project, userMessage, [])
+      ?? (WHOLE_SONG_WORDS.test(userMessage) ? undefined : scopeSectionIdsFromText(project, "", [intent.title, intent.generationBrief]))
+    // 対旋律は、言葉で指定がなければ 案A=下で流れる・案B=上で流れる・案C=答える の3通りを出す
+    const counterMode = kind === "counter"
+      ? counterModeFromText(userMessage) ?? (["flowing-below", "flowing-above", "answer"] as const)[index % 3]
+      : undefined
+    const layer = removal
+      ? removalLayerProposal(project, kind, scope)
+      : buildLayerProposal(project, kind, {
+          scopeSectionIds: scope,
+          seed: directionAuditionSeed(project, response.requestId, intent, index),
+          text: `${userMessage}\n${intent.generationBrief}`,
+          ...(counterMode ? { counterMode } : {}),
+        })
+    const after = arrangementPartMatrix(projectWithLayerProposal(project, layer), current)
+    const points = [
+      ...describeArrangementChanges(diffArrangementMatrices(before, after), sections),
+      ...(layer.skipped ?? []).map((item) =>
+        `${sections.find((section) => section.sectionId === item.sectionId)?.name ?? ""}：${item.reason}（${layerLabel(kind)}は作れませんでした）`,
+      ),
+    ]
+    const intentMatches = removal === null && (
+      (kind === "counter" && intent.generator === "counter") || (kind === "fill" && intent.generator === "decoration")
+    )
+    return {
+      id: `${idPrefix}:${intent.id}`,
+      label: PROPOSAL_LABELS[index] ?? `案${index + 1}`,
+      title: counterMode && !removal
+        ? COUNTER_MODE_TEXT[counterMode].title
+        : intentMatches
+          ? conciseDirectionText(plainDirectionText(intent.title), 40)
+          : `${layerLabel(kind)}を${removal ? "外す" : "足す"}`,
+      summary: counterMode && !removal
+        ? COUNTER_MODE_TEXT[counterMode].summary
+        : intentMatches
+          ? conciseDirectionText(plainDirectionText(intent.emotionalFunction || intent.generationBrief), 120)
+          : removal
+          ? `${layerLabel(kind)}を外して、主旋律と伴奏だけにします。`
+          : kind === "counter"
+            ? "主旋律の後ろで、答えるように動くもう一本の線を足します。"
+            : "主旋律のフレーズの切れ目に、短い合いの手を入れます。",
+      points: points.length > 0 ? points : ["いまの版とほとんど変わりません"],
+      generator: kind === "counter" ? "counter" : "decoration",
+      generationBrief: intent.generationBrief,
+      recipe: currentRecipe ?? { brief: "", seed: 0, revision: 0 },
+      layer,
+    }
+  }
+  const proposals = response.intents.map((intent, index): ArrangementChatProposal => {
+    const kind = removal ?? askedLayer
+      ?? (intent.generator === "counter" ? "counter" : intent.generator === "decoration" ? "fill" : null)
+    if (kind) return layerProposal(intent, index, kind)
     const brief = [...confirmedConstraints, userMessage, intent.title, intent.generationBrief]
       .filter(Boolean)
       .join("。")
@@ -192,4 +266,6 @@ export function proposalsFromResponse(
       recipe,
     }
   })
+  // 外す案はどれも同じなので1つにまとめる
+  return removal ? proposals.slice(0, 1) : proposals
 }
