@@ -31,12 +31,13 @@ import { songTempoChanges } from "@/core/tempoMap"
 import { useProjectStore } from "@/store/useProjectStore"
 import { Button } from "@/ui/primitives"
 import type { ArrangementChatModel } from "./useArrangementChat"
+import type { ComposerProject } from "@/core/project"
 
 const FIRST_SUGGESTIONS = [
+  "サビでメロディの後ろに対旋律を流したい",
+  "フレーズの切れ目に合いの手を入れたい",
   "全体を聴いて、気になる所を教えて",
-  "サビをもう少し開けた感じにしたい",
   "Aメロはもっと静かにして、サビとの差をつけたい",
-  "イントロをもっと印象的にしたい",
 ]
 
 const ANOTHER_PROPOSAL = "別の案もほしい"
@@ -155,7 +156,13 @@ export function ArrangementChatPanel({
   }
 
   /** 変化のあるセクションだけを、変更前/変更後の全曲アレンジで鳴らす */
-  const listen = (key: ListenKey, arrangement: FullSongArrangement | undefined, changes: ArrangementCellChange[]) => {
+  const listen = (
+    key: ListenKey,
+    arrangement: FullSongArrangement | undefined,
+    changes: ArrangementCellChange[],
+    /** 対旋律・合いの手の案では、その層を付けた曲で鳴らす */
+    target: ComposerProject = project,
+  ) => {
     if (listening === key) {
       stopListening()
       return
@@ -168,7 +175,7 @@ export function ArrangementChatPanel({
       startBeat: (sections[0].startBar - 1) * beatsPerBar,
       endBeat: sections[sections.length - 1].endBar * beatsPerBar,
     }
-    const material = buildSongPlaybackMaterial(project, arrangement?.plan.directive?.timelineConstraints)
+    const material = buildSongPlaybackMaterial(target, arrangement?.plan.directive?.timelineConstraints)
     const importedSource = project.sourceImport?.type === "midi"
     const runId = listenRunRef.current + 1
     listenRunRef.current = runId
@@ -180,7 +187,8 @@ export function ArrangementChatPanel({
       melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
       arrangementTracks: arrangement?.tracks.filter((track) => !track.muted) ?? [],
-      mode: "chords-melody",
+      reactive: material.reactiveLayers,
+      mode: "active-context-reactive",
       range,
       onEnded: () => {
         if (listenRunRef.current === runId) setListening(null)
@@ -281,7 +289,7 @@ export function ArrangementChatPanel({
         {messages.length === 0 && !sendingText && (
           <div className="rounded-lg border border-hairline bg-white/[0.03] p-3 text-[13px] leading-6 text-body-muted">
             {model.project.fullSongArrangement
-              ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。AIの提案は「変更案」として1つずつ届き、変更前と変更後を聴き比べてから適用できます。適用した結果は版として残り、いつでも戻せます。"
+              ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。メロディの後ろに流す対旋律や、フレーズの切れ目の合いの手も頼めます（「サビに弦で対旋律を」など）。AIの提案は「変更案」として1つずつ届き、変更前と変更後を聴き比べてから適用できます。適用した結果は版として残り、いつでも戻せます。"
               : "まず全曲の方向を選んで全曲アレンジを作ると、それを土台に相談できます。いきなり「こんな感じにしたい」と伝えて始めることもできます。"}
           </div>
         )}
@@ -404,7 +412,7 @@ function AssistantMessage({
   listening: ListenKey | null
   versionNumber: number | undefined
   isCurrentVersion: boolean
-  onListen: (key: ListenKey, arrangement: FullSongArrangement | undefined, changes: ArrangementCellChange[]) => void
+  onListen: (key: ListenKey, arrangement: FullSongArrangement | undefined, changes: ArrangementCellChange[], target?: ComposerProject) => void
   onApply: (proposal: ArrangementChatProposal) => void
   onDismiss: () => void
   onUndo: () => void
@@ -417,7 +425,13 @@ function AssistantMessage({
   // 開いている案は、いまの版と実際に作った全曲アレンジを比べた変化を表示する
   const changes = isOpen && shown ? model.pendingChanges : []
   const points = isOpen && shown
-    ? describeArrangementChanges(changes, model.matrix.map((section) => ({ sectionId: section.sectionId, name: section.name })))
+    ? [
+        ...describeArrangementChanges(changes, model.matrix.map((section) => ({ sectionId: section.sectionId, name: section.name }))),
+        // 対旋律を作れなかったセクション(主旋律がない等)の理由も添える
+        ...(shown.layer?.skipped ?? []).map((item) =>
+          `${model.matrix.find((section) => section.sectionId === item.sectionId)?.name ?? ""}：${item.reason}（${shown.layer!.kind === "counter" ? "対旋律" : "合いの手"}は作れませんでした）`,
+        ),
+      ]
     : shown?.points ?? []
 
   return (
@@ -451,13 +465,28 @@ function AssistantMessage({
           <p className="text-[13px] font-medium text-body-on-dark">{shown.title}</p>
           {shown.summary && <p className="text-[13px] leading-5 text-body-muted">{shown.summary}</p>}
           <p className="text-[12px] text-ink-soft">
-            作り直す範囲：
-            {shown.recipe.scopeSectionIds?.length
-              ? model.matrix
-                  .filter((section) => shown.recipe.scopeSectionIds!.includes(section.sectionId))
-                  .map((section) => section.name)
-                  .join("・") + "（ほかはいまの版のまま）"
-              : "曲全体"}
+            {shown.layer
+              ? (() => {
+                  // 対旋律・合いの手の案は伴奏パートを変えず、その層だけを付ける(外す)
+                  const ids = new Set([
+                    ...shown.layer.candidates.map((candidate) => candidate.sectionId),
+                    ...(shown.layer.removeSectionIds ?? []),
+                  ])
+                  const names = model.matrix.filter((section) => ids.has(section.sectionId)).map((section) => section.name).join("・")
+                  const label = shown.layer.kind === "counter" ? "対旋律" : "合いの手"
+                  return names
+                    ? `${label}を${shown.layer.candidates.length > 0 ? "付ける" : "外す"}所：${names}（伴奏パートはいまの版のまま）`
+                    : `${label}を付けられるセクションがありません`
+                })()
+              : <>
+                  作り直す範囲：
+                  {shown.recipe.scopeSectionIds?.length
+                    ? model.matrix
+                        .filter((section) => shown.recipe.scopeSectionIds!.includes(section.sectionId))
+                        .map((section) => section.name)
+                        .join("・") + "（ほかはいまの版のまま）"
+                    : "曲全体"}
+                </>}
           </p>
           <ul className="flex flex-col gap-1 text-[13px] leading-5 text-body-on-dark">
             {(points.length > 0 ? points : ["いまの版とほとんど変わりません"]).map((point) => (
@@ -477,7 +506,7 @@ function AssistantMessage({
               </Button>
               <Button
                 variant="dark"
-                onClick={() => onListen(`${shown.id}:after`, model.arrangementFor(shown), changes)}
+                onClick={() => onListen(`${shown.id}:after`, model.arrangementFor(shown), changes, model.projectFor(shown))}
               >
                 {listening === `${shown.id}:after` ? <><Square size={12} /> 停止</> : <><Play size={12} /> 変更後を聴く</>}
               </Button>

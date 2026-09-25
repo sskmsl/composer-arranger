@@ -1,8 +1,12 @@
 import {
   arrangementForVersion,
   arrangementPartMatrix,
+  currentArrangementVersion,
   diffArrangementMatrices,
   emptyArrangementChat,
+  layerAssignmentsOf,
+  projectWithLayerProposal,
+  withLayerAssignments,
   MAX_ARRANGEMENT_CHAT_MESSAGES,
   pushArrangementVersion,
   recipeFromArrangement,
@@ -21,7 +25,7 @@ export interface ArrangementChatActions {
   /** 会話を足す(利用者の発言・AIの返事)。confirmedConstraints はAIが返した最新の一覧 */
   appendArrangementChatMessages: (messages: ArrangementChatMessage[], confirmedConstraints?: string[]) => void
   /** 変更案を適用する。試聴した全曲アレンジそのものを受け取り、版として積む */
-  applyArrangementChatProposal: (messageId: string, proposalId: string, arrangement: FullSongArrangement) => void
+  applyArrangementChatProposal: (messageId: string, proposalId: string, arrangement: FullSongArrangement | undefined) => void
   dismissArrangementChatProposals: (messageId: string) => void
   /** 版を戻す(生成条件から全曲アレンジを作り直す。原曲のみの版は追加パートを外す) */
   restoreArrangementVersion: (versionId: string) => void
@@ -64,21 +68,31 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
       const message = chat.messages.find((candidate) => candidate.id === messageId)
       const proposal = message?.proposals?.find((candidate) => candidate.id === proposalId)
       if (!message || !proposal || message.appliedProposalId) return
-      const next = { ...prev, fullSongArrangement: arrangement }
+      // 対旋律・合いの手の案は伴奏パートを変えず、その層だけを付ける(外す)
+      const next = proposal.layer
+        ? projectWithLayerProposal(prev, proposal.layer)
+        : { ...prev, fullSongArrangement: arrangement }
+      const nextArrangement = proposal.layer ? prev.fullSongArrangement : arrangement
       const changes = diffArrangementMatrices(
         arrangementPartMatrix(prev, prev.fullSongArrangement),
-        arrangementPartMatrix(next, arrangement),
+        arrangementPartMatrix(next, nextArrangement),
       )
       const createdAt = new Date().toISOString()
       const versionId = `version:${proposal.id}`
+      // 対旋律・合いの手の版は、伴奏パートをいまの版と同じ条件で作れるようにする
+      const recipe = proposal.layer
+        ? currentArrangementVersion(chat, prev.fullSongArrangement)?.recipe
+          ?? (prev.fullSongArrangement ? recipeFromArrangement(prev.fullSongArrangement) : undefined)
+        : proposal.recipe
       const withVersion = pushArrangementVersion(chat, prev.fullSongArrangement, {
         id: versionId,
         label: proposal.title,
         createdAt,
-        recipe: proposal.recipe,
-        arrangementId: arrangement.id,
+        ...(recipe ? { recipe } : {}),
+        arrangementId: nextArrangement?.id ?? null,
         changes,
-      })
+        layers: layerAssignmentsOf(next),
+      }, layerAssignmentsOf(prev))
       set({
         history: [...get().history, snapshot(prev)],
         future: [],
@@ -122,11 +136,13 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
       const fullSongArrangement = arrangementForVersion(chat.versions, version.id, (recipe) =>
         generateFullSongArrangement(prev, recipe),
       )
+      // 対旋律・合いの手も、その版のときの付け方に戻す(記録のない古い版では触らない)
+      const withLayers = version.layers ? withLayerAssignments(prev, version.layers) : prev
       set({
         history: [...get().history, snapshot(prev)],
         future: [],
         project: {
-          ...prev,
+          ...withLayers,
           fullSongArrangement,
           arrangementChat: {
             ...chat,
@@ -171,7 +187,8 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
         arrangementId: arrangement.id,
         changes: diffArrangementMatrices(arrangementPartMatrix(prev, current), arrangementPartMatrix(next, arrangement)),
         source: "direction",
-      })
+        layers: layerAssignmentsOf(prev),
+      }, layerAssignmentsOf(prev))
       set({
         history: [...get().history, snapshot(prev)],
         future: [],

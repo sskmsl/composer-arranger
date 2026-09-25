@@ -3,6 +3,7 @@ import {
   arrangementPartMatrix,
   currentArrangementVersion,
   diffArrangementMatrices,
+  projectWithLayerProposal,
   type ArrangementCellChange,
   type ArrangementChatMessage,
   type ArrangementChatProposal,
@@ -25,15 +26,18 @@ export interface ArrangementChatModel {
   selectedProposal: ArrangementChatProposal | null
   selectProposal: (proposalId: string) => void
   pendingChanges: ArrangementCellChange[]
-  /** 変更案の全曲アレンジ(生成条件から作る。同じ曲の状態なら使い回す) */
-  arrangementFor: (proposal: ArrangementChatProposal) => FullSongArrangement
+  /** 変更案の全曲アレンジ(生成条件から作る。同じ曲の状態なら使い回す)。対旋律・合いの手の案は今のまま */
+  arrangementFor: (proposal: ArrangementChatProposal) => FullSongArrangement | undefined
+  /** 変更案を当てた曲(対旋律・合いの手の案は、その層を付けた曲) */
+  projectFor: (proposal: ArrangementChatProposal) => ComposerProject
   changesFor: (proposal: ArrangementChatProposal) => ArrangementCellChange[]
 }
 
 // 曲の状態(project)ごとに、変更案の全曲アレンジを覚えておく。曲が変われば自然に作り直す
 const proposalArrangementCache = new WeakMap<ComposerProject, Map<string, FullSongArrangement>>()
 
-function proposalArrangement(project: ComposerProject, proposal: ArrangementChatProposal): FullSongArrangement {
+function proposalArrangement(project: ComposerProject, proposal: ArrangementChatProposal): FullSongArrangement | undefined {
+  if (proposal.layer) return project.fullSongArrangement
   let byProposal = proposalArrangementCache.get(project)
   if (!byProposal) {
     byProposal = new Map()
@@ -82,13 +86,21 @@ export function useArrangementChat(): ArrangementChatModel {
     : null
 
   const arrangementFor = (proposal: ArrangementChatProposal) => proposalArrangement(project, proposal)
+  const projectFor = (proposal: ArrangementChatProposal) =>
+    proposal.layer ? projectWithLayerProposal(project, proposal.layer) : project
   const changesFor = (proposal: ArrangementChatProposal): ArrangementCellChange[] =>
-    diffArrangementMatrices(matrix, arrangementPartMatrix(project, proposalArrangement(project, proposal)))
+    diffArrangementMatrices(matrix, arrangementPartMatrix(projectFor(proposal), proposalArrangement(project, proposal)))
 
   // 表に出す「提案中」の印は、選んでいる案についてだけ求める
   const pendingChanges = useMemo(
     () => selectedProposal
-      ? diffArrangementMatrices(matrix, arrangementPartMatrix(project, proposalArrangement(project, selectedProposal)))
+      ? diffArrangementMatrices(
+          matrix,
+          arrangementPartMatrix(
+            selectedProposal.layer ? projectWithLayerProposal(project, selectedProposal.layer) : project,
+            proposalArrangement(project, selectedProposal),
+          ),
+        )
       : [],
     [matrix, project, selectedProposal],
   )
@@ -104,6 +116,7 @@ export function useArrangementChat(): ArrangementChatModel {
     selectProposal: setSelectedProposalId,
     pendingChanges,
     arrangementFor,
+    projectFor,
     changesFor,
   }
 }

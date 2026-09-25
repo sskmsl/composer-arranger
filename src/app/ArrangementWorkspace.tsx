@@ -94,7 +94,9 @@ export function ArrangementWorkspace({
       melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
       arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
-      mode: "chords-melody",
+      // 相談で付けた対旋律・合いの手も一緒に鳴らす
+      reactive: material.reactiveLayers,
+      mode: "active-context-reactive",
       startBeat,
       range: { startBeat, endBeat: material.totalBeats },
       onEnded: () => {
@@ -166,7 +168,9 @@ export function ArrangementWorkspace({
       melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
       arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
-      mode: "chords-melody",
+      // 相談で付けた対旋律・合いの手も一緒に鳴らす
+      reactive: material.reactiveLayers,
+      mode: "active-context-reactive",
       range,
       onEnded: () => {
         setPlaybackBeat(range.endBeat)
@@ -201,7 +205,9 @@ export function ArrangementWorkspace({
       melody: material.melody,
       accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
       arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
-      mode: "chords-melody",
+      // 相談で付けた対旋律・合いの手も一緒に鳴らす
+      reactive: material.reactiveLayers,
+      mode: "active-context-reactive",
       range,
       onEnded: () => {
         if (playbackRunRef.current !== runId) return

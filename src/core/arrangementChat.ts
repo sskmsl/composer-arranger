@@ -4,6 +4,7 @@ import type {
   FullSongArrangement,
 } from "./arrangementGeneration"
 import type { ComposerProject } from "./project"
+import type { ReactiveLayerCandidate } from "./reactiveLayer"
 import { parseTimeSignature } from "./section"
 import { buildSongPlaybackMaterial, normalizeSectionTimeline } from "./sectionTimeline"
 
@@ -53,6 +54,30 @@ export interface ArrangementVersion {
   changes: ArrangementCellChange[]
   /** 一部のセクションだけ作り直した版の、元になった版 */
   baseVersionId?: string
+  /**
+   * この版で鳴らす対旋律・合いの手(セクションごとの候補ID)。戻すときにこの通りに付け直す。
+   * 持たない古い版では、戻しても対旋律・合いの手には触らない
+   */
+  layers?: ArrangementLayerAssignments
+}
+
+/** セクションごとに採用している対旋律(counter)と合いの手(fill = 装飾)の候補ID */
+export interface ArrangementLayerAssignments {
+  counter: Record<string, string>
+  fill: Record<string, string>
+}
+
+export type ArrangementLayerKind = "counter" | "fill"
+
+/** 相談で作る対旋律・合いの手の案。候補そのものを持ち、適用するとセクションへ付ける */
+export interface ArrangementLayerProposal {
+  kind: ArrangementLayerKind
+  /** 付ける候補(セクションごとに1つ) */
+  candidates: ReactiveLayerCandidate[]
+  /** 外すセクション(「対旋律は外して」) */
+  removeSectionIds?: string[]
+  /** 作れなかったセクションと理由 */
+  skipped?: Array<{ sectionId: string; reason: string }>
 }
 
 export interface ArrangementChatProposal {
@@ -67,6 +92,8 @@ export interface ArrangementChatProposal {
   generator: string
   generationBrief: string
   recipe: ArrangementRecipe
+  /** 対旋律・合いの手の案(伴奏パートは変えない) */
+  layer?: ArrangementLayerProposal
 }
 
 export interface ArrangementChatMessage {
@@ -95,6 +122,8 @@ export const MAX_ARRANGEMENT_CHAT_MESSAGES = 60
 export const MAX_ARRANGEMENT_VERSIONS = 30
 
 export type ArrangementPartRowId =
+  | "counter"
+  | "fill"
   | "drums"
   | "bass"
   | "pulse"
@@ -111,8 +140,13 @@ export interface ArrangementPartRow {
   trackIds: ArrangementTrackId[]
 }
 
-/** 21の生成トラックを、耳で区別しやすい8つのパートにまとめる */
+/**
+ * 21の生成トラックを、耳で区別しやすい8つのパートにまとめる。
+ * 先頭の対旋律・合いの手は全曲アレンジのトラックではなく、セクションに付けた対旋律・装飾の候補
+ */
 export const ARRANGEMENT_PART_ROWS: ArrangementPartRow[] = [
+  { id: "counter", label: "対旋律", color: "#f9a8d4", trackIds: [] },
+  { id: "fill", label: "合いの手", color: "#fde68a", trackIds: [] },
   {
     id: "drums",
     label: "ドラム",
@@ -220,7 +254,7 @@ export function arrangementPartMatrix(
   const sections = normalizeSectionTimeline(project.sections)
   const material = buildSongPlaybackMaterial(project, arrangement?.plan.directive?.timelineConstraints)
   const leadNotes = [...material.melody]
-  const grouped = new Map<string, Array<{ trackId: ArrangementTrackId; startBeat: number; durationBeats: number; pitch: number }>>()
+  const grouped = new Map<string, Array<{ trackId: string; startBeat: number; durationBeats: number; pitch: number }>>()
   for (const track of arrangement?.tracks ?? []) {
     if (track.muted) continue
     const rowId = ROW_BY_TRACK.get(track.id)
@@ -235,9 +269,14 @@ export function arrangementPartMatrix(
   return sections.map((section) => {
     const startBeat = (section.startBar - 1) * beatsPerBar
     const endBeat = startBeat + section.lengthBars * beatsPerBar
+    const inSection = (note: { startBeat: number }) => note.startBeat >= startBeat && note.startBeat < endBeat
+    const layerNotes: Partial<Record<ArrangementPartRowId, Array<{ trackId: string; startBeat: number; durationBeats: number; pitch: number }>>> = {
+      counter: material.counterLayers.filter(inSection).map((note) => ({ ...note, trackId: "counter" })),
+      fill: material.decorationLayers.filter(inSection).map((note) => ({ ...note, trackId: "fill" })),
+    }
     const cells = {} as Record<ArrangementPartRowId, ArrangementMatrixCell>
     for (const row of ARRANGEMENT_PART_ROWS) {
-      const notes = grouped.get(`${section.id}:${row.id}`) ?? []
+      const notes = layerNotes[row.id] ?? grouped.get(`${section.id}:${row.id}`) ?? []
       if (notes.length === 0) {
         cells[row.id] = emptyCell()
         continue
@@ -342,6 +381,39 @@ export function recipeFromArrangement(arrangement: FullSongArrangement): Arrange
   }
 }
 
+/** いまセクションに付いている対旋律・合いの手 */
+export function layerAssignmentsOf(project: ComposerProject): ArrangementLayerAssignments {
+  return {
+    counter: { ...(project.sectionReactiveLayerAssignments ?? {}) },
+    fill: { ...(project.sectionDecorationLayerAssignments ?? {}) },
+  }
+}
+
+/** 対旋律・合いの手の付け方を差し替えた曲 */
+export function withLayerAssignments(project: ComposerProject, layers: ArrangementLayerAssignments): ComposerProject {
+  return {
+    ...project,
+    sectionReactiveLayerAssignments: { ...layers.counter },
+    sectionDecorationLayerAssignments: { ...layers.fill },
+  }
+}
+
+/** 対旋律・合いの手の案を当てた曲(候補を曲に加え、セクションへ付ける／外す) */
+export function projectWithLayerProposal(project: ComposerProject, layer: ArrangementLayerProposal): ComposerProject {
+  const layers = layerAssignmentsOf(project)
+  const target = layers[layer.kind]
+  for (const sectionId of layer.removeSectionIds ?? []) delete target[sectionId]
+  for (const candidate of layer.candidates) target[candidate.sectionId] = candidate.id
+  const known = new Set((project.reactiveLayerCandidates ?? []).map((candidate) => candidate.id))
+  return withLayerAssignments({
+    ...project,
+    reactiveLayerCandidates: [
+      ...(project.reactiveLayerCandidates ?? []),
+      ...layer.candidates.filter((candidate) => !known.has(candidate.id)),
+    ],
+  }, layers)
+}
+
 /** 版の一覧の中で、いま鳴っている全曲アレンジに当たる版(相談の外で作り直された場合はなし) */
 export function currentArrangementVersion(
   chat: ArrangementChatState | undefined,
@@ -364,11 +436,15 @@ export function pushArrangementVersion(
     id: string
     label: string
     createdAt: string
-    recipe: ArrangementRecipe
-    arrangementId: string
+    /** 追加パートなしの版(対旋律・合いの手だけの版など)は持たない */
+    recipe?: ArrangementRecipe
+    arrangementId: string | null
     changes: ArrangementCellChange[]
     source?: "chat" | "direction"
+    layers?: ArrangementLayerAssignments
   },
+  /** 積む前の対旋律・合いの手(初回に「これまで」の版を残すとき、その版に記録する) */
+  previousLayers?: ArrangementLayerAssignments,
 ): ArrangementChatState {
   let versions = [...chat.versions]
   const baseline = currentArrangementVersion(chat, previousArrangement)
@@ -383,13 +459,14 @@ export function pushArrangementVersion(
       ...(previousArrangement ? { recipe: recipeFromArrangement(previousArrangement) } : {}),
       arrangementId: previousArrangement?.id ?? null,
       changes: [],
+      ...(previousLayers ? { layers: previousLayers } : {}),
     })
   }
   versions.push({
     ...next,
     number: 0,
     source: next.source ?? "chat",
-    ...(next.recipe.scopeSectionIds?.length ? { baseVersionId } : {}),
+    ...(next.recipe?.scopeSectionIds?.length ? { baseVersionId } : {}),
   })
   versions = versions.slice(-MAX_ARRANGEMENT_VERSIONS)
   // 版番号は作った順に1から振り直さず、既存の番号を保ったまま続きの番号を付ける
