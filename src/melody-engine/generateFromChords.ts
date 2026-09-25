@@ -76,11 +76,9 @@ import type { ResolvedMusicContext } from "@/core/musicContext"
 import { enforceHarmonicIntegrity } from "./harmonicIntegrity"
 import { applyMelodicCraft } from "./melodicCraft"
 import { measureMelodyCraft } from "./melodyCraftMetrics"
-import { classicalLikeness, type ClassicalModel } from "./classicalLikeness"
+import { classicalLikeness } from "./classicalLikeness"
 import { refineTowardClassical } from "./classicalRefinement"
-import classicalModelJson from "./reference/classicalModel.json"
-
-const CLASSICAL_MODEL = classicalModelJson as ClassicalModel
+import { CLASSICAL_MODELS } from "./classicalModels"
 import { selectCoreMotif } from "./hookFirst"
 import { subtleHookVariation } from "./hookDevelopment"
 import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
@@ -885,7 +883,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
       if (!craftSelection) return pattern
       const craftedNotes = craftNotes(pattern.notes)
-      const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODEL).score
+      const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODELS).score
       return { ...pattern, craftedNotes, craftScore }
     }
 
@@ -1057,7 +1055,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
               totalBeats: input.totalBeats,
               sectionRole: input.sectionRole,
               key: input.key,
-              model: CLASSICAL_MODEL,
+              models: CLASSICAL_MODELS,
             }).notes,
             input.chords,
             input.range,

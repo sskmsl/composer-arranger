@@ -79,6 +79,8 @@ def melody_events(part, shift: float):
         start = float(n.offset) - shift
         if start < -1e-6:
             continue
+        if n.isChord and len(n.pitches) == 0:
+            continue
         pitch = max(n.pitches, key=lambda p: p.midi) if n.isChord else n.pitch
         dur = float(n.duration.quarterLength)
         if dur <= 0:

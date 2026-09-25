@@ -51,6 +51,8 @@ export interface ClassicalFeatureModel {
 export interface ClassicalModel {
   source: string
   corpora: string[]
+  /** 群ごとの単位数と曲数(4つの群は同じ重みで学ぶ) */
+  groups?: Record<string, { units: number; pieces: number }>
   units: { fit: number; holdout: number }
   features: Record<ClassicalFeatureKey, ClassicalFeatureModel>
   /** 学習に使っていない古典の旋律の、重み付き平均の中央値。これで割って 100 にそろえる */
@@ -108,10 +110,71 @@ export function rawClassicalTypicality(values: Record<ClassicalFeatureKey, numbe
   return { raw: total > 0 ? weighted / total : 0, items }
 }
 
-/** 古典らしさ(0〜100)。学習に使っていない古典の旋律の真ん中が 100 */
-export function classicalLikeness(metrics: MelodyCraftMetrics, model: ClassicalModel): { score: number; items: ClassicalLikenessItem[] } {
+/** 1つずつの物差しだけで見た古典らしさ(0〜100)。学習に使っていない古典の旋律の真ん中が 100 */
+export function marginalClassicalLikeness(metrics: MelodyCraftMetrics, model: ClassicalModel): { score: number; items: ClassicalLikenessItem[] } {
   const { raw, items } = rawClassicalTypicality(classicalFeatureValues(metrics), model)
   return { score: Math.min(100, (raw / model.normalization) * 100), items }
+}
+
+/**
+ * 物差しの組み合わせ(同時分布)。古典の旋律の10個の物差しの組をガウス混合で表したもの。
+ * tools/melody-reference/fit_joint_model.py で作る。
+ */
+export interface ClassicalJointModel {
+  features: ClassicalFeatureKey[]
+  mean: number[]
+  scale: number[]
+  components: Array<{ weight: number; mean: number[]; precisionCholesky: number[][] }>
+  /** 学習に使っていない古典の旋律の対数密度の 0〜100 パーセンタイル(101点) */
+  holdoutLogDensityQuantiles: number[]
+}
+
+export interface ClassicalModels {
+  /** 1つずつの物差しの分布(内訳の説明に使う) */
+  marginal: ClassicalModel
+  /** 物差しの組み合わせの分布(点数に使う) */
+  joint: ClassicalJointModel
+}
+
+export function jointLogDensity(values: Record<ClassicalFeatureKey, number>, joint: ClassicalJointModel): number {
+  const z = joint.features.map((key, index) => (values[key] - joint.mean[index]) / joint.scale[index])
+  const dimension = z.length
+  const logs = joint.components.map((component) => {
+    let squared = 0
+    let logDeterminant = 0
+    for (let column = 0; column < dimension; column += 1) {
+      let y = 0
+      for (let row = 0; row <= column; row += 1) y += (z[row] - component.mean[row]) * component.precisionCholesky[row][column]
+      squared += y * y
+      logDeterminant += Math.log(component.precisionCholesky[column][column])
+    }
+    return Math.log(component.weight) - 0.5 * (dimension * Math.log(2 * Math.PI) + squared) + logDeterminant
+  })
+  const top = Math.max(...logs)
+  return top + Math.log(logs.reduce((sum, value) => sum + Math.exp(value - top), 0))
+}
+
+/** 対数密度が、学習に使っていない古典の旋律の中で下から何割の位置か(0〜1) */
+export function jointPercentile(logDensity: number, joint: ClassicalJointModel): number {
+  const quantiles = joint.holdoutLogDensityQuantiles
+  if (logDensity <= quantiles[0]) return 0
+  if (logDensity >= quantiles[quantiles.length - 1]) return 1
+  let index = 0
+  while (index + 1 < quantiles.length && quantiles[index + 1] < logDensity) index += 1
+  const span = quantiles[index + 1] - quantiles[index]
+  return (index + (span > 0 ? (logDensity - quantiles[index]) / span : 0)) / (quantiles.length - 1)
+}
+
+/**
+ * 古典らしさ(0〜100)。物差しの組み合わせとして古典の旋律の中でどれだけ「ふつう」かを見る。
+ * 学習に使っていない古典の旋律の真ん中が 100(それより典型的な旋律も 100)、古典の下位1割に当たる旋律は 20。
+ * 内訳(items)は、1つずつの物差しで見た古典の中でのふつうさ。
+ */
+export function classicalLikeness(metrics: MelodyCraftMetrics, models: ClassicalModels): { score: number; items: ClassicalLikenessItem[] } {
+  const values = classicalFeatureValues(metrics)
+  const { items } = rawClassicalTypicality(values, models.marginal)
+  const percentile = jointPercentile(jointLogDensity(values, models.joint), models.joint)
+  return { score: Math.min(100, percentile * 200), items }
 }
 
 /** 重み付きのデータから、なめらかにした度数分布(ガウスの山を重ねたもの)を作る */
