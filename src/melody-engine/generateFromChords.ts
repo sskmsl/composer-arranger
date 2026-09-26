@@ -81,7 +81,7 @@ import { measureMelodyCraft } from "./melodyCraftMetrics"
 import { classicalLikeness } from "./classicalLikeness"
 import { refineTowardClassical } from "./classicalRefinement"
 import { CLASSICAL_MODELS } from "./classicalModels"
-import { selectCoreMotif, type CoreRhythmStyle } from "./hookFirst"
+import { hookabilityFor, selectCoreMotif, type CoreRhythmStyle } from "./hookFirst"
 import { measureMotifDevelopment } from "./motifRecognition"
 import { keyScalePitchClasses } from "@/core/scale"
 import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
@@ -318,9 +318,11 @@ function buildCandidate(
   const development = selectedCore && !usesContrast
     ? measureMotifDevelopment(finalNotes, selectedCore.core.lengthBeats, input.totalBeats).score
     : undefined
+  // 覚えやすさは核の型に合わせた値を使う(素直な型を、避けたはずの種類数で順位付けしない)
+  const coreHookability = selectedCore ? hookabilityFor(selectedCore.judgment, coreRhythm) : undefined
   const hookScore = selectedCore ? 100 * (
     selectedCore.judgment.humability * .35 +
-    selectedCore.judgment.hookability * .35 +
+    coreHookability! * .35 +
     (development === undefined ? (coreRetention ?? 0) * .3 : (coreRetention ?? 0) * .24 + development * .06)
   ) : undefined
   // 感情点だけで弱いHookを押し上げない。核の再登場が薄い案では二段階目の重みを下げる。
@@ -339,7 +341,7 @@ function buildCandidate(
     candidateMelodyDNA,
     profileExpressionPlan,
     coreHumability: selectedCore?.judgment.humability,
-    coreHookability: selectedCore?.judgment.hookability,
+    coreHookability,
     coreRetention,
     hookScore,
     emotionalScore,
