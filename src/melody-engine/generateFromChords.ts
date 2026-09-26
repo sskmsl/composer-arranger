@@ -1,4 +1,5 @@
 import { SeededRandom } from "@/core/rng"
+import { measureExpectation } from "./expectation"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
 import type {
@@ -626,6 +627,25 @@ interface BuiltPattern {
  * 仕上げ後の古典らしさ(古典=100)を候補選びにどれだけ効かせるか。選んだ3案はさらに推敲して古典らしさへ近づける。
  * 独自の設計(跳躍・半音・語り・反復)を持つ作り方には使わない
  */
+/**
+ * 候補の選抜で「歌として予想しやすさが適切か」を見る重み(expectation.ts)。
+ * 覚えやすい曲・部分は音の動きが「よくある形」に近く(Van Balen et al. 2015、Jakubowski et al. 2017)、
+ * 好まれるのは予想しやすさが中くらいのもの(Gold et al. 2019)。生成した旋律は歌より予想しにくい側に偏っていた。
+ * 跳躍や半音階・朗唱など、予想を外すこと自体が持ち味の作り方は弱くする
+ */
+const EXPECTATION_SELECTION_WEIGHT: Record<MelodyGeneratorProfile, number> = {
+  standard: .12,
+  minimal: .12,
+  rhythmic: .12,
+  cinematic: .12,
+  leaping: .06,
+  chromatic: .06,
+  "elegiac-cantabile": .08,
+  "speech-rhythmic": .06,
+  incantatory: .06,
+  "pulse-leap": .08,
+}
+
 const CRAFT_SELECTION_WEIGHT: Record<MelodyGeneratorProfile, number> = {
   standard: 0.4,
   cinematic: 0.4,
@@ -988,9 +1008,23 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         ? CANDIDATE_SELECTION_CONFIG.techniqueFitWeight
         : 0)
 
+    // 予想しやすさは候補ごとに1回だけ測る(選抜は候補を足すたびにくり返すため)
+    const expectationCache = new Map<number, number | undefined>()
+    const expectationScoreOf = (candidate: BuiltPattern): number | undefined => {
+      if (!expectationCache.has(candidate.candidatePoolIndex)) {
+        const profileOfCandidate = measureExpectation(candidate.craftedNotes ?? candidate.notes, input.key)
+        expectationCache.set(candidate.candidatePoolIndex, profileOfCandidate ? profileOfCandidate.score * 100 : undefined)
+      }
+      return expectationCache.get(candidate.candidatePoolIndex)
+    }
+
     const runSelection = () =>
       selectDiverseCandidates(
-        pool.map((candidate) => ({ ...candidate, openingPlan: candidate.opening })),
+        pool.map((candidate) => ({
+          ...candidate,
+          openingPlan: candidate.opening,
+          expectationScore: expectationScoreOf(candidate),
+        })),
         harmonicMap,
         PROFILE_MINIMUM_QUALITY[profile],
         CANDIDATE_SELECTION_CONFIG.finalCandidateCount,
@@ -1013,6 +1047,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             : 0,
           craftWeight: CRAFT_SELECTION_WEIGHT[profile],
           referenceWeight: referenceStrength * .25,
+          expectationWeight: EXPECTATION_SELECTION_WEIGHT[profile],
         },
       )
 
