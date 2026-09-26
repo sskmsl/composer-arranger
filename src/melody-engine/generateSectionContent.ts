@@ -12,7 +12,7 @@ import type {
   SectionContentSettings,
   SectionLayer,
 } from "@/core/sectionContent"
-import { LEAD_CONTENT_LABELS, partRoleFor } from "@/core/sectionContent"
+import { CONTENT_FIGURE_LABELS, LEAD_CONTENT_LABELS, partRoleFor } from "@/core/sectionContent"
 import { flattenLayerNotes } from "@/core/sectionLayers"
 import { keyScalePitchClasses } from "@/core/scale"
 import { buildHarmonicMap } from "./harmonicMap"
@@ -351,7 +351,10 @@ export function toMelodyVariantFromContent(
 ): MelodyVariant {
   return {
     id: crypto.randomUUID(),
-    name: `${LEAD_CONTENT_LABELS[candidate.content]} · 案${candidate.patternIndex}`,
+    // 型の呼び名も添えて、3案の違いを名前でも分かるようにする(例: 反復音型 · 案1(分散和音))
+    name: `${LEAD_CONTENT_LABELS[candidate.content]} · 案${candidate.patternIndex}${
+      candidate.plan.figure ? `(${CONTENT_FIGURE_LABELS[candidate.plan.figure]})` : ""
+    }`,
     sectionId,
     sourceMode: "generate",
     notes: candidate.notes,
