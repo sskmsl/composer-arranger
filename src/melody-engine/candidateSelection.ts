@@ -55,6 +55,8 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   craftScore?: number
   /** 参考曲の旋律傾向(密度・余白・リズムの個性など)への近さ(0..100)。参考曲を使うときだけ */
   referenceScore?: number
+  /** 歌として予想しやすさが適切か(0..100、expectation.ts。予想しにくすぎると下がる) */
+  expectationScore?: number
   profileFitScore: number
   techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
@@ -94,6 +96,8 @@ export interface CandidateSelectionOptions {
   craftWeight?: number
   /** 参考曲の傾向への近さの重み(上限0.15)。理論品質の最低線・Hook の重みは変えない */
   referenceWeight?: number
+  /** 予想しやすさの重み(上限0.15)。理論品質の最低線は維持する */
+  expectationWeight?: number
 }
 
 function normalizedQuality(candidate: SelectableCandidate): number {
@@ -106,7 +110,9 @@ function normalizedSelectionQuality(candidate: SelectableCandidate, options: Can
     Math.max(0, Math.min(.16, options.emotionalWeight ?? 0))
   const craftWeight = candidate.craftScore === undefined ? 0 : Math.max(0, Math.min(.4, options.craftWeight ?? 0))
   const referenceWeight = candidate.referenceScore === undefined ? 0 : Math.max(0, Math.min(.15, options.referenceWeight ?? 0))
-  return normalizedQuality(candidate) * (1 - hookWeight - emotionalWeight - craftWeight - referenceWeight) +
+  const expectationWeight = candidate.expectationScore === undefined ? 0 : Math.max(0, Math.min(.15, options.expectationWeight ?? 0))
+  return normalizedQuality(candidate) * (1 - hookWeight - emotionalWeight - craftWeight - referenceWeight - expectationWeight) +
+    Math.max(0, Math.min(1, (candidate.expectationScore ?? 0) / 100)) * expectationWeight +
     Math.max(0, Math.min(1, (candidate.hookScore ?? 0) / 100)) * hookWeight +
     Math.max(0, Math.min(1, (candidate.emotionalScore ?? 0) / 100)) * emotionalWeight +
     Math.max(0, Math.min(1, (candidate.craftScore ?? 0) / 100)) * craftWeight +
