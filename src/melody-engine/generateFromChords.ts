@@ -246,7 +246,7 @@ function buildCandidate(
 
   // 仕上げの各段で動いた核の頭を、最後に戻すための計画(Hook-first の核があるときだけ)
   const hookHeadPlan: HookHeadPlan | undefined = selectedCore
-    ? { coreLengthBeats: selectedCore.core.lengthBeats, phrases: hookPhrases, climaxBeat: input.totalBeats * emotionalTargetFraction(input.sectionRole) }
+    ? { coreLengthBeats: selectedCore.core.lengthBeats, phrases: hookPhrases, climaxBeat: input.totalBeats * emotionalTargetFraction(input.sectionRole), sectionRole: input.sectionRole }
     : undefined
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
   const finish = (latePeak: boolean, emotionalShape = latePeak) => {
