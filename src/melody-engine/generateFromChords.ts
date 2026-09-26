@@ -1032,6 +1032,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           ...candidate,
           openingPlan: candidate.opening,
           expectationScore: expectationScoreOf(candidate),
+          hookRepeated: (candidate.craftedNotes ?? []).some((note) => note.id.includes("-again-")),
         })),
         harmonicMap,
         PROFILE_MINIMUM_QUALITY[profile],
@@ -1056,6 +1057,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           craftWeight,
           referenceWeight: referenceStrength * .25,
           expectationWeight: EXPECTATION_SELECTION_WEIGHT[profile],
+          // サビでは、同じ進行が戻る所でフックをくり返す案を3案のうち少なくとも1つ入れる
+          preferHookRepeat: (profile === "standard" || profile === "cinematic") &&
+            (input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"),
         },
       )
 

@@ -57,6 +57,8 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   referenceScore?: number
   /** 歌として予想しやすさが適切か(0..100、expectation.ts。予想しにくすぎると下がる) */
   expectationScore?: number
+  /** 同じ和音の並びが戻る所で、フック(核)をそのままくり返しているか */
+  hookRepeated?: boolean
   profileFitScore: number
   techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
@@ -98,6 +100,11 @@ export interface CandidateSelectionOptions {
   referenceWeight?: number
   /** 予想しやすさの重み(上限0.15)。理論品質の最低線は維持する */
   expectationWeight?: number
+  /**
+   * 3案のうち少なくとも1案は、フックをくり返す案(hookRepeated)にする。
+   * 多様性の条件(開始・DNA・構造の重複なし)を満たす組がある場合だけ。無ければ従来どおり選ぶ
+   */
+  preferHookRepeat?: boolean
 }
 
 /** 理論品質以外の重みの合計の上限(理論品質の係数を必ず正に保つ) */
@@ -338,15 +345,22 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
     let setThreshold: number = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
     let bestSet: RankedSet | undefined
     // まず全緩和範囲で構造重複ゼロの組を探し、それが存在しない場合だけ重複数最小の組へフォールバックする。
-    while (!bestSet && setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity + 1e-9) {
-      bestSet = rankedSets
-        .filter(
-          (candidateSet) =>
-            candidateSet.maxOverall <= setThreshold &&
-            candidateSet.structuralRedundancyCount === 0,
-        )
-        .sort((a, b) => b.score - a.score)[0]
-      if (!bestSet) setThreshold += CANDIDATE_SELECTION_CONFIG.similarityRelaxationStep
+    // フックをくり返す案を含めたいときは、先にそれを含む組だけで同じ探し方をする
+    // (サビで同じ進行が戻る所のくり返しは、聴き比べで好まれた。多様性の条件は緩めない)
+    const repeatingSets = options.preferHookRepeat ? rankedSets.filter((candidateSet) => candidateSet.set.some((candidate) => candidate.hookRepeated)) : []
+    for (const sets of repeatingSets.length > 0 ? [repeatingSets, rankedSets] : [rankedSets]) {
+      setThreshold = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
+      while (!bestSet && setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity + 1e-9) {
+        bestSet = sets
+          .filter(
+            (candidateSet) =>
+              candidateSet.maxOverall <= setThreshold &&
+              candidateSet.structuralRedundancyCount === 0,
+          )
+          .sort((a, b) => b.score - a.score)[0]
+        if (!bestSet) setThreshold += CANDIDATE_SELECTION_CONFIG.similarityRelaxationStep
+      }
+      if (bestSet) break
     }
     if (!bestSet) {
       setThreshold = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
