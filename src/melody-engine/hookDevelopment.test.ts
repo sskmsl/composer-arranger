@@ -175,6 +175,13 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     expect(repeatOverReturningHarmony(rests, plan(["statement", "answer", "develop", "return"]), map)).toEqual(rests)
   })
 
+  it("核が1小節でも、和音の並びが2小節ぶん戻るなら2小節まとめてくり返す(Aメロも)", () => {
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    const result = repeatOverReturningHarmony(melody(), { ...plan(["statement", "answer", "develop", "return"]), coreLengthBeats: 4 }, map)
+    const shape = (start: number) => result.filter((n) => n.startBeat >= start && n.startBeat < start + 8).map((n) => [n.startBeat - start, n.pitch, n.durationBeats])
+    expect(shape(16)).toEqual(shape(0))
+  })
+
   it("サビでは、対照(B)のフレーズの上でも和音の並びが戻ればフックをくり返す", () => {
     const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
     const chorusPlan = { ...plan(["statement", "answer", "contrast", "return"]), sectionRole: "chorus" as const }

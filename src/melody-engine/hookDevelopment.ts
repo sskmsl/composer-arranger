@@ -298,7 +298,7 @@ export function restoreHookHeads(
  *
  * サビでは、後半の対照(B)のフレーズの上でも、和音の並びが戻るならフックをくり返す。
  * ポップスのサビは進行が戻る所で同じフックを歌い直すことが多く、利用者も「全体を通して口ずさめる」ことを重視している。
- * サビは2小節(8拍)ぶんを先に試し、頂点に掛かるなどで置けなければ核の長さで置く。
+ * 2小節(8拍)ぶんを先に試し、頂点に掛かるなどで置けなければ核の長さで置く。
  */
 export function repeatOverReturningHarmony(
   source: readonly MelodyNote[],
@@ -313,8 +313,9 @@ export function repeatOverReturningHarmony(
   const length = Math.min(plan.coreLengthBeats, first.lengthBeats)
   if (length < 4) return notes
   const chorus = plan.sectionRole === "chorus" || plan.sectionRole === "grand-chorus"
-  // サビは2小節ぶん(ただしセクションの半分まで)を先に試す
-  const spans = [...new Set([chorus ? Math.min(8, sectionBeats / 2) : length, length])].filter((span) => span >= length)
+  // 2小節ぶん(ただしセクションの半分まで)を先に試し、置けなければ核の長さで置く。
+  // Aメロも同じ(核が1小節だと、2小節がそのまま戻る所がほとんど作られなかった)
+  const spans = [...new Set([Math.min(8, sectionBeats / 2), length])].filter((span) => span >= length)
   const symbolAt = (beat: number) => chordAtBeat(harmonicMap, beat)?.chord.symbol ?? ""
   const statementOf = (span: number) => notes.filter((note) => note.startBeat >= first.startBeat - 1e-6 && note.startBeat < first.startBeat + span - 1e-6)
   if (statementOf(length).length < 3) return notes
