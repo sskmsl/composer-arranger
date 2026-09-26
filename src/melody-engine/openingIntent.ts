@@ -133,6 +133,12 @@ export const PROFILE_OPENING_CANDIDATES: Record<MelodyGeneratorProfile, OpeningC
     { entryType: "direct", emotionalFunction: "warning", register: "middle", initialDirection: "descending", weight: 0.8 },
   ],
   // Incantatory: 2〜5音の核モチーフを冒頭から識別可能に。同音反復/半音型/短3度型。核・アクセント・変異周期を3案で分ける。
+  // 刻みと跳躍: 柱の音の刻みから入る。入りの遅らせ方と音域で3案を分ける
+  "pulse-leap": [
+    { entryType: "repeated-note", emotionalFunction: "invocation", register: "middle", initialDirection: "static", weight: 1.2 },
+    { entryType: "delayed", emotionalFunction: "hesitation", register: "low", initialDirection: "descending", weight: 1 },
+    { entryType: "leap-entry", emotionalFunction: "warning", register: "high", initialDirection: "descending", weight: 0.9 },
+  ],
   incantatory: [
     { entryType: "repeated-note", emotionalFunction: "invocation", register: "middle", initialDirection: "static", weight: 1.2 },
     { entryType: "direct", emotionalFunction: "statement", register: "low", initialDirection: "ascending", weight: 1 },

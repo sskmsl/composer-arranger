@@ -9,7 +9,7 @@ const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11]
 const NATURAL_MINOR_STEPS = [0, 2, 3, 5, 7, 8, 10]
 
 /** "F#m", "Bb", "Am" のようなKey表記からルートのピッチクラスと長調/短調を読み取る */
-function parseKey(key: string): { rootPc: number; isMinor: boolean } | null {
+export function parseKey(key: string): { rootPc: number; isMinor: boolean } | null {
   const m = /^([A-Ga-g])([#b]?)\s*(.*)$/.exec(key.trim())
   if (!m) return null
   const letter = m[1].toUpperCase()

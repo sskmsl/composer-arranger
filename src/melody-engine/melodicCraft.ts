@@ -56,6 +56,7 @@ const PROFILE_STEPS: Record<MelodyGeneratorProfile, readonly CraftStep[]> = {
   "elegiac-cantabile": ["leapRecovery", "climax", "counterpoint", "tendency"],
   "speech-rhythmic": ["leapRecovery"],
   incantatory: [],
+  "pulse-leap": [],
 }
 /** セクションの高さの寄せ方(音階の段数)。サビは3度上、Bメロは2度上、Aメロは2度下 */
 const LIFT_STEPS: Partial<Record<SectionRole, number>> = {

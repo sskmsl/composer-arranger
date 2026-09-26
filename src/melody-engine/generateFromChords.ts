@@ -35,6 +35,7 @@ import {
 import { generateElegiacCantabile } from "./elegiacCantabile"
 import { generateSpeechRhythmicPattern } from "./speechRhythmic"
 import { generateIncantatoryPattern } from "./incantatory"
+import { generatePulseLeapPattern } from "./pulseLeap"
 import { computeAdvancedMelodyMetrics } from "./advancedMetrics"
 import { applyMotifDNA, nudgeTowardDNA } from "./motifDNA"
 import {
@@ -503,6 +504,8 @@ function profileFitScore(
       (advanced?.phraseAsymmetry ?? 0.5) * 0.2,
     incantatory:
       (features.motifRepeatRatio + (advanced?.contourRetention ?? 0.5) + (advanced?.cyclicPhraseAmount ?? 0.5)) / 3,
+    "pulse-leap":
+      Math.min(1, features.repeatedNoteRatio / .45) * 0.5 + Math.min(1, features.restRatio / .3) * 0.2 + Math.min(1, features.maxLeap / 7) * 0.3,
   }[profile]
   return Math.max(0, Math.min(100, profileFit * 100))
 }
@@ -633,6 +636,7 @@ const CRAFT_SELECTION_WEIGHT: Record<MelodyGeneratorProfile, number> = {
   chromatic: 0,
   "speech-rhythmic": 0,
   incantatory: 0,
+  "pulse-leap": 0,
 }
 
 /**
@@ -760,6 +764,13 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
           prosodyPlan = r.prosodyPlan
+        } else if (profile === "pulse-leap") {
+          const noteDensity = nudgeTowardDNA(0.5, uiDensityTarget, 0.6)
+          const r = generatePulseLeapPattern(rng, harmonicMap, input.totalBeats, input.range, noteDensity, input.sectionRole, input.key, opening, candidateMelodyDNA)
+          rawNotesHash = noteHash(r.notes)
+          notes = r.notes
+          plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
+          advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
         } else {
           // incantatory
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.58, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)

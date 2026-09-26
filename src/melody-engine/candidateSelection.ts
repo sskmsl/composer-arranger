@@ -41,6 +41,7 @@ export const PROFILE_MINIMUM_QUALITY: Record<MelodyGeneratorProfile, number> = {
   "elegiac-cantabile": 38,
   "speech-rhythmic": 38,
   incantatory: 38,
+  "pulse-leap": 36,
 }
 
 export interface SelectableCandidate extends MelodySimilarityCandidate {

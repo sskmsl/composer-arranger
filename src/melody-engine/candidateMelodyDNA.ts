@@ -71,6 +71,12 @@ const PROTOTYPES: Record<MelodyGeneratorProfile, DNAPrototype[]> = {
     dna("stepwise-cell", "cyclic", "cyclic", "common-tone", "rising", "literal-return", "tension-peak", "late", "suspended"),
     dna("repeated-cell", "balanced", "balanced", "delayed-resolution", "falling", "delayed-return", "rhythmic-peak", "middle", "resolved"),
   ],
+  "pulse-leap": [
+    dna("repeated-cell", "syncopated", "call-response", "common-tone", "rising", "delayed-return", "pitch-peak", "late", "resolved"),
+    dna("leap-recovery", "cyclic", "balanced", "common-tone", "terraced", "sequence", "pitch-peak", "late", "open"),
+    dna("repeated-cell", "sustained", "asymmetric", "tension-hold", "arch", "literal-return", "rhythmic-peak", "middle", "suspended"),
+    dna("leap-recovery", "syncopated", "long-arc", "anticipatory", "falling", "fragmentation", "tension-peak", "early", "carry-forward"),
+  ],
   incantatory: [
     dna("repeated-cell", "cyclic", "cyclic", "chord-following", "contained", "literal-return", "rhythmic-peak", "early", "open"),
     dna("chromatic-cell", "balanced", "asymmetric", "tension-hold", "terraced", "sequence", "tension-peak", "middle", "suspended"),

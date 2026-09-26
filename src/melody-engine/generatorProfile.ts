@@ -17,6 +17,7 @@ export const GENERATOR_PROFILES: MelodyGeneratorProfile[] = [
   "elegiac-cantabile",
   "speech-rhythmic",
   "incantatory",
+  "pulse-leap",
 ]
 
 export const GENERATOR_PROFILE_LABELS: Record<MelodyGeneratorProfile, string> = {
@@ -29,6 +30,7 @@ export const GENERATOR_PROFILE_LABELS: Record<MelodyGeneratorProfile, string> = 
   "elegiac-cantabile": "エレジー(歌うように)",
   "speech-rhythmic": "語りのリズム",
   incantatory: "呪文のような反復",
+  "pulse-leap": "刻みと跳躍",
 }
 
 /** 固有名詞・特定ジャンル名を使わない、旋律語彙としての説明(7.3) */
@@ -42,6 +44,7 @@ export const GENERATOR_PROFILE_DESCRIPTIONS: Record<MelodyGeneratorProfile, stri
   "elegiac-cantabile": "長い旋律弧と遅延解決を優先",
   "speech-rhythmic": "狭い音域と発話アクセントを優先",
   incantatory: "短い核モチーフの反復と微細な変形を優先",
+  "pulse-leap": "同じ音の刻みと、主音・属音を結ぶ4度・5度の跳躍を優先",
 }
 
 export type GeneratorProfilePlanningPriority =
@@ -186,6 +189,17 @@ export const GENERATOR_PROFILE_RULES: Record<MelodyGeneratorProfile, GeneratorPr
     selectionFitWeight: 0.35,
     identityComparison: { metric: "motifRepeatRatio", reference: "rhythmic", direction: "greater" },
   },
+  "pulse-leap": {
+    planningPriority: "cycle-led",
+    pitchTendency: "主音・属音・上の主音・9度を柱にし、その間を4度・5度で跳ぶ。要所だけ半音上から寄りかかる",
+    rhythmTendency: "柱の音を16分(または8分)で3〜6回刻んでから伸ばす。入りは拍の頭を外すことがある",
+    registerTendency: "主音から上の主音までを基本に、頂点だけ9度まで開く",
+    restTendency: "フレーズの後ろに1拍以上の余白を残す",
+    endingTendency: "属音か主音を長く伸ばして終える",
+    protectedTraits: ["同音の刻み", "柱の跳躍", "余白"],
+    selectionFitWeight: 0.35,
+    identityComparison: { metric: "repeatedNoteRatio", reference: "rhythmic", direction: "greater" },
+  },
 }
 
 export type GeneratorProfileKind = "parametric" | "bespoke"
@@ -205,6 +219,7 @@ export const GENERATOR_PROFILE_KIND: Record<MelodyGeneratorProfile, GeneratorPro
   "elegiac-cantabile": "bespoke",
   "speech-rhythmic": "bespoke",
   incantatory: "bespoke",
+  "pulse-leap": "bespoke",
 }
 
 const FULL_CONTOUR = (a: number, d: number, arch: number, inv: number, w: number) => ({
@@ -258,6 +273,7 @@ export const GENERATOR_PROFILE_PARAM_OVERRIDES: Record<MelodyGeneratorProfile, P
   "elegiac-cantabile": {},
   "speech-rhythmic": {},
   incantatory: {},
+  "pulse-leap": {},
 }
 
 /** 8章: セクション別の適用強度(0=Profile固有色を弱める 〜 1=通常適用)。値が無いセクションは1.0扱い */

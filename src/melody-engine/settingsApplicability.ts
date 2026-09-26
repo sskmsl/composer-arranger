@@ -39,6 +39,7 @@ export const SETTINGS_APPLICABILITY: Record<MelodyGeneratorProfile, Record<Gener
   "elegiac-cantabile": { density: "applied", range: "applied", drama: "not-applicable", key: "not-applicable" },
   "speech-rhythmic": { density: "applied", range: "applied", drama: "applied", key: "not-applicable" },
   incantatory: { density: "applied", range: "applied", drama: "not-applicable", key: "not-applicable" },
+  "pulse-leap": { density: "applied", range: "applied", drama: "not-applicable", key: "applied" },
 }
 
 /** 指定した設定が「効かない」Profileのラベル一覧(UIの注意書き用)。全Profileで効くなら空配列 */
