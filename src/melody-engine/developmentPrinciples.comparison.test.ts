@@ -29,7 +29,7 @@ const SEEDS = [101, 202, 303]
 const ROLES: SectionRole[] = ["verse", "chorus"]
 const PHRASE_BEATS = 8
 
-interface Sample { notes: MelodyNote[]; chords: ChordEvent[]; bars: number; role: SectionRole; hum: number; hook: number; arc: number; classical: number }
+interface Sample { notes: MelodyNote[]; chords: ChordEvent[]; bars: number; role: SectionRole; hum: number; hook: number; arc: number; classical: number; coreRhythm?: "varied" | "plain" }
 
 function generate(bars: 8 | 16): Sample[] {
   const samples: Sample[] = []
@@ -46,6 +46,7 @@ function generate(bars: 8 | 16): Sample[] {
           notes: candidate.notes, chords, bars, role,
           hum: candidate.coreHumability ?? 0, hook: candidate.coreHookability ?? 0, arc: candidate.emotionalArcScore ?? 0,
           classical: classicalLikeness(measureMelodyCraft(candidate.notes, chords, song.key), CLASSICAL_MODELS).score,
+          coreRhythm: candidate.coreRhythm,
         })
       }
     }
@@ -79,6 +80,49 @@ function phraseHeads(notes: MelodyNote[], totalBeats: number): number {
   if (!first || first.length < 3) return 0
   const later = heads.slice(1).filter((head) => head.length >= 2)
   return later.filter((head) => classifyMotifRelation(first, first[0].startBeat, head, head[0].startBeat).relation !== "other").length / Math.max(1, later.length)
+}
+
+const quantile = (values: number[], q: number) => {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1)))] : 0
+}
+
+/** 小節ごとに、それより前の小節と音高・発音位置がまったく同じ小節の数 */
+function exactBarRepeats(notes: MelodyNote[], totalBeats: number): number {
+  const bars = Array.from({ length: Math.ceil(totalBeats / 4) }, (_, bar) => JSON.stringify(notes
+    .filter((note) => note.startBeat >= bar * 4 && note.startBeat < bar * 4 + 4)
+    .map((note) => [Math.round((note.startBeat - bar * 4) * 1000) / 1000, note.pitch])))
+  return bars.filter((bar, index) => bar !== "[]" && bars.indexOf(bar) !== index).length
+}
+
+/** 鳴っていない時間の割合 */
+function restShare(notes: MelodyNote[], totalBeats: number): number {
+  return 1 - Math.min(totalBeats, notes.reduce((sum, note) => sum + note.durationBeats, 0)) / totalBeats
+}
+
+/**
+ * サビの核の型(従来 varied / 素直 plain)ごとの内訳(サビの候補だけ)。型ごとの覚えやすさは相互に較正していないので、
+ * 混ぜた平均で下限を通るだけでは素直な型の品質を独立に確かめたことにならない(Codex desktop のレビュー、PR #174)。
+ * 記録用で、下限は設けていない
+ */
+function byCoreRhythm(samples: Sample[]) {
+  // 型を分けるのはサビだけ(Aメロの核はすべて従来の型なので、混ぜると比べられない)
+  const withCore = samples.filter((s) => s.role === "chorus" && s.coreRhythm !== undefined)
+  return Object.fromEntries((["varied", "plain"] as const).map((style) => {
+    const rows = withCore.filter((s) => s.coreRhythm === style)
+    const r = (value: number) => Math.round(value * 1000) / 1000
+    return [style, {
+      samples: rows.length,
+      selectedShare: r(rows.length / Math.max(1, withCore.length)),
+      hookabilityMean: r(mean(rows.map((s) => s.hook))),
+      hookabilityP10: r(quantile(rows.map((s) => s.hook), .1)),
+      hookabilityP50: r(quantile(rows.map((s) => s.hook), .5)),
+      humabilityMean: r(mean(rows.map((s) => s.hum))),
+      exactBarRepeats: r(mean(rows.map((s) => exactBarRepeats(s.notes, s.bars * 4)))),
+      restShare: r(mean(rows.map((s) => restShare(s.notes, s.bars * 4)))),
+      recognizable: r(mean(rows.map((s) => measureMotifDevelopment(s.notes, PHRASE_BEATS, s.bars * 4).recognizableShare))),
+    }]
+  }))
 }
 
 function summarize(samples: Sample[]) {
@@ -116,6 +160,7 @@ function summarize(samples: Sample[]) {
       const rows = samples.filter((s) => s.role === role).map((s) => assessEmotionalArc(s.notes, buildHarmonicMap(s.chords), s.bars * 4, s.role, 4))
       return [role, { peakPosition: Math.round(mean(rows.map((row) => row.peakPosition)) * 1000) / 1000, climaxTiming: Math.round(mean(rows.map((row) => row.climaxTiming)) * 1000) / 1000 }]
     })),
+    byCoreRhythm: byCoreRhythm(samples),
     relationCounts: dev.flatMap((d) => d.relations).reduce<Record<string, number>>((counts, relation) => ({ ...counts, [relation]: (counts[relation] ?? 0) + 1 }), {}),
   }
 }
