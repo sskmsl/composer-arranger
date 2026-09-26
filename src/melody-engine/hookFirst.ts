@@ -12,7 +12,15 @@ import { eventsLength, placeSegment } from "./phraseAssembler"
 export interface CoreMotifJudgment {
   humability: number
   hookability: number
+  /** リズムの種類数(発音間隔・音価)。記録用。覚えやすさ(hookability)には rhythmicHookQuality を使う */
   rhythmicIdentity: number
+  /** 短いリズムの単位がくり返され、拍に錨を下ろしているか(0〜1)。rhythmicHookQuality 参照 */
+  rhythmicHookQuality: number
+  /**
+   * hookability のリズムの項を、種類の多さ(rhythmicIdentity)から短い単位のくり返し(rhythmicHookQuality)へ
+   * 置き換えた覚えやすさ。サビの「素直な型」の核の選抜にだけ使う(ブラインド試聴で確かめるまで、他は従来どおり)
+   */
+  cellHookability: number
   simplicity: number
   repeatability: number
   /** 覚えやすい中に1か所だけ引っかかる所があるか(0〜1) */
@@ -49,9 +57,46 @@ function coreWithinTwoBars(events: MotifEvent[], pitches: number[], maximumBeats
   return { events: keptEvents, pitches: keptPitches, lengthBeats }
 }
 
+/**
+ * リズムの覚えやすさ。種類の多さではなく、短いリズムの単位がくり返されるか・拍に錨を下ろしているかを見る
+ * (Codex のレビュー、PR #173)。
+ *   - くり返し(0.45): 隣り合う2音の長さの組(1拍以上の休みを挟むかも区別)のうち、核の中で2回以上出る組の割合
+ *   - まとまり(0.15): 長さの種類が少ないほど高い(少ない単位にまとめられる)
+ *   (同じ長さを並べただけの核は、単位のくり返しとは数えない)
+ *   - 拍への錨(0.2): 拍の頭で始まる音の割合(4分の3で満点。シンコペーションは少しなら減点しない)
+ *   - 弱起の解決(0.1): 裏拍の短い音から、拍の頭の長い音へ入る所がある
+ *   - 骨組みだけでない(0.1): 4音以上
+ * 作曲者とCodexのブラインド比較(サビ8組)で、Codex の判断と8組すべてで順位が一致した(その8組を見て作ったので、
+ * 別の聴き比べで確かめる)。1回きりの変化ばかりのリズムは、種類が多くても低い。
+ */
+export function rhythmicHookQuality(notes: readonly MelodyNote[]): number {
+  const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
+  const count = sorted.length
+  if (count < 3) return 0
+  const onBeat = (beat: number) => Math.abs(beat - Math.round(beat)) < 1e-6
+  const tokens = sorted.map((note, index) => {
+    const next = sorted[index + 1]
+    const rest = next !== undefined && next.startBeat - (note.startBeat + note.durationBeats) >= 1 - 1e-6
+    return `${Math.round(note.durationBeats * 4) / 4}${rest ? "r" : ""}`
+  })
+  const pairs = tokens.slice(1).map((token, index) => `${tokens[index]}|${token}`)
+  const durationKinds = new Set(sorted.map((note) => Math.round(note.durationBeats * 4) / 4)).size
+  // 長さが1種類だけ(同じ長さを並べただけ)の核は、形の上では毎回同じ組が続くが、くり返す「単位」ではない
+  const recurrence = durationKinds < 2 ? 0 : pairs.filter((pair) => pairs.indexOf(pair) !== pairs.lastIndexOf(pair)).length / pairs.length
+  const compact = durationKinds < 2 ? .5 : 1 - (durationKinds - 1) / (count - 1)
+  const anchored = sorted.filter((note) => onBeat(note.startBeat)).length / count
+  const pickup = sorted.some((note, index) => {
+    const next = sorted[index + 1]
+    return next !== undefined && note.durationBeats <= .5 && !onBeat(note.startBeat) &&
+      next.startBeat - (note.startBeat + note.durationBeats) < .25 && onBeat(next.startBeat) && next.durationBeats > note.durationBeats
+  })
+  return clamp01(Math.min(1, recurrence / .6) * .45 + compact * .15 + Math.min(1, anchored / .75) * .2 +
+    (pickup ? 1 : 0) * .1 + (count >= 4 ? 1 : .5) * .1)
+}
+
 /** 歌いやすさと記憶性を別々に測る。音数の少なさ単独では高得点にしない。 */
 export function judgeCoreMotif(notes: readonly MelodyNote[], lengthBeats: number): CoreMotifJudgment {
-  if (notes.length < 3) return { humability: 0, hookability: 0, rhythmicIdentity: 0, simplicity: 0, repeatability: 0, thorn: 0, thornCount: 0 }
+  if (notes.length < 3) return { humability: 0, hookability: 0, rhythmicIdentity: 0, rhythmicHookQuality: 0, cellHookability: 0, simplicity: 0, repeatability: 0, thorn: 0, thornCount: 0 }
   const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
   const intervals = sorted.slice(1).map((note, index) => note.pitch - sorted[index].pitch)
   const gaps = sorted.slice(1).map((note, index) => note.startBeat - sorted[index].startBeat)
@@ -86,11 +131,13 @@ export function judgeCoreMotif(notes: readonly MelodyNote[], lengthBeats: number
   const humability = clamp01(pace * .24 + singable * .22 +
     (awkward === 0 ? 1 : awkward === 1 ? .5 : .1) * .18 + (breathing >= .08 ? 1 : .3) * .14 +
     simplicity * .12 + contourClarity * .1)
-  const hookability = clamp01(rhythmicIdentity * .28 + contourClarity * .18 +
-    oneSignatureLeap * .15 + simplicity * .12 + repeatability * .17 +
-    (breathing >= .1 && breathing <= .55 ? 1 : .25) * .1)
+  const hookWithoutRhythm = contourClarity * .18 + oneSignatureLeap * .15 + simplicity * .12 + repeatability * .17 +
+    (breathing >= .1 && breathing <= .55 ? 1 : .25) * .1
+  const hookability = clamp01(rhythmicIdentity * .28 + hookWithoutRhythm)
+  const rhythmicHook = rhythmicHookQuality(sorted)
+  const cellHookability = clamp01(rhythmicHook * .28 + hookWithoutRhythm)
   const { thorn, thornCount } = judgeThorn(sorted, intervals, simplicity)
-  return { humability, hookability, rhythmicIdentity, simplicity, repeatability, thorn, thornCount }
+  return { humability, hookability, rhythmicIdentity, rhythmicHookQuality: rhythmicHook, cellHookability, simplicity, repeatability, thorn, thornCount }
 }
 
 /**
@@ -121,6 +168,15 @@ export function judgeThorn(sorted: readonly MelodyNote[], intervals: readonly nu
   return { thorn: raw * (simplicity >= .5 ? 1 : .5), thornCount }
 }
 
+/**
+ * サビの核のリズムの選び方。
+ *   varied: リズムの種類(発音間隔・音価)が多い核を優先する(従来)
+ *   plain : 種類の多さでは選ばず、短いリズムの単位がくり返される核を選ぶ(素直で覚えやすいリズム)
+ * 作曲者のブラインド試聴(サビ8組)では 4対4 で、曲によって好みが分かれた。
+ * そこで、サビの3案には両方の型を入れる(generateFromChords の requireCoreRhythmVariety)。
+ */
+export type CoreRhythmStyle = "varied" | "plain"
+
 /** 既存のMotif生成・和声配置を短いCore候補として先に走らせ、最良の核だけを長いPhraseへ渡す。 */
 export function selectCoreMotif(
   seed: number,
@@ -132,6 +188,7 @@ export function selectCoreMotif(
   sectionRole: SectionRole,
   opening?: MelodyOpeningPlan,
   musicContext?: ResolvedMusicContext,
+  coreRhythm: CoreRhythmStyle = "varied",
 ): SelectedCoreMotif | null {
   const maximumBeats = Math.min(8, phraseLengthBeats)
   if (maximumBeats < 3) return null
@@ -156,8 +213,12 @@ export function selectCoreMotif(
     const rhythmFit = 1 - Math.abs(judgment.rhythmicIdentity - (.48 + (genreRhythm - .5) * .12))
     // 棘(judgment.thorn)は選抜には使わない。核の段階で棘を優先すると、覚えやすさと部分的な作り直しやすさが下がったため。
     // 1か所だけの引っかかりは、発展フレーズで1か所だけ音程を広げる処理(developHook)が担う
+    // varied: リズムの種類が多い核を直接の項で優先する(覚えやすさの中のリズムは、短い単位のくり返しで測る)。
+    // plain : 直接の項を持たず、歌いやすさと覚えやすさで選ぶ。rhythmFit は極端に複雑な核を避ける小さな歯止め
     const hookScore = chorus
-      ? judgment.humability * .25 + judgment.hookability * .37 + judgment.rhythmicIdentity * .38
+      ? coreRhythm === "plain"
+        ? judgment.humability * .35 + judgment.cellHookability * .6 + rhythmFit * .05
+        : judgment.humability * .25 + judgment.hookability * .37 + judgment.rhythmicIdentity * .38
       : judgment.humability * .55 + judgment.hookability * .4 + rhythmFit * .05
     // 参考曲の旋律傾向は Hook-first の判断を上書きしない(最大でも3割まで)。元の音列は持っていない
     const score = referenceShare > 0

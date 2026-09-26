@@ -81,7 +81,7 @@ import { measureMelodyCraft } from "./melodyCraftMetrics"
 import { classicalLikeness } from "./classicalLikeness"
 import { refineTowardClassical } from "./classicalRefinement"
 import { CLASSICAL_MODELS } from "./classicalModels"
-import { selectCoreMotif } from "./hookFirst"
+import { selectCoreMotif, type CoreRhythmStyle } from "./hookFirst"
 import { measureMotifDevelopment } from "./motifRecognition"
 import { keyScalePitchClasses } from "@/core/scale"
 import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
@@ -119,6 +119,8 @@ interface Candidate {
   hookScore?: number
   emotionalScore?: number
   hookHeadPlan?: HookHeadPlan
+  /** サビの核をどちらのリズムの型で選んだか(Hook-first の核があるときだけ) */
+  coreRhythm?: CoreRhythmStyle
 }
 
 const GENERATOR_VERSION = "2.2"
@@ -141,6 +143,7 @@ function buildCandidate(
   opening?: MelodyOpeningPlan,
   candidateMelodyDNA?: CandidateMelodyDNA,
   generatorProfile?: MelodyGeneratorProfile,
+  coreRhythm: CoreRhythmStyle = "varied",
 ): Candidate {
   const rng = new SeededRandom(seed)
   const harmonicMap = buildHarmonicMap(input.chords)
@@ -173,6 +176,7 @@ function buildCandidate(
     input.sectionRole,
     opening,
     input.musicContext,
+    coreRhythm,
   ) : null
 
   let firstMotifCore: MotifCore | undefined
@@ -340,6 +344,7 @@ function buildCandidate(
     hookScore,
     emotionalScore,
     hookHeadPlan,
+    coreRhythm: selectedCore ? coreRhythm : undefined,
   }
 }
 
@@ -550,6 +555,8 @@ export interface GenerateProfileBatchInput {
    * 既定で古典らしさを使う作り方(標準・映画的・リズム・最小)にだけ効く
    */
   craftSelectionWeight?: number
+  /** 比較実験用: サビの核のリズムの型をすべての候補で固定する(既定はプールの3件に1件を plain) */
+  coreRhythmOverride?: CoreRhythmStyle
   chords: ChordEvent[]
   sectionId: string
   sectionRole: SectionRole
@@ -592,6 +599,8 @@ export interface ProfileCandidate {
   coreHookability?: number
   coreRetention?: number
   emotionalArcScore?: number
+  /** サビの核のリズムの型(varied: 種類が多い / plain: 素直) */
+  coreRhythm?: CoreRhythmStyle
 }
 
 /** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
@@ -626,6 +635,7 @@ interface BuiltPattern {
   craftScore?: number
   referenceScore?: number
   hookHeadPlan?: HookHeadPlan
+  coreRhythm?: CoreRhythmStyle
 }
 
 /**
@@ -718,6 +728,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     )
     const profileParams = hook(scoringBaseParams)
 
+    const chorusSection = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"
     // 指定のseedとOpening Intentから、そのProfileの1パターンを生成する(生成順序: Intent→Plan→本体)
     const buildOne = (
       patternSeed: number,
@@ -868,7 +879,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       }
 
       // parametric: 既存フレーズ生成エンジンをProfile専用パラメータ + Opening Planで駆動する
-      const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening, candidateMelodyDNA, profile)
+      // サビでは、プールの3件に1件をリズムの素直な核で作る(3案に両方の型を入れるため)
+      const coreRhythm: CoreRhythmStyle = input.coreRhythmOverride ?? (chorusSection && candidatePoolIndex % 3 === 2 ? "plain" : "varied")
+      const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening, candidateMelodyDNA, profile, coreRhythm)
       const transitioned = applySectionTransition(
         c.notes,
         input.transitionContext,
@@ -912,6 +925,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreRetention: c.coreRetention,
         emotionalScore: c.emotionalScore,
         hookHeadPlan: c.hookHeadPlan,
+        coreRhythm: c.coreRhythm,
       }
     }
 
@@ -936,8 +950,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       ? Math.max(0, input.craftSelectionWeight)
       : CRAFT_SELECTION_WEIGHT[profile]
     const craftSelection = Boolean(input.key) && craftWeight > 0
-    const preferHookRepeat = (profile === "standard" || profile === "cinematic") &&
-      (input.sectionRole === "chorus" || input.sectionRole === "grand-chorus")
+    const preferHookRepeat = (profile === "standard" || profile === "cinematic") && chorusSection
     const poolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftCandidatePoolSize : CANDIDATE_SELECTION_CONFIG.candidatePoolSize
     const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
     const scale = input.key ? keyScalePitchClasses(input.key) : undefined
@@ -1036,6 +1049,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           openingPlan: candidate.opening,
           expectationScore: expectationScoreOf(candidate),
           hookRepeated: (candidate.craftedNotes ?? candidate.notes).some((note) => note.id.includes("-again-")),
+          coreRhythm: candidate.coreRhythm,
         })),
         harmonicMap,
         PROFILE_MINIMUM_QUALITY[profile],
@@ -1062,6 +1076,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           expectationWeight: EXPECTATION_SELECTION_WEIGHT[profile],
           // サビでは、同じ進行が戻る所でフックをくり返す案を3案のうち少なくとも1つ入れる
           preferHookRepeat,
+          // サビの3案には、リズムの種類が多い核と素直な核の両方を入れる
+          requireCoreRhythmVariety: preferHookRepeat,
         },
       )
 
@@ -1181,6 +1197,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreHookability: pattern.coreHookability,
         coreRetention: pattern.coreRetention,
         emotionalArcScore: pattern.emotionalScore,
+        coreRhythm: pattern.coreRhythm,
       })
     })
   })
