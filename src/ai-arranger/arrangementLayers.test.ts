@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { composerSongExchangeToProject } from "@/core/composerSongExchange"
@@ -19,11 +19,21 @@ const fixture = JSON.parse(
   readFileSync(resolve(__dirname, "../../contracts/composer-song-exchange.v2.example.json"), "utf8"),
 )
 
-/** 最初のセクションにだけ主旋律を採用した曲 */
+/**
+ * 最初のセクションにだけ主旋律を採用した曲。
+ * 主旋律の seed は毎回ランダムに決まるので、テストでは固定する(隙間の少ない主旋律を引くと、
+ * 「答える対旋律」は入れる余地がないとして見送られる。それは仕様どおりで、約4%の seed で起きていた)
+ */
 function songWithMelody() {
   useProjectStore.setState({ project: composerSongExchangeToProject(fixture), history: [], future: [], persist: () => {} })
   const first = normalizeSectionTimeline(useProjectStore.getState().project.sections)[0]
-  useProjectStore.getState().generateForSection(first.id)
+  let calls = 0
+  const random = vi.spyOn(Math, "random").mockImplementation(() => ((++calls * 104729) % 100003) / 100003)
+  try {
+    useProjectStore.getState().generateForSection(first.id)
+  } finally {
+    random.mockRestore()
+  }
   const variant = useProjectStore.getState().project.melodyVariants.find((candidate) => candidate.sectionId === first.id)!
   useProjectStore.getState().assignVariantToSection(first.id, variant.id)
   return { project: useProjectStore.getState().project, firstId: first.id }

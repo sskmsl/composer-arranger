@@ -319,7 +319,8 @@ export function repeatOverReturningHarmony(
   const symbolAt = (beat: number) => chordAtBeat(harmonicMap, beat)?.chord.symbol ?? ""
   const statementOf = (span: number) => notes.filter((note) => note.startBeat >= first.startBeat - 1e-6 && note.startBeat < first.startBeat + span - 1e-6)
   if (statementOf(length).length < 3) return notes
-  const summit = notes.reduce((best, note) => (note.pitch > best.pitch ? note : best), notes[0])
+  // 頂点を写しの後ろへ移したら、以後のくり返しでは移した先を頂点として守る
+  let summit = notes.reduce((best, note) => (note.pitch > best.pitch ? note : best), notes[0])
   const finalNote = notes[notes.length - 1]
   // 8小節ごとに1回まで(くり返しすぎると逆効果: Nunes et al. 2015)
   let remaining = Math.max(1, Math.floor(sectionBeats / 32))
@@ -337,6 +338,8 @@ export function repeatOverReturningHarmony(
     for (const span of spans) {
       const end = start + span
       if (end > sectionBeats + 1e-6) continue
+      // 写し先が元(最初の span 拍)と重なると、元の旋律まで書き換えてしまう
+      if (start < first.startBeat + span - 1e-6) continue
       const statement = statementOf(span)
       if (statement.length < 3) continue
       const samples = Array.from({ length: Math.round(span * 2) }, (_, index) => index / 2)
@@ -374,7 +377,9 @@ export function repeatOverReturningHarmony(
       // 元の旋律と同じ向きへ順次(2半音以内)で入れる場合だけ置く。写しの頭で解決を失わないように
       const replacedHead = notes.find(inside)
       const nextChord = chordAtBeat(harmonicMap, start)
-      if (before && replacedHead && nextChord && !isChordTone(nextChord.parsed, pitchClass(before.pitch))) {
+      // (休みを挟んで離れた音は、解決を待つ音とはみなさない)
+      const adjacent = before !== undefined && start - (before.startBeat + before.durationBeats) <= .5 + 1e-6
+      if (before && adjacent && replacedHead && nextChord && !isChordTone(nextChord.parsed, pitchClass(before.pitch))) {
         const original = replacedHead.pitch - before.pitch
         const again = copies[0].pitch - before.pitch
         if (Math.abs(again) > 2 || Math.sign(again) !== Math.sign(original)) continue
@@ -390,6 +395,7 @@ export function repeatOverReturningHarmony(
           [next[position - 1], next[position + 1]].every((neighbor) => !neighbor || Math.abs(neighbor.pitch - summit.pitch) <= 7))
         if (index === undefined) continue
         next[index] = { ...next[index], pitch: summit.pitch, plannedToneRole: "chord-tone" }
+        summit = next[index]
       }
       notes = next
       remaining -= 1
