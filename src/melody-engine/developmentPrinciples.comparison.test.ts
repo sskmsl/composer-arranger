@@ -154,5 +154,7 @@ describe("動機の育て方(Core Hook → 反復 → 小変形 → 発展 → �
     expect(eight.arcParts.phraseBreathing).toBeGreaterThanOrEqual(.72)
     expect(sixteen.arcParts.phraseBreathing).toBeGreaterThanOrEqual(.71)
     expect(sixteen.arcParts.climaxTiming).toBeGreaterThanOrEqual(.85)
+    // 8小節の頂点の時機(変更前 0.858、頂点を急がない下限を入れる前 0.831)
+    expect(eight.arcParts.climaxTiming).toBeGreaterThanOrEqual(.84)
   })
 })

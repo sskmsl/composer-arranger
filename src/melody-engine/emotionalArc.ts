@@ -8,6 +8,9 @@ import { computeHookStrength } from "./hookStrength"
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value))
 const isChorus = (role: SectionRole): boolean => role === "chorus" || role === "grand-chorus"
+/** これより前に頂点が来ると「急ぎすぎ」とみなす位置(セクション長に対する割合) */
+export const earliestClimaxFraction = (role: SectionRole): number =>
+  isChorus(role) ? .57 : role === "pre-chorus" ? .52 : .36
 export const emotionalTargetFraction = (role: SectionRole): number =>
   isChorus(role) ? .72 : role === "pre-chorus" ? .68 : .58
 
@@ -78,7 +81,7 @@ export function assessEmotionalArc(
   const peakIndex = peakIndexOf(notes, target)
   const peak = notes[peakIndex]
   const peakPosition = peak.startBeat / totalBeats
-  const earliest = isChorus(role) ? .57 : role === "pre-chorus" ? .52 : .36
+  const earliest = earliestClimaxFraction(role)
   const latest = isChorus(role) ? .86 : role === "pre-chorus" ? .88 : .82
   const climaxTiming = peakPosition < earliest
     ? clamp01(1 - (earliest - peakPosition) / .32)
@@ -275,5 +278,39 @@ export function ensureSummitBreath(source: readonly MelodyNote[], totalBeats: nu
   const shortened = peak.startBeat - before.startBeat - .5
   if (shortened < .25 || before.locks.length > 0 || before.plannedResolution) return notes
   before.durationBeats = shortened
+  return notes
+}
+
+/**
+ * クライマックスを急がない下限。頂点が早すぎ(サビなら 57% より前)、しかも後半にほぼ同じ高さ(2半音以内)の音があるときだけ、
+ * 早い頂点をその場の和音の構成音へ少し(1〜4半音)下げ、後半の高まりに頂点を譲る。
+ * 最初のフレーズ(核)・固定された音・解決を予定した音には触らない。条件に合わなければ何もしない。
+ */
+export function deferEarlySummit(
+  source: readonly MelodyNote[],
+  harmonicMap: HarmonicMapEntry[],
+  totalBeats: number,
+  role: SectionRole,
+  coreLengthBeats: number,
+): MelodyNote[] {
+  const notes = source.map((note) => ({ ...note })).sort((a, b) => a.startBeat - b.startBeat)
+  if (notes.length < 6 || totalBeats < 16) return notes
+  const peakIndex = peakIndexOf(notes, totalBeats * emotionalTargetFraction(role))
+  const peak = notes[peakIndex]
+  const earliest = totalBeats * earliestClimaxFraction(role)
+  if (peak.startBeat >= earliest || peak.startBeat < coreLengthBeats || peak.locks.length > 0 || peak.plannedResolution) return notes
+  const later = notes.filter((note) => note.startBeat >= earliest && note.pitch >= peak.pitch - 2 && note.pitch < peak.pitch)
+  if (later.length === 0) return notes
+  const laterTop = Math.max(...later.map((note) => note.pitch))
+  const chord = chordAtBeat(harmonicMap, peak.startBeat)
+  if (!chord) return notes
+  const previous = notes[peakIndex - 1]
+  const next = notes[peakIndex + 1]
+  const choice = [1, 2, 3, 4].map((step) => peak.pitch - step).find((pitch) =>
+    pitch < laterTop && isChordTone(chord.parsed, pitchClass(pitch)) &&
+    (!previous || Math.abs(pitch - previous.pitch) <= 7) && (!next || Math.abs(next.pitch - pitch) <= 7))
+  if (choice === undefined) return notes
+  peak.pitch = choice
+  peak.plannedToneRole = "chord-tone"
   return notes
 }

@@ -84,7 +84,7 @@ import { measureMotifDevelopment } from "./motifRecognition"
 import { keyScalePitchClasses } from "@/core/scale"
 import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
 import { subtleHookVariation } from "./hookDevelopment"
-import { assessEmotionalArc, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
+import { assessEmotionalArc, deferEarlySummit, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -900,15 +900,19 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const poolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftCandidatePoolSize : CANDIDATE_SELECTION_CONFIG.candidatePoolSize
     const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
     const scale = input.key ? keyScalePitchClasses(input.key) : undefined
+    // 頂点を急がない下限(Hook-first の核があるときだけ。核の長さの範囲には触らない)
+    const deferSummit = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => hookHeadPlan
+      ? deferEarlySummit(notes, harmonicMap, input.totalBeats, input.sectionRole, hookHeadPlan.coreLengthBeats)
+      : notes
     const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => enforceHarmonicIntegrity(
-      ensureSummitBreath(restoreHookHeads(applyMelodicCraft(notes, {
+      ensureSummitBreath(deferSummit(restoreHookHeads(applyMelodicCraft(notes, {
         harmonicMap,
         range: input.range,
         totalBeats: input.totalBeats,
         sectionRole: input.sectionRole,
         profile,
         key: input.key,
-      }), hookHeadPlan, harmonicMap, input.range, scale), input.totalBeats, input.sectionRole),
+      }), hookHeadPlan, harmonicMap, input.range, scale), hookHeadPlan), input.totalBeats, input.sectionRole),
       input.chords,
       input.range,
       { preserveExpressiveChordRoles: true },
@@ -1087,14 +1091,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       results.push({
         notes: craftSelection && pattern.craftedNotes
           ? enforceHarmonicIntegrity(
-            ensureSummitBreath(restoreHookHeads(refineTowardClassical(pattern.craftedNotes, {
+            ensureSummitBreath(deferSummit(restoreHookHeads(refineTowardClassical(pattern.craftedNotes, {
               harmonicMap,
               range: input.range,
               totalBeats: input.totalBeats,
               sectionRole: input.sectionRole,
               key: input.key,
               models: CLASSICAL_MODELS,
-            }).notes, pattern.hookHeadPlan, harmonicMap, input.range, scale), input.totalBeats, input.sectionRole),
+            }).notes, pattern.hookHeadPlan, harmonicMap, input.range, scale), pattern.hookHeadPlan), input.totalBeats, input.sectionRole),
             input.chords,
             input.range,
             { preserveExpressiveChordRoles: true },
