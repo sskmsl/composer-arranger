@@ -164,7 +164,8 @@ describe("Rhythm quality: 拍階層・音価・終端を人間的に保つ", () 
         }
       }
     }
-  }, 15_000)
+    // 300回生成する。手元で約10秒、CI では15秒前後かかり、15秒の上限を超えることがあった
+  }, 30_000)
 })
 
 describe("Key: parametric Profileの出力へ計測可能な差を生む", () => {
@@ -176,7 +177,8 @@ describe("Key: parametric Profileの出力へ計測可能な差を生む", () =>
       if (JSON.stringify(cMajor) !== JSON.stringify(fsMajor)) changed++
     }
     expect(changed).toBeGreaterThan(25)
-  }, 15_000)
+    // 100回生成する。CI では14秒ほどかかり、15秒の上限に近かった
+  }, 30_000)
 })
 
 describe("決定論: 同一入力(id以外)は完全再現される", () => {

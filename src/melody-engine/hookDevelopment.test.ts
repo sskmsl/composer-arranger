@@ -210,20 +210,64 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     const chordEvents = ["C", "Am", "F", "G", "C", "Am", "F", "G"].map((symbol, index) => ({
       id: `c${index}`, sectionId: "s", startBeat: index * 4, durationBeats: 4, symbol, bass: null,
     }))
-    for (const seed of [101, 202, 303]) {
+    // 調を指定しないとき(作りの良さで選ばない経路)も同じ
+    for (const [seed, key] of [[101, "C"], [202, "C"], [303, "C"], [101, undefined], [202, undefined]] as const) {
       const { candidates } = generateFromChordsWithProfiles({
         chords: chordEvents, sectionId: "s", sectionRole: "chorus", songProfile: "dark-romantic", density: "balanced",
-        range: { low: 57, high: 76 }, drama: "growing", totalBeats: 32, seed, profiles: ["standard"], key: "C",
+        range: { low: 57, high: 76 }, drama: "growing", totalBeats: 32, seed, profiles: ["standard"], key,
       })
       expect(candidates.some((candidate) => candidate.notes.some((n) => n.id.includes("-again-")))).toBe(true)
     }
-  }, 60000)
+  }, 120000)
 
   it("直前の音が解決を待つ音(導音など)なら、同じ向きへ順次で入れるときだけ置く", () => {
     const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
     // G の上の導音 B(71)が、5小節目の頭の C(72)へ解決している
-    const leading = melody().map((n) => n.startBeat === 12 ? { ...n, pitch: 71 } : n.startBeat === 16 ? { ...n, pitch: 72 } : n)
+    const leading = melody().map((n) => n.startBeat === 12 ? { ...n, pitch: 71, durationBeats: 4 } : n.startBeat === 16 ? { ...n, pitch: 72 } : n)
     // 核の頭は E(64)。B → E では解決が失われるので置かない
     expect(repeatOverReturningHarmony(leading, plan(["statement", "answer", "develop", "return"]), map)).toEqual(leading)
+    // 休みを挟んで離れた B は解決を待つ音ではないので、くり返しを置く
+    const breath = melody().map((n) => n.startBeat === 12 ? { ...n, pitch: 71, durationBeats: 1 } : n)
+    const result = repeatOverReturningHarmony(breath, plan(["statement", "answer", "develop", "return"]), map)
+    expect(result.filter((n) => n.startBeat >= 16 && n.startBeat < 24).map((n) => n.pitch)).toEqual(melody().filter((n) => n.startBeat < 8).map((n) => n.pitch))
+    // 核が休符から始まるときは、写しの最初の音(17拍目)までの間で測る。16拍目で終わる B とは1拍離れている
+    const delayed = melody().filter((n) => n.startBeat !== 0).map((n) => n.startBeat === 12 ? { ...n, pitch: 71, durationBeats: 4 } : n)
+    const delayedResult = repeatOverReturningHarmony(delayed, plan(["statement", "answer", "develop", "return"]), map)
+    expect(delayedResult.filter((n) => n.startBeat >= 16 && n.startBeat < 24).map((n) => n.pitch)).toEqual(delayed.filter((n) => n.startBeat < 8).map((n) => n.pitch))
+  })
+
+  it("写し先が元の2小節と重なる位置には置かない(冒頭を書き換えない)", () => {
+    const map = chords(["C", "C", "C", "C", "C", "C", "C", "C"])
+    const fourBeatPlan = {
+      coreLengthBeats: 8,
+      phrases: (["statement", "answer", "develop", "return", "answer", "develop", "return", "return"] as const)
+        .map((role, index) => ({ startBeat: index * 4, lengthBeats: 4, role })),
+    }
+    const result = repeatOverReturningHarmony(melody(), fourBeatPlan, map)
+    const copies = result.filter((n) => n.id.includes("-again-"))
+    expect(copies.length).toBeGreaterThan(0)
+    const start = copies[0].startBeat
+    // 写しは、結果の冒頭と同じ形(元の旋律が書き換わっていれば一致しない)
+    expect(copies.map((n) => [n.startBeat - start, n.pitch])).toEqual(result.slice(0, copies.length).map((n) => [n.startBeat, n.pitch]))
+  })
+
+  it("32拍より長いサビで2回くり返しても、移した頂点を上書きしない", () => {
+    const map = chords(Array.from({ length: 16 }, (_, index) => (index % 2 === 0 ? "C" : "Am")))
+    const long = [
+      note(0, 64), note(1, 67), note(2, 69), note(3, 67, 2), note(5, 64), note(6, 67, 2),
+      note(8, 65), note(10, 64), note(12, 72, 2), note(14, 67),
+      note(16, 69, 2), note(18, 67), note(20, 65, 2), note(22, 64, 2),
+      note(24, 62, 2), note(26, 64, 2), note(28, 65, 2), note(30, 64, 2),
+      ...[64, 65, 64, 62, 64, 65, 67, 65, 64, 62, 64, 62, 60, 62].map((pitch, index) => note(32 + index * 2, pitch, 2)),
+      note(60, 60, 4),
+    ]
+    const longPlan = {
+      coreLengthBeats: 8, climaxBeat: 46, sectionRole: "chorus" as const,
+      phrases: (["statement", "answer", "contrast", "contrast-answer", "return", "answer", "develop", "return"] as const)
+        .map((role, index) => ({ startBeat: index * 8, lengthBeats: 8, role })),
+    }
+    const result = repeatOverReturningHarmony(long, longPlan, map)
+    expect(result.some((n) => n.id.includes("-again-"))).toBe(true)
+    expect(Math.max(...result.map((n) => n.pitch))).toBe(72)
   })
 })

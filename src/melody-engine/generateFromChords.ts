@@ -936,6 +936,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       ? Math.max(0, input.craftSelectionWeight)
       : CRAFT_SELECTION_WEIGHT[profile]
     const craftSelection = Boolean(input.key) && craftWeight > 0
+    const preferHookRepeat = (profile === "standard" || profile === "cinematic") &&
+      (input.sectionRole === "chorus" || input.sectionRole === "grand-chorus")
     const poolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftCandidatePoolSize : CANDIDATE_SELECTION_CONFIG.candidatePoolSize
     const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
     const scale = input.key ? keyScalePitchClasses(input.key) : undefined
@@ -960,8 +962,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       const pattern = melodyReference && referenceStrength > 0
         ? { ...built, referenceScore: melodyReferenceFitScore(built.notes, input.totalBeats, melodyReference) }
         : built
-      // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)
-      if (!craftSelection) return pattern
+      // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)。
+      // ただしサビでフックをくり返す案を選びたいときは、くり返し(仕上げの中で置く)の有無を見るために先に仕上げる
+      if (!craftSelection) return preferHookRepeat ? { ...pattern, craftedNotes: craftNotes(pattern.notes, pattern.hookHeadPlan) } : pattern
       const craftedNotes = craftNotes(pattern.notes, pattern.hookHeadPlan)
       const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODELS).typicality * 100
       return { ...pattern, craftedNotes, craftScore }
@@ -1032,7 +1035,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           ...candidate,
           openingPlan: candidate.opening,
           expectationScore: expectationScoreOf(candidate),
-          hookRepeated: (candidate.craftedNotes ?? []).some((note) => note.id.includes("-again-")),
+          hookRepeated: (candidate.craftedNotes ?? candidate.notes).some((note) => note.id.includes("-again-")),
         })),
         harmonicMap,
         PROFILE_MINIMUM_QUALITY[profile],
@@ -1058,8 +1061,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           referenceWeight: referenceStrength * .25,
           expectationWeight: EXPECTATION_SELECTION_WEIGHT[profile],
           // サビでは、同じ進行が戻る所でフックをくり返す案を3案のうち少なくとも1つ入れる
-          preferHookRepeat: (profile === "standard" || profile === "cinematic") &&
-            (input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"),
+          preferHookRepeat,
         },
       )
 
