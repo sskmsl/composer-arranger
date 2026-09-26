@@ -100,6 +100,9 @@ export interface CandidateSelectionOptions {
   expectationWeight?: number
 }
 
+/** 理論品質以外の重みの合計の上限(理論品質の係数を必ず正に保つ) */
+const MAX_ADDED_WEIGHT = 0.9
+
 function normalizedQuality(candidate: SelectableCandidate): number {
   return Math.max(0, Math.min(1, candidate.qualityScore / 100))
 }
@@ -111,12 +114,16 @@ function normalizedSelectionQuality(candidate: SelectableCandidate, options: Can
   const craftWeight = candidate.craftScore === undefined ? 0 : Math.max(0, Math.min(.4, options.craftWeight ?? 0))
   const referenceWeight = candidate.referenceScore === undefined ? 0 : Math.max(0, Math.min(.15, options.referenceWeight ?? 0))
   const expectationWeight = candidate.expectationScore === undefined ? 0 : Math.max(0, Math.min(.15, options.expectationWeight ?? 0))
-  return normalizedQuality(candidate) * (1 - hookWeight - emotionalWeight - craftWeight - referenceWeight - expectationWeight) +
-    Math.max(0, Math.min(1, (candidate.expectationScore ?? 0) / 100)) * expectationWeight +
-    Math.max(0, Math.min(1, (candidate.hookScore ?? 0) / 100)) * hookWeight +
-    Math.max(0, Math.min(1, (candidate.emotionalScore ?? 0) / 100)) * emotionalWeight +
-    Math.max(0, Math.min(1, (candidate.craftScore ?? 0) / 100)) * craftWeight +
-    Math.max(0, Math.min(1, (candidate.referenceScore ?? 0) / 100)) * referenceWeight
+  // 個別の上限をすべて使うと合計が1を超え、理論品質の係数が負になる。そのときは比率を保って縮める
+  const added = hookWeight + emotionalWeight + craftWeight + referenceWeight + expectationWeight
+  const scale = added > MAX_ADDED_WEIGHT ? MAX_ADDED_WEIGHT / added : 1
+  const unit = (score: number | undefined) => Math.max(0, Math.min(1, (score ?? 0) / 100))
+  return normalizedQuality(candidate) * (1 - added * scale) + scale * (
+    unit(candidate.expectationScore) * expectationWeight +
+    unit(candidate.hookScore) * hookWeight +
+    unit(candidate.emotionalScore) * emotionalWeight +
+    unit(candidate.craftScore) * craftWeight +
+    unit(candidate.referenceScore) * referenceWeight)
 }
 
 function normalizedTechniqueFit(candidate: SelectableCandidate): number {

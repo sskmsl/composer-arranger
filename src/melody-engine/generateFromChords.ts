@@ -1012,7 +1012,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const expectationCache = new Map<number, number | undefined>()
     const expectationScoreOf = (candidate: BuiltPattern): number | undefined => {
       if (!expectationCache.has(candidate.candidatePoolIndex)) {
-        const profileOfCandidate = measureExpectation(candidate.craftedNotes ?? candidate.notes, input.key)
+        const profileOfCandidate = measureExpectation(candidate.craftedNotes ?? candidate.notes, input.key, input.totalBeats)
         expectationCache.set(candidate.candidatePoolIndex, profileOfCandidate ? profileOfCandidate.score * 100 : undefined)
       }
       return expectationCache.get(candidate.candidatePoolIndex)

@@ -9,13 +9,21 @@ import songExpectationJson from "./reference/songExpectation.json"
  *   - 覚えやすい部分・耳に残る曲は、音の動きが「よくある形」に近い(Van Balen et al. 2015、Jakubowski et al. 2017)
  *   - 好まれるのは予想しやすさが中くらいのもの(Gold et al. 2019)。予想どおりすぎても外れすぎても好まれにくい
  * 物差しはパブリックドメインの歌502曲(OpenEWLD)の音程の出やすさだけで作っている(旋律そのものは持たない)。
+ * 音高の低次の統計モデルで、IDyOM と同等ではない。音価・休符・拍・和音・テンポは確率に入らないので、
+ * リズムや和声の良し悪しはこの値で代用できない。歌の25〜75パーセンタイルは「よくある範囲」であって、
+ * 人が最も好む範囲の実測値ではない(過度な予想外さを抑えるための仮説的な重みとして使う)。
  * 生成した旋律は、長調・短調とも歌の上位25%より予想しにくいものが半分以上あった(歌では25%)。
  */
+type Percentiles = Record<"p5" | "p10" | "p25" | "p50" | "p75" | "p90" | "p95", number>
+
 interface SongExpectationModel {
   bins: number
   beta: number
   betaShort: number
-  calibration: Record<"major" | "minor", Record<"p5" | "p10" | "p25" | "p50" | "p75" | "p90" | "p95", number>>
+  /** 窓の長さ(拍)ごと・長調/短調ごとの、窓の平均情報量の分布 */
+  calibration: Record<string, Record<"major" | "minor", Percentiles>>
+  windowBeats: number[]
+  minNotes: Record<string, number>
   counts3: number[][][][]
   counts2: number[][][]
   counts1: number[][]
@@ -78,14 +86,42 @@ export interface ExpectationProfile {
   score: number
 }
 
-export function measureExpectation(notes: readonly MelodyNote[], key: string | undefined): ExpectationProfile | null {
-  if (!key || notes.length < 8) return null
+/**
+ * 較正と同じ窓で測る: 最初の発音から windowBeats 拍ごとに区切り、窓ごとに短期の予想をリセットして平均する。
+ * 候補全体を一度に測ると、長いセクションほど短期の予想が効いて値が下がり、較正した分位点と比べられない。
+ * 32拍に満たないセクションは16拍の窓と、その較正を使う。
+ */
+function windowsOf(notes: readonly MelodyNote[], totalBeats?: number): { windowBeats: number; windows: MelodyNote[][] } {
+  const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
+  // 窓の長さはセクションの長さで決める(8小節の旋律は最後の音が32拍目より前にあるので、音の広がりでは決めない)
+  const length = totalBeats ?? sorted[sorted.length - 1].startBeat + sorted[sorted.length - 1].durationBeats
+  const windowBeats = length >= 32 - 1e-6 ? 32 : 16
+  const minimum = MODEL.minNotes[String(windowBeats)] ?? 8
+  const windows: MelodyNote[][] = []
+  for (let start = sorted[0].startBeat; start < sorted[sorted.length - 1].startBeat + 1e-6; start += windowBeats) {
+    const window = sorted.filter((note) => note.startBeat >= start - 1e-6 && note.startBeat < start + windowBeats - 1e-6)
+    if (window.length >= minimum) windows.push(window)
+  }
+  return { windowBeats, windows }
+}
+
+export function measureExpectation(
+  notes: readonly MelodyNote[],
+  key: string | undefined,
+  /** セクションの長さ(拍)。32拍以上なら32拍、未満なら16拍の窓と較正を使う */
+  totalBeats?: number,
+): ExpectationProfile | null {
+  if (!key || notes.length < 5) return null
   const parsed = parseKey(key)
   if (!parsed) return null
-  const values = noteInformation(notes, key)
-  if (values.length === 0) return null
-  const meanInformation = values.reduce((sum, value) => sum + value, 0) / values.length
-  const c = MODEL.calibration[parsed.isMinor ? "minor" : "major"]
+  const { windowBeats, windows } = windowsOf(notes, totalBeats)
+  const means = windows
+    .map((window) => noteInformation(window, key))
+    .filter((values) => values.length > 0)
+    .map((values) => values.reduce((sum, value) => sum + value, 0) / values.length)
+  if (means.length === 0) return null
+  const meanInformation = means.reduce((sum, value) => sum + value, 0) / means.length
+  const c = MODEL.calibration[String(windowBeats)][parsed.isMinor ? "minor" : "major"]
   const anchors: [number, number][] = [[c.p5, 5], [c.p10, 10], [c.p25, 25], [c.p50, 50], [c.p75, 75], [c.p90, 90], [c.p95, 95]]
   let songPercentile = meanInformation <= c.p5 ? 5 * meanInformation / c.p5 : 100
   for (let index = 1; index < anchors.length; index++) {
