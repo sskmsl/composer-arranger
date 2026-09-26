@@ -308,7 +308,8 @@ export function deferEarlySummit(
   const peak = notes[peakIndex]
   const earliest = totalBeats * earliestClimaxFraction(role)
   if (peak.startBeat >= earliest) return notes
-  const lowered = peak.startBeat >= coreLengthBeats && peak.locks.length === 0 && !peak.plannedResolution
+  // 同じ和音の上でくり返した核の写し("-again-")は、くり返しと分かるよう下げない
+  const lowered = peak.startBeat >= coreLengthBeats && peak.locks.length === 0 && !peak.plannedResolution && !peak.id.includes("-again-")
     ? lowerEarlyPeak(notes, peakIndex, earliest, harmonicMap)
     : false
   if (!lowered) raiseLatePeak(notes, peak.pitch, earliest, target, totalBeats * latestClimaxFraction(role), harmonicMap)

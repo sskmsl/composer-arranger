@@ -174,4 +174,21 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     const rests = melody().filter((n) => n.startBeat < 16 || n.startBeat >= 24)
     expect(repeatOverReturningHarmony(rests, plan(["statement", "answer", "develop", "return"]), map)).toEqual(rests)
   })
+
+  it("サビでは、対照(B)のフレーズの上でも和音の並びが戻ればフックをくり返す", () => {
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    const chorusPlan = { ...plan(["statement", "answer", "contrast", "return"]), sectionRole: "chorus" as const }
+    const result = repeatOverReturningHarmony(melody(), chorusPlan, map)
+    const shape = (start: number) => result.filter((n) => n.startBeat >= start && n.startBeat < start + 8).map((n) => [n.startBeat - start, n.pitch, n.durationBeats])
+    expect(shape(16)).toEqual(shape(0))
+    expect(result.filter((n) => n.startBeat >= 24).map((n) => n.pitch)).toEqual([72, 67, 64])
+  })
+
+  it("直前の音が解決を待つ音(導音など)なら、同じ向きへ順次で入れるときだけ置く", () => {
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    // G の上の導音 B(71)が、5小節目の頭の C(72)へ解決している
+    const leading = melody().map((n) => n.startBeat === 12 ? { ...n, pitch: 71 } : n.startBeat === 16 ? { ...n, pitch: 72 } : n)
+    // 核の頭は E(64)。B → E では解決が失われるので置かない
+    expect(repeatOverReturningHarmony(leading, plan(["statement", "answer", "develop", "return"]), map)).toEqual(leading)
+  })
 })

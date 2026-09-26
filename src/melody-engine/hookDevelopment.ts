@@ -172,6 +172,8 @@ export interface HookHeadPlan {
   phrases: { startBeat: number; lengthBeats: number; role: HookPhraseRole | undefined }[]
   /** セクションの感情の目標位置(拍)。これより後ろの高まりは、頭を戻すときにも削らない */
   climaxBeat?: number
+  /** セクションの役割。サビでは、和音の並びが戻る所で対照(B)よりも核のくり返しを優先する */
+  sectionRole?: SectionRole
 }
 
 /** 頭を保つべき役割(対照側の素材や、音程を広げる発展は含めない) */
@@ -292,7 +294,11 @@ export function restoreHookHeads(
  * 歌502曲(OpenEWLD)より予想しにくい側に偏っていた(2小節がそのまま戻る割合: 歌 6%、生成 0〜1%)。
  * くり返しは覚えやすさ・好まれやすさを高める(Nunes et al. 2015、Van Balen et al. 2015)。
  * 位置で決めた回帰フレーズは別の和音の上に来ることが多く、同じ形が和声に合わなかったので、
- * 和音の並びが戻ってくる所だけで行う。8小節ごとに1回まで。頂点と最後の音(終止)を含む所には置かない。
+ * 和音の並びが戻ってくる所(コードの変わり目)だけで行う。8小節ごとに1回まで。頂点と最後の音(終止)を含む所には置かない。
+ *
+ * サビでは、後半の対照(B)のフレーズの上でも、和音の並びが戻るならフックをくり返す。
+ * ポップスのサビは進行が戻る所で同じフックを歌い直すことが多く、利用者も「全体を通して口ずさめる」ことを重視している。
+ * サビは2小節(8拍)ぶんを先に試し、頂点に掛かるなどで置けなければ核の長さで置く。
  */
 export function repeatOverReturningHarmony(
   source: readonly MelodyNote[],
@@ -305,48 +311,75 @@ export function repeatOverReturningHarmony(
   if (!first || !last || notes.length < 6) return notes
   const sectionBeats = last.startBeat + last.lengthBeats
   const length = Math.min(plan.coreLengthBeats, first.lengthBeats)
-  const statement = notes.filter((note) => note.startBeat >= first.startBeat - 1e-6 && note.startBeat < first.startBeat + length - 1e-6)
-  if (statement.length < 3 || length < 4) return notes
+  if (length < 4) return notes
+  const chorus = plan.sectionRole === "chorus" || plan.sectionRole === "grand-chorus"
+  // サビは2小節ぶん(ただしセクションの半分まで)を先に試す
+  const spans = [...new Set([chorus ? Math.min(8, sectionBeats / 2) : length, length])].filter((span) => span >= length)
   const symbolAt = (beat: number) => chordAtBeat(harmonicMap, beat)?.chord.symbol ?? ""
-  const samples = Array.from({ length: Math.round(length * 2) }, (_, index) => index / 2)
-  const harmony = samples.map((offset) => symbolAt(first.startBeat + offset))
+  const statementOf = (span: number) => notes.filter((note) => note.startBeat >= first.startBeat - 1e-6 && note.startBeat < first.startBeat + span - 1e-6)
+  if (statementOf(length).length < 3) return notes
   const summit = notes.reduce((best, note) => (note.pitch > best.pitch ? note : best), notes[0])
   const finalNote = notes[notes.length - 1]
   // 8小節ごとに1回まで(くり返しすぎると逆効果: Nunes et al. 2015)
   let remaining = Math.max(1, Math.floor(sectionBeats / 32))
-  // A の素材を置いてよいのは、応答・発展・回帰のフレーズだけ(対照 B・段階的な上昇・頂点の設計は変えない)
-  const repeatable = (role: HookPhraseRole | undefined) => role === "answer" || role === "develop" || role === "return"
-  for (let start = first.startBeat + first.lengthBeats; start + length <= sectionBeats + 1e-6; start += length) {
-    if (!samples.every((offset, index) => symbolAt(start + offset) === harmony[index])) continue
-    const end = start + length
-    const overlapping = plan.phrases.filter((phrase) => phrase.startBeat < end - 1e-6 && phrase.startBeat + phrase.lengthBeats > start + 1e-6)
-    if (overlapping.length === 0 || !overlapping.every((phrase) => repeatable(phrase.role))) continue
-    const inside = (note: MelodyNote) => note.startBeat >= start - 1e-6 && note.startBeat < end - 1e-6
-    if (inside(summit) || inside(finalNote)) continue
-    // 休み(息継ぎ)の所を音で埋めない
-    if (notes.filter(inside).length < Math.ceil(statement.length * 0.6)) continue
-    const shift = start - first.startBeat
-    // 掛留・倚音などの解決先(絶対拍)も同じだけ動かす。動かさないと、戻りの音が過去の拍へ解決する予定のまま残る
-    const copies = statement.map((note) => ({
-      ...note,
-      id: `${note.id}-again-${start}`,
-      startBeat: note.startBeat + shift,
-      durationBeats: Math.min(note.durationBeats, end - (note.startBeat + shift)),
-      plannedResolution: note.plannedResolution
-        ? { ...note.plannedResolution, targetBeat: note.plannedResolution.targetBeat + shift }
-        : undefined,
-    }))
-    // 直前の音が戻りの頭へはみ出さないようにし、頭の前との跳躍が大きすぎる所には置かない
-    const before = notes.filter((note) => note.startBeat < start - 1e-6).at(-1)
-    const after = notes.find((note) => note.startBeat >= end - 1e-6)
-    if (before && Math.abs(copies[0].pitch - before.pitch) > 9) continue
-    if (after && Math.abs(after.pitch - copies[copies.length - 1].pitch) > 9) continue
-    const kept = notes.filter((note) => !inside(note)).map((note) =>
-      note === before && note.startBeat + note.durationBeats > copies[0].startBeat
-        ? { ...note, durationBeats: Math.max(0.25, copies[0].startBeat - note.startBeat) }
-        : note)
-    notes = [...kept, ...copies].sort((a, b) => a.startBeat - b.startBeat)
-    remaining -= 1
+  // A の素材を置いてよいのは、応答・発展・回帰のフレーズだけ(対照 B・段階的な上昇・頂点の設計は変えない)。
+  // サビでは対照側のフレーズにも置く
+  const repeatable = (role: HookPhraseRole | undefined) => role === "answer" || role === "develop" || role === "return" ||
+    (chorus && (role === "contrast" || role === "contrast-answer" || role === "contrast-return"))
+  // くり返しの頭はコードの変わり目だけ(拍子の中の位置を核と揃える)
+  const starts = [...new Set(harmonicMap.map((entry) => entry.chord.startBeat))]
+    .filter((beat) => beat >= first.startBeat + first.lengthBeats - 1e-6)
+    .sort((a, b) => a - b)
+  let blockedUntil = -Infinity
+  for (const start of starts) {
+    if (start < blockedUntil - 1e-6) continue
+    for (const span of spans) {
+      const end = start + span
+      if (end > sectionBeats + 1e-6) continue
+      const statement = statementOf(span)
+      if (statement.length < 3) continue
+      const samples = Array.from({ length: Math.round(span * 2) }, (_, index) => index / 2)
+      if (!samples.every((offset) => symbolAt(start + offset) === symbolAt(first.startBeat + offset))) continue
+      const overlapping = plan.phrases.filter((phrase) => phrase.startBeat < end - 1e-6 && phrase.startBeat + phrase.lengthBeats > start + 1e-6)
+      if (overlapping.length === 0 || !overlapping.every((phrase) => repeatable(phrase.role))) continue
+      const inside = (note: MelodyNote) => note.startBeat >= start - 1e-6 && note.startBeat < end - 1e-6
+      if (inside(summit) || inside(finalNote)) continue
+      // 休み(息継ぎ)の所を音で埋めない
+      if (notes.filter(inside).length < Math.ceil(statement.length * 0.6)) continue
+      const shift = start - first.startBeat
+      // 掛留・倚音などの解決先(絶対拍)も同じだけ動かす。動かさないと、戻りの音が過去の拍へ解決する予定のまま残る
+      const copies = statement.map((note) => ({
+        ...note,
+        id: `${note.id}-again-${start}`,
+        startBeat: note.startBeat + shift,
+        durationBeats: Math.min(note.durationBeats, end - (note.startBeat + shift)),
+        plannedResolution: note.plannedResolution
+          ? { ...note.plannedResolution, targetBeat: note.plannedResolution.targetBeat + shift }
+          : undefined,
+      }))
+      // 直前の音が戻りの頭へはみ出さないようにし、頭の前との跳躍が大きすぎる所には置かない
+      const before = notes.filter((note) => note.startBeat < start - 1e-6).at(-1)
+      const after = notes.find((note) => note.startBeat >= end - 1e-6)
+      if (before && Math.abs(copies[0].pitch - before.pitch) > 9) continue
+      if (after && Math.abs(after.pitch - copies[copies.length - 1].pitch) > 9) continue
+      // 直前の音が次の和音の構成音でない(導音や属七の7度など、解決を待つ音)ときは、
+      // 元の旋律と同じ向きへ順次(2半音以内)で入れる場合だけ置く。写しの頭で解決を失わないように
+      const replacedHead = notes.find(inside)
+      const nextChord = chordAtBeat(harmonicMap, start)
+      if (before && replacedHead && nextChord && !isChordTone(nextChord.parsed, pitchClass(before.pitch))) {
+        const original = replacedHead.pitch - before.pitch
+        const again = copies[0].pitch - before.pitch
+        if (Math.abs(again) > 2 || Math.sign(again) !== Math.sign(original)) continue
+      }
+      const kept = notes.filter((note) => !inside(note)).map((note) =>
+        note === before && note.startBeat + note.durationBeats > copies[0].startBeat
+          ? { ...note, durationBeats: Math.max(0.25, copies[0].startBeat - note.startBeat) }
+          : note)
+      notes = [...kept, ...copies].sort((a, b) => a.startBeat - b.startBeat)
+      remaining -= 1
+      blockedUntil = end
+      break
+    }
     if (remaining === 0) break
   }
   return notes
