@@ -29,6 +29,8 @@ export function hookPhraseRole(
   phraseCount: number,
   profile: MelodyGeneratorProfile = "standard",
   sectionRole?: SectionRole,
+  /** セクションの長さ(拍)。16小節相当以上のときだけ、前半に音程を広げる発展を置かない */
+  sectionBeats?: number,
 ): HookPhraseRole | undefined {
   if (profile !== "standard" && profile !== "cinematic") return undefined
   if (phraseCount < 2 || phraseIndex < 0 || phraseIndex >= phraseCount) return undefined
@@ -52,7 +54,10 @@ export function hookPhraseRole(
   if (phraseIndex === climaxIndex) return "climax"
   if (phraseIndex > climaxIndex) return "answer"
   if (phraseIndex >= 4) return "rise"
-  return (["statement", "answer", "develop", "return"] as const)[phraseIndex]
+  // (長いセクションでは音程を広げる発展を前半に置かない。早すぎる頂点を作るため。Brahms は8小節、Sibelius は16小節以上と役割を分ける)
+  return ((sectionBeats ?? 64) >= LONG_SECTION_BEATS
+    ? ["statement", "answer", "return", "answer"] as const
+    : ["statement", "answer", "develop", "return"] as const)[phraseIndex]
 }
 
 /** 調の音階に沿って steps 段だけ動かす(音階外の音は半音2つ分を1段とみなす) */
@@ -165,9 +170,14 @@ export interface HookHeadPlan {
   coreLengthBeats: number
   /** 各フレーズの開始拍と役割 */
   phrases: { startBeat: number; lengthBeats: number; role: HookPhraseRole | undefined }[]
+  /** セクションの感情の目標位置(拍)。これより後ろの高まりは、頭を戻すときにも削らない */
+  climaxBeat?: number
 }
 
 /** 頭を保つべき役割(対照側の素材や、音程を広げる発展は含めない) */
+/** 長いセクション(16小節相当)とみなす拍数 */
+const LONG_SECTION_BEATS = 56
+
 const HEAD_KEEPING_ROLES: readonly (HookPhraseRole | undefined)[] = ["answer", "return", "rise", "climax"]
 const CONTRAST_KEEPING_ROLES: readonly (HookPhraseRole | undefined)[] = ["contrast-answer", "contrast-return"]
 
@@ -227,9 +237,15 @@ export function restoreHookHeads(
     // (頂点の位置と、その前後の息継ぎを動かさない)
     const phraseTop = Math.max(...notes.filter((note) =>
       note.startBeat >= phrase.startBeat - 1e-6 && note.startBeat < phrase.startBeat + phrase.lengthBeats - 1e-6).map((note) => note.pitch))
+    const windowTop = Math.max(...window.map((note) => note.pitch))
+    // (長いセクションだけ。短いセクションでは頂点の位置が変わらず、Hook の戻りだけが減ったため)
+    const sectionBeats = plan.phrases.at(-1)!.startBeat + plan.phrases.at(-1)!.lengthBeats
+    const nearClimax = sectionBeats >= LONG_SECTION_BEATS && plan.climaxBeat !== undefined && phrase.startBeat + phrase.lengthBeats * 2 > plan.climaxBeat
     let best: { pitches: number[]; cost: number } | null = null
     for (const option of options) {
       if (option.pitches.some((pitch) => pitch < range.low || pitch > range.high || pitch > phraseTop || pitch >= summit.pitch)) continue
+      // 頂点の目標位置に近いフレーズでは、頭の中の高い音も下げない(後半の高まりを削ると、頂点が前へずれてしまう)
+      if (nearClimax && Math.max(...option.pitches) < windowTop) continue
       let valid = true
       option.pitches.forEach((pitch, index) => {
         const note = window[index]

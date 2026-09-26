@@ -112,6 +112,10 @@ function summarize(samples: Sample[]) {
         for (const [key, value] of Object.entries(arc)) sum[key] = (sum[key] ?? 0) + value / samples.length
         return sum
       }, {})).map(([key, value]) => [key, Math.round(value * 1000) / 1000])),
+    peakByRole: Object.fromEntries(ROLES.map((role) => {
+      const rows = samples.filter((s) => s.role === role).map((s) => assessEmotionalArc(s.notes, buildHarmonicMap(s.chords), s.bars * 4, s.role, 4))
+      return [role, { peakPosition: Math.round(mean(rows.map((row) => row.peakPosition)) * 1000) / 1000, climaxTiming: Math.round(mean(rows.map((row) => row.climaxTiming)) * 1000) / 1000 }]
+    })),
     relationCounts: dev.flatMap((d) => d.relations).reduce<Record<string, number>>((counts, relation) => ({ ...counts, [relation]: (counts[relation] ?? 0) + 1 }), {}),
   }
 }
@@ -145,5 +149,10 @@ describe("動機の育て方(Core Hook → 反復 → 小変形 → 発展 → �
   })
   it("16小節でも、頂点までの段階的な成長を下げない(変更前 0.38)", () => {
     expect(sixteen.gradualGrowth).toBeGreaterThanOrEqual(.37)
+  })
+  it("頂点の前後に息継ぎを残し、16小節の頂点を急がない(変更前 息継ぎ 0.71 / 0.70、16小節の頂点の時機 0.865)", () => {
+    expect(eight.arcParts.phraseBreathing).toBeGreaterThanOrEqual(.72)
+    expect(sixteen.arcParts.phraseBreathing).toBeGreaterThanOrEqual(.71)
+    expect(sixteen.arcParts.climaxTiming).toBeGreaterThanOrEqual(.85)
   })
 })

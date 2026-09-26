@@ -84,7 +84,7 @@ import { measureMotifDevelopment } from "./motifRecognition"
 import { keyScalePitchClasses } from "@/core/scale"
 import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
 import { subtleHookVariation } from "./hookDevelopment"
-import { assessEmotionalArc, emotionalTargetFraction, shapeEmotionalArc } from "./emotionalArc"
+import { assessEmotionalArc, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
 
 export interface GenerateFromChordsInput {
   chords: ChordEvent[]
@@ -184,7 +184,7 @@ function buildCandidate(
   for (let phraseIdx = 0; phraseIdx < phraseLengths.length; phraseIdx++) {
     const phraseLen = Math.min(phraseLengths[phraseIdx], input.totalBeats - phraseStart)
     if (phraseLen <= 0) break
-    const hookRole = hookPhraseRole(phraseIdx, phraseLengths.length, generatorProfile, input.sectionRole)
+    const hookRole = hookPhraseRole(phraseIdx, phraseLengths.length, generatorProfile, input.sectionRole, input.totalBeats)
     const isAnswer = hookRole === "answer" || hookRole === "contrast-answer" || (hookRole === undefined && phraseIdx === 1)
     const reuseMotif = phraseIdx > 0 && firstMotifCore && rng.chance(params.motifRepeatTarget)
     const phraseMotif = hookRole === undefined
@@ -244,7 +244,7 @@ function buildCandidate(
 
   // 仕上げの各段で動いた核の頭を、最後に戻すための計画(Hook-first の核があるときだけ)
   const hookHeadPlan: HookHeadPlan | undefined = selectedCore
-    ? { coreLengthBeats: selectedCore.core.lengthBeats, phrases: hookPhrases }
+    ? { coreLengthBeats: selectedCore.core.lengthBeats, phrases: hookPhrases, climaxBeat: input.totalBeats * emotionalTargetFraction(input.sectionRole) }
     : undefined
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
   const finish = (latePeak: boolean, emotionalShape = latePeak) => {
@@ -901,14 +901,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
     const scale = input.key ? keyScalePitchClasses(input.key) : undefined
     const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => enforceHarmonicIntegrity(
-      restoreHookHeads(applyMelodicCraft(notes, {
+      ensureSummitBreath(restoreHookHeads(applyMelodicCraft(notes, {
         harmonicMap,
         range: input.range,
         totalBeats: input.totalBeats,
         sectionRole: input.sectionRole,
         profile,
         key: input.key,
-      }), hookHeadPlan, harmonicMap, input.range, scale),
+      }), hookHeadPlan, harmonicMap, input.range, scale), input.totalBeats, input.sectionRole),
       input.chords,
       input.range,
       { preserveExpressiveChordRoles: true },
@@ -1087,14 +1087,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       results.push({
         notes: craftSelection && pattern.craftedNotes
           ? enforceHarmonicIntegrity(
-            restoreHookHeads(refineTowardClassical(pattern.craftedNotes, {
+            ensureSummitBreath(restoreHookHeads(refineTowardClassical(pattern.craftedNotes, {
               harmonicMap,
               range: input.range,
               totalBeats: input.totalBeats,
               sectionRole: input.sectionRole,
               key: input.key,
               models: CLASSICAL_MODELS,
-            }).notes, pattern.hookHeadPlan, harmonicMap, input.range, scale),
+            }).notes, pattern.hookHeadPlan, harmonicMap, input.range, scale), input.totalBeats, input.sectionRole),
             input.chords,
             input.range,
             { preserveExpressiveChordRoles: true },

@@ -256,3 +256,24 @@ export function shapeEmotionalArc(
   for (const note of notes.slice(peakIndex + 1)) note.velocity = Math.min(note.velocity, Math.max(55, peak.velocity - 10))
   return notes
 }
+
+/**
+ * 頂点の前後どちらにも息継ぎが無いときだけ、頂点の直前の音を少し短くして 0.5 拍の間を作る(余白の下限)。
+ * 音程・発音位置は変えない。直前の音が短い・固定されている・解決を予定している場合は何もしない。
+ */
+export function ensureSummitBreath(source: readonly MelodyNote[], totalBeats: number, role: SectionRole): MelodyNote[] {
+  const notes = source.map((note) => ({ ...note })).sort((a, b) => a.startBeat - b.startBeat)
+  if (notes.length < 6 || totalBeats < 16) return notes
+  const peakIndex = peakIndexOf(notes, totalBeats * emotionalTargetFraction(role))
+  const peak = notes[peakIndex]
+  const before = notes[peakIndex - 1]
+  const after = notes[peakIndex + 1]
+  if (!before) return notes
+  const beforeGap = peak.startBeat - before.startBeat - before.durationBeats
+  const afterGap = after ? after.startBeat - peak.startBeat - peak.durationBeats : 1
+  if (beforeGap >= .25 || afterGap >= .25) return notes
+  const shortened = peak.startBeat - before.startBeat - .5
+  if (shortened < .25 || before.locks.length > 0 || before.plannedResolution) return notes
+  before.durationBeats = shortened
+  return notes
+}
