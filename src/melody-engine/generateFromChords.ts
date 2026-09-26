@@ -545,6 +545,11 @@ function directPlacementDiagnostics(notes: MelodyNote[], harmonicMap: ReturnType
 }
 
 export interface GenerateProfileBatchInput {
+  /**
+   * 比較実験用: 古典らしさによる選抜の重み(既定は CRAFT_SELECTION_WEIGHT)。
+   * 既定で古典らしさを使う作り方(標準・映画的・リズム・最小)にだけ効く
+   */
+  craftSelectionWeight?: number
   chords: ChordEvent[]
   sectionId: string
   sectionRole: SectionRole
@@ -927,7 +932,10 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     }
 
     // 仕上げは選んだ後ではなく候補ごとに先に済ませ、仕上げ後の形で作りの良さを測って選抜に使う
-    const craftSelection = Boolean(input.key) && CRAFT_SELECTION_WEIGHT[profile] > 0
+    const craftWeight = CRAFT_SELECTION_WEIGHT[profile] > 0 && input.craftSelectionWeight !== undefined
+      ? Math.max(0, input.craftSelectionWeight)
+      : CRAFT_SELECTION_WEIGHT[profile]
+    const craftSelection = Boolean(input.key) && craftWeight > 0
     const poolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftCandidatePoolSize : CANDIDATE_SELECTION_CONFIG.candidatePoolSize
     const maximumPoolSize = craftSelection ? CANDIDATE_SELECTION_CONFIG.craftMaximumPoolSize : CANDIDATE_SELECTION_CONFIG.maximumPoolSize
     const scale = input.key ? keyScalePitchClasses(input.key) : undefined
@@ -1045,7 +1053,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             ? input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .1
               : input.sectionRole === "pre-chorus" ? .1 : .05
             : 0,
-          craftWeight: CRAFT_SELECTION_WEIGHT[profile],
+          craftWeight,
           referenceWeight: referenceStrength * .25,
           expectationWeight: EXPECTATION_SELECTION_WEIGHT[profile],
         },
