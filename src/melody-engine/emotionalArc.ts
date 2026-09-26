@@ -14,7 +14,7 @@ export const earliestClimaxFraction = (role: SectionRole): number =>
 export const emotionalTargetFraction = (role: SectionRole): number =>
   isChorus(role) ? .72 : role === "pre-chorus" ? .68 : .58
 /** これより後に頂点が来ると「遅すぎ」とみなす位置 */
-const latestClimaxFraction = (role: SectionRole): number =>
+export const latestClimaxFraction = (role: SectionRole): number =>
   isChorus(role) ? .86 : role === "pre-chorus" ? .88 : .82
 
 export interface EmotionalArcAssessment {

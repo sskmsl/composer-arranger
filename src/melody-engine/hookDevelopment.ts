@@ -1,7 +1,7 @@
 import type { MelodyGeneratorProfile, MelodyNote } from "@/core/melody"
 import type { SectionRole } from "@/core/section"
 import type { MotifCore } from "./motifCore"
-import { emotionalTargetFraction } from "./emotionalArc"
+import { emotionalTargetFraction, latestClimaxFraction } from "./emotionalArc"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 import { isChordTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
@@ -343,7 +343,14 @@ export function repeatOverReturningHarmony(
       const overlapping = plan.phrases.filter((phrase) => phrase.startBeat < end - 1e-6 && phrase.startBeat + phrase.lengthBeats > start + 1e-6)
       if (overlapping.length === 0 || !overlapping.every((phrase) => repeatable(phrase.role))) continue
       const inside = (note: MelodyNote) => note.startBeat >= start - 1e-6 && note.startBeat < end - 1e-6
-      if (inside(summit) || inside(finalNote)) continue
+      if (inside(finalNote)) continue
+      // 頂点が掛かるとき、サビでは頂点を写しの後ろへ移せるなら、くり返しを優先する(5〜6小節目でフック、7小節目で頂点)。
+      // 写しの中に頂点と同じ高さの音がある、または後ろに頂点を置ける音が無いときは置かない
+      const statementTop = Math.max(...statement.map((note) => note.pitch))
+      const summitMoves = inside(summit)
+        ? chorus && statementTop < summit.pitch ? summitCandidatesAfter(notes, end, summit.pitch, sectionBeats, plan, harmonicMap, finalNote) : []
+        : null
+      if (summitMoves && summitMoves.length === 0) continue
       // 休み(息継ぎ)の所を音で埋めない
       if (notes.filter(inside).length < Math.ceil(statement.length * 0.6)) continue
       const shift = start - first.startBeat
@@ -375,7 +382,15 @@ export function repeatOverReturningHarmony(
         note === before && note.startBeat + note.durationBeats > copies[0].startBeat
           ? { ...note, durationBeats: Math.max(0.25, copies[0].startBeat - note.startBeat) }
           : note)
-      notes = [...kept, ...copies].sort((a, b) => a.startBeat - b.startBeat)
+      const next = [...kept, ...copies].sort((a, b) => a.startBeat - b.startBeat)
+      if (summitMoves) {
+        // 前後の音から7半音以内で頂点へ入れる音を選ぶ
+        const index = summitMoves.map((note) => next.indexOf(note)).find((position) =>
+          [next[position - 1], next[position + 1]].every((neighbor) => !neighbor || Math.abs(neighbor.pitch - summit.pitch) <= 7))
+        if (index === undefined) continue
+        next[index] = { ...next[index], pitch: summit.pitch, plannedToneRole: "chord-tone" }
+      }
+      notes = next
       remaining -= 1
       blockedUntil = end
       break
@@ -383,4 +398,30 @@ export function repeatOverReturningHarmony(
     if (remaining === 0) break
   }
   return notes
+}
+
+/**
+ * 写しの後ろで、頂点を置き直せる音の候補(頂点の目標位置に近い順)。頂点と同じ高さが和音の構成音になり、
+ * 1〜4半音だけ上げればよい音に限る。最後の音(終止)・固定された音・解決を予定した音・写しには置かない
+ */
+function summitCandidatesAfter(
+  notes: readonly MelodyNote[],
+  from: number,
+  summitPitch: number,
+  sectionBeats: number,
+  plan: HookHeadPlan,
+  harmonicMap: HarmonicMapEntry[],
+  finalNote: MelodyNote,
+): MelodyNote[] {
+  const latest = sectionBeats * latestClimaxFraction(plan.sectionRole ?? "chorus")
+  const target = plan.climaxBeat ?? sectionBeats * emotionalTargetFraction(plan.sectionRole ?? "chorus")
+  return notes
+    .filter((note) => note !== finalNote && note.startBeat >= from - 1e-6 && note.startBeat <= latest &&
+      note.pitch < summitPitch && note.pitch >= summitPitch - 4 &&
+      note.locks.length === 0 && !note.plannedResolution && !note.id.includes("-again-"))
+    .filter((note) => {
+      const chord = chordAtBeat(harmonicMap, note.startBeat)
+      return Boolean(chord && isChordTone(chord.parsed, pitchClass(summitPitch)))
+    })
+    .sort((a, b) => Math.abs(a.startBeat - target) - Math.abs(b.startBeat - target))
 }
