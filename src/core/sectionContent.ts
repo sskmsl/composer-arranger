@@ -146,6 +146,39 @@ export interface SectionContentPlan {
   cellDurations: number[]
   /** 反復と反復の間に置く余白(拍) */
   restBeats: number[]
+  /**
+   * motifIntervals の数え方。未指定は半音。
+   * Ostinatoは「その場のコードトーンの段」か「調の音階の段」で数え、コードへの吸着で音型が潰れないようにする。
+   */
+  pitchCellUnit?: "semitone" | "chord-tone" | "scale-step"
+  /** Ostinato / Drone の型(分散和音・主音の保続など)。3案が同じ型にならないよう候補ごとに変える */
+  figure?: ContentFigureId
+}
+
+export type OstinatoFigureId =
+  | "broken-chord"
+  | "tresillo-pulse"
+  | "scale-riff"
+  | "rocking"
+  | "octave-leap"
+  | "falling-line"
+
+export type DroneFigureId = "tonic-pedal" | "open-fifth" | "color-tone" | "dominant-pedal"
+
+export type ContentFigureId = OstinatoFigureId | DroneFigureId
+
+/** 候補名に添える型の呼び名(3案の違いが名前でも分かるように) */
+export const CONTENT_FIGURE_LABELS: Record<ContentFigureId, string> = {
+  "broken-chord": "分散和音",
+  "tresillo-pulse": "3+3+2の刻み",
+  "scale-riff": "音階のリフ",
+  rocking: "2音の揺れ",
+  "octave-leap": "オクターブの跳躍",
+  "falling-line": "下りる線",
+  "tonic-pedal": "低い主音",
+  "open-fifth": "主音から5度へ",
+  "color-tone": "高い彩りの音",
+  "dominant-pedal": "属音の保続",
 }
 
 /**

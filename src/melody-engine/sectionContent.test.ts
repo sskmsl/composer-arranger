@@ -426,3 +426,53 @@ describe("Issue #41 / 決定論", () => {
     expect(musicalShape(primary.notes)).toEqual(snapshot)
   })
 })
+
+describe("反復音型・持続音の3案は、聞いて違いが分かる", () => {
+  const MINOR_CHORDS: ChordEvent[] = ["D#m", "B", "C#", "A#m", "D#m", "B", "C#", "A#m"].map((symbol, index) => ({
+    id: `m${index}`, sectionId: "s1", startBeat: index * 4, durationBeats: 4, symbol, bass: null,
+  }))
+  const generateLong = (lead: "ostinato" | "drone", seed: number) =>
+    generateSectionContent({
+      chords: MINOR_CHORDS, sectionId: "s1", sectionRole: "verse", songProfile: "dark-romantic",
+      content: content({ lead }), range: { low: 60, high: 77 }, totalBeats: 32, beatsPerBar: 4, seed, key: "D#m",
+    }).candidates
+  /** 1周期目の音高の輪郭(最初の音からの半音差)と発音位置 */
+  const shape = (notes: MelodyNote[]) => {
+    const head = notes.slice(0, 6)
+    return head.map((note) => `${note.pitch - head[0].pitch}@${(note.startBeat - head[0].startBeat).toFixed(2)}`).join(" ")
+  }
+
+  it("反復音型の3案は型が互いに異なり、実際の音の形も違う(以前は吸着で「1音+隣の音」に潰れて同じに聞こえた)", () => {
+    for (const seed of [11, 22, 33, 44, 55]) {
+      const candidates = generateLong("ostinato", seed)
+      expect(candidates).toHaveLength(3)
+      expect(new Set(candidates.map((candidate) => candidate.plan.figure)).size).toBe(3)
+      expect(new Set(candidates.map((candidate) => shape(candidate.notes))).size).toBe(3)
+      for (const candidate of candidates) {
+        // 1周期の中で3種類以上の高さを使う型が潰れていない(2音の揺れ・刻みは2種類)
+        const period = candidate.plan.cellLengthBeats
+        const first = candidate.notes.filter((note) => note.startBeat < candidate.notes[0].startBeat + period)
+        expect(new Set(first.map((note) => note.pitch)).size).toBeGreaterThanOrEqual(2)
+        expect(candidate.problems).toEqual([])
+      }
+      for (let a = 0; a < 3; a++) for (let b = a + 1; b < 3; b++) {
+        expect(contentSimilarity(candidates[a].features, candidates[b].features).overall).toBeLessThan(CONTENT_SIMILARITY_MAX)
+      }
+    }
+  })
+
+  it("持続音の3案は型が互いに異なり、主音・5度・彩りの音のような落ち着く音を伸ばす", () => {
+    for (const seed of [11, 22, 33, 44, 55]) {
+      const candidates = generateLong("drone", seed)
+      expect(new Set(candidates.map((candidate) => candidate.plan.figure)).size).toBe(3)
+      for (const candidate of candidates) {
+        const pcs = new Set(candidate.notes.map((note) => ((note.pitch % 12) + 12) % 12))
+        // D#m: 主音 D#(3)・5度 A#(10)・どのコードとも半音でぶつからない C#(1)
+        for (const pc of pcs) expect([3, 10, 1]).toContain(pc)
+      }
+      const low = candidates.find((candidate) => candidate.plan.register === "low")
+      const high = candidates.find((candidate) => candidate.plan.register === "high")
+      if (low && high) expect(Math.max(...low.notes.map((n) => n.pitch))).toBeLessThan(Math.min(...high.notes.map((n) => n.pitch)))
+    }
+  })
+})

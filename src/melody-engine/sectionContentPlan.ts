@@ -9,6 +9,8 @@ import {
   type ChordBoundaryResponse,
   type ContentDevelopmentStrategy,
   type ContentRegister,
+  type DroneFigureId,
+  type OstinatoFigureId,
   type ResolvedLeadContent,
   type SectionContentPlan,
 } from "@/core/sectionContent"
@@ -47,22 +49,39 @@ const MOTIF_CELLS: ContentCell[] = [
   { intervals: [-2, -2], durations: [1.5, 1.5, 3] }, // 3音・下降のみ
 ]
 
-/** Ostinatoの音高セル(基準音からの半音オフセット)。Rhythmとは独立に計画する */
-const OSTINATO_PITCH_CELLS: number[][] = [
-  [0, 7, 0, 4],
-  [0, 3, 7, 3],
-  [0, 5, 0, -5],
-  [0, 2, 4, 2],
-  [0, 7, 12, 7],
-]
+/**
+ * Ostinatoの型。音高・リズム・コードへの反応・音域を1組で持つ。
+ *
+ * 以前は半音オフセットの音高セルとリズムセルを別々に回していたが、
+ * 実音をその場のコードトーンへ吸着させると [0,2,4,2] も [0,3,7,3] も「1音+隣の音」に潰れ、
+ * 3案が同じに聞こえた。音高は「コードトーンの段」か「音階の段」で数えるので吸着で潰れない。
+ * 並び順は、隣り合う3つを取っても音域・リズム・数え方がすべて異なるようにしてある。
+ */
+interface OstinatoFigure {
+  id: OstinatoFigureId
+  unit: "chord-tone" | "scale-step"
+  steps: number[]
+  onsets: number[]
+  durations: number[]
+  response: ChordBoundaryResponse
+  register: ContentRegister
+}
 
-/** Ostinatoのリズムセル(セル内オンセット位置と音価)。音高セルとは別々に選ぶ */
-const OSTINATO_RHYTHM_CELLS: { onsets: number[]; durations: number[] }[] = [
-  { onsets: [0, 1, 2, 3], durations: [1, 1, 1, 1] },
-  { onsets: [0, 0.75, 1.5, 2.5], durations: [0.75, 0.75, 1, 1.5] },
-  { onsets: [0, 1.5, 2, 3.5], durations: [1.5, 0.5, 1.5, 0.5] },
-  { onsets: [0, 0.5, 1, 2, 2.5], durations: [0.5, 0.5, 1, 0.5, 1.5] },
-  { onsets: [0, 2, 3], durations: [2, 1, 1] },
+const EIGHTHS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
+
+const OSTINATO_FIGURES: OstinatoFigure[] = [
+  // 根音から上下する8分の分散和音。コードごとに形を保って移る
+  { id: "broken-chord", unit: "chord-tone", steps: [0, 1, 2, 3, 2, 1, 2, 1], onsets: EIGHTHS, durations: EIGHTHS.map(() => 0.5), response: "follow", register: "middle" },
+  // 低い根音の 3+3+2 の刻み。最後の音は次のコードの5度下へ先回りする
+  { id: "tresillo-pulse", unit: "chord-tone", steps: [0, 0, -1], onsets: [0, 1.5, 3], durations: [1.5, 1.5, 1], response: "anticipate", register: "low" },
+  // 調の主音を軸にした音階の短いリフ。コードが変わっても形を変えない
+  { id: "scale-riff", unit: "scale-step", steps: [2, 1, 0, 1, -1], onsets: [0, 0.75, 1.5, 2, 3], durations: [0.75, 0.75, 0.5, 1, 1], response: "hold-through", register: "high" },
+  // 3度と5度を4分で揺らす。最も静か
+  { id: "rocking", unit: "chord-tone", steps: [1, 2, 1, 2], onsets: [0, 1, 2, 3], durations: [1, 1, 1, 1], response: "follow", register: "middle" },
+  // 根音とオクターブ上を跳ぶ。最後の音で次のコードへ先回りする
+  { id: "octave-leap", unit: "chord-tone", steps: [0, 3, 0, 3, 2], onsets: [0, 0.5, 1.5, 2, 3], durations: [0.5, 1, 0.5, 1, 1], response: "anticipate", register: "low" },
+  // コードの5度から音階で2歩下りる長短短。各コードの上で同じ形の下降をくり返す
+  { id: "falling-line", unit: "scale-step", steps: [4, 3, 2], onsets: [0, 2, 3], durations: [2, 1, 1], response: "follow", register: "high" },
 ]
 
 const REGISTER_ROTATION: ContentRegister[] = ["middle", "high", "low"]
@@ -92,13 +111,53 @@ export function commonPitchClassesAcrossChords(harmonicMap: HarmonicMapEntry[]):
   return common
 }
 
-/** Droneの保持音候補を優先順に並べる(共通音 → 主和音のroot/5th → Key音階) */
-function dronePitchCandidates(ctx: ContentPlanContext): number[] {
-  const common = commonPitchClassesAcrossChords(ctx.harmonicMap)
-  const first = ctx.harmonicMap[0]?.parsed
-  const rootAndFifth = first ? [first.rootPc, (first.rootPc + 7) % 12] : []
-  const ordered = [...common, ...rootAndFifth, ...ctx.keyScale]
-  return [...new Set(ordered)]
+/**
+ * Droneの型。以前は「共通音→主和音の根音・5度→音階」の候補表を回転で引いていたため、
+ * 2度や6度のような落ち着かない音を長く伸ばしたり、低い型が高い型より上に来たりして、3案の違いが曖昧だった。
+ * 型ごとに「どの音を・どの高さで・何回」を決め、隣り合う3つは音か高さが必ず異なるように並べる。
+ */
+const DRONE_FIGURES: { id: DroneFigureId; register: ContentRegister; holds: number }[] = [
+  { id: "tonic-pedal", register: "low", holds: 1 },
+  { id: "open-fifth", register: "middle", holds: 2 },
+  { id: "color-tone", register: "high", holds: 2 },
+  { id: "dominant-pedal", register: "middle", holds: 1 },
+]
+
+function keyTonicAndFifth(ctx: ContentPlanContext): { tonic: number; fifth: number } {
+  const tonic = ctx.keyScale[0] ?? ctx.harmonicMap[0]?.parsed.rootPc ?? 0
+  return { tonic, fifth: (tonic + 7) % 12 }
+}
+
+/**
+ * 型ごとの保持音。color-tone は主音・5度以外で、最も多くのコードに含まれ、
+ * どのコードとも半音でぶつかりにくい音(全コードの共通音があればそれ)を選ぶ。
+ */
+function dronePitchClasses(figure: DroneFigureId, ctx: ContentPlanContext): number[] {
+  const { tonic, fifth } = keyTonicAndFifth(ctx)
+  if (figure === "tonic-pedal") return [tonic]
+  if (figure === "dominant-pedal") return [fifth]
+  if (figure === "open-fifth") return [tonic, fifth]
+  const chordSets = ctx.harmonicMap.map((entry) => chordTonePitchClasses(entry.parsed))
+  const pool = [...new Set([...commonPitchClassesAcrossChords(ctx.harmonicMap), ...ctx.keyScale])].filter(
+    (pc) => pc !== tonic && pc !== fifth,
+  )
+  let best = pool[0] ?? fifth
+  let bestScore = -Infinity
+  pool.forEach((pc, order) => {
+    const covered = chordSets.filter((tones) => tones.includes(pc)).length
+    const clashes = chordSets.filter((tones) =>
+      tones.some((tone) => {
+        const distance = (((tone - pc) % 12) + 12) % 12
+        return distance === 1 || distance === 11
+      }),
+    ).length
+    const score = covered - clashes * 0.75 - order * 0.01
+    if (score > bestScore) {
+      best = pc
+      bestScore = score
+    }
+  })
+  return [best]
 }
 
 function motifPitchVocabulary(ctx: ContentPlanContext): number[] {
@@ -205,11 +264,10 @@ function planOne(
   }
 
   if (content === "ostinato") {
-    // 音高セルとリズムセルを別strideで回すことで、組み合わせも候補間で重複しにくくする
-    const pitchCell = rotate(OSTINATO_PITCH_CELLS, offset, index)
-    const rhythmCell = rotate(OSTINATO_RHYTHM_CELLS, offset, index, 2)
+    // 型ごと回す(隣り合う3つは音域・リズム・数え方がすべて異なる)
+    const figure = rotate(OSTINATO_FIGURES, offset, index)
     const cellLengthBeats = Math.max(
-      ...rhythmCell.onsets.map((onset, k) => onset + rhythmCell.durations[k]),
+      ...figure.onsets.map((onset, k) => onset + figure.durations[k]),
       ctx.beatsPerBar,
     )
     const usable = Math.max(0, ctx.totalBeats - entryOffsetBeats - pickupBeats)
@@ -217,36 +275,36 @@ function planOne(
     const repetitionCount = Math.max(2, Math.floor(usable / cellLengthBeats))
     return {
       ...base,
+      register: figure.register,
       pitchVocabulary: motifPitchVocabulary(ctx),
-      rhythmGrammar: `ostinato-cycle-${cellLengthBeats}`,
+      rhythmGrammar: `ostinato-${figure.id}-${cellLengthBeats}`,
       recurrenceStrategy: "periodic-cycle",
       developmentStrategy: "mutate-cycle",
-      chordBoundaryResponse: rotate<ChordBoundaryResponse>(["follow", "hold-through", "anticipate"], offset, index),
+      chordBoundaryResponse: figure.response,
       cellLengthBeats,
       repetitionCount,
       sustainRatioTarget: Math.max(0, Math.min(1, 0.2 + sustainBias)),
-      motifIntervals: pitchCell,
-      cellDurations: rhythmCell.durations,
-      restBeats: rhythmCell.onsets,
+      motifIntervals: figure.steps,
+      cellDurations: figure.durations,
+      restBeats: figure.onsets,
+      pitchCellUnit: figure.unit,
+      figure: figure.id,
     }
   }
 
   if (content === "drone") {
-    const candidates = dronePitchCandidates(ctx)
-    // 保持音の分割数。少ないほど1音が長い
-    const holdCount = rotate([1, 2, 3], offset, index, 2)
-    // 使用ピッチクラスは原則1〜2種類。何番目の候補を主音にするかも候補間で変える。
-    // 保持数より多いピッチクラスは実音として現れないため、holdCountで抑える
-    // (計画が約束する語彙と実際に鳴る語彙を一致させる)。
-    const pitchClassCount = Math.min(rotate([1, 2, 1], offset, index), holdCount)
-    const primary = candidates[(offset + index) % Math.max(1, candidates.length)] ?? 0
-    const secondary = candidates[(offset + index + 1) % Math.max(1, candidates.length)] ?? (primary + 7) % 12
-    const vocabulary = pitchClassCount === 1 ? [primary] : [primary, secondary]
+    const figure = rotate(DRONE_FIGURES, offset, index)
     const usable = Math.max(0, ctx.totalBeats - entryOffsetBeats)
+    // 保持音の数。語彙が2音なら2回(前半・後半)、1音なら型の指定どおり(2回は同じ音の打ち直し)。
+    // 1回の保持が2小節に満たないと、コードごとに音を替えているのと区別できないので1回にする
+    const roomForTwo = usable >= 2 * 2 * ctx.beatsPerBar
+    const holdCount = roomForTwo ? figure.holds : 1
+    const vocabulary = dronePitchClasses(figure.id, ctx).slice(0, holdCount)
     return {
       ...base,
-      pitchVocabulary: [...new Set(vocabulary.map((pc) => ((pc % 12) + 12) % 12))],
-      rhythmGrammar: `drone-sustain-${holdCount}`,
+      register: figure.register,
+      pitchVocabulary: vocabulary,
+      rhythmGrammar: `drone-${figure.id}-${holdCount}`,
       recurrenceStrategy: "sustain",
       developmentStrategy: "hold",
       // Droneはコード境界をまたいで保持するのが本質。境界での再スナップ・分割はしない
@@ -257,6 +315,7 @@ function planOne(
       motifIntervals: [],
       cellDurations: [],
       restBeats: [],
+      figure: figure.id,
     }
   }
 
@@ -331,6 +390,8 @@ export function planReplacement(
     const offset = (startOffset + step) % 12
     for (let index = 0; index < 3; index++) {
       const candidate = planOne(content, ctx, offset, index, sustainBias)
+      // Ostinatoは型が同じだと入りをずらしても同じに聞こえるので、残す候補と同じ型は選ばない
+      if (candidate.figure && existing.some((plan) => plan.figure === candidate.figure)) continue
       const minDiff = existing.length
         ? Math.min(...existing.map((plan) => planDifferenceCount(plan, candidate)))
         : Number.POSITIVE_INFINITY
@@ -435,6 +496,7 @@ export function planStructuralSignature(plan: SectionContentPlan): Record<string
     development: plan.developmentStrategy,
     pickup: plan.pickupBeats.toFixed(3),
     boundary: plan.chordBoundaryResponse,
+    figure: plan.figure ?? "",
   }
 }
 

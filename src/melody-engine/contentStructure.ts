@@ -69,12 +69,14 @@ export function detectPeriodicity(
   let matched = 0
   let compared = 0
   for (const group of groups.slice(1)) {
+    // コードに合わせて型ごと移る反復(分散和音など)も同じ形として数えるため、周期の頭からの音程も比べる
+    const shift = group[0].pitch - reference[0].pitch
     for (const item of group) {
       compared++
       const hit = reference.find((ref) => Math.abs(ref.offset - item.offset) < 0.05)
       if (!hit) continue
       // 同じ拍位置にあり、音高も同じか近い(周期内の1音変異は許容する)
-      if (Math.abs(hit.pitch - item.pitch) <= 2) matched++
+      if (Math.abs(hit.pitch - item.pitch) <= 2 || Math.abs(hit.pitch + shift - item.pitch) <= 1) matched++
     }
   }
   return { periodBeats: hintPeriodBeats, strength: compared > 0 ? matched / compared : 0 }

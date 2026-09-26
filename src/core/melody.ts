@@ -194,6 +194,7 @@ export type MelodyGeneratorProfile =
   | "elegiac-cantabile"
   | "speech-rhythmic"
   | "incantatory"
+  | "pulse-leap"
 
 /** 曲/プロジェクト内でのProfileの位置づけ(将来の推奨表示・警告表示のためのデータ構造。今回は自動制限しない) */
 export type GeneratorProfileRole = "primary" | "secondary" | "accent"

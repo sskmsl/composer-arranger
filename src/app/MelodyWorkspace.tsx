@@ -8,7 +8,7 @@ import { Button, Pill, TextInput } from "@/ui/primitives"
 import { parseTimeSignature } from "@/core/section"
 import { EmptySectionState } from "./EmptySectionState"
 import { diagnoseChordInput } from "@/core/chordDiagnostics"
-import { DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS } from "@/core/sectionContent"
+import { CONTENT_FIGURE_LABELS, DEFAULT_SECTION_CONTENT, LEAD_CONTENT_LABELS } from "@/core/sectionContent"
 import { GENERATOR_PROFILE_LABELS } from "@/melody-engine/generatorProfile"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import { accompanimentPatternNotesForSection } from "@/core/accompanimentPattern"
@@ -246,7 +246,11 @@ export function MelodyWorkspace({
         <div className="flex flex-wrap items-center gap-2">
           {/* Issue #41: melody以外の内容を生成する設定であることを、生成前に分かるようにする */}
           {sectionContent.lead !== "melody" && (
-            <Pill active>内容: {LEAD_CONTENT_LABELS[sectionContent.lead]}</Pill>
+            <Pill active>
+              内容: {LEAD_CONTENT_LABELS[sectionContent.lead]}
+              {/* 反復音型・持続音は、いま選んでいる案の型(分散和音など)も出して3案の違いを分かるようにする */}
+              {variant?.contentPlan?.figure ? ` · ${CONTENT_FIGURE_LABELS[variant.contentPlan.figure]}` : ""}
+            </Pill>
           )}
           {variant && (
             <Button onClick={() => generateForSection(section.id)} disabled={chords.length === 0 || chordHasError}>
