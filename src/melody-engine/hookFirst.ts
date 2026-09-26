@@ -1,4 +1,5 @@
 import { coreReferenceFit } from "./referenceFit"
+import { intervalSingability } from "./hummability"
 import { SeededRandom } from "@/core/rng"
 import type { MelodyNote, MelodyOpeningPlan } from "@/core/melody"
 import type { SectionRole } from "@/core/section"
@@ -54,9 +55,7 @@ export function judgeCoreMotif(notes: readonly MelodyNote[], lengthBeats: number
   const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
   const intervals = sorted.slice(1).map((note, index) => note.pitch - sorted[index].pitch)
   const gaps = sorted.slice(1).map((note, index) => note.startBeat - sorted[index].startBeat)
-  const range = Math.max(...sorted.map((note) => note.pitch)) - Math.min(...sorted.map((note) => note.pitch))
   const leaps = intervals.filter((interval) => Math.abs(interval) >= 5)
-  const stepwise = intervals.filter((interval) => Math.abs(interval) <= 3).length / intervals.length
   const pitchSet = new Set(sorted.map((note) => note.pitch)).size
   const sounding = sorted.reduce((sum, note) => sum + note.durationBeats, 0)
   const breathing = clamp01((lengthBeats - sounding) / lengthBeats)
@@ -70,10 +69,22 @@ export function judgeCoreMotif(notes: readonly MelodyNote[], lengthBeats: number
   const oneSignatureLeap = leaps.length === 1 && Math.abs(leaps[0]) <= 7 ? 1 : leaps.length === 0 ? .48 : .1
   const simpleSet = pitchSet >= 3 && pitchSet <= 5 ? 1 : pitchSet === 2 ? .35 : .5
   const simplicity = clamp01((sorted.length <= 5 ? 1 : .5) * .55 + simpleSet * .45)
-  const rangeFit = range >= 3 && range <= 10 ? 1 : range < 3 ? .38 : clamp01(1 - (range - 10) / 8)
   const repeatability = clamp01(.45 * simplicity + .3 * contourClarity + .25 * (breathing >= .1 ? 1 : .35))
-  const humability = clamp01(rangeFit * .24 + stepwise * .22 +
-    (leaps.length <= 1 ? 1 : .1) * .18 + (breathing >= .08 ? 1 : .3) * .14 +
+  // 口ずさめるかは音域の広さでは決まらない(利用者の録音では、5度を連ねてオクターブを超える核が
+  // いちばん口ずさめる所だった)。音域の代わりに「高さが変わる速さ」を、順次進行の割合の代わりに
+  // 「音程ごとの歌いやすさ」を、跳躍の数の代わりに「歌いにくい音程の数」を見る。
+  // 4度・5度・オクターブの跳躍は、いくつあっても歌える。
+  const pitchChanges = intervals.filter((interval) => interval !== 0).length
+  const pace = clamp01(1 - Math.max(0, pitchChanges / Math.max(1, lengthBeats) - 1.5) * .3)
+  // 核の中では、順次進行と3度をわずかに優先する(4度・5度・オクターブは0.85)。
+  // 跳躍を順次と同点にすると、跳躍を連ねた核ばかりが選ばれ、16小節で頂点へ段階的に高まる余地が減った
+  const singable = intervals.reduce((sum, interval) => {
+    const value = intervalSingability(interval, false)
+    return sum + (value === 1 && Math.abs(interval) >= 5 ? .85 : value)
+  }, 0) / intervals.length
+  const awkward = intervals.filter((interval) => intervalSingability(interval, false) < .5).length
+  const humability = clamp01(pace * .24 + singable * .22 +
+    (awkward === 0 ? 1 : awkward === 1 ? .5 : .1) * .18 + (breathing >= .08 ? 1 : .3) * .14 +
     simplicity * .12 + contourClarity * .1)
   const hookability = clamp01(rhythmicIdentity * .28 + contourClarity * .18 +
     oneSignatureLeap * .15 + simplicity * .12 + repeatability * .17 +
