@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { answerHook, climaxHook, developHook, hookPhraseRole, restoreHookHeads, returningHook, shiftInScale } from "./hookDevelopment"
+import { answerHook, climaxHook, developHook, hookPhraseRole, repeatOverReturningHarmony, restoreHookHeads, returningHook, shiftInScale } from "./hookDevelopment"
 import { buildHarmonicMap } from "./harmonicMap"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 import type { MotifCore } from "./motifCore"
@@ -126,5 +126,40 @@ describe("planned hook development", () => {
         JSON.stringify(contrast) === JSON.stringify(contrastAnswer)
     })
     expect(hasDistinctRepeatedContrast).toBe(true)
+  })
+})
+
+describe("和音の並びが戻る所で核をそのままくり返す(歌のくり返し)", () => {
+  const chords = (symbols: string[]) => buildHarmonicMap(symbols.map((symbol, index) => ({
+    id: `c${index}`, sectionId: "s", startBeat: index * 4, durationBeats: 4, symbol, bass: null,
+  })))
+  const note = (startBeat: number, pitch: number, durationBeats = 1) => ({ id: `n${startBeat}`, startBeat, durationBeats, pitch, velocity: 80, locks: [] })
+  // 1〜2小節目の核と、5〜6小節目の別の旋律。頂点は7小節目
+  const melody = () => [
+    note(0, 64), note(1, 67), note(2, 69), note(3, 67, 2), note(5, 64), note(6, 65, 2),
+    note(8, 65), note(9, 64), note(10, 62, 2), note(12, 60, 2),
+    note(16, 62), note(17, 64), note(18, 65), note(19, 64, 2), note(21, 62), note(22, 60, 2),
+    note(24, 72, 2), note(26, 67), note(28, 64, 4),
+  ]
+  const plan = (roles: ("statement" | "answer" | "develop" | "return" | "contrast")[]) => ({
+    coreLengthBeats: 8, phrases: roles.map((role, index) => ({ startBeat: index * 8, lengthBeats: 8, role })),
+  })
+
+  it("I–vi–IV–V を2回くり返す進行では、5〜6小節目で1〜2小節目の核がそのまま戻る", () => {
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    const result = repeatOverReturningHarmony(melody(), plan(["statement", "answer", "develop", "return"]), map)
+    const shape = (start: number) => result.filter((n) => n.startBeat >= start && n.startBeat < start + 8).map((n) => [n.startBeat - start, n.pitch, n.durationBeats])
+    expect(shape(16)).toEqual(shape(0))
+    // 頂点(7小節目)と終わりの音は変えない
+    expect(result.filter((n) => n.startBeat >= 24).map((n) => n.pitch)).toEqual([72, 67, 64])
+  })
+
+  it("和音の並びが戻らない所・対照(B)のフレーズ・休みの所には置かない", () => {
+    const different = chords(["C", "Am", "F", "G", "Dm", "G", "C", "C"])
+    expect(repeatOverReturningHarmony(melody(), plan(["statement", "answer", "develop", "return"]), different)).toEqual(melody())
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    expect(repeatOverReturningHarmony(melody(), plan(["statement", "answer", "contrast", "return"]), map)).toEqual(melody())
+    const rests = melody().filter((n) => n.startBeat < 16 || n.startBeat >= 24)
+    expect(repeatOverReturningHarmony(rests, plan(["statement", "answer", "develop", "return"]), map)).toEqual(rests)
   })
 })
