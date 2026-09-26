@@ -230,6 +230,10 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     const breath = melody().map((n) => n.startBeat === 12 ? { ...n, pitch: 71, durationBeats: 1 } : n)
     const result = repeatOverReturningHarmony(breath, plan(["statement", "answer", "develop", "return"]), map)
     expect(result.filter((n) => n.startBeat >= 16 && n.startBeat < 24).map((n) => n.pitch)).toEqual(melody().filter((n) => n.startBeat < 8).map((n) => n.pitch))
+    // 核が休符から始まるときは、写しの最初の音(17拍目)までの間で測る。16拍目で終わる B とは1拍離れている
+    const delayed = melody().filter((n) => n.startBeat !== 0).map((n) => n.startBeat === 12 ? { ...n, pitch: 71, durationBeats: 4 } : n)
+    const delayedResult = repeatOverReturningHarmony(delayed, plan(["statement", "answer", "develop", "return"]), map)
+    expect(delayedResult.filter((n) => n.startBeat >= 16 && n.startBeat < 24).map((n) => n.pitch)).toEqual(delayed.filter((n) => n.startBeat < 8).map((n) => n.pitch))
   })
 
   it("写し先が元の2小節と重なる位置には置かない(冒頭を書き換えない)", () => {

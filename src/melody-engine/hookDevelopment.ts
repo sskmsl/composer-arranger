@@ -378,7 +378,8 @@ export function repeatOverReturningHarmony(
       const replacedHead = notes.find(inside)
       const nextChord = chordAtBeat(harmonicMap, start)
       // (休みを挟んで離れた音は、解決を待つ音とはみなさない)
-      const adjacent = before !== undefined && start - (before.startBeat + before.durationBeats) <= .5 + 1e-6
+      // (核が休符から始まるときは、写しの最初の音までの間で測る)
+      const adjacent = before !== undefined && copies[0].startBeat - (before.startBeat + before.durationBeats) <= .5 + 1e-6
       if (before && adjacent && replacedHead && nextChord && !isChordTone(nextChord.parsed, pitchClass(before.pitch))) {
         const original = replacedHead.pitch - before.pitch
         const again = copies[0].pitch - before.pitch
