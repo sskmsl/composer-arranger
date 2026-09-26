@@ -184,6 +184,21 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     expect(result.filter((n) => n.startBeat >= 24).map((n) => n.pitch)).toEqual([72, 67, 64])
   })
 
+  it("サビで頂点がくり返しの範囲に掛かるときは、頂点を後ろへ移してフックをくり返す", () => {
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    // 頂点 C5(72)が5小節目にあり、7小節目は A4(69)
+    const early = melody().map((n) => n.startBeat === 18 ? { ...n, pitch: 72 } : n.startBeat === 24 ? { ...n, pitch: 69 } : n)
+    const chorusPlan = { ...plan(["statement", "answer", "develop", "return"]), sectionRole: "chorus" as const, climaxBeat: 23 }
+    const result = repeatOverReturningHarmony(early, chorusPlan, map)
+    const shape = (start: number) => result.filter((n) => n.startBeat >= start && n.startBeat < start + 8).map((n) => [n.startBeat - start, n.pitch, n.durationBeats])
+    expect(shape(16)).toEqual(shape(0))
+    // 7小節目(F の上)の音が頂点の高さになり、最後の音は変わらない
+    expect(result.find((n) => n.startBeat === 24)!.pitch).toBe(72)
+    expect(result.at(-1)!.pitch).toBe(64)
+    // Aメロでは従来どおり、頂点の掛かる所には置かない
+    expect(repeatOverReturningHarmony(early, plan(["statement", "answer", "develop", "return"]), map)).toEqual(early)
+  })
+
   it("サビの3案には、進行が戻る所でフックをくり返す案が少なくとも1つ入る", () => {
     const chordEvents = ["C", "Am", "F", "G", "C", "Am", "F", "G"].map((symbol, index) => ({
       id: `c${index}`, sectionId: "s", startBeat: index * 4, durationBeats: 4, symbol, bass: null,
