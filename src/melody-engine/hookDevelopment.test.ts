@@ -184,6 +184,19 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     expect(result.filter((n) => n.startBeat >= 24).map((n) => n.pitch)).toEqual([72, 67, 64])
   })
 
+  it("サビの3案には、進行が戻る所でフックをくり返す案が少なくとも1つ入る", () => {
+    const chordEvents = ["C", "Am", "F", "G", "C", "Am", "F", "G"].map((symbol, index) => ({
+      id: `c${index}`, sectionId: "s", startBeat: index * 4, durationBeats: 4, symbol, bass: null,
+    }))
+    for (const seed of [101, 202, 303]) {
+      const { candidates } = generateFromChordsWithProfiles({
+        chords: chordEvents, sectionId: "s", sectionRole: "chorus", songProfile: "dark-romantic", density: "balanced",
+        range: { low: 57, high: 76 }, drama: "growing", totalBeats: 32, seed, profiles: ["standard"], key: "C",
+      })
+      expect(candidates.some((candidate) => candidate.notes.some((n) => n.id.includes("-again-")))).toBe(true)
+    }
+  }, 60000)
+
   it("直前の音が解決を待つ音(導音など)なら、同じ向きへ順次で入れるときだけ置く", () => {
     const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
     // G の上の導音 B(71)が、5小節目の頭の C(72)へ解決している
