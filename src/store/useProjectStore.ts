@@ -1115,6 +1115,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         nextSectionRole: nextSection?.role,
         nextSectionFirstChord,
         songMotifDNA: prev.songMotifDNA,
+        musicContext: resolveMusicContext(prev, sectionId),
       })
       const contentBatchId = crypto.randomUUID()
       const contentVariants = contentCandidates.map((candidate) => {

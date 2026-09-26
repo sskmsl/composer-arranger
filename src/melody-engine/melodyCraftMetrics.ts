@@ -20,8 +20,14 @@ export interface MelodyCraftMetrics {
   stepwise: number
   /** 5半音以上の跳躍の割合 */
   leapRate: number
-  /** 5半音以上跳んだ後、逆向きに3半音以内で戻る割合(同じフレーズの中の跳躍のみ。1.5拍以上休んだ後はフレーズの切れ目として数えない) */
+  /**
+   * 5半音以上跳んだ後、逆向きに3半音以内で戻る割合(同じフレーズの中の跳躍のみ)。
+   * 跳躍の前後どちらかに1.5拍以上の休みがあれば、フレーズの切れ目として数えない
+   * (以前は跳躍の後の休みだけを見ていて、休んでから新しい句を高い音で始めた所も「戻らない跳躍」と数えていた)
+   */
   leapRecovery: number
+  /** leapRecovery の対象になった跳躍の数(0のときの leapRecovery=1 は「対象なし」を表す) */
+  leapCount: number
   distinctPitches: number
   /** 最もよく使う3つの音が全体に占める割合 */
   top3Share: number
@@ -92,7 +98,7 @@ export function measureMelodyCraft(
   const abs = intervals.map(Math.abs)
   const gapAfter = (index: number) => sorted[index + 1].startBeat - (sorted[index].startBeat + sorted[index].durationBeats)
   const leaps = intervals.map((interval, index) => ({ interval, index }))
-    .filter(({ interval, index }) => Math.abs(interval) >= 5 && index + 1 < intervals.length && gapAfter(index + 1) <= 1.5)
+    .filter(({ interval, index }) => Math.abs(interval) >= 5 && index + 1 < intervals.length && gapAfter(index) <= 1.5 && gapAfter(index + 1) <= 1.5)
   const recovered = leaps.filter(({ interval, index }) => {
     const next = intervals[index + 1]
     return Math.sign(next) === -Math.sign(interval) && Math.abs(next) <= 3
@@ -173,6 +179,7 @@ export function measureMelodyCraft(
     stepwise: ratio(abs.filter((value) => value >= 1 && value <= 2).length, abs.length),
     leapRate: ratio(abs.filter((value) => value >= 5).length, abs.length),
     leapRecovery: leaps.length > 0 ? recovered.length / leaps.length : 1,
+    leapCount: leaps.length,
     distinctPitches: counts.size,
     top3Share: ratio(top3, sorted.length),
     range: sorted.length > 0 ? Math.max(...sorted.map((note) => note.pitch)) - Math.min(...sorted.map((note) => note.pitch)) : 0,

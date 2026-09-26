@@ -64,7 +64,8 @@ describe("PR#43 fix1 / Auto が melody を選んでも空候補にならない",
         }
       }
     }
-  })
+    // おまかせでも通常の主旋律と同じ選抜・仕上げを通すようになり、1回あたり0.4秒ほどかかる
+  }, 60000)
 
   it("すべてのSection RoleでAuto候補が空にならない", () => {
     for (const sectionRole of ALL_ROLES) {
@@ -77,7 +78,8 @@ describe("PR#43 fix1 / Auto が melody を選んでも空候補にならない",
         }
       }
     }
-  })
+    // おまかせでも通常の主旋律と同じ選抜・仕上げを通すようになり、1回あたり0.4秒ほどかかる
+  }, 60000)
 
   it("Autoが選んだmelody候補はlead partRoleを持つ", () => {
     for (let seed = 1; seed <= 10; seed++) {
@@ -88,7 +90,8 @@ describe("PR#43 fix1 / Auto が melody を選んでも空候補にならない",
         expect(primary.content).toBe("melody")
       }
     }
-  })
+    // おまかせでも通常の主旋律と同じ選抜・仕上げを通すようになり、1回あたり0.4秒ほどかかる
+  }, 60000)
 
   it("Autoのmelody候補もentryOffsetを尊重する", () => {
     for (let seed = 1; seed <= 10; seed++) {

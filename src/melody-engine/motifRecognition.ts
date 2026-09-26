@@ -5,22 +5,27 @@ import type { MelodyNote } from "@/core/melody"
  * tools/melody-reference/analyze_motif_development.py と同じ分類で、
  * Schumann / Brahms の公開楽譜で数えた割合は reference/composerPrinciples.json に数値だけ残している。
  *
- *   exact / sequence / register : 同じ音程(調の中の移高は±1半音まで同じとみなす)とリズム
+ *   exact / sequence / register : 同じ音程(調の中の移高は±1半音まで同じとみなす)とリズム(発音位置に加えて音価・休符も同じ)
+ *   articulation : 音程と発音位置は同じで、音価・休符(伸ばすか切るか)だけが違う。
+ *                  息継ぎや語尾の印象が変わるので、完全な反復とは分ける
+ *                  (以前は発音位置しか見ず、1拍の音を0.1拍にしても exact だった。reference/composerPrinciples.json の
+ *                   割合はこの区別を入れる前の定義で数えている)
  *   tail      : 頭は同じで語尾だけ違う(小変形)
  *   truncated / extended : 頭だけ / 後ろへ伸ばした形
- *   rhythm    : リズムは同じで音程が違う(発展的変奏で最も多い)
+ *   rhythm    : リズムは同じで音程が違う(発展的変奏で最も多い)。等間隔のリズムを共有するだけでは核だと分かる根拠が弱いので、
+ *               核のリズムが等間隔でないときだけ rhythm とする(等間隔なら音程の近さで small / other を決める)
  *   interval  : 音程は同じでリズムが違う
  *   deletion  : 1音を抜いた形
  *   small     : 違いが3割以下
  *   other     : 別の素材
  */
 export type MotifRelation =
-  | "exact" | "sequence" | "register" | "tail" | "truncated" | "extended"
+  | "exact" | "sequence" | "register" | "articulation" | "tail" | "truncated" | "extended"
   | "rhythm" | "interval" | "deletion" | "small" | "other"
 
 export const LITERAL_RELATIONS: readonly MotifRelation[] = ["exact", "sequence", "register"]
 export const RECOGNIZABLE_RELATIONS: readonly MotifRelation[] = [
-  "exact", "sequence", "register", "tail", "truncated", "extended", "rhythm", "interval", "deletion", "small",
+  "exact", "sequence", "register", "articulation", "tail", "truncated", "extended", "rhythm", "interval", "deletion", "small",
 ]
 
 interface Token { interval: number | null; gap: number }
@@ -53,6 +58,20 @@ function fuzzyDistance(a: Token[], b: Token[]): number {
   return row[b.length] / Math.max(1, a.length, b.length)
 }
 
+/**
+ * 音価と、音と音の間の無音が同じか。短い音価の差(±0.25拍か2割)は同じとみなす。
+ * 最後の音は、次の句が始まるまでの長さに左右されるので、伸ばしたか切ったか(1拍以上の差)だけを見る。
+ */
+function sameArticulation(core: readonly MelodyNote[], coreStart: number, candidate: readonly MelodyNote[], candidateStart: number): boolean {
+  if (core.length !== candidate.length) return false
+  return core.every((note, index) => {
+    const other = candidate[index]
+    const tolerance = Math.max(.25, note.durationBeats * .2)
+    if (index === core.length - 1) return Math.abs(note.durationBeats - other.durationBeats) < 1
+    return Math.abs(note.durationBeats - other.durationBeats) <= tolerance
+  }) && Math.abs((core[0].startBeat - coreStart) - (candidate[0].startBeat - candidateStart)) < .02
+}
+
 /** 核と、ある窓の関係を1つに決める(分析スクリプトと同じ優先順) */
 export function classifyMotifRelation(
   core: readonly MelodyNote[],
@@ -67,6 +86,8 @@ export function classifyMotifRelation(
   const intervalSame = ct.length === wt.length && ct.every((token, index) => sameInterval(token.interval, wt[index].interval))
   const transposition = candidate[0].pitch - core[0].pitch
   if (rhythmSame && intervalSame) {
+    // 音価と句末までの余白も同じか(伸ばす・切るの違いは、息継ぎと語尾の印象を変える)
+    if (!sameArticulation(core, coreStart, candidate, candidateStart)) return { relation: "articulation", distance: 0 }
     const exactIntervals = ct.every((token, index) => token.interval === wt[index].interval)
     if (transposition === 0 && exactIntervals) return { relation: "exact", distance: 0 }
     if (transposition % 12 === 0 && exactIntervals) return { relation: "register", distance: 0 }
@@ -79,7 +100,8 @@ export function classifyMotifRelation(
     if (wt.length > ct.length && ct.every((token, index) => sameToken(token, wt[index]))) return { relation: "extended", distance }
     return { relation: "tail", distance }
   }
-  if (rhythmSame) return { relation: "rhythm", distance }
+  const uniformRhythm = new Set(ct.slice(1).map((token) => token.gap)).size <= 1
+  if (rhythmSame && !uniformRhythm) return { relation: "rhythm", distance }
   if (intervalSame) return { relation: "interval", distance }
   if (wt.length === ct.length - 1) {
     for (let skip = 1; skip < core.length; skip++) {
@@ -133,15 +155,20 @@ export function measureMotifDevelopment(
   const corePcs = new Set(core.map((note) => ((note.pitch % 12) + 12) % 12))
   const relations: MotifRelation[] = []
   const changes: number[] = []
+  // 各窓の時刻も持つ。無音の窓を飛ばしたまま「最後の2件」を見ると、後半が無音のときに前半の戻りを終盤の戻りと数えてしまう
+  const recognizedStarts: number[] = []
+  const windowStarts: number[] = []
   let newPitchNotes = 0
   let laterNotes = 0
   for (let start = coreStart + unit; start + unit <= totalBeats + 1e-6; start += unit) {
+    windowStarts.push(start)
     const window = inWindow(start)
     if (window.length === 0) continue
     // フレーズの頭が少し遅れて入る場合も同じ単位として比べる(弱起・休符からの入り)
     const offset = window[0].startBeat - start - (core[0].startBeat - coreStart)
     const { relation, distance } = classifyMotifRelation(core, coreStart, window, start + offset)
     relations.push(relation)
+    if (RECOGNIZABLE_RELATIONS.includes(relation)) recognizedStarts.push(start)
     if (relation !== "other") changes.push(distance)
     laterNotes += window.length
     newPitchNotes += window.filter((note) => !corePcs.has(((note.pitch % 12) + 12) % 12)).length
@@ -151,7 +178,9 @@ export function measureMotifDevelopment(
   const recognizableShare = recognized.length / relations.length
   const literalOnly = recognized.length > 0 && recognized.every((relation) => LITERAL_RELATIONS.includes(relation))
   const transformKinds = new Set(recognized.filter((relation) => !LITERAL_RELATIONS.includes(relation))).size
-  const lateReturn = relations.slice(-2).some((relation) => RECOGNIZABLE_RELATIONS.includes(relation))
+  // 最後の2窓(無音の窓も数える)のどこかで核が戻るか。認識率の分母は「音が鳴った窓」のまま
+  const lateStarts = windowStarts.slice(-2)
+  const lateReturn = recognizedStarts.some((start) => lateStarts.includes(start))
   const newPitchShare = laterNotes > 0 ? newPitchNotes / laterNotes : 0
   const meanChange = changes.length ? changes.reduce((sum, value) => sum + value, 0) / changes.length : 0
   // 戻りは半分以上あると Hook が保たれる(8小節で2〜4回)。変形は1〜2種類が最もよく、3種類以上は散らかる。

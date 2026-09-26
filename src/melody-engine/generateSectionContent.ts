@@ -19,7 +19,8 @@ import { buildHarmonicMap } from "./harmonicMap"
 import { rangeWithClimaxReservation, resolveClimaxCeiling } from "./climaxReservation"
 import type { Density, Drama, RangeSetting } from "./generationParams"
 import { buildContentLayers, generatePickupNotes } from "./contentGenerators"
-import { generateFromChords } from "./generateFromChords"
+import { generateFromChordsWithProfiles } from "./generateFromChords"
+import type { ResolvedMusicContext } from "@/core/musicContext"
 import {
   chordsForWindow,
   DEFAULT_PICKUP_BEATS,
@@ -72,6 +73,8 @@ export interface GenerateSectionContentInput {
   nextSectionRole?: SectionRole
   nextSectionFirstChord?: string
   songMotifDNA?: SongMotifDNA
+  /** 曲の文脈(ジャンル・参考曲など)。「歌の旋律」を選んだときに、通常の主旋律生成と同じく渡す */
+  musicContext?: ResolvedMusicContext
 }
 
 export interface SectionContentCandidate {
@@ -122,12 +125,20 @@ function buildContext(input: GenerateSectionContentInput): ContentPlanContext {
  * entryOffset/pickup を尊重するため、窓の内側だけを生成対象にして
  * 生成後にセクション相対へ戻す。弱起は別Layerとして持つ。
  */
+/**
+ * 同じ窓(入り・弱起が同じ)の歌の旋律は、1回の選抜で出た3案を順に使う(Codex のレビューの指摘:
+ * 計画ごとに候補の探索を丸ごと回すと、外側の候補と二重の探索になり、生成が数倍遅くなった)。
+ * 3案を使い切ったら新しい seed で次の選抜を行う。
+ */
+type MelodyBatchCache = Map<string, { candidates: MelodyNote[][]; next: number }>
+
 function buildMelodyLayers(
   rng: SeededRandom,
   plan: SectionContentPlan,
   input: GenerateSectionContentInput,
   ctx: ContentPlanContext,
   idPrefix: string,
+  cache: MelodyBatchCache,
 ): SectionLayer[] {
   const window: LeadWindow = {
     startBeat: plan.entryOffsetBeats,
@@ -139,19 +150,33 @@ function buildMelodyLayers(
 
   let notes: MelodyNote[] = []
   if (span > 0 && windowChords.length > 0) {
-    const { candidates } = generateFromChords({
-      chords: windowChords,
-      sectionId: input.sectionId,
-      sectionRole: input.sectionRole,
-      songProfile: input.songProfile,
-      density: input.density ?? "balanced",
-      range: ctx.range,
-      drama: input.drama ?? "growing",
-      totalBeats: span,
-      seed: rng.intBetween(1, 0x7fffffff),
-      candidateCount: 1,
-    })
-    notes = shiftNotesToSection(candidates[0]?.notes ?? [], window)
+    // 「おまかせ」で歌の旋律を選んだときも、通常の主旋律と同じ経路(調・曲の文脈・核の動機を使った候補の選抜と仕上げ)を通す。
+    // 以前は1案だけを簡易な経路で作り、調も渡していなかったので、予想しやすさ・作りの良さによる選抜、
+    // 核の頭の復元、同じ和音の並びでのくり返しが働かず、調を変えても同じ旋律になっていた
+    const cacheKey = `${window.startBeat}:${window.endBeat}`
+    let batch = cache.get(cacheKey)
+    const seed = rng.intBetween(1, 0x7fffffff)
+    if (!batch || batch.next >= batch.candidates.length) {
+      const { candidates } = generateFromChordsWithProfiles({
+        chords: windowChords,
+        sectionId: input.sectionId,
+        sectionRole: input.sectionRole,
+        songProfile: input.songProfile,
+        density: input.density ?? "balanced",
+        range: ctx.range,
+        drama: input.drama ?? "growing",
+        totalBeats: span,
+        seed,
+        profiles: ["standard"],
+        key: input.key,
+        musicContext: input.musicContext,
+        motifDNA: input.songMotifDNA,
+      })
+      batch = { candidates: candidates.map((candidate) => candidate.notes), next: 0 }
+      cache.set(cacheKey, batch)
+    }
+    notes = shiftNotesToSection(batch.candidates[batch.next] ?? [], window)
+    batch.next += 1
   }
 
   const layers: SectionLayer[] = [
@@ -202,6 +227,7 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
       ? planAutoContentBatch(planRng, ctx, poolCount)
       : planSectionContentBatch(planRng, input.content.lead as ResolvedLeadContent, ctx, poolCount)
 
+  const melodyBatches: MelodyBatchCache = new Map()
   const build = (
     plan: SectionContentPlan,
     index: number,
@@ -214,7 +240,7 @@ export function generateSectionContent(input: GenerateSectionContentInput): {
     // (chorus/grand-chorusはAutoの候補がmelodyのみなので3案すべて空になる)。
     const layers =
       plan.content === "melody"
-        ? buildMelodyLayers(new SeededRandom(seed), plan, input, ctx, `${input.sectionId}:${index}`)
+        ? buildMelodyLayers(new SeededRandom(seed), plan, input, ctx, `${input.sectionId}:${index}`, melodyBatches)
         : buildContentLayers(new SeededRandom(seed), plan, ctx, `${input.sectionId}:${index}`)
     const notes = flattenLayerNotes(layers)
     const features = computeContentStructureFeatures(notes, plan, input.totalBeats)
