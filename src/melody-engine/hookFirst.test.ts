@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { MelodyNote } from "@/core/melody"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
-import { judgeCoreMotif } from "./hookFirst"
+import { hookabilityFor, judgeCoreMotif } from "./hookFirst"
 import { subtleHookVariation } from "./hookDevelopment"
 
 function notes(pitches: number[], starts: number[], durations: number[]): MelodyNote[] {
@@ -53,5 +53,28 @@ describe("Hook-first Melody Generator", () => {
     expect(result.diagnostics.filter((item) => item.selected).every((item) =>
       item.qualityScore >= 45 && (item.coreHookability ?? 0) > .6,
     )).toBe(true)
+  })
+})
+
+
+describe("サビの核の型ごとの覚えやすさ", () => {
+  const core = (rhythm: [number, number][]): MelodyNote[] =>
+    rhythm.map(([startBeat, durationBeats], index) => ({ id: `r${index}`, startBeat, durationBeats, pitch: [60, 62, 64, 67, 64, 62][index % 6], velocity: 80, locks: [] }))
+  // 1拍・2拍の組を2回(リズムの種類は少なめ)
+  const moderate = core([[0, 1], [1, 2], [4, 1], [5, 2]])
+  // 発音間隔も音価もばらばら(リズムの種類が多い)
+  const busy = core([[0, 1.5], [1.5, .5], [2, .75], [3, .25], [4.5, 1.25], [6, .5]])
+  it("従来の型は種類の多い核を、素直な型は種類が中くらいの核を高くする", () => {
+    const m = judgeCoreMotif(moderate, 8)
+    const b = judgeCoreMotif(busy, 8)
+    expect(b.rhythmicIdentity).toBeGreaterThan(m.rhythmicIdentity)
+    expect(b.hookability - b.plainHookability).toBeGreaterThan(m.hookability - m.plainHookability)
+    expect(m.plainHookability).toBeGreaterThan(b.plainHookability)
+  })
+  it("選抜・候補の順位付け・記録には、核の型に合った覚えやすさを使う", () => {
+    const j = judgeCoreMotif(moderate, 8)
+    expect(hookabilityFor(j, "plain")).toBe(j.plainHookability)
+    expect(hookabilityFor(j, "varied")).toBe(j.hookability)
+    expect(hookabilityFor(j)).toBe(j.hookability)
   })
 })

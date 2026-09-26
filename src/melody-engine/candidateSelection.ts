@@ -59,6 +59,8 @@ export interface SelectableCandidate extends MelodySimilarityCandidate {
   expectationScore?: number
   /** 同じ和音の並びが戻る所で、フック(核)をそのままくり返しているか */
   hookRepeated?: boolean
+  /** サビの核をどちらのリズムの型で選んだか(varied: 種類が多い / plain: 素直) */
+  coreRhythm?: "varied" | "plain"
   profileFitScore: number
   techniqueFitScore?: number
   candidateMelodyDNA?: CandidateMelodyDNA
@@ -105,6 +107,11 @@ export interface CandidateSelectionOptions {
    * 多様性の条件(開始・DNA・構造の重複なし)を満たす組がある場合だけ。無ければ従来どおり選ぶ
    */
   preferHookRepeat?: boolean
+  /**
+   * 3案に、リズムの種類が多い核(varied)と素直な核(plain)の両方を入れる。
+   * 作曲者の試聴で好みが曲ごとに分かれたため。満たす組が無ければ従来どおり選ぶ
+   */
+  requireCoreRhythmVariety?: boolean
 }
 
 /** 理論品質以外の重みの合計の上限(理論品質の係数を必ず正に保つ) */
@@ -347,8 +354,17 @@ export function selectDiverseCandidates<T extends SelectableCandidate>(
     // まず全緩和範囲で構造重複ゼロの組を探し、それが存在しない場合だけ重複数最小の組へフォールバックする。
     // フックをくり返す案を含めたいときは、先にそれを含む組だけで同じ探し方をする
     // (サビで同じ進行が戻る所のくり返しは、聴き比べで好まれた。多様性の条件は緩めない)
-    const repeatingSets = options.preferHookRepeat ? rankedSets.filter((candidateSet) => candidateSet.set.some((candidate) => candidate.hookRepeated)) : []
-    for (const sets of repeatingSets.length > 0 ? [repeatingSets, rankedSets] : [rankedSets]) {
+    // 核のリズムの型は、フックのくり返しの次に優先する(両方を満たす組 → くり返し → 両方の型 → 従来)
+    const repeats = (candidateSet: RankedSet) => !options.preferHookRepeat || candidateSet.set.some((candidate) => candidate.hookRepeated)
+    const mixesRhythm = (candidateSet: RankedSet) => !options.requireCoreRhythmVariety ||
+      (candidateSet.set.some((candidate) => candidate.coreRhythm === "plain") && candidateSet.set.some((candidate) => candidate.coreRhythm === "varied"))
+    const tiers = [
+      rankedSets.filter((candidateSet) => repeats(candidateSet) && mixesRhythm(candidateSet)),
+      rankedSets.filter(repeats),
+      rankedSets.filter(mixesRhythm),
+      rankedSets,
+    ].filter((sets) => sets.length > 0)
+    for (const sets of tiers) {
       setThreshold = CANDIDATE_SELECTION_CONFIG.maximumOverallSimilarity
       while (!bestSet && setThreshold <= CANDIDATE_SELECTION_CONFIG.maximumRelaxedSimilarity + 1e-9) {
         bestSet = sets
