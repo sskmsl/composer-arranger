@@ -215,61 +215,135 @@ export function restoreHookHeads(
     const family = CONTRAST_KEEPING_ROLES.includes(phrase.role) ? "b" : HEAD_KEEPING_ROLES.includes(phrase.role) ? "a" : undefined
     const reference = family ? references.get(family) : undefined
     if (!reference) continue
-    const headSize = Math.min(4, Math.max(2, Math.ceil(reference.length / 2)))
-    const head = reference.slice(0, headSize)
-    const headOffsets = head.map((note) => note.startBeat - head[0].startBeat)
-    const window = inPhrase(phrase).slice(0, headSize)
-    if (window.length < headSize) continue
-    const sameRhythm = window.every((note, index) => Math.abs(note.startBeat - window[0].startBeat - headOffsets[index]) < .02)
-    if (!sameRhythm) continue
-    const indexOfFirst = notes.indexOf(window[0])
-    const before = notes[indexOfFirst - 1]
-    const after = notes[indexOfFirst + headSize]
-    const options: { pitches: number[]; cost: number }[] = []
-    const shift = window[0].pitch - head[0].pitch
-    for (let steps = -5; steps <= 5; steps++) {
-      // 調の音階に沿った移高(音程は±1半音まで同じ形として聞こえる)
-      const base = head.map((note) => shiftInScale(note.pitch, steps, scale))
-      for (const octave of [-12, 0, 12]) options.push({ pitches: base.map((pitch) => pitch + octave), cost: 0 })
-    }
-    for (let semis = shift - 3; semis <= shift + 3; semis++) options.push({ pitches: head.map((note) => note.pitch + semis), cost: .5 })
-    // 頭を戻しても、そのフレーズで元々いちばん高かった音は超えず、セクションの頂点と同じ高さにもしない
-    // (頂点の位置と、その前後の息継ぎを動かさない)
-    const phraseTop = Math.max(...notes.filter((note) =>
-      note.startBeat >= phrase.startBeat - 1e-6 && note.startBeat < phrase.startBeat + phrase.lengthBeats - 1e-6).map((note) => note.pitch))
-    const windowTop = Math.max(...window.map((note) => note.pitch))
-    // (長いセクションだけ。短いセクションでは頂点の位置が変わらず、Hook の戻りだけが減ったため)
-    const sectionBeats = plan.phrases.at(-1)!.startBeat + plan.phrases.at(-1)!.lengthBeats
-    const nearClimax = sectionBeats >= LONG_SECTION_BEATS && plan.climaxBeat !== undefined && phrase.startBeat + phrase.lengthBeats * 2 > plan.climaxBeat
-    let best: { pitches: number[]; cost: number } | null = null
-    for (const option of options) {
-      if (option.pitches.some((pitch) => pitch < range.low || pitch > range.high || pitch > phraseTop || pitch >= summit.pitch)) continue
-      // 頂点の目標位置に近いフレーズでは、頭の中の高い音も下げない(後半の高まりを削ると、頂点が前へずれてしまう)
-      if (nearClimax && Math.max(...option.pitches) < windowTop) continue
-      let valid = true
-      option.pitches.forEach((pitch, index) => {
+    // 回帰(return)のフレーズは、頭だけでなく核全体をそのまま戻す。
+    // 歌は同じ形をくり返して後半ほど予想しやすくなるが、生成した旋律は毎回変形して戻り、そうならなかった
+    // (2小節がそのままくり返される割合: 歌502曲 6%、生成 0〜1%。くり返しは覚えやすさと好まれやすさを高める:
+    //  Nunes et al. 2015、Van Balen et al. 2015)。応答(answer)は頭だけ戻し、語尾の変化(A A′)を残す
+    const fullReturn = phrase.role === "return" || phrase.role === "contrast-return"
+    const headOnly = Math.min(4, Math.max(2, Math.ceil(reference.length / 2)))
+    // 核全体を戻せないとき(核の中にセクションの頂点の高さがある等)は、従来どおり頭だけ戻す
+    for (const headSize of fullReturn && reference.length > headOnly ? [reference.length, headOnly] : [headOnly]) {
+      const head = reference.slice(0, headSize)
+      const headOffsets = head.map((note) => note.startBeat - head[0].startBeat)
+      const window = inPhrase(phrase).slice(0, headSize)
+      if (window.length < headSize) continue
+      const sameRhythm = window.every((note, index) => Math.abs(note.startBeat - window[0].startBeat - headOffsets[index]) < .02)
+      if (!sameRhythm) continue
+      const indexOfFirst = notes.indexOf(window[0])
+      const before = notes[indexOfFirst - 1]
+      const after = notes[indexOfFirst + headSize]
+      const options: { pitches: number[]; cost: number }[] = []
+      const shift = window[0].pitch - head[0].pitch
+      for (let steps = -5; steps <= 5; steps++) {
+        // 調の音階に沿った移高(音程は±1半音まで同じ形として聞こえる)
+        const base = head.map((note) => shiftInScale(note.pitch, steps, scale))
+        // 和声に合うなら、移高より同じ高さのままのくり返しを選ぶ(そのまま戻ると分かる)
+        for (const octave of [-12, 0, 12]) options.push({ pitches: base.map((pitch) => pitch + octave), cost: steps === 0 && octave === 0 ? -1.5 : 0 })
+      }
+      for (let semis = shift - 3; semis <= shift + 3; semis++) options.push({ pitches: head.map((note) => note.pitch + semis), cost: .5 })
+      // 頭を戻しても、そのフレーズで元々いちばん高かった音は超えず、セクションの頂点と同じ高さにもしない
+      // (頂点の位置と、その前後の息継ぎを動かさない)
+      const phraseTop = Math.max(...notes.filter((note) =>
+        note.startBeat >= phrase.startBeat - 1e-6 && note.startBeat < phrase.startBeat + phrase.lengthBeats - 1e-6).map((note) => note.pitch))
+      const windowTop = Math.max(...window.map((note) => note.pitch))
+      // (長いセクションだけ。短いセクションでは頂点の位置が変わらず、Hook の戻りだけが減ったため)
+      const sectionBeats = plan.phrases.at(-1)!.startBeat + plan.phrases.at(-1)!.lengthBeats
+      const nearClimax = sectionBeats >= LONG_SECTION_BEATS && plan.climaxBeat !== undefined && phrase.startBeat + phrase.lengthBeats * 2 > plan.climaxBeat
+      let best: { pitches: number[]; cost: number } | null = null
+      for (const option of options) {
+        if (option.pitches.some((pitch) => pitch < range.low || pitch > range.high || pitch > phraseTop || pitch >= summit.pitch)) continue
+        // 頂点の目標位置に近いフレーズでは、頭の中の高い音も下げない(後半の高まりを削ると、頂点が前へずれてしまう)
+        if (nearClimax && Math.max(...option.pitches) < windowTop) continue
+        let valid = true
+        option.pitches.forEach((pitch, index) => {
+          const note = window[index]
+          const entry = chordAtBeat(harmonicMap, note.startBeat)
+          const chordTone = entry ? isChordTone(entry.parsed, pitchClass(pitch)) : true
+          const onBeat = Math.abs(note.startBeat - Math.round(note.startBeat)) < 1e-6
+          const next = index + 1 < option.pitches.length ? option.pitches[index + 1] : after?.pitch
+          const passing = !onBeat && inScale(pitch) && next !== undefined && Math.abs(next - pitch) <= 2
+          if (!chordTone && !passing) valid = false
+        })
+        if (!valid) continue
+        if (after && Math.abs(after.pitch - option.pitches[option.pitches.length - 1]) > 5) continue
+        if (before && Math.abs(option.pitches[0] - before.pitch) > 7) continue
+        const cost = option.cost + option.pitches.reduce((sum, pitch, index) => sum + Math.abs(pitch - window[index].pitch), 0)
+        if (!best || cost < best.cost) best = { pitches: option.pitches, cost }
+      }
+      if (!best) continue
+      if (best.pitches.every((pitch, index) => pitch === window[index].pitch)) break
+      best.pitches.forEach((pitch, index) => {
         const note = window[index]
         const entry = chordAtBeat(harmonicMap, note.startBeat)
-        const chordTone = entry ? isChordTone(entry.parsed, pitchClass(pitch)) : true
-        const onBeat = Math.abs(note.startBeat - Math.round(note.startBeat)) < 1e-6
-        const next = index + 1 < option.pitches.length ? option.pitches[index + 1] : after?.pitch
-        const passing = !onBeat && inScale(pitch) && next !== undefined && Math.abs(next - pitch) <= 2
-        if (!chordTone && !passing) valid = false
+        note.pitch = pitch
+        note.plannedToneRole = entry && isChordTone(entry.parsed, pitchClass(pitch)) ? "chord-tone" : "passing-tone"
+        note.plannedResolution = undefined
       })
-      if (!valid) continue
-      if (after && Math.abs(after.pitch - option.pitches[option.pitches.length - 1]) > 5) continue
-      if (before && Math.abs(option.pitches[0] - before.pitch) > 7) continue
-      const cost = option.cost + option.pitches.reduce((sum, pitch, index) => sum + Math.abs(pitch - window[index].pitch), 0)
-      if (!best || cost < best.cost) best = { pitches: option.pitches, cost }
+      break
     }
-    if (!best || best.cost === 0) continue
-    best.pitches.forEach((pitch, index) => {
-      const note = window[index]
-      const entry = chordAtBeat(harmonicMap, note.startBeat)
-      note.pitch = pitch
-      note.plannedToneRole = entry && isChordTone(entry.parsed, pitchClass(pitch)) ? "chord-tone" : "passing-tone"
-      note.plannedResolution = undefined
-    })
+  }
+  return repeatOverReturningHarmony(notes, plan, harmonicMap)
+}
+
+/**
+ * 最初のフレーズ(核)と同じ和音の並びが後でもう一度来たら、そこで核をそのままくり返す(A A)。
+ *
+ * 歌は同じ和音の上で同じ旋律をくり返し、後半ほど予想しやすくなる。生成した旋律は毎回変形して戻るので、
+ * 歌502曲(OpenEWLD)より予想しにくい側に偏っていた(2小節がそのまま戻る割合: 歌 6%、生成 0〜1%)。
+ * くり返しは覚えやすさ・好まれやすさを高める(Nunes et al. 2015、Van Balen et al. 2015)。
+ * 位置で決めた回帰フレーズは別の和音の上に来ることが多く、同じ形が和声に合わなかったので、
+ * 和音の並びが戻ってくる所だけで行う。8小節ごとに1回まで。頂点と最後の音(終止)を含む所には置かない。
+ */
+export function repeatOverReturningHarmony(
+  source: readonly MelodyNote[],
+  plan: HookHeadPlan,
+  harmonicMap: HarmonicMapEntry[],
+): MelodyNote[] {
+  let notes = [...source].sort((a, b) => a.startBeat - b.startBeat)
+  const first = plan.phrases[0]
+  const last = plan.phrases.at(-1)
+  if (!first || !last || notes.length < 6) return notes
+  const sectionBeats = last.startBeat + last.lengthBeats
+  const length = Math.min(plan.coreLengthBeats, first.lengthBeats)
+  const statement = notes.filter((note) => note.startBeat >= first.startBeat - 1e-6 && note.startBeat < first.startBeat + length - 1e-6)
+  if (statement.length < 3 || length < 4) return notes
+  const symbolAt = (beat: number) => chordAtBeat(harmonicMap, beat)?.chord.symbol ?? ""
+  const samples = Array.from({ length: Math.round(length * 2) }, (_, index) => index / 2)
+  const harmony = samples.map((offset) => symbolAt(first.startBeat + offset))
+  const summit = notes.reduce((best, note) => (note.pitch > best.pitch ? note : best), notes[0])
+  const finalNote = notes[notes.length - 1]
+  // 8小節ごとに1回まで(くり返しすぎると逆効果: Nunes et al. 2015)
+  let remaining = Math.max(1, Math.floor(sectionBeats / 32))
+  // A の素材を置いてよいのは、応答・発展・回帰のフレーズだけ(対照 B・段階的な上昇・頂点の設計は変えない)
+  const repeatable = (role: HookPhraseRole | undefined) => role === "answer" || role === "develop" || role === "return"
+  for (let start = first.startBeat + first.lengthBeats; start + length <= sectionBeats + 1e-6; start += length) {
+    if (!samples.every((offset, index) => symbolAt(start + offset) === harmony[index])) continue
+    const end = start + length
+    const overlapping = plan.phrases.filter((phrase) => phrase.startBeat < end - 1e-6 && phrase.startBeat + phrase.lengthBeats > start + 1e-6)
+    if (overlapping.length === 0 || !overlapping.every((phrase) => repeatable(phrase.role))) continue
+    const inside = (note: MelodyNote) => note.startBeat >= start - 1e-6 && note.startBeat < end - 1e-6
+    if (inside(summit) || inside(finalNote)) continue
+    // 休み(息継ぎ)の所を音で埋めない
+    if (notes.filter(inside).length < Math.ceil(statement.length * 0.6)) continue
+    const shift = start - first.startBeat
+    const copies = statement.map((note) => ({
+      ...note,
+      id: `${note.id}-again-${start}`,
+      startBeat: note.startBeat + shift,
+      durationBeats: Math.min(note.durationBeats, end - (note.startBeat + shift)),
+    }))
+    // 直前の音が戻りの頭へはみ出さないようにし、頭の前との跳躍が大きすぎる所には置かない
+    const before = notes.filter((note) => note.startBeat < start - 1e-6).at(-1)
+    const after = notes.find((note) => note.startBeat >= end - 1e-6)
+    if (before && Math.abs(copies[0].pitch - before.pitch) > 9) continue
+    if (after && Math.abs(after.pitch - copies[copies.length - 1].pitch) > 9) continue
+    const kept = notes.filter((note) => !inside(note)).map((note) =>
+      note === before && note.startBeat + note.durationBeats > copies[0].startBeat
+        ? { ...note, durationBeats: Math.max(0.25, copies[0].startBeat - note.startBeat) }
+        : note)
+    notes = [...kept, ...copies].sort((a, b) => a.startBeat - b.startBeat)
+    remaining -= 1
+    if (remaining === 0) break
   }
   return notes
 }
