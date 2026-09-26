@@ -3,6 +3,7 @@ import { answerHook, climaxHook, developHook, hookPhraseRole, repeatOverReturnin
 import { buildHarmonicMap } from "./harmonicMap"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 import type { MotifCore } from "./motifCore"
+import type { MelodyNote } from "@/core/melody"
 
 const source: MotifCore = {
   pitches: [60, 64, 62, 67], lengthBeats: 4,
@@ -152,6 +153,17 @@ describe("和音の並びが戻る所で核をそのままくり返す(歌のく
     expect(shape(16)).toEqual(shape(0))
     // 頂点(7小節目)と終わりの音は変えない
     expect(result.filter((n) => n.startBeat >= 24).map((n) => n.pitch)).toEqual([72, 67, 64])
+  })
+
+  it("くり返した倚音の解決先も、同じ拍数だけ後ろへ動く", () => {
+    const map = chords(["C", "Am", "F", "G", "C", "Am", "F", "G"])
+    const source: MelodyNote[] = melody().map((n) => n.startBeat === 2
+      ? { ...n, plannedToneRole: "appoggiatura" as const, plannedResolution: { targetPitchClass: 7, targetBeat: 3, maximumDelayBeats: 1 } }
+      : n)
+    const result = repeatOverReturningHarmony(source, plan(["statement", "answer", "develop", "return"]), map)
+    const copy = result.find((n) => n.startBeat === 18)!
+    expect(copy.plannedResolution?.targetBeat).toBe(19)
+    expect(source.find((n) => n.startBeat === 2)!.plannedResolution?.targetBeat).toBe(3)
   })
 
   it("和音の並びが戻らない所・対照(B)のフレーズ・休みの所には置かない", () => {

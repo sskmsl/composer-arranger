@@ -33,3 +33,16 @@ describe("予想しやすさ(歌502曲の音程の出やすさ)", () => {
     expect(repeated.reduce((s, v) => s + v, 0) / repeated.length).toBeLessThan(first.reduce((s, v) => s + v, 0) / first.length)
   })
 })
+
+describe("較正と同じ窓で測る", () => {
+  it("32拍を超える旋律は32拍ごとに区切り、窓ごとに短期の予想をリセットして平均する", () => {
+    const phrase = [[0, 1, 64], [1, 1, 67], [2, 1, 69], [3, 1, 67], [4, 2, 64], [6, 1, 62], [7, 1, 60], [8, 2, 62], [10, 2, 64], [12, 4, 60]]
+    const first = notes(phrase.flatMap(([s, d, p]) => [[s, d, p], [s + 16, d, p]]))
+    const whole = notes([...phrase.flatMap(([s, d, p]) => [[s, d, p], [s + 16, d, p]]), ...phrase.flatMap(([s, d, p]) => [[s + 32, d, p], [s + 48, d, p]])])
+    // 同じ32拍を2回並べても、窓ごとにリセットするので、1回分と同じ値になる(曲全体で測ると2回目が予想しやすくなって下がる)
+    expect(measureExpectation(whole, "C", 64)!.meanInformation).toBeCloseTo(measureExpectation(first, "C", 32)!.meanInformation, 6)
+    // 8小節(32拍)の旋律は、最後の音が32拍目より前でも32拍の窓で測る
+    expect(measureExpectation(first, "C", 32)!.meanInformation).toBeCloseTo(
+      noteInformation(first, "C").reduce((sum, value) => sum + value, 0) / (first.length - 1), 6)
+  })
+})

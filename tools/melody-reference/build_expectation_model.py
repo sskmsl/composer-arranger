@@ -11,7 +11,9 @@
 各音の情報量(驚き、ビット) = -log2 P(次の音程 | 直前の音の音階の段, 直前の音程の大きさ・向き)
   長期の予想(コーパスの回数)を、段・音程の3段階でならし(PPM 風)、
   その曲の中でくり返された動きは予想しやすくなる(短期の予想)。
-校正: 5分割の交差検証で、曲を8小節ずつに分けた平均情報量の分布(長調・短調別)を残す。
+校正: 5分割の交差検証で、曲を16拍・32拍の窓に分けた平均情報量の分布(窓の長さ・長調/短調別)を残す。
+  アプリ側は同じ窓で測る(窓ごとに短期の予想をリセット)。窓の長さを揃えないと分位点を比べられない。
+  これは音高の低次の統計モデルで、IDyOM と同等ではない(音価・休符・拍・和音・テンポは確率に入らない)。
 
 使い方:
   python3 tools/melody-reference/build_expectation_model.py reference-data/melody-corpus/openewld.jsonl \
@@ -88,15 +90,20 @@ class Counts:
         return values
 
 
-def units(notes):
+WINDOW_BEATS = (16, 32)
+MIN_NOTES = {16: 5, 32: 8}
+
+
+def units(notes, length=UNIT_BEATS):
+    """最初の発音から length 拍ごとの窓(アプリ側 expectation.ts の windows と同じ切り方)"""
     notes = sorted(tuple(note) for note in notes)
     out = []
     start = notes[0][0]
     while start < notes[-1][0]:
-        unit = [note for note in notes if start <= note[0] < start + UNIT_BEATS]
-        if len(unit) >= 8:
+        unit = [note for note in notes if start <= note[0] < start + length]
+        if len(unit) >= MIN_NOTES[length]:
             out.append(unit)
-        start += UNIT_BEATS
+        start += length
     return out
 
 
@@ -117,7 +124,8 @@ def main():
     random.seed(7)
     random.shuffle(songs)
     folds = 5
-    means = {0: [], 1: []}
+    # 窓の長さごとに分布を取る(短期の予想は窓ごとにリセットするので、長さが違うと値の意味が変わる)
+    means = {length: {0: [], 1: []} for length in WINDOW_BEATS}
     for fold in range(folds):
         model = Counts()
         for index, song in enumerate(songs):
@@ -126,15 +134,19 @@ def main():
         for index, song in enumerate(songs):
             if index % folds == fold:
                 mode = parse_key(song["key"])[1]
-                for unit in units(song["notes"]):
-                    values = model.information(unit, song["key"])
-                    means[mode].append(sum(values) / len(values))
+                for length in WINDOW_BEATS:
+                    for unit in units(song["notes"], length):
+                        values = model.information(unit, song["key"])
+                        means[length][mode].append(sum(values) / len(values))
     model = Counts()
     for song in songs:
         model.train(song["notes"], song["key"])
     calibration = {
-        ("minor" if mode else "major"): {f"p{q}": round(percentile(values, q), 3) for q in (5, 10, 25, 50, 75, 90, 95)}
-        for mode, values in means.items()
+        str(length): {
+            ("minor" if mode else "major"): {f"p{q}": round(percentile(values, q), 3) for q in (5, 10, 25, 50, 75, 90, 95)}
+            for mode, values in by_mode.items()
+        }
+        for length, by_mode in means.items()
     }
     check_notes = [(0, 1, 60), (1, 1, 62), (2, 1, 64), (3, 1, 65), (4, 2, 67), (6, 1, 64), (7, 1, 60), (8, 2, 62), (10, 2, 60)]
     check = model.information(check_notes, "C")
@@ -144,7 +156,8 @@ def main():
         "bins": BINS,
         "beta": BETA,
         "betaShort": BETA_SHORT,
-        "unitBeats": UNIT_BEATS,
+        "windowBeats": list(WINDOW_BEATS),
+        "minNotes": {str(length): count for length, count in MIN_NOTES.items()},
         "calibration": calibration,
         "counts3": model.c3,
         "counts2": model.c2,
@@ -153,7 +166,7 @@ def main():
     }
     with open(out, "w") as handle:
         json.dump(result, handle, separators=(",", ":"))
-    print(len(songs), "songs", {mode: len(values) for mode, values in means.items()}, "units", calibration)
+    print(len(songs), "songs", {length: {mode: len(values) for mode, values in by_mode.items()} for length, by_mode in means.items()}, "windows", calibration)
 
 
 if __name__ == "__main__":

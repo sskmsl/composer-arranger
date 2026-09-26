@@ -326,11 +326,15 @@ export function repeatOverReturningHarmony(
     // 休み(息継ぎ)の所を音で埋めない
     if (notes.filter(inside).length < Math.ceil(statement.length * 0.6)) continue
     const shift = start - first.startBeat
+    // 掛留・倚音などの解決先(絶対拍)も同じだけ動かす。動かさないと、戻りの音が過去の拍へ解決する予定のまま残る
     const copies = statement.map((note) => ({
       ...note,
       id: `${note.id}-again-${start}`,
       startBeat: note.startBeat + shift,
       durationBeats: Math.min(note.durationBeats, end - (note.startBeat + shift)),
+      plannedResolution: note.plannedResolution
+        ? { ...note.plannedResolution, targetBeat: note.plannedResolution.targetBeat + shift }
+        : undefined,
     }))
     // 直前の音が戻りの頭へはみ出さないようにし、頭の前との跳躍が大きすぎる所には置かない
     const before = notes.filter((note) => note.startBeat < start - 1e-6).at(-1)
