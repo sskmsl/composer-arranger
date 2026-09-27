@@ -3,8 +3,8 @@ import { parseChordInputText } from "@/core/chordInput"
 import type { MelodyNote } from "@/core/melody"
 import { buildHarmonicMap } from "./harmonicMap"
 import { buildFeatureModel, classicalLikeness, densityAt, jointPercentile, type ClassicalModel } from "./classicalLikeness"
-import { createsIsolatedLeap, isIsolatedLeap, refineTowardClassical } from "./classicalRefinement"
-import { measureMelodyCraft } from "./melodyCraftMetrics"
+import { refineTowardClassical } from "./classicalRefinement"
+import { isIsolatedLeap, measureMelodyCraft } from "./melodyCraftMetrics"
 import modelJson from "./reference/classicalModel.json"
 import { CLASSICAL_MODELS } from "./classicalModels"
 
@@ -71,32 +71,18 @@ describe("古典らしさ(古典=100)", () => {
     expect(result.notes.every((note) => note.pitch >= 55 && note.pitch <= 81)).toBe(true)
   })
 
-  it("推敲は、1音だけ飛び出す短い音を増やさず、何周しても推敲前の音から4半音より動かさない", () => {
+  it("推敲は、何周しても推敲前の音から4半音より動かさない", () => {
     // 短い音(半拍)で跳び回る旋律と、1拍の音で跳び回る旋律の両方で確かめる
     const short = leaping.map((note) => ({ ...note, startBeat: note.startBeat / 2, durationBeats: .5, id: `s${note.id}` }))
     for (const [notes, totalBeats] of [[leaping, 32], [short, 16]] as const) {
       const result = refineTowardClassical(notes, {
         harmonicMap: buildHarmonicMap(chords), range: { low: 55, high: 81 }, totalBeats, sectionRole: "verse", key: "C", models: CLASSICAL_MODELS,
       })
-      const isolated = (list: readonly MelodyNote[]) => list.filter((_, index) => isIsolatedLeap(list, index)).length
-      expect(isolated(result.notes)).toBeLessThanOrEqual(isolated(notes))
       result.notes.forEach((note, index) => expect(Math.abs(note.pitch - notes[index].pitch)).toBeLessThanOrEqual(4))
     }
   })
 
-  it("飛び出す音を別の位置へ移すだけの置き換えも、新しく作ったと数える", () => {
-    // 55 65 58 55 62 → 3番目を 62 にすると、2番目の飛び出しが消えて4番目に移る(数は同じ1つ)
-    const notes = [55, 65, 58, 55, 62].map((pitch, index) => n(index * .5, pitch, .5))
-    const moved = notes.map((note, index) => (index === 2 ? { ...note, pitch: 62 } : note))
-    expect(notes.map((_, index) => isIsolatedLeap(notes, index))).toEqual([false, true, false, false, false])
-    expect(moved.map((_, index) => isIsolatedLeap(moved, index))).toEqual([false, false, false, true, false])
-    expect(createsIsolatedLeap(notes, moved, 2)).toBe(true)
-    // 飛び出しを消すだけの置き換えは、新しく作ったとは数えない
-    const removed = notes.map((note, index) => (index === 1 ? { ...note, pitch: 57 } : note))
-    expect(createsIsolatedLeap(notes, removed, 1)).toBe(false)
-  })
-
-  it("1音だけ飛び出す音: 短い音が前後の音から同じ向きに7半音以上離れているときだけ", () => {
+  it("記録用の「1音だけ飛び出す音」: 短い音が前後の音から同じ向きに7半音以上離れているときだけ", () => {
     const shape = (pitches: number[], duration = .5) => pitches.map((pitch, index) => n(index, pitch, duration))
     expect(isIsolatedLeap(shape([72, 64, 72]), 1)).toBe(true)
     expect(isIsolatedLeap(shape([64, 72, 62]), 1)).toBe(true)
