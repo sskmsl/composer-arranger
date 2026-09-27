@@ -63,6 +63,14 @@ export interface ClassicalRefinementContext {
   passes?: number
 }
 
+/**
+ * index の音を置き換えたとき、その音と前後で新しく1音だけ飛び出す位置ができるか。
+ * 数が同じでも、飛び出す音が別の位置へ移るだけの置き換えは新しくできたと数える
+ */
+export function createsIsolatedLeap(before: readonly MelodyNote[], after: readonly MelodyNote[], index: number): boolean {
+  return [index - 1, index, index + 1].some((position) => isIsolatedLeap(after, position) && !isIsolatedLeap(before, position))
+}
+
 export function refineTowardClassical(source: MelodyNote[], context: ClassicalRefinementContext): { notes: MelodyNote[]; before: number; after: number } {
   const notes = source.map((note) => ({ ...note })).sort((a, b) => a.startBeat - b.startBeat)
   const key = context.key
@@ -136,8 +144,6 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
   }
 
   const sourcePitch = notes.map((note) => note.pitch)
-  /** index の音とその前後で、1音だけ飛び出す音の数 */
-  const isolatedAround = (index: number) => [index - 1, index, index + 1].filter((position) => isIsolatedLeap(notes, position)).length
 
   const before = score(notes)
   let current = before
@@ -147,14 +153,14 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
       if (!editable(index)) continue
       const original = notes[index]
       let best: { pitch: number; role: Pick<MelodyNote, "plannedToneRole" | "plannedResolution">; score: number } | null = null
-      const isolatedBefore = isolatedAround(index)
+      const unchanged = notes.slice()
       for (const offset of [-4, -3, -2, -1, 1, 2, 3, 4]) {
         const pitch = original.pitch + offset
         if (Math.abs(pitch - sourcePitch[index]) > MAXIMUM_DRIFT) continue
         const role = roleFor(index, pitch)
         if (!role) continue
         notes[index] = { ...original, pitch, ...role }
-        if (isolatedAround(index) > isolatedBefore) continue
+        if (createsIsolatedLeap(unchanged, notes, index)) continue
         const candidate = score(notes)
         if (!best || candidate > best.score) best = { pitch, role, score: candidate }
       }
