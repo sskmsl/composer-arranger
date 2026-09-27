@@ -31,6 +31,7 @@ const SHORT_NOTE = .5
 const SHORT_MOVE = 7
 
 interface Measure {
+  role: SectionRole
   /** 組み立て直後と比べて、核の範囲の音が同じ音(id)・同じ音高・同じリズム */
   headExact: boolean
   /** 同じ音(id)・同じリズムで、隣り合う音程が同じ(移調を許す) */
@@ -39,18 +40,20 @@ interface Measure {
   headOctaveMoves: number
   bigLeaps: number
   shortMoves: number
-  /** 最高音が最初に現れる位置(区間に対する割合) */
+  /** 最高音が最初に現れる位置(区間に対する割合)。感情の頂点の位置とは限らない */
   peakPosition: number
   /** 最高音が2回以上ある */
   peakShared: boolean
-  /** 最高音が核の範囲にある */
+  /** 最高音(の最初の出現)が核の範囲にある */
   peakInCore: boolean
+  /** 区間の後半(50% 以降)にも最高音と同じ高さの音がある */
+  peakHeightInLatterHalf: boolean
   /** 拍頭(1・3拍目)でコードの音でない音の数 */
   strongNonChord: number
   noteCount: number
 }
 
-function measure(candidate: ProfileCandidate, records: readonly StageRecord[], text: string, totalBeats: number): Measure | undefined {
+function measure(candidate: ProfileCandidate, records: readonly StageRecord[], text: string, totalBeats: number, role: SectionRole): Measure | undefined {
   if (candidate.coreLengthBeats === undefined) return undefined
   const coreLength = candidate.coreLengthBeats
   const path = candidatePath(records, {
@@ -73,6 +76,7 @@ function measure(candidate: ProfileCandidate, records: readonly StageRecord[], t
   const peak = notes.find((note) => note.pitch === max)!
   const harmonicMap = buildHarmonicMap(parseChordInputText(text, "s1", 4, "c"))
   return {
+    role,
     headExact: sameNotes && before.every((note, index) => note.pitch === after[index].pitch),
     headShape: sameNotes && intervals(before).every((interval, index) => interval === intervals(after)[index]),
     headOctaveMoves: after.filter((note) => pitchBefore.has(note.id) && Math.abs(note.pitch - pitchBefore.get(note.id)!) === 12).length,
@@ -81,6 +85,7 @@ function measure(candidate: ProfileCandidate, records: readonly StageRecord[], t
     peakPosition: peak.startBeat / totalBeats,
     peakShared: notes.filter((note) => note.pitch === max).length > 1,
     peakInCore: peak.startBeat < coreLength - 1e-6,
+    peakHeightInLatterHalf: notes.some((note) => note.pitch === max && note.startBeat >= totalBeats / 2 - 1e-6),
     strongNonChord: notes.filter((note) => {
       if (Math.abs(note.startBeat % 2) > 1e-6) return false
       const entry = chordAtBeat(harmonicMap, note.startBeat)
@@ -103,6 +108,9 @@ function summarize(rows: readonly Measure[]): Summary {
     peakPositionMean: mean(rows.map((row) => row.peakPosition)),
     peakSharedShare: mean(rows.map((row) => Number(row.peakShared))),
     peakInCoreShare: mean(rows.map((row) => Number(row.peakInCore))),
+    // 最高音が核の範囲にある候補を、後半にも同じ高さがあるかで分ける(後半の到達点を失ったかどうかの区別)
+    peakInCoreWithLatterHalf: rows.filter((row) => row.peakInCore && row.peakHeightInLatterHalf).length,
+    peakInCoreWithoutLatterHalf: rows.filter((row) => row.peakInCore && !row.peakHeightInLatterHalf).length,
     strongNonChordTotal: rows.reduce((sum, row) => sum + row.strongNonChord, 0),
     noteCountMean: mean(rows.map((row) => row.noteCount)),
   }
@@ -111,7 +119,7 @@ function summarize(rows: readonly Measure[]): Summary {
 it("案A: 頂点の希少化から核を守る変更の前後を、固定した条件で比べる(記録専用)", () => {
   const all = { before: [] as Measure[], after: [] as Measure[] }
   const same = { before: [] as Measure[], after: [] as Measure[] }
-  const changedWithinSame = { headExactGained: 0, headExactLost: 0, notesChanged: 0 }
+  const changedWithinSame = { headExactGained: 0, headExactLost: 0, headShapeGained: 0, headShapeLost: 0, notesChanged: 0 }
   let conditions = 0
   let conditionsWithSwap = 0
   let swappedCandidates = 0
@@ -138,30 +146,34 @@ it("案A: 頂点の希少化から核を守る変更の前後を、固定した�
     if (swapped > 0) conditionsWithSwap += 1
     swappedCandidates += swapped
     for (const candidate of off.result.candidates) {
-      const row = measure(candidate, off.records, text, bars * 4)
+      const row = measure(candidate, off.records, text, bars * 4, role)
       if (row) all.before.push(row)
     }
     for (const candidate of on.result.candidates) {
-      const row = measure(candidate, on.records, text, bars * 4)
+      const row = measure(candidate, on.records, text, bars * 4, role)
       if (row) all.after.push(row)
       const previous = offByKey.get(keyOf(candidate))
       if (!previous || !onKeys.has(keyOf(previous))) continue
-      const before = measure(previous, off.records, text, bars * 4)
+      const before = measure(previous, off.records, text, bars * 4, role)
       if (!row || !before) continue
       same.before.push(before)
       same.after.push(row)
       if (!before.headExact && row.headExact) changedWithinSame.headExactGained += 1
       if (before.headExact && !row.headExact) changedWithinSame.headExactLost += 1
+      if (!before.headShape && row.headShape) changedWithinSame.headShapeGained += 1
+      if (before.headShape && !row.headShape) changedWithinSame.headShapeLost += 1
       if (candidate.notes.some((note, index) => note.pitch !== previous.notes[index]?.pitch) || candidate.notes.length !== previous.notes.length) {
         changedWithinSame.notesChanged += 1
       }
     }
   }
+  const byRole = (rows: readonly Measure[]) => Object.fromEntries(ROLES.map((role) => [role, summarize(rows.filter((row) => row.role === role))]))
   const report = {
     conditions,
     selection: { conditionsWithSwap, swappedCandidates },
-    sameCandidates: { before: summarize(same.before), after: summarize(same.after), ...changedWithinSame },
-    allSelected: { before: summarize(all.before), after: summarize(all.after) },
+    // 同じ候補は、変更の前後どちらでも最終の3案に残った候補だけ(候補プール全体への処理の効果ではない)
+    sameCandidates: { before: summarize(same.before), after: summarize(same.after), ...changedWithinSame, byRole: { before: byRole(same.before), after: byRole(same.after) } },
+    allSelected: { before: summarize(all.before), after: summarize(all.after), byRole: { before: byRole(all.before), after: byRole(all.after) } },
   }
   expect(same.before.length).toBeGreaterThan(0)
   if (process.env.CORE_PROTECTION_OUT) writeFileSync(process.env.CORE_PROTECTION_OUT, JSON.stringify(report, null, 1))
