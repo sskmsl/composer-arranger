@@ -65,3 +65,36 @@ export function withStageContext<T>(context: Record<string, string | number | bo
     trace.context = previous
   }
 }
+
+export interface CandidateStage {
+  /** 段階の名前。最終段と仕上げの流れの段階には "final:" / "craft:" を付けて区別する */
+  stage: string
+  notes: readonly StageNote[]
+}
+
+/**
+ * 最終候補の1案が通った段階だけを、実際の処理順に取り出す。
+ * プールの番号が同じでも作り方が違えば別の候補なので、作り方でも絞る。
+ * 冒頭の再生成があった番号は、最後に作り直した回の記録を使う。仕上げ(finish)は採用した案の記録だけを残す。
+ */
+export function candidatePath(
+  records: readonly StageRecord[],
+  target: { profile: string; poolIndex: number; patternIndex: number },
+): CandidateStage[] {
+  const own = (record: StageRecord) => record.context.profile === target.profile && record.context.poolIndex === target.poolIndex
+  const survivor = records.filter((record) => record.stage === "pool:harmonicIntegrity" && own(record)).at(-1)
+  if (!survivor) return []
+  const attempt = survivor.context.attempt
+  const chosen = records.filter((record) => record.stage === "buildCandidate:chosen" && own(record) && record.context.attempt === attempt).at(-1)
+  return records.filter((record) => {
+    if (!own(record)) return false
+    if (record.context.phase === "final") return record.context.patternIndex === target.patternIndex
+    if (record.context.attempt !== attempt) return false
+    return record.context.finish === undefined || record.context.finish === chosen?.context.chosenFinish
+  }).map((record) => ({
+    stage: record.context.phase === "final" || (record.context.phase === "craft" && !record.stage.startsWith("craft:"))
+      ? `${record.context.phase}:${record.stage}`
+      : record.stage,
+    notes: record.notes,
+  }))
+}

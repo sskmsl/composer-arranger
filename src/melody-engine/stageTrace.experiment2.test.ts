@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs"
 import { parseChordInputText } from "@/core/chordInput"
 import { RANGE_PRESETS } from "./generationParams"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
-import { traceStages, type StageNote, type StageRecord } from "./stageTrace"
+import { candidatePath, traceStages, type CandidateStage, type StageNote, type StageRecord } from "./stageTrace"
 
 /**
  * 実験2(docs/rhythm-memory-controls.md)で、リズムの指標では説明できなかった3か所の段階診断(記録専用)。
@@ -53,31 +53,13 @@ function changeKind(previous: readonly StageNote[], current: readonly StageNote[
   return parts.join("、")
 }
 
-interface Stage { stage: string; notes: readonly StageNote[] }
+type Stage = CandidateStage
 
 /** 最終候補の1案目が通った段階だけを、実際の処理順に取り出す */
 function chosenFinishOf(records: readonly StageRecord[], poolIndex: number): string {
   const survivor = records.filter((record) => record.stage === "pool:harmonicIntegrity" && record.context.poolIndex === poolIndex).at(-1)!
   return String(records.filter((record) => record.stage === "buildCandidate:chosen" &&
     record.context.poolIndex === poolIndex && record.context.attempt === survivor.context.attempt).at(-1)!.context.chosenFinish)
-}
-
-function pathOf(records: readonly StageRecord[], poolIndex: number): Stage[] {
-  const survivor = records.filter((record) => record.stage === "pool:harmonicIntegrity" && record.context.poolIndex === poolIndex).at(-1)!
-  const attempt = survivor.context.attempt
-  const chosen = records.filter((record) => record.stage === "buildCandidate:chosen" &&
-    record.context.poolIndex === poolIndex && record.context.attempt === attempt).at(-1)!
-  return records.filter((record) => {
-    if (record.context.phase === "final") return record.context.patternIndex === 1
-    if (record.context.poolIndex !== poolIndex || record.context.attempt !== attempt) return false
-    // 仕上げ(finish)は複数の案を試すことがあるので、採用した案の記録だけを残す
-    return record.context.finish === undefined || record.context.finish === chosen.context.chosenFinish
-  }).map((record) => ({
-    stage: record.context.phase === "final" || (record.context.phase === "craft" && !record.stage.startsWith("craft:"))
-      ? `${record.context.phase}:${record.stage}`
-      : record.stage,
-    notes: record.notes,
-  }))
 }
 
 /** 最終の大きな跳躍(隣り合う音で LEAP 半音以上)が、どの段階で初めて現れ、その後どう保たれたか */
@@ -117,7 +99,7 @@ it("実験2の3か所を、段階ごとに記録する(記録専用)", () => {
     }))
     const candidate = result.candidates[0]
     const poolIndex = candidate.generationDiagnostics!.candidatePoolIndex
-    const path = pathOf(records, poolIndex)
+    const path = candidatePath(records, { profile: "standard", poolIndex, patternIndex: candidate.patternIndex })
     // 取り出した道筋の最後は、実際に出した音と同じ
     expect(path.at(-1)!.stage).toBe("final:output")
     expect(sorted(path.at(-1)!.notes)).toEqual(sorted(candidate.notes.map(({ id, startBeat, durationBeats, pitch }) => ({ id, startBeat, durationBeats, pitch }))))
