@@ -13,6 +13,7 @@ import type { GenerationParams, RangeSetting } from "./generationParams"
 import type { HarmonicMapEntry } from "./harmonicMap"
 import { chordAtBeat } from "./harmonicMap"
 import { nearestAllowedPitch } from "./pitchUtils"
+import { recordStage } from "./stageTrace"
 import {
   techniquePreferenceWeight,
   type ResolvedComposerRules,
@@ -437,6 +438,7 @@ export function applyCandidateNarrative(
     climax.velocity = Math.max(climax.velocity, candidateDNA.climaxPlan.type === "tension-peak" ? 91 : 94)
   }
 
+  recordStage("narrative:input", notes)
   const last = notes[notes.length - 1]
   const entry = chordAtBeat(harmonicMap, last.startBeat)
   if (entry) {
@@ -473,6 +475,7 @@ export function applyCandidateNarrative(
       }
     }
 
+    recordStage("narrative:ending", notes)
     // Issue #66: 終止直前の音型が唐突にならないよう、直前ノートとの跳躍を順次進行へ補正する
     // (carry-forwardは次セクションへ橋渡しする短い前打音的接続が意図のため対象外)。
     // 直前ノートが終止音と異なるコード区間に属することがあるため、補正先は直前ノート自身の
@@ -491,6 +494,7 @@ export function applyCandidateNarrative(
     }
   }
 
+  recordStage("narrative:approach", notes)
   // 頂点位置の違いが単なるメタデータにならないよう、計画位置の構造音を一度だけの最高音にする。
   // 他音はpitch classを保ったオクターブ移動を優先し、和声機能や終止機能を変えない。
   const climaxEntry = chordAtBeat(harmonicMap, climax.startBeat)
@@ -526,6 +530,7 @@ export function applyCandidateNarrative(
       : nearestAllowedPitch(desiredPeak, climaxAllowed, range)
   climax.pitch = peakPitch
   climax.plannedToneRole = climaxChordTones.includes(pitchClass(peakPitch)) ? "chord-tone" : "tension-hold"
+  recordStage("narrative:climaxPeak", notes)
   for (const note of notes) {
     if (note === climax || note.pitch < peakPitch) continue
     if (emotionalArc && note.startBeat < emotionalArc.protectedUntilBeat) continue
@@ -553,6 +558,7 @@ export function applyCandidateNarrative(
       }
     }
   }
+  recordStage("narrative:peakRarity", notes)
   return notes
 }
 

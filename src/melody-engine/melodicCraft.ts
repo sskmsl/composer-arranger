@@ -4,6 +4,7 @@ import { keyScalePitchClasses } from "@/core/scale"
 import { isChordTone, isTensionTone } from "@/core/chord"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 import type { RangeSetting } from "./generationParams"
+import { recordStage } from "./stageTrace"
 
 /**
  * 生成した主旋律の仕上げ。旋律の作り方の基本に沿って、次の点だけを直す。
@@ -166,6 +167,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     return result
   }
 
+  recordStage("craft:input", notes)
+
   // 00. セクションの高さ: サビは上へ、Aメロは下へ、旋律ごと音階の上で動かす
   const liftSteps = LIFT_STEPS[context.sectionRole]
   if (steps.has("lift") && liftSteps && scale.length === 7 && notes.every((note) => !note.locks.includes("pitch"))) {
@@ -219,6 +222,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:lift", notes)
+
   // 0. 反復進行: 前のフレーズと同じ高さの繰り返しを、音階の上で少しずらす
   if (scale.length === 7 && steps.has("sequence")) {
     const phrases = splitPhrases(notes, context.totalBeats)
@@ -243,6 +248,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     })
   }
 
+  recordStage("craft:sequence", notes)
+
   // 1. 同音の3連打以上をほどく
   if (steps.has("repeats")) {
     let start = 0
@@ -265,6 +272,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:repeats", notes)
+
   // 1b. よく使う音(上位2つ)の連打は、裏拍側の音を隣の音へ動かし、同じ数音の中を回り続けないようにする
   if (steps.has("variety")) {
     const counts = new Map<number, number>()
@@ -282,6 +291,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
       if (options.length > 0) setPitch(index, options[0])
     }
   }
+
+  recordStage("craft:variety", notes)
 
   // 1c. 3度の中を回り続けるフレーズに山を作る(フレーズの6割あたりの拍頭の音を、4半音以内で上のコードの音へ)
   if (steps.has("arch")) {
@@ -303,6 +314,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:arch", notes)
+
   // 2. 跳躍の後は、逆向きへ戻る(なるべく1〜2半音の小さな動きで)。頂点づくりの後にもう一度かける
   const recoverLeaps = () => {
     for (let index = 0; steps.has("leapRecovery") && index + 2 < notes.length; index += 1) {
@@ -319,6 +332,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
   recoverLeaps()
+
+  recordStage("craft:leapRecovery", notes)
 
   // 3. サビは後半にはっきりした頂点を1つ作る
   if (CLIMAX_ROLES.has(context.sectionRole) && steps.has("climax")) {
@@ -369,6 +384,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     setPitch(index, options[0])
     return true
   }
+
+  recordStage("craft:climax", notes)
 
   // 4b. 順次進行でつなぐ(経過音)。跳躍そのものは旋律の表情なので、1セクションで直すのは跳躍の半分まで
   if (steps.has("conjunct") && scale.length === 7) {
@@ -437,6 +454,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:conjunct", notes)
+
   // 5. ベースとの関係: 拍頭で旋律とベースが同じ向きに動いて、5度・8度が続く所をほどく
   if (steps.has("counterpoint")) {
     const strongIndexes = notes.map((note, index) => ({ note, index })).filter(({ note }) => strong(note.startBeat)).map(({ index }) => index)
@@ -469,6 +488,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:counterpoint", notes)
+
   // 6. 向かう先を持つ音: コードが変わる所で、導音は主音へ、属七の7度は下へ
   if (steps.has("tendency") && tonic !== undefined) {
     const dominantRoot = (tonic + 7) % 12
@@ -489,6 +510,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:tendency", notes)
+
   // 7. 問いと答え: 前半の終わりは主音で閉じず、後半へ開いておく
   if (steps.has("antecedent") && tonic !== undefined && context.totalBeats >= 16) {
     const middle = notes.map((note, index) => ({ note, index })).filter(({ note }) => note.startBeat < context.totalBeats / 2).at(-1)
@@ -497,7 +520,9 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:antecedent", notes)
   recoverLeaps()
+  recordStage("craft:leapRecoveryAfterAntecedent", notes)
 
   // 8. ため息: 長い音を1か所だけ、1段上の音(倚音)から下がって入る形にする
   if (steps.has("sigh") && scale.length === 7) {
@@ -530,6 +555,8 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
+  recordStage("craft:sigh", notes)
+
   // 4. 終わり方
   const lastIndex = notes.length - 1
   const last = notes[lastIndex]
@@ -553,5 +580,6 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     const room = context.totalBeats - last.startBeat
     if (last.durationBeats < 1.5 && room > last.durationBeats) last.durationBeats = Math.min(room, 2)
   }
+  recordStage("craft:ending", notes)
   return notes
 }
