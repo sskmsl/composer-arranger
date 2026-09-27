@@ -86,6 +86,7 @@ import { measureMotifDevelopment } from "./motifRecognition"
 import { keyScalePitchClasses } from "@/core/scale"
 import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceStrength } from "./referenceFit"
 import { subtleHookVariation } from "./hookDevelopment"
+import { recordStage, withStageContext } from "./stageTrace"
 import { assessEmotionalArc, deferEarlySummit, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
 
 export interface GenerateFromChordsInput {
@@ -253,13 +254,17 @@ function buildCandidate(
     hookPhrases.push({ startBeat: phraseStart, lengthBeats: phraseLen, role: hookRole })
     phraseStart += phraseLen
   }
+  recordStage("assemble", notes)
 
   // 仕上げの各段で動いた核の頭を、最後に戻すための計画(Hook-first の核があるときだけ)
   const hookHeadPlan: HookHeadPlan | undefined = selectedCore
     ? { coreLengthBeats: selectedCore.core.lengthBeats, phrases: hookPhrases, climaxBeat: input.totalBeats * emotionalTargetFraction(input.sectionRole), sectionRole: input.sectionRole }
     : undefined
   const profileExpressionPlan = planProfileExpression(generatorProfile, candidateMelodyDNA, input.totalBeats)
-  const finish = (latePeak: boolean, emotionalShape = latePeak) => {
+  const finish = (latePeak: boolean, emotionalShape = latePeak) => withStageContext({
+    finish: latePeak ? "late-peak" : emotionalShape ? "arc" : "established",
+  }, () => {
+    const variant = latePeak ? "late-peak" : emotionalShape ? "arc" : "established"
     const narrativeNotes = candidateMelodyDNA
       ? applyCandidateNarrative(notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA,
         latePeak && selectedCore ? {
@@ -267,25 +272,37 @@ function buildCandidate(
           targetFraction: emotionalTargetFraction(input.sectionRole),
         } : undefined)
       : notes
+    recordStage("finish:narrative", narrativeNotes)
     const arrivalNotes = applyMelodicArrival(narrativeNotes, harmonicMap, input.range,
       input.totalBeats, input.drama, generatorProfile)
+    recordStage("finish:arrival", arrivalNotes)
     const profileNotes = applyProfileExpression(arrivalNotes, profileExpressionPlan,
       harmonicMap, input.range, input.totalBeats)
+    recordStage("finish:profileExpression", profileNotes)
     const emotionalNotes = emotionalShape && selectedCore
       ? shapeEmotionalArc(profileNotes, harmonicMap, input.range, input.totalBeats,
         input.sectionRole, selectedCore.core.lengthBeats)
       : profileNotes
+    recordStage("finish:emotionalArc", emotionalNotes)
     const releasedNotes = shapeMelodicRelease(emotionalNotes, harmonicMap, input.totalBeats,
       generatorProfile, input.sectionRole, candidateMelodyDNA, plans)
+    recordStage("finish:release", releasedNotes)
+    const breathNotes = shapePhraseBreaths(releasedNotes, plans, generatorProfile)
+    recordStage("finish:breaths", breathNotes)
     const dynamicNotes = shapeGrowingMelodyDynamics(
-      shapePhraseBreaths(releasedNotes, plans, generatorProfile),
+      breathNotes,
       input.totalBeats, generatorProfile, input.sectionRole, input.drama, candidateMelodyDNA)
+    recordStage("finish:dynamics", dynamicNotes)
     const expressiveNotes = placeExpressiveChromaticTurn(dynamicNotes, harmonicMap, input.range,
       input.totalBeats, generatorProfile)
+    recordStage("finish:chromaticTurn", expressiveNotes)
+    const reconciledNotes = reconcileFinalToneRoles(expressiveNotes, harmonicMap, input.range)
+    recordStage("finish:finalToneRoles", reconciledNotes)
     const finalNotes = enforceHarmonicIntegrity(
-      reconcileFinalToneRoles(expressiveNotes, harmonicMap, input.range),
+      reconciledNotes,
       input.chords, input.range, { preserveExpressiveChordRoles: true },
     ).notes
+    recordStage("finish:harmonicIntegrity", finalNotes)
     const features = computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats)
     const score = scoreCandidate(features, params, generatorProfile,
       finalNotes.length / Math.max(1, input.totalBeats))
@@ -293,8 +310,8 @@ function buildCandidate(
       ? assessEmotionalArc(finalNotes, harmonicMap, input.totalBeats,
         input.sectionRole, selectedCore.core.lengthBeats)
       : undefined
-    return { finalNotes, features, score, arc }
-  }
+    return { finalNotes, features, score, arc, variant }
+  })
   const established = finish(false)
   const arcFloor = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .9
     : input.sectionRole === "pre-chorus" ? .87 : .78
@@ -316,6 +333,7 @@ function buildCandidate(
     proposal.finalNotes.length <= established.finalNotes.length))
     .reduce((best, proposal) => (proposal.arc!.score > (best.arc?.score ?? 0) ? proposal : best), established)
   const { finalNotes, features, score } = chosen
+  withStageContext({ chosenFinish: chosen.variant }, () => recordStage("buildCandidate:chosen", finalNotes))
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const coreRetention = selectedCore ? features.hookStrength ?? 0 : undefined
   // 核が最後まで分かる形で戻り、しかも字義どおりの反復だけではないか(動機の育ち方)も Hook の強さに含める
@@ -920,12 +938,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         input.range,
         input.chords,
       )
+      recordStage("pool:transition", transitioned.notes)
       const finalNotes = enforceHarmonicIntegrity(
         transitioned.notes,
         input.chords,
         input.range,
         { preserveExpressiveChordRoles: true },
       ).notes
+      recordStage("pool:harmonicIntegrity", finalNotes)
       const advancedMetrics = computeAdvancedMelodyMetrics(finalNotes, harmonicMap)
       const fitScore = profileFitScore(profile, computeMelodyFeatures(finalNotes, harmonicMap, 0, input.totalBeats), advancedMetrics)
       const intrinsicQuality = combinedQualityScore(c.score, fitScore, profile)
@@ -992,19 +1012,24 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const deferSummit = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => hookHeadPlan
       ? deferEarlySummit(notes, harmonicMap, input.totalBeats, input.sectionRole, hookHeadPlan.coreLengthBeats)
       : notes
-    const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => enforceHarmonicIntegrity(
-      ensureSummitBreath(deferSummit(restoreHookHeads(applyMelodicCraft(notes, {
+    const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => withStageContext({ phase: "craft" }, () => {
+      const crafted = applyMelodicCraft(notes, {
         harmonicMap,
         range: input.range,
         totalBeats: input.totalBeats,
         sectionRole: input.sectionRole,
         profile,
         key: input.key,
-      }), hookHeadPlan, harmonicMap, input.range, scale), hookHeadPlan), input.totalBeats, input.sectionRole),
-      input.chords,
-      input.range,
-      { preserveExpressiveChordRoles: true },
-    ).notes
+      })
+      const restored = restoreHookHeads(crafted, hookHeadPlan, harmonicMap, input.range, scale)
+      const deferred = deferSummit(restored, hookHeadPlan)
+      recordStage("deferEarlySummit", deferred)
+      const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
+      recordStage("ensureSummitBreath", breathed)
+      const integrated = enforceHarmonicIntegrity(breathed, input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
+      recordStage("harmonicIntegrity", integrated)
+      return integrated
+    })
     const withCraft = (built: BuiltPattern): BuiltPattern => {
       const pattern = melodyReference && referenceStrength > 0
         ? { ...built, referenceScore: melodyReferenceFitScore(built.notes, input.totalBeats, melodyReference) }
@@ -1020,7 +1045,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const pool: BuiltPattern[] = []
     const appendCandidate = () => {
       const poolIndex = pool.length
-      pool.push(withCraft(buildOne(baseSeed + poolIndex * 7919, intentForPoolIndex(poolIndex), poolIndex)))
+      pool.push(withStageContext({ profile, poolIndex, attempt: 0 }, () =>
+        withCraft(buildOne(baseSeed + poolIndex * 7919, intentForPoolIndex(poolIndex), poolIndex))))
     }
     while (pool.length < poolSize) appendCandidate()
 
@@ -1051,12 +1077,12 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       const replacementIntent = intentForPoolIndex(
         poolSize + attempt * 3 + target,
       )
-      pool[target] = withCraft(buildOne(
+      pool[target] = withStageContext({ profile, poolIndex: target, attempt }, () => withCraft(buildOne(
         baseSeed + target * 7919 + attempt * 15485863,
         replacementIntent,
         target,
         attempt,
-      ))
+      )))
     }
 
     const techniqueSelectionWeight = (): number =>
@@ -1198,22 +1224,33 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         (d) => d.batchBaseSeed === baseSeed && d.candidatePoolIndex === pattern.candidatePoolIndex,
       )
       // 仕上げ(同音連打・跳躍の回収・サビの頂点・終わり方など)は候補プールの段階で済ませてある
+      const outputNotes = withStageContext({ profile, poolIndex: pattern.candidatePoolIndex, phase: "final", patternIndex: i + 1 }, () => {
+        if (!(craftSelection && pattern.craftedNotes)) {
+          const notes = pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan)
+          recordStage("output", notes)
+          return notes
+        }
+        const refined = refineTowardClassical(pattern.craftedNotes, {
+          harmonicMap,
+          range: input.range,
+          totalBeats: input.totalBeats,
+          sectionRole: input.sectionRole,
+          key: input.key,
+          models: CLASSICAL_MODELS,
+        }).notes
+        recordStage("refineTowardClassical", refined)
+        const restored = restoreHookHeads(refined, pattern.hookHeadPlan, harmonicMap, input.range, scale)
+        const deferred = deferSummit(restored, pattern.hookHeadPlan)
+        recordStage("deferEarlySummit", deferred)
+        const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
+        recordStage("ensureSummitBreath", breathed)
+        const notes = enforceHarmonicIntegrity(breathed, input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
+        recordStage("harmonicIntegrity", notes)
+        recordStage("output", notes)
+        return notes
+      })
       results.push({
-        notes: craftSelection && pattern.craftedNotes
-          ? enforceHarmonicIntegrity(
-            ensureSummitBreath(deferSummit(restoreHookHeads(refineTowardClassical(pattern.craftedNotes, {
-              harmonicMap,
-              range: input.range,
-              totalBeats: input.totalBeats,
-              sectionRole: input.sectionRole,
-              key: input.key,
-              models: CLASSICAL_MODELS,
-            }).notes, pattern.hookHeadPlan, harmonicMap, input.range, scale), pattern.hookHeadPlan), input.totalBeats, input.sectionRole),
-            input.chords,
-            input.range,
-            { preserveExpressiveChordRoles: true },
-          ).notes
-          : pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan),
+        notes: outputNotes,
         plans: pattern.plans,
         seed: pattern.seed,
         generatorProfile: profile,

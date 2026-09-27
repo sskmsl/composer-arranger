@@ -5,6 +5,7 @@ import { emotionalTargetFraction, latestClimaxFraction } from "./emotionalArc"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 import { isChordTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
+import { recordStage } from "./stageTrace"
 
 /**
  * フレーズごとの核の扱い。役割は公開楽譜の分析(reference/composerPrinciples.json)に沿って分けている:
@@ -201,7 +202,10 @@ export function restoreHookHeads(
   range: { low: number; high: number },
   scale?: readonly number[],
 ): MelodyNote[] {
-  if (!plan || plan.phrases.length < 2) return [...source]
+  if (!plan || plan.phrases.length < 2) {
+    recordStage("restoreHookHeads", source)
+    return [...source]
+  }
   const notes = [...source].sort((a, b) => a.startBeat - b.startBeat).map((note) => ({ ...note }))
   const inPhrase = (phrase: { startBeat: number; lengthBeats: number }) => notes.filter((note) =>
     note.startBeat >= phrase.startBeat - 1e-6 && note.startBeat < phrase.startBeat + Math.min(plan.coreLengthBeats, phrase.lengthBeats) - 1e-6)
@@ -289,7 +293,10 @@ export function restoreHookHeads(
       break
     }
   }
-  return repeatOverReturningHarmony(notes, plan, harmonicMap)
+  recordStage("restoreHookHeads", notes)
+  const repeated = repeatOverReturningHarmony(notes, plan, harmonicMap)
+  recordStage("repeatOverReturningHarmony", repeated)
+  return repeated
 }
 
 /**
