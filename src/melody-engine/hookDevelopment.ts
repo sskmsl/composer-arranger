@@ -176,12 +176,17 @@ export interface HookHeadPlan {
   sectionRole?: SectionRole
 }
 
-/** 頭を保つべき役割(対照側の素材や、音程を広げる発展は含めない) */
 /** 長いセクション(16小節相当)とみなす拍数 */
 const LONG_SECTION_BEATS = 56
 
+/** 頭を保つべき役割(対照側の素材や、音程を広げる発展は含めない) */
 const HEAD_KEEPING_ROLES: readonly (HookPhraseRole | undefined)[] = ["answer", "return", "rise", "climax"]
 const CONTRAST_KEEPING_ROLES: readonly (HookPhraseRole | undefined)[] = ["contrast-answer", "contrast-return"]
+
+/** 計画で核(A)の頭を保つとしたフレーズの開始拍(最初の提示は含まない)。記録用 */
+export function plannedCoreReturnStarts(plan: HookHeadPlan): number[] {
+  return plan.phrases.filter((phrase) => HEAD_KEEPING_ROLES.includes(phrase.role)).map((phrase) => phrase.startBeat)
+}
 
 /**
  * 仕上げ(物語付け・到達・古典らしさへの推敲・和声整合)で動いた、核の頭の音程を戻す。

@@ -22,7 +22,7 @@ import { buildHarmonicMap } from "./harmonicMap"
 import { resolveGenerationParams, type Density, type Drama, type GenerationParams, type RangeSetting } from "./generationParams"
 import { assemblePhrase, createPlacementDiagnostics, type PlacementDiagnostics } from "./phraseAssembler"
 import type { MotifCore } from "./motifCore"
-import { answerHook, capturePlacedHook, climaxHook, developHook, hookPhraseRole, restoreHookHeads, returningHook, type HookHeadPlan } from "./hookDevelopment"
+import { answerHook, capturePlacedHook, climaxHook, developHook, hookPhraseRole, plannedCoreReturnStarts, restoreHookHeads, returningHook, type HookHeadPlan } from "./hookDevelopment"
 import { computeMelodyFeatures } from "./features"
 import { scoreCandidate } from "./scoring"
 import { buildSignature, countDistinctCandidates, differenceCount, type DiversitySignature } from "./diversityFilter"
@@ -121,6 +121,12 @@ interface Candidate {
   hookHeadPlan?: HookHeadPlan
   /** サビの核をどちらのリズムの型で選んだか(Hook-first の核があるときだけ) */
   coreRhythm?: CoreRhythmStyle
+  /** 生成時点の核の音(最大5音、核の頭を0拍とした相対位置)。記録用 */
+  coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]
+  /** 生成計画での核の長さ(拍、休符を含む)。記録用の単位の境界に使う */
+  coreLengthBeats?: number
+  /** 計画で核(A)の頭を保つとしたフレーズの開始拍(最初の提示は含まない)。記録用 */
+  coreReturnStarts?: number[]
 }
 
 const GENERATOR_VERSION = "2.2"
@@ -347,7 +353,18 @@ function buildCandidate(
     emotionalScore,
     hookHeadPlan,
     coreRhythm: selectedCore ? coreRhythm : undefined,
+    coreNotes: selectedCore ? coreNotesOf(selectedCore.core) : undefined,
+    coreLengthBeats: selectedCore?.core.lengthBeats,
+    coreReturnStarts: hookHeadPlan ? plannedCoreReturnStarts(hookHeadPlan) : undefined,
   }
+}
+
+/** 核の音(休符を除く)を、核の頭を0拍とした相対位置で取り出す */
+function coreNotesOf(core: MotifCore): { startBeat: number; durationBeats: number; pitch: number }[] {
+  let pitchIndex = 0
+  return core.events.flatMap((event) => event.isRest
+    ? []
+    : [{ startBeat: event.offsetBeats, durationBeats: event.durationBeats, pitch: core.pitches[pitchIndex++] }])
 }
 
 function refreshPhrasePlans(plans: PhrasePlan[], notes: MelodyNote[]): PhrasePlan[] {
@@ -603,6 +620,12 @@ export interface ProfileCandidate {
   emotionalArcScore?: number
   /** サビの核のリズムの型(varied: 種類が多い / plain: 素直) */
   coreRhythm?: CoreRhythmStyle
+  /** 生成時点の核の音(最大5音、核の頭を0拍とした相対位置)。記録用 */
+  coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]
+  /** 生成計画での核の長さ(拍、休符を含む)。記録用の単位の境界に使う */
+  coreLengthBeats?: number
+  /** 計画で核(A)の頭を保つとしたフレーズの開始拍(最初の提示は含まない)。記録用 */
+  coreReturnStarts?: number[]
 }
 
 /** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
@@ -638,6 +661,12 @@ interface BuiltPattern {
   referenceScore?: number
   hookHeadPlan?: HookHeadPlan
   coreRhythm?: CoreRhythmStyle
+  /** 生成時点の核の音(最大5音、核の頭を0拍とした相対位置)。記録用 */
+  coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]
+  /** 生成計画での核の長さ(拍、休符を含む)。記録用の単位の境界に使う */
+  coreLengthBeats?: number
+  /** 計画で核(A)の頭を保つとしたフレーズの開始拍(最初の提示は含まない)。記録用 */
+  coreReturnStarts?: number[]
 }
 
 /**
@@ -928,6 +957,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         emotionalScore: c.emotionalScore,
         hookHeadPlan: c.hookHeadPlan,
         coreRhythm: c.coreRhythm,
+        coreNotes: c.coreNotes,
+        coreLengthBeats: c.coreLengthBeats,
+        coreReturnStarts: c.coreReturnStarts,
       }
     }
 
@@ -1200,6 +1232,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreRetention: pattern.coreRetention,
         emotionalArcScore: pattern.emotionalScore,
         coreRhythm: pattern.coreRhythm,
+        coreNotes: pattern.coreNotes,
+        coreLengthBeats: pattern.coreLengthBeats,
+        coreReturnStarts: pattern.coreReturnStarts,
       })
     })
   })

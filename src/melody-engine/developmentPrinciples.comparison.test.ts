@@ -12,6 +12,7 @@ import { measureMelodyCraft } from "./melodyCraftMetrics"
 import { judgeCoreMotif } from "./hookFirst"
 import { assessEmotionalArc } from "./emotionalArc"
 import { buildHarmonicMap } from "./harmonicMap"
+import { contourMatches, coreContourMatches, lhlSyncopation, povelEssensCounterEvidence } from "./rhythmMemory"
 import type { ChordEvent } from "@/core/project"
 
 /**
@@ -29,7 +30,7 @@ const SEEDS = [101, 202, 303]
 const ROLES: SectionRole[] = ["verse", "chorus"]
 const PHRASE_BEATS = 8
 
-interface Sample { notes: MelodyNote[]; chords: ChordEvent[]; bars: number; role: SectionRole; hum: number; hook: number; arc: number; classical: number; coreRhythm?: "varied" | "plain" }
+interface Sample { notes: MelodyNote[]; chords: ChordEvent[]; bars: number; role: SectionRole; hum: number; hook: number; arc: number; classical: number; coreRhythm?: "varied" | "plain"; coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]; coreLengthBeats?: number; coreReturnStarts?: number[] }
 
 function generate(bars: 8 | 16): Sample[] {
   const samples: Sample[] = []
@@ -47,6 +48,9 @@ function generate(bars: 8 | 16): Sample[] {
           hum: candidate.coreHumability ?? 0, hook: candidate.coreHookability ?? 0, arc: candidate.emotionalArcScore ?? 0,
           classical: classicalLikeness(measureMelodyCraft(candidate.notes, chords, song.key), CLASSICAL_MODELS).score,
           coreRhythm: candidate.coreRhythm,
+          coreNotes: candidate.coreNotes,
+          coreLengthBeats: candidate.coreLengthBeats,
+          coreReturnStarts: candidate.coreReturnStarts,
         })
       }
     }
@@ -137,9 +141,28 @@ function byCoreRhythm(samples: Sample[]) {
       exactBarRepeats: r(mean(rows.map((s) => exactBarRepeats(s.notes, s.bars * 4)))),
       restShare: r(mean(rows.map((s) => restShare(s.notes, s.bars * 4)))),
       recognizable: r(mean(rows.map((s) => measureMotifDevelopment(s.notes, PHRASE_BEATS, s.bars * 4).recognizableShare))),
+      // 記録専用のリズムの指標(docs/rhythm-memory-controls.md。選抜には使わない)
+      coreNoteCount: r(mean(rows.map((s) => s.coreNotes?.length ?? 0))),
+      headSyncopation: r(mean(rows.map((s) => lhlSyncopation(s.notes.filter((note) => note.startBeat < 8), 8)))),
+      headClockCounterEvidence: r(mean(rows.map((s) => povelEssensCounterEvidence(s.notes.filter((note) => note.startBeat < 8), 8)))),
+      // 単位は生成計画の核の長さ(休符を含む)。核の長さが分からない候補は数えず、件数だけ残す
+      coreLengthUnknown: rows.filter((s) => s.coreLengthBeats === undefined).length,
+      // 基準 = 最終旋律の冒頭(核の長さ分)。仕上げで冒頭が変わっても、その変化は見えない
+      finalHeadContourMatches: sumContour(rows.flatMap((s) => s.coreLengthBeats === undefined ? [] : [contourMatches(s.notes, s.coreLengthBeats, s.bars * 4)])),
+      // 基準 = 生成時点の核。最終旋律の冒頭が核の輪郭を保ったか
+      coreToFinalHead: sumContour(rows.flatMap((s) => s.coreLengthBeats === undefined || !s.coreNotes ? [] : [coreContourMatches(s.coreNotes, s.notes, [0], s.coreLengthBeats, s.bars * 4)])),
+      // 基準 = 生成時点の核。計画で核の頭を保つとした区間が、核の輪郭を保ったか
+      coreToPlannedReturns: sumContour(rows.flatMap((s) => s.coreLengthBeats === undefined || !s.coreNotes ? [] : [coreContourMatches(s.coreNotes, s.notes, s.coreReturnStarts ?? [], s.coreLengthBeats, s.bars * 4)])),
+      barContourHead: sumContour(rows.map((s) => contourMatches(s.notes, 4, 8))),
+      barContourWhole: sumContour(rows.map((s) => contourMatches(s.notes, 4, s.bars * 4))),
     }]
   }))
 }
+
+const sumContour = (records: ReturnType<typeof contourMatches>[]) => records.reduce(
+  (sum, record) => ({ compared: sum.compared + record.compared, matched: sum.matched + record.matched, notApplicable: sum.notApplicable + record.notApplicable }),
+  { compared: 0, matched: 0, notApplicable: 0 },
+)
 
 function summarize(samples: Sample[]) {
   const dev = samples.map((s) => measureMotifDevelopment(s.notes, PHRASE_BEATS, s.bars * 4))
