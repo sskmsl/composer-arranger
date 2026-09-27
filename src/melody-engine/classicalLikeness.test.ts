@@ -4,7 +4,7 @@ import type { MelodyNote } from "@/core/melody"
 import { buildHarmonicMap } from "./harmonicMap"
 import { buildFeatureModel, classicalLikeness, densityAt, jointPercentile, type ClassicalModel } from "./classicalLikeness"
 import { refineTowardClassical } from "./classicalRefinement"
-import { measureMelodyCraft } from "./melodyCraftMetrics"
+import { isIsolatedLeap, measureMelodyCraft } from "./melodyCraftMetrics"
 import modelJson from "./reference/classicalModel.json"
 import { CLASSICAL_MODELS } from "./classicalModels"
 
@@ -69,5 +69,32 @@ describe("古典らしさ(古典=100)", () => {
       expect(entry.parsed.tones.map((tone) => tone.pitchClass)).toContain(note.pitch % 12)
     }
     expect(result.notes.every((note) => note.pitch >= 55 && note.pitch <= 81)).toBe(true)
+  })
+
+  it("推敲は、何周しても推敲前の音から4半音より動かさない", () => {
+    // 短い音(半拍)で跳び回る旋律と、1拍の音で跳び回る旋律の両方で確かめる
+    const short = leaping.map((note) => ({ ...note, startBeat: note.startBeat / 2, durationBeats: .5, id: `s${note.id}` }))
+    for (const [notes, totalBeats] of [[leaping, 32], [short, 16]] as const) {
+      const result = refineTowardClassical(notes, {
+        harmonicMap: buildHarmonicMap(chords), range: { low: 55, high: 81 }, totalBeats, sectionRole: "verse", key: "C", models: CLASSICAL_MODELS,
+      })
+      result.notes.forEach((note, index) => expect(Math.abs(note.pitch - notes[index].pitch)).toBeLessThanOrEqual(4))
+    }
+  })
+
+  it("記録用の「1音だけ飛び出す音」: 短い音が前後の音から同じ向きに7半音以上離れているときだけ", () => {
+    const shape = (pitches: number[], duration = .5) => pitches.map((pitch, index) => n(index, pitch, duration))
+    expect(isIsolatedLeap(shape([72, 64, 72]), 1)).toBe(true)
+    expect(isIsolatedLeap(shape([64, 72, 62]), 1)).toBe(true)
+    // 片側だけの跳躍、6半音の跳躍、長い音、端の音は数えない
+    expect(isIsolatedLeap(shape([72, 64, 65]), 1)).toBe(false)
+    expect(isIsolatedLeap(shape([72, 66, 72]), 1)).toBe(false)
+    expect(isIsolatedLeap(shape([72, 64, 72], 2), 1)).toBe(false)
+    expect(isIsolatedLeap(shape([72, 64, 72]), 0)).toBe(false)
+    // 前後どちらかに1.5拍より長い休み(フレーズの切れ目)があれば数えない。1.5拍ちょうどは同じフレーズ
+    const withRest = (restBefore: number, restAfter: number) => [n(0, 72, .5), n(.5 + restBefore, 64, .5), n(1 + restBefore + restAfter, 72, .5)]
+    expect(isIsolatedLeap(withRest(2, 0), 1)).toBe(false)
+    expect(isIsolatedLeap(withRest(0, 2), 1)).toBe(false)
+    expect(isIsolatedLeap(withRest(1.5, 1.5), 1)).toBe(true)
   })
 })

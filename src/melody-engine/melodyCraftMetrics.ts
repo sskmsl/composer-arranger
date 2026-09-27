@@ -73,6 +73,31 @@ function parseCached(symbol: string, bass?: string) {
   return parsedChordCache.get(cacheKey)!
 }
 
+/** 跳躍の前後にこれより長い休みがあれば、フレーズの切れ目として同じフレーズの跳躍に数えない(拍) */
+export const PHRASE_BREAK_REST_BEATS = 1.5
+/** 1音だけ飛び出す形とみなす、前後の音との音程(半音) */
+const ISOLATED_LEAP = 7
+/** 1音だけ飛び出す形とみなす、音の長さの上限(拍) */
+const ISOLATED_NOTE_BEATS = 1
+
+/**
+ * 記録用: index の音が、前後の音から同じ向きに大きく離れた短い音か(1音だけ飛び出す形)。
+ * 前後どちらかとの間にフレーズの切れ目になる休みがあれば数えない(leapRecovery と同じ切れ目)。
+ * 形の候補を数えるためのもので、悪い音の判定ではない(和音の分散や意図したフックでも成り立つ)。生成や選抜には使わない。
+ * notes は開始拍の順に並んでいること
+ */
+export function isIsolatedLeap(notes: readonly MelodyNote[], index: number): boolean {
+  const previous = notes[index - 1]
+  const note = notes[index]
+  const next = notes[index + 1]
+  if (!previous || !note || !next || note.durationBeats > ISOLATED_NOTE_BEATS + 1e-6) return false
+  if (note.startBeat - (previous.startBeat + previous.durationBeats) > PHRASE_BREAK_REST_BEATS) return false
+  if (next.startBeat - (note.startBeat + note.durationBeats) > PHRASE_BREAK_REST_BEATS) return false
+  const fromPrevious = note.pitch - previous.pitch
+  const fromNext = note.pitch - next.pitch
+  return Math.sign(fromPrevious) === Math.sign(fromNext) && Math.abs(fromPrevious) >= ISOLATED_LEAP && Math.abs(fromNext) >= ISOLATED_LEAP
+}
+
 export function measureMelodyCraft(
   notes: MelodyNote[],
   chords: ChordEvent[],
@@ -98,7 +123,7 @@ export function measureMelodyCraft(
   const abs = intervals.map(Math.abs)
   const gapAfter = (index: number) => sorted[index + 1].startBeat - (sorted[index].startBeat + sorted[index].durationBeats)
   const leaps = intervals.map((interval, index) => ({ interval, index }))
-    .filter(({ interval, index }) => Math.abs(interval) >= 5 && index + 1 < intervals.length && gapAfter(index) <= 1.5 && gapAfter(index + 1) <= 1.5)
+    .filter(({ interval, index }) => Math.abs(interval) >= 5 && index + 1 < intervals.length && gapAfter(index) <= PHRASE_BREAK_REST_BEATS && gapAfter(index + 1) <= PHRASE_BREAK_REST_BEATS)
   const recovered = leaps.filter(({ interval, index }) => {
     const next = intervals[index + 1]
     return Math.sign(next) === -Math.sign(interval) && Math.abs(next) <= 3

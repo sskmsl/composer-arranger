@@ -16,7 +16,8 @@ import { classicalLikeness, type ClassicalModels } from "./classicalLikeness"
  * 置き換えてよいのは、拍頭ならコードの音、裏拍ならテンションか、次の音へ1〜2半音で進む音階の音(経過音)だけ。
  * 冒頭の1小節・手で固定した音・表情として置いた音(掛留・倚音など)とその解決先・最後の音・サビの頂点、
  * コードが変わる所で導音が主音へ・属七の7度が下へ解決している音には触らない。
- * 選んだ音域からも出さない。1音あたり上下4半音までしか動かさないので、旋律の形(輪郭とリズム)は保たれる。
+ * 選んだ音域からも出さない。1音あたり上下4半音までしか動かさない(何周しても、推敲前の音から4半音まで)ので、
+ * 旋律の形(輪郭とリズム)は保たれる。
  */
 
 const EXPRESSIVE_ROLES = new Set<MelodyNote["plannedToneRole"]>([
@@ -26,7 +27,8 @@ const CLIMAX_ROLES = new Set<SectionRole>(["chorus", "grand-chorus", "breakdown-
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 /** 分布の高さ(対数)がこれ以上上がる変更だけを残す */
 const MINIMUM_GAIN = 0.02
-
+/** 推敲前の音から動かしてよい幅(半音) */
+const MAXIMUM_DRIFT = 4
 export interface ClassicalRefinementContext {
   harmonicMap: HarmonicMapEntry[]
   range: RangeSetting
@@ -110,6 +112,8 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
     return null
   }
 
+  const sourcePitch = notes.map((note) => note.pitch)
+
   const before = score(notes)
   let current = before
   for (let pass = 0; pass < (context.passes ?? 5); pass += 1) {
@@ -120,6 +124,7 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
       let best: { pitch: number; role: Pick<MelodyNote, "plannedToneRole" | "plannedResolution">; score: number } | null = null
       for (const offset of [-4, -3, -2, -1, 1, 2, 3, 4]) {
         const pitch = original.pitch + offset
+        if (Math.abs(pitch - sourcePitch[index]) > MAXIMUM_DRIFT) continue
         const role = roleFor(index, pitch)
         if (!role) continue
         notes[index] = { ...original, pitch, ...role }
