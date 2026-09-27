@@ -13,7 +13,7 @@ import { candidatePath, traceStages, type StageNote, type StageRecord } from "./
  * 案A(頂点の希少化で核の範囲を下げない)の比較。変更前(protectCoreFromRarity: false、既定)と変更後(true)を同じ条件で比べる。
  * 条件と記録する項目は結果を見る前に固定した(docs/rhythm-memory-controls.md の「案Aの比較」)。
  *   - 条件: 診断用(開発用の比較)とも実験2とも違う4進行 × seed 9101・9202・9303 × Aメロ・サビ × 8・16小節 × 標準・映画的
- *   - 同じ候補(作り方とプールの番号が同じ)への処理の差と、選ばれる候補の入れ替わりを分けて数える
+ *   - 同じ候補(作り方・プールの番号・seed・冒頭の再生成の回数が同じ)への処理の差と、選ばれる候補の入れ替わりを分けて数える
  *   - 核の維持は、組み立て直後の核の範囲の音と比べて、音高の完全一致と、移調を許した形(音程・リズム)の一致を分ける
  *   - 音が動いたことを悪化とは数えない。閾値は設けない
  * CORE_PROTECTION_OUT を指定すると、集計を JSON で書き出す。
@@ -125,7 +125,13 @@ it("案A: 頂点の希少化から核を守る変更の前後を、固定した�
     const off = run(false)
     const on = run(true)
     conditions += 1
-    const keyOf = (candidate: ProfileCandidate) => `${candidate.generatorProfile}|${candidate.generationDiagnostics!.candidatePoolIndex}`
+    // 冒頭の再生成があると、同じプールの番号でも新しい seed で別の旋律を作り直すので、seed と再生成の回数も含めて対応させる
+    const keyOf = (candidate: ProfileCandidate) => [
+      candidate.generatorProfile,
+      candidate.generationDiagnostics!.candidatePoolIndex,
+      candidate.seed,
+      candidate.generationDiagnostics!.openingRegenerationAttempts,
+    ].join("|")
     const offByKey = new Map(off.result.candidates.map((candidate) => [keyOf(candidate), candidate]))
     const onKeys = new Set(on.result.candidates.map(keyOf))
     const swapped = on.result.candidates.filter((candidate) => !offByKey.has(keyOf(candidate))).length
