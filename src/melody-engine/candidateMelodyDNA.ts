@@ -417,6 +417,11 @@ export function applyCandidateNarrative(
   range: RangeSetting,
   candidateDNA: CandidateMelodyDNA,
   emotionalArc?: { protectedUntilBeat: number; targetFraction: number },
+  /**
+   * 頂点の希少化(頂点以上の高さの音を下げる処理)で下げない範囲(拍)。頂点の位置・高さの選び方には使わない。
+   * 核がもともと頂点と同じ高さなら、核を守ることを優先し、頂点は核と同じ高さを共有する
+   */
+  rarityProtectedUntilBeat?: number,
 ): MelodyNote[] {
   const notes = source.map((note) => ({ ...note }))
   if (notes.length === 0) return notes
@@ -534,6 +539,7 @@ export function applyCandidateNarrative(
   for (const note of notes) {
     if (note === climax || note.pitch < peakPitch) continue
     if (emotionalArc && note.startBeat < emotionalArc.protectedUntilBeat) continue
+    if (rarityProtectedUntilBeat !== undefined && note.startBeat < rarityProtectedUntilBeat - 1e-6) continue
     const originalPitchClass = pitchClass(note.pitch)
     let lowered = note.pitch
     while (lowered >= peakPitch && lowered - 12 >= range.low) lowered -= 12
