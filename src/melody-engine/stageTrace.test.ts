@@ -65,3 +65,25 @@ describe("記録しても生成結果は変わらない(実験2の 03・05・07 
     })
   }
 })
+
+describe("独自の作り方でも、プールの遷移とコード整合を記録する", () => {
+  for (const profile of ["elegiac-cantabile", "speech-rhythmic", "incantatory", "pulse-leap"] as const) {
+    it(profile, () => {
+      const chords = parseChordInputText("Am | F | C | G | Am | F | E7 | Am", "s1", 4, "c")
+      const run = () => generateFromChordsWithProfiles({
+        chords, sectionId: "s1", sectionRole: "verse", songProfile: "dark-romantic", density: "balanced",
+        range: RANGE_PRESETS.middle, drama: "growing", totalBeats: 32, seed: 4242, profiles: [profile], key: "Am",
+      })
+      const plain = run()
+      const traced = traceStages(run)
+      expect(withoutIds(traced.result)).toBe(withoutIds(plain))
+      const poolIndexes = new Set(traced.records.filter((record) => record.stage === "assemble").map((record) => record.context.poolIndex))
+      expect(poolIndexes.size).toBeGreaterThan(0)
+      for (const poolIndex of poolIndexes) {
+        for (const stage of ["pool:transition", "pool:harmonicIntegrity"]) {
+          expect(traced.records.some((record) => record.stage === stage && record.context.poolIndex === poolIndex)).toBe(true)
+        }
+      }
+    })
+  }
+})

@@ -883,6 +883,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           }
         }
 
+        recordStage("assemble", notes)
         const transitioned = applySectionTransition(
           notes,
           input.transitionContext,
@@ -890,12 +891,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           input.range,
           input.chords,
         )
+        recordStage("pool:transition", transitioned.notes)
         notes = enforceHarmonicIntegrity(
           transitioned.notes,
           input.chords,
           input.range,
           { preserveExpressiveChordRoles: true },
         ).notes
+        recordStage("pool:harmonicIntegrity", notes)
         const features = computeMelodyFeatures(notes, harmonicMap, 0, input.totalBeats)
         const placementDiagnostics = directPlacementDiagnostics(notes, harmonicMap)
         const finalHash = noteHash(notes)
