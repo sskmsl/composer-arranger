@@ -73,7 +73,9 @@ function swapsOf(input: GenerateProfileBatchInput, off: Run, on: Run) {
 const classify = (out: ReturnType<typeof swapsOf>["out"][number], into: ReturnType<typeof swapsOf>["into"]) => {
   if (!out.inPoolAfter) return "出ていった候補がプールから消えた(再生成など)"
   if (out.ownNotesChanged) return "出ていった候補自身の音が変わった"
-  if (into.some((candidate) => candidate.ownNotesChanged)) return "出ていった候補は同じで、入ってきた候補の音が変わった"
+  // 選抜は作り方ごとに別々に行うので、同じ作り方で入ってきた候補だけを見る
+  const profile = out.key.split("|")[0]
+  if (into.some((candidate) => candidate.key.split("|")[0] === profile && candidate.ownNotesChanged)) return "出ていった候補は同じで、入ってきた候補の音が変わった"
   return "どちらの音も同じで、他の候補の変化で順位が変わった"
 }
 
