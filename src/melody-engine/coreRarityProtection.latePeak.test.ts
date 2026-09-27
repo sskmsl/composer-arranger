@@ -23,7 +23,8 @@ const SONGS = [
 const SEEDS = [9101, 9202, 9303]
 const ROLES: SectionRole[] = ["verse", "chorus"]
 
-interface PoolEntry { eligible: boolean; tried: boolean; adopted: boolean; finish: string }
+/** attempt は冒頭の再生成の回数。seed はプールの番号と再生成の回数で決まるので、両方が同じなら同じ候補 */
+interface PoolEntry { eligible: boolean; tried: boolean; adopted: boolean; finish: string; attempt: number }
 
 /** 候補プールの各候補(作り方・番号の最後に作り直した回)について、late-peak の条件・試行・採用 */
 function poolEntries(records: readonly StageRecord[]): Map<string, PoolEntry> {
@@ -39,6 +40,7 @@ function poolEntries(records: readonly StageRecord[]): Map<string, PoolEntry> {
       tried,
       adopted: record.context.chosenFinish === "late-peak",
       finish: String(record.context.chosenFinish),
+      attempt: Number(record.context.attempt),
     })
   }
   return entries
@@ -62,6 +64,7 @@ it.runIf(Boolean(process.env.CORE_PROTECTION_LATEPEAK_OUT))("案D: late-peak が
   const pool = { off: count(), on: count() }
   const selected = { off: count(), on: count() }
   const transitions: Record<string, number> = {}
+  let regeneratedOnOneSide = 0
   const same = { sameFinish: 0, sameFinishChanged: 0, sameFinishDifferences: 0, finishChanged: 0, finishChangedDifferences: 0 }
   const representative: string[] = []
   for (const bars of [8, 16] as const) for (const song of SONGS) for (const role of ROLES) for (const seed of SEEDS) {
@@ -91,10 +94,13 @@ it.runIf(Boolean(process.env.CORE_PROTECTION_LATEPEAK_OUT))("案D: late-peak が
         selected[side].adopted += Number(entry.adopted)
       }
     }
-    // 候補プール全体で、仕上げの案がどう替わったか(同じ作り方・番号どうし)
+    // 候補プール全体で、仕上げの案がどう替わったか(同じ作り方・番号・再生成の回数どうし。片側だけ作り直した番号は別の候補なので数えない)
     for (const [key, before] of entries.off) {
       const after = entries.on.get(key)
-      if (!after) continue
+      if (!after || after.attempt !== before.attempt) {
+        regeneratedOnOneSide += 1
+        continue
+      }
       const label = `${before.finish} → ${after.finish}`
       transitions[label] = (transitions[label] ?? 0) + 1
     }
@@ -124,7 +130,7 @@ it.runIf(Boolean(process.env.CORE_PROTECTION_LATEPEAK_OUT))("案D: late-peak が
       }
     }
   }
-  const report = { population: { pool, selected }, finishTransitionsInPool: transitions, sameCandidates: same, representativeSameFinish: representative }
+  const report = { population: { pool, selected }, finishTransitionsInPool: transitions, regeneratedOnOneSide, sameCandidates: same, representativeSameFinish: representative }
   expect(pool.off.candidates).toBeGreaterThan(0)
   writeFileSync(process.env.CORE_PROTECTION_LATEPEAK_OUT!, JSON.stringify(report, null, 1))
 }, 900000)
