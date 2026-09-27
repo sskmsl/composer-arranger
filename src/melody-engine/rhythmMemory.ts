@@ -46,9 +46,9 @@ export function lhlSyncopation(notes: readonly MelodyNote[], totalBeats: number)
 export function povelEssensCounterEvidence(notes: readonly MelodyNote[], totalBeats: number): number {
   const onsets = [...new Set(notes.map((note) => onGrid(note.startBeat)))].sort((a, b) => a - b)
   if (onsets.length === 0) return Math.round(totalBeats) * 4
-  const end = onGrid(totalBeats)
-  const intervals = onsets.map((tick, index) => (onsets[index + 1] ?? end) - tick)
-  const unit = Math.min(...intervals)
+  // 最小単位は、実際に隣り合う発音どうしの間隔だけから求める(最後の音から区間の終わりまでは含めない)
+  const intervals = onsets.slice(1).map((tick, index) => tick - onsets[index])
+  const unit = intervals.length > 0 ? Math.min(...intervals) : 0
   const accented = new Set<number>()
   let group: number[] = [0]
   const closeGroup = () => {
