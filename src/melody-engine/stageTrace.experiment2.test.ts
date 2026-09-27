@@ -122,6 +122,12 @@ it("実験2の3か所を、段階ごとに記録する(記録専用)", () => {
     expect(path.at(-1)!.stage).toBe("final:output")
     expect(sorted(path.at(-1)!.notes)).toEqual(sorted(candidate.notes.map(({ id, startBeat, durationBeats, pitch }) => ({ id, startBeat, durationBeats, pitch }))))
 
+    if (target.label.startsWith("07")) {
+      // 18.25拍の音(C5→G4)は、問いと答えの処理ではなく、その後の2回目の跳躍回収で動く(記録の段階を分けて確かめる)
+      const pitchAt = (stage: string) => path.find((entry) => entry.stage === stage)!.notes.find((note) => note.startBeat === 18.25)!.pitch
+      expect(pitchAt("craft:antecedent")).toBe(pitchAt("craft:tendency"))
+      expect(pitchAt("craft:leapRecoveryAfterAntecedent") - pitchAt("craft:antecedent")).toBe(-5)
+    }
     report.push(`## ${target.label}`, "", `- 調 ${target.key}、進行 ${target.progression}(2回)、seed ${target.seed}、候補プールの ${poolIndex} 番、窓 ${target.window[0]}〜${target.window[1]} 拍、採用した仕上げの案 ${chosenFinishOf(records, poolIndex)}`)
     const core = (candidate.coreNotes ?? []).map((note, index) => ({ id: `core${index}`, ...note }))
     report.push(`- 生成時点の核(核の頭を0拍とする):${describe(core)}`, "", "### 窓の中の音が変わった段階", "")

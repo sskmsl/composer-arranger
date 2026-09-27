@@ -520,9 +520,9 @@ export function applyMelodicCraft(sourceNotes: MelodyNote[], context: MelodicCra
     }
   }
 
-  recoverLeaps()
-
   recordStage("craft:antecedent", notes)
+  recoverLeaps()
+  recordStage("craft:leapRecoveryAfterAntecedent", notes)
 
   // 8. ため息: 長い音を1か所だけ、1段上の音(倚音)から下がって入る形にする
   if (steps.has("sigh") && scale.length === 7) {
