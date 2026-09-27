@@ -88,6 +88,11 @@ function chosenFinish(records: readonly StageRecord[], candidate: ProfileCandida
     record.context.attempt === survivor?.context.attempt).at(-1)?.context.chosenFinish)
 }
 
+/**
+ * 同じ候補の、段階ごとの音の差が前の段階より増えた段階。差は、保護ありの音を開始拍・長さで保護なしの音に照合して
+ * 音高が違う(または対応がない)音の数と、音数の差の和。片方向の照合なので実際に違う音の数と一致するとは限らず、
+ * 回数の順位は音楽上の悪影響の順位でもない
+ */
 function stageGrowth(off: Run, on: Run, candidate: ProfileCandidate, previous: ProfileCandidate) {
   const pathOff = candidatePath(off.records, { profile: previous.generatorProfile, poolIndex: previous.generationDiagnostics!.candidatePoolIndex, patternIndex: previous.patternIndex })
   const pathOn = candidatePath(on.records, { profile: candidate.generatorProfile, poolIndex: candidate.generationDiagnostics!.candidatePoolIndex, patternIndex: candidate.patternIndex })
