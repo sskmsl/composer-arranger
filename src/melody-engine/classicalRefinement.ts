@@ -16,7 +16,10 @@ import { classicalLikeness, type ClassicalModels } from "./classicalLikeness"
  * 置き換えてよいのは、拍頭ならコードの音、裏拍ならテンションか、次の音へ1〜2半音で進む音階の音(経過音)だけ。
  * 冒頭の1小節・手で固定した音・表情として置いた音(掛留・倚音など)とその解決先・最後の音・サビの頂点、
  * コードが変わる所で導音が主音へ・属七の7度が下へ解決している音には触らない。
- * 選んだ音域からも出さない。1音あたり上下4半音までしか動かさないので、旋律の形(輪郭とリズム)は保たれる。
+ * 選んだ音域からも出さない。1音あたり上下4半音までしか動かさない(何周しても、推敲前の音から4半音まで)ので、
+ * 旋律の形(輪郭とリズム)は保たれる。
+ * 短い音が前後の音から大きく(7半音以上)離れて、すぐ戻る形(1音だけ飛び出して聞こえる音)も新しく作らない。
+ * 物差しの「跳躍の後の戻り」はこの形も良い形として数えるため、推敲に任せると作ってしまう。
  */
 
 const EXPRESSIVE_ROLES = new Set<MelodyNote["plannedToneRole"]>([
@@ -26,6 +29,23 @@ const CLIMAX_ROLES = new Set<SectionRole>(["chorus", "grand-chorus", "breakdown-
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 /** 分布の高さ(対数)がこれ以上上がる変更だけを残す */
 const MINIMUM_GAIN = 0.02
+/** 推敲前の音から動かしてよい幅(半音) */
+const MAXIMUM_DRIFT = 4
+/** 1音だけ飛び出す形とみなす、前後の音との音程(半音) */
+const ISOLATED_LEAP = 7
+/** 1音だけ飛び出す形とみなす、音の長さの上限(拍) */
+const ISOLATED_NOTE_BEATS = 1
+
+/** index の音が、前後の音から同じ向きに大きく離れた短い音か(1音だけ飛び出して聞こえる) */
+export function isIsolatedLeap(notes: readonly MelodyNote[], index: number): boolean {
+  const previous = notes[index - 1]
+  const note = notes[index]
+  const next = notes[index + 1]
+  if (!previous || !note || !next || note.durationBeats > ISOLATED_NOTE_BEATS + 1e-6) return false
+  const fromPrevious = note.pitch - previous.pitch
+  const fromNext = note.pitch - next.pitch
+  return Math.sign(fromPrevious) === Math.sign(fromNext) && Math.abs(fromPrevious) >= ISOLATED_LEAP && Math.abs(fromNext) >= ISOLATED_LEAP
+}
 
 export interface ClassicalRefinementContext {
   harmonicMap: HarmonicMapEntry[]
@@ -110,6 +130,10 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
     return null
   }
 
+  const sourcePitch = notes.map((note) => note.pitch)
+  /** index の音とその前後で、1音だけ飛び出す音の数 */
+  const isolatedAround = (index: number) => [index - 1, index, index + 1].filter((position) => isIsolatedLeap(notes, position)).length
+
   const before = score(notes)
   let current = before
   for (let pass = 0; pass < (context.passes ?? 5); pass += 1) {
@@ -118,11 +142,14 @@ export function refineTowardClassical(source: MelodyNote[], context: ClassicalRe
       if (!editable(index)) continue
       const original = notes[index]
       let best: { pitch: number; role: Pick<MelodyNote, "plannedToneRole" | "plannedResolution">; score: number } | null = null
+      const isolatedBefore = isolatedAround(index)
       for (const offset of [-4, -3, -2, -1, 1, 2, 3, 4]) {
         const pitch = original.pitch + offset
+        if (Math.abs(pitch - sourcePitch[index]) > MAXIMUM_DRIFT) continue
         const role = roleFor(index, pitch)
         if (!role) continue
         notes[index] = { ...original, pitch, ...role }
+        if (isolatedAround(index) > isolatedBefore) continue
         const candidate = score(notes)
         if (!best || candidate > best.score) best = { pitch, role, score: candidate }
       }
