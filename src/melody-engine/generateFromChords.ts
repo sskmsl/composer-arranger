@@ -90,6 +90,12 @@ import { recordStage, withStageContext } from "./stageTrace"
 import { assessEmotionalArc, deferEarlySummit, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
 
 export interface GenerateFromChordsInput {
+  /**
+   * 比較実験用: 頂点の希少化で核の範囲を下げない(既定 false = 従来どおり)。
+   * true にすると最高音が核の中に入りやすくなり、既存の下限(古典らしさ・導音の解決・対照の頭の回帰)を割ったので、
+   * 既定にはしていない(docs/rhythm-memory-controls.md の「案Aの比較」)
+   */
+  protectCoreFromRarity?: boolean
   chords: ChordEvent[]
   sectionId: string
   sectionRole: SectionRole
@@ -154,6 +160,7 @@ function buildCandidate(
 ): Candidate {
   const rng = new SeededRandom(seed)
   const harmonicMap = buildHarmonicMap(input.chords)
+  const protectCoreFromRarity = input.protectCoreFromRarity ?? false
   let params = resolveGenerationParams(input.songProfile, input.sectionRole, input.density, input.drama, input.key)
   if (paramsHook) params = paramsHook(params)
   params = applyMelodyReferenceToParams(params, input.musicContext?.reference?.melody)
@@ -270,7 +277,8 @@ function buildCandidate(
         latePeak && selectedCore ? {
           protectedUntilBeat: selectedCore.core.lengthBeats,
           targetFraction: emotionalTargetFraction(input.sectionRole),
-        } : undefined)
+        } : undefined,
+        protectCoreFromRarity && selectedCore ? selectedCore.core.lengthBeats : undefined)
       : notes
     recordStage("finish:narrative", narrativeNotes)
     const arrivalNotes = applyMelodicArrival(narrativeNotes, harmonicMap, input.range,
@@ -594,6 +602,8 @@ export interface GenerateProfileBatchInput {
   craftSelectionWeight?: number
   /** 比較実験用: サビの核のリズムの型をすべての候補で固定する(既定はプールの3件に1件を plain) */
   coreRhythmOverride?: CoreRhythmStyle
+  /** 比較実験用: 頂点の希少化で核の範囲を下げない(既定 false = 従来どおり) */
+  protectCoreFromRarity?: boolean
   chords: ChordEvent[]
   sectionId: string
   sectionRole: SectionRole
@@ -765,6 +775,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       seed: baseSeed,
       key: input.key,
       musicContext,
+      protectCoreFromRarity: input.protectCoreFromRarity,
     }
     const hook = (params: GenerationParams) => applyMotifDNA(applyProfileOverride(params, profile, intensity), input.motifDNA)
     const applicability = SETTINGS_APPLICABILITY[profile]

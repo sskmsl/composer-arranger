@@ -157,6 +157,22 @@ describe("Candidate Melody DNA realization", () => {
     expect(peaks[0].startBeat).toBe(8)
   })
 
+  it("核を守る範囲では頂点の希少化で音を下げず、頂点は核と同じ高さを共有する(頂点の位置・高さは変えない)", () => {
+    const dna = planCandidateMelodyDNA(new SeededRandom(11), "cinematic", 0)
+    dna.climaxPlan = { type: "pitch-peak", position: "middle", targetFraction: 0.58 }
+    const notes = (): MelodyNote[] => [0, 1, 4, 8, 12].map((startBeat, index) => ({
+      id: `n${index}`, startBeat, durationBeats: 1, pitch: [76, 69, 72, 71, 68][index], velocity: 76, locks: [],
+    }))
+    const unprotected = applyCandidateNarrative(notes(), harmonicMap, 16, range, dna)
+    const protectedCore = applyCandidateNarrative(notes(), harmonicMap, 16, range, dna, undefined, 4)
+    // 守らないと核の E5 は1オクターブ下がる
+    expect(unprotected[0].pitch).toBe(64)
+    expect(protectedCore[0].pitch).toBe(76)
+    // 核の外と頂点(8拍目)は同じ
+    expect(protectedCore.slice(1).map((note) => note.pitch)).toEqual(unprotected.slice(1).map((note) => note.pitch))
+    expect(protectedCore[3].pitch).toBe(76)
+  })
+
   it("resolved終止は最終和音の安定音へ着地し、carry-forwardは短く先へ進む", () => {
     const base = planCandidateMelodyDNA(new SeededRandom(12), "standard", 0)
     const resolved = applyCandidateNarrative(baseNotes(), harmonicMap, 16, range, {
