@@ -342,7 +342,8 @@ function buildCandidate(
     proposal.finalNotes.length <= established.finalNotes.length))
     .reduce((best, proposal) => (proposal.arc!.score > (best.arc?.score ?? 0) ? proposal : best), established)
   const { finalNotes, features, score } = chosen
-  // 記録用: 別の案を試す条件に入ったか(試した案の結果は、それぞれの finish の記録にある)
+  // 記録用: 別の案を試す条件に入ったか(試した案の結果は、それぞれの finish の記録にある)。
+  // establishedPeakPosition は assessEmotionalArc の頂点の位置(同じ最高音が複数あるときは目標に最も近い音)
   withStageContext({
     chosenFinish: chosen.variant,
     exploreEligible: shouldExplore,
