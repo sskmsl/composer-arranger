@@ -5,7 +5,8 @@ docs/isolated-leap-refinement.md の実在曲の目安の作り方。旋律は�
 
 前処理と集計の条件:
   - 各曲の最初のパートの音符(タイはつなげて1音にする。和音は最高音、休符は音の間の空きとして扱う)
-  - 拍子は見ず、四分音符=1拍として、最初の音から32拍ずつの窓に分ける(4/4 なら8小節)。12音未満の窓は捨てる
+  - 拍子は見ず、四分音符=1拍として、最初の音から32拍ずつの窓に分ける(4/4 なら8小節)。曲の終わり(最後に鳴り終わる音の終わり)まで
+    32拍そろう窓だけを使い、12音未満の窓は捨てる
   - 窓の端をまたぐ3音は数えない(窓の中だけで前後の音を見る)
   - 1拍以下の音が、前後の音から同じ向きに7半音以上離れていれば数える。前後どちらかに1.5拍より長い休みがあれば数えない
   - 窓は同じ曲から複数取るので独立ではない。曲ごとの合計で割合を出し、曲を単位に作り直した(ブートストラップ)幅も出す
@@ -63,8 +64,9 @@ def count(path):
         return None
     total_notes = total_isolated = windows = 0
     start = notes[0][0]
-    end = notes[-1][0]
-    while start + WINDOW_BEATS <= end + 1:
+    # 曲の終わりは、最後に鳴り終わる音の終わり(最後の音の長さも含める)
+    end = max(s + d for s, d, _ in notes)
+    while start + WINDOW_BEATS <= end + 1e-6:
         window = [n for n in notes if start <= n[0] < start + WINDOW_BEATS]
         if len(window) >= 12:
             windows += 1
