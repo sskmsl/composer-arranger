@@ -11,7 +11,7 @@ import { CLASSICAL_MODELS } from "./classicalModels"
 
 /**
  * 1音だけ飛び出す音(docs/isolated-leap-refinement.md)の確認用の条件(記録専用。ISOLATED_LEAP_OUT を指定したときだけ動く)。
- * 調べるのに使っていない6進行 × seed 71・83・97 × Aメロ・サビ × 8・16小節 × 曲の雰囲気2つ。アプリの既定と同じく標準の作り方と公開ルールを使う。
+ * 開発用の固定条件: 6進行 × seed 71・83・97 × Aメロ・サビ × 8・16小節 × 曲の雰囲気2つ。アプリの既定と同じく標準の作り方と公開ルールを使う。
  * 変更の前後で同じテストを動かし、書き出した JSON を比べる。
  */
 const SONGS = [
