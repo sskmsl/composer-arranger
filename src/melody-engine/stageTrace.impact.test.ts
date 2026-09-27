@@ -55,8 +55,39 @@ interface Row {
   newShortMoves: number
   newBigLeapsInOutput: number
   newShortMovesInOutput: number
+  /** 希少化が作った大きな跳躍の、最終での状態 */
+  bigLeapFate: Fate
+  shortMoveFate: Fate
   /** 最終の音にある大きな跳躍を、初めて作った段階 */
   outputLeapOrigins: string[]
+}
+
+/**
+ * 希少化が作った組の、最終での状態。
+ *   - aboveInOutput: 最終でも同じ2音(id)が隣り合い、しきい値以上(途中で一度しきい値未満や非隣接になり、後で再び現れたものを含む)
+ *   - reappeared: そのうち、途中で一度しきい値未満か非隣接になったもの
+ *   - belowInOutput: 最終でも同じ2音が隣り合うが、しきい値未満(回収された)
+ *   - untracked: 最終で同じ2音が隣り合っていない(削除・置き換え・並びの変化。回収とは断定しない)
+ */
+interface Fate { aboveInOutput: number; reappeared: number; belowInOutput: number; untracked: number }
+
+function fateOf(created: readonly Pair[], later: readonly CandidateStage[], test: (pair: Pair) => boolean): Fate {
+  const output = new Map(pairsOf(later.at(-1)!.notes).map((pair) => [key(pair), pair]))
+  const fate: Fate = { aboveInOutput: 0, reappeared: 0, belowInOutput: 0, untracked: 0 }
+  for (const pair of created) {
+    const final = output.get(key(pair))
+    if (!final) fate.untracked += 1
+    else if (!test(final)) fate.belowInOutput += 1
+    else {
+      fate.aboveInOutput += 1
+      const interrupted = later.some((entry) => {
+        const found = pairsOf(entry.notes).find((candidate) => key(candidate) === key(pair))
+        return !found || !test(found)
+      })
+      if (interrupted) fate.reappeared += 1
+    }
+  }
+  return fate
 }
 
 function rowFor(path: readonly CandidateStage[], coreLength: number, group: string): Row | undefined {
@@ -71,6 +102,7 @@ function rowFor(path: readonly CandidateStage[], coreLength: number, group: stri
   const bigLeaps = newlyCreated(before.notes, after.notes, isBigLeap)
   const shortMoves = newlyCreated(before.notes, after.notes, isShortMove)
   const survives = (pair: Pair, test: (pair: Pair) => boolean) => outputPairs.has(key(pair)) && test(outputPairs.get(key(pair))!)
+  const later = path.slice(path.indexOf(after) + 1)
   // 最終の大きな跳躍が、どの段階で初めて(その2音の組として)しきい値を超えたか
   const outputLeapOrigins = pairsOf(output).filter(isBigLeap).map((pair) => {
     const origin = path.find((entry) => {
@@ -88,9 +120,18 @@ function rowFor(path: readonly CandidateStage[], coreLength: number, group: stri
     newShortMoves: shortMoves.length,
     newBigLeapsInOutput: bigLeaps.filter((pair) => survives(pair, isBigLeap)).length,
     newShortMovesInOutput: shortMoves.filter((pair) => survives(pair, isShortMove)).length,
+    bigLeapFate: fateOf(bigLeaps, later, isBigLeap),
+    shortMoveFate: fateOf(shortMoves, later, isShortMove),
     outputLeapOrigins,
   }
 }
+
+const sumFate = (fates: readonly Fate[]): Fate => fates.reduce((sum, fate) => ({
+  aboveInOutput: sum.aboveInOutput + fate.aboveInOutput,
+  reappeared: sum.reappeared + fate.reappeared,
+  belowInOutput: sum.belowInOutput + fate.belowInOutput,
+  untracked: sum.untracked + fate.untracked,
+}), { aboveInOutput: 0, reappeared: 0, belowInOutput: 0, untracked: 0 })
 
 function summarize(rows: readonly Row[]) {
   const share = (count: number) => Math.round(count / Math.max(1, rows.length) * 1000) / 1000
@@ -107,6 +148,8 @@ function summarize(rows: readonly Row[]) {
     withNewShortMoveShare: share(rows.filter((row) => row.newShortMoves > 0).length),
     newShortMovesTotal: rows.reduce((sum, row) => sum + row.newShortMoves, 0),
     newShortMovesInOutputTotal: rows.reduce((sum, row) => sum + row.newShortMovesInOutput, 0),
+    bigLeapFate: sumFate(rows.map((row) => row.bigLeapFate)),
+    shortMoveFate: sumFate(rows.map((row) => row.shortMoveFate)),
     outputBigLeapsTotal: rows.reduce((sum, row) => sum + row.outputLeapOrigins.length, 0),
     outputBigLeapOrigins: Object.fromEntries(Object.entries(origins).sort((a, b) => b[1] - a[1])),
   }
@@ -151,5 +194,11 @@ it("頂点の希少化の影響範囲を記録する(記録専用)", () => {
     byGroup: Object.fromEntries(groups.map((group) => [group, summarize(rows.filter((row) => row.group === group))])),
   }
   expect(rows.length).toBeGreaterThan(0)
+  // 内訳は、作った数を漏れなく分ける
+  for (const row of rows) {
+    const { aboveInOutput, belowInOutput, untracked } = row.bigLeapFate
+    expect(aboveInOutput + belowInOutput + untracked).toBe(row.newBigLeaps)
+    expect(aboveInOutput).toBe(row.newBigLeapsInOutput)
+  }
   if (process.env.IMPACT_OUT) writeFileSync(process.env.IMPACT_OUT, JSON.stringify(report, null, 1))
 }, 600000)
