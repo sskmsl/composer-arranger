@@ -87,17 +87,32 @@ const quantile = (values: number[], q: number) => {
   return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1)))] : 0
 }
 
-/** 小節ごとに、それより前の小節と音高・発音位置がまったく同じ小節の数 */
-function exactBarRepeats(notes: MelodyNote[], totalBeats: number): number {
+/**
+ * 小節ごとに、それより前の小節と、その小節で発音した音の音高・発音位置・音価(16分音符単位に丸める)が
+ * まったく同じ小節の数。前の小節から持続して入ってくる音は数えない(その小節で発音した音だけの一致)
+ */
+export function exactBarRepeats(notes: readonly MelodyNote[], totalBeats: number): number {
+  const q = (beat: number) => Math.round(beat * 4) / 4
   const bars = Array.from({ length: Math.ceil(totalBeats / 4) }, (_, bar) => JSON.stringify(notes
-    .filter((note) => note.startBeat >= bar * 4 && note.startBeat < bar * 4 + 4)
-    .map((note) => [Math.round((note.startBeat - bar * 4) * 1000) / 1000, note.pitch])))
+    .filter((note) => note.startBeat >= bar * 4 - 1e-6 && note.startBeat < bar * 4 + 4 - 1e-6)
+    .map((note) => [q(note.startBeat - bar * 4), note.pitch, q(note.durationBeats)])))
   return bars.filter((bar, index) => bar !== "[]" && bars.indexOf(bar) !== index).length
 }
 
-/** 鳴っていない時間の割合 */
-function restShare(notes: MelodyNote[], totalBeats: number): number {
-  return 1 - Math.min(totalBeats, notes.reduce((sum, note) => sum + note.durationBeats, 0)) / totalBeats
+/** 区間の中で鳴っていない時間の割合(音の重なりと区間の外への持続を除いた、発音区間の和で測る) */
+export function restShare(notes: readonly MelodyNote[], totalBeats: number): number {
+  const spans = notes
+    .map((note) => [Math.max(0, note.startBeat), Math.min(totalBeats, note.startBeat + note.durationBeats)] as const)
+    .filter(([start, end]) => end > start)
+    .sort((a, b) => a[0] - b[0])
+  let sounding = 0
+  let coveredUntil = 0
+  for (const [start, end] of spans) {
+    if (end <= coveredUntil) continue
+    sounding += end - Math.max(start, coveredUntil)
+    coveredUntil = end
+  }
+  return 1 - sounding / totalBeats
 }
 
 /**
@@ -113,7 +128,8 @@ function byCoreRhythm(samples: Sample[]) {
     const r = (value: number) => Math.round(value * 1000) / 1000
     return [style, {
       samples: rows.length,
-      selectedShare: r(rows.length / Math.max(1, withCore.length)),
+      // 最終候補(選ばれた3案)の中での構成比。プールからの採用率ではない
+      shareOfSelected: r(rows.length / Math.max(1, withCore.length)),
       hookabilityMean: r(mean(rows.map((s) => s.hook))),
       hookabilityP10: r(quantile(rows.map((s) => s.hook), .1)),
       hookabilityP50: r(quantile(rows.map((s) => s.hook), .5)),
@@ -203,3 +219,17 @@ describe("動機の育て方(Core Hook → 反復 → 小変形 → 発展 → �
     expect(eight.arcParts.climaxTiming).toBeGreaterThanOrEqual(.84)
   })
 })
+
+describe("方式別の内訳に使う集計の定義", () => {
+  const n = (startBeat: number, pitch: number, durationBeats: number): MelodyNote =>
+    ({ id: `${startBeat}`, startBeat, durationBeats, pitch, velocity: 80, locks: [] })
+  it("音高・発音位置が同じでも、音価が違えば完全反復と数えない", () => {
+    expect(exactBarRepeats([n(0, 60, 1), n(1, 62, 1), n(4, 60, .5), n(5, 62, .5)], 8)).toBe(0)
+    expect(exactBarRepeats([n(0, 60, 1), n(1, 62, 1), n(4, 60, 1), n(5, 62, 1)], 8)).toBe(1)
+  })
+  it("休符の割合は、重なりと区間の外への持続を数えない", () => {
+    expect(restShare([n(0, 60, 2), n(1, 62, 2)], 8)).toBeCloseTo(1 - 3 / 8)
+    expect(restShare([n(6, 60, 4)], 8)).toBeCloseTo(1 - 2 / 8)
+  })
+})
+
