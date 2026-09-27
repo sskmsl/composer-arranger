@@ -16,7 +16,10 @@ export interface CoreMotifJudgment {
   rhythmicIdentity: number
   /**
    * 「素直な型」の覚えやすさ。hookability のリズムの項を、種類が多いほど高い rhythmicIdentity から、
-   * 中くらい(0.48)を良しとする値へ置き換えたもの。どちらの型も、その型の理想で1に届くので尺度がそろう
+   * 中くらい(0.48)を良しとする値へ置き換えたもの。型ごとの仮説的な選好スコアで、hookability との相互の較正は未検証。
+   * rhythmicIdentity は 0, .19, .38, .57, .76, .95, 1 の離散値なので目標 .48 には一致せず、
+   * moderateRhythm の最大は約 .91、plainHookability の上限は約 .975(hookability は 1)。
+   * 比較テストの下限を通すための正規化はしない(Codex のレビュー、PR #174)
    */
   plainHookability: number
   simplicity: number
@@ -140,9 +143,11 @@ export function judgeThorn(sorted: readonly MelodyNote[], intervals: readonly nu
  * サビの核のリズムの選び方。
  *   varied: リズムの種類(発音間隔・音価)が多い核を優先する(従来)
  *   plain : リズムの種類は中くらいを良しとし、多すぎる核を下げる(素直で覚えやすいリズム)
- * ブラインド比較(サビ8組)では作曲者 4対4、Codex 5対3 で、曲によって好みが分かれた。
+ * ブラインド比較(サビ8組)では作曲者 4対4、GitHub の Codex 自動レビュー(PR #173 のレビューコメント)が 5対3 で、
+ * 曲によって好みが分かれた。
  * そこで、サビの3案には両方の型を入れる(generateFromChords の requireCoreRhythmVariety)。
- * 「短いリズムの単位のくり返し」で測る物差しも試したが、別の8組では Codex の判断と1組しか一致せず、
+ * 「短いリズムの単位のくり返し」で測る物差しも試したが、2回目の8組(6組は片方の旋律が1回目と同じで、独立した評価ではない)では
+ * Codex 自動レビューの判断と1組しか一致せず、
  * 核のリズムだけの物差しは好みを予測できなかったので使わない(PR #174)。
  */
 export type CoreRhythmStyle = "varied" | "plain"
