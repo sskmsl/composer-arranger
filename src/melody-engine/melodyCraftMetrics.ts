@@ -73,6 +73,9 @@ function parseCached(symbol: string, bass?: string) {
   return parsedChordCache.get(cacheKey)!
 }
 
+/** 跳躍の前後にこれより長い休みがあれば、フレーズの切れ目として同じフレーズの跳躍に数えない(拍) */
+export const PHRASE_BREAK_REST_BEATS = 1.5
+
 export function measureMelodyCraft(
   notes: MelodyNote[],
   chords: ChordEvent[],
@@ -98,7 +101,7 @@ export function measureMelodyCraft(
   const abs = intervals.map(Math.abs)
   const gapAfter = (index: number) => sorted[index + 1].startBeat - (sorted[index].startBeat + sorted[index].durationBeats)
   const leaps = intervals.map((interval, index) => ({ interval, index }))
-    .filter(({ interval, index }) => Math.abs(interval) >= 5 && index + 1 < intervals.length && gapAfter(index) <= 1.5 && gapAfter(index + 1) <= 1.5)
+    .filter(({ interval, index }) => Math.abs(interval) >= 5 && index + 1 < intervals.length && gapAfter(index) <= PHRASE_BREAK_REST_BEATS && gapAfter(index + 1) <= PHRASE_BREAK_REST_BEATS)
   const recovered = leaps.filter(({ interval, index }) => {
     const next = intervals[index + 1]
     return Math.sign(next) === -Math.sign(interval) && Math.abs(next) <= 3

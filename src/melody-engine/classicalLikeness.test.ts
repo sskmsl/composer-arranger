@@ -93,5 +93,10 @@ describe("古典らしさ(古典=100)", () => {
     expect(isIsolatedLeap(shape([72, 66, 72]), 1)).toBe(false)
     expect(isIsolatedLeap(shape([72, 64, 72], 2), 1)).toBe(false)
     expect(isIsolatedLeap(shape([72, 64, 72]), 0)).toBe(false)
+    // 前後どちらかに1.5拍より長い休み(フレーズの切れ目)があれば数えない。1.5拍ちょうどは同じフレーズ
+    const withRest = (restBefore: number, restAfter: number) => [n(0, 72, .5), n(.5 + restBefore, 64, .5), n(1 + restBefore + restAfter, 72, .5)]
+    expect(isIsolatedLeap(withRest(2, 0), 1)).toBe(false)
+    expect(isIsolatedLeap(withRest(0, 2), 1)).toBe(false)
+    expect(isIsolatedLeap(withRest(1.5, 1.5), 1)).toBe(true)
   })
 })

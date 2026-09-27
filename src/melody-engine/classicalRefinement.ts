@@ -4,7 +4,7 @@ import { keyScalePitchClasses } from "@/core/scale"
 import { isChordTone, isTensionTone } from "@/core/chord"
 import { chordAtBeat, type HarmonicMapEntry } from "./harmonicMap"
 import type { RangeSetting } from "./generationParams"
-import { measureMelodyCraft } from "./melodyCraftMetrics"
+import { measureMelodyCraft, PHRASE_BREAK_REST_BEATS } from "./melodyCraftMetrics"
 import { classicalLikeness, type ClassicalModels } from "./classicalLikeness"
 
 /**
@@ -36,12 +36,17 @@ const ISOLATED_LEAP = 7
 /** 1音だけ飛び出す形とみなす、音の長さの上限(拍) */
 const ISOLATED_NOTE_BEATS = 1
 
-/** index の音が、前後の音から同じ向きに大きく離れた短い音か(1音だけ飛び出して聞こえる) */
+/**
+ * index の音が、前後の音から同じ向きに大きく離れた短い音か(1音だけ飛び出して聞こえる)。
+ * 前後どちらかとの間にフレーズの切れ目になる休みがあれば数えない(物差しの「跳躍の後の戻り」と同じ切れ目)
+ */
 export function isIsolatedLeap(notes: readonly MelodyNote[], index: number): boolean {
   const previous = notes[index - 1]
   const note = notes[index]
   const next = notes[index + 1]
   if (!previous || !note || !next || note.durationBeats > ISOLATED_NOTE_BEATS + 1e-6) return false
+  if (note.startBeat - (previous.startBeat + previous.durationBeats) > PHRASE_BREAK_REST_BEATS) return false
+  if (next.startBeat - (note.startBeat + note.durationBeats) > PHRASE_BREAK_REST_BEATS) return false
   const fromPrevious = note.pitch - previous.pitch
   const fromNext = note.pitch - next.pitch
   return Math.sign(fromPrevious) === Math.sign(fromNext) && Math.abs(fromPrevious) >= ISOLATED_LEAP && Math.abs(fromNext) >= ISOLATED_LEAP
