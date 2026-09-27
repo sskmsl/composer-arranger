@@ -12,6 +12,7 @@ import { measureMelodyCraft } from "./melodyCraftMetrics"
 import { judgeCoreMotif } from "./hookFirst"
 import { assessEmotionalArc } from "./emotionalArc"
 import { buildHarmonicMap } from "./harmonicMap"
+import { contourMatches, lhlSyncopation, povelEssensCounterEvidence } from "./rhythmMemory"
 import type { ChordEvent } from "@/core/project"
 
 /**
@@ -29,7 +30,7 @@ const SEEDS = [101, 202, 303]
 const ROLES: SectionRole[] = ["verse", "chorus"]
 const PHRASE_BEATS = 8
 
-interface Sample { notes: MelodyNote[]; chords: ChordEvent[]; bars: number; role: SectionRole; hum: number; hook: number; arc: number; classical: number; coreRhythm?: "varied" | "plain" }
+interface Sample { notes: MelodyNote[]; chords: ChordEvent[]; bars: number; role: SectionRole; hum: number; hook: number; arc: number; classical: number; coreRhythm?: "varied" | "plain"; coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[] }
 
 function generate(bars: 8 | 16): Sample[] {
   const samples: Sample[] = []
@@ -47,6 +48,7 @@ function generate(bars: 8 | 16): Sample[] {
           hum: candidate.coreHumability ?? 0, hook: candidate.coreHookability ?? 0, arc: candidate.emotionalArcScore ?? 0,
           classical: classicalLikeness(measureMelodyCraft(candidate.notes, chords, song.key), CLASSICAL_MODELS).score,
           coreRhythm: candidate.coreRhythm,
+          coreNotes: candidate.coreNotes,
         })
       }
     }
@@ -137,9 +139,24 @@ function byCoreRhythm(samples: Sample[]) {
       exactBarRepeats: r(mean(rows.map((s) => exactBarRepeats(s.notes, s.bars * 4)))),
       restShare: r(mean(rows.map((s) => restShare(s.notes, s.bars * 4)))),
       recognizable: r(mean(rows.map((s) => measureMotifDevelopment(s.notes, PHRASE_BEATS, s.bars * 4).recognizableShare))),
+      // 記録専用のリズムの指標(docs/rhythm-memory-controls.md。選抜には使わない)
+      coreNoteCount: r(mean(rows.map((s) => s.coreNotes?.length ?? 0))),
+      headSyncopation: r(mean(rows.map((s) => lhlSyncopation(s.notes.filter((note) => note.startBeat < 8), 8)))),
+      headClockCounterEvidence: r(mean(rows.map((s) => povelEssensCounterEvidence(s.notes.filter((note) => note.startBeat < 8), 8)))),
+      coreContour: sumContour(rows.map((s) => {
+        const coreEnd = Math.max(0, ...(s.coreNotes ?? []).map((note) => note.startBeat + note.durationBeats))
+        return contourMatches(s.notes, coreEnd <= 4 ? 4 : 8, s.bars * 4)
+      })),
+      barContourHead: sumContour(rows.map((s) => contourMatches(s.notes, 4, 8))),
+      barContourWhole: sumContour(rows.map((s) => contourMatches(s.notes, 4, s.bars * 4))),
     }]
   }))
 }
+
+const sumContour = (records: ReturnType<typeof contourMatches>[]) => records.reduce(
+  (sum, record) => ({ compared: sum.compared + record.compared, matched: sum.matched + record.matched, notApplicable: sum.notApplicable + record.notApplicable }),
+  { compared: 0, matched: 0, notApplicable: 0 },
+)
 
 function summarize(samples: Sample[]) {
   const dev = samples.map((s) => measureMotifDevelopment(s.notes, PHRASE_BEATS, s.bars * 4))

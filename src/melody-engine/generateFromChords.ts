@@ -121,6 +121,8 @@ interface Candidate {
   hookHeadPlan?: HookHeadPlan
   /** サビの核をどちらのリズムの型で選んだか(Hook-first の核があるときだけ) */
   coreRhythm?: CoreRhythmStyle
+  /** 生成時点の核の音(最大5音、核の頭を0拍とした相対位置)。記録用 */
+  coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]
 }
 
 const GENERATOR_VERSION = "2.2"
@@ -347,7 +349,16 @@ function buildCandidate(
     emotionalScore,
     hookHeadPlan,
     coreRhythm: selectedCore ? coreRhythm : undefined,
+    coreNotes: selectedCore ? coreNotesOf(selectedCore.core) : undefined,
   }
+}
+
+/** 核の音(休符を除く)を、核の頭を0拍とした相対位置で取り出す */
+function coreNotesOf(core: MotifCore): { startBeat: number; durationBeats: number; pitch: number }[] {
+  let pitchIndex = 0
+  return core.events.flatMap((event) => event.isRest
+    ? []
+    : [{ startBeat: event.offsetBeats, durationBeats: event.durationBeats, pitch: core.pitches[pitchIndex++] }])
 }
 
 function refreshPhrasePlans(plans: PhrasePlan[], notes: MelodyNote[]): PhrasePlan[] {
@@ -603,6 +614,8 @@ export interface ProfileCandidate {
   emotionalArcScore?: number
   /** サビの核のリズムの型(varied: 種類が多い / plain: 素直) */
   coreRhythm?: CoreRhythmStyle
+  /** 生成時点の核の音(最大5音、核の頭を0拍とした相対位置)。記録用 */
+  coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]
 }
 
 /** 内部表現: 冒頭設計付きの1パターン(冒頭類似度による再生成の対象) */
@@ -638,6 +651,8 @@ interface BuiltPattern {
   referenceScore?: number
   hookHeadPlan?: HookHeadPlan
   coreRhythm?: CoreRhythmStyle
+  /** 生成時点の核の音(最大5音、核の頭を0拍とした相対位置)。記録用 */
+  coreNotes?: { startBeat: number; durationBeats: number; pitch: number }[]
 }
 
 /**
@@ -928,6 +943,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         emotionalScore: c.emotionalScore,
         hookHeadPlan: c.hookHeadPlan,
         coreRhythm: c.coreRhythm,
+        coreNotes: c.coreNotes,
       }
     }
 
@@ -1200,6 +1216,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         coreRetention: pattern.coreRetention,
         emotionalArcScore: pattern.emotionalScore,
         coreRhythm: pattern.coreRhythm,
+        coreNotes: pattern.coreNotes,
       })
     })
   })
