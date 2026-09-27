@@ -328,7 +328,8 @@ function buildCandidate(
   const proposals = shouldExplore ? [finish(false, true)] : []
   const earliestPeak = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus" ? .66
     : input.sectionRole === "pre-chorus" ? .62 : .4
-  if (shouldExplore && (established.arc?.peakPosition ?? 1) < earliestPeak) {
+  const latePeakEligible = shouldExplore && (established.arc?.peakPosition ?? 1) < earliestPeak
+  if (latePeakEligible) {
     proposals.push(finish(true, true))
   }
   // 後段の理論整合よりHookが弱くなる案、毒が露出する案、改善しない案は採用しない。
@@ -341,7 +342,14 @@ function buildCandidate(
     proposal.finalNotes.length <= established.finalNotes.length))
     .reduce((best, proposal) => (proposal.arc!.score > (best.arc?.score ?? 0) ? proposal : best), established)
   const { finalNotes, features, score } = chosen
-  withStageContext({ chosenFinish: chosen.variant }, () => recordStage("buildCandidate:chosen", finalNotes))
+  // 記録用: 別の案を試す条件に入ったか(試した案の結果は、それぞれの finish の記録にある)。
+  // establishedPeakPosition は assessEmotionalArc の頂点の位置(同じ最高音が複数あるときは目標に最も近い音)
+  withStageContext({
+    chosenFinish: chosen.variant,
+    exploreEligible: shouldExplore,
+    latePeakEligible,
+    establishedPeakPosition: Math.round((established.arc?.peakPosition ?? -1) * 1000) / 1000,
+  }, () => recordStage("buildCandidate:chosen", finalNotes))
   const finalPlans = refreshPhrasePlans(plans, finalNotes)
   const coreRetention = selectedCore ? features.hookStrength ?? 0 : undefined
   // 核が最後まで分かる形で戻り、しかも字義どおりの反復だけではないか(動機の育ち方)も Hook の強さに含める
