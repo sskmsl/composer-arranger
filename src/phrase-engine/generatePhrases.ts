@@ -548,8 +548,14 @@ function complementaryPhraseRange(
 /** 短いフレーズとして点数を付ける最小の音数(scorePhrase と同じ) */
 const MINIMUM_PHRASE_NOTES = 4
 
-/** 既定の配置の対応。確認用の条件で4案を比べて both を選んだ(docs/arrangement-placement.md) */
-const PHRASE_PLACEMENT_DEFAULT: PhrasePlacement = "both"
+/**
+ * 既定の配置の対応。current(従来どおり)のまま。select・trim・both は比べるための切替で、
+ * 聴いて方向を判断するまで既定にしない(docs/arrangement-placement.md)
+ */
+const PHRASE_PLACEMENT_DEFAULT: PhrasePlacement = "current"
+
+/** 16分音符の格子。アレンジの観測(arrangementObservation の toGrid)と同じ丸め方 */
+const toSixteenth = (beat: number) => Math.round(beat * 4) / 4
 
 /**
  * 主旋律の頂点(最高音)が鳴っている区間。既存の protectedMoments の highest-note を使う。
@@ -557,10 +563,9 @@ const PHRASE_PLACEMENT_DEFAULT: PhrasePlacement = "both"
  */
 function leadPeakMoments(lead: readonly MelodyNote[], totalBeats: number): { startBeat: number; endBeat: number }[] {
   if (lead.length === 0) return []
-  const grid = (beat: number) => Math.round(beat * 4) / 4
   return analyzeMelodyActivity([...lead], totalBeats).protectedMoments
     .filter((moment) => moment.reasons.includes("highest-note"))
-    .map((moment) => ({ startBeat: grid(moment.startBeat), endBeat: Math.max(grid(moment.startBeat) + .25, grid(moment.endBeat)) }))
+    .map((moment) => ({ startBeat: toSixteenth(moment.startBeat), endBeat: Math.max(toSixteenth(moment.startBeat) + .25, toSixteenth(moment.endBeat)) }))
 }
 
 /**
@@ -584,9 +589,13 @@ function phrasePlacementPenalty(input: GeneratePhrasesInput): ((candidate: Pick<
   }
 }
 
-/** 主旋律の頂点が鳴っている間に始まる音か。生成の段階の音は格子に乗らない開始もあるので、実際の開始で判定する */
+/**
+ * 主旋律の頂点が鳴っている間に始まる音か。候補の開始も観測と同じ16分音符の格子に丸めて比べる
+ * (音の実際のタイミングは変えない。判定の基準だけを観測とそろえる)
+ */
 function startsInPeak(note: MelodyNote, peaks: readonly { startBeat: number; endBeat: number }[]): boolean {
-  return peaks.some((peak) => note.startBeat >= peak.startBeat - 1e-6 && note.startBeat < peak.endBeat - 1e-6)
+  const start = toSixteenth(note.startBeat)
+  return peaks.some((peak) => start >= peak.startBeat - 1e-6 && start < peak.endBeat - 1e-6)
 }
 
 function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: number): BuiltPhrase {
