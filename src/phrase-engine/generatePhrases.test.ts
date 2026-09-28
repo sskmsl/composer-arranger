@@ -254,6 +254,16 @@ describe("短いフレーズの配置: 主旋律の頂点と休み", () => {
     expect(total).toBeGreaterThan(0)
   })
 
+  it("演奏処理で数ミリ秒後ろへずれた主旋律の頂点でも、同じ拍で始まる音を削る", () => {
+    // 頂点が4拍目より8ミリ秒ほど後ろから始まる(演奏処理後の主旋律)
+    const performed = lead.map((note) => (note.startBeat === 4 ? { ...note, startBeat: 4.016, durationBeats: 1.96 } : note))
+    for (const seed of [3, 17, 41, 77, 101]) {
+      for (const candidate of generatePhraseCandidates({ ...input(seed), referenceMelody: performed })) {
+        expect(interiorPeakStarts(candidate.notes)).toBe(0)
+      }
+    }
+  })
+
   it("作り直しにも同じ対応をかける", () => {
     const base = { ...input(41), referenceMelody: lead }
     const regenerated = regeneratePhraseCandidate(base, 41, [])

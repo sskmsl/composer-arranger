@@ -548,23 +548,34 @@ function complementaryPhraseRange(
 /** 既定の配置の対応。確認用の条件で4案を比べて both を選んだ(docs/arrangement-placement.md) */
 const PHRASE_PLACEMENT_DEFAULT: PhrasePlacement = "both"
 
-/** 主旋律の頂点(最高音)が鳴っている区間。既存の protectedMoments の highest-note を使う */
+/**
+ * 主旋律の頂点(最高音)が鳴っている区間。既存の protectedMoments の highest-note を使う。
+ * 渡される主旋律は演奏処理(数ミリ秒の揺れ・音価の調整)の後なので、区間の始まりと終わりを16分音符の格子にそろえる
+ */
 function leadPeakMoments(lead: readonly MelodyNote[], totalBeats: number): { startBeat: number; endBeat: number }[] {
   if (lead.length === 0) return []
-  return analyzeMelodyActivity([...lead], totalBeats).protectedMoments.filter((moment) => moment.reasons.includes("highest-note"))
+  const grid = (beat: number) => Math.round(beat * 4) / 4
+  return analyzeMelodyActivity([...lead], totalBeats).protectedMoments
+    .filter((moment) => moment.reasons.includes("highest-note"))
+    .map((moment) => ({ startBeat: grid(moment.startBeat), endBeat: Math.max(grid(moment.startBeat) + .25, grid(moment.endBeat)) }))
 }
 
 /**
  * 選抜の補正(select・both のときだけ)。既存の余白の評価(対旋律・装飾と同じ assessReactiveNegativeSpaceFit)の不足と、
  * 主旋律の頂点で始まる音の数を引く
  */
-function phrasePlacementPenalty(input: GeneratePhrasesInput): ((candidate: Pick<BuiltPhrase, "notes">) => number) | undefined {
+function phrasePlacementPenalty(input: GeneratePhrasesInput): ((candidate: Pick<BuiltPhrase, "notes" | "phraseLengthBeats">) => number) | undefined {
   const placement = input.placement ?? PHRASE_PLACEMENT_DEFAULT
   const lead = input.referenceMelody ?? []
   if (!(placement === "select" || placement === "both") || lead.length === 0) return undefined
   const peaks = leadPeakMoments(lead, input.totalBeats)
   return (candidate) => {
-    const fit = assessReactiveNegativeSpaceFit(lead, [], candidate.notes, input.totalBeats)
+    // 余白は候補が鳴る区間(候補の長さ)の中だけで評価する。候補の後ろの主旋律の休みを「残した余白」に数えない
+    const span = Math.min(input.totalBeats, candidate.phraseLengthBeats)
+    const leadInSpan = lead
+      .filter((note) => note.startBeat < span)
+      .map((note) => ({ ...note, durationBeats: Math.min(note.durationBeats, span - note.startBeat) }))
+    const fit = assessReactiveNegativeSpaceFit(leadInSpan, [], candidate.notes, span)
     const peakEntries = candidate.notes.filter((note) => startsInPeak(note, peaks)).length
     return (100 - fit.fitScore) * PLACEMENT_SPACE_WEIGHT + peakEntries * PLACEMENT_PEAK_PENALTY
   }
@@ -987,7 +998,7 @@ function selectPool(
   pool: BuiltPhrase[],
   chords: ChordEvent[],
   techniqueFitSelectionWeight = 0,
-  placementPenalty?: (candidate: Pick<BuiltPhrase, "notes">) => number,
+  placementPenalty?: (candidate: Pick<BuiltPhrase, "notes" | "phraseLengthBeats">) => number,
 ): {
   candidate: BuiltPhrase
   selectionScore: number
