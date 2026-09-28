@@ -53,6 +53,8 @@ describe("アレンジの観測(記録用)", () => {
 
   it("同じ開始の音は最高音1つにし、鳴っていない拍の割合を16分音符の格子で数える", () => {
     expect(topLine([n(0, 60), n(0, 67), n(1, 64)]).map((note) => note.pitch)).toEqual([67, 64])
+    // 演奏処理で数ミリ秒ずつずれた和音の音も、同じ開始としてまとめる
+    expect(topLine([n(0, 60), n(.004, 67), n(.008, 64), n(1, 62)]).map((note) => note.pitch)).toEqual([67, 62])
     expect(silentShare([[n(0, 60, 1)], [n(2, 64, 1)]], 4)).toBeCloseTo(.5, 5)
   })
 })

@@ -9,12 +9,16 @@ import type { MelodyNote } from "@/core/melody"
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 const OVERLAP_BEATS = .5 - 1e-6
 
-/** 同じ開始の音は最高音1つにした線(和音の素材を1本の線として見る代理。モチーフの核や持続する内声そのものではない) */
+/**
+ * 同じ開始の音は最高音1つにした線(和音の素材を1本の線として見る代理。モチーフの核や持続する内声そのものではない)。
+ * 演奏処理は和音の音ごとに数ミリ秒ずつ開始をずらすので、開始は16分音符の格子に丸めてまとめる
+ */
 export function topLine(notes: readonly MelodyNote[]): MelodyNote[] {
   const byStart = new Map<number, MelodyNote>()
   for (const note of notes) {
-    const current = byStart.get(note.startBeat)
-    if (!current || current.pitch < note.pitch) byStart.set(note.startBeat, note)
+    const start = Math.round(note.startBeat * 4) / 4
+    const current = byStart.get(start)
+    if (!current || current.pitch < note.pitch) byStart.set(start, note)
   }
   return [...byStart.values()].sort((a, b) => a.startBeat - b.startBeat)
 }
