@@ -67,11 +67,11 @@ export function observeParallels(line: readonly MelodyNote[], lead: readonly Mel
 }
 
 export interface ClashObservation {
-  /** 他の音と0.5拍以上重なる音 */
+  /** 他の音と0.5拍以上重なる音(重なる区間の和集合の長さで判定する) */
   overlapNotes: number
   /** 重なっている拍数の合計 */
   overlapBeats: number
-  /** 短2度(1半音)で重なる音と、その重なりの拍数 */
+  /** 短2度(1半音)で0.5拍以上重なる音と、その重なりの拍数。短2度・長7度・複音程は、同じ音で重なってもそれぞれに数える */
   minorSecond: number
   minorSecondBeats: number
   /** 長7度(11半音)で重なる音 */
@@ -115,20 +115,30 @@ export function observeClashes(notes: readonly MelodyNote[], others: readonly Me
   const grid = (beat: number) => Math.round(beat * 4) / 4
   for (const note of notes) {
     const end = note.startBeat + note.durationBeats
+    // 正の交差区間を先に集め、和集合の長さにしてから 0.5拍の閾値を当てる(短い相手が続く場合も落とさない)
     const overlaps = others
       .map((other) => ({
         other,
         from: Math.max(other.startBeat, note.startBeat),
         to: Math.min(other.startBeat + other.durationBeats, end),
       }))
-      .filter(({ from, to }) => to - from >= OVERLAP_BEATS)
-    if (overlaps.length === 0) continue
+      .filter(({ from, to }) => to - from > 1e-6)
+    const spanOf = (list: typeof overlaps) => unionLength(list.map(({ from, to }) => [from, to] as const))
+    const overlapBeats = spanOf(overlaps)
+    if (overlapBeats < OVERLAP_BEATS) continue
     result.overlapNotes += 1
-    result.overlapBeats += unionLength(overlaps.map(({ from, to }) => [from, to] as const))
-    const minorSecond = overlaps.filter(({ other }) => Math.abs(note.pitch - other.pitch) === 1)
-    if (minorSecond.length > 0) {
+    result.overlapBeats += overlapBeats
+    const distanceOf = (other: MelodyNote) => Math.abs(note.pitch - other.pitch)
+    // 音程の種類ごとに独立に数える(途中で主旋律の音が替わり、短2度と長7度の両方で重なる音もある)
+    const minorSecond = overlaps.filter(({ other }) => distanceOf(other) === 1)
+    const majorSeventh = overlaps.filter(({ other }) => distanceOf(other) === 11)
+    const compound = overlaps.filter(({ other }) => distanceOf(other) > 12 && [1, 11].includes(distanceOf(other) % 12))
+    if (spanOf(majorSeventh) >= OVERLAP_BEATS) result.majorSeventh += 1
+    if (spanOf(compound) >= OVERLAP_BEATS) result.compound += 1
+    const minorSecondBeats = spanOf(minorSecond)
+    if (minorSecondBeats >= OVERLAP_BEATS) {
       result.minorSecond += 1
-      result.minorSecondBeats += unionLength(minorSecond.map(({ from, to }) => [from, to] as const))
+      result.minorSecondBeats += minorSecondBeats
       const nominal = grid(note.startBeat)
       if (Math.abs(nominal - Math.round(nominal)) < 1e-6) result.minorSecondOnBeat += 1
       // 次の異なる開始で鳴るパートの音のうち、この音にいちばん近い音を、この音の進む先とみなす
@@ -141,13 +151,6 @@ export function observeClashes(notes: readonly MelodyNote[], others: readonly Me
         const against = soundingAt(others, next.startBeat)
         if (move >= 1 && move <= 2 && against && Math.abs(next.pitch - against.pitch) !== 1) result.minorSecondResolved += 1
       }
-    } else if (overlaps.some(({ other }) => Math.abs(note.pitch - other.pitch) === 11)) {
-      result.majorSeventh += 1
-    } else if (overlaps.some(({ other }) => {
-      const distance = Math.abs(note.pitch - other.pitch)
-      return distance > 12 && [1, 11].includes(distance % 12)
-    })) {
-      result.compound += 1
     }
   }
   return result

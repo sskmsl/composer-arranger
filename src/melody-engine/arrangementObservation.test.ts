@@ -58,6 +58,12 @@ describe("アレンジの観測(記録用)", () => {
     const result = observeClashes([n(0, 61, 2)], [n(0, 60, 1), n(1, 60, 1)])
     expect(result.overlapBeats).toBeCloseTo(2, 5)
     expect(result.minorSecondBeats).toBeCloseTo(2, 5)
+    // 0.25拍の主旋律の音2つと続けて重なる: 和集合は0.5拍なので、重なる音に数える
+    expect(observeClashes([n(0, 61, 1)], [n(0, 60, .25), n(.25, 60, .25)]).minorSecond).toBe(1)
+    // 途中で主旋律が替わり、短2度と長7度の両方で重なる音は、どちらにも数える
+    const both = observeClashes([n(0, 61, 2)], [n(0, 60, 1), n(1, 50, 1)])
+    expect(both.minorSecond).toBe(1)
+    expect(both.majorSeventh).toBe(1)
   })
 
   it("上にある割合と、上下が入れ替わる交差を分けて数える", () => {
