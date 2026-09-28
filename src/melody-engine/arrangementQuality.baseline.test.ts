@@ -9,7 +9,7 @@ import { createEmptyProject } from "@/core/project"
 import { parseKey, keyScalePitchClasses } from "@/core/scale"
 import type { SectionRole } from "@/core/section"
 import { resolvePublicComposerRules } from "@/composer-intelligence"
-import { generatePhraseCandidates } from "@/phrase-engine/generatePhrases"
+import { generatePhraseCandidates, type PhrasePlacement } from "@/phrase-engine/generatePhrases"
 import { generateSignaturePhraseCandidates } from "@/phrase-engine/generateSignaturePhrases"
 import { counterGenerationInput, decorationGenerationInput, performGeneratedNotes, phraseGenerationInput, signaturePhraseGenerationInput } from "@/store/generationInputs"
 import { RANGE_PRESETS } from "./generationParams"
@@ -18,7 +18,7 @@ import { generateCounterCandidates } from "./counterGenerator"
 import { DEFAULT_DECORATION_SETTINGS, generateDecorationCandidates } from "./decorationGenerator"
 import { buildHarmonicMap, chordAtBeat } from "./harmonicMap"
 import { isIsolatedLeap } from "./melodyCraftMetrics"
-import { observeClashes, observeParallels, observeRegister, silentShare, topLine } from "./arrangementObservation"
+import { observeClashes, observeParallels, observeRegister, observeStack, silentShare, topLine, type StackObservation } from "./arrangementObservation"
 
 /**
  * 記録用(ARRANGEMENT_BASELINE_OUT を指定したときだけ動く): 主旋律と、アレンジの4パート(イントロ・短いフレーズ・対旋律・装飾)を
@@ -28,6 +28,7 @@ import { observeClashes, observeParallels, observeRegister, silentShare, topLine
  * - 装飾は、単独と、短いフレーズ・イントロ・対旋律の1案目を採用した組み合わせ条件の両方で数える
  * - 候補全体(pool)と、先頭の1案(first)を分けて数える
  * 条件は2組: ARRANGEMENT_CONDITIONS=development(既定。数値を見て議論した開発用)と confirmation(施策の確認用。先に固定した)。
+ * ARRANGEMENT_PHRASE_PLACEMENT で短いフレーズの配置の対応(current・select・trim・both)を切り替えて比べる。
  */
 const CONDITIONS = {
   development: {
@@ -133,6 +134,12 @@ it.runIf(Boolean(process.env.ARRANGEMENT_BASELINE_OUT))("アレンジの4パー�
       if (index === 0) tally(add(part, "first", role), notes, lead, song.chords, song.key, others)
     })
   }
+  /** 1案目どうしを重ねたときの配置の取り合い(短いフレーズ・イントロ・対旋律・組み合わせ条件の装飾の1案目) */
+  const stacks: Record<string, StackObservation & { sections: number; layers: number }> = {}
+  /** 短いフレーズの1案目だけを重ねたときの配置(頂点への入り・埋まった休み) */
+  const phraseStacks: Record<string, StackObservation & { sections: number; layers: number }> = {}
+  let phraseMilliseconds = 0
+  const phraseQuality: number[] = []
   const settings = { density: "balanced" as const, rangePreset: "middle" as const, customRange: RANGE_PRESETS.middle, drama: "growing" as const,
     selectedGeneratorProfiles: ["standard" as const], techniqueExperimentPresetId: null }
   for (const song of conditions.songs) for (const role of ["verse", "chorus"] as SectionRole[]) for (const seed of conditions.seeds) {
@@ -159,7 +166,18 @@ it.runIf(Boolean(process.env.ARRANGEMENT_BASELINE_OUT))("アレンジの4パー�
     record("signature 単独", role, signatures.map((candidate) => candidate.notes), null, song)
     record("signature 主旋律と重ねる", role, signatures.map((candidate) => candidate.notes), melodyNotes, song)
     const phraseInput = phraseGenerationInput(project, "s1", settings, seed)
-    const phrases = (phraseInput ? generatePhraseCandidates(phraseInput) : []).map((candidate) => ({ ...candidate, notes: perform(candidate.notes, "lead-focus") }))
+    // 比較実験用: 短いフレーズの配置の対応(ARRANGEMENT_PHRASE_PLACEMENT、既定はアプリと同じ)
+    const placement = process.env.ARRANGEMENT_PHRASE_PLACEMENT as PhrasePlacement | undefined
+    const phraseStarted = performance.now()
+    const rawPhrases = phraseInput ? generatePhraseCandidates(placement ? { ...phraseInput, placement } : phraseInput) : []
+    phraseMilliseconds += performance.now() - phraseStarted
+    phraseQuality.push(...rawPhrases.map((candidate) => candidate.qualityScore))
+    const phrases = rawPhrases.map((candidate) => ({ ...candidate, notes: perform(candidate.notes, "lead-focus") }))
+    const phraseAlone = observeStack(melodyNotes, phrases.slice(0, 1).map((candidate) => candidate.notes), 32)
+    const phraseAloneTotal = (phraseStacks[role] ??= { sections: 0, layers: 0, leadGaps: 0, contestedGaps: 0, filledGaps: 0, leadPeaks: 0, peaksEntered: 0, peakEntries: 0 })
+    phraseAloneTotal.sections += 1
+    phraseAloneTotal.layers += Math.min(1, phrases.length)
+    for (const key of ["leadGaps", "contestedGaps", "filledGaps", "leadPeaks", "peaksEntered", "peakEntries"] as const) phraseAloneTotal[key] += phraseAlone[key]
     record("phrase", role, phrases.map((candidate) => candidate.notes), melodyNotes, song)
     const counterInput = counterGenerationInput(project, "s1", seed)
     const counters = (counterInput ? generateCounterCandidates(counterInput) : []).map((candidate) => ({ ...candidate, notes: perform(candidate.notes, "counter-voice") }))
@@ -191,11 +209,22 @@ it.runIf(Boolean(process.env.ARRANGEMENT_BASELINE_OUT))("アレンジの4パー�
       ? generateDecorationCandidates(combinedInput).map((candidate) => performGeneratedNotes(combined, "s1", candidate.notes, "transition-color").notes)
       : []
     record("decoration 採用済みと組み合わせ", role, combinedDecorations, melodyNotes, song, others)
+    const stackLayers = [phrases[0]?.notes, signatures[0]?.notes, counters[0]?.notes, combinedDecorations[0]].filter((notes): notes is MelodyNote[] => Boolean(notes))
+    const stack = observeStack(melodyNotes, stackLayers, 32)
+    const stackTotal = (stacks[role] ??= { sections: 0, layers: 0, leadGaps: 0, contestedGaps: 0, filledGaps: 0, leadPeaks: 0, peaksEntered: 0, peakEntries: 0 })
+    stackTotal.sections += 1
+    stackTotal.layers += stackLayers.length
+    for (const key of ["leadGaps", "contestedGaps", "filledGaps", "leadPeaks", "peaksEntered", "peakEntries"] as const) stackTotal[key] += stack[key]
   }
   const r = (value: number) => Math.round(value * 1000) / 1000
   const share = (part: number, whole: number) => (whole > 0 ? r(part / whole) : null)
   const report = {
+    phrasePlacement: process.env.ARRANGEMENT_PHRASE_PLACEMENT ?? "既定",
+    phraseMilliseconds: Math.round(phraseMilliseconds),
+    phraseQualityMean: Math.round(phraseQuality.reduce((sum, value) => sum + value, 0) / Math.max(1, phraseQuality.length) * 100) / 100,
+    phraseStacks,
     returned,
+    stacks,
     tallies: Object.fromEntries(Object.entries(tallies).map(([name, t]) => [name, {
       candidates: t.candidates,
       notesPerCandidate: r(t.notes / t.candidates),

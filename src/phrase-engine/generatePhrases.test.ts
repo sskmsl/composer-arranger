@@ -231,3 +231,32 @@ describe("Phrase Generator", () => {
     expect(versePlans.some((plan) => plan.cadence === "suspended" || plan.cadence === "carry-forward")).toBe(true)
   })
 })
+
+describe("短いフレーズの配置: 主旋律の頂点と休み", () => {
+  // 主旋律: 1拍の音が続き、4〜6拍に最高音(頂点)がある
+  const lead = [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((beat) => ({
+    id: `lead${beat}`, startBeat: beat, durationBeats: beat === 4 ? 2 : 1, pitch: beat === 4 ? 76 : 69, velocity: 80, locks: [],
+  }))
+  const interiorPeakStarts = (notes: { startBeat: number }[]) =>
+    notes.filter((note, index) => index > 0 && index < notes.length - 1 && note.startBeat >= 4 && note.startBeat < 6).length
+
+  it("既定(both)では、入りと終止以外の音を主旋律の頂点で始めない", () => {
+    for (const seed of [3, 17, 41, 77, 101]) {
+      const candidates = generatePhraseCandidates({ ...input(seed), referenceMelody: lead })
+      for (const candidate of candidates) expect(interiorPeakStarts(candidate.notes)).toBe(0)
+    }
+  })
+
+  it("従来どおり(current)では頂点で始まる音が残る(比べるための基準)", () => {
+    const total = [3, 17, 41, 77, 101].reduce((sum, seed) =>
+      sum + generatePhraseCandidates({ ...input(seed), referenceMelody: lead, placement: "current" })
+        .reduce((inner, candidate) => inner + interiorPeakStarts(candidate.notes), 0), 0)
+    expect(total).toBeGreaterThan(0)
+  })
+
+  it("作り直しにも同じ対応をかける", () => {
+    const base = { ...input(41), referenceMelody: lead }
+    const regenerated = regeneratePhraseCandidate(base, 41, [])
+    expect(interiorPeakStarts(regenerated.notes)).toBe(0)
+  })
+})

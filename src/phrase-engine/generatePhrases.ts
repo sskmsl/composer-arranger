@@ -17,6 +17,7 @@ import { buildHarmonicMap, chordAtBeat, type HarmonicMapEntry } from "@/melody-e
 import { melodySimilarity } from "@/melody-engine/melodySimilarity"
 import { nearestAllowedPitch } from "@/melody-engine/pitchUtils"
 import { enforceHarmonicIntegrity } from "@/melody-engine/harmonicIntegrity"
+import { analyzeMelodyActivity, assessReactiveNegativeSpaceFit } from "@/melody-engine/reactiveLayerAnalysis"
 import type { Density, Drama, RangeSetting } from "@/melody-engine/generationParams"
 import {
   pickTechniquePreference,
@@ -46,7 +47,14 @@ export interface GeneratePhrasesInput {
   composerRules?: ResolvedComposerRules
   /** A/B実験時だけ有効にする、候補選抜におけるTechnique Fitの補助比率。 */
   techniqueFitSelectionWeight?: number
+  /**
+   * 比較実験用: 主旋律との配置の取り合いへの対応(docs/arrangement-placement.md)。
+   * current = 従来どおり、select = 既存の余白の評価と頂点への入りで選抜する、trim = 主旋律の頂点で始まる音を削る、both = 両方
+   */
+  placement?: PhrasePlacement
 }
+
+export type PhrasePlacement = "current" | "select" | "trim" | "both"
 
 interface BuiltPhrase {
   notes: MelodyNote[]
@@ -537,6 +545,36 @@ function complementaryPhraseRange(
   return range
 }
 
+/** 既定の配置の対応。確認用の条件で4案を比べて both を選んだ(docs/arrangement-placement.md) */
+const PHRASE_PLACEMENT_DEFAULT: PhrasePlacement = "both"
+
+/** 主旋律の頂点(最高音)が鳴っている区間。既存の protectedMoments の highest-note を使う */
+function leadPeakMoments(lead: readonly MelodyNote[], totalBeats: number): { startBeat: number; endBeat: number }[] {
+  if (lead.length === 0) return []
+  return analyzeMelodyActivity([...lead], totalBeats).protectedMoments.filter((moment) => moment.reasons.includes("highest-note"))
+}
+
+/**
+ * 選抜の補正(select・both のときだけ)。既存の余白の評価(対旋律・装飾と同じ assessReactiveNegativeSpaceFit)の不足と、
+ * 主旋律の頂点で始まる音の数を引く
+ */
+function phrasePlacementPenalty(input: GeneratePhrasesInput): ((candidate: Pick<BuiltPhrase, "notes">) => number) | undefined {
+  const placement = input.placement ?? PHRASE_PLACEMENT_DEFAULT
+  const lead = input.referenceMelody ?? []
+  if (!(placement === "select" || placement === "both") || lead.length === 0) return undefined
+  const peaks = leadPeakMoments(lead, input.totalBeats)
+  return (candidate) => {
+    const fit = assessReactiveNegativeSpaceFit(lead, [], candidate.notes, input.totalBeats)
+    const peakEntries = candidate.notes.filter((note) => startsInPeak(note, peaks)).length
+    return (100 - fit.fitScore) * PLACEMENT_SPACE_WEIGHT + peakEntries * PLACEMENT_PEAK_PENALTY
+  }
+}
+
+/** 主旋律の頂点が鳴っている間に始まる音か。生成の段階の音は格子に乗らない開始もあるので、実際の開始で判定する */
+function startsInPeak(note: MelodyNote, peaks: readonly { startBeat: number; endBeat: number }[]): boolean {
+  return peaks.some((peak) => note.startBeat >= peak.startBeat - 1e-6 && note.startBeat < peak.endBeat - 1e-6)
+}
+
 function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: number): BuiltPhrase {
   const intent = planPhraseIntent(input, seed, poolIndex)
   const phraseLengthBeats = Math.min(input.totalBeats, intent.lengthBars * input.beatsPerBar)
@@ -684,6 +722,15 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
           result.push(note)
           return result
         }, [])
+
+  // 主旋律の頂点(最高音)が鳴っている間に始まる音を削る。最初と最後の音(入りと終止)は残す
+  const placement = input.placement ?? PHRASE_PLACEMENT_DEFAULT
+  if ((placement === "trim" || placement === "both") && articulatedNotes.length > 2) {
+    const peaks = leadPeakMoments(input.referenceMelody ?? [], input.totalBeats)
+    const kept = articulatedNotes.filter((note, index) =>
+      index === 0 || index === articulatedNotes.length - 1 || !startsInPeak(note, peaks))
+    if (kept.length >= 2) articulatedNotes.splice(0, articulatedNotes.length, ...kept)
+  }
 
   if (articulatedNotes.length > 0) {
     const last = articulatedNotes[articulatedNotes.length - 1]
@@ -931,10 +978,16 @@ export function phraseSimilarity(
   }
 }
 
+/** 選抜の補正: 余白の評価(0〜100)の不足1点あたり */
+const PLACEMENT_SPACE_WEIGHT = 0.15
+/** 選抜の補正: 主旋律の頂点で始まる音1つあたり */
+const PLACEMENT_PEAK_PENALTY = 6
+
 function selectPool(
   pool: BuiltPhrase[],
   chords: ChordEvent[],
   techniqueFitSelectionWeight = 0,
+  placementPenalty?: (candidate: Pick<BuiltPhrase, "notes">) => number,
 ): {
   candidate: BuiltPhrase
   selectionScore: number
@@ -984,7 +1037,7 @@ function selectPool(
       const hardSimilarityOk =
         similarities.length === 0 ||
         Math.max(...similarities.map((value) => value.overallSimilarity)) <= (selected.length === 1 ? 0.76 : 0.8)
-      const adjusted = (hardSimilarityOk ? score : score - 18) - intentRedundancy * 18
+      const adjusted = (hardSimilarityOk ? score : score - 18) - intentRedundancy * 18 - (placementPenalty?.(candidate) ?? 0)
       if (adjusted > bestScore) {
         bestIndex = index
         bestScore = adjusted
@@ -1005,6 +1058,7 @@ export function generatePhraseCandidates(input: GeneratePhrasesInput): Omit<Phra
   const pool = Array.from({ length: poolSize }, (_, poolIndex) =>
     buildPhrase(input, input.seed + poolIndex * 7919, poolIndex),
   )
+  const placementPenalty = phrasePlacementPenalty(input)
   const selected = selectPool(
     pool,
     phraseChords(
@@ -1012,6 +1066,7 @@ export function generatePhraseCandidates(input: GeneratePhrasesInput): Omit<Phra
       Math.min(input.totalBeats, 8 * input.beatsPerBar),
     ),
     input.techniqueFitSelectionWeight,
+    placementPenalty,
   )
   return selected.map(({ candidate, selectionScore, similarities }, index) => ({
     sectionId: input.sectionId,
@@ -1038,6 +1093,7 @@ export function regeneratePhraseCandidate(
   )
   const eligible = pool.filter((candidate) => candidate.qualityScore >= QUALITY_FLOOR)
   const source = eligible.length > 0 ? eligible : pool
+  const placementPenalty = phrasePlacementPenalty(input)
   const ranked = source
     .map((candidate) => {
       const similarities = avoid.map((other) => phraseSimilarity(candidate, other, input.chords))
@@ -1055,7 +1111,8 @@ export function regeneratePhraseCandidate(
             (1 - (input.techniqueFitSelectionWeight ?? 0)) +
           (candidate.techniqueFitScore ?? 0) *
             100 *
-            (input.techniqueFitSelectionWeight ?? 0),
+            (input.techniqueFitSelectionWeight ?? 0) -
+          (placementPenalty?.(candidate) ?? 0),
       }
     })
     .sort((a, b) => b.score - a.score)

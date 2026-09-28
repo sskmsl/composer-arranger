@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { MelodyNote } from "@/core/melody"
-import { observeClashes, observeParallels, observeRegister, perfectIntervalClass, silentShare, toGrid, topLine } from "./arrangementObservation"
+import { observeClashes, observeParallels, observeRegister, observeStack, perfectIntervalClass, silentShare, toGrid, topLine } from "./arrangementObservation"
 
 const n = (startBeat: number, pitch: number, durationBeats = 1): MelodyNote => ({
   id: `${startBeat}-${pitch}`, startBeat, durationBeats, pitch, velocity: 80, locks: [],
@@ -105,5 +105,20 @@ describe("アレンジの観測(記録用)", () => {
     // 演奏処理で数ミリ秒ずつずれた和音の音も、同じ開始としてまとめる
     expect(topLine([n(0, 60), n(.004, 67), n(.008, 64), n(1, 62)]).map((note) => note.pitch)).toEqual([67, 62])
     expect(silentShare([[n(0, 60, 1)], [n(2, 64, 1)]], 4)).toBeCloseTo(.5, 5)
+  })
+
+  it("重ねたレイヤーの取り合い: 同じ休みに入るレイヤー、頂点へ入るレイヤー、埋まった休みを数える", () => {
+    // 主旋律: 0〜2拍、(休み 2〜4拍)、4〜5拍の頂点、(休み 5〜8拍)
+    const lead = [n(0, 60, 2), n(4, 72, 1)]
+    const phrase = [n(2, 64, 1), n(5, 65, 1)]
+    const counter = [n(2.5, 55, 1.5), n(4, 57, 1)]
+    const result = observeStack(lead, [phrase, counter], 8)
+    expect(result.leadGaps).toBe(2)
+    // 2〜4拍の休みには2つのレイヤーが入る。5〜8拍は短いフレーズだけ
+    expect(result.contestedGaps).toBe(1)
+    // 2〜4拍は 2〜3 と 2.5〜4 で埋まる。5〜8拍は1拍だけ
+    expect(result.filledGaps).toBe(1)
+    // 頂点(4〜5拍)には対旋律だけが入る
+    expect(result).toMatchObject({ leadPeaks: 1, peaksEntered: 1, peakEntries: 1 })
   })
 })
