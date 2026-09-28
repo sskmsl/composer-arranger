@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
 import type { ChordEvent } from "@/core/project"
+import type { MelodyNote } from "@/core/melody"
 import { createEmptyProject } from "@/core/project"
 import { resolveMusicContext } from "@/core/musicContext"
 import { buildHarmonicMap, chordAtBeat } from "@/melody-engine/harmonicMap"
 import { isChordTone, isTensionTone } from "@/core/chord"
 import { pitchClass } from "@/core/note"
+import { applyPerformanceExecution, buildDefaultPerformancePlan } from "@/core/performanceExecution"
+import { toGrid } from "@/melody-engine/arrangementObservation"
 import {
   generatePhraseCandidates,
   phraseSimilarity,
@@ -229,5 +232,76 @@ describe("Phrase Generator", () => {
       versePlans.filter((plan) => plan.cadence === "resolved").length,
     )
     expect(versePlans.some((plan) => plan.cadence === "suspended" || plan.cadence === "carry-forward")).toBe(true)
+  })
+})
+
+describe("短いフレーズの配置: 主旋律の頂点と休み", () => {
+  // 主旋律: 1拍の音が続き、4〜6拍に最高音(頂点)がある
+  const lead = [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((beat) => ({
+    id: `lead${beat}`, startBeat: beat, durationBeats: beat === 4 ? 2 : 1, pitch: beat === 4 ? 76 : 69, velocity: 80, locks: [],
+  }))
+  // 観測(arrangementObservation)と同じく、開始を16分音符の格子に丸めて数える
+  const interiorPeakStarts = (notes: MelodyNote[]) =>
+    toGrid(notes).filter((note, index) => index > 0 && index < notes.length - 1 && note.startBeat >= 4 && note.startBeat < 6).length
+  // ストアと同じ演奏処理(短いフレーズは lead-focus)を通した、保存される音
+  const performed = (notes: MelodyNote[]) => applyPerformanceExecution(notes, buildDefaultPerformancePlan("lead-focus", "verse"), {
+    totalBeats: 16, beatsPerBar: 4, bpm: 96, chordBoundaryBeats: chords.map((chord) => chord.startBeat),
+  }).notes
+
+  it("既定は従来どおり(current)。配置の対応は比べるための切替", () => {
+    const byDefault = generatePhraseCandidates({ ...input(41), referenceMelody: lead })
+    const current = generatePhraseCandidates({ ...input(41), referenceMelody: lead, placement: "current" })
+    expect(byDefault.map((candidate) => candidate.notes)).toEqual(current.map((candidate) => candidate.notes))
+  })
+
+  it("both では、入りと終止以外の音を主旋律の頂点で始めない(保存される音を観測と同じ格子で数える)", () => {
+    for (const seed of [1, 3, 17, 41, 77, 101]) {
+      const candidates = generatePhraseCandidates({ ...input(seed), referenceMelody: lead, placement: "both" })
+      for (const candidate of candidates) {
+        expect(interiorPeakStarts(candidate.notes)).toBe(0)
+        expect(interiorPeakStarts(performed(candidate.notes))).toBe(0)
+      }
+    }
+  })
+
+  it("頂点の少し前(格子では頂点の拍)に始まる生の開始も、頂点で始まる音として削る", () => {
+    // seed 1 の候補には、生の開始が 3.89 拍で、演奏処理後に格子の4拍目へ乗る内側の音があった
+    const trimmed = generatePhraseCandidates({ ...input(1), referenceMelody: lead, placement: "both" })
+    for (const candidate of trimmed) {
+      const interior = candidate.notes.slice(1, -1)
+      expect(interior.some((note) => note.startBeat >= 3.875 && note.startBeat < 4 && Math.round(note.startBeat * 4) / 4 === 4)).toBe(false)
+    }
+  })
+
+  it("従来どおり(current)では頂点で始まる音が残る(比べるための基準)", () => {
+    const total = [3, 17, 41, 77, 101].reduce((sum, seed) =>
+      sum + generatePhraseCandidates({ ...input(seed), referenceMelody: lead, placement: "current" })
+        .reduce((inner, candidate) => inner + interiorPeakStarts(candidate.notes), 0), 0)
+    expect(total).toBeGreaterThan(0)
+  })
+
+  it("演奏処理で数ミリ秒後ろへずれた主旋律の頂点でも、同じ拍で始まる音を削る", () => {
+    // 頂点が4拍目より8ミリ秒ほど後ろから始まる(演奏処理後の主旋律)
+    const shifted = lead.map((note) => (note.startBeat === 4 ? { ...note, startBeat: 4.016, durationBeats: 1.96 } : note))
+    for (const seed of [3, 17, 41, 77, 101]) {
+      for (const candidate of generatePhraseCandidates({ ...input(seed), referenceMelody: shifted, placement: "both" })) {
+        expect(interiorPeakStarts(candidate.notes)).toBe(0)
+      }
+    }
+  })
+
+  it("主旋律がずっと最高音(同じ音の反復)でも、削って4音未満の候補にはしない", () => {
+    const flat = Array.from({ length: 16 }, (_, beat) => ({ id: `f${beat}`, startBeat: beat, durationBeats: 1, pitch: 69, velocity: 80, locks: [] }))
+    for (const seed of [3, 17, 41]) {
+      for (const candidate of generatePhraseCandidates({ ...input(seed), referenceMelody: flat, placement: "both" })) {
+        expect(candidate.notes.length).toBeGreaterThanOrEqual(4)
+      }
+    }
+  })
+
+  it("作り直しにも同じ対応をかける", () => {
+    const base = { ...input(41), referenceMelody: lead, placement: "both" as const }
+    const regenerated = regeneratePhraseCandidate(base, 41, [])
+    expect(interiorPeakStarts(regenerated.notes)).toBe(0)
   })
 })

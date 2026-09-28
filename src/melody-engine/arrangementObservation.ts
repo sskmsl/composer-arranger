@@ -1,4 +1,5 @@
 import type { MelodyNote } from "@/core/melody"
+import { analyzeMelodyActivity } from "./reactiveLayerAnalysis"
 
 /**
  * 記録用: アレンジのパート(イントロ・短いフレーズ・対旋律・装飾)と主旋律の関係を観測する。
@@ -241,4 +242,62 @@ export function silentShare(sourceLayers: readonly (readonly MelodyNote[])[], to
     if (!layers.some((notes) => soundingAt(notes, beat))) silent += 1
   }
   return steps > 0 ? silent / steps : 0
+}
+
+export interface StackObservation {
+  /** 主旋律の休み(0.5拍以上) */
+  leadGaps: number
+  /** 2つ以上のレイヤーが入る(その休みの中で音が始まる)休み。応答の位置の取り合い */
+  contestedGaps: number
+  /** 採用したレイヤーが合わせて 8割以上を埋める休み */
+  filledGaps: number
+  /** 主旋律の最高音(頂点)の音 */
+  leadPeaks: number
+  /** 頂点の音が鳴っている間に、いずれかのレイヤーの音が始まる頂点 */
+  peaksEntered: number
+  /** 頂点の音が鳴っている間に音が始まるレイヤーの数(頂点ごとの合計) */
+  peakEntries: number
+}
+
+/**
+ * 採用したレイヤーを重ねたときの、配置の取り合いを観測する(記録用)。
+ * 主旋律の休み・頂点は、主旋律を格子にそろえてから analyzeMelodyActivity で求める
+ */
+export function observeStack(lead: readonly MelodyNote[], layers: readonly (readonly MelodyNote[])[], totalBeats: number): StackObservation {
+  const gridLead = toGrid(lead)
+  const gridLayers = layers.map(toGrid).filter((notes) => notes.length > 0)
+  const activity = analyzeMelodyActivity(gridLead, totalBeats)
+  const startsWithin = (notes: readonly MelodyNote[], from: number, to: number) =>
+    notes.some((note) => note.startBeat >= from - 1e-6 && note.startBeat < to - 1e-6)
+  const covered = (from: number, to: number) => {
+    const intervals = gridLayers.flat()
+      .map((note) => [Math.max(from, note.startBeat), Math.min(to, note.startBeat + note.durationBeats)] as const)
+      .filter(([start, end]) => end > start)
+    let total = 0
+    let currentStart = -Infinity
+    let currentEnd = -Infinity
+    for (const [start, end] of [...intervals].sort((a, b) => a[0] - b[0])) {
+      if (start > currentEnd) {
+        if (currentEnd > currentStart) total += currentEnd - currentStart
+        currentStart = start
+        currentEnd = end
+      } else {
+        currentEnd = Math.max(currentEnd, end)
+      }
+    }
+    if (currentEnd > currentStart) total += currentEnd - currentStart
+    return total
+  }
+  const result: StackObservation = { leadGaps: activity.gaps.length, contestedGaps: 0, filledGaps: 0, leadPeaks: 0, peaksEntered: 0, peakEntries: 0 }
+  for (const gap of activity.gaps) {
+    if (gridLayers.filter((notes) => startsWithin(notes, gap.startBeat, gap.endBeat)).length >= 2) result.contestedGaps += 1
+    if (gap.durationBeats > 0 && covered(gap.startBeat, gap.endBeat) / gap.durationBeats >= .8) result.filledGaps += 1
+  }
+  for (const moment of activity.protectedMoments.filter((item) => item.reasons.includes("highest-note"))) {
+    result.leadPeaks += 1
+    const entering = gridLayers.filter((notes) => startsWithin(notes, moment.startBeat, moment.endBeat)).length
+    if (entering > 0) result.peaksEntered += 1
+    result.peakEntries += entering
+  }
+  return result
 }
