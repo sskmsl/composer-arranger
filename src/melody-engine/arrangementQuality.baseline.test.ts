@@ -3,6 +3,8 @@ import { writeFileSync } from "node:fs"
 import { parseChordInputText } from "@/core/chordInput"
 import { allUsablePitchClasses, isChordTone } from "@/core/chord"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
+import type { PhraseCandidate } from "@/core/phrase"
+import type { SignaturePhraseCandidate } from "@/core/signaturePhrase"
 import { createEmptyProject } from "@/core/project"
 import { parseKey, keyScalePitchClasses } from "@/core/scale"
 import type { SectionRole } from "@/core/section"
@@ -22,6 +24,7 @@ import { CLASSICAL_MODELS } from "./classicalModels"
 /**
  * 記録用(ARRANGEMENT_BASELINE_OUT を指定したときだけ動く): 主旋律と、アレンジの4パート(イントロ・短いフレーズ・対旋律・装飾)を
  * 同じ条件で作り、同じ物差しで数える。アプリと同じ入力の組み立て(generationInputs)を使う。
+ * イントロは単独と主旋律に重ねる条件、装飾は単独と採用済みのレイヤー(短いフレーズ・イントロ・対旋律の1案目)と組み合わせる条件でも数える。
  */
 const SONGS = [
   { key: "C", chords: "C | Am | F | G | C | Am | Dm G | C" },
@@ -32,13 +35,14 @@ const SONGS = [
 const SEEDS = [11, 22, 33]
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 
-type Part = "melody" | "signature" | "phrase" | "counter" | "decoration"
-interface Tally { candidates: number; notes: number; strong: number; strongChord: number; chromaticNonChord: number; isolated: number;
+type Part = "melody" | "signature 単独" | "signature 主旋律と重ねる" | "phrase" | "counter" | "decoration 単独" | "decoration 採用済みと組み合わせ"
+interface Tally { candidates: number; notes: number; lineNotes: number; otherLayerOverlap: number; otherLayerClash: number; strong: number; strongChord: number; chromaticNonChord: number; isolated: number;
   overlapNotes: number; semitoneClash: number; parallelPairs: number; parallels: number; classicalTotal: number; classicalCount: number; leadCrossing: number }
-const empty = (): Tally => ({ candidates: 0, notes: 0, strong: 0, strongChord: 0, chromaticNonChord: 0, isolated: 0, overlapNotes: 0, semitoneClash: 0,
+const empty = (): Tally => ({ candidates: 0, notes: 0, lineNotes: 0, otherLayerOverlap: 0, otherLayerClash: 0, strong: 0, strongChord: 0, chromaticNonChord: 0, isolated: 0, overlapNotes: 0, semitoneClash: 0,
   parallelPairs: 0, parallels: 0, classicalTotal: 0, classicalCount: 0, leadCrossing: 0 })
 
-function tally(t: Tally, notes: readonly MelodyNote[], lead: readonly MelodyNote[] | null, chordsText: string, key: string, totalBeats: number) {
+/** others: 主旋律のほかに同時に鳴る採用済みのレイヤー(組み合わせ条件だけ) */
+function tally(t: Tally, notes: readonly MelodyNote[], lead: readonly MelodyNote[] | null, chordsText: string, key: string, others: readonly MelodyNote[] = []) {
   const chords = parseChordInputText(chordsText, "s1", 4, "c")
   const map = buildHarmonicMap(chords)
   const scale = new Set(keyScalePitchClasses(key))
@@ -50,6 +54,7 @@ function tally(t: Tally, notes: readonly MelodyNote[], lead: readonly MelodyNote
   const line = [...byStart.values()].sort((a, b) => a.startBeat - b.startBeat)
   t.candidates += 1
   t.notes += notes.length
+  t.lineNotes += line.length
   for (const note of notes) {
     const entry = chordAtBeat(map, note.startBeat)
     if (!entry) continue
@@ -63,6 +68,9 @@ function tally(t: Tally, notes: readonly MelodyNote[], lead: readonly MelodyNote
       if (against.length > 0) t.overlapNotes += 1
       if (against.some((other) => [1, 11].includes(pc(note.pitch - other.pitch)))) t.semitoneClash += 1
     }
+    const againstOthers = others.filter((other) => Math.min(other.startBeat + other.durationBeats, note.startBeat + note.durationBeats) - Math.max(other.startBeat, note.startBeat) >= .5 - 1e-6)
+    if (againstOthers.length > 0) t.otherLayerOverlap += 1
+    if (againstOthers.some((other) => [1, 11].includes(pc(note.pitch - other.pitch)))) t.otherLayerClash += 1
   }
   t.isolated += line.filter((_, index) => isIsolatedLeap(line, index)).length
   if (lead && lead.length > 0) {
@@ -83,7 +91,6 @@ function tally(t: Tally, notes: readonly MelodyNote[], lead: readonly MelodyNote
     t.classicalTotal += classicalLikeness(measureMelodyCraft(line as MelodyNote[], chords, key), CLASSICAL_MODELS).score
     t.classicalCount += 1
   }
-  void totalBeats
 }
 
 it.runIf(Boolean(process.env.ARRANGEMENT_BASELINE_OUT))("アレンジの4パートを、主旋律と同じ物差しで数える(記録専用)", () => {
@@ -101,19 +108,48 @@ it.runIf(Boolean(process.env.ARRANGEMENT_BASELINE_OUT))("アレンジの4パー�
       drama: "growing", totalBeats: 32, seed, profiles: ["standard"], key: song.key,
       composerRules: resolvePublicComposerRules({ generatorTarget: "melody", sectionRole: role }),
     }).candidates[0].notes
-    tally(add("melody", role), melodyNotes, null, song.chords, song.key, 32)
+    tally(add("melody", role), melodyNotes, null, song.chords, song.key)
     const variant = { id: "lead", name: "lead", sectionId: "s1", sourceMode: "generate", notes: melodyNotes, phrasePlans: [], lockedBars: [], motifLocked: false,
       features: null, generatorVersion: "t", seed, songProfile: "original-custom", parentMelodyId: null, batchId: "b", createdAt: "2026-01-01T00:00:00.000Z" } as MelodyVariant
     project.melodyVariants = [variant]
     project.sectionMelodyAssignments = { s1: "lead" }
+    // イントロは、単独で鳴らす条件と、主旋律と同じセクションで重ねる条件の両方で数える(生成は主旋律を参照する)
     const signatureInput = signaturePhraseGenerationInput(project, "s1", settings, seed)
-    if (signatureInput) for (const candidate of generateSignaturePhraseCandidates(signatureInput)) tally(add("signature", role), candidate.notes, null, song.chords, song.key, 32)
+    const signatures = signatureInput ? generateSignaturePhraseCandidates(signatureInput) : []
+    for (const candidate of signatures) {
+      tally(add("signature 単独", role), candidate.notes, null, song.chords, song.key)
+      tally(add("signature 主旋律と重ねる", role), candidate.notes, melodyNotes, song.chords, song.key)
+    }
     const phraseInput = phraseGenerationInput(project, "s1", settings, seed)
-    if (phraseInput) for (const candidate of generatePhraseCandidates(phraseInput)) tally(add("phrase", role), candidate.notes, melodyNotes, song.chords, song.key, 32)
+    const phrases = phraseInput ? generatePhraseCandidates(phraseInput) : []
+    for (const candidate of phrases) tally(add("phrase", role), candidate.notes, melodyNotes, song.chords, song.key)
     const counterInput = counterGenerationInput(project, "s1", seed)
-    if (counterInput) for (const candidate of generateCounterCandidates(counterInput)) tally(add("counter", role), candidate.notes, melodyNotes, song.chords, song.key, 32)
+    const counters = counterInput ? generateCounterCandidates(counterInput) : []
+    for (const candidate of counters) tally(add("counter", role), candidate.notes, melodyNotes, song.chords, song.key)
     const decorationInput = decorationGenerationInput(project, "s1", seed, DEFAULT_DECORATION_SETTINGS)
-    if (decorationInput) for (const candidate of generateDecorationCandidates(decorationInput)) tally(add("decoration", role), candidate.notes, melodyNotes, song.chords, song.key, 32)
+    if (decorationInput) for (const candidate of generateDecorationCandidates(decorationInput)) tally(add("decoration 単独", role), candidate.notes, melodyNotes, song.chords, song.key)
+    // 組み合わせ条件: 短いフレーズ・イントロ・対旋律の1案目を採用した上で、装飾を作る(アプリの採用後の経路)
+    const combined = structuredClone(project)
+    const others: MelodyNote[] = []
+    if (phrases[0]) {
+      combined.phraseCandidates = [{ ...phrases[0], id: "phrase-1", batchId: "b", createdAt: "2026-01-01T00:00:00.000Z" } as PhraseCandidate]
+      combined.sectionPhraseAssignments = { s1: "phrase-1" }
+      others.push(...phrases[0].notes)
+    }
+    if (signatures[0]) {
+      combined.signaturePhraseCandidates = [{ ...signatures[0], id: "signature-1", batchId: "b", createdAt: "2026-01-01T00:00:00.000Z" } as SignaturePhraseCandidate]
+      combined.sectionSignaturePhraseAssignments = { s1: "signature-1" }
+      others.push(...signatures[0].notes)
+    }
+    if (counters[0]) {
+      combined.reactiveLayerCandidates = [counters[0]]
+      combined.sectionReactiveLayerAssignments = { s1: counters[0].id }
+      others.push(...counters[0].notes)
+    }
+    const combinedInput = decorationGenerationInput(combined, "s1", seed, DEFAULT_DECORATION_SETTINGS)
+    if (combinedInput) for (const candidate of generateDecorationCandidates(combinedInput)) {
+      tally(add("decoration 採用済みと組み合わせ", role), candidate.notes, melodyNotes, song.chords, song.key, others)
+    }
   }
   const r = (value: number) => Math.round(value * 1000) / 1000
   const report = Object.fromEntries(Object.entries(tallies).map(([name, t]) => [name, {
@@ -121,10 +157,12 @@ it.runIf(Boolean(process.env.ARRANGEMENT_BASELINE_OUT))("アレンジの4パー�
     notesPerCandidate: r(t.notes / t.candidates),
     strongBeatChordTone: r(t.strongChord / Math.max(1, t.strong)),
     chromaticNonChordPer100: r(100 * t.chromaticNonChord / Math.max(1, t.notes)),
-    isolatedLeapPer100: r(100 * t.isolated / Math.max(1, t.notes)),
+    // 飛び出す音は、同じ開始の音を最高音1つにした線で数えるので、分母もその線の音数
+    isolatedLeapPer100: r(100 * t.isolated / Math.max(1, t.lineNotes)),
     semitoneClashWithLeadShare: r(t.semitoneClash / Math.max(1, t.overlapNotes)),
     parallelPerfectWithLeadRate: r(t.parallels / Math.max(1, t.parallelPairs)),
-    aboveLeadShare: r(t.leadCrossing / Math.max(1, t.notes)),
+    aboveLeadShare: r(t.leadCrossing / Math.max(1, t.lineNotes)),
+    semitoneClashWithOtherLayersShare: t.otherLayerOverlap ? r(t.otherLayerClash / t.otherLayerOverlap) : null,
     classicalMean: t.classicalCount ? r(t.classicalTotal / t.classicalCount) : null,
     classicalCount: t.classicalCount,
   }]))
