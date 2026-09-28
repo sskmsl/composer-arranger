@@ -1794,17 +1794,18 @@ function buildCandidate(
     undefined,
     { preserveTerminalTension: plan.type === "transition-fill" },
   ).notes
-  const harmonic = harmonicFit(rawNotes, input.chords)
-  const transition = transitionQuality(rawNotes, plan)
-  const music = musicality(rawNotes, plan)
+  // 評価は、実際に返す音(和声の補正の後)にかける
+  const harmonic = harmonicFit(notes, input.chords)
+  const transition = transitionQuality(notes, plan)
+  const music = musicality(notes, plan)
   const melodyNotes = input.melodyNotes ?? []
-  const relationship = melodyRelationship(melodyNotes, rawNotes)
+  const relationship = melodyRelationship(melodyNotes, notes)
   const motifScore = music * 0.65 + relationship * 0.35
   const evaluated =
     melodyNotes.length > 0
       ? evaluateReactiveLayerQuality(
           melodyNotes,
-          rawNotes,
+          notes,
           analyzeMelodyActivity(melodyNotes, input.totalBeats),
           {
             harmonicFit: harmonic,
@@ -1833,12 +1834,12 @@ function buildCandidate(
         }
   const activeContextFit = assessReactiveActiveContextFit(
     input.existingSupportNotes ?? [],
-    rawNotes,
+    notes,
   )
   const negativeSpaceFit = assessReactiveNegativeSpaceFit(
     melodyNotes,
     input.existingSupportNotes ?? [],
-    rawNotes,
+    notes,
     input.totalBeats,
   )
   const candidateRole =

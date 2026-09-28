@@ -6,7 +6,12 @@ import {
   generateDecorationCandidates,
   type GenerateDecorationInput,
 } from "./decorationGenerator"
-import { unresolvedReactiveToneNoteIds } from "./reactiveLayerAnalysis"
+import {
+  analyzeMelodyActivity,
+  assessReactiveNegativeSpaceFit,
+  evaluateReactiveLayerQuality,
+  unresolvedReactiveToneNoteIds,
+} from "./reactiveLayerAnalysis"
 
 function input(
   patch: Partial<GenerateDecorationInput> = {},
@@ -39,8 +44,26 @@ function hasRoleAppropriateLength(
 }
 
 describe("Issue #71 / Structure Driven Decoration Generator", () => {
+  it("評価(衝突・余白)は、和声の補正の後の、実際に返す音にかける", () => {
+    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | Am", "verse", 4, "c")
+    const melody = [0, 2, 4, 8, 10, 12, 16, 18, 20, 24, 26, 28].map((beat, index) => ({
+      id: `m${beat}`, startBeat: beat, durationBeats: 1.5, pitch: [69, 72, 71, 69, 67, 65, 64, 65, 67, 69, 71, 69][index], velocity: 80, locks: [],
+    }))
+    const support = [{ id: "s0", startBeat: 0, durationBeats: 4, pitch: 57, velocity: 60, locks: [] }]
+    for (const seed of [3, 42, 77]) {
+      const candidates = generateDecorationCandidates(input({ chords, totalBeats: 32, melodyNotes: melody, existingSupportNotes: support, seed }))
+      for (const candidate of candidates) {
+        expect(candidate.negativeSpaceFit).toEqual(assessReactiveNegativeSpaceFit(melody, support, candidate.notes, 32))
+        const evaluated = evaluateReactiveLayerQuality(melody, candidate.notes, analyzeMelodyActivity(melody, 32), {
+          harmonicFit: 0, motifRelationship: 0, sectionFit: 0, transitionValue: 0,
+        })
+        expect(candidate.collisions).toEqual(evaluated.collisions)
+      }
+    }
+  })
+
   it("主旋律がなくても、全候補を最後の1小節へ集めず楽節の区切りへ散らす", () => {
-    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | E7", "verse", 8, "c")
+    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | E7", "verse", 4, "c")
     for (const sectionRole of ["verse", "chorus", "bridge"] as const) {
       const candidates = generateDecorationCandidates(input({ sectionRole, chords, totalBeats: 32 }))
       const placements = candidates.map((candidate) => candidate.decorationPlan?.placementBeat ?? -1)
@@ -51,7 +74,8 @@ describe("Issue #71 / Structure Driven Decoration Generator", () => {
   })
 
   it("主旋律がないOutroの終止の身振りは、セクションの末尾に置く", () => {
-    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | Am", "outro", 8, "c")
+    // 8小節 × 4拍。以前は1小節8拍として読んでいたので、32拍の区間の最後のコードが Am でなく G になっていた
+    const chords = parseChordInputText("Am | F | C | G | Dm | E7 | Am | Am", "outro", 4, "c")
     const candidates = generateDecorationCandidates(
       input({ sectionRole: "outro", chords, totalBeats: 32, nextSectionRole: undefined, isLastSection: true }),
     )
