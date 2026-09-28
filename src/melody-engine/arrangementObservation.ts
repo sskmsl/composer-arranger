@@ -9,16 +9,30 @@ import type { MelodyNote } from "@/core/melody"
 const pc = (pitch: number) => ((pitch % 12) + 12) % 12
 const OVERLAP_BEATS = .5 - 1e-6
 
+const GRID = 4
+const onGrid = (beat: number) => Math.round(beat * GRID) / GRID
+
+/**
+ * 開始と終わりを16分音符の格子に丸めた音。演奏処理は音ごとに開始を数ミリ秒前後させるので、
+ * 主旋律と各パートの関係は、両方を同じ格子へそろえてから比べる(丸めて長さが0になる音は1/8拍として残す)
+ */
+export function toGrid(notes: readonly MelodyNote[]): MelodyNote[] {
+  return notes.map((note) => {
+    const startBeat = onGrid(note.startBeat)
+    const endBeat = onGrid(note.startBeat + note.durationBeats)
+    return { ...note, startBeat, durationBeats: Math.max(.125, endBeat - startBeat) }
+  })
+}
+
 /**
  * 同じ開始の音は最高音1つにした線(和音の素材を1本の線として見る代理。モチーフの核や持続する内声そのものではない)。
  * 演奏処理は和音の音ごとに数ミリ秒ずつ開始をずらすので、開始は16分音符の格子に丸めてまとめる
  */
 export function topLine(notes: readonly MelodyNote[]): MelodyNote[] {
   const byStart = new Map<number, MelodyNote>()
-  for (const note of notes) {
-    const start = Math.round(note.startBeat * 4) / 4
-    const current = byStart.get(start)
-    if (!current || current.pitch < note.pitch) byStart.set(start, note)
+  for (const note of toGrid(notes)) {
+    const current = byStart.get(note.startBeat)
+    if (!current || current.pitch < note.pitch) byStart.set(note.startBeat, note)
   }
   return [...byStart.values()].sort((a, b) => a.startBeat - b.startBeat)
 }
@@ -46,8 +60,10 @@ export interface ParallelObservation {
 }
 
 /** 主旋律との平行5度・8度。音程は絶対音程で判定する(下声・上声のどちらでも同じ) */
-export function observeParallels(line: readonly MelodyNote[], lead: readonly MelodyNote[]): ParallelObservation {
+export function observeParallels(sourceLine: readonly MelodyNote[], sourceLead: readonly MelodyNote[]): ParallelObservation {
   const result: ParallelObservation = { movingPairs: 0, similarMotionPairs: 0, parallelPerfect: 0 }
+  const line = toGrid(sourceLine)
+  const lead = toGrid(sourceLead)
   for (let index = 1; index < line.length; index += 1) {
     const a = line[index - 1]
     const b = line[index]
@@ -78,7 +94,7 @@ export interface ClashObservation {
   majorSeventh: number
   /** 短9度・長14度などの複音程で重なる音 */
   compound: number
-  /** 短2度の重なりのうち、拍の頭(16分音符の格子に丸めた整数拍)で始まるもの */
+  /** 短2度の重なりのうち、重なりが拍の頭(格子上の整数拍)で始まるもの */
   minorSecondOnBeat: number
   /** 短2度の重なりのうち、次の異なる開始でパートが1〜2半音動き、そのとき鳴っている相手の音と短2度でなくなったもの(進む先が短2度のままや、相手が動いて短2度が続く場合は数えない) */
   minorSecondResolved: number
@@ -108,11 +124,13 @@ function unionLength(intervals: readonly (readonly [number, number])[]): number 
  * 重なりの拍数は、重なる相手が替わっても区間の和集合で数える。
  * 解決は、次の異なる開始(16分音符の格子)でパートの音が1〜2半音動き、そのとき鳴っている相手の音と短2度でなくなった場合だけ数える
  */
-export function observeClashes(notes: readonly MelodyNote[], others: readonly MelodyNote[]): ClashObservation {
+export function observeClashes(sourceNotes: readonly MelodyNote[], sourceOthers: readonly MelodyNote[]): ClashObservation {
   const result: ClashObservation = {
     overlapNotes: 0, overlapBeats: 0, minorSecond: 0, minorSecondBeats: 0, majorSeventh: 0, compound: 0, minorSecondOnBeat: 0, minorSecondResolved: 0,
   }
-  const grid = (beat: number) => Math.round(beat * 4) / 4
+  const notes = toGrid(sourceNotes)
+  const others = toGrid(sourceOthers)
+  const grid = onGrid
   for (const note of notes) {
     const end = note.startBeat + note.durationBeats
     // 正の交差区間を先に集め、和集合の長さにしてから 0.5拍の閾値を当てる(短い相手が続く場合も落とさない)
@@ -140,7 +158,9 @@ export function observeClashes(notes: readonly MelodyNote[], others: readonly Me
       result.minorSecond += 1
       result.minorSecondBeats += minorSecondBeats
       const nominal = grid(note.startBeat)
-      if (Math.abs(nominal - Math.round(nominal)) < 1e-6) result.minorSecondOnBeat += 1
+      // 拍の頭かどうかは、短2度の重なりが実際に始まる位置で判定する
+      const clashStart = Math.min(...minorSecond.map(({ from }) => from))
+      if (Math.abs(clashStart - Math.round(clashStart)) < 1e-6) result.minorSecondOnBeat += 1
       // 次の異なる開始で鳴るパートの音のうち、この音にいちばん近い音を、この音の進む先とみなす
       const nextStart = notes.map((other) => grid(other.startBeat)).filter((start) => start > nominal + 1e-6).sort((a, b) => a - b)[0]
       const next = nextStart === undefined ? undefined : notes
@@ -166,8 +186,10 @@ export interface RegisterObservation {
 }
 
 /** 主旋律との上下関係。上にある割合と、上下が入れ替わる交差を分けて残す */
-export function observeRegister(line: readonly MelodyNote[], lead: readonly MelodyNote[]): RegisterObservation {
+export function observeRegister(sourceLine: readonly MelodyNote[], sourceLead: readonly MelodyNote[]): RegisterObservation {
   const result: RegisterObservation = { compared: 0, above: 0, crossings: 0 }
+  const line = toGrid(sourceLine)
+  const lead = toGrid(sourceLead)
   let previousSide = 0
   let previousBeat: number | null = null
   for (const note of line) {
@@ -200,7 +222,8 @@ export function observeRegister(line: readonly MelodyNote[], lead: readonly Melo
 }
 
 /** 区間のうち、どの音も鳴っていない拍の割合(16分音符の格子で数える) */
-export function silentShare(layers: readonly (readonly MelodyNote[])[], totalBeats: number): number {
+export function silentShare(sourceLayers: readonly (readonly MelodyNote[])[], totalBeats: number): number {
+  const layers = sourceLayers.map(toGrid)
   const steps = Math.round(totalBeats * 4)
   let silent = 0
   for (let step = 0; step < steps; step += 1) {

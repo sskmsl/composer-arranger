@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { MelodyNote } from "@/core/melody"
-import { observeClashes, observeParallels, observeRegister, perfectIntervalClass, silentShare, topLine } from "./arrangementObservation"
+import { observeClashes, observeParallels, observeRegister, perfectIntervalClass, silentShare, toGrid, topLine } from "./arrangementObservation"
 
 const n = (startBeat: number, pitch: number, durationBeats = 1): MelodyNote => ({
   id: `${startBeat}-${pitch}`, startBeat, durationBeats, pitch, velocity: 80, locks: [],
@@ -64,6 +64,20 @@ describe("アレンジの観測(記録用)", () => {
     const both = observeClashes([n(0, 61, 2)], [n(0, 60, 1), n(1, 50, 1)])
     expect(both.minorSecond).toBe(1)
     expect(both.majorSeventh).toBe(1)
+  })
+
+  it("演奏処理で数ミリ秒ずれた開始も、主旋律と同じ格子へそろえて比べる", () => {
+    // パートの2拍目の音が主旋律より6ミリ秒早く始まっても、同じ拍の音どうしで平行5度を判定する
+    expect(observeParallels([n(0, 53), n(.994, 55)], [n(0, 60), n(1.004, 62)]).parallelPerfect).toBe(1)
+    expect(observeRegister([n(.996, 64)], [n(0, 60, 1), n(1.004, 62, 1)])).toEqual({ compared: 1, above: 1, crossings: 0 })
+    expect(toGrid([n(.994, 60, .5)])[0]).toMatchObject({ startBeat: 1, durationBeats: .5 })
+  })
+
+  it("短2度が拍の頭で始まるかは、重なりが始まる位置で判定する", () => {
+    // パートは0.5拍から持続し、主旋律が1拍目で短2度へ移る: 拍の頭の衝突
+    expect(observeClashes([n(.5, 61, 1.5)], [n(0, 64, 1), n(1, 60, 1)]).minorSecondOnBeat).toBe(1)
+    // パートは拍の頭で始まるが、主旋律が1.5拍目で短2度へ移る: 拍の頭ではない
+    expect(observeClashes([n(1, 61, 1)], [n(0, 64, 1.5), n(1.5, 60, .5)]).minorSecondOnBeat).toBe(0)
   })
 
   it("上にある割合と、上下が入れ替わる交差を分けて数える", () => {
