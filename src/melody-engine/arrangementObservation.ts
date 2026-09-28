@@ -157,12 +157,12 @@ export function observeClashes(sourceNotes: readonly MelodyNote[], sourceOthers:
     if (minorSecondBeats >= OVERLAP_BEATS) {
       result.minorSecond += 1
       result.minorSecondBeats += minorSecondBeats
-      const nominal = grid(note.startBeat)
       // 拍の頭かどうかは、短2度の重なりが実際に始まる位置で判定する
       const clashStart = Math.min(...minorSecond.map(({ from }) => from))
       if (Math.abs(clashStart - Math.round(clashStart)) < 1e-6) result.minorSecondOnBeat += 1
-      // 次の異なる開始で鳴るパートの音のうち、この音にいちばん近い音を、この音の進む先とみなす
-      const nextStart = notes.map((other) => grid(other.startBeat)).filter((start) => start > nominal + 1e-6).sort((a, b) => a - b)[0]
+      // 短2度が始まった後の、次の異なる開始で鳴るパートの音のうち、この音にいちばん近い音を、この音の進む先とみなす
+      // 解決の候補は、短2度が始まった後の最初の開始だけ(衝突より前に入った音を解決に数えない)
+      const nextStart = notes.map((other) => grid(other.startBeat)).filter((start) => start > clashStart + 1e-6).sort((a, b) => a - b)[0]
       const next = nextStart === undefined ? undefined : notes
         .filter((other) => Math.abs(grid(other.startBeat) - nextStart) < 1e-6)
         .sort((a, b) => Math.abs(a.pitch - note.pitch) - Math.abs(b.pitch - note.pitch))[0]

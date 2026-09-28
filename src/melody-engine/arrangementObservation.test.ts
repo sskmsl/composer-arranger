@@ -49,6 +49,8 @@ describe("アレンジの観測(記録用)", () => {
     const held = observeClashes([n(0, 60, 2)], [n(0, 61, 1), n(1, 59, 1)])
     expect(held.minorSecond).toBe(1)
     expect(held.minorSecondResolved).toBe(0)
+    // パートの音が0拍から持続し、別のパートの音が1拍目に入り、主旋律との短2度は2拍目から: 1拍目の音は解決に数えない
+    expect(observeClashes([n(0, 61, 3), n(1, 63, 1)], [n(0, 66, 2), n(2, 60, 1)]).minorSecondResolved).toBe(0)
     // 同じ開始の和音の別の音は、進む先にしない(次の異なる開始で判定する)
     expect(observeClashes([n(0, 61, 1), n(0, 62, 1), n(1, 61, 1)], others).minorSecondResolved).toBe(0)
   })
