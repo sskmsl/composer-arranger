@@ -84,37 +84,72 @@ export interface ClashObservation {
   minorSecondResolved: number
 }
 
-/** 他の音との半音系のぶつかり。実際の音域の間隔・長さ・拍の位置・解決を分けて残す */
+/** 区間の和集合の長さ(重なる区間は1回だけ数える) */
+function unionLength(intervals: readonly (readonly [number, number])[]): number {
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0])
+  let total = 0
+  let currentStart = -Infinity
+  let currentEnd = -Infinity
+  for (const [start, end] of sorted) {
+    if (start > currentEnd) {
+      if (currentEnd > currentStart) total += currentEnd - currentStart
+      currentStart = start
+      currentEnd = end
+    } else {
+      currentEnd = Math.max(currentEnd, end)
+    }
+  }
+  if (currentEnd > currentStart) total += currentEnd - currentStart
+  return total
+}
+
+/**
+ * 他の音との半音系のぶつかり。実際の音域の間隔・長さ・拍の位置・解決を分けて残す。
+ * 重なりの拍数は、重なる相手が替わっても区間の和集合で数える。
+ * 解決は、次の異なる開始(16分音符の格子)でパートの音が1〜2半音動き、そのとき鳴っている相手の音と短2度でなくなった場合だけ数える
+ */
 export function observeClashes(notes: readonly MelodyNote[], others: readonly MelodyNote[]): ClashObservation {
   const result: ClashObservation = {
     overlapNotes: 0, overlapBeats: 0, minorSecond: 0, minorSecondBeats: 0, majorSeventh: 0, compound: 0, minorSecondOnBeat: 0, minorSecondResolved: 0,
   }
-  const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
-  sorted.forEach((note, index) => {
+  const grid = (beat: number) => Math.round(beat * 4) / 4
+  for (const note of notes) {
+    const end = note.startBeat + note.durationBeats
     const overlaps = others
       .map((other) => ({
         other,
-        beats: Math.min(other.startBeat + other.durationBeats, note.startBeat + note.durationBeats) - Math.max(other.startBeat, note.startBeat),
+        from: Math.max(other.startBeat, note.startBeat),
+        to: Math.min(other.startBeat + other.durationBeats, end),
       }))
-      .filter(({ beats }) => beats >= OVERLAP_BEATS)
-    if (overlaps.length === 0) return
+      .filter(({ from, to }) => to - from >= OVERLAP_BEATS)
+    if (overlaps.length === 0) continue
     result.overlapNotes += 1
-    result.overlapBeats += Math.max(...overlaps.map(({ beats }) => beats))
-    const distances = overlaps.map(({ other, beats }) => ({ distance: Math.abs(note.pitch - other.pitch), beats }))
-    const minorSecond = distances.filter(({ distance }) => distance === 1)
+    result.overlapBeats += unionLength(overlaps.map(({ from, to }) => [from, to] as const))
+    const minorSecond = overlaps.filter(({ other }) => Math.abs(note.pitch - other.pitch) === 1)
     if (minorSecond.length > 0) {
       result.minorSecond += 1
-      result.minorSecondBeats += Math.max(...minorSecond.map(({ beats }) => beats))
-      const nominal = Math.round(note.startBeat * 4) / 4
+      result.minorSecondBeats += unionLength(minorSecond.map(({ from, to }) => [from, to] as const))
+      const nominal = grid(note.startBeat)
       if (Math.abs(nominal - Math.round(nominal)) < 1e-6) result.minorSecondOnBeat += 1
-      const next = sorted[index + 1]
-      if (next && next.pitch !== note.pitch && Math.abs(next.pitch - note.pitch) <= 2) result.minorSecondResolved += 1
-    } else if (distances.some(({ distance }) => distance === 11)) {
+      // 次の異なる開始で鳴るパートの音のうち、この音にいちばん近い音を、この音の進む先とみなす
+      const nextStart = notes.map((other) => grid(other.startBeat)).filter((start) => start > nominal + 1e-6).sort((a, b) => a - b)[0]
+      const next = nextStart === undefined ? undefined : notes
+        .filter((other) => Math.abs(grid(other.startBeat) - nextStart) < 1e-6)
+        .sort((a, b) => Math.abs(a.pitch - note.pitch) - Math.abs(b.pitch - note.pitch))[0]
+      if (next) {
+        const move = Math.abs(next.pitch - note.pitch)
+        const against = soundingAt(others, next.startBeat)
+        if (move >= 1 && move <= 2 && against && Math.abs(next.pitch - against.pitch) !== 1) result.minorSecondResolved += 1
+      }
+    } else if (overlaps.some(({ other }) => Math.abs(note.pitch - other.pitch) === 11)) {
       result.majorSeventh += 1
-    } else if (distances.some(({ distance }) => distance > 12 && [1, 11].includes(distance % 12))) {
+    } else if (overlaps.some(({ other }) => {
+      const distance = Math.abs(note.pitch - other.pitch)
+      return distance > 12 && [1, 11].includes(distance % 12)
+    })) {
       result.compound += 1
     }
-  })
+  }
   return result
 }
 
@@ -123,7 +158,7 @@ export interface RegisterObservation {
   compared: number
   /** そのうち主旋律より上の音 */
   above: number
-  /** 比べられた音が続く所で、主旋律との上下が入れ替わった回数(同じ高さは入れ替わりに数えない) */
+  /** 比べられた音が続く所で、主旋律との上下が入れ替わった回数(同じ高さは入れ替わりに数えない。主旋律の休みで続きを切る) */
   crossings: number
 }
 
@@ -131,9 +166,25 @@ export interface RegisterObservation {
 export function observeRegister(line: readonly MelodyNote[], lead: readonly MelodyNote[]): RegisterObservation {
   const result: RegisterObservation = { compared: 0, above: 0, crossings: 0 }
   let previousSide = 0
+  let previousBeat: number | null = null
   for (const note of line) {
     const other = soundingAt(lead, note.startBeat)
-    if (!other) continue
+    // 主旋律が鳴っていない所では上下を比べられないので、続きを切る(休みの間に入れ替わったかは観測できない)
+    if (!other) {
+      previousSide = 0
+      previousBeat = null
+      continue
+    }
+    // 前に比べた音からこの音までの間に主旋律の休みがあれば、そこでも続きを切る
+    if (previousBeat !== null) {
+      for (let beat = previousBeat; beat < note.startBeat - 1e-6; beat += .25) {
+        if (!soundingAt(lead, beat + 1e-3)) {
+          previousSide = 0
+          break
+        }
+      }
+    }
+    previousBeat = note.startBeat
     result.compared += 1
     const side = Math.sign(note.pitch - other.pitch)
     if (side > 0) result.above += 1
