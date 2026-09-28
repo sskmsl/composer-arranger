@@ -80,7 +80,7 @@ export interface ClashObservation {
   compound: number
   /** 短2度の重なりのうち、拍の頭(16分音符の格子に丸めた整数拍)で始まるもの */
   minorSecondOnBeat: number
-  /** 短2度の重なりのうち、次の音が2半音以内に動いて解決するもの */
+  /** 短2度の重なりのうち、次の異なる開始でパートが1〜2半音動き、そのとき鳴っている相手の音と短2度でなくなったもの(進む先が短2度のままや、相手が動いて短2度が続く場合は数えない) */
   minorSecondResolved: number
 }
 

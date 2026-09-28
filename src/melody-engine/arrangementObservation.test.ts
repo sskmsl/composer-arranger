@@ -45,6 +45,10 @@ describe("アレンジの観測(記録用)", () => {
     expect(observeClashes([n(1.75, 61, 1)], others).overlapNotes).toBe(0)
     // 相手も一緒に動いて短2度が続くときは、解決に数えない
     expect(observeClashes([n(0, 61, 1), n(1, 63, 1)], [n(0, 60, 1), n(1, 62, 1)]).minorSecondResolved).toBe(0)
+    // C4 を2拍保ち、相手が C#4→B3 と動く: どちらも短2度のままなので解決ではない
+    const held = observeClashes([n(0, 60, 2)], [n(0, 61, 1), n(1, 59, 1)])
+    expect(held.minorSecond).toBe(1)
+    expect(held.minorSecondResolved).toBe(0)
     // 同じ開始の和音の別の音は、進む先にしない(次の異なる開始で判定する)
     expect(observeClashes([n(0, 61, 1), n(0, 62, 1), n(1, 61, 1)], others).minorSecondResolved).toBe(0)
   })
