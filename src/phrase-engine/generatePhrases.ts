@@ -545,6 +545,9 @@ function complementaryPhraseRange(
   return range
 }
 
+/** 短いフレーズとして点数を付ける最小の音数(scorePhrase と同じ) */
+const MINIMUM_PHRASE_NOTES = 4
+
 /** 既定の配置の対応。確認用の条件で4案を比べて both を選んだ(docs/arrangement-placement.md) */
 const PHRASE_PLACEMENT_DEFAULT: PhrasePlacement = "both"
 
@@ -734,13 +737,14 @@ function buildPhrase(input: GeneratePhrasesInput, seed: number, poolIndex: numbe
           return result
         }, [])
 
-  // 主旋律の頂点(最高音)が鳴っている間に始まる音を削る。最初と最後の音(入りと終止)は残す
+  // 主旋律の頂点(最高音)が鳴っている間に始まる音を削る。最初と最後の音(入りと終止)は残し、4音未満になるなら削らない
   const placement = input.placement ?? PHRASE_PLACEMENT_DEFAULT
   if ((placement === "trim" || placement === "both") && articulatedNotes.length > 2) {
     const peaks = leadPeakMoments(input.referenceMelody ?? [], input.totalBeats)
     const kept = articulatedNotes.filter((note, index) =>
       index === 0 || index === articulatedNotes.length - 1 || !startsInPeak(note, peaks))
-    if (kept.length >= 2) articulatedNotes.splice(0, articulatedNotes.length, ...kept)
+    // scorePhrase は4音未満の候補を0点にするので、4音未満になる削り方はしない
+    if (kept.length >= MINIMUM_PHRASE_NOTES) articulatedNotes.splice(0, articulatedNotes.length, ...kept)
   }
 
   if (articulatedNotes.length > 0) {
@@ -816,7 +820,7 @@ export function scorePhrase(
   phraseLengthBeats: number,
   context: { referenceMelody?: readonly MelodyNote[]; supportNotesPerBeat?: number; musicContext?: ResolvedMusicContext } = {},
 ): number {
-  if (notes.length < 4) return 0
+  if (notes.length < MINIMUM_PHRASE_NOTES) return 0
   const strongNotes = notes.filter((note) => Math.abs(note.startBeat - Math.round(note.startBeat)) < 0.06)
   const strongFit =
     strongNotes.filter((note) => {

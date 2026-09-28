@@ -264,6 +264,15 @@ describe("短いフレーズの配置: 主旋律の頂点と休み", () => {
     }
   })
 
+  it("主旋律がずっと最高音(同じ音の反復)でも、削って4音未満の候補にはしない", () => {
+    const flat = Array.from({ length: 16 }, (_, beat) => ({ id: `f${beat}`, startBeat: beat, durationBeats: 1, pitch: 69, velocity: 80, locks: [] }))
+    for (const seed of [3, 17, 41]) {
+      for (const candidate of generatePhraseCandidates({ ...input(seed), referenceMelody: flat })) {
+        expect(candidate.notes.length).toBeGreaterThanOrEqual(4)
+      }
+    }
+  })
+
   it("作り直しにも同じ対応をかける", () => {
     const base = { ...input(41), referenceMelody: lead }
     const regenerated = regeneratePhraseCandidate(base, 41, [])
