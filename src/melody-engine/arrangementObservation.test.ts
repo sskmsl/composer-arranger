@@ -51,6 +51,10 @@ describe("アレンジの観測(記録用)", () => {
     expect(held.minorSecondResolved).toBe(0)
     // パートの音が0拍から持続し、別のパートの音が1拍目に入り、主旋律との短2度は2拍目から: 1拍目の音は解決に数えない
     expect(observeClashes([n(0, 61, 3), n(1, 63, 1)], [n(0, 66, 2), n(2, 60, 1)]).minorSecondResolved).toBe(0)
+    // C#4 を0〜3拍保ち、主旋律の C4 との短2度が2拍目から続く間に D4 が2.5拍目で加わる: 元の音が鳴っているので解決ではない
+    expect(observeClashes([n(0, 61, 3), n(2.5, 62, .5)], [n(0, 55, 2), n(2, 60, 1)]).minorSecondResolved).toBe(0)
+    // 元の音が鳴り終わった後に1〜2半音動き、短2度でなくなれば解決
+    expect(observeClashes([n(0, 61, 1), n(1, 62, 1)], [n(0, 60, 2)]).minorSecondResolved).toBe(1)
     // 同じ開始の和音の別の音は、進む先にしない(次の異なる開始で判定する)
     expect(observeClashes([n(0, 61, 1), n(0, 62, 1), n(1, 61, 1)], others).minorSecondResolved).toBe(0)
   })

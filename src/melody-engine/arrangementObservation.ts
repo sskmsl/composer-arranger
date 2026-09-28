@@ -96,7 +96,7 @@ export interface ClashObservation {
   compound: number
   /** 短2度の重なりのうち、重なりが拍の頭(格子上の整数拍)で始まるもの */
   minorSecondOnBeat: number
-  /** 短2度の重なりのうち、次の異なる開始でパートが1〜2半音動き、そのとき鳴っている相手の音と短2度でなくなったもの(進む先が短2度のままや、相手が動いて短2度が続く場合は数えない) */
+  /** 短2度の重なりのうち、その音が鳴り終わった後の最初の開始でパートが1〜2半音動き、そのとき鳴っている相手の音と短2度でなくなったもの(進む先が短2度のままや、相手が動いて短2度が続く場合、元の音がまだ鳴っている間に加わった音は数えない) */
   minorSecondResolved: number
 }
 
@@ -160,9 +160,12 @@ export function observeClashes(sourceNotes: readonly MelodyNote[], sourceOthers:
       // 拍の頭かどうかは、短2度の重なりが実際に始まる位置で判定する
       const clashStart = Math.min(...minorSecond.map(({ from }) => from))
       if (Math.abs(clashStart - Math.round(clashStart)) < 1e-6) result.minorSecondOnBeat += 1
-      // 短2度が始まった後の、次の異なる開始で鳴るパートの音のうち、この音にいちばん近い音を、この音の進む先とみなす
-      // 解決の候補は、短2度が始まった後の最初の開始だけ(衝突より前に入った音を解決に数えない)
-      const nextStart = notes.map((other) => grid(other.startBeat)).filter((start) => start > clashStart + 1e-6).sort((a, b) => a - b)[0]
+      // 進む先は、この音が鳴り終わった後(格子上)の最初の開始で鳴るパートの音のうち、この音にいちばん近い音とみなす。
+      // 衝突より前に入った音や、この音がまだ鳴っている間に加わった音は、解決に数えない
+      const ends = grid(note.startBeat + note.durationBeats)
+      const nextStart = notes.map((other) => grid(other.startBeat))
+        .filter((start) => start > clashStart + 1e-6 && start >= ends - 1e-6)
+        .sort((a, b) => a - b)[0]
       const next = nextStart === undefined ? undefined : notes
         .filter((other) => Math.abs(grid(other.startBeat) - nextStart) < 1e-6)
         .sort((a, b) => Math.abs(a.pitch - note.pitch) - Math.abs(b.pitch - note.pitch))[0]
