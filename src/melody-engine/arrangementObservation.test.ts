@@ -93,6 +93,8 @@ describe("アレンジの観測(記録用)", () => {
     // 主旋律の休みを挟んだ前後で上下が違うだけなら、交差に数えない
     const gapped = observeRegister([n(0, 64), n(2, 60)], [n(0, 62, 1), n(2, 62, 1)])
     expect(gapped).toEqual({ compared: 2, above: 1, crossings: 0 })
+    // パート自身が休んだ後で上下が違っても、交差に数えない(主旋律は持続している)
+    expect(observeRegister([n(0, 64, 1), n(2, 60, 1)], [n(0, 62, 3)])).toEqual({ compared: 2, above: 1, crossings: 0 })
     // 主旋律の休みの間に鳴ったパートの音(比べられない音)も、続きを切る
     const throughRest = observeRegister([n(0, 64), n(1, 65), n(2, 60)], [n(0, 62, 1), n(2, 62, 1)])
     expect(throughRest).toEqual({ compared: 2, above: 1, crossings: 0 })

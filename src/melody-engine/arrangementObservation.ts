@@ -184,7 +184,7 @@ export interface RegisterObservation {
   compared: number
   /** そのうち主旋律より上の音 */
   above: number
-  /** 比べられた音が続く所で、主旋律との上下が入れ替わった回数(同じ高さは入れ替わりに数えない。主旋律の休みで続きを切る) */
+  /** 比べられた音が続く所で、主旋律との上下が入れ替わった回数(同じ高さは入れ替わりに数えない。主旋律の休み・パート自身の休みで続きを切る) */
   crossings: number
 }
 
@@ -195,7 +195,14 @@ export function observeRegister(sourceLine: readonly MelodyNote[], sourceLead: r
   const lead = toGrid(sourceLead)
   let previousSide = 0
   let previousBeat: number | null = null
+  let previousPartEnd: number | null = null
   for (const note of line) {
+    // パート自身の休みを挟んだ所でも、続きを切る(休みの間にいつ入れ替わったかは観測できない)
+    if (previousPartEnd !== null && note.startBeat > previousPartEnd + 1e-6) {
+      previousSide = 0
+      previousBeat = null
+    }
+    previousPartEnd = previousPartEnd === null ? note.startBeat + note.durationBeats : Math.max(previousPartEnd, note.startBeat + note.durationBeats)
     const other = soundingAt(lead, note.startBeat)
     // 主旋律が鳴っていない所では上下を比べられないので、続きを切る(休みの間に入れ替わったかは観測できない)
     if (!other) {
