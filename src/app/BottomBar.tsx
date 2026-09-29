@@ -13,6 +13,7 @@ import { leadNotesForAudition } from "@/core/auditionMaterial"
 import { parseTimeSignature } from "@/core/section"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
 import { applyArrangementTimelineToSectionEvents } from "@/core/arrangementTimelineConstraints"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 export function BottomBar() {
   const project = useProjectStore((s) => s.project)
@@ -186,6 +187,7 @@ export function BottomBar() {
     if (!hasPlayableMaterial || !selectedSectionId || !section) return
     const exportVariant = variant ? replaceVariantNotes(variant, leadNotes) : undefined
     const bytes = exportMelodyMidi({
+      gmPrograms: gmExportPrograms(),
       title: project.title,
       sectionName: section.name,
       tempo: project.song.tempo,

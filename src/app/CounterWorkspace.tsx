@@ -29,6 +29,7 @@ import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
 import { CandidatePicker } from "./CandidatePicker"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 const STYLE_LABELS: Record<string, string> = {
   "bell-response": "ベル",
@@ -179,6 +180,7 @@ export function CounterWorkspace({ onNavigate }: { onNavigate?: (tab: MainTab) =
 
   const exportCandidate = (candidate: ReactiveLayerCandidate) => {
     const bytes = exportMelodyMidi({
+      gmPrograms: gmExportPrograms(),
       title: project.title,
       sectionName: `${section.name} Counter`,
       tempo: project.song.tempo,

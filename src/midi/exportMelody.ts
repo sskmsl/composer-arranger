@@ -1,5 +1,7 @@
 import { songTempoChanges } from "@/core/tempoMap"
-import { arrangementSmfTracks } from "./exportArrangement"
+import { arrangementSoundedTracks } from "./exportArrangement"
+import type { SoundPart, SoundSettings } from "@/core/gmInstruments"
+import { withGmSounds, type SoundedTrack } from "./gmExport"
 import { effectiveSectionKey, type ChordEvent, type ComposerProject } from "@/core/project"
 import { keySignatureOf } from "@/core/scale"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
@@ -36,6 +38,12 @@ export interface ExportMelodyOptions {
   reactiveNotes?: MelodyNote[]
   reactiveTrackName?: string
   includeChords: boolean
+  /** GM向けの書き出しのときだけ渡す(パートごとの楽器番号)。省略時は Logic向け(全トラック チャンネル1・楽器指定なし) */
+  gmPrograms?: SoundSettings["programs"]
+  /** 主旋律のトラックに入れた音のパート(短いフレーズ・イントロの書き出しなど)。既定は主旋律 */
+  leadPart?: SoundPart
+  /** reactiveNotes のパート。既定は対旋律 */
+  reactivePart?: SoundPart
   /** 指定するとその範囲(セクション相対拍)のみ書き出す */
   range?: { startBeat: number; endBeat: number }
 }
@@ -66,23 +74,23 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
   const accompanimentPatternNotes = (opts.accompanimentPatternNotes ?? []).filter(inRange)
   const reactiveNotes = (opts.reactiveNotes ?? []).filter(inRange)
 
-  const tracks: SmfTrack[] =
+  const tracks: SoundedTrack[] =
     opts.includeLeadTrack === false
       ? []
-      : [{ name: opts.leadTrackName ?? "Active Melody", notes: leadNotes.map(toSmfNote) }]
+      : [{ sound: opts.leadPart ?? "melody", track: { name: opts.leadTrackName ?? "Active Melody", notes: leadNotes.map(toSmfNote) } }]
   if (accompanimentNotes.length > 0) {
-    tracks.push({ name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote) })
+    tracks.push({ sound: "accompaniment", track: { name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote) } })
   }
   if (accompanimentPatternNotes.length > 0) {
     tracks.push({
-      name: "Accompaniment Pattern",
-      notes: accompanimentPatternNotes.map(toSmfNote),
+      sound: "accompaniment",
+      track: { name: "Accompaniment Pattern", notes: accompanimentPatternNotes.map(toSmfNote) },
     })
   }
   if (reactiveNotes.length > 0) {
     tracks.push({
-      name: opts.reactiveTrackName ?? "Counter Melody",
-      notes: reactiveNotes.map(toSmfNote),
+      sound: opts.reactivePart ?? "counter",
+      track: { name: opts.reactiveTrackName ?? "Counter Melody", notes: reactiveNotes.map(toSmfNote) },
     })
   }
 
@@ -112,7 +120,7 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
         })
       }
     }
-    tracks.unshift({ name: "Chords", notes: chordNotes })
+    tracks.unshift({ sound: "chords", track: { name: "Chords", notes: chordNotes } })
   }
 
   return buildSmf({
@@ -120,7 +128,7 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
     tempoBpm: opts.tempo,
     timeSignature: ts,
     markers: [{ tick: 0, text: opts.sectionName }],
-    tracks,
+    tracks: withGmSounds(tracks, opts.gmPrograms),
   })
 }
 
@@ -128,7 +136,12 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
  * 曲全体のMIDI。includeArrangement では全曲アレンジのパート(ミュート中を除く)も含め、
  * 曲の全パートを1つのファイルにする(アレンジ画面の「曲全体MIDI」)。
  */
-export function exportSongMidi(project: ComposerProject, includeChords = true, includeArrangement = false): Uint8Array {
+export function exportSongMidi(
+  project: ComposerProject,
+  includeChords = true,
+  includeArrangement = false,
+  gmPrograms?: SoundSettings["programs"],
+): Uint8Array {
   const ts = parseTimeSignature(project.song.timeSignature)
   const material = buildSongPlaybackMaterial(
     project,
@@ -142,42 +155,20 @@ export function exportSongMidi(project: ComposerProject, includeChords = true, i
   })
 
   // Issue #41: lead と accompaniment(Ostinato/Drone)を別トラックへ分ける
-  const tracks: SmfTrack[] = [{ name: "Active Melodies", notes: material.lead.map(toSmfNote) }]
-  if (material.accompaniment.length > 0) {
-    tracks.push({ name: "Accompaniment", notes: material.accompaniment.map(toSmfNote) })
-  }
-  if (material.accompanimentPattern.length > 0) {
-    tracks.push({
-      name: "Accompaniment Pattern",
-      notes: material.accompanimentPattern.map(toSmfNote),
-    })
-  }
-  if (material.counterLayers.length > 0) {
-    tracks.push({
-      name: "Selected Counter Melody",
-      notes: material.counterLayers.map(toSmfNote),
-    })
-  }
-  if (material.decorationLayers.length > 0) {
-    tracks.push({
-      name: "Selected Decoration",
-      notes: material.decorationLayers.map(toSmfNote),
-    })
-  }
-  if (material.phraseLayers.length > 0) {
-    tracks.push({
-      name: "Selected Phrases",
-      notes: material.phraseLayers.map(toSmfNote),
-    })
-  }
-  if (material.signaturePhraseLayers.length > 0) {
-    tracks.push({
-      name: "Selected Intro Phrases",
-      notes: material.signaturePhraseLayers.map(toSmfNote),
-    })
+  const tracks: SoundedTrack[] = [{ sound: "melody", track: { name: "Active Melodies", notes: material.lead.map(toSmfNote) } }]
+  const layers: Array<[SoundPart, string, MelodyNote[]]> = [
+    ["accompaniment", "Accompaniment", material.accompaniment],
+    ["accompaniment", "Accompaniment Pattern", material.accompanimentPattern],
+    ["counter", "Selected Counter Melody", material.counterLayers],
+    ["decoration", "Selected Decoration", material.decorationLayers],
+    ["phrase", "Selected Phrases", material.phraseLayers],
+    ["signature", "Selected Intro Phrases", material.signaturePhraseLayers],
+  ]
+  for (const [sound, name, notes] of layers) {
+    if (notes.length > 0) tracks.push({ sound, track: { name, notes: notes.map(toSmfNote) } })
   }
 
-  if (includeArrangement) tracks.push(...arrangementSmfTracks(project.fullSongArrangement))
+  if (includeArrangement) tracks.push(...arrangementSoundedTracks(project.fullSongArrangement))
 
   if (includeChords) {
     const chordNotes: SmfTrack["notes"] = []
@@ -204,7 +195,7 @@ export function exportSongMidi(project: ComposerProject, includeChords = true, i
         })
       }
     }
-    tracks.unshift({ name: "Chords", notes: chordNotes })
+    tracks.unshift({ sound: "chords", track: { name: "Chords", notes: chordNotes } })
   }
 
   // 調号: 曲頭は最初のセクションの調、以降は調が変わるセクションの頭で変更する
@@ -233,7 +224,7 @@ export function exportSongMidi(project: ComposerProject, includeChords = true, i
       tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar),
       text: section.name,
     })),
-    tracks,
+    tracks: withGmSounds(tracks, gmPrograms),
   })
 }
 

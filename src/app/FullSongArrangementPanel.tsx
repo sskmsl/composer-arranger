@@ -8,6 +8,7 @@ import { previewPlayer } from "@/audio/previewPlayer"
 import { downloadMidi } from "@/midi/exportMelody"
 import { exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 /**
  * アレンジ画面「詳しい調整」の、パートごとの確認と書き出し。
@@ -109,7 +110,7 @@ export function FullSongArrangementPanel() {
                 type="button"
                 title="このパートのMIDIを保存"
                 aria-label={`${label}のMIDIを保存`}
-                onClick={() => downloadMidi(exportArrangementTrackMidi(project, arrangement, track.id), `${track.name}-bar-1`)}
+                onClick={() => downloadMidi(exportArrangementTrackMidi(project, arrangement, track.id, gmExportPrograms()), `${track.name}-bar-1`)}
                 className="rounded-full p-2 text-primary-on-dark hover:bg-white/8"
               >
                 <Download size={15} />

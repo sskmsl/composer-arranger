@@ -6,6 +6,9 @@ import { midiToFreq } from "@/core/note"
 import { voiceChord } from "./chordVoicing"
 import type { ArrangementTrackId, GeneratedArrangementNote } from "@/core/arrangementGeneration"
 import { fullSongPreviewRanges } from "./fullSongPreview"
+import { arrangementTrackProgram, gmFileForProgram, type SoundPart, type SoundSettings } from "@/core/gmInstruments"
+import { gmBufferKey, gmSampleFor, loadGmBuffers, scheduleGmSample, type GmBufferKey } from "./gmSampler"
+import { getSoundSettings, setGmLoadState } from "./soundSettings"
 
 export type PreviewMode =
   | "melody-only"
@@ -76,6 +79,10 @@ export interface PlayOptions {
   /** Arrangement Generatorの役割別トラック。ドラムは簡易打楽器、その他は役割別の確認音で鳴らす。 */
   arrangementTracks?: Array<{ id: ArrangementTrackId; notes: GeneratedArrangementNote[] }>
   mode: PreviewMode
+  /** GM音源で鳴らすとき、melody に渡した音がどのパートか(短いフレーズ・イントロの試聴など)。既定は主旋律 */
+  melodyPart?: SoundPart
+  /** GM音源で鳴らすとき、reactive に渡した音がどのパートか。既定は対旋律 */
+  reactivePart?: SoundPart
   /** Signature Phraseの演出意図を比較試聴へ反映する。MIDI音符自体は変えない。 */
   leadStyle?: LeadPreviewStyle
   loop?: boolean
@@ -128,6 +135,35 @@ export function belongsToContinuousPreviewWindow(
   )
 }
 
+/** GM音源で鳴らすときに読み込む音(楽器ファイル → 音の高さ)。鳴らすレイヤーの音だけを集める */
+export function gmPreviewRequests(opts: PlayOptions, programs: SoundSettings["programs"]): Map<string, Set<number>> {
+  const requests = new Map<string, Set<number>>()
+  const add = (program: number, pitch: number) => {
+    const file = gmFileForProgram(program)
+    let pitches = requests.get(file)
+    if (!pitches) requests.set(file, (pitches = new Set()))
+    pitches.add(pitch)
+  }
+  const layers = previewLayersForMode(opts.mode)
+  if (layers.chords) {
+    for (const chord of opts.chords) {
+      const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+      if (!parsed) continue
+      const voicing = voiceChord(parsed)
+      for (const pitch of [voicing.bassMidi, ...voicing.upperMidi]) add(programs.chords, pitch)
+    }
+  }
+  if (layers.melody) for (const note of opts.melody) add(programs[opts.melodyPart ?? "melody"], note.pitch)
+  if (layers.accompaniment) for (const note of opts.accompaniment ?? []) add(programs.accompaniment, note.pitch)
+  if (layers.reactive) for (const note of opts.reactive ?? []) add(programs[opts.reactivePart ?? "counter"], note.pitch)
+  for (const track of opts.arrangementTracks ?? []) {
+    const program = arrangementTrackProgram(track.id)
+    if (program === "drums") continue
+    for (const note of track.notes) add(program, note.pitch)
+  }
+  return requests
+}
+
 /**
  * Web Audio APIによる簡易プレビュー再生。3.8「判断の主軸は音」を実質化するための
  * 確認用シンセ(最終音色はLogic Proで決定する、12章)。
@@ -146,13 +182,58 @@ class PreviewPlayer {
     return this.tempoMap.seconds(to) - this.tempoMap.seconds(from)
   }
   private playbackStartBeat = 0
+  /** GM音源で鳴らしている間の楽器と、読み込んだサンプル。null ならこれまでの合成音 */
+  private gm: { programs: SoundSettings["programs"]; buffers: Map<GmBufferKey, AudioBuffer> } | null = null
+  /** GM音源の読み込み中(まだ鳴らし始めていない) */
+  private pending = false
+  /** stop のたびに増やし、読み込みの後で古い再生を始めないようにする */
+  private generation = 0
 
   play(opts: PlayOptions): void {
     this.stop()
+    // AudioContext は押した操作の中で作る(iPhone の Safari は、操作の外で作ると鳴らないことがある)
     const ctx = new AudioContext()
     this.ctx = ctx
     void ctx.resume()
+    this.withSamples(ctx, opts, () => this.startPlayback(ctx, opts))
+  }
 
+  /**
+   * 試聴の音が GM音源なら、必要なサンプルを読み込んでから鳴らし始める。読み込めなければ合成音で鳴らす。
+   * 合成音のときは、すぐに鳴らし始める。
+   */
+  private withSamples(ctx: AudioContext, opts: PlayOptions, start: () => void): void {
+    const settings = getSoundSettings()
+    if (settings.playback !== "gm") {
+      this.gm = null
+      start()
+      return
+    }
+    const generation = this.generation
+    const stale = () => this.ctx !== ctx || generation !== this.generation
+    // 読み込みの間も、再生位置の表示は鳴らし始める位置に置く
+    this.playbackStartBeat = Math.max(opts.range?.startBeat ?? 0, opts.startBeat ?? opts.range?.startBeat ?? 0)
+    this.pending = true
+    setGmLoadState("loading")
+    loadGmBuffers(gmPreviewRequests(opts, settings.programs)).then(
+      (buffers) => {
+        if (stale()) return
+        setGmLoadState("idle")
+        this.gm = { programs: settings.programs, buffers }
+        this.pending = false
+        start()
+      },
+      () => {
+        if (stale()) return
+        setGmLoadState("failed")
+        this.gm = null
+        this.pending = false
+        start()
+      },
+    )
+  }
+
+  private startPlayback(ctx: AudioContext, opts: PlayOptions): void {
     const master = ctx.createGain()
     master.gain.value = 0.85
     const compressor = ctx.createDynamicsCompressor()
@@ -189,7 +270,7 @@ class PreviewPlayer {
         const clippedEnd = Math.min(eventEnd, rangeEnd)
         const t0 = start + this.span(playbackStart, clippedStart)
         const dur = this.span(clippedStart, clippedEnd)
-        this.schedulePad(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, dur)
+        this.scheduleChord(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
@@ -202,7 +283,7 @@ class PreviewPlayer {
         const clippedEnd = Math.min(eventEnd, rangeEnd)
         const t0 = start + this.span(playbackStart, clippedStart)
         const dur = this.span(clippedStart, clippedEnd)
-        this.scheduleLead(ctx, leadDestination, n.pitch, n.velocity, t0, dur, leadStyle)
+        this.scheduleVoice(this.partProgram(opts.melodyPart ?? "melody"), ctx, leadDestination, n.pitch, n.velocity, t0, dur, leadStyle)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
@@ -215,7 +296,7 @@ class PreviewPlayer {
         const clippedEnd = Math.min(eventEnd, rangeEnd)
         const t0 = start + this.span(playbackStart, clippedStart)
         const dur = this.span(clippedStart, clippedEnd)
-        this.scheduleLead(ctx, compressor, n.pitch, n.velocity, t0, dur)
+        this.scheduleVoice(this.partProgram("accompaniment"), ctx, compressor, n.pitch, n.velocity, t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
@@ -228,7 +309,7 @@ class PreviewPlayer {
         const clippedEnd = Math.min(eventEnd, rangeEnd)
         const t0 = start + this.span(playbackStart, clippedStart)
         const dur = this.span(clippedStart, clippedEnd)
-        this.scheduleLead(ctx, compressor, n.pitch, Math.max(35, n.velocity - 8), t0, dur)
+        this.scheduleVoice(this.partProgram(opts.reactivePart ?? "counter"), ctx, compressor, n.pitch, Math.max(35, n.velocity - 8), t0, dur)
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
     }
@@ -247,7 +328,7 @@ class PreviewPlayer {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, dur, style, note.soundImage)
+          this.scheduleVoice(this.trackProgram(track.id), ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, dur, style, note.soundImage)
         }
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -280,7 +361,12 @@ class PreviewPlayer {
     const ctx = new AudioContext()
     this.ctx = ctx
     void ctx.resume()
+    this.withSamples(ctx, opts, () => this.startContinuous(ctx, opts, chunkBeats))
+  }
 
+  private startContinuous(ctx: AudioContext, opts: PlayOptions, chunkBeats: number): void {
+    const rangeStart = opts.range?.startBeat ?? 0
+    const rangeEnd = opts.range?.endBeat ?? 0
     const master = ctx.createGain()
     master.gain.value = 0.85
     const compressor = ctx.createDynamicsCompressor()
@@ -348,7 +434,7 @@ class PreviewPlayer {
   }
 
   getElapsedBeats(): number {
-    if (!this.ctx) return 0
+    if (!this.ctx || this.pending) return 0
     const elapsedSeconds = this.ctx.currentTime - this.startTime
     return this.tempoMap.beatAt(this.tempoMap.seconds(this.playbackStartBeat) + elapsedSeconds) - this.playbackStartBeat
   }
@@ -371,6 +457,10 @@ class PreviewPlayer {
   }
 
   stop(): void {
+    this.generation += 1
+    // 読み込みの途中で止めたら、読み込み中の表示も消す(読み込み自体は続き、次の再生で使う)
+    if (this.pending) setGmLoadState("idle")
+    this.pending = false
     if (this.endTimer != null) {
       clearTimeout(this.endTimer)
       this.endTimer = null
@@ -418,12 +508,13 @@ class PreviewPlayer {
         if (!parsed) continue
         const voicing = voiceChord(parsed)
         const { t0, duration } = timing(chord.startBeat, eventEnd)
-        this.schedulePad(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, duration)
+        this.scheduleChord(ctx, compressor, voicing.bassMidi, voicing.upperMidi, t0, duration)
       }
     }
 
     const scheduleMelodyNotes = (
       notes: readonly MelodyNote[],
+      part: SoundPart,
       destination: AudioNode,
       style: LeadPreviewStyle,
       velocityOffset = 0,
@@ -432,7 +523,8 @@ class PreviewPlayer {
         const eventEnd = note.startBeat + note.durationBeats
         if (!shouldSchedule(note.startBeat, eventEnd)) continue
         const { t0, duration } = timing(note.startBeat, eventEnd)
-        this.scheduleLead(
+        this.scheduleVoice(
+          this.partProgram(part),
           ctx,
           destination,
           note.pitch,
@@ -444,9 +536,9 @@ class PreviewPlayer {
       }
     }
 
-    if (layers.melody) scheduleMelodyNotes(opts.melody, leadDestination, leadStyle)
-    if (layers.accompaniment) scheduleMelodyNotes(opts.accompaniment ?? [], compressor, "neutral")
-    if (layers.reactive) scheduleMelodyNotes(opts.reactive ?? [], compressor, "neutral", -8)
+    if (layers.melody) scheduleMelodyNotes(opts.melody, opts.melodyPart ?? "melody", leadDestination, leadStyle)
+    if (layers.accompaniment) scheduleMelodyNotes(opts.accompaniment ?? [], "accompaniment", compressor, "neutral")
+    if (layers.reactive) scheduleMelodyNotes(opts.reactive ?? [], opts.reactivePart ?? "counter", compressor, "neutral", -8)
 
     for (const track of opts.arrangementTracks ?? []) {
       for (const note of track.notes) {
@@ -459,7 +551,7 @@ class PreviewPlayer {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleLead(ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, duration, style, note.soundImage)
+          this.scheduleVoice(this.trackProgram(track.id), ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, duration, style, note.soundImage)
         }
       }
     }
@@ -470,6 +562,49 @@ class PreviewPlayer {
       clearInterval(this.schedulerTimer)
       this.schedulerTimer = null
     }
+  }
+
+  private partProgram(part: SoundPart): number | null {
+    return this.gm ? this.gm.programs[part] : null
+  }
+
+  private trackProgram(trackId: ArrangementTrackId): number | null {
+    const program = arrangementTrackProgram(trackId)
+    return this.gm && program !== "drums" ? program : null
+  }
+
+  /** GM音源のサンプルがあればそれで、なければこれまでの合成音で1音鳴らす */
+  private scheduleVoice(
+    program: number | null,
+    ctx: AudioContext,
+    dest: AudioNode,
+    pitch: number,
+    velocity: number,
+    t0: number,
+    dur: number,
+    style: LeadPreviewStyle = "neutral",
+    soundImage?: { depth: number; decay: number; transientSoftness: number; stereoDiffusion: number },
+  ): void {
+    const buffer = program == null ? undefined : this.gm?.buffers.get(gmBufferKey(gmFileForProgram(program), gmSampleFor(pitch).sampleMidi))
+    if (buffer) {
+      scheduleGmSample(ctx, dest, buffer, pitch, velocity, t0, dur, style === "atmospheric" ? 0.6 : 0.25)
+      return
+    }
+    this.scheduleLead(ctx, dest, pitch, velocity, t0, dur, style, soundImage)
+  }
+
+  /** コード: GM音源ならコードの楽器で鳴らす(ベースも同じ楽器。書き出しの Chords トラックと同じ) */
+  private scheduleChord(ctx: AudioContext, dest: AudioNode, bassMidi: number, upperMidi: number[], t0: number, dur: number): void {
+    const program = this.partProgram("chords")
+    const file = program == null ? null : gmFileForProgram(program)
+    const hasAll = file != null && [bassMidi, ...upperMidi].every((pitch) => this.gm?.buffers.has(gmBufferKey(file, gmSampleFor(pitch).sampleMidi)))
+    if (!hasAll) {
+      this.schedulePad(ctx, dest, bassMidi, upperMidi, t0, dur)
+      return
+    }
+    // サンプルは合成のパッドより音が大きいので、主旋律より控えめにする
+    this.scheduleVoice(program, ctx, dest, bassMidi, 62, t0, dur)
+    for (const pitch of upperMidi) this.scheduleVoice(program, ctx, dest, pitch, 50, t0, dur)
   }
 
   private schedulePad(ctx: AudioContext, dest: AudioNode, bassMidi: number, upperMidi: number[], t0: number, dur: number): void {
