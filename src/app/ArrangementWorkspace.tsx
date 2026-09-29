@@ -17,6 +17,7 @@ import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 import { DirectionPicker } from "./DirectionPicker"
 import { ArrangementIntensityPanel } from "./ArrangementIntensityPanel"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 type DetailTabId = "parts" | "flow" | "sections" | "logic"
 
@@ -247,7 +248,7 @@ export function ArrangementWorkspace({
           variant="dark"
           disabled={project.sections.length === 0}
           onClick={() => {
-            const bytes = exportSongMidi(project, true, true)
+            const bytes = exportSongMidi(project, true, true, gmExportPrograms())
             downloadMidi(bytes, `${project.title}-full-song`)
           }}
         >

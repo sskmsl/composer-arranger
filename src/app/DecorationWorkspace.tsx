@@ -29,6 +29,7 @@ import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
 import { CandidatePicker } from "./CandidatePicker"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 const TYPE_LABELS: Record<string, string> = {
   "decorative-fill": "短い装飾",
@@ -172,6 +173,7 @@ export function DecorationWorkspace() {
       accompaniment: useActiveContext
         ? contextMaterial.accompaniment
         : [],
+      reactivePart: "decoration",
       reactive: useActiveContext
         ? contextMaterial.reactive
         : candidate.notes,
@@ -186,6 +188,8 @@ export function DecorationWorkspace() {
       previewMode === "chords-melody-reactive" ||
       previewMode === "active-context-reactive"
     const bytes = exportMelodyMidi({
+      gmPrograms: gmExportPrograms(),
+      reactivePart: "decoration",
       title: project.title,
       sectionName: `${section.name} Decoration`,
       tempo: project.song.tempo,

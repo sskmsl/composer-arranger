@@ -5,6 +5,7 @@ import { CircleHelp, House, PanelLeft, PanelRight } from "lucide-react"
 import type { MainTab } from "./App"
 import { isMelodyGroupTab } from "./melodyTabs"
 import { ProjectMenu } from "./ProjectMenu"
+import { SoundSettingsMenu } from "./SoundSettingsMenu"
 
 /**
  * 主要な画面。主旋律・対旋律・装飾・イントロ・短いフレーズ・聴き比べは、どれも主旋律を
@@ -72,6 +73,7 @@ export function TopBar({
           />
         )}
         {tab !== "home" && <ProjectMenu onOpenImportGuide={onOpenImportGuide} />}
+        {tab !== "home" && <SoundSettingsMenu />}
 
         {hasSidePanels && (
           <IconButton onClick={onToggleRight} className="lg:hidden" title="詳細設定を開く">

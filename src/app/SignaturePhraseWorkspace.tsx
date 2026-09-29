@@ -24,6 +24,7 @@ import { ReadOnlyPianoRoll } from "./AccompanimentPianoRoll"
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
 import { CandidatePicker } from "./CandidatePicker"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 const ARCHETYPE_LABELS: Record<SignaturePhraseArchetype, string> = {
   "atmospheric-gateway": "余白から始まる",
@@ -161,6 +162,7 @@ export function SignaturePhraseWorkspace() {
         (chord) => chord.startBeat < candidate.phraseLengthBeats,
       ),
       melody: candidate.notes,
+      melodyPart: "signature",
       mode: previewMode,
       leadStyle:
         candidateArchetype(candidate) === "atmospheric-gateway"
@@ -175,6 +177,8 @@ export function SignaturePhraseWorkspace() {
 
   const exportCandidate = (candidate: SignaturePhraseCandidate) => {
     const bytes = exportMelodyMidi({
+      gmPrograms: gmExportPrograms(),
+      leadPart: "signature",
       title: project.title,
       sectionName: `${section.name} Signature Phrase`,
       tempo: project.song.tempo,

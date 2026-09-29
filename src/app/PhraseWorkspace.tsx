@@ -16,6 +16,7 @@ import {
 import { EmptySectionState } from "./EmptySectionState"
 import { CandidatePlacementHint } from "./CandidatePlacementHint"
 import { CandidatePicker } from "./CandidatePicker"
+import { gmExportPrograms } from "@/audio/soundSettings"
 
 const CONTOUR_LABELS: Record<PhraseContour, string> = {
   ascending: "上がっていく",
@@ -125,6 +126,7 @@ export function PhraseWorkspace() {
       bpm: project.song.tempo,
       chords: allChords.filter((chord) => chord.startBeat < candidate.phraseLengthBeats),
       melody: candidate.notes,
+      melodyPart: "phrase",
       mode: previewMode,
       range: { startBeat: 0, endBeat: candidate.phraseLengthBeats },
       onEnded: () => setPlayingId(null),
@@ -133,6 +135,8 @@ export function PhraseWorkspace() {
 
   const exportCandidate = (candidate: PhraseCandidate) => {
     const bytes = exportMelodyMidi({
+      gmPrograms: gmExportPrograms(),
+      leadPart: "phrase",
       title: project.title,
       sectionName: `${section.name} Phrase`,
       tempo: project.song.tempo,

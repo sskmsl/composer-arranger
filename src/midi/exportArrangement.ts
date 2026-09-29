@@ -4,6 +4,8 @@ import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { buildSmf, gridAlignedTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
+import { arrangementTrackProgram, type SoundSettings } from "@/core/gmInstruments"
+import { withGmSounds, type SoundedTrack } from "./gmExport"
 
 const SOFTWARE_INSTRUMENT_MIDI_CHANNEL = 0
 
@@ -48,17 +50,23 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
   }
 }
 
-/** 全曲アレンジのうち、鳴らしている(ミュートしていない)トラックをSMFトラックにする */
-export function arrangementSmfTracks(arrangement: FullSongArrangement | null | undefined): SmfTrack[] {
+/** 全曲アレンジのうち、鳴らしている(ミュートしていない)トラックを、楽器(GM向けの書き出し用)つきのSMFトラックにする */
+export function arrangementSoundedTracks(arrangement: FullSongArrangement | null | undefined): SoundedTrack[] {
   return (arrangement?.tracks ?? [])
     .filter((track) => !track.muted && track.notes.length > 0)
-    .map(toSmfTrack)
+    .map((track) => ({ track: toSmfTrack(track), sound: arrangementTrackProgram(track.id) }))
+}
+
+/** 全曲アレンジのうち、鳴らしている(ミュートしていない)トラックをSMFトラックにする */
+export function arrangementSmfTracks(arrangement: FullSongArrangement | null | undefined): SmfTrack[] {
+  return arrangementSoundedTracks(arrangement).map((entry) => entry.track)
 }
 
 function song(
   project: ComposerProject,
   tracks: GeneratedArrangementTrack[],
   includeAdoptedLayers = false,
+  gmPrograms?: SoundSettings["programs"],
 ): Uint8Array {
   const timeSignature = parseTimeSignature(project.song.timeSignature)
   const selectedMaterial = includeAdoptedLayers
@@ -67,10 +75,10 @@ function song(
         project.fullSongArrangement?.plan.directive?.timelineConstraints,
       )
     : null
-  const selectedTracks: SmfTrack[] = selectedMaterial
-    ? [
+  const selectedTracks: SoundedTrack[] = selectedMaterial
+    ? ([
         selectedMaterial.counterLayers.length > 0
-          ? {
+          ? { sound: "counter" as const, track: {
               name: "Selected Counter Melody",
               notes: selectedMaterial.counterLayers.map((note) => ({
                 pitch: note.pitch,
@@ -78,10 +86,10 @@ function song(
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
-            }
+            } }
           : null,
         selectedMaterial.decorationLayers.length > 0
-          ? {
+          ? { sound: "decoration" as const, track: {
               name: "Selected Decoration",
               notes: selectedMaterial.decorationLayers.map((note) => ({
                 pitch: note.pitch,
@@ -89,10 +97,10 @@ function song(
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
-            }
+            } }
           : null,
         selectedMaterial.phraseLayers.length > 0
-          ? {
+          ? { sound: "phrase" as const, track: {
               name: "Selected Phrases",
               notes: selectedMaterial.phraseLayers.map((note) => ({
                 pitch: note.pitch,
@@ -100,10 +108,10 @@ function song(
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
-            }
+            } }
           : null,
         selectedMaterial.signaturePhraseLayers.length > 0
-          ? {
+          ? { sound: "signature" as const, track: {
               name: "Selected Intro Phrases",
               notes: selectedMaterial.signaturePhraseLayers.map((note) => ({
                 pitch: note.pitch,
@@ -111,9 +119,9 @@ function song(
                 velocity: note.velocity,
                 channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
               })),
-            }
+            } }
           : null,
-      ].filter((track): track is SmfTrack => Boolean(track))
+      ] as Array<SoundedTrack | null>).filter((entry): entry is SoundedTrack => Boolean(entry))
     : []
   return buildSmf({
     name: `${project.title} Arrangement`,
@@ -127,25 +135,27 @@ function song(
       tick: Math.round((section.startBar - 1) * timeSignature.beatsPerBar * TICKS_PER_QUARTER),
       text: section.name,
     })),
-    tracks: [
-      ...tracks.filter((track) => !track.muted && track.notes.length > 0).map(toSmfTrack),
+    tracks: withGmSounds([
+      ...arrangementSoundedTracks({ tracks } as FullSongArrangement),
       ...selectedTracks,
-    ],
+    ], gmPrograms),
   })
 }
 
 export function exportArrangementMidi(
   project: ComposerProject,
   arrangement: FullSongArrangement,
+  gmPrograms?: SoundSettings["programs"],
 ): Uint8Array {
-  return song(project, arrangement.tracks, true)
+  return song(project, arrangement.tracks, true, gmPrograms)
 }
 
 export function exportArrangementTrackMidi(
   project: ComposerProject,
   arrangement: FullSongArrangement,
   trackId: GeneratedArrangementTrack["id"],
+  gmPrograms?: SoundSettings["programs"],
 ): Uint8Array {
   const track = arrangement.tracks.find((candidate) => candidate.id === trackId)
-  return song(project, track ? [{ ...track, muted: false }] : [])
+  return song(project, track ? [{ ...track, muted: false }] : [], false, gmPrograms)
 }

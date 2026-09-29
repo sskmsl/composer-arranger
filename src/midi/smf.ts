@@ -85,6 +85,10 @@ export interface SmfTrack {
   name: string
   notes: MidiNote[]
   textEvents?: MidiMarker[]
+  /** 指定すると、このトラックの音をすべてこのチャンネル(0始まり)で書く(GM向けの書き出し) */
+  channel?: number
+  /** 指定すると、曲頭にこの楽器番号(GM、0始まり)のプログラムチェンジを書く */
+  program?: number
 }
 
 export interface SmfSong {
@@ -146,9 +150,14 @@ export function buildSmf(song: SmfSong): Uint8Array {
       { tick: 0, order: 0, data: metaEvent(0x03, textBytes(track.name)) },
       ...(track.textEvents ?? []).map((m) => ({ tick: m.tick, order: 0, data: metaEvent(0x01, textBytes(m.text)) })),
     ]
+    if (track.program != null) {
+      const channel = (track.channel ?? track.notes[0]?.channel ?? 0) & 0x0f
+      events.push({ tick: 0, order: 1, data: [0xc0 | channel, track.program & 0x7f] })
+    }
     for (const n of track.notes) {
-      events.push({ tick: n.start, order: 2, data: [0x90 | (n.channel & 0x0f), n.pitch & 0x7f, n.velocity & 0x7f] })
-      events.push({ tick: n.start + n.duration, order: 1, data: [0x80 | (n.channel & 0x0f), n.pitch & 0x7f, 0x40] })
+      const channel = (track.channel ?? n.channel) & 0x0f
+      events.push({ tick: n.start, order: 2, data: [0x90 | channel, n.pitch & 0x7f, n.velocity & 0x7f] })
+      events.push({ tick: n.start + n.duration, order: 1, data: [0x80 | channel, n.pitch & 0x7f, 0x40] })
     }
     return buildTrack(events)
   })

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
+import { DEFAULT_PART_PROGRAMS } from "@/core/gmInstruments"
 import {
   belongsToContinuousPreviewWindow,
+  gmPreviewRequests,
   previewLayersForMode,
   previewTailSeconds,
   resolveComparisonSwitchBeat,
@@ -148,5 +150,35 @@ describe("preview layer modes", () => {
       accompaniment: true,
       reactive: true,
     })
+  })
+})
+
+describe("GM音源で鳴らすときに読み込む音", () => {
+  const note = (pitch: number) => ({ id: `n${pitch}`, startBeat: 0, durationBeats: 1, pitch, velocity: 80, locks: [] })
+
+  it("鳴らすレイヤーの音だけを、パートの楽器ごとに集める(ドラムは読み込まない)", () => {
+    const requests = gmPreviewRequests({
+      bpm: 96,
+      chords: [],
+      melody: [note(72), note(74)],
+      reactive: [note(60)],
+      reactivePart: "decoration",
+      melodyPart: "phrase",
+      arrangementTracks: [
+        { id: "dr-kick", notes: [{ ...note(36), sectionId: "s", reason: "", role: "drums" } as never] },
+        { id: "str-cello", notes: [{ ...note(48), sectionId: "s", reason: "", role: "strings" } as never] },
+      ],
+      mode: "melody-reactive",
+    }, { ...DEFAULT_PART_PROGRAMS, phrase: 73, decoration: 12 })
+    expect(Object.fromEntries([...requests].map(([file, pitches]) => [file, [...pitches]]))).toEqual({
+      flute: [72, 74],
+      marimba: [60],
+      cello: [48],
+    })
+  })
+
+  it("主旋律だけの再生では、対旋律の音を読み込まない", () => {
+    const requests = gmPreviewRequests({ bpm: 96, chords: [], melody: [note(72)], reactive: [note(60)], mode: "melody-only" }, DEFAULT_PART_PROGRAMS)
+    expect([...requests.keys()]).toEqual(["acoustic_grand_piano"])
   })
 })
