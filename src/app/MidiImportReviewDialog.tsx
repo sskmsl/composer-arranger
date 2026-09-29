@@ -19,6 +19,7 @@ import {
 } from "@/midi/importReview"
 import { Button, Select, TextInput } from "@/ui/primitives"
 import { inferMarkerlessImportedSections } from "@/core/importedSectionInference"
+import { backdropCloseHandlers } from "@/ui/backdropClose"
 
 const SECTION_ROLES = Object.keys(SECTION_ROLE_LABELS) as SectionRole[]
 const SUPPORT_ROLES: Array<Exclude<MidiImportTrackRole, "melody">> = [
@@ -197,8 +198,10 @@ export function MidiImportReviewDialog({
     }])
   }
 
+  const backdrop = useMemo(() => backdropCloseHandlers(onCancel), [onCancel])
+
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-2 sm:p-5" onClick={onCancel}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-2 sm:p-5" {...backdrop}>
       <div
         className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
