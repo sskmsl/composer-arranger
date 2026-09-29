@@ -7,6 +7,7 @@ import { summarizeProject, sortSummariesByRecency, filterSummaries, type Project
 import { Button, TextInput } from "@/ui/primitives"
 import { X, FolderOpen, Copy, Pencil, Trash2, AlertTriangle, Check, Cloud } from "lucide-react"
 import { isCloudSyncConfigured } from "@/features/sync/projectSync"
+import { backdropCloseHandlers } from "@/ui/backdropClose"
 
 /**
  * Issue #14: IndexedDBへ自動保存したプロジェクトを一覧・整理するブラウザー。
@@ -102,8 +103,10 @@ export function ProjectBrowser({
   // fixed inset-0のオーバーレイがその<aside>を基準にクリップ/縮小されてしまう
   // (transformを持つ祖先はfixed要素の包含ブロックになるCSS仕様のため)。
   // document.bodyへポータルし、常にビューポート全体を覆うようにする(Issue #14 PR#36レビュー対応)。
+  const backdrop = useMemo(() => backdropCloseHandlers(onClose), [onClose])
+
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" {...backdrop}>
       <div
         className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-hairline bg-surface-tile-1"
         onClick={(e) => e.stopPropagation()}
@@ -150,6 +153,8 @@ export function ProjectBrowser({
                         <div className="flex items-center gap-1.5">
                           <TextInput
                             autoFocus
+                            // 開いたときに今の名前を全部選んでおき、そのまま打てば置き換わるようにする
+                            onFocus={(e) => e.currentTarget.select()}
                             className="flex-1"
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}

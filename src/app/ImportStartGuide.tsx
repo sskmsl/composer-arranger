@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { createPortal } from "react-dom"
 import {
   ArrowRight,
@@ -11,6 +12,7 @@ import {
 import type { ComposerProject } from "@/core/project"
 import { Button } from "@/ui/primitives"
 import { recommendImportNextStep } from "./importStartGuideRecommendation"
+import { backdropCloseHandlers } from "@/ui/backdropClose"
 
 function StepCard({
   number,
@@ -59,8 +61,10 @@ export function ImportStartGuide({
 }) {
   const next = recommendImportNextStep(project)
 
+  const backdrop = useMemo(() => backdropCloseHandlers(onClose), [onClose])
+
   return createPortal(
-    <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/75 p-2 sm:p-5" onClick={onClose}>
+    <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/75 p-2 sm:p-5" {...backdrop}>
       <div className="max-h-[94dvh] w-full max-w-3xl overflow-y-auto rounded-lg border border-hairline bg-surface-tile-1 shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-hairline bg-surface-tile-1 px-4 py-3 sm:px-5">
           <div>
