@@ -3,6 +3,8 @@ import { DEFAULT_PART_PROGRAMS } from "@/core/gmInstruments"
 import {
   belongsToContinuousPreviewWindow,
   gmPreviewRequests,
+  noisePercussionSpec,
+  whiteNoiseSamples,
   previewLayersForMode,
   previewTailSeconds,
   resolveComparisonSwitchBeat,
@@ -180,5 +182,28 @@ describe("GM音源で鳴らすときに読み込む音", () => {
   it("主旋律だけの再生では、対旋律の音を読み込まない", () => {
     const requests = gmPreviewRequests({ bpm: 96, chords: [], melody: [note(72)], reactive: [note(60)], mode: "melody-only" }, DEFAULT_PART_PROGRAMS)
     expect([...requests.keys()]).toEqual(["acoustic_grand_piano"])
+  })
+})
+
+describe("打楽器の雑音", () => {
+  it("雑音は特定の高さの音(以前の約3kHzの音)ではなく、平均0で隣の値と相関しない", () => {
+    const samples = whiteNoiseSamples(44_100)
+    const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length
+    expect(Math.abs(mean)).toBeLessThan(0.02)
+    let lag1 = 0
+    let power = 0
+    for (let index = 1; index < samples.length; index += 1) {
+      lag1 += samples[index] * samples[index - 1]
+      power += samples[index] * samples[index]
+    }
+    expect(Math.abs(lag1 / power)).toBeLessThan(0.05)
+    expect(samples.every((value) => value >= -1 && value <= 1)).toBe(true)
+  })
+
+  it("クローズのハイハットは短く、クラッシュは長く減衰する(音価によらない)", () => {
+    expect(noisePercussionSpec("dr-closed-hat").decay).toBeLessThanOrEqual(0.06)
+    expect(noisePercussionSpec("dr-open-hat").decay).toBeGreaterThan(noisePercussionSpec("dr-closed-hat").decay)
+    expect(noisePercussionSpec("dr-crash").decay).toBeGreaterThan(0.8)
+    expect(noisePercussionSpec("dr-snare").body).toBeDefined()
   })
 })
