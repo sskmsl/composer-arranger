@@ -1,6 +1,6 @@
 # Genre と Sound Image の判断軸
 
-Composer Arranger の既存 Song Profile は維持する。明示的に Genre を選んだ場合のみ、18 語を 12 個の連続した生成傾向へ変換する。複数選択は重みを正規化して特性値を合成し、完成済みのフレーズや伴奏を混ぜない。`Dorian` は mode、`Ritual` と `Finale` は dramaticRole として分類するが、UI の語彙は同じである。
+Composer Arranger の既存 Song Profile は維持する。明示的に Genre を選んだ場合のみ、19 語を 12 個の連続した生成傾向へ変換する。複数選択は重みを正規化して特性値を合成し、完成済みのフレーズや伴奏を混ぜない。`Dorian` は mode、`Ritual` と `Finale` は dramaticRole として分類するが、UI の語彙は同じである。
 
 Chord Generator の `.composer-song.json` に含まれる各 Section の `sourceIntent.style` は、Composer Arranger で小節長を重みにして Genre ブレンドへ引き継ぐ。従来の Song Profile 対応付けも残す。Chord Generator 自体は変更しない。
 
@@ -12,3 +12,20 @@ Sound Image は独立した 11 軸で、既存音の距離、余韻、アタッ�
 適用順は、主旋律保護と曲の密度判断 → Genre の演奏傾向 → Sound Image の配置と質感 → Section の役割 → 実音生成・候補評価。Genre は Phrase/Intro/Decoration の量、Groove、Bass movement、Harmony strategy、候補選択を変える。Sound Image は Director の追加予算を下げ、既存後景音の velocity・長さ・プレビュー上のアタック、減衰、左右の広がりを調整する。歌唱メロディの音列には適用しない。
 
 同一コード・歌メロ・Tempo・Section・seed の自動比較では、`Sadcore / Slowcore` と `Hi-NRG` の Bass/closed-hat 音数、groove family、書き出し MIDI が異なることを確認する。Sound Image だけを変えた比較では、既存 Pad の velocity が下がり、長さと depth/decay が増え、トラック数が増えないことを確認する。Intro Motif、Phrase の計画、Director の追加予算、AI Partner Context も同条件で比較する。
+
+## Romance • Nostalgia(夢見心地・失恋・郷愁・哀愁を帯びた美しさ)
+
+Chord Generator のスタイル `romanceNostalgia` に対応する Genre 語彙 `romance-nostalgia`(種別は mood)。コード進行の側は Chord Generator が担い(柔らかい色彩の和音に、借用の短四和音・副属七・下降ベースなどの「切なさの動き」を必ず含める)、Arranger ではそれを受けて、次の傾向値で編成と演奏の量を決める。
+
+| 傾向 | 値 | 意図 |
+|---|---|---|
+| rhythmDensity | .34 | 刻みは穏やかに。Hi-NRG のように前へ押さない |
+| syncopation | .36 | 旋律と音型は滑らかに、歌うように |
+| sustain / space | .76 / .68 | 余韻を長く残し、空間を保つ |
+| bassMovement | .50 | ベースが階段状に下りていく動きを許す程度 |
+| tension | .58 | 暗さへは振らず、「焦がれる」程度 |
+| dynamicContrast | .66 | 盛り上がりは波のように |
+| harmonicDensity | .64 | maj7/add9 の柔らかい和音を生かす |
+
+Chord Generator から取り込んだ曲は、この Genre と Song Profile `cinematic-french-pop` で始まる。値は聴いて決めたものではなく、近い既存の語彙(Ethereal・Hollywood Sadcore・French Pop・歌謡曲)との関係から置いた出発点で、聴いての確認が済むまで調整の余地がある。旋律の音列そのものは、この Genre では変えない(`syncopation` がフックのリズムの滑らかさに効く程度)。
+

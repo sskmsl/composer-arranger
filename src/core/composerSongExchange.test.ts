@@ -241,15 +241,28 @@ describe("Composer Song Exchange v2 import(可変長のコード)", () => {
 })
 
 describe("Chord Generatorのスタイル → Song Profile", () => {
-  it("Generatorの全18スタイルが、いずれかのProfileへ対応付いている", () => {
+  it("Generatorの全19スタイルが、いずれかのProfileへ対応付いている", () => {
     const generatorStyles = [
       "ethereal", "romanticDark", "cinematic", "newWave", "sadcorePop", "ritual", "finale", "cool", "tripHop",
-      "neoclassical", "minimalism", "jChanson", "hiNRG", "dorian", "electronica", "slowcore", "frenchPop", "kayokyoku",
+      "neoclassical", "minimalism", "jChanson", "hiNRG", "dorian", "electronica", "slowcore", "frenchPop", "kayokyoku", "romanceNostalgia",
     ]
     for (const style of generatorStyles) {
       expect(CHORD_GENERATOR_STYLE_TO_PROFILE[style], style).toBeDefined()
       expect(CHORD_GENERATOR_STYLE_TO_GENRE[style], style).toBeDefined()
     }
+  })
+
+  it("Romance • Nostalgia で書き出した曲は、同名のGenreと cinematic-french-pop で始まる", () => {
+    const raw = exchange()
+    const project = composerSongExchangeToProject({
+      ...raw,
+      sections: raw.sections.map((section) => ({
+        ...section,
+        sourceIntent: { style: "romanceNostalgia", mood: "romantic", scores: {} },
+      })),
+    })
+    expect(project.song.genreBlend).toEqual([{ id: "romance-nostalgia", weight: 1 }])
+    expect(project.song.songProfile).toBe("cinematic-french-pop")
   })
 
   it("取り込んだstyleを小節長で重み付けし、Composer Arranger全体のGenre Contextへ渡す", () => {
