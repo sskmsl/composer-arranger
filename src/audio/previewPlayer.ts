@@ -135,6 +135,56 @@ export function belongsToContinuousPreviewWindow(
   )
 }
 
+/**
+ * ハイハット・スネア・クラッシュなど、雑音から作る打楽器の音作り。
+ * 減衰は音価ではなく楽器で決める(クローズのハイハットは短く、クラッシュは長く)。
+ */
+export function noisePercussionSpec(trackId: ArrangementTrackId): {
+  filter: BiquadFilterType
+  frequency: number
+  q: number
+  gain: number
+  decay: number
+  body?: { frequency: number; gain: number; decay: number }
+} {
+  if (trackId === "dr-closed-hat") return { filter: "highpass", frequency: 7500, q: 0.7, gain: 0.32, decay: 0.05 }
+  if (trackId === "dr-open-hat") return { filter: "highpass", frequency: 6800, q: 0.7, gain: 0.28, decay: 0.24 }
+  if (trackId === "dr-crash") return { filter: "highpass", frequency: 3800, q: 0.5, gain: 0.3, decay: 1.1 }
+  if (trackId === "dr-field-drum") return { filter: "bandpass", frequency: 1200, q: 0.8, gain: 0.55, decay: 0.2, body: { frequency: 150, gain: 0.4, decay: 0.1 } }
+  // スネア
+  return { filter: "bandpass", frequency: 1900, q: 0.7, gain: 0.6, decay: 0.15, body: { frequency: 185, gain: 0.45, decay: 0.08 } }
+}
+
+/** 決まった種から作る白色雑音(-1〜1)。再生のたびに同じ雑音を使う */
+export function whiteNoiseSamples(length: number, seed = 0x2f6b1a3d): Float32Array {
+  const samples = new Float32Array(length)
+  let state = seed >>> 0
+  for (let index = 0; index < length; index += 1) {
+    // xorshift32
+    state ^= state << 13
+    state >>>= 0
+    state ^= state >>> 17
+    state ^= state << 5
+    state >>>= 0
+    samples[index] = state / 0x80000000 - 1
+  }
+  return samples
+}
+
+const noiseBuffers = new WeakMap<BaseAudioContext, AudioBuffer>()
+
+/** AudioContext ごとに1つだけ作る、2秒の白色雑音 */
+function whiteNoiseBuffer(ctx: BaseAudioContext): AudioBuffer {
+  let buffer = noiseBuffers.get(ctx)
+  if (!buffer) {
+    const length = Math.round(ctx.sampleRate * 2)
+    buffer = ctx.createBuffer(1, length, ctx.sampleRate)
+    buffer.getChannelData(0).set(whiteNoiseSamples(length))
+    noiseBuffers.set(ctx, buffer)
+  }
+  return buffer
+}
+
 /** GM音源で鳴らすときに読み込む音(楽器ファイル → 音の高さ)。鳴らすレイヤーの音だけを集める */
 export function gmPreviewRequests(opts: PlayOptions, programs: SoundSettings["programs"]): Map<string, Set<number>> {
   const requests = new Map<string, Set<number>>()
@@ -188,6 +238,8 @@ class PreviewPlayer {
   private pending = false
   /** stop のたびに増やし、読み込みの後で古い再生を始めないようにする */
   private generation = 0
+  /** 打楽器の雑音を読み始める位置(秒)。毎回ずらす */
+  private noiseOffset = 0
 
   play(opts: PlayOptions): void {
     this.stop()
@@ -676,22 +728,36 @@ class PreviewPlayer {
       osc.stop(t0 + Math.max(0.1, Math.min(0.6, dur + 0.15)))
       return
     }
-    const length = Math.max(1, Math.round(ctx.sampleRate * Math.min(0.4, dur + 0.08)))
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
-    const data = buffer.getChannelData(0)
-    for (let index = 0; index < length; index += 1) data[index] = Math.sin(index * 12.9898) * (1 - index / length)
+    const spec = noisePercussionSpec(trackId)
     const noise = ctx.createBufferSource()
-    noise.buffer = buffer
+    noise.buffer = whiteNoiseBuffer(ctx)
     const filter = ctx.createBiquadFilter()
-    filter.type = trackId.includes("hat") || trackId === "dr-crash" ? "highpass" : "bandpass"
-    filter.frequency.value = trackId.includes("hat") ? 6200 : trackId === "dr-crash" ? 4200 : 1600
+    filter.type = spec.filter
+    filter.frequency.value = spec.frequency
+    filter.Q.value = spec.q
     const gain = ctx.createGain()
-    gain.gain.setValueAtTime(level * (trackId.includes("hat") ? 0.45 : 0.8), t0)
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.max(0.04, Math.min(0.45, dur + 0.05)))
+    const peak = level * spec.gain
+    gain.gain.setValueAtTime(peak, t0)
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + spec.decay)
     noise.connect(filter)
     filter.connect(gain)
     gain.connect(dest)
-    noise.start(t0)
+    // 毎回同じ雑音にならないよう、読み始める位置をずらす
+    noise.start(t0, (this.noiseOffset = (this.noiseOffset + 0.137) % 1))
+    noise.stop(t0 + spec.decay + 0.02)
+    if (spec.body) {
+      // スネアの胴鳴り(短く減衰する低めの音)
+      const body = ctx.createOscillator()
+      const bodyGain = ctx.createGain()
+      body.type = "triangle"
+      body.frequency.setValueAtTime(spec.body.frequency, t0)
+      bodyGain.gain.setValueAtTime(level * spec.body.gain, t0)
+      bodyGain.gain.exponentialRampToValueAtTime(0.0001, t0 + spec.body.decay)
+      body.connect(bodyGain)
+      bodyGain.connect(dest)
+      body.start(t0)
+      body.stop(t0 + spec.body.decay + 0.02)
+    }
   }
 
   private createAtmosphericLeadBus(
