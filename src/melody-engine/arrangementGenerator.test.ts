@@ -682,6 +682,20 @@ describe("Arrangement Generator", () => {
     expect(exportArrangementMidi(energetic, activeResult)).not.toEqual(exportArrangementMidi(slow, quietResult))
   })
 
+  it("Romance • Nostalgia は、Hi-NRG のように刻まず、Genre なしとも違う実音になる", () => {
+    const input = project()
+    const romance = { ...input, song: { ...input.song, genreBlend: [{ id: "romance-nostalgia" as const, weight: 1 }] } }
+    const energetic = { ...input, song: { ...input.song, genreBlend: [{ id: "hi-nrg" as const, weight: 1 }] } }
+    const romanceResult = generateFullSongArrangement(romance, { seed: 7462 })
+    const activeResult = generateFullSongArrangement(energetic, { seed: 7462 })
+    const plainResult = generateFullSongArrangement(input, { seed: 7462 })
+    const count = (result: typeof romanceResult, id: string, sectionId: string) => result.tracks
+      .find((track) => track.id === id)?.notes.filter((note) => note.sectionId === sectionId).length ?? 0
+    expect(count(activeResult, "dr-closed-hat", "verse")).toBeGreaterThan(count(romanceResult, "dr-closed-hat", "verse"))
+    expect(count(activeResult, "syn-bass", "verse")).toBeGreaterThan(count(romanceResult, "syn-bass", "verse"))
+    expect(exportArrangementMidi(romance, romanceResult)).not.toEqual(exportArrangementMidi(input, plainResult))
+  })
+
   it("Aestheticだけを変えると既存後景音の距離と余韻が変わり、パートを機械的に増やさない", () => {
     const input = project()
     const distant = { ...input, song: { ...input.song, aesthetic: { image: "atmospheric-depth" as const, amount: 1 } } }

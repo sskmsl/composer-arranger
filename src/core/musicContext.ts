@@ -5,7 +5,7 @@ export const GENRE_IDS = [
   "ethereal", "romantic-dark", "cinematic", "new-wave", "hollywood-sadcore",
   "ritual", "finale", "cool", "trip-hop", "neoclassical", "minimalism",
   "j-chanson", "hi-nrg", "dorian", "electronica", "sadcore-slowcore",
-  "french-pop", "kayokyoku",
+  "french-pop", "kayokyoku", "romance-nostalgia",
 ] as const
 export type GenreId = (typeof GENRE_IDS)[number]
 export type GenreKind = "style" | "mood" | "mode" | "dramaticRole"
@@ -21,7 +21,7 @@ export const GENRE_LABELS: Record<GenreId, string> = {
   finale: "Finale", cool: "Cool", "trip-hop": "Trip-Hop", neoclassical: "Neoclassical",
   minimalism: "Minimalism", "j-chanson": "J-Chanson", "hi-nrg": "Hi-NRG",
   dorian: "Dorian", electronica: "Electronica", "sadcore-slowcore": "Sadcore / Slowcore",
-  "french-pop": "French Pop", kayokyoku: "歌謡曲",
+  "french-pop": "French Pop", kayokyoku: "歌謡曲", "romance-nostalgia": "Romance • Nostalgia",
 }
 
 export const GENRE_KIND: Record<GenreId, GenreKind> = {
@@ -30,7 +30,7 @@ export const GENRE_KIND: Record<GenreId, GenreKind> = {
   finale: "dramaticRole", cool: "mood", "trip-hop": "style", neoclassical: "style",
   minimalism: "style", "j-chanson": "style", "hi-nrg": "style", dorian: "mode",
   electronica: "style", "sadcore-slowcore": "style", "french-pop": "style",
-  kayokyoku: "style",
+  kayokyoku: "style", "romance-nostalgia": "mood",
 }
 
 export interface GenreTraits {
@@ -89,6 +89,10 @@ const GENRE_TRAITS: Record<GenreId, GenreTraits> = {
   "sadcore-slowcore": genre({ rhythmDensity: .17, bassMovement: .20, phraseDensity: .27, decorationDensity: .13, repetition: .78, sustain: .85, space: .87, dynamicContrast: .36, harmonicDensity: .35 }),
   "french-pop": genre({ rhythmDensity: .52, bassMovement: .53, phraseDensity: .43, decorationDensity: .35, repetition: .76, syncopation: .54, sustain: .58, space: .62, tension: .59, harmonicDensity: .60 }),
   kayokyoku: genre({ rhythmDensity: .58, bassMovement: .62, phraseDensity: .49, decorationDensity: .37, repetition: .79, sustain: .51, space: .45, dynamicContrast: .75, harmonicDensity: .58 }),
+  // 夢見心地・失恋・郷愁・哀愁を帯びた美しさ。刻みは穏やかに(リズム密度は低め・シンコペーションは少なめで、歌うように滑らかに)、
+  // 余韻を長く残し(sustain)、空間を保つ。ベースは階段状に下る動きを許す程度に動かし、
+  // 緊張は暗さに振らず「焦がれる」程度、盛り上がりは波のように大きく。柔らかい和音(maj7/add9)を多く使う。
+  "romance-nostalgia": genre({ rhythmDensity: .34, bassMovement: .50, phraseDensity: .42, decorationDensity: .32, repetition: .70, syncopation: .36, sustain: .76, space: .68, registerRange: .66, tension: .58, dynamicContrast: .66, harmonicDensity: .64 }),
 }
 
 const neutralImage: SoundImageTraits = {

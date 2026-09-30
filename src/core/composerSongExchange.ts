@@ -69,7 +69,7 @@ const SECTION_ROLES = new Set<SectionRole>([
 
 /**
  * Chord Generator のスタイル(sourceIntent.style)→ Arranger の Song Profile。
- * Generatorは18スタイル、Arrangerは4つの性格+Original Customなので、和声と質感が
+ * Generatorは19スタイル、Arrangerは4つの性格+Original Customなので、和声と質感が
  * 最も近い性格へ寄せる。知らないスタイルは対応付けない(Original Customのまま)。
  */
 export const CHORD_GENERATOR_STYLE_TO_PROFILE: Readonly<Record<string, SongProfileId>> = {
@@ -81,6 +81,7 @@ export const CHORD_GENERATOR_STYLE_TO_PROFILE: Readonly<Record<string, SongProfi
   finale: "cinematic-french-pop",
   frenchPop: "cinematic-french-pop",
   sadcorePop: "cinematic-french-pop",
+  romanceNostalgia: "cinematic-french-pop",
   minimalism: "minimal-tension",
   ritual: "minimal-tension",
   tripHop: "minimal-tension",
@@ -101,6 +102,7 @@ export const CHORD_GENERATOR_STYLE_TO_GENRE: Readonly<Record<string, GenreId>> =
   neoclassical: "neoclassical", minimalism: "minimalism", jChanson: "j-chanson",
   hiNRG: "hi-nrg", dorian: "dorian", electronica: "electronica",
   slowcore: "sadcore-slowcore", frenchPop: "french-pop", kayokyoku: "kayokyoku",
+  romanceNostalgia: "romance-nostalgia",
 }
 
 function profileForStyle(style: unknown): SongProfileId | undefined {
