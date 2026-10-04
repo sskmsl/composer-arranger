@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createEmptyProject, type ComposerProject } from "@/core/project"
-import { ARRANGEMENT_TRACK_NAMES } from "@/core/arrangementGeneration"
+import { ARRANGEMENT_TRACK_NAMES, type ArrangementTrackId } from "@/core/arrangementGeneration"
 import { parseChordSymbol } from "@/core/chord"
 import {
   analyzeFullSongArrangement,
@@ -702,6 +702,48 @@ describe("Arrangement Generator", () => {
     expect(selection.candidates.every((candidate) => (candidate.auditionScore ?? 0) > 0)).toBe(true)
   })
 
+  it("PlanのActive Roleは、そのSectionで実際に音がある役割だけを保持する", () => {
+    const result = generateFullSongArrangement(longFormProject(), { seed: 8104 })
+    for (const section of result.plan.sections) {
+      for (const role of section.activeRoles) {
+        expect(result.tracks.some((track) => track.id === role && track.notes.some((note) => note.sectionId === section.sectionId))).toBe(true)
+      }
+    }
+    expect(result.quality?.metrics.silentRoleCount).toBe(0)
+  })
+
+  it("Kick・Snare・Impactの補強層は本体と同じ位置を保つ", () => {
+    const result = generateFullSongArrangement(longFormProject(), { seed: 8106 })
+    const pairs: Array<[ArrangementTrackId, ArrangementTrackId]> = [
+      ["dr-kick-sub", "dr-kick"],
+      ["dr-kick-click", "dr-kick"],
+      ["dr-snare-body", "dr-snare"],
+      ["dr-impact", "dr-gran-cassa"],
+    ]
+    for (const [layerId, sourceId] of pairs) {
+      const layer = result.tracks.find((track) => track.id === layerId)
+      const source = result.tracks.find((track) => track.id === sourceId)
+      if (!layer || !source) continue
+      expect(layer.notes.every((note) => source.notes.some((candidate) =>
+        candidate.sectionId === note.sectionId && candidate.startBeat === note.startBeat,
+      ))).toBe(true)
+    }
+  })
+
+  it("再登場するChorusはVelocityを除いた音型・音域・発音位置でも発展する", () => {
+    const input = longFormProject()
+    const result = generateFullSongArrangement(input, { seed: 8105 })
+    const start = (sectionId: string) => (input.sections.find((section) => section.id === sectionId)!.startBar - 1) * 4
+    const signature = (trackId: ArrangementTrackId, sectionId: string) => result.tracks.find((track) => track.id === trackId)?.notes
+      .filter((note) => note.sectionId === sectionId)
+      .map((note) => `${Math.round((note.startBeat - start(sectionId)) * 8)}:${Math.round(note.durationBeats * 8)}:${note.pitch}`)
+      .sort().join("|") ?? ""
+    const targets: ArrangementTrackId[] = ["dr-closed-hat", "syn-pulse", "syn-bass", "syn-dark-pad", "str-viola"]
+    const comparable = targets.filter((id) => signature(id, "chorus-1") && signature(id, "chorus-2"))
+    expect(comparable.length).toBeGreaterThan(0)
+    expect(comparable.some((id) => signature(id, "chorus-1") !== signature(id, "chorus-2"))).toBe(true)
+  })
+
   it("全候補が品質下限未満なら別seedを追加探索し、それでも不足なら理由を保持する", () => {
     const input = project()
     const only = input.sections[0]
@@ -712,6 +754,13 @@ describe("Arrangement Generator", () => {
     expect(result.selection?.poolSize).toBe(16)
     expect(result.selection?.eligibleCount).toBe(0)
     expect(result.selection?.qualityWarning).toContain("品質基準")
+  })
+
+  it("通常構成の曲では5回中4回以上、不要な品質不足警告を出さない", () => {
+    const results = [8201, 8202, 8203, 8204, 8205].map((seed) => generateFullSongArrangement(project(), { seed }))
+    const warned = results.filter((result) => result.selection?.qualityWarning).length
+    expect(warned).toBeLessThanOrEqual(1)
+    expect(results.every((result) => result.quality?.metrics.silentRoleCount === 0)).toBe(true)
   })
 
   it("全曲の各生成トラックへSection別の演奏表情を適用し、そのままMIDI対象へ保持する", () => {

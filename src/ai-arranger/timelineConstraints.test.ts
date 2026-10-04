@@ -70,4 +70,21 @@ describe("AI arrangement timeline constraints", () => {
       melodySilenceRanges: [{ startBar: 1, endBar: 4 }],
     })
   })
+
+  it("Section名を伴う最初・最後の指定を曲頭や曲末ではなくSection内へ解決する", () => {
+    const sections = [
+      { id: "intro", name: "INTRO", role: "intro" as const, startBar: 1, lengthBars: 8 },
+      { id: "final", name: "FINAL CHORUS", role: "chorus" as const, startBar: 89, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints(
+      "FINAL CHORUSの最初の2小節は主旋律なし",
+      96,
+      sections,
+    ).melodySilenceRanges).toEqual([{ startBar: 89, endBar: 90 }])
+    expect(parseArrangementTimelineConstraints(
+      "FINAL CHORUSの最後の2小節は完全無音",
+      96,
+      sections,
+    ).fullSilenceRanges).toEqual([{ startBar: 95, endBar: 96 }])
+  })
 })

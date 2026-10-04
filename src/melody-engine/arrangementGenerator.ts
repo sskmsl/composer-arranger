@@ -114,6 +114,13 @@ const ARRANGEMENT_LAYER_SOURCES = {
   "str-high-octave": "str-violin-1",
 } as const satisfies Partial<Record<ArrangementTrackId, ArrangementTrackId>>
 
+const PHASE_LOCKED_LAYER_SOURCES = new Map<ArrangementTrackId, ArrangementTrackId>([
+  ["dr-kick-sub", "dr-kick"],
+  ["dr-kick-click", "dr-kick"],
+  ["dr-snare-body", "dr-snare"],
+  ["dr-impact", "dr-gran-cassa"],
+])
+
 type ArrangementLayerTrackId = keyof typeof ARRANGEMENT_LAYER_SOURCES
 
 function isArrangementLayerTrackId(trackId: ArrangementTrackId): trackId is ArrangementLayerTrackId {
@@ -1806,8 +1813,7 @@ function countMelodyCollisions(project: ComposerProject, plan: ArrangementPlan, 
     return sum + track.notes.filter((note) => note.character === "safe" && lead.some((melodyNote) =>
       melodyNote.startBeat < note.startBeat + note.durationBeats
       && melodyNote.startBeat + melodyNote.durationBeats > note.startBeat
-      && Math.abs(melodyNote.pitch - note.pitch) <= 2
-      && note.velocity >= melodyNote.velocity - 22,
+      && Math.abs(melodyNote.pitch - note.pitch) <= 2,
     )).length
   }, 0)
 }
@@ -1825,7 +1831,10 @@ export function reviewGeneratedArrangement(
   const peakIndex = arrangement.analysis.sections.findIndex((section) => section.sectionId === arrangement.analysis.peakSectionId)
   const peakIsLate = peakIndex >= Math.floor(arrangement.analysis.sections.length * 0.6)
   const overfilledSectionCount = arrangement.plan.sections.filter((section) => section.activeRoles.length > 16).length
-  const silentRoleCount = arrangement.tracks.filter((track) => !isArrangementLayerTrackId(track.id) && track.notes.length === 0).length
+  const silentRoleCount = arrangement.plan.sections.reduce((sum, section) => sum + section.activeRoles.filter((role) => {
+    if (isArrangementLayerTrackId(role)) return false
+    return !arrangement.tracks.some((track) => track.id === role && track.notes.some((note) => note.sectionId === section.sectionId))
+  }).length, 0)
   const beatsPerBar = parseTimeSignature(arrangement.analysis.timeSignature).beatsPerBar
   const tonalTracks = arrangement.tracks.filter((track) => !track.id.startsWith("dr-") && track.id !== "syn-pulse")
   const mechanicalLoopCount = arrangement.plan.sections.reduce((sum, section) => {
@@ -1895,7 +1904,8 @@ export function reviewGeneratedArrangement(
       for (const track of arrangement.tracks) {
         const signature = (sectionId: string, start: number) => track.notes
           .filter((note) => note.sectionId === sectionId)
-          .map((note) => `${Math.round((note.startBeat - start) * 8)}:${Math.round(note.durationBeats * 8)}:${note.pitch}:${Math.round(note.velocity / 6)}`)
+          // 演奏強弱ではなく、音型・音域・発音位置が同じかを判定する。
+          .map((note) => `${Math.round((note.startBeat - start) * 8)}:${Math.round(note.durationBeats * 8)}:${note.pitch}`)
           .sort()
           .join("|")
         const left = signature(previousId, previousStart)
@@ -2101,6 +2111,80 @@ function applyArrangementSoundImage(
   }))
 }
 
+function reconcilePlanWithSoundingRoles(
+  plan: ArrangementPlan,
+  tracks: readonly GeneratedArrangementTrack[],
+): ArrangementPlan {
+  return {
+    ...plan,
+    sections: plan.sections.map((section) => {
+      const activeRoles = section.activeRoles.filter((role) => tracks.some((track) =>
+        track.id === role && track.notes.some((note) => note.sectionId === section.sectionId),
+      ))
+      const active = new Set(activeRoles)
+      const roleEntryBeats = Object.fromEntries(Object.entries(section.roleEntryBeats ?? {})
+        .filter(([role]) => active.has(role as ArrangementTrackId))) as Partial<Record<ArrangementTrackId, number>>
+      return {
+        ...section,
+        activeRoles,
+        ...(Object.keys(roleEntryBeats).length > 0 ? { roleEntryBeats } : { roleEntryBeats: undefined }),
+      }
+    }),
+  }
+}
+
+/** 同じ役割の再登場を音量差だけにせず、少なくとも複数の演奏内容で発展させる。 */
+function developRepeatedSectionPerformances(
+  plan: ArrangementPlan,
+  tracks: GeneratedArrangementTrack[],
+): GeneratedArrangementTrack[] {
+  const repeatedSections = new Set(plan.sections
+    .filter((section) => (section.developmentStage ?? 0) > 0)
+    .map((section) => section.sectionId))
+  if (repeatedSections.size === 0) return tracks
+  const developmentTargets = new Set<ArrangementTrackId>([
+    "dr-closed-hat", "syn-pulse", "syn-bass", "syn-dark-pad", "str-viola", "str-violin-1",
+  ])
+  return tracks.map((track) => {
+    if (!developmentTargets.has(track.id)) return track
+    const sectionCounters = new Map<string, number>()
+    const notes = track.notes.flatMap((note): GeneratedArrangementNote[] => {
+      if (!repeatedSections.has(note.sectionId)) return [note]
+      const index = sectionCounters.get(note.sectionId) ?? 0
+      sectionCounters.set(note.sectionId, index + 1)
+      if ((track.id === "dr-closed-hat" || track.id === "syn-pulse") && index % 12 === 10) return []
+      if (track.id === "syn-bass" && index % 8 === 6) {
+        const pitch = note.pitch <= 48 ? note.pitch + 12 : note.pitch >= 60 ? note.pitch - 12 : note.pitch
+        return [{ ...note, pitch, reason: `${note.reason}。再登場Sectionでは低音の輪郭を発展` }]
+      }
+      if (["syn-dark-pad", "str-viola", "str-violin-1"].includes(track.id) && index % 4 === 3) {
+        return [{ ...note, durationBeats: Math.max(.125, note.durationBeats * .75), reason: `${note.reason}。再登場Sectionでは余白を変えて発展` }]
+      }
+      return [note]
+    })
+    return { ...track, notes }
+  })
+}
+
+function realignPhaseLockedDrumLayers(tracks: GeneratedArrangementTrack[]): GeneratedArrangementTrack[] {
+  const byId = new Map(tracks.map((track) => [track.id, track]))
+  return tracks.map((track) => {
+    const sourceId = PHASE_LOCKED_LAYER_SOURCES.get(track.id)
+    if (!sourceId) return track
+    const source = byId.get(sourceId)
+    if (!source) return track
+    return {
+      ...track,
+      notes: track.notes.map((note) => {
+        const nearest = source.notes
+          .filter((candidate) => candidate.sectionId === note.sectionId)
+          .sort((left, right) => Math.abs(left.startBeat - note.startBeat) - Math.abs(right.startBeat - note.startBeat))[0]
+        return nearest ? { ...note, startBeat: nearest.startBeat } : note
+      }),
+    }
+  })
+}
+
 /**
  * 全曲生成・部分再生成・AI相談後の差し替えを同じ最終工程へ通す。
  * 音像処理は付与済みの音へ重ねず、Criticは実際に保存・試聴・書き出しされる全トラックを見る。
@@ -2127,14 +2211,16 @@ export function finalizeFullSongArrangement(
         editableSectionIds: options.editableSectionIds,
       })
   // Criticのタイミング移動後にも無音区間をもう一度適用し、書き出し制約を最終優先にする。
-  const finalTracks = applyArrangementTimelineToTracks(
+  const finalTracks = realignPhaseLockedDrumLayers(applyArrangementTimelineToTracks(
     audition.tracks,
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
-  )
-  const finalReport = evaluateArrangementAudition(project, arrangement.plan, finalTracks)
+  ))
+  const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
+  const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {
     ...arrangement,
+    plan: finalPlan,
     tracks: finalTracks,
     audition: {
       ...finalReport,
@@ -2159,11 +2245,22 @@ function generateArrangementCandidate(
 ): FullSongArrangement {
   const plan = buildFullSongArrangementPlan(project, analysis, seed, brief, directive, approach)
   const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
-  const generatedTrackIds = [...activeTrackIds, ...layerTrackIdsFor(activeTrackIds)]
+  const coreTrackIds = [...new Set(activeTrackIds.map((trackId) => isArrangementLayerTrackId(trackId)
+    ? ARRANGEMENT_LAYER_SOURCES[trackId]
+    : trackId))]
+  const generatedCoreTracks = developRepeatedSectionPerformances(
+    plan,
+    coreTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision, undefined, variationSeed)),
+  )
+  const coreById = new Map(generatedCoreTracks.map((track) => [track.id, track]))
+  const generatedLayerTracks = layerTrackIdsFor(coreTrackIds).flatMap((trackId) => {
+    const source = coreById.get(ARRANGEMENT_LAYER_SOURCES[trackId])
+    return source ? [deriveArrangementLayerTrack(source, trackId, plan, revision)] : []
+  })
   const performedTracks = applyArrangementPerformanceDirector(
     project,
     plan,
-    generatedTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision, undefined, variationSeed)),
+    [...generatedCoreTracks, ...generatedLayerTracks],
   )
   return finalizeFullSongArrangement(project, {
     version: "1.0.0",

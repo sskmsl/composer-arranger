@@ -19,6 +19,16 @@ const FOREGROUND_SUPPORT = new Set([
 
 const LOW_SUPPORT = new Set(["str-cello", "str-contrabass", "syn-pad-motion"])
 const LOW_DRUM_TRACKS = new Set(["dr-kick", "dr-kick-sub", "dr-low-tom", "dr-gran-cassa", "dr-impact"])
+const PHASE_ALIGNED_DRUM_LAYERS = new Map<string, string>([
+  ["dr-kick-sub", "dr-kick"],
+  ["dr-kick-click", "dr-kick"],
+  ["dr-snare-body", "dr-snare"],
+  ["dr-impact", "dr-gran-cassa"],
+])
+
+function attackIdentity(trackId: string): string {
+  return PHASE_ALIGNED_DRUM_LAYERS.get(trackId) ?? trackId
+}
 
 const TRACK_RANGES: Record<string, readonly [number, number]> = {
   "syn-pulse": [48, 84],
@@ -147,7 +157,7 @@ function auditionMetrics(
   const masking = tonalNotes.filter(({ track, note }) =>
     note.character === "safe"
     && (FOREGROUND_SUPPORT.has(track.id) || LAYER_TRACKS.has(track.id))
-    && foreground.some((leadNote) => overlaps(note, leadNote) && Math.abs(note.pitch - leadNote.pitch) <= 5 && note.velocity >= leadNote.velocity - 22),
+    && foreground.some((leadNote) => overlaps(note, leadNote) && Math.abs(note.pitch - leadNote.pitch) <= 5),
   )
   const melodicClarity = clamp(100 - masking.length / Math.max(1, foreground.length) * 75)
 
@@ -155,7 +165,7 @@ function auditionMetrics(
   for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
     const key = Math.round(note.startBeat * 8)
     const group = attackGroups.get(key) ?? new Set<string>()
-    group.add(track.id)
+    group.add(attackIdentity(track.id))
     attackGroups.set(key, group)
   }
   const fixedLayers = [
@@ -292,7 +302,7 @@ function repairPass(
   for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
     const key = Math.round(note.startBeat * 8)
     const group = attackCounts.get(key) ?? new Set<string>()
-    group.add(track.id)
+    group.add(attackIdentity(track.id))
     attackCounts.set(key, group)
   }
   const material = playbackMaterial(project, plan)
@@ -363,7 +373,7 @@ function repairPass(
         }
       }
       const leadCollision = track.family !== "drums" && track.family !== "bass" && note.character === "safe"
-        ? foreground.find((leadNote) => overlaps(next, leadNote) && Math.abs(next.pitch - leadNote.pitch) <= 5 && next.velocity >= leadNote.velocity - 22)
+        ? foreground.find((leadNote) => overlaps(next, leadNote) && Math.abs(next.pitch - leadNote.pitch) <= 5)
         : undefined
       if (leadCollision) {
         const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
@@ -389,14 +399,30 @@ function repairPass(
             reason: `${next.reason}。主旋律の音域を空ける`,
           })
           shiftedNotes += 1
+        } else if (LAYER_TRACKS.has(track.id)) {
+          // 補助層は小さくするだけでは半音の濁りが残る。安全な移動先がなければ休符を選ぶ。
+          removedNotes += 1
+          return []
         } else {
-          const velocity = Math.max(1, Math.min(next.velocity - 8, leadCollision.velocity - 24))
-          next = withRepair(next, pass, actions.has("shorten") ? "melody-space" : "shorten", {
-            velocity,
-            durationBeats: actions.has("shorten") ? next.durationBeats : Math.min(next.durationBeats, .5),
-            reason: `${next.reason}。主旋律の前を空ける`,
-          })
-          velocityAdjustments += 1
+          const originalEnd = next.startBeat + next.durationBeats
+          const beforeDuration = leadCollision.startBeat - next.startBeat - .03125
+          const afterStart = leadCollision.startBeat + leadCollision.durationBeats + .03125
+          if (beforeDuration >= .0625) {
+            next = withRepair(next, pass, "shorten", {
+              durationBeats: beforeDuration,
+              reason: `${next.reason}。主旋律が入る前で音を止める`,
+            })
+          } else if (afterStart + .0625 <= originalEnd) {
+            next = withRepair(next, pass, "melody-space", {
+              startBeat: afterStart,
+              durationBeats: originalEnd - afterStart,
+              reason: `${next.reason}。主旋律の後から入る`,
+            })
+            shiftedNotes += 1
+          } else {
+            removedNotes += 1
+            return []
+          }
         }
       }
       if (LOW_SUPPORT.has(track.id) && next.pitch < 52 && bass.some((bassNote) => overlaps(next, bassNote))) {
@@ -414,6 +440,7 @@ function repairPass(
       }
       const attackSize = attackCounts.get(Math.round(next.startBeat * 8))?.size ?? 0
       if (attackSize > 9 && (LAYER_TRACKS.has(track.id) || FOREGROUND_SUPPORT.has(track.id))) {
+        if (PHASE_ALIGNED_DRUM_LAYERS.has(track.id)) return [next]
         if (actions.has("attack") && LAYER_TRACKS.has(track.id) && next.velocity < 64) {
           removedNotes += 1
           return []
