@@ -671,6 +671,9 @@ describe("Arrangement Generator", () => {
     expect(result.quality!.score).toBeGreaterThanOrEqual(selection.qualityFloor)
     expect(result.quality!.metrics.harmonicViolationCount).toBe(0)
     expect(result.quality!.metrics.melodyCollisionCount).toBe(0)
+    expect(result.audition?.score).toBeGreaterThanOrEqual(72)
+    expect(result.audition?.melodicClarity).toBeGreaterThanOrEqual(72)
+    expect(selection.candidates.every((candidate) => (candidate.auditionScore ?? 0) > 0)).toBe(true)
   })
 
   it("全曲の各生成トラックへSection別の演奏表情を適用し、そのままMIDI対象へ保持する", () => {

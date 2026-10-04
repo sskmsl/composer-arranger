@@ -330,7 +330,26 @@ export interface FullSongArrangement {
   plan: ArrangementPlan
   tracks: GeneratedArrangementTrack[]
   quality?: ArrangementQualityReport
+  /** 生成後の全パートを聴感指標で反復検査した結果。 */
+  audition?: ArrangementAuditionReport
   selection?: ArrangementSelectionDiagnostics
+}
+
+export interface ArrangementAuditionReport {
+  version: "1.0.0"
+  score: number
+  passed: boolean
+  melodicClarity: number
+  lowEndClarity: number
+  transientClarity: number
+  registerBalance: number
+  dynamicArc: number
+  sectionContrast: number
+  repairPasses: number
+  removedNotes: number
+  shiftedNotes: number
+  velocityAdjustments: number
+  issues: string[]
 }
 
 export interface ArrangementQualityReport {
@@ -373,6 +392,7 @@ export interface ArrangementCandidateSummary {
   qualityScore: number
   originalityScore: number
   intentionFitScore: number
+  auditionScore?: number
   selectionScore: number
   selected: boolean
   reason: string

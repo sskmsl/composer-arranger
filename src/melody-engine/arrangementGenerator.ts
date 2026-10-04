@@ -31,6 +31,7 @@ import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial, normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { applyArrangementTimelineToTracks } from "@/core/arrangementTimelineConstraints"
 import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDirector"
+import { evaluateArrangementAudition, refineArrangementByAudition } from "./arrangementAuditionCritic"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
   "dr-kick": 36,
@@ -2076,6 +2077,14 @@ function generateArrangementCandidate(
       }
     }),
   }))
+  const timelineTracks = applyArrangementTimelineToTracks(
+    imageTracks,
+    plan.directive?.timelineConstraints,
+    parseTimeSignature(project.song.timeSignature).beatsPerBar,
+  )
+  // 音像処理と無音区間の反映後、実際に試聴・書き出しへ渡るノート列を点検する。
+  // 中間状態だけを直すと、後段のオクターブ配置や音量補正で濁りが再発し得るため。
+  const auditionRefinement = refineArrangementByAudition(project, plan, timelineTracks)
   const result: FullSongArrangement = {
     version: "1.0.0",
     orchestrationVersion: 3,
@@ -2083,11 +2092,8 @@ function generateArrangementCandidate(
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: applyArrangementTimelineToTracks(
-      imageTracks,
-      plan.directive?.timelineConstraints,
-      parseTimeSignature(project.song.timeSignature).beatsPerBar,
-    ),
+    tracks: auditionRefinement.tracks,
+    audition: auditionRefinement.report,
   }
   // Layer tracks are orchestration (音域・アタック・距離の分担)であり、曲の作曲判断そのものではない。
   // 候補選抜の品質点は従来の21役割で比較し、層を増やした案が音数だけで有利／不利にならないようにする。
@@ -2143,15 +2149,17 @@ export function generateFullSongArrangement(
       return sum + Math.max(0, 100 - Math.abs(rhythm - targetRhythm) * 90 - Math.abs(support - targetSupport) * 70)
     }, 0) / Math.max(1, candidate.plan.sections.length)
     const hasExplicitContext = resolveMusicContext(project).styleActive
+    const auditionScore = candidate.audition?.score ?? 0
     const selectionScore = hasExplicitContext
-      ? qualityScore * 0.68 + originalityScore * 0.13 + intentionFit * 0.11 + contextualFit * 0.08
-      : qualityScore * 0.72 + originalityScore * 0.15 + intentionFit * 0.13
+      ? qualityScore * 0.55 + originalityScore * 0.10 + intentionFit * 0.10 + contextualFit * 0.07 + auditionScore * 0.18
+      : qualityScore * 0.60 + originalityScore * 0.12 + intentionFit * 0.10 + auditionScore * 0.18
     const draft = {
       seed: candidate.plan.seed,
       approach: candidate.plan.candidateApproach ?? "dynamic-contrast" as ArrangementCandidateApproach,
       qualityScore,
       originalityScore: Math.round(originalityScore),
       intentionFitScore: intentionFit,
+      auditionScore,
       selectionScore: Math.round(selectionScore * 10) / 10,
     }
     return { candidate, summary: { ...draft, selected: false, reason: candidateReason(draft) } }
@@ -2159,7 +2167,8 @@ export function generateFullSongArrangement(
   const eligible = scored.filter(({ candidate }) =>
     (candidate.quality?.score ?? 0) >= ARRANGEMENT_QUALITY_FLOOR
     && candidate.quality?.metrics.harmonicViolationCount === 0
-    && candidate.quality?.metrics.melodyCollisionCount === 0,
+    && candidate.quality?.metrics.melodyCollisionCount === 0
+    && (candidate.audition?.score ?? 0) >= 72,
   )
   const ranked = [...(eligible.length > 0 ? eligible : scored)].sort((left, right) =>
     right.summary.selectionScore - left.summary.selectionScore
@@ -2168,7 +2177,7 @@ export function generateFullSongArrangement(
   const winner = ranked[0]
   const selectedSeed = winner.candidate.plan.seed
   const summaries = scored.map(({ summary }) => summary.seed === selectedSeed
-    ? { ...summary, selected: true, reason: "実音品質・独創性・制作意図への適合を総合して採用" }
+    ? { ...summary, selected: true, reason: "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用" }
     : summary)
   return {
     ...winner.candidate,
@@ -2298,7 +2307,11 @@ export function regenerateFullSongArrangementTarget(
       })
     : [...current.tracks, regenerated]
   const updated = { ...current, plan, tracks }
-  return { ...updated, quality: reviewGeneratedArrangement(updated, project) }
+  return {
+    ...updated,
+    quality: reviewGeneratedArrangement(updated, project),
+    audition: evaluateArrangementAudition(project, plan, tracks),
+  }
 }
 
 export function setArrangementTrackMuted(
