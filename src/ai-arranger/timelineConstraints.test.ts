@@ -87,4 +87,19 @@ describe("AI arrangement timeline constraints", () => {
       sections,
     ).fullSilenceRanges).toEqual([{ startBar: 95, endBar: 96 }])
   })
+
+  it("読点で続く複数の構成指示を両方反映する", () => {
+    const sections = [
+      { id: "pre", name: "PRE CHORUS", role: "pre-chorus" as const, startBar: 81, lengthBars: 8 },
+      { id: "final", name: "FINAL CHORUS", role: "chorus" as const, startBar: 89, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints(
+      "FINAL CHORUSの直前で全休止、ラスト1小節も無音",
+      96,
+      sections,
+    ).fullSilenceRanges).toEqual([
+      { startBar: 88, endBar: 88 },
+      { startBar: 96, endBar: 96 },
+    ])
+  })
 })

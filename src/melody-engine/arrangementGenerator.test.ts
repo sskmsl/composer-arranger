@@ -5,6 +5,7 @@ import { parseChordSymbol } from "@/core/chord"
 import {
   analyzeFullSongArrangement,
   buildFullSongArrangementPlan,
+  finalizeFullSongArrangement,
   generateFullSongArrangement,
   regenerateFullSongArrangementTarget,
   reviewGeneratedArrangement,
@@ -484,6 +485,31 @@ describe("Arrangement Generator", () => {
     })
   })
 
+  it("部分再生成は対象外Sectionに未修理の接触があっても変更しない", () => {
+    const input = project()
+    const generated = generateFullSongArrangement(input, { seed: 1201 })
+    const pad = generated.tracks.find((track) => track.id === "syn-pad-air")!
+    const protectedNote = {
+      ...pad.notes[0], id: "outside-target-sentinel", sectionId: "intro", startBeat: 0,
+      durationBeats: 1, pitch: 70, velocity: 20, auditionRepair: undefined,
+    }
+    const before = {
+      ...generated,
+      tracks: generated.tracks.map((track) => track.id === pad.id
+        ? { ...track, notes: [...track.notes, protectedNote] }
+        : track),
+    }
+    const outsideBefore = structuredClone(before.tracks.flatMap((track) =>
+      track.notes.filter((note) => note.sectionId !== "final"),
+    ))
+    const after = regenerateFullSongArrangementTarget(input, before, {
+      trackId: "syn-dark-pad",
+      sectionId: "final",
+      energyDelta: 4,
+    })
+    expect(after.tracks.flatMap((track) => track.notes.filter((note) => note.sectionId !== "final"))).toEqual(outsideBefore)
+  })
+
   it("AI Partnerの構造化指示を対象SectionのEnergyと役割へ反映する", () => {
     const input = project()
     const result = generateFullSongArrangement(input, {
@@ -730,6 +756,30 @@ describe("Arrangement Generator", () => {
     }
   })
 
+  it("最終工程でずれたKick・Snare・Impact補強層を本体位置へ戻す", () => {
+    const input = project()
+    const source = generateFullSongArrangement(input, { seed: 8107 })
+    const phaseLayers = new Set<ArrangementTrackId>(["dr-kick-sub", "dr-kick-click", "dr-snare-body", "dr-impact"])
+    const shifted = {
+      ...source,
+      tracks: source.tracks.map((track) => phaseLayers.has(track.id)
+        ? { ...track, notes: track.notes.map((note) => ({ ...note, startBeat: note.startBeat + .125 })) }
+        : track),
+    }
+    const finalized = finalizeFullSongArrangement(input, shifted, { refine: false })
+    const sourceByLayer = new Map<ArrangementTrackId, ArrangementTrackId>([
+      ["dr-kick-sub", "dr-kick"], ["dr-kick-click", "dr-kick"],
+      ["dr-snare-body", "dr-snare"], ["dr-impact", "dr-gran-cassa"],
+    ])
+    for (const [layerId, sourceId] of sourceByLayer) {
+      const layer = finalized.tracks.find((track) => track.id === layerId)
+      const base = finalized.tracks.find((track) => track.id === sourceId)
+      expect(layer?.notes.every((note) => base?.notes.some((candidate) =>
+        candidate.sectionId === note.sectionId && candidate.startBeat === note.startBeat,
+      ))).toBe(true)
+    }
+  })
+
   it("再登場するChorusはVelocityを除いた音型・音域・発音位置でも発展する", () => {
     const input = longFormProject()
     const result = generateFullSongArrangement(input, { seed: 8105 })
@@ -740,8 +790,11 @@ describe("Arrangement Generator", () => {
       .sort().join("|") ?? ""
     const targets: ArrangementTrackId[] = ["dr-closed-hat", "syn-pulse", "syn-bass", "syn-dark-pad", "str-viola"]
     const comparable = targets.filter((id) => signature(id, "chorus-1") && signature(id, "chorus-2"))
+    const structuralDevelopment = result.tracks.flatMap((track) => track.notes)
+      .filter((note) => note.sectionId === "chorus-2" && note.reason.includes("再登場Section"))
     expect(comparable.length).toBeGreaterThan(0)
     expect(comparable.some((id) => signature(id, "chorus-1") !== signature(id, "chorus-2"))).toBe(true)
+    expect(structuralDevelopment.length).toBeGreaterThan(0)
   })
 
   it("全候補が品質下限未満なら別seedを追加探索し、それでも不足なら理由を保持する", () => {

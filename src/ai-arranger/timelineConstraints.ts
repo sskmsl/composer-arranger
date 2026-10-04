@@ -57,21 +57,24 @@ export function parseArrangementTimelineConstraints(
   const fullSilenceRanges: ArrangementBarRange[] = []
   const melodySilenceRanges: ArrangementBarRange[] = []
   const rangeList = String.raw`\d+(?:\s*[〜～~\-–—]\s*\d+)?(?:\s*(?:\/|／|、|,|・)\s*\d+(?:\s*[〜～~\-–—]\s*\d+)?)*`
+  const clauses = () => text.split(/[。\n；;、,]/).map((value) => value.trim()).filter(Boolean)
   const clauseAt = (index: number) => {
-    const start = Math.max(text.lastIndexOf("。", index), text.lastIndexOf("\n", index), text.lastIndexOf(";", index)) + 1
-    const ends = [text.indexOf("。", index), text.indexOf("\n", index), text.indexOf(";", index)].filter((value) => value >= 0)
+    const separators = ["。", "\n", ";", "；", "、", ","]
+    const start = Math.max(...separators.map((separator) => text.lastIndexOf(separator, index))) + 1
+    const ends = separators.map((separator) => text.indexOf(separator, index)).filter((value) => value >= 0)
     return text.slice(start, ends.length > 0 ? Math.min(...ends) : text.length)
   }
   const isRelativeCountClause = (value: string) => /(?:最初|冒頭|曲の始まり|イントロ|ラスト|最後|終わり)(?:の)?\s*\d+\s*小節/i.test(value)
 
   const silenceKind = (clause: string) => {
     const melody = /メロディ(?:ー)?|主旋律/i.test(clause)
-    const full = /完全(?:に)?無音|何も鳴らさ|全(?:パート|トラック|楽器)[^。\n]{0,16}(?:休|止|消)|音を(?:全部|すべて)?[^。\n]{0,8}(?:消|抜|止)|全休止|一瞬(?:止|休)/i.test(clause)
+    const full = (!melody && /無音/i.test(clause))
+      || /完全(?:に)?無音|何も鳴らさ|全(?:パート|トラック|楽器)[^。\n]{0,16}(?:休|止|消)|音を(?:全部|すべて)?[^。\n]{0,8}(?:消|抜|止)|全休止|一瞬(?:止|休)/i.test(clause)
     const melodyOnly = melody && /なし|無音|鳴らさ|休ませ|入れない|消す|抜く|止める|伴奏だけ/i.test(clause)
     return { full, melody: melodyOnly || /伴奏だけ/i.test(clause) }
   }
 
-  for (const clause of text.split(/[。\n；;]/).map((value) => value.trim()).filter(Boolean)) {
+  for (const clause of clauses()) {
     const kind = silenceKind(clause)
     // Section名を含む指示は、曲全体の「最初／最後」より先にSection相対で解決する。
     // 例:「FINAL CHORUSの最初の2小節」は曲頭ではなく、そのSection先頭を指す。
@@ -122,12 +125,13 @@ export function parseArrangementTimelineConstraints(
   }
 
   // 同じ指示でも表現が変わるため、文単位でも「全体の無音」と「主旋律だけの休み」を拾う。
-  for (const clause of text.split(/[。\n；;]/).map((value) => value.trim()).filter(Boolean)) {
+  for (const clause of clauses()) {
     if (isRelativeCountClause(clause)) continue
     const ranges = rangesFromClause(clause, totalBars)
     if (ranges.length === 0) continue
     const mentionsMelody = /メロディ(?:ー)?|主旋律/i.test(clause)
-    const completeSilence = /完全(?:に)?無音|何も鳴らさ|全(?:パート|トラック|楽器)[^。\n]{0,16}(?:休|止|消)|音を(?:全部|すべて)?[^。\n]{0,8}(?:消|抜|止)|全休止/i.test(clause)
+    const completeSilence = (!mentionsMelody && /無音/i.test(clause))
+      || /完全(?:に)?無音|何も鳴らさ|全(?:パート|トラック|楽器)[^。\n]{0,16}(?:休|止|消)|音を(?:全部|すべて)?[^。\n]{0,8}(?:消|抜|止)|全休止/i.test(clause)
     const melodySilence = mentionsMelody && /なし|無音|鳴らさ|休ませ|入れない|消す|抜く|止める/i.test(clause)
     if (completeSilence) fullSilenceRanges.push(...ranges)
     else if (melodySilence) melodySilenceRanges.push(...ranges)

@@ -2135,6 +2135,7 @@ function reconcilePlanWithSoundingRoles(
 
 /** 同じ役割の再登場を音量差だけにせず、少なくとも複数の演奏内容で発展させる。 */
 function developRepeatedSectionPerformances(
+  project: ComposerProject,
   plan: ArrangementPlan,
   tracks: GeneratedArrangementTrack[],
 ): GeneratedArrangementTrack[] {
@@ -2145,19 +2146,74 @@ function developRepeatedSectionPerformances(
   const developmentTargets = new Set<ArrangementTrackId>([
     "dr-closed-hat", "syn-pulse", "syn-bass", "syn-dark-pad", "str-viola", "str-violin-1",
   ])
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sectionById = new Map(project.sections.map((section) => [section.id, section]))
+  const structuralBeats = new Map<string, { chord: number[]; phrase: number[] }>()
+  for (const sectionId of repeatedSections) {
+    const section = sectionById.get(sectionId)
+    if (!section) continue
+    const start = sectionOffset(section.startBar, beatsPerBar)
+    const end = start + section.lengthBars * beatsPerBar
+    const chord = project.chords
+      .filter((candidate) => candidate.sectionId === sectionId && candidate.startBeat > 0)
+      .map((candidate) => start + candidate.startBeat)
+    const phrase: number[] = []
+    for (let bar = 4; bar <= section.lengthBars; bar += 4) phrase.push(Math.min(end, start + bar * beatsPerBar))
+    if (!phrase.includes(end)) phrase.push(end)
+    structuralBeats.set(sectionId, { chord, phrase })
+  }
   return tracks.map((track) => {
     if (!developmentTargets.has(track.id)) return track
-    const sectionCounters = new Map<string, number>()
+    const selected = new Set<string>()
+    for (const sectionId of repeatedSections) {
+      const sectionNotes = track.notes.filter((note) => note.sectionId === sectionId)
+      const boundaries = structuralBeats.get(sectionId)
+      const section = sectionById.get(sectionId)
+      if (!boundaries || !section || sectionNotes.length === 0) continue
+      const sectionStart = sectionOffset(section.startBar, beatsPerBar)
+      const beatStrength = (note: GeneratedArrangementNote) => {
+        const beatInBar = ((note.startBeat - sectionStart) % beatsPerBar + beatsPerBar) % beatsPerBar
+        return beatInBar < .0625 ? 2 : Math.abs(beatInBar - Math.round(beatInBar)) < .0625 ? 1 : 0
+      }
+      const beforeBoundary = (boundary: number) => sectionNotes
+        .filter((note) => note.startBeat < boundary - .03125 && note.startBeat >= boundary - beatsPerBar)
+        .sort((left, right) => beatStrength(left) - beatStrength(right) || right.startBeat - left.startBeat)[0]
+      if (track.id === "dr-closed-hat" || track.id === "syn-pulse") {
+        boundaries.phrase.forEach((boundary) => {
+          const candidate = beforeBoundary(boundary)
+          if (candidate) selected.add(candidate.id)
+        })
+      } else if (track.id === "syn-bass") {
+        boundaries.chord.forEach((boundary) => {
+          // 音数が少ないBassは、次コード直前に音がなければコード入口そのものを
+          // オクターブで受け渡す。音番号ではなく和声境界を基準にする。
+          const candidate = sectionNotes
+            .filter((note) => Math.abs(note.startBeat - boundary) <= .125)
+            .sort((left, right) => beatStrength(left) - beatStrength(right))[0]
+            ?? beforeBoundary(boundary)
+          if (candidate) selected.add(candidate.id)
+        })
+      } else {
+        [...boundaries.chord, ...boundaries.phrase].forEach((boundary) => {
+          const candidate = sectionNotes
+            .filter((note) => note.durationBeats >= .5 && note.startBeat < boundary)
+            .sort((left, right) =>
+              Math.abs(left.startBeat + left.durationBeats - boundary) - Math.abs(right.startBeat + right.durationBeats - boundary))[0]
+          if (candidate && Math.abs(candidate.startBeat + candidate.durationBeats - boundary) <= beatsPerBar) selected.add(candidate.id)
+        })
+      }
+    }
     const notes = track.notes.flatMap((note): GeneratedArrangementNote[] => {
-      if (!repeatedSections.has(note.sectionId)) return [note]
-      const index = sectionCounters.get(note.sectionId) ?? 0
-      sectionCounters.set(note.sectionId, index + 1)
-      if ((track.id === "dr-closed-hat" || track.id === "syn-pulse") && index % 12 === 10) return []
-      if (track.id === "syn-bass" && index % 8 === 6) {
+      if (!repeatedSections.has(note.sectionId) || !selected.has(note.id)) return [note]
+      // フレーズ末尾の弱い発音だけを抜き、次の入口を広くする。頂点やコード頭は消さない。
+      if (track.id === "dr-closed-hat" || track.id === "syn-pulse") return []
+      // 次のコードへ入る直前の弱拍だけをオクターブで受け渡し、根音や強拍は保持する。
+      if (track.id === "syn-bass") {
         const pitch = note.pitch <= 48 ? note.pitch + 12 : note.pitch >= 60 ? note.pitch - 12 : note.pitch
         return [{ ...note, pitch, reason: `${note.reason}。再登場Sectionでは低音の輪郭を発展` }]
       }
-      if (["syn-dark-pad", "str-viola", "str-violin-1"].includes(track.id) && index % 4 === 3) {
+      // 和音／弦はフレーズまたはコードの切れ目でだけ余韻を短くし、無関係な音番号では選ばない。
+      if (["syn-dark-pad", "str-viola", "str-violin-1"].includes(track.id)) {
         return [{ ...note, durationBeats: Math.max(.125, note.durationBeats * .75), reason: `${note.reason}。再登場Sectionでは余白を変えて発展` }]
       }
       return [note]
@@ -2249,6 +2305,7 @@ function generateArrangementCandidate(
     ? ARRANGEMENT_LAYER_SOURCES[trackId]
     : trackId))]
   const generatedCoreTracks = developRepeatedSectionPerformances(
+    project,
     plan,
     coreTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision, undefined, variationSeed)),
   )

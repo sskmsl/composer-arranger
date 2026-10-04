@@ -26,6 +26,14 @@ const PHASE_ALIGNED_DRUM_LAYERS = new Map<string, string>([
   ["dr-impact", "dr-gran-cassa"],
 ])
 
+// 和音・持続声部は1音だけオクターブ移動するとVoice Leadingが壊れる。
+// 主旋律と重なった場合は、同時発音のまとまりごとに長さ／入口を変えるか休符にする。
+const GROUPED_BACKGROUND_TRACKS = new Set([
+  "syn-dark-pad", "syn-chord-wide", "syn-pad-air", "syn-pad-motion",
+  "str-cello", "str-contrabass", "str-viola", "str-spiccato", "str-violin-2",
+  "str-violin-1", "str-upper", "str-high-octave",
+])
+
 function attackIdentity(trackId: string): string {
   return PHASE_ALIGNED_DRUM_LAYERS.get(trackId) ?? trackId
 }
@@ -77,6 +85,24 @@ function correlation(left: number[], right: number[]): number {
 function overlaps(left: MelodyNote, right: MelodyNote): boolean {
   return left.startBeat < right.startBeat + right.durationBeats
     && left.startBeat + left.durationBeats > right.startBeat
+}
+
+function noteFrameIndex(notes: readonly MelodyNote[]): Map<number, MelodyNote[]> {
+  const frames = new Map<number, MelodyNote[]>()
+  for (const note of notes) {
+    const first = Math.floor(note.startBeat * 2)
+    const last = Math.max(first, Math.ceil((note.startBeat + note.durationBeats) * 2) - 1)
+    for (let frame = first; frame <= last; frame += 1) frames.set(frame, [...(frames.get(frame) ?? []), note])
+  }
+  return frames
+}
+
+function overlappingNotes(index: ReadonlyMap<number, MelodyNote[]>, note: MelodyNote): MelodyNote[] {
+  const first = Math.floor(note.startBeat * 2)
+  const last = Math.max(first, Math.ceil((note.startBeat + note.durationBeats) * 2) - 1)
+  const candidates = new Set<MelodyNote>()
+  for (let frame = first; frame <= last; frame += 1) index.get(frame)?.forEach((candidate) => candidates.add(candidate))
+  return [...candidates].filter((candidate) => overlaps(note, candidate))
 }
 
 function isTonal(track: GeneratedArrangementTrack): boolean {
@@ -152,14 +178,21 @@ function auditionMetrics(
 ): Omit<ArrangementAuditionReport, "repairPasses" | "removedNotes" | "shiftedNotes" | "velocityAdjustments"> {
   const material = playbackMaterial(project, plan)
   const foreground = protectedForeground(project, plan)
+  const foregroundIndex = noteFrameIndex(foreground)
   const tonal = tracks.filter((track) => !track.muted && isTonal(track))
   const tonalNotes = tonal.flatMap((track) => track.notes.map((note) => ({ track, note })))
   const masking = tonalNotes.filter(({ track, note }) =>
     note.character === "safe"
     && (FOREGROUND_SUPPORT.has(track.id) || LAYER_TRACKS.has(track.id))
-    && foreground.some((leadNote) => overlaps(note, leadNote) && Math.abs(note.pitch - leadNote.pitch) <= 5),
+    && overlappingNotes(foregroundIndex, note).some((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 5),
   )
   const melodicClarity = clamp(100 - masking.length / Math.max(1, foreground.length) * 75)
+  // 全曲品質ゲートと同じく、同音〜全音の接触は比率ではなく件数で扱う。
+  // 主旋律の音数が多くても、1件残っていれば修理ループを開始する。
+  const blockingMelodyCollisions = tonalNotes.filter(({ note }) =>
+    note.character === "safe"
+    && overlappingNotes(foregroundIndex, note).some((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 2),
+  ).length
 
   const attackGroups = new Map<number, Set<string>>()
   for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
@@ -261,7 +294,7 @@ function auditionMetrics(
   }).length
   const issues: string[] = []
   if (layerHarmonyViolations > 0) issues.push("補助層に現在のコードから外れる音があります")
-  if (melodicClarity < 82) issues.push("主旋律と補助パートの中域が重なりすぎています")
+  if (blockingMelodyCollisions > 0 || melodicClarity < 82) issues.push("主旋律と補助パートの中域が重なりすぎています")
   if (lowEndClarity < 82) issues.push("低域の持続パートが同時に重なりすぎています")
   if (transientClarity < 82) issues.push("同時に始まるパートが多く、アタックが一塊になっています")
   if (registerBalance < 68) issues.push("Sectionで予定した音域配分と実音の分布が一致していません")
@@ -271,6 +304,7 @@ function auditionMetrics(
     version: "1.0.0",
     score: Math.round(score * 10) / 10,
     passed: layerHarmonyViolations === 0
+      && blockingMelodyCollisions === 0
       && score >= 78
       && melodicClarity >= 72
       && lowEndClarity >= 68
@@ -298,6 +332,7 @@ function repairPass(
   editableSectionIds?: ReadonlySet<string>,
 ): { tracks: GeneratedArrangementTrack[]; removedNotes: number; shiftedNotes: number; velocityAdjustments: number } {
   const foreground = protectedForeground(project, plan)
+  const foregroundIndex = noteFrameIndex(foreground)
   const attackCounts = new Map<number, Set<string>>()
   for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
     const key = Math.round(note.startBeat * 8)
@@ -319,11 +354,64 @@ function repairPass(
   let velocityAdjustments = 0
   const repaired = tracks.map((track): GeneratedArrangementTrack => ({
     ...track,
-    notes: track.notes.flatMap((note, noteIndex): GeneratedArrangementNote[] => {
+    notes: (() => {
+      type GroupDecision = { kind: "remove" } | { kind: "shorten"; endBeat: number } | { kind: "delay"; startBeat: number }
+      const groupDecisions = new Map<string, GroupDecision>()
+      if (GROUPED_BACKGROUND_TRACKS.has(track.id) && !track.muted) {
+        const groups = new Map<string, GeneratedArrangementNote[]>()
+        for (const note of track.notes) {
+          const key = `${note.sectionId}:${note.startBeat.toFixed(6)}`
+          groups.set(key, [...(groups.get(key) ?? []), note])
+        }
+        for (const [key, notes] of groups) {
+          const collisions = notes.flatMap((note) => overlappingNotes(foregroundIndex, note)
+            .filter((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 5))
+          if (collisions.length === 0) continue
+          // 既に一度まとまりを整えてなお接触する場合は、声部を飛ばさず休符を選ぶ。
+          if (notes.some((note) => note.auditionRepair?.actions.some((action) => action === "melody-space" || action === "shorten"))) {
+            groupDecisions.set(key, { kind: "remove" })
+            continue
+          }
+          const firstCollision = Math.min(...collisions.map((note) => note.startBeat))
+          const lastCollisionEnd = Math.max(...collisions.map((note) => note.startBeat + note.durationBeats))
+          const endBeat = firstCollision - .03125
+          const delayedStart = lastCollisionEnd + .03125
+          const canShorten = notes.every((note) => endBeat - note.startBeat >= .0625)
+          const canDelay = notes.every((note) => note.startBeat + note.durationBeats - delayedStart >= .0625)
+          groupDecisions.set(key, canShorten
+            ? { kind: "shorten", endBeat }
+            : canDelay
+              ? { kind: "delay", startBeat: delayedStart }
+              : { kind: "remove" })
+        }
+      }
+      return track.notes.flatMap((note, noteIndex): GeneratedArrangementNote[] => {
       if (track.muted || editableTrackIds && !editableTrackIds.has(track.id) || editableSectionIds && !editableSectionIds.has(note.sectionId)) return [note]
       let next = note
       const actions = new Set(note.auditionRepair?.actions ?? [])
-      if (LAYER_TRACKS.has(track.id) && note.character === "safe") {
+      const groupKey = `${note.sectionId}:${note.startBeat.toFixed(6)}`
+      const groupDecision = groupDecisions.get(groupKey)
+      if (groupDecision?.kind === "remove") {
+        removedNotes += 1
+        return []
+      }
+      if (groupDecision?.kind === "shorten") {
+        next = withRepair(next, pass, "shorten", {
+          durationBeats: Math.max(.0625, Math.min(next.durationBeats, groupDecision.endBeat - next.startBeat)),
+          reason: `${next.reason}。和音のまとまりを保ったまま主旋律の前で止める`,
+        })
+        shiftedNotes += 1
+      } else if (groupDecision?.kind === "delay") {
+        const originalEnd = next.startBeat + next.durationBeats
+        next = withRepair(next, pass, "melody-space", {
+          startBeat: groupDecision.startBeat,
+          durationBeats: originalEnd - groupDecision.startBeat,
+          reason: `${next.reason}。和音のまとまりを保ったまま主旋律の後から入る`,
+        })
+        shiftedNotes += 1
+      }
+      // ドラムのpitchは音高ではなくGM打楽器番号。和声・音域修理で絶対に変更しない。
+      if (isTonal(track) && LAYER_TRACKS.has(track.id) && note.character === "safe") {
         const allowed = chordPitchClassesAt(project, next)
         const pitchClass = ((next.pitch % 12) + 12) % 12
         if (allowed && !allowed.has(pitchClass)) {
@@ -339,7 +427,7 @@ function repairPass(
         }
       }
       const sectionPlan = plan.sections.find((section) => section.sectionId === next.sectionId)
-      if (sectionPlan && LAYER_TRACKS.has(track.id) && issues.some((issue) => issue.includes("音域配分")) && !actions.has("register")) {
+      if (sectionPlan && isTonal(track) && LAYER_TRACKS.has(track.id) && issues.some((issue) => issue.includes("音域配分")) && !actions.has("register")) {
         const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
         const strongest = [...(["low", "mid", "high"] as const)].sort((left, right) => {
           const weight = (value: "open" | "medium" | "strong") => value === "strong" ? 2 : value === "medium" ? 1 : 0
@@ -372,8 +460,8 @@ function repairPass(
           velocityAdjustments += 1
         }
       }
-      const leadCollision = track.family !== "drums" && track.family !== "bass" && note.character === "safe"
-        ? foreground.find((leadNote) => overlaps(next, leadNote) && Math.abs(next.pitch - leadNote.pitch) <= 5)
+      const leadCollision = !groupDecision && track.family !== "drums" && track.family !== "bass" && note.character === "safe"
+        ? overlappingNotes(foregroundIndex, next).find((leadNote) => Math.abs(next.pitch - leadNote.pitch) <= 5)
         : undefined
       if (leadCollision) {
         const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
@@ -412,6 +500,7 @@ function repairPass(
               durationBeats: beforeDuration,
               reason: `${next.reason}。主旋律が入る前で音を止める`,
             })
+            shiftedNotes += 1
           } else if (afterStart + .0625 <= originalEnd) {
             next = withRepair(next, pass, "melody-space", {
               startBeat: afterStart,
@@ -455,7 +544,8 @@ function repairPass(
         velocityAdjustments += 1
       }
       return [next]
-    }),
+      })
+    })(),
   }))
   return { tracks: repaired, removedNotes, shiftedNotes, velocityAdjustments }
 }
