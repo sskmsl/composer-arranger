@@ -206,4 +206,12 @@ describe("打楽器の雑音", () => {
     expect(noisePercussionSpec("dr-crash").decay).toBeGreaterThan(0.8)
     expect(noisePercussionSpec("dr-snare").body).toBeDefined()
   })
+
+  it("追加したドラム層を同じスネア音へ潰さず、役割ごとの減衰と胴鳴りに分ける", () => {
+    expect(noisePercussionSpec("dr-kick-click").decay).toBeLessThan(0.05)
+    expect(noisePercussionSpec("dr-shaker").frequency).toBeGreaterThan(8000)
+    expect(noisePercussionSpec("dr-ride").decay).toBeGreaterThan(0.5)
+    expect(noisePercussionSpec("dr-cymbal-swell").decay).toBeGreaterThan(1)
+    expect(noisePercussionSpec("dr-snare-body").body).toBeDefined()
+  })
 })

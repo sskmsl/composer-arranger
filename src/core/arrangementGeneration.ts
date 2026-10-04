@@ -286,6 +286,8 @@ export interface ArrangementTrackPerformance {
 
 export interface FullSongArrangement {
   version: "1.0.0"
+  /** 2 = 音域・アタック・距離を分けた追加オーケストレーション層を含む。 */
+  orchestrationVersion?: 2
   id: string
   createdAt: string
   analysis: ArrangementAnalysis

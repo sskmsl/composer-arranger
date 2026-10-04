@@ -75,13 +75,14 @@ export function FullSongArrangementPanel() {
   const families = (Object.keys(TRACK_FAMILY_LABEL) as GeneratedArrangementTrack["family"][])
     .map((family) => ({ family, tracks: tracks.filter((track) => track.family === family) }))
     .filter((group) => group.tracks.length > 0)
+  const soundingTrackCount = tracks.filter((track) => !track.muted && track.notes.length > 0).length
 
   return (
     <section className="flex min-w-0 max-w-full flex-col gap-3" aria-labelledby="generated-parts-heading">
       <div>
         <h3 id="generated-parts-heading" className="text-[14px] font-semibold text-body-on-dark">パートごとに聴く・書き出す</h3>
         <p className="mt-1 text-[13px] leading-5 text-body-muted">
-          生成済み {tracks.length}トラック。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。1パートだけのMIDIは、Logic Proの1小節目に置いてください。
+          生成済み {tracks.length}トラック（この曲で発音 {soundingTrackCount}トラック）。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。1パートだけのMIDIは、Logic Proの1小節目に置いてください。
         </p>
       </div>
 

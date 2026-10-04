@@ -221,6 +221,8 @@ export function ArrangementWorkspace({
 
   const versions = project.arrangementChat?.versions ?? []
   const hasArrangement = Boolean(project.fullSongArrangement)
+  const generatedTrackCount = project.fullSongArrangement?.tracks.length ?? 0
+  const soundingTrackCount = project.fullSongArrangement?.tracks.filter((track) => !track.muted && track.notes.length > 0).length ?? 0
   // 全曲アレンジがまだないときは「パート別」を出せないので、軽い「セクションの順番」を開く
   const activeDetailTab: DetailTabId = detailTab === "parts" && !hasArrangement ? "sections" : detailTab
   const visibleDetailTabs = DETAIL_TABS.filter((item) => item.id !== "parts" || hasArrangement)
@@ -301,6 +303,11 @@ export function ArrangementWorkspace({
         <section aria-labelledby="part-table-heading" className="flex min-w-0 flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2">
             <h3 id="part-table-heading" className="mr-auto text-[13px] font-semibold text-body-on-dark">パート構成</h3>
+            {hasArrangement && (
+              <span className="rounded-pill bg-white/6 px-2.5 py-1 text-[12px] text-body-muted">
+                生成 {generatedTrackCount}トラック · 発音 {soundingTrackCount}トラック
+              </span>
+            )}
             {hasArrangement && !pickerOpen && (
               <Button variant="secondary" onClick={() => setPickerOpen(true)}>
                 <Compass size={14} /> 方向を選び直す

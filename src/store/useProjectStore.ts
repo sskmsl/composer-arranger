@@ -39,7 +39,12 @@ import {
   type SeedOperation,
 } from "@/melody-engine/developSeed"
 import { createSeed } from "@/core/rng"
-import { generateFullSongArrangement, regenerateFullSongArrangementTarget, setArrangementTrackMuted } from "@/melody-engine/arrangementGenerator"
+import {
+  generateFullSongArrangement,
+  regenerateFullSongArrangementTarget,
+  setArrangementTrackMuted,
+  upgradeFullSongArrangementOrchestration,
+} from "@/melody-engine/arrangementGenerator"
 import {
   saveProject,
   loadLastOpenedProject,
@@ -123,6 +128,13 @@ function followSections(
     parseTimeSignature(prev.song.timeSignature).beatsPerBar,
     copiedFrom,
   )
+}
+
+/** 保存済みの主パートを維持したまま、現行版で増えたオーケストレーション層を補う。 */
+function upgradeSavedArrangement(project: ComposerProject): { project: ComposerProject; changed: boolean } {
+  const arrangement = upgradeFullSongArrangementOrchestration(project)
+  if (!arrangement || arrangement === project.fullSongArrangement) return { project, changed: false }
+  return { project: { ...project, fullSongArrangement: arrangement }, changed: true }
 }
 
 export interface ProjectState extends ArrangementChatActions {
@@ -379,14 +391,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // songProfile等を欠いたままUIへ渡ってクラッシュすることもない(16章/Issue #16)
       const result = resolveProjectTiming(last)
       const sectionInference = inferMarkerlessImportedSections(result.project)
+      const arrangementUpgrade = upgradeSavedArrangement(sectionInference.project)
       if (result.status !== "no-op") void backupProjectTimingSnapshot(last)
       set({
-        project: sectionInference.project,
-        selectedSectionId: sectionInference.project.sections[0]?.id ?? null,
+        project: arrangementUpgrade.project,
+        selectedSectionId: arrangementUpgrade.project.sections[0]?.id ?? null,
         hydrated: true,
         timingNotice: timingNoticeFrom(result),
       })
-      if (result.status === "auto-converted" || sectionInference.changed) get().persist()
+      if (result.status === "auto-converted" || sectionInference.changed || arrangementUpgrade.changed) get().persist()
     } else {
       set({ hydrated: true })
     }
@@ -416,10 +429,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadProject: (raw) => {
     const result = resolveProjectTiming(raw)
     const sectionInference = inferMarkerlessImportedSections(result.project)
+    const arrangementUpgrade = upgradeSavedArrangement(sectionInference.project)
     if (result.status !== "no-op") void backupProjectTimingSnapshot(raw)
     set({
-      project: sectionInference.project,
-      selectedSectionId: sectionInference.project.sections[0]?.id ?? null,
+      project: arrangementUpgrade.project,
+      selectedSectionId: arrangementUpgrade.project.sections[0]?.id ?? null,
       activeBatchId: null,
       activePhraseBatchId: null,
       activePhraseCandidateIndex: 0,

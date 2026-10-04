@@ -150,6 +150,13 @@ export function noisePercussionSpec(trackId: ArrangementTrackId): {
   if (trackId === "dr-closed-hat") return { filter: "highpass", frequency: 7500, q: 0.7, gain: 0.32, decay: 0.05 }
   if (trackId === "dr-open-hat") return { filter: "highpass", frequency: 6800, q: 0.7, gain: 0.28, decay: 0.24 }
   if (trackId === "dr-crash") return { filter: "highpass", frequency: 3800, q: 0.5, gain: 0.3, decay: 1.1 }
+  if (trackId === "dr-kick-click") return { filter: "highpass", frequency: 4200, q: 0.9, gain: 0.2, decay: 0.035 }
+  if (trackId === "dr-clap") return { filter: "bandpass", frequency: 2400, q: 0.55, gain: 0.38, decay: 0.12 }
+  if (trackId === "dr-shaker") return { filter: "highpass", frequency: 8200, q: 0.65, gain: 0.18, decay: 0.045 }
+  if (trackId === "dr-ride") return { filter: "highpass", frequency: 5200, q: 0.5, gain: 0.22, decay: 0.62 }
+  if (trackId === "dr-cymbal-swell") return { filter: "highpass", frequency: 3300, q: 0.45, gain: 0.2, decay: 1.4 }
+  if (trackId === "dr-percussion-high") return { filter: "bandpass", frequency: 3100, q: 1.1, gain: 0.34, decay: 0.09 }
+  if (trackId === "dr-snare-body") return { filter: "bandpass", frequency: 1100, q: 0.75, gain: 0.45, decay: 0.22, body: { frequency: 145, gain: 0.55, decay: 0.15 } }
   if (trackId === "dr-field-drum") return { filter: "bandpass", frequency: 1200, q: 0.8, gain: 0.55, decay: 0.2, body: { frequency: 150, gain: 0.4, decay: 0.1 } }
   // スネア
   return { filter: "bandpass", frequency: 1900, q: 0.7, gain: 0.6, decay: 0.15, body: { frequency: 185, gain: 0.45, decay: 0.08 } }
@@ -713,10 +720,14 @@ class PreviewPlayer {
     dur: number,
   ): void {
     const level = Math.max(0.04, Math.min(0.45, velocity / 260))
-    if (trackId === "dr-kick" || trackId === "dr-gran-cassa" || trackId.includes("tom")) {
+    if (trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-gran-cassa" || trackId === "dr-impact" || trackId.includes("tom")) {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-      const base = trackId === "dr-gran-cassa" ? 48 : trackId === "dr-kick" ? 58 : trackId === "dr-low-tom" ? 90 : 125
+      const base = trackId === "dr-kick-sub" ? 38
+        : trackId === "dr-gran-cassa" ? 48
+          : trackId === "dr-impact" ? 52
+            : trackId === "dr-kick" ? 58
+              : trackId === "dr-low-tom" ? 90 : 125
       osc.type = "sine"
       osc.frequency.setValueAtTime(base * 2.2, t0)
       osc.frequency.exponentialRampToValueAtTime(base, t0 + Math.min(0.12, dur))

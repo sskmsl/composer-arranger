@@ -1838,6 +1838,7 @@ function generateArrangementCandidate(
   }))
   const result: FullSongArrangement = {
     version: "1.0.0",
+    orchestrationVersion: 2,
     id: `arrangement:${seed}`,
     createdAt: new Date().toISOString(),
     analysis,
@@ -1934,6 +1935,41 @@ export function generateFullSongArrangement(
       selectedSeed,
       candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
     },
+  }
+}
+
+/**
+ * 以前の版で保存された全曲案へ、当時の主パートを一切作り直さずに
+ * 現行のオーケストレーション層だけを追加する。
+ *
+ * アプリ更新後も保存済みの曲が旧トラック数のまま残る問題を防ぎつつ、
+ * 個別再生成・ミュート・採用済みの音符はそのまま保持する。
+ */
+export function upgradeFullSongArrangementOrchestration(
+  project: ComposerProject,
+  arrangement: FullSongArrangement | null | undefined = project.fullSongArrangement,
+): FullSongArrangement | undefined {
+  if (!arrangement || arrangement.orchestrationVersion === 2) return arrangement ?? undefined
+
+  const existingIds = new Set(arrangement.tracks.map((track) => track.id))
+  const existingById = new Map(arrangement.tracks.map((track) => [track.id, track]))
+  const revision = Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))
+  const missingLayers = layerTrackIdsFor(arrangement.tracks.map((track) => track.id))
+    .filter((trackId) => !existingIds.has(trackId))
+    .flatMap((trackId) => {
+      const source = existingById.get(ARRANGEMENT_LAYER_SOURCES[trackId])
+      return source ? [deriveArrangementLayerTrack(source, trackId, arrangement.plan, revision)] : []
+    })
+  const performedLayers = applyArrangementTimelineToTracks(
+    applyArrangementPerformanceDirector(project, arrangement.plan, missingLayers),
+    arrangement.plan.directive?.timelineConstraints,
+    parseTimeSignature(project.song.timeSignature).beatsPerBar,
+  )
+
+  return {
+    ...arrangement,
+    orchestrationVersion: 2,
+    tracks: [...arrangement.tracks, ...performedLayers],
   }
 }
 

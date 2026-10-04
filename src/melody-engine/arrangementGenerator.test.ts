@@ -8,6 +8,7 @@ import {
   generateFullSongArrangement,
   regenerateFullSongArrangementTarget,
   reviewGeneratedArrangement,
+  upgradeFullSongArrangementOrchestration,
 } from "./arrangementGenerator"
 import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 
@@ -645,6 +646,28 @@ describe("Arrangement Generator", () => {
     expect(repeated.selection).toEqual(first.selection)
     expect(repeated.tracks).toEqual(first.tracks)
     expect(changed.tracks).not.toEqual(first.tracks)
+  })
+
+  it("保存済みの旧全曲案は主パートを変えず、追加オーケストレーション層だけを補う", () => {
+    const input = longFormProject()
+    const current = generateFullSongArrangement(input, { seed: 9012 })
+    const layerIds = new Set([
+      "dr-kick-sub", "dr-kick-click", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride",
+      "dr-percussion-high", "dr-cymbal-swell", "dr-impact", "syn-sub-bass", "syn-bass-mid",
+      "syn-arp-low", "syn-arp-high", "syn-chord-wide", "syn-pad-air", "syn-pad-motion",
+      "str-contrabass", "str-spiccato", "str-high-octave",
+    ])
+    const oldCore = current.tracks
+      .filter((track) => !layerIds.has(track.id))
+      .map((track, index) => index === 0 ? { ...track, muted: true } : track)
+    const legacy = { ...current, orchestrationVersion: undefined, tracks: oldCore }
+    const upgraded = upgradeFullSongArrangementOrchestration({ ...input, fullSongArrangement: legacy }, legacy)!
+
+    expect(upgraded.orchestrationVersion).toBe(2)
+    expect(upgraded.tracks.slice(0, oldCore.length)).toEqual(oldCore)
+    expect(upgraded.tracks.length).toBeGreaterThan(oldCore.length)
+    expect(upgraded.tracks.some((track) => layerIds.has(track.id) && track.notes.length > 0)).toBe(true)
+    expect(upgradeFullSongArrangementOrchestration({ ...input, fullSongArrangement: upgraded }, upgraded)).toBe(upgraded)
   })
 
   it("Safe系の全音程を発音時点のコードトーンまたは明示テンション内へ保つ", () => {
