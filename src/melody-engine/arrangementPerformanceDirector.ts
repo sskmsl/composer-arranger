@@ -21,7 +21,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function performanceRole(trackId: ArrangementTrackId): PerformanceExecutionPlan["role"] {
-  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId === "syn-stabs") return "pulse-foundation"
+  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide") return "pulse-foundation"
   if (trackId === "syn-transition-phrase" || trackId === "syn-high-glass" || trackId === "syn-final-lift") return "transition-color"
   if (trackId === "str-violin-1" || trackId === "str-upper") return "counter-voice"
   return "harmonic-space"
@@ -31,33 +31,33 @@ function articulationFor(
   trackId: ArrangementTrackId,
   section: ArrangementSectionPlan,
 ): PerformanceExecutionPlan["articulation"] {
-  if (trackId.includes("hat") || trackId === "syn-stabs") return "detached"
-  if (trackId.startsWith("dr-") || trackId === "syn-pulse") return "pulsed"
+  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId === "str-spiccato") return "detached"
+  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-")) return "pulsed"
   if (trackId === "syn-high-glass") return "decaying"
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return "swelling"
-  if (trackId === "syn-dark-pad") return section.semanticRole === "outro" ? "decaying" : "sustained"
-  if (trackId === "syn-bass") return section.bassStrategy === "sustain" ? "sustained" : "pulsed"
+  if (trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return section.semanticRole === "outro" ? "decaying" : "sustained"
+  if (trackId.includes("bass")) return trackId === "syn-sub-bass" || section.bassStrategy === "sustain" ? "sustained" : "pulsed"
   if (trackId.startsWith("str-")) return section.semanticRole === "final" ? "swelling" : "legato"
   return "sustained"
 }
 
 function timingFor(trackId: ArrangementTrackId): PerformanceExecutionPlan["timing"] {
-  if (trackId === "dr-kick" || trackId === "syn-pulse") return "strict"
-  if (trackId === "dr-snare" || trackId === "dr-field-drum" || trackId.includes("hat")) return "slightly-behind"
+  if (trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-kick-click" || trackId === "syn-pulse" || trackId.startsWith("syn-arp-")) return "strict"
+  if (trackId === "dr-snare" || trackId === "dr-snare-body" || trackId === "dr-clap" || trackId === "dr-field-drum" || trackId.includes("hat") || trackId === "dr-shaker") return "slightly-behind"
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return "slightly-ahead"
-  if (trackId === "syn-bass" || trackId === "syn-dark-pad") return "slightly-behind"
+  if (trackId.includes("bass") || trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return "slightly-behind"
   return "floating"
 }
 
 function velocityRangeFor(trackId: ArrangementTrackId, energy: number): readonly [number, number] {
   const normalized = clamp(energy, 10, 100) / 100
-  if (trackId === "dr-kick" || trackId === "dr-gran-cassa") return [Math.round(58 + normalized * 16), Math.round(78 + normalized * 35)]
+  if (trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-kick-click" || trackId === "dr-gran-cassa" || trackId === "dr-impact") return [Math.round(58 + normalized * 16), Math.round(78 + normalized * 35)]
   if (trackId === "dr-snare" || trackId.includes("tom") || trackId === "dr-field-drum") return [Math.round(48 + normalized * 15), Math.round(70 + normalized * 32)]
-  if (trackId.includes("hat")) return [Math.round(36 + normalized * 12), Math.round(54 + normalized * 24)]
+  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "dr-ride") return [Math.round(36 + normalized * 12), Math.round(54 + normalized * 24)]
   if (trackId === "dr-crash") return [72, Math.round(88 + normalized * 24)]
-  if (trackId === "syn-bass") return [Math.round(44 + normalized * 12), Math.round(64 + normalized * 25)]
-  if (trackId === "syn-pulse" || trackId === "syn-stabs") return [Math.round(36 + normalized * 10), Math.round(55 + normalized * 22)]
-  if (trackId === "syn-dark-pad") return [Math.round(27 + normalized * 7), Math.round(42 + normalized * 16)]
+  if (trackId.includes("bass")) return [Math.round(44 + normalized * 12), Math.round(64 + normalized * 25)]
+  if (trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide") return [Math.round(36 + normalized * 10), Math.round(55 + normalized * 22)]
+  if (trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return [Math.round(27 + normalized * 7), Math.round(42 + normalized * 16)]
   if (trackId === "syn-high-glass") return [38, Math.round(52 + normalized * 18)]
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return [Math.round(42 + normalized * 9), Math.round(66 + normalized * 27)]
   if (trackId.startsWith("str-")) return [Math.round(36 + normalized * 11), Math.round(58 + normalized * 29)]
@@ -103,20 +103,20 @@ export function buildArrangementPerformancePlan(
     timing: {
       ...baseSpec.timing,
       humanizeMs:
-        trackId === "dr-kick" || trackId === "dr-gran-cassa"
+        trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-kick-click" || trackId === "dr-gran-cassa" || trackId === "dr-impact"
           ? 2
           : trackId.startsWith("dr-")
             ? 7
-            : trackId.startsWith("str-") || trackId === "syn-dark-pad"
+            : trackId.startsWith("str-") || trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")
               ? 9
               : baseSpec.timing.humanizeMs,
     },
     controllers:
-      trackId.startsWith("str-") || trackId === "syn-dark-pad" || trackId === "syn-final-lift"
+      trackId.startsWith("str-") || trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-") || trackId === "syn-final-lift"
         ? {
             expression: { min: baseSpec.velocity.min, max: baseSpec.velocity.max },
             modulation: { min: 18, max: section.energy >= 75 ? 78 : 55 },
-            sustain: trackId === "syn-dark-pad" ? "section" : "phrase",
+            sustain: trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-") ? "section" : "phrase",
           }
         : undefined,
   }
@@ -133,11 +133,11 @@ function arcAmount(arc: ArrangementPerformanceArc, progress: number): number {
 
 function roleAccent(trackId: ArrangementTrackId, note: GeneratedArrangementNote, beatsPerBar: number): number {
   const position = ((note.startBeat % beatsPerBar) + beatsPerBar) % beatsPerBar
-  if (trackId === "dr-kick") return position < 0.05 ? 7 : position >= beatsPerBar / 2 - 0.05 && position <= beatsPerBar / 2 + 0.05 ? 3 : -2
-  if (trackId === "dr-snare") return 5
-  if (trackId.includes("hat")) return Math.abs(position - Math.round(position)) < 0.05 ? 2 : -4
-  if (trackId === "syn-pulse") return Math.abs(position - Math.round(position)) < 0.05 ? 3 : -3
-  if (trackId === "syn-bass") return position < 0.05 ? 4 : 0
+  if (trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-kick-click") return position < 0.05 ? 7 : position >= beatsPerBar / 2 - 0.05 && position <= beatsPerBar / 2 + 0.05 ? 3 : -2
+  if (trackId === "dr-snare" || trackId === "dr-snare-body" || trackId === "dr-clap") return 5
+  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "dr-ride") return Math.abs(position - Math.round(position)) < 0.05 ? 2 : -4
+  if (trackId === "syn-pulse" || trackId.startsWith("syn-arp-")) return Math.abs(position - Math.round(position)) < 0.05 ? 3 : -3
+  if (trackId.includes("bass")) return position < 0.05 ? 4 : 0
   return 0
 }
 

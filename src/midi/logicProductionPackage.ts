@@ -374,12 +374,13 @@ const SONG_TRACK_ROLES: Partial<Record<LogicProductionTrackId, string>> = {
 
 const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; product: string; preset: string; setting: string }> = [
   { match: (id) => id.startsWith("dr-"), role: "ドラム", product: "Battery 4", preset: "dry electronic kit", setting: "KickとSnareを基準に、Hatは控えめ／定位 Center〜±30／残響 Short Room" },
-  { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", preset: "dark mono bass", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
-  { match: (id) => id === "syn-pulse" || id === "syn-stabs", role: "シンセの刻み", product: "Repro-1", preset: "muted sequence", setting: "短く歯切れよく／定位 ±20／残響 Tempo Delay少し" },
-  { match: (id) => id === "syn-dark-pad", role: "パッド", product: "Repro-5", preset: "soft poly pad", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 Long Hall" },
+  { match: (id) => id.includes("bass"), role: "ベース", product: "Repro-1", preset: "dark mono bass", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
+  { match: (id) => id === "syn-pulse" || id.startsWith("syn-arp-") || id === "syn-stabs" || id === "syn-chord-wide", role: "シンセの刻み", product: "Repro-1", preset: "muted sequence", setting: "短く歯切れよく／定位 ±20／残響 Tempo Delay少し" },
+  { match: (id) => id === "syn-dark-pad" || id.startsWith("syn-pad-"), role: "パッド", product: "Repro-5", preset: "soft poly pad", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 Long Hall" },
   { match: (id) => id === "syn-high-glass", role: "高音のきらめき", product: "Playbox", preset: "glass bell", setting: "音量は控えめに、一音ずつ置く／定位 ±40／残響 Long Plate" },
   { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", product: "Playbox", preset: "reverse tonal", setting: "セクションの境目だけで鳴らす／定位 ±30／残響 Long Hall" },
-  { match: (id) => id === "str-cello" || id === "str-viola", role: "弦（低音）", product: "Session Strings Pro 2", preset: "cellos legato", setting: "レガートで長めに／定位 ±20／残響 Hall" },
+  { match: (id) => id === "str-cello" || id === "str-viola" || id === "str-contrabass", role: "弦（低音）", product: "Session Strings Pro 2", preset: "cellos legato", setting: "レガートで長めに／定位 ±20／残響 Hall" },
+  { match: (id) => id === "str-spiccato", role: "弦（短音）", product: "Session Strings Pro 2", preset: "spiccato ensemble", setting: "短くそろえ、強拍だけ少し強く／定位 ±25／残響 Short Hall" },
   { match: (id) => id.startsWith("str-"), role: "弦（高音）", product: "Session Strings Pro 2", preset: "soft legato ensemble", setting: "レガート、頂点だけ強く／定位 ±30／残響 Hall" },
 ]
 

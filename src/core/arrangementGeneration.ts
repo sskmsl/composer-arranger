@@ -12,10 +12,26 @@ export type ArrangementTrackId =
   | "dr-field-drum"
   | "dr-gran-cassa"
   | "dr-crash"
+  | "dr-kick-sub"
+  | "dr-kick-click"
+  | "dr-snare-body"
+  | "dr-clap"
+  | "dr-shaker"
+  | "dr-ride"
+  | "dr-percussion-high"
+  | "dr-cymbal-swell"
+  | "dr-impact"
   | "syn-bass"
+  | "syn-sub-bass"
+  | "syn-bass-mid"
   | "syn-pulse"
+  | "syn-arp-low"
+  | "syn-arp-high"
   | "syn-stabs"
+  | "syn-chord-wide"
   | "syn-dark-pad"
+  | "syn-pad-air"
+  | "syn-pad-motion"
   | "syn-high-glass"
   | "syn-transition-phrase"
   | "syn-final-lift"
@@ -24,6 +40,9 @@ export type ArrangementTrackId =
   | "str-violin-2"
   | "str-violin-1"
   | "str-upper"
+  | "str-contrabass"
+  | "str-spiccato"
+  | "str-high-octave"
 
 export type ArrangementCandidateCharacter = "safe" | "edge" | "surprise"
 
@@ -340,10 +359,26 @@ export const ARRANGEMENT_TRACK_NAMES: Record<ArrangementTrackId, string> = {
   "dr-field-drum": "DR_FieldDrum",
   "dr-gran-cassa": "DR_GranCassa",
   "dr-crash": "DR_Crash",
+  "dr-kick-sub": "DR_SubThump",
+  "dr-kick-click": "DR_AttackClick",
+  "dr-snare-body": "DR_Snare_Body",
+  "dr-clap": "DR_Clap",
+  "dr-shaker": "DR_Shaker",
+  "dr-ride": "DR_Ride",
+  "dr-percussion-high": "DR_Percussion_High",
+  "dr-cymbal-swell": "DR_Cymbal_Swell",
+  "dr-impact": "DR_Impact",
   "syn-bass": "SYN_Bass",
+  "syn-sub-bass": "SYN_SubBass",
+  "syn-bass-mid": "SYN_Bass_Mid",
   "syn-pulse": "SYN_Pulse",
+  "syn-arp-low": "SYN_Arp_Low",
+  "syn-arp-high": "SYN_Arp_High",
   "syn-stabs": "SYN_Stabs",
+  "syn-chord-wide": "SYN_Chord_Wide",
   "syn-dark-pad": "SYN_DarkPad",
+  "syn-pad-air": "SYN_Pad_Air",
+  "syn-pad-motion": "SYN_Pad_Motion",
   "syn-high-glass": "SYN_HighGlass",
   "syn-transition-phrase": "SYN_TransitionPhrase",
   "syn-final-lift": "SYN_FinalLift",
@@ -352,4 +387,7 @@ export const ARRANGEMENT_TRACK_NAMES: Record<ArrangementTrackId, string> = {
   "str-violin-2": "STR_Violin2",
   "str-violin-1": "STR_Violin1",
   "str-upper": "STR_Upper",
+  "str-contrabass": "STR_Contrabass",
+  "str-spiccato": "STR_Spiccato",
+  "str-high-octave": "STR_HighOctave",
 }

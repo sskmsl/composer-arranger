@@ -134,18 +134,28 @@ export function gmFileForProgram(program: number): string {
 export function arrangementTrackProgram(trackId: ArrangementTrackId): number | "drums" {
   if (trackId.startsWith("dr-")) return "drums"
   switch (trackId) {
-    case "syn-bass": return 38
-    case "syn-pulse": return 81
-    case "syn-stabs": return 62
+    case "syn-bass":
+    case "syn-sub-bass": return 38
+    case "syn-bass-mid": return 39
+    case "syn-pulse":
+    case "syn-arp-low": return 81
+    case "syn-arp-high": return 80
+    case "syn-stabs":
+    case "syn-chord-wide": return 62
     case "syn-dark-pad": return 89
+    case "syn-pad-air": return 94
+    case "syn-pad-motion": return 92
     case "syn-high-glass": return 98
     case "syn-transition-phrase": return 88
     case "syn-final-lift": return 50
     case "str-cello": return 42
     case "str-viola": return 41
+    case "str-contrabass": return 43
+    case "str-spiccato": return 45
     case "str-violin-2": return 40
     case "str-violin-1": return 40
-    case "str-upper": return 49
+    case "str-upper":
+    case "str-high-octave": return 49
     default: return 0
   }
 }

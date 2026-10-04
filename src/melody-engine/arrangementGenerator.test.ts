@@ -348,6 +348,26 @@ describe("Arrangement Generator", () => {
     expect(result.plan.sections.find((section) => section.sectionId === "intro")?.activeRoles).not.toContain("dr-snare")
   })
 
+  it("約40の独立役割から曲に必要なレイヤーを選び、同一MIDIの複製ではない別トラックにする", () => {
+    const result = generateFullSongArrangement(project(), { seed: 9 })
+    const track = (id: (typeof result.tracks)[number]["id"]) => result.tracks.find((candidate) => candidate.id === id)!
+    const finalTrackCount = result.tracks.filter((candidate) =>
+      candidate.notes.some((note) => note.sectionId === "final"),
+    ).length
+
+    expect(Object.keys(ARRANGEMENT_TRACK_NAMES)).toHaveLength(40)
+    expect(result.tracks.length).toBeGreaterThanOrEqual(36)
+    expect(finalTrackCount).toBeGreaterThanOrEqual(28)
+    expect(track("dr-kick-sub").notes.length).toBeGreaterThan(0)
+    expect(track("syn-sub-bass").notes.length).toBeGreaterThan(0)
+    expect(track("syn-pad-air").notes.length).toBeGreaterThan(0)
+    expect(track("str-spiccato").notes.length).toBeGreaterThan(0)
+    expect(track("dr-kick-sub").notes.map(({ startBeat, pitch }) => ({ startBeat, pitch })))
+      .not.toEqual(track("dr-kick").notes.map(({ startBeat, pitch }) => ({ startBeat, pitch })))
+    expect(track("syn-bass-mid").notes.map(({ startBeat, pitch }) => ({ startBeat, pitch })))
+      .not.toEqual(track("syn-bass").notes.map(({ startBeat, pitch }) => ({ startBeat, pitch })))
+  })
+
   it("読み込んだコードと主旋律、およびコードからのMelody生成用データを変更しない", () => {
     const input = project()
     const chordsBefore = structuredClone(input.chords)
@@ -493,14 +513,19 @@ describe("Arrangement Generator", () => {
     const result = generateFullSongArrangement(input, { seed: 55 })
     const all = new TextDecoder().decode(exportArrangementMidi(input, result))
     const bass = new TextDecoder().decode(exportArrangementTrackMidi(input, result, "syn-bass"))
+    const subKick = new TextDecoder().decode(exportArrangementTrackMidi(input, result, "dr-kick-sub"))
 
     expect(all).toContain("DR_Kick")
     expect(all).toContain("SYN_Bass")
     expect(all).toContain("STR_Violin1")
+    expect(all).toContain("DR_SubThump")
+    expect(all).toContain("SYN_SubBass")
     expect(all).toContain("Selected Phrases")
     expect(bass).toContain("SYN_Bass")
     expect(bass).not.toContain("DR_Kick")
     expect(bass).not.toContain("Selected Phrases")
+    expect(subKick).toContain("DR_SubThump")
+    expect(subKick).not.toContain("SYN_Bass")
   })
 
   it("個別MIDIは1小節目へ配置し、最初に鳴る小節を案内できる", () => {

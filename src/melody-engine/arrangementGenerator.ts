@@ -48,10 +48,17 @@ const TRACK_FAMILY: Record<ArrangementTrackId, GeneratedArrangementTrack["family
   "dr-kick": "drums", "dr-snare": "drums", "dr-closed-hat": "drums",
   "dr-open-hat": "drums", "dr-low-tom": "drums", "dr-high-tom": "drums",
   "dr-field-drum": "drums", "dr-gran-cassa": "drums", "dr-crash": "drums",
-  "syn-bass": "bass", "syn-pulse": "synth", "syn-stabs": "synth", "syn-dark-pad": "synth",
+  "dr-kick-sub": "drums", "dr-kick-click": "drums", "dr-snare-body": "drums",
+  "dr-clap": "drums", "dr-shaker": "drums", "dr-ride": "drums",
+  "dr-percussion-high": "drums", "dr-cymbal-swell": "drums", "dr-impact": "drums",
+  "syn-bass": "bass", "syn-sub-bass": "bass", "syn-bass-mid": "bass",
+  "syn-pulse": "synth", "syn-arp-low": "synth", "syn-arp-high": "synth",
+  "syn-stabs": "synth", "syn-chord-wide": "synth", "syn-dark-pad": "synth",
+  "syn-pad-air": "synth", "syn-pad-motion": "synth",
   "syn-high-glass": "synth", "syn-transition-phrase": "transition",
   "syn-final-lift": "synth", "str-cello": "strings", "str-viola": "strings",
   "str-violin-2": "strings", "str-violin-1": "strings", "str-upper": "strings",
+  "str-contrabass": "strings", "str-spiccato": "strings", "str-high-octave": "strings",
 }
 
 const TRACK_PURPOSE: Record<ArrangementTrackId, string> = {
@@ -59,14 +66,57 @@ const TRACK_PURPOSE: Record<ArrangementTrackId, string> = {
   "dr-open-hat": "Sectionの開放", "dr-low-tom": "境界へ向かう低い運動",
   "dr-high-tom": "フィルの上方向の動き", "dr-field-drum": "人間的な緊張と予告",
   "dr-gran-cassa": "Section境界の映画的重量", "dr-crash": "温存した入口の強調",
-  "syn-bass": "和声の重力と次コードへの方向", "syn-pulse": "周期と推進力",
+  "dr-kick-sub": "キックの下にだけ足す低域の重量", "dr-kick-click": "小さい再生環境でも残るキックの輪郭",
+  "dr-snare-body": "スネアの胴鳴り", "dr-clap": "サビだけを横へ広げる拍の層",
+  "dr-shaker": "ハイハットより細い前進", "dr-ride": "高揚時の長い金属的な流れ",
+  "dr-percussion-high": "フィルへ高さと応答を足す補助打楽器", "dr-cymbal-swell": "Section入口へ向かう金属の余韻",
+  "dr-impact": "大きな境界だけに加える短い衝撃",
+  "syn-bass": "和声の重力と次コードへの方向", "syn-sub-bass": "最小限の低域を長く支える層",
+  "syn-bass-mid": "ベースの動きを小さい再生環境へ伝える中低域", "syn-pulse": "周期と推進力",
+  "syn-arp-low": "Pulseの隙間を低めの分散音でつなぐ", "syn-arp-high": "後半だけ開く高域の分散音",
   "syn-stabs": "休符と裏拍で輪郭を作る疎な和音アクセント",
-  "syn-dark-pad": "共通音を残す背景空間", "syn-high-glass": "未使用高域の短い反射",
+  "syn-chord-wide": "短い和音を上下へ広げる補助層",
+  "syn-dark-pad": "共通音を残す背景空間", "syn-pad-air": "Padの最上音だけで作る遠い空気層",
+  "syn-pad-motion": "Padの内声だけを残して静かな動きを作る層", "syn-high-glass": "未使用高域の短い反射",
   "syn-transition-phrase": "主旋律の休符から次Sectionへ渡す短い因果",
   "syn-final-lift": "最終ピークだけに開く上方向の解放",
   "str-cello": "低中域の持続と内的な動き", "str-viola": "内声の緊張",
   "str-violin-2": "中高域の連続性", "str-violin-1": "感情点へ向かう上声",
   "str-upper": "クライマックスでのみ現れる希少な上声",
+  "str-contrabass": "弦の最下層を長く支える重心", "str-spiccato": "持続弦とは別に拍を刻む短音層",
+  "str-high-octave": "最終ピークで上声を一段だけ持ち上げる層",
+}
+
+/**
+ * 作曲上の役割を増やすのではなく、音域・アタック・距離を別音源へ割り当てるための
+ * オーケストレーション層。元トラックの音楽的判断を共有しつつ、同じMIDIの複製にはしない。
+ */
+const ARRANGEMENT_LAYER_SOURCES = {
+  "dr-kick-sub": "dr-kick",
+  "dr-kick-click": "dr-kick",
+  "dr-snare-body": "dr-snare",
+  "dr-clap": "dr-snare",
+  "dr-shaker": "dr-closed-hat",
+  "dr-ride": "dr-closed-hat",
+  "dr-percussion-high": "dr-field-drum",
+  "dr-cymbal-swell": "dr-crash",
+  "dr-impact": "dr-gran-cassa",
+  "syn-sub-bass": "syn-bass",
+  "syn-bass-mid": "syn-bass",
+  "syn-arp-low": "syn-pulse",
+  "syn-arp-high": "syn-pulse",
+  "syn-chord-wide": "syn-stabs",
+  "syn-pad-air": "syn-dark-pad",
+  "syn-pad-motion": "syn-dark-pad",
+  "str-contrabass": "str-cello",
+  "str-spiccato": "str-viola",
+  "str-high-octave": "str-violin-1",
+} as const satisfies Partial<Record<ArrangementTrackId, ArrangementTrackId>>
+
+type ArrangementLayerTrackId = keyof typeof ARRANGEMENT_LAYER_SOURCES
+
+function isArrangementLayerTrackId(trackId: ArrangementTrackId): trackId is ArrangementLayerTrackId {
+  return trackId in ARRANGEMENT_LAYER_SOURCES
 }
 
 function hashText(value: string): number {
@@ -1264,6 +1314,147 @@ function emptyTrack(id: ArrangementTrackId, revision = 0): GeneratedArrangementT
   return { id, name: ARRANGEMENT_TRACK_NAMES[id], family: TRACK_FAMILY[id], muted: false, notes: [], generationRevision: revision, purpose: TRACK_PURPOSE[id] }
 }
 
+function layerEnabledInSection(trackId: ArrangementLayerTrackId, section: ArrangementSectionPlan): boolean {
+  const role = section.semanticRole ?? "other"
+  const energy = section.energy
+  if (trackId === "dr-kick-sub") return energy >= 44 || ["chorus", "build", "final"].includes(role)
+  if (trackId === "dr-kick-click") return energy >= 32 && role !== "outro"
+  if (trackId === "dr-snare-body") return energy >= 38
+  if (trackId === "dr-clap") return energy >= 66 && ["chorus", "final"].includes(role)
+  if (trackId === "dr-shaker") return energy >= 42 && !["breakdown", "outro"].includes(role)
+  if (trackId === "dr-ride") return energy >= 72 && (role === "final" || section.developmentStage !== 0)
+  if (trackId === "dr-percussion-high") return energy >= 54 && ["pre", "build", "final"].includes(role)
+  if (trackId === "dr-cymbal-swell") return energy >= 70 && ["chorus", "final"].includes(role)
+  if (trackId === "dr-impact") return role === "final"
+  if (trackId === "syn-sub-bass") return energy >= 28 && role !== "outro"
+  if (trackId === "syn-bass-mid") return energy >= 46
+  if (trackId === "syn-arp-low") return energy >= 48
+  if (trackId === "syn-arp-high") return energy >= 72 && (role === "final" || section.developmentStage !== 0)
+  if (trackId === "syn-chord-wide") return energy >= 68
+  if (trackId === "syn-pad-air") return ["intro", "breakdown", "bridge", "reprise", "final"].includes(role)
+  if (trackId === "syn-pad-motion") return energy >= 48 && role !== "outro"
+  if (trackId === "str-contrabass") return energy >= 52 && ["pre", "chorus", "bridge", "build", "final"].includes(role)
+  if (trackId === "str-spiccato") return energy >= 60 && ["pre", "build", "final"].includes(role)
+  return role === "final"
+}
+
+function padVoiceRanks(notes: GeneratedArrangementNote[]): Map<string, number> {
+  const groups = new Map<string, GeneratedArrangementNote[]>()
+  for (const note of notes) {
+    const key = `${note.sectionId}:${note.startBeat.toFixed(3)}`
+    groups.set(key, [...(groups.get(key) ?? []), note])
+  }
+  const ranks = new Map<string, number>()
+  for (const group of groups.values()) {
+    group.sort((left, right) => left.pitch - right.pitch)
+    group.forEach((note, index) => ranks.set(note.id, index - (group.length - 1) / 2))
+  }
+  return ranks
+}
+
+function deriveArrangementLayerTrack(
+  source: GeneratedArrangementTrack,
+  trackId: ArrangementLayerTrackId,
+  plan: ArrangementPlan,
+  revision: number,
+): GeneratedArrangementTrack {
+  const sectionPlans = new Map(plan.sections.map((section) => [section.sectionId, section]))
+  const eligible = source.notes.filter((note) => {
+    const section = sectionPlans.get(note.sectionId)
+    return section ? layerEnabledInSection(trackId, section) : false
+  })
+  const ranks = padVoiceRanks(eligible)
+  const makeLayerNote = (
+    note: GeneratedArrangementNote,
+    index: number,
+    changes: Partial<GeneratedArrangementNote>,
+    suffix = "",
+  ): GeneratedArrangementNote => ({
+    ...note,
+    ...changes,
+    id: `${trackId}:${note.id}:${revision}:${index}${suffix}`,
+    startBeat: Math.max(0, changes.startBeat ?? note.startBeat),
+    pitch: Math.max(0, Math.min(127, Math.round(changes.pitch ?? note.pitch))),
+    velocity: Math.max(1, Math.min(127, Math.round(changes.velocity ?? note.velocity))),
+    durationBeats: Math.max(0.0625, changes.durationBeats ?? note.durationBeats),
+    reason: TRACK_PURPOSE[trackId],
+  })
+
+  let notes: GeneratedArrangementNote[] = []
+  if (trackId === "str-spiccato") {
+    notes = eligible.flatMap((note, index) => {
+      const count = Math.max(1, Math.floor(note.durationBeats))
+      return Array.from({ length: count }, (_, pulse) => makeLayerNote(note, index, {
+        startBeat: note.startBeat + pulse,
+        durationBeats: 0.34,
+        velocity: note.velocity - 8 + (pulse % 2 === 0 ? 4 : -3),
+      }, `:${pulse}`))
+    })
+  } else {
+    notes = eligible.flatMap((note, index) => {
+      if (trackId === "dr-kick-sub") return [makeLayerNote(note, index, { pitch: 35, durationBeats: 0.32, velocity: note.velocity - 12 })]
+      if (trackId === "dr-kick-click") return [makeLayerNote(note, index, { pitch: 37, durationBeats: 0.07, velocity: note.velocity - 18 })]
+      if (trackId === "dr-snare-body") return [makeLayerNote(note, index, { pitch: 40, durationBeats: 0.22, velocity: note.velocity - 9 })]
+      if (trackId === "dr-clap") return [makeLayerNote(note, index, { pitch: 39, startBeat: note.startBeat + 0.018, durationBeats: 0.12, velocity: note.velocity - 14 })]
+      if (trackId === "dr-shaker") return [makeLayerNote(note, index, { pitch: 82, startBeat: note.startBeat + (index % 2 === 0 ? -0.008 : 0.012), durationBeats: 0.07, velocity: note.velocity - 16 })]
+      if (trackId === "dr-ride") {
+        if (Math.abs(note.startBeat - Math.round(note.startBeat)) > 0.08) return []
+        return [makeLayerNote(note, index, { pitch: 51, durationBeats: 0.28, velocity: note.velocity - 10 })]
+      }
+      if (trackId === "dr-percussion-high") return [makeLayerNote(note, index, { pitch: 63, startBeat: note.startBeat + 0.125, durationBeats: 0.14, velocity: note.velocity - 11 })]
+      if (trackId === "dr-cymbal-swell") return [makeLayerNote(note, index, { pitch: 52, durationBeats: 1.5, velocity: note.velocity - 24 })]
+      if (trackId === "dr-impact") return [makeLayerNote(note, index, { pitch: 41, durationBeats: 0.55, velocity: note.velocity - 8 })]
+      if (trackId === "syn-sub-bass") {
+        let pitch = note.pitch
+        while (pitch > 35) pitch -= 12
+        return [makeLayerNote(note, index, { pitch, durationBeats: Math.max(0.7, note.durationBeats), velocity: note.velocity - 15 })]
+      }
+      if (trackId === "syn-bass-mid") {
+        if (index % 2 === 1 && note.durationBeats < 0.7) return []
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: Math.min(0.48, note.durationBeats), velocity: note.velocity - 12 })]
+      }
+      if (trackId === "syn-arp-low") {
+        if (index % 2 !== 0) return []
+        return [makeLayerNote(note, index, { pitch: note.pitch - 12, durationBeats: 0.16, velocity: note.velocity - 11 })]
+      }
+      if (trackId === "syn-arp-high") {
+        if (index % 2 === 0) return []
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: 0.12, velocity: note.velocity - 16 })]
+      }
+      if (trackId === "syn-chord-wide") {
+        const rank = ranks.get(note.id) ?? 0
+        const shift = rank < 0 ? -12 : rank > 0 ? 12 : 0
+        return [makeLayerNote(note, index, { pitch: note.pitch + shift, durationBeats: note.durationBeats * 0.82, velocity: note.velocity - 13 })]
+      }
+      if (trackId === "syn-pad-air") {
+        if ((ranks.get(note.id) ?? 0) <= 0) return []
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: note.durationBeats * 1.02, velocity: note.velocity - 18 })]
+      }
+      if (trackId === "syn-pad-motion") {
+        if (Math.abs(ranks.get(note.id) ?? 0) > 0.6) return []
+        return [makeLayerNote(note, index, { durationBeats: note.durationBeats * 0.72, velocity: note.velocity - 12 })]
+      }
+      if (trackId === "str-contrabass") return [makeLayerNote(note, index, { pitch: note.pitch - 12, velocity: note.velocity - 10 })]
+      if (trackId === "str-high-octave") {
+        if (index % 2 !== 0) return []
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: note.durationBeats * 0.9, velocity: note.velocity - 12 })]
+      }
+      return []
+    })
+  }
+  return {
+    ...emptyTrack(trackId, revision),
+    notes: notes.sort((left, right) => left.startBeat - right.startBeat || left.pitch - right.pitch),
+  }
+}
+
+function layerTrackIdsFor(baseTrackIds: ArrangementTrackId[]): ArrangementLayerTrackId[] {
+  const active = new Set(baseTrackIds)
+  return (Object.entries(ARRANGEMENT_LAYER_SOURCES) as Array<[ArrangementLayerTrackId, ArrangementTrackId]>)
+    .filter(([, source]) => active.has(source))
+    .map(([trackId]) => trackId)
+}
+
 function generateTrack(
   project: ComposerProject,
   plan: ArrangementPlan,
@@ -1271,6 +1462,15 @@ function generateTrack(
   revision = 0,
   onlySectionId?: string,
 ): GeneratedArrangementTrack {
+  if (isArrangementLayerTrackId(trackId)) {
+    const sourceId = ARRANGEMENT_LAYER_SOURCES[trackId]
+    return deriveArrangementLayerTrack(
+      generateTrack(project, plan, sourceId, revision, onlySectionId),
+      trackId,
+      plan,
+      revision,
+    )
+  }
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const material = buildSongPlaybackMaterial(project)
   const track = emptyTrack(trackId, revision)
@@ -1376,8 +1576,10 @@ function applyMotifEcho(
 }
 
 const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([
-  "syn-bass", "syn-pulse", "syn-stabs", "syn-dark-pad", "syn-high-glass",
+  "syn-bass", "syn-sub-bass", "syn-bass-mid", "syn-pulse", "syn-arp-low", "syn-arp-high",
+  "syn-stabs", "syn-chord-wide", "syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-high-glass",
   "str-cello", "str-viola", "str-violin-2", "str-violin-1", "str-upper",
+  "str-contrabass", "str-spiccato", "str-high-octave",
 ])
 
 function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArrangementNote, trackId: ArrangementTrackId): Set<number> | null {
@@ -1390,14 +1592,14 @@ function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArra
   const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
   return parsed ? new Set([
     ...[...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass),
-    ...(trackId === "syn-bass" ? [parsed.bassPc] : []),
+    ...(TRACK_FAMILY[trackId] === "bass" ? [parsed.bassPc] : []),
   ]) : null
 }
 
 function countMelodyCollisions(project: ComposerProject, tracks: GeneratedArrangementTrack[]): number {
   const lead = buildSongPlaybackMaterial(project).lead
   return tracks.reduce((sum, track) => {
-    if (track.id.startsWith("dr-") || track.id === "syn-bass") return sum
+    if (track.family === "drums" || track.family === "bass") return sum
     return sum + track.notes.filter((note) => note.character === "safe" && lead.some((melodyNote) =>
       melodyNote.startBeat < note.startBeat + note.durationBeats
       && melodyNote.startBeat + melodyNote.durationBeats > note.startBeat
@@ -1607,10 +1809,11 @@ function generateArrangementCandidate(
 ): FullSongArrangement {
   const plan = buildFullSongArrangementPlan(project, analysis, seed, brief, directive, approach)
   const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
+  const generatedTrackIds = [...activeTrackIds, ...layerTrackIdsFor(activeTrackIds)]
   const performedTracks = applyArrangementPerformanceDirector(
     project,
     plan,
-    activeTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+    generatedTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
   )
   const imageTracks = performedTracks.map((track) => ({
     ...track,
@@ -1645,7 +1848,13 @@ function generateArrangementCandidate(
       parseTimeSignature(project.song.timeSignature).beatsPerBar,
     ),
   }
-  return { ...result, quality: reviewGeneratedArrangement(result, project) }
+  // Layer tracks are orchestration (音域・アタック・距離の分担)であり、曲の作曲判断そのものではない。
+  // 候補選抜の品質点は従来の21役割で比較し、層を増やした案が音数だけで有利／不利にならないようにする。
+  const compositionalCore = {
+    ...result,
+    tracks: result.tracks.filter((track) => !isArrangementLayerTrackId(track.id)),
+  }
+  return { ...result, quality: reviewGeneratedArrangement(compositionalCore, project) }
 }
 
 export function generateFullSongArrangement(
@@ -1734,6 +1943,9 @@ export function regenerateFullSongArrangementTarget(
   target: ArrangementRegenerationTarget,
 ): FullSongArrangement {
   let plan = current.plan
+  const roleToActivate = isArrangementLayerTrackId(target.trackId)
+    ? ARRANGEMENT_LAYER_SOURCES[target.trackId]
+    : target.trackId
   if (target.energyDelta && target.sectionId) {
     plan = {
       ...plan,
@@ -1741,7 +1953,7 @@ export function regenerateFullSongArrangementTarget(
         ? {
             ...section,
             energy: Math.max(10, Math.min(100, section.energy + target.energyDelta!)),
-            activeRoles: [...new Set([...section.activeRoles, target.trackId])],
+            activeRoles: [...new Set([...section.activeRoles, roleToActivate])],
             ...(target.character
               ? target.trackId === "syn-high-glass"
                 ? { selectedDecorationCharacter: target.character }
@@ -1759,7 +1971,7 @@ export function regenerateFullSongArrangementTarget(
             ...(target.trackId === "syn-high-glass"
               ? { selectedDecorationCharacter: target.character! }
               : { selectedTransitionCharacter: target.character! }),
-            activeRoles: [...new Set([...section.activeRoles, target.trackId])],
+            activeRoles: [...new Set([...section.activeRoles, roleToActivate])],
           }
         : section),
     }

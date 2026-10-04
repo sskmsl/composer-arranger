@@ -141,7 +141,7 @@ export interface ArrangementPartRow {
 }
 
 /**
- * 21の生成トラックを、耳で区別しやすい8つのパートにまとめる。
+ * 40の生成トラックを、耳で区別しやすい8つのパートにまとめる。
  * 先頭の対旋律・合いの手は全曲アレンジのトラックではなく、セクションに付けた対旋律・装飾の候補
  */
 export const ARRANGEMENT_PART_ROWS: ArrangementPartRow[] = [
@@ -161,15 +161,24 @@ export const ARRANGEMENT_PART_ROWS: ArrangementPartRow[] = [
       "dr-field-drum",
       "dr-gran-cassa",
       "dr-crash",
+      "dr-kick-sub",
+      "dr-kick-click",
+      "dr-snare-body",
+      "dr-clap",
+      "dr-shaker",
+      "dr-ride",
+      "dr-percussion-high",
+      "dr-cymbal-swell",
+      "dr-impact",
     ],
   },
-  { id: "bass", label: "ベース", color: "#4fd1b5", trackIds: ["syn-bass"] },
-  { id: "pulse", label: "シンセの刻み", color: "#f472b6", trackIds: ["syn-pulse", "syn-stabs"] },
-  { id: "pad", label: "パッド", color: "#c084fc", trackIds: ["syn-dark-pad"] },
+  { id: "bass", label: "ベース", color: "#4fd1b5", trackIds: ["syn-bass", "syn-sub-bass", "syn-bass-mid"] },
+  { id: "pulse", label: "シンセの刻み", color: "#f472b6", trackIds: ["syn-pulse", "syn-arp-low", "syn-arp-high", "syn-stabs", "syn-chord-wide"] },
+  { id: "pad", label: "パッド", color: "#c084fc", trackIds: ["syn-dark-pad", "syn-pad-air", "syn-pad-motion"] },
   { id: "glass", label: "高音のきらめき", color: "#7dd3fc", trackIds: ["syn-high-glass"] },
   { id: "transition", label: "つなぎのフレーズ", color: "#a3e635", trackIds: ["syn-transition-phrase", "syn-final-lift"] },
-  { id: "strings-low", label: "弦（低音）", color: "#fcd34d", trackIds: ["str-cello", "str-viola"] },
-  { id: "strings-high", label: "弦（高音）", color: "#fbbf24", trackIds: ["str-violin-2", "str-violin-1", "str-upper"] },
+  { id: "strings-low", label: "弦（低音）", color: "#fcd34d", trackIds: ["str-contrabass", "str-cello", "str-viola", "str-spiccato"] },
+  { id: "strings-high", label: "弦（高音）", color: "#fbbf24", trackIds: ["str-violin-2", "str-violin-1", "str-upper", "str-high-octave"] },
 ]
 
 const ROW_BY_TRACK = new Map<ArrangementTrackId, ArrangementPartRowId>(
@@ -187,10 +196,26 @@ const TRACK_LABELS: Record<ArrangementTrackId, string> = {
   "dr-field-drum": "マーチングドラム",
   "dr-gran-cassa": "大太鼓",
   "dr-crash": "シンバル",
+  "dr-kick-sub": "キックの低域",
+  "dr-kick-click": "キックのアタック",
+  "dr-snare-body": "スネアの胴鳴り",
+  "dr-clap": "クラップ",
+  "dr-shaker": "シェイカー",
+  "dr-ride": "ライドシンバル",
+  "dr-percussion-high": "高い打楽器",
+  "dr-cymbal-swell": "シンバルの余韻",
+  "dr-impact": "インパクト",
   "syn-bass": "ベース",
+  "syn-sub-bass": "サブベース",
+  "syn-bass-mid": "中域ベース",
   "syn-pulse": "シンセの刻み",
+  "syn-arp-low": "低いアルペジオ",
+  "syn-arp-high": "高いアルペジオ",
   "syn-stabs": "シンセの短い和音",
+  "syn-chord-wide": "広いシンセ和音",
   "syn-dark-pad": "パッド",
+  "syn-pad-air": "パッドの空気層",
+  "syn-pad-motion": "動くパッド内声",
   "syn-high-glass": "高音のきらめき",
   "syn-transition-phrase": "つなぎのフレーズ",
   "syn-final-lift": "最後の盛り上げ",
@@ -199,6 +224,9 @@ const TRACK_LABELS: Record<ArrangementTrackId, string> = {
   "str-violin-2": "第2バイオリン",
   "str-violin-1": "第1バイオリン",
   "str-upper": "高音の弦",
+  "str-contrabass": "コントラバス",
+  "str-spiccato": "短く刻む弦",
+  "str-high-octave": "弦の高音オクターブ",
 }
 
 export function arrangementTrackLabel(trackId: ArrangementTrackId): string {
