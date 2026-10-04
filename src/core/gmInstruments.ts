@@ -92,7 +92,7 @@ export const DEFAULT_PART_PROGRAMS: Readonly<Record<SoundPart, number>> = {
   signature: 8,
 }
 
-/** 試聴の音(シンプル = これまでの合成音、gm = GM音源のサンプル)と、MIDI書き出しの形式 */
+/** 試聴の音(simple = これまでの合成音、gm = GM音源のサンプル。既定はgm)と、MIDI書き出しの形式 */
 export interface SoundSettings {
   playback: "simple" | "gm"
   /** logic = 全トラックをチャンネル1・楽器指定なし(Logic Proでソフトウェア音源として読む)。gm = パートごとにチャンネルと楽器番号を入れる */
@@ -101,7 +101,7 @@ export interface SoundSettings {
 }
 
 export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
-  playback: "simple",
+  playback: "gm",
   midiExport: "logic",
   programs: { ...DEFAULT_PART_PROGRAMS },
 }
@@ -119,7 +119,8 @@ export function normalizeSoundSettings(raw: unknown): SoundSettings {
     if (isProgram(value)) programs[id] = value
   }
   return {
-    playback: r.playback === "gm" ? "gm" : "simple",
+    // 選んだことがあればそれを使い、無ければ(初めて開く端末・ブラウザ)GM音源から始める
+    playback: r.playback === "simple" || r.playback === "gm" ? r.playback : DEFAULT_SOUND_SETTINGS.playback,
     midiExport: r.midiExport === "gm" ? "gm" : "logic",
     programs,
   }
