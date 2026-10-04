@@ -26,6 +26,15 @@ describe("GM の楽器と設定", () => {
     expect(programs.every((program) => program >= 0 && program <= 127)).toBe(true)
   })
 
+  it("初めて開く端末(保存なし)はGM音源で始まり、シンプルを選んだ設定は保たれる", () => {
+    expect(normalizeSoundSettings(null).playback).toBe("gm")
+    expect(normalizeSoundSettings({}).playback).toBe("gm")
+    expect(normalizeSoundSettings({ playback: "simple" }).playback).toBe("simple")
+    expect(normalizeSoundSettings({ playback: "broken" }).playback).toBe("gm")
+    // 書き出しは、Logic Pro で使う人が多いので、これまでどおり Logic向けから
+    expect(DEFAULT_SOUND_SETTINGS.midiExport).toBe("logic")
+  })
+
   it("保存された設定の壊れた値や足りない項目は、既定値で補う", () => {
     expect(normalizeSoundSettings(null)).toEqual(DEFAULT_SOUND_SETTINGS)
     const normalized = normalizeSoundSettings({ playback: "gm", midiExport: "x", programs: { melody: 73, chords: 200, counter: "a" } })

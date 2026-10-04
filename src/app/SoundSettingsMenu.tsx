@@ -60,7 +60,16 @@ export function SoundSettingsMenu() {
         title="試聴の音色とMIDI書き出しの形式"
       >
         <SlidersHorizontal size={13} /> 音色
-        {loadState === "loading" && <span className="text-[12px] text-primary-on-dark">読み込み中…</span>}
+        {/* いまの試聴の音を、ボタンのまま読めるようにする(別の端末では設定が違うことがある) */}
+        {loadState === "loading" ? (
+          <span className="text-[12px] text-primary-on-dark">読み込み中…</span>
+        ) : settings.playback === "gm" && loadState === "failed" ? (
+          <span className="text-[12px] text-amber-400">シンプル音で再生</span>
+        ) : (
+          <span className={clsx("text-[12px]", settings.playback === "gm" ? "text-primary-on-dark" : "text-ink-soft")}>
+            {settings.playback === "gm" ? "GM" : "シンプル"}
+          </span>
+        )}
       </button>
       {open && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3" {...backdrop}>
