@@ -120,6 +120,46 @@ export function resolveComparisonSwitchBeat(currentBeat: number, rangeStart: num
   return currentBeat
 }
 
+export interface ArrangementPreviewMix {
+  gain: number
+  pan: number
+  filter?: { type: BiquadFilterType; frequency: number }
+}
+
+/**
+ * 40前後のパートを中央へ直結するとコンプレッサーで一塊になり、増えた層が聴き取れない。
+ * 役割ごとに音量・左右・帯域を分け、主旋律の手前を塞がずに厚さを確認できる配置へする。
+ */
+export function arrangementPreviewMix(trackId: ArrangementTrackId): ArrangementPreviewMix {
+  if (trackId === "dr-kick-sub") return { gain: 0.76, pan: 0, filter: { type: "lowpass", frequency: 150 } }
+  if (trackId === "dr-kick-click") return { gain: 0.42, pan: 0, filter: { type: "highpass", frequency: 2400 } }
+  if (trackId === "dr-snare-body") return { gain: 0.66, pan: -0.04, filter: { type: "lowpass", frequency: 2100 } }
+  if (trackId === "dr-clap") return { gain: 0.62, pan: 0.18, filter: { type: "highpass", frequency: 900 } }
+  if (trackId === "dr-shaker") return { gain: 0.7, pan: -0.42, filter: { type: "highpass", frequency: 4200 } }
+  if (trackId === "dr-ride") return { gain: 0.66, pan: 0.36, filter: { type: "highpass", frequency: 2400 } }
+  if (trackId === "dr-percussion-high") return { gain: 0.66, pan: 0.3, filter: { type: "highpass", frequency: 1200 } }
+  if (trackId === "dr-cymbal-swell") return { gain: 0.66, pan: -0.28, filter: { type: "highpass", frequency: 1800 } }
+  if (trackId === "dr-impact") return { gain: 0.68, pan: 0, filter: { type: "lowpass", frequency: 420 } }
+  if (trackId === "syn-sub-bass") return { gain: 0.72, pan: 0, filter: { type: "lowpass", frequency: 180 } }
+  if (trackId === "syn-bass-mid") return { gain: 0.68, pan: 0.05, filter: { type: "bandpass", frequency: 520 } }
+  if (trackId === "syn-arp-low") return { gain: 0.66, pan: -0.24 }
+  if (trackId === "syn-arp-high") return { gain: 0.64, pan: 0.28, filter: { type: "highpass", frequency: 650 } }
+  if (trackId === "syn-chord-wide") return { gain: 0.64, pan: 0.32 }
+  if (trackId === "syn-pad-air") return { gain: 0.66, pan: -0.4, filter: { type: "highpass", frequency: 700 } }
+  if (trackId === "syn-pad-motion") return { gain: 0.68, pan: 0.38, filter: { type: "highpass", frequency: 280 } }
+  if (trackId === "str-contrabass") return { gain: 0.68, pan: -0.12, filter: { type: "lowpass", frequency: 320 } }
+  if (trackId === "str-spiccato") return { gain: 0.66, pan: -0.34, filter: { type: "highpass", frequency: 260 } }
+  if (trackId === "str-high-octave") return { gain: 0.64, pan: 0.4, filter: { type: "highpass", frequency: 850 } }
+  if (trackId === "str-cello") return { gain: 0.72, pan: -0.16 }
+  if (trackId === "str-viola") return { gain: 0.68, pan: 0.12 }
+  if (trackId === "str-violin-2") return { gain: 0.66, pan: -0.24 }
+  if (trackId === "str-violin-1" || trackId === "str-upper") return { gain: 0.66, pan: 0.24 }
+  if (trackId.includes("pad") || trackId === "syn-final-lift") return { gain: 0.62, pan: 0 }
+  if (trackId.includes("bass")) return { gain: 0.76, pan: 0 }
+  if (trackId.startsWith("dr-")) return { gain: 0.78, pan: 0 }
+  return { gain: 0.7, pan: 0 }
+}
+
 /** 連続再生の各先読み区間へ、発音イベントを重複なく割り当てる。 */
 export function belongsToContinuousPreviewWindow(
   eventStart: number,
@@ -294,12 +334,16 @@ class PreviewPlayer {
 
   private startPlayback(ctx: AudioContext, opts: PlayOptions): void {
     const master = ctx.createGain()
-    master.gain.value = 0.85
+    master.gain.value = 0.72
     const compressor = ctx.createDynamicsCompressor()
-    compressor.threshold.value = -16
-    compressor.ratio.value = 6
+    compressor.threshold.value = -8
+    compressor.knee.value = 12
+    compressor.ratio.value = 2.5
+    compressor.attack.value = 0.01
+    compressor.release.value = 0.2
     compressor.connect(master)
     master.connect(ctx.destination)
+    const arrangementBuses = this.createArrangementTrackBuses(ctx, compressor, opts.arrangementTracks ?? [])
 
     this.secondsPerBeat = 60 / opts.bpm
     this.tempoMap = createTempoMap(opts.bpm, opts.tempoChanges)
@@ -374,6 +418,7 @@ class PreviewPlayer {
     }
 
     for (const track of opts.arrangementTracks ?? []) {
+      const destination = arrangementBuses.get(track.id) ?? compressor
       for (const note of track.notes) {
         const eventEnd = note.startBeat + note.durationBeats
         if (eventEnd <= playbackStart || note.startBeat >= rangeEnd) continue
@@ -382,12 +427,12 @@ class PreviewPlayer {
         const t0 = start + this.span(playbackStart, clippedStart)
         const dur = Math.max(0.04, this.span(clippedStart, clippedEnd))
         if (track.id.startsWith("dr-")) {
-          this.schedulePercussion(ctx, compressor, track.id, note.velocity, t0, dur)
+          this.schedulePercussion(ctx, destination, track.id, note.velocity, t0, dur)
         } else {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleVoice(this.trackProgram(track.id), ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, dur, style, note.soundImage)
+          this.scheduleVoice(this.trackProgram(track.id), ctx, destination, note.pitch, Math.max(25, note.velocity), t0, dur, style, note.soundImage)
         }
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -427,12 +472,16 @@ class PreviewPlayer {
     const rangeStart = opts.range?.startBeat ?? 0
     const rangeEnd = opts.range?.endBeat ?? 0
     const master = ctx.createGain()
-    master.gain.value = 0.85
+    master.gain.value = 0.72
     const compressor = ctx.createDynamicsCompressor()
-    compressor.threshold.value = -16
-    compressor.ratio.value = 6
+    compressor.threshold.value = -8
+    compressor.knee.value = 12
+    compressor.ratio.value = 2.5
+    compressor.attack.value = 0.01
+    compressor.release.value = 0.2
     compressor.connect(master)
     master.connect(ctx.destination)
+    const arrangementBuses = this.createArrangementTrackBuses(ctx, compressor, opts.arrangementTracks ?? [])
 
     this.secondsPerBeat = 60 / opts.bpm
     this.tempoMap = createTempoMap(opts.bpm, opts.tempoChanges)
@@ -463,6 +512,7 @@ class PreviewPlayer {
           opts,
           layers,
           leadStyle,
+          arrangementBuses,
           playbackStart,
           window.startBeat,
           window.endBeat,
@@ -535,6 +585,7 @@ class PreviewPlayer {
     opts: PlayOptions,
     layers: PreviewLayers,
     leadStyle: LeadPreviewStyle,
+    arrangementBuses: ReadonlyMap<ArrangementTrackId, AudioNode>,
     playbackStart: number,
     windowStart: number,
     windowEnd: number,
@@ -600,20 +651,54 @@ class PreviewPlayer {
     if (layers.reactive) scheduleMelodyNotes(opts.reactive ?? [], opts.reactivePart ?? "counter", compressor, "neutral", -8)
 
     for (const track of opts.arrangementTracks ?? []) {
+      const destination = arrangementBuses.get(track.id) ?? compressor
       for (const note of track.notes) {
         const eventEnd = note.startBeat + note.durationBeats
         if (!shouldSchedule(note.startBeat, eventEnd)) continue
         const { t0, duration } = timing(note.startBeat, eventEnd)
         if (track.id.startsWith("dr-")) {
-          this.schedulePercussion(ctx, compressor, track.id, note.velocity, t0, duration)
+          this.schedulePercussion(ctx, destination, track.id, note.velocity, t0, duration)
         } else {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleVoice(this.trackProgram(track.id), ctx, compressor, note.pitch, Math.max(25, note.velocity - 10), t0, duration, style, note.soundImage)
+          this.scheduleVoice(this.trackProgram(track.id), ctx, destination, note.pitch, Math.max(25, note.velocity), t0, duration, style, note.soundImage)
         }
       }
     }
+  }
+
+  /** Arrangement各トラックを、役割ごとの音量・定位・帯域へ一度だけ接続する。 */
+  private createArrangementTrackBuses(
+    ctx: AudioContext,
+    destination: AudioNode,
+    tracks: ReadonlyArray<{ id: ArrangementTrackId }>,
+  ): Map<ArrangementTrackId, AudioNode> {
+    const buses = new Map<ArrangementTrackId, AudioNode>()
+    for (const track of tracks) {
+      if (buses.has(track.id)) continue
+      const mix = arrangementPreviewMix(track.id)
+      const input = ctx.createGain()
+      input.gain.value = mix.gain
+      let output: AudioNode = input
+      if (mix.filter) {
+        const filter = ctx.createBiquadFilter()
+        filter.type = mix.filter.type
+        filter.frequency.value = mix.filter.frequency
+        filter.Q.value = mix.filter.type === "bandpass" ? 0.7 : 0.45
+        output.connect(filter)
+        output = filter
+      }
+      if (Math.abs(mix.pan) > 0.001) {
+        const pan = ctx.createStereoPanner()
+        pan.pan.value = mix.pan
+        output.connect(pan)
+        output = pan
+      }
+      output.connect(destination)
+      buses.set(track.id, input)
+    }
+    return buses
   }
 
   private clearScheduler(): void {

@@ -1838,7 +1838,7 @@ function generateArrangementCandidate(
   }))
   const result: FullSongArrangement = {
     version: "1.0.0",
-    orchestrationVersion: 2,
+    orchestrationVersion: 3,
     id: `arrangement:${seed}`,
     createdAt: new Date().toISOString(),
     analysis,
@@ -1949,27 +1949,26 @@ export function upgradeFullSongArrangementOrchestration(
   project: ComposerProject,
   arrangement: FullSongArrangement | null | undefined = project.fullSongArrangement,
 ): FullSongArrangement | undefined {
-  if (!arrangement || arrangement.orchestrationVersion === 2) return arrangement ?? undefined
+  if (!arrangement || arrangement.orchestrationVersion === 3) return arrangement ?? undefined
 
-  const existingIds = new Set(arrangement.tracks.map((track) => track.id))
   const existingById = new Map(arrangement.tracks.map((track) => [track.id, track]))
+  const coreTracks = arrangement.tracks.filter((track) => !isArrangementLayerTrackId(track.id))
   const revision = Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))
-  const missingLayers = layerTrackIdsFor(arrangement.tracks.map((track) => track.id))
-    .filter((trackId) => !existingIds.has(trackId))
+  const refreshedLayers = layerTrackIdsFor(coreTracks.map((track) => track.id))
     .flatMap((trackId) => {
       const source = existingById.get(ARRANGEMENT_LAYER_SOURCES[trackId])
       return source ? [deriveArrangementLayerTrack(source, trackId, arrangement.plan, revision)] : []
     })
   const performedLayers = applyArrangementTimelineToTracks(
-    applyArrangementPerformanceDirector(project, arrangement.plan, missingLayers),
+    applyArrangementPerformanceDirector(project, arrangement.plan, refreshedLayers),
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
-  )
+  ).map((track) => ({ ...track, muted: existingById.get(track.id)?.muted ?? false }))
 
   return {
     ...arrangement,
-    orchestrationVersion: 2,
-    tracks: [...arrangement.tracks, ...performedLayers],
+    orchestrationVersion: 3,
+    tracks: [...coreTracks, ...performedLayers],
   }
 }
 

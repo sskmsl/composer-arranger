@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { DEFAULT_PART_PROGRAMS } from "@/core/gmInstruments"
 import {
+  arrangementPreviewMix,
   belongsToContinuousPreviewWindow,
   gmPreviewRequests,
   noisePercussionSpec,
@@ -213,5 +214,23 @@ describe("打楽器の雑音", () => {
     expect(noisePercussionSpec("dr-ride").decay).toBeGreaterThan(0.5)
     expect(noisePercussionSpec("dr-cymbal-swell").decay).toBeGreaterThan(1)
     expect(noisePercussionSpec("dr-snare-body").body).toBeDefined()
+  })
+})
+
+describe("全曲アレンジの試聴ミックス", () => {
+  it("補助層を中央へ重ねず、低域・中域・高域を別の帯域と左右へ配置する", () => {
+    expect(arrangementPreviewMix("syn-sub-bass")).toMatchObject({ pan: 0, filter: { type: "lowpass" } })
+    expect(arrangementPreviewMix("syn-pad-air").pan).toBeLessThan(-0.3)
+    expect(arrangementPreviewMix("syn-pad-motion").pan).toBeGreaterThan(0.3)
+    expect(arrangementPreviewMix("str-high-octave")).toMatchObject({ filter: { type: "highpass" } })
+    expect(arrangementPreviewMix("dr-shaker").pan).not.toBe(0)
+    expect(arrangementPreviewMix("dr-ride").pan).not.toBe(0)
+  })
+
+  it("主役を残しつつ、追加層が消えない実用的な音量を持つ", () => {
+    expect(arrangementPreviewMix("syn-bass").gain).toBeGreaterThan(arrangementPreviewMix("syn-bass-mid").gain)
+    expect(arrangementPreviewMix("syn-bass-mid").gain).toBeGreaterThanOrEqual(0.64)
+    expect(arrangementPreviewMix("syn-pad-air").gain).toBeGreaterThanOrEqual(0.64)
+    expect(arrangementPreviewMix("str-high-octave").gain).toBeGreaterThanOrEqual(0.64)
   })
 })

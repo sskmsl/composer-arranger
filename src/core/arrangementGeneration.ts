@@ -286,8 +286,8 @@ export interface ArrangementTrackPerformance {
 
 export interface FullSongArrangement {
   version: "1.0.0"
-  /** 2 = 音域・アタック・距離を分けた追加オーケストレーション層を含む。 */
-  orchestrationVersion?: 2
+  /** 2 = 追加層、3 = 帯域分離と聴感上の存在感まで調整した追加層を含む。 */
+  orchestrationVersion?: 2 | 3
   id: string
   createdAt: string
   analysis: ArrangementAnalysis

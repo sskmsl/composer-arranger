@@ -141,6 +141,20 @@ function roleAccent(trackId: ArrangementTrackId, note: GeneratedArrangementNote,
   return 0
 }
 
+/**
+ * 補助層がMIDI上では存在してもVelocity不足で音源の奥へ消えないための役割別補正。
+ * 主役と同じ強さにはせず、アタック・中低域・空気層が識別できる最小限の差に留める。
+ */
+function orchestrationPresence(trackId: ArrangementTrackId): number {
+  if (trackId === "syn-bass-mid" || trackId === "syn-chord-wide") return 7
+  if (trackId === "syn-sub-bass" || trackId === "str-contrabass") return 5
+  if (trackId === "syn-pad-air" || trackId === "syn-pad-motion") return 6
+  if (trackId === "str-spiccato" || trackId === "str-high-octave") return 7
+  if (trackId === "syn-arp-low" || trackId === "syn-arp-high") return 6
+  if (["dr-kick-sub", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride", "dr-percussion-high", "dr-cymbal-swell", "dr-impact"].includes(trackId)) return 5
+  return 0
+}
+
 function applyArc(
   notes: GeneratedArrangementNote[],
   trackId: ArrangementTrackId,
@@ -156,7 +170,10 @@ function applyArc(
     const progress = clamp((note.startBeat - sectionStart) / Math.max(0.25, sectionLength), 0, 1)
     const phrasePosition = ((note.startBeat - sectionStart) % (beatsPerBar * 4)) / (beatsPerBar * 4)
     const phraseBreath = phrasePosition >= 0.9 ? -0.07 : phrasePosition < 0.08 ? 0.04 : 0
-    const shapedVelocity = note.velocity + (arcAmount(arc, progress) + phraseBreath) * span + roleAccent(trackId, note, beatsPerBar)
+    const shapedVelocity = note.velocity
+      + (arcAmount(arc, progress) + phraseBreath) * span
+      + roleAccent(trackId, note, beatsPerBar)
+      + orchestrationPresence(trackId)
     return { ...note, velocity: Math.round(clamp(shapedVelocity, minimum, maximum)) }
   })
 }

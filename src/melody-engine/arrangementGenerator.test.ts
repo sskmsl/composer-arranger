@@ -663,11 +663,28 @@ describe("Arrangement Generator", () => {
     const legacy = { ...current, orchestrationVersion: undefined, tracks: oldCore }
     const upgraded = upgradeFullSongArrangementOrchestration({ ...input, fullSongArrangement: legacy }, legacy)!
 
-    expect(upgraded.orchestrationVersion).toBe(2)
+    expect(upgraded.orchestrationVersion).toBe(3)
     expect(upgraded.tracks.slice(0, oldCore.length)).toEqual(oldCore)
     expect(upgraded.tracks.length).toBeGreaterThan(oldCore.length)
     expect(upgraded.tracks.some((track) => layerIds.has(track.id) && track.notes.length > 0)).toBe(true)
     expect(upgradeFullSongArrangementOrchestration({ ...input, fullSongArrangement: upgraded }, upgraded)).toBe(upgraded)
+  })
+
+  it("前版の追加層も、主パートとミュート状態を守って聴感調整済みの版へ更新する", () => {
+    const input = longFormProject()
+    const current = generateFullSongArrangement(input, { seed: 9013 })
+    const layer = current.tracks.find((track) => track.id === "syn-pad-air")!
+    const old = {
+      ...current,
+      orchestrationVersion: 2 as const,
+      tracks: current.tracks.map((track) => track.id === layer.id ? { ...track, muted: true } : track),
+    }
+    const coreBass = old.tracks.find((track) => track.id === "syn-bass")!
+    const upgraded = upgradeFullSongArrangementOrchestration({ ...input, fullSongArrangement: old }, old)!
+
+    expect(upgraded.orchestrationVersion).toBe(3)
+    expect(upgraded.tracks.find((track) => track.id === "syn-pad-air")?.muted).toBe(true)
+    expect(upgraded.tracks.find((track) => track.id === "syn-bass")).toEqual(coreBass)
   })
 
   it("Safe系の全音程を発音時点のコードトーンまたは明示テンション内へ保つ", () => {
