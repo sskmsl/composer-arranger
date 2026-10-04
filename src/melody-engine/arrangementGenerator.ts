@@ -1603,7 +1603,10 @@ function deriveArrangementLayerTrack(
       }
       if (trackId === "syn-bass-mid") {
         if (index % 2 === 1 && note.durationBeats < 0.7) return []
-        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: Math.min(0.48, note.durationBeats), velocity: note.velocity - 12 })]
+        let pitch = note.pitch + 12
+        while (pitch > 59) pitch -= 12
+        while (pitch < 36) pitch += 12
+        return [makeLayerNote(note, index, { pitch, durationBeats: Math.min(0.48, note.durationBeats), velocity: note.velocity - 12 })]
       }
       if (trackId === "syn-arp-low") {
         if (index % 2 !== 0) return []

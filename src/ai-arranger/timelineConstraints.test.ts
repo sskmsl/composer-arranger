@@ -102,4 +102,35 @@ describe("AI arrangement timeline constraints", () => {
       { startBar: 96, endBar: 96 },
     ])
   })
+
+  it("役割名が複数Sectionに当たる場合は同じ役割の全Sectionへ適用する", () => {
+    const sections = [
+      { id: "verse-1", name: "VERSE 1", role: "verse" as const, startBar: 17, lengthBars: 8 },
+      { id: "chorus-1", name: "CHORUS 1", role: "chorus" as const, startBar: 25, lengthBars: 8 },
+      { id: "verse-2", name: "VERSE 2", role: "verse" as const, startBar: 41, lengthBars: 8 },
+      { id: "chorus-2", name: "CHORUS 2", role: "chorus" as const, startBar: 49, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints(
+      "Aメロの最初の2小節は無音。サビ前で一瞬止めて",
+      64,
+      sections,
+    ).fullSilenceRanges).toEqual([
+      { startBar: 17, endBar: 18 },
+      { startBar: 24, endBar: 24 },
+      { startBar: 41, endBar: 42 },
+      { startBar: 48, endBar: 48 },
+    ])
+  })
+
+  it("明示したSection名は同じ役割の他Sectionへ広げない", () => {
+    const sections = [
+      { id: "verse-1", name: "VERSE 1", role: "verse" as const, startBar: 17, lengthBars: 8 },
+      { id: "verse-2", name: "VERSE 2", role: "verse" as const, startBar: 41, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints(
+      "VERSE 2の最初の2小節は無音",
+      64,
+      sections,
+    ).fullSilenceRanges).toEqual([{ startBar: 41, endBar: 42 }])
+  })
 })

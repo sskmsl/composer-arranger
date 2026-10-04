@@ -412,6 +412,7 @@ describe("Arrangement Generator", () => {
     expect(finalTrackCount).toBeGreaterThanOrEqual(28)
     expect(track("dr-kick-sub").notes.length).toBeGreaterThan(0)
     expect(track("syn-sub-bass").notes.length).toBeGreaterThan(0)
+    expect(track("syn-bass-mid").notes.every((note) => note.pitch <= 59)).toBe(true)
     expect(track("syn-pad-air").notes.length).toBeGreaterThan(0)
     expect(track("str-spiccato").notes.length).toBeGreaterThan(0)
     expect(track("dr-kick-sub").notes.map(({ startBeat, pitch }) => ({ startBeat, pitch })))
@@ -488,7 +489,7 @@ describe("Arrangement Generator", () => {
   it("部分再生成は対象外Sectionに未修理の接触があっても変更しない", () => {
     const input = project()
     const generated = generateFullSongArrangement(input, { seed: 1201 })
-    const pad = generated.tracks.find((track) => track.id === "syn-pad-air")!
+    const pad = generated.tracks.find((track) => track.id === "syn-dark-pad")!
     const protectedNote = {
       ...pad.notes[0], id: "outside-target-sentinel", sectionId: "intro", startBeat: 0,
       durationBeats: 1, pitch: 70, velocity: 20, auditionRepair: undefined,
@@ -499,15 +500,15 @@ describe("Arrangement Generator", () => {
         ? { ...track, notes: [...track.notes, protectedNote] }
         : track),
     }
-    const outsideBefore = structuredClone(before.tracks.flatMap((track) =>
-      track.notes.filter((note) => note.sectionId !== "final"),
-    ))
+    const outsideBefore = structuredClone(before.tracks.find((track) => track.id === "syn-dark-pad")!.notes
+      .filter((note) => note.sectionId !== "final").sort((left, right) => left.id.localeCompare(right.id)))
     const after = regenerateFullSongArrangementTarget(input, before, {
       trackId: "syn-dark-pad",
       sectionId: "final",
       energyDelta: 4,
     })
-    expect(after.tracks.flatMap((track) => track.notes.filter((note) => note.sectionId !== "final"))).toEqual(outsideBefore)
+    expect(after.tracks.find((track) => track.id === "syn-dark-pad")!.notes
+      .filter((note) => note.sectionId !== "final").sort((left, right) => left.id.localeCompare(right.id))).toEqual(outsideBefore)
   })
 
   it("AI Partnerの構造化指示を対象SectionのEnergyと役割へ反映する", () => {

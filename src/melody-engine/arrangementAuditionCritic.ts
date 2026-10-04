@@ -39,6 +39,8 @@ function attackIdentity(trackId: string): string {
 }
 
 const TRACK_RANGES: Record<string, readonly [number, number]> = {
+  "syn-sub-bass": [24, 43],
+  "syn-bass-mid": [36, 59],
   "syn-pulse": [48, 84],
   "syn-stabs": [48, 88],
   "syn-dark-pad": [43, 84],
@@ -85,6 +87,16 @@ function correlation(left: number[], right: number[]): number {
 function overlaps(left: MelodyNote, right: MelodyNote): boolean {
   return left.startBeat < right.startBeat + right.durationBeats
     && left.startBeat + left.durationBeats > right.startBeat
+}
+
+const SIXTEENTH_BEATS = .25
+
+function gridAtOrBefore(beat: number): number {
+  return Math.floor((beat + 1e-8) / SIXTEENTH_BEATS) * SIXTEENTH_BEATS
+}
+
+function gridAtOrAfter(beat: number): number {
+  return Math.ceil((beat - 1e-8) / SIXTEENTH_BEATS) * SIXTEENTH_BEATS
 }
 
 function noteFrameIndex(notes: readonly MelodyNote[]): Map<number, MelodyNote[]> {
@@ -182,15 +194,17 @@ function auditionMetrics(
   const tonal = tracks.filter((track) => !track.muted && isTonal(track))
   const tonalNotes = tonal.flatMap((track) => track.notes.map((note) => ({ track, note })))
   const masking = tonalNotes.filter(({ track, note }) =>
-    note.character === "safe"
+    track.family !== "bass"
+    && note.character === "safe"
     && (FOREGROUND_SUPPORT.has(track.id) || LAYER_TRACKS.has(track.id))
     && overlappingNotes(foregroundIndex, note).some((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 5),
   )
   const melodicClarity = clamp(100 - masking.length / Math.max(1, foreground.length) * 75)
   // 全曲品質ゲートと同じく、同音〜全音の接触は比率ではなく件数で扱う。
   // 主旋律の音数が多くても、1件残っていれば修理ループを開始する。
-  const blockingMelodyCollisions = tonalNotes.filter(({ note }) =>
-    note.character === "safe"
+  const blockingMelodyCollisions = tonalNotes.filter(({ track, note }) =>
+    track.family !== "bass"
+    && note.character === "safe"
     && overlappingNotes(foregroundIndex, note).some((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 2),
   ).length
 
@@ -374,8 +388,8 @@ function repairPass(
           }
           const firstCollision = Math.min(...collisions.map((note) => note.startBeat))
           const lastCollisionEnd = Math.max(...collisions.map((note) => note.startBeat + note.durationBeats))
-          const endBeat = firstCollision - .03125
-          const delayedStart = lastCollisionEnd + .03125
+          const endBeat = gridAtOrBefore(firstCollision)
+          const delayedStart = gridAtOrAfter(lastCollisionEnd)
           const canShorten = notes.every((note) => endBeat - note.startBeat >= .0625)
           const canDelay = notes.every((note) => note.startBeat + note.durationBeats - delayedStart >= .0625)
           groupDecisions.set(key, canShorten
@@ -493,8 +507,8 @@ function repairPass(
           return []
         } else {
           const originalEnd = next.startBeat + next.durationBeats
-          const beforeDuration = leadCollision.startBeat - next.startBeat - .03125
-          const afterStart = leadCollision.startBeat + leadCollision.durationBeats + .03125
+          const beforeDuration = gridAtOrBefore(leadCollision.startBeat) - next.startBeat
+          const afterStart = gridAtOrAfter(leadCollision.startBeat + leadCollision.durationBeats)
           if (beforeDuration >= .0625) {
             next = withRepair(next, pass, "shorten", {
               durationBeats: beforeDuration,
@@ -517,11 +531,13 @@ function repairPass(
       if (LOW_SUPPORT.has(track.id) && next.pitch < 52 && bass.some((bassNote) => overlaps(next, bassNote))) {
         if (!actions.has("low-end")) {
           const [, high] = TRACK_RANGES[track.id] ?? [31, 100]
+          let separatedPitch = next.pitch
+          while (separatedPitch < 52 && separatedPitch + 12 <= high) separatedPitch += 12
           next = withRepair(next, pass, "low-end", {
-            pitch: Math.min(high, next.pitch + 12),
+            pitch: separatedPitch,
             reason: `${next.reason}。Bassと低域を分ける`,
           })
-          shiftedNotes += 1
+          if (separatedPitch !== note.pitch) shiftedNotes += 1
         } else if (LAYER_TRACKS.has(track.id) && next.velocity < 58) {
           removedNotes += 1
           return []

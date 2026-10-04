@@ -78,23 +78,32 @@ export function parseArrangementTimelineConstraints(
     const kind = silenceKind(clause)
     // Section名を含む指示は、曲全体の「最初／最後」より先にSection相対で解決する。
     // 例:「FINAL CHORUSの最初の2小節」は曲頭ではなく、そのSection先頭を指す。
-    const named = [...sections]
-      .sort((left, right) => Math.max(right.name.length, SECTION_ROLE_LABELS[right.role].length) - Math.max(left.name.length, SECTION_ROLE_LABELS[left.role].length))
-      .find((section) => [section.name, SECTION_ROLE_LABELS[section.role]].some((label) => label && clause.includes(label)))
-    if (named) {
+    const exactNameMatches = sections.filter((section) => section.name && clause.includes(section.name))
+    const longestExactName = exactNameMatches.reduce((length, section) => Math.max(length, section.name.length), 0)
+    const namedSections = longestExactName > 0
+      ? exactNameMatches.filter((section) => section.name.length === longestExactName)
+      : sections.filter((section) => {
+          const roleLabel = SECTION_ROLE_LABELS[section.role]
+          return roleLabel && clause.includes(roleLabel)
+        })
+    if (namedSections.length > 0) {
       const before = /(?:直前|前)[^。\n]{0,10}(?:全休止|一瞬(?:止|休)|何も鳴らさ)/i.test(clause)
-      if (before && named.startBar > 1) {
-        fullSilenceRanges.push({ startBar: named.startBar - 1, endBar: named.startBar - 1 })
+      if (before) {
+        namedSections.filter((section) => section.startBar > 1).forEach((section) => {
+          fullSilenceRanges.push({ startBar: section.startBar - 1, endBar: section.startBar - 1 })
+        })
         continue
       }
       const countMatch = clause.match(/(\d+)\s*小節/i)
       if (countMatch && (kind.full || kind.melody)) {
-        const sectionEnd = named.startBar + named.lengthBars - 1
-        const count = Math.max(1, Math.min(named.lengthBars, Math.round(Number(countMatch[1]))))
         const fromEnd = /(?:最後|ラスト|終わり)(?:の)?\s*\d+\s*小節/i.test(clause)
-        const startBar = fromEnd ? sectionEnd - count + 1 : named.startBar
-        const endBar = fromEnd ? sectionEnd : named.startBar + count - 1
-        ;(kind.full ? fullSilenceRanges : melodySilenceRanges).push({ startBar, endBar })
+        namedSections.forEach((section) => {
+          const sectionEnd = section.startBar + section.lengthBars - 1
+          const count = Math.max(1, Math.min(section.lengthBars, Math.round(Number(countMatch[1]))))
+          const startBar = fromEnd ? sectionEnd - count + 1 : section.startBar
+          const endBar = fromEnd ? sectionEnd : section.startBar + count - 1
+          ;(kind.full ? fullSilenceRanges : melodySilenceRanges).push({ startBar, endBar })
+        })
         continue
       }
     }

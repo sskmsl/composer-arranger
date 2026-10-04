@@ -150,6 +150,24 @@ describe("Arrangement Audition Critic", () => {
     expect(refined.tracks[0].notes).toHaveLength(0)
   })
 
+  it("Bass族は生成側と同じく主旋律衝突の合否対象から外す", () => {
+    const source: GeneratedArrangementTrack[] = [{
+      id: "syn-bass-mid", name: "Bass Mid", family: "bass", muted: false, generationRevision: 0, purpose: "test",
+      notes: [{
+        id: "bass-mid-touch", sectionId: "chorus", startBeat: 0, durationBeats: 1,
+        pitch: 69, velocity: 88, locks: [], character: "safe", reason: "test",
+      }],
+    }]
+    const highPlan: ArrangementPlan = {
+      ...plan(), sections: plan().sections.map((section) => ({
+        ...section, register: { low: "open", mid: "strong", high: "open" },
+      })),
+    }
+    const report = evaluateArrangementAudition(project(), highPlan, source)
+    expect(report.issues).not.toContain("主旋律と補助パートの中域が重なりすぎています")
+    expect(report.passed).toBe(true)
+  })
+
   it("採用済み短いフレーズも保護対象に含める", () => {
     const input = project()
     input.phraseCandidates = [{
@@ -251,6 +269,8 @@ describe("Arrangement Audition Critic", () => {
     const middleChordStarts = new Set(pad.notes.filter((note) => note.id.startsWith("pad:1:")).map((note) => note.startBeat))
     expect(middleChordStarts.size).toBeLessThanOrEqual(1)
     expect(pad.notes.some((note) => note.auditionRepair?.actions.includes("melody-space"))).toBe(true)
+    expect(pad.notes.filter((note) => note.auditionRepair?.actions.includes("melody-space"))
+      .every((note) => Math.abs(note.startBeat * 4 - Math.round(note.startBeat * 4)) < 1e-8)).toBe(true)
   })
 
   it("過密な補助アタックは、固定レイヤー以外の発音位置を実際に分散する", () => {
@@ -330,6 +350,10 @@ describe("Arrangement Audition Critic", () => {
     const lowReport = evaluateArrangementAudition(noLead, lowPlan, crowdedLow)
     expect(lowReport.lowEndClarity).toBeLessThan(68)
     expect(lowReport.passed).toBe(false)
+    const repairedLow = refineArrangementByAudition(noLead, lowPlan, crowdedLow)
+    expect(repairedLow.report.lowEndClarity).toBeGreaterThan(lowReport.lowEndClarity)
+    expect(repairedLow.tracks.find((track) => track.id === "str-contrabass")?.notes
+      .every((lowNote) => lowNote.pitch >= 52)).toBe(true)
 
     const arcProject = project()
     arcProject.importedArrangement!.tracks = []
