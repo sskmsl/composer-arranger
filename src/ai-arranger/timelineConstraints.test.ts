@@ -47,4 +47,27 @@ describe("AI arrangement timeline constraints", () => {
       melodySilenceRanges: [{ startBar: 1, endBar: 8 }],
     })
   })
+
+  it("ラスト・冒頭・Section直前を実際の曲位置へ解決する", () => {
+    const sections = [
+      { id: "intro", name: "Intro", role: "intro" as const, startBar: 1, lengthBars: 8 },
+      { id: "verse", name: "Verse 1", role: "verse" as const, startBar: 9, lengthBars: 8 },
+      { id: "chorus", name: "Chorus 2", role: "chorus" as const, startBar: 17, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints(
+      "Intro は8小節メロディなし。Chorus 2の直前で全休止。ラスト2小節は完全無音",
+      24,
+      sections,
+    )).toMatchObject({
+      fullSilenceRanges: [{ startBar: 16, endBar: 16 }, { startBar: 23, endBar: 24 }],
+      melodySilenceRanges: [{ startBar: 1, endBar: 8 }],
+    })
+  })
+
+  it("最初の数小節を伴奏だけにする指示を主旋律休止へ変換する", () => {
+    expect(parseArrangementTimelineConstraints("最初の4小節は伴奏だけ", 32)).toMatchObject({
+      fullSilenceRanges: [],
+      melodySilenceRanges: [{ startBar: 1, endBar: 4 }],
+    })
+  })
 })

@@ -9,6 +9,7 @@ import {
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import type { Section, SectionRole } from "@/core/section"
 import { DEFAULT_SECTION_CONTENT } from "@/core/sectionContent"
+import { inferMarkerlessImportedSections } from "@/core/importedSectionInference"
 
 export const MIDI_IMPORT_ACCEPT = ".mid,.midi,audio/midi,audio/x-midi"
 
@@ -1109,7 +1110,17 @@ export function createMidiProjectFromAnalysis(
 }
 
 export function midiToComposerProject(bytes: Uint8Array, fileName: string): MidiProjectImportResult {
-  return createMidiProjectFromAnalysis(analyzeMidiImport(bytes, fileName))
+  const created = createMidiProjectFromAnalysis(analyzeMidiImport(bytes, fileName))
+  const inferred = inferMarkerlessImportedSections(created.project)
+  return {
+    ...created,
+    project: inferred.project,
+    report: {
+      ...created.report,
+      sectionCount: inferred.project.sections.length,
+      warnings: inferred.project.sourceImport?.warnings ?? created.report.warnings,
+    },
+  }
 }
 
 export async function readMidiProjectFile(file: File): Promise<MidiProjectImportResult> {

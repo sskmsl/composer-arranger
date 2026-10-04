@@ -14,7 +14,7 @@ import {
   type ArrangementChatState,
 } from "@/core/arrangementChat"
 import type { ArrangementGenerationDirective, FullSongArrangement } from "@/core/arrangementGeneration"
-import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { finalizeFullSongArrangement, generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { snapshot } from "./storeHelpers"
 import type { ProjectState } from "./useProjectStore"
 
@@ -133,9 +133,12 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
       const chat = chatOf(get())
       const version = chat.versions.find((candidate) => candidate.id === versionId)
       if (!version) return
-      const fullSongArrangement = arrangementForVersion(chat.versions, version.id, (recipe) =>
+      const restoredArrangement = arrangementForVersion(chat.versions, version.id, (recipe) =>
         generateFullSongArrangement(prev, recipe),
       )
+      const fullSongArrangement = restoredArrangement
+        ? finalizeFullSongArrangement(prev, restoredArrangement, { refine: false })
+        : undefined
       // 対旋律・合いの手も、その版のときの付け方に戻す(記録のない古い版では触らない)
       const withLayers = version.layers ? withLayerAssignments(prev, version.layers) : prev
       set({

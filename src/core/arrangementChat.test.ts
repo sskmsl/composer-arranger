@@ -14,7 +14,8 @@ import {
   type ArrangementChatMessage,
 } from "./arrangementChat"
 import type { FullSongArrangement } from "./arrangementGeneration"
-import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { generateFullSongArrangement, reviewGeneratedArrangement } from "@/melody-engine/arrangementGenerator"
+import { evaluateArrangementAudition } from "@/melody-engine/arrangementAuditionCritic"
 import {
   arrangementChatConversation,
   arrangementFromRecipe,
@@ -280,6 +281,20 @@ describe("アレンジ相談チャット: パートを外す指示", () => {
         .filter((note) => (note.sectionId === target) === inside).length
     expect(drumNotes(removed, true)).toBe(0)
     expect(drumNotes(removed, false)).toBe(drumNotes(arrangement, false))
+  })
+
+  it("AI相談でパートを外した後の品質点を実トラックから作り直す", () => {
+    const project = song()
+    project.fullSongArrangement = generateFullSongArrangement(project, { seed: 8 })
+    const changed = arrangementFromRecipe(project, {
+      brief: "ドラムを抜く",
+      seed: 9,
+      revision: 1,
+      removeRowIds: ["drums"],
+    })
+    expect(changed.quality).toEqual(reviewGeneratedArrangement(changed, project))
+    const audition = evaluateArrangementAudition(project, changed.plan, changed.tracks)
+    expect(changed.audition).toMatchObject({ score: audition.score, transientClarity: audition.transientClarity })
   })
 })
 

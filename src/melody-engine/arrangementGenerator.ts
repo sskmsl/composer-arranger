@@ -1570,7 +1570,7 @@ function deriveArrangementLayerTrack(
     notes = eligible.flatMap((note, index) => {
       const count = Math.max(1, Math.floor(note.durationBeats))
       return Array.from({ length: count }, (_, pulse) => makeLayerNote(note, index, {
-        startBeat: note.startBeat + pulse,
+        startBeat: note.startBeat + pulse + (pulse % 2 === 0 ? .25 : .5),
         durationBeats: 0.34,
         velocity: note.velocity - 8 + (pulse % 2 === 0 ? 4 : -3),
       }, `:${pulse}`))
@@ -1600,29 +1600,29 @@ function deriveArrangementLayerTrack(
       }
       if (trackId === "syn-arp-low") {
         if (index % 2 !== 0) return []
-        return [makeLayerNote(note, index, { pitch: note.pitch - 12, durationBeats: 0.16, velocity: note.velocity - 11 })]
+        return [makeLayerNote(note, index, { pitch: note.pitch - 12, startBeat: note.startBeat + .25, durationBeats: 0.16, velocity: note.velocity - 11 })]
       }
       if (trackId === "syn-arp-high") {
         if (index % 2 === 0) return []
-        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: 0.12, velocity: note.velocity - 16 })]
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, startBeat: note.startBeat + .25, durationBeats: 0.12, velocity: note.velocity - 16 })]
       }
       if (trackId === "syn-chord-wide") {
         const rank = ranks.get(note.id) ?? 0
         const shift = rank < 0 ? -12 : rank > 0 ? 12 : 0
-        return [makeLayerNote(note, index, { pitch: note.pitch + shift, durationBeats: note.durationBeats * 0.82, velocity: note.velocity - 13 })]
+        return [makeLayerNote(note, index, { pitch: note.pitch + shift, startBeat: note.startBeat + .25, durationBeats: note.durationBeats * 0.82, velocity: note.velocity - 13 })]
       }
       if (trackId === "syn-pad-air") {
         if ((ranks.get(note.id) ?? 0) <= 0) return []
-        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: note.durationBeats * 1.02, velocity: note.velocity - 18 })]
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, startBeat: note.startBeat + .25, durationBeats: note.durationBeats * 1.02, velocity: note.velocity - 18 })]
       }
       if (trackId === "syn-pad-motion") {
         if (Math.abs(ranks.get(note.id) ?? 0) > 0.6) return []
-        return [makeLayerNote(note, index, { durationBeats: note.durationBeats * 0.72, velocity: note.velocity - 12 })]
+        return [makeLayerNote(note, index, { startBeat: note.startBeat + .5, durationBeats: note.durationBeats * 0.72, velocity: note.velocity - 12 })]
       }
       if (trackId === "str-contrabass") return [makeLayerNote(note, index, { pitch: note.pitch - 12, velocity: note.velocity - 10 })]
       if (trackId === "str-high-octave") {
         if (index % 2 !== 0) return []
-        return [makeLayerNote(note, index, { pitch: note.pitch + 12, durationBeats: note.durationBeats * 0.9, velocity: note.velocity - 12 })]
+        return [makeLayerNote(note, index, { pitch: note.pitch + 12, startBeat: note.startBeat + .25, durationBeats: note.durationBeats * 0.9, velocity: note.velocity - 12 })]
       }
       return []
     })
@@ -1792,14 +1792,22 @@ function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArra
   ]) : null
 }
 
-function countMelodyCollisions(project: ComposerProject, tracks: GeneratedArrangementTrack[]): number {
-  const lead = buildSongPlaybackMaterial(project).lead
+function countMelodyCollisions(project: ComposerProject, plan: ArrangementPlan, tracks: GeneratedArrangementTrack[]): number {
+  const material = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints)
+  const lead = [
+    ...material.lead,
+    ...material.counterLayers,
+    ...material.decorationLayers,
+    ...material.phraseLayers,
+    ...material.signaturePhraseLayers,
+  ]
   return tracks.reduce((sum, track) => {
     if (track.family === "drums" || track.family === "bass") return sum
     return sum + track.notes.filter((note) => note.character === "safe" && lead.some((melodyNote) =>
       melodyNote.startBeat < note.startBeat + note.durationBeats
       && melodyNote.startBeat + melodyNote.durationBeats > note.startBeat
-      && Math.abs(melodyNote.pitch - note.pitch) <= 2,
+      && Math.abs(melodyNote.pitch - note.pitch) <= 2
+      && note.velocity >= melodyNote.velocity - 22,
     )).length
   }, 0)
 }
@@ -1817,7 +1825,7 @@ export function reviewGeneratedArrangement(
   const peakIndex = arrangement.analysis.sections.findIndex((section) => section.sectionId === arrangement.analysis.peakSectionId)
   const peakIsLate = peakIndex >= Math.floor(arrangement.analysis.sections.length * 0.6)
   const overfilledSectionCount = arrangement.plan.sections.filter((section) => section.activeRoles.length > 16).length
-  const silentRoleCount = arrangement.tracks.filter((track) => track.notes.length === 0).length
+  const silentRoleCount = arrangement.tracks.filter((track) => !isArrangementLayerTrackId(track.id) && track.notes.length === 0).length
   const beatsPerBar = parseTimeSignature(arrangement.analysis.timeSignature).beatsPerBar
   const tonalTracks = arrangement.tracks.filter((track) => !track.id.startsWith("dr-") && track.id !== "syn-pulse")
   const mechanicalLoopCount = arrangement.plan.sections.reduce((sum, section) => {
@@ -1870,6 +1878,7 @@ export function reviewGeneratedArrangement(
       .map((note) => `${track.id}:${Math.round((note.startBeat - start) * 4)}:${Math.round(note.durationBeats * 4)}:${pc(note.pitch)}`)))
   }
   let repeatedSectionCopyCount = 0
+  let repeatedTrackCopyRatio = 0
   const lastByRole = new Map<string, string>()
   for (const section of arrangement.plan.sections) {
     const role = section.semanticRole ?? section.sectionRole
@@ -1877,6 +1886,25 @@ export function reviewGeneratedArrangement(
     if (previousId) {
       const similarity = setSimilarity(normalizedSectionEvents(previousId), normalizedSectionEvents(section.sectionId))
       if (similarity >= .86) repeatedSectionCopyCount += 1
+      const sourcePrevious = project?.sections.find((candidate) => candidate.id === previousId)
+      const sourceCurrent = project?.sections.find((candidate) => candidate.id === section.sectionId)
+      const previousStart = sourcePrevious ? sectionOffset(sourcePrevious.startBar, beatsPerBar) : 0
+      const currentStart = sourceCurrent ? sectionOffset(sourceCurrent.startBar, beatsPerBar) : 0
+      let comparable = 0
+      let copied = 0
+      for (const track of arrangement.tracks) {
+        const signature = (sectionId: string, start: number) => track.notes
+          .filter((note) => note.sectionId === sectionId)
+          .map((note) => `${Math.round((note.startBeat - start) * 8)}:${Math.round(note.durationBeats * 8)}:${note.pitch}:${Math.round(note.velocity / 6)}`)
+          .sort()
+          .join("|")
+        const left = signature(previousId, previousStart)
+        const right = signature(section.sectionId, currentStart)
+        if (!left && !right) continue
+        comparable += 1
+        if (left === right) copied += 1
+      }
+      repeatedTrackCopyRatio = Math.max(repeatedTrackCopyRatio, copied / Math.max(1, comparable))
     }
     lastByRole.set(role, section.sectionId)
   }
@@ -1907,8 +1935,10 @@ export function reviewGeneratedArrangement(
         }).length
       : 0), 0)
     : 0
-  const melodyCollisionCount = project ? countMelodyCollisions(project, arrangement.tracks) : 0
-  const leadAttacks = project ? buildSongPlaybackMaterial(project).lead.map((note) => note.startBeat) : []
+  const melodyCollisionCount = project ? countMelodyCollisions(project, arrangement.plan, arrangement.tracks) : 0
+  const leadAttacks = project
+    ? buildSongPlaybackMaterial(project, arrangement.plan.directive?.timelineConstraints).lead.map((note) => note.startBeat)
+    : []
   const rhythmLeadAttackConflictCount = arrangement.tracks.reduce((sum, track) => {
     if (!["dr-kick", "dr-field-drum", "dr-low-tom", "dr-high-tom"].includes(track.id)) return sum
     return sum + track.notes.filter((note) => {
@@ -1937,6 +1967,7 @@ export function reviewGeneratedArrangement(
   if (rhythmLeadAttackConflictCount > 0) recommendations.push("主旋律のアタックに重なるKick/Fillを引く")
   if (arrangement.plan.sections.length >= 4 && energyDensityCorrelation < 0.2) recommendations.push("Energy Curveと実際の発音密度を一致させる")
   if (repeatedSectionCopyCount > 0) recommendations.push("再登場するVerse/Chorusのリズム・低音・内声を発展させる")
+  if (repeatedTrackCopyRatio > .6) recommendations.push("再登場するSectionで同じ演奏を繰り返すパートを減らす")
   if (arrangement.plan.sections.length >= 4 && boundaryContrastScore < .55) recommendations.push("Section境界で一度引くか、新しい役割の入口を明確にする")
   const score = Math.max(0, Math.min(100,
     24
@@ -1955,12 +1986,16 @@ export function reviewGeneratedArrangement(
     - Math.min(20, melodyCollisionCount * 2)
     - Math.min(12, rhythmLeadAttackConflictCount * 1.5)
     - repeatedSectionCopyCount * 8
+    - Math.max(0, repeatedTrackCopyRatio - .35) * 20
     + Math.round(boundaryContrastScore * 5)
     + Math.min(4, motifDevelopmentCount * .5),
   ))
   return {
     score,
-    passed: score >= ARRANGEMENT_QUALITY_FLOOR && harmonicViolationCount === 0 && melodyCollisionCount === 0,
+    passed: score >= ARRANGEMENT_QUALITY_FLOOR
+      && harmonicViolationCount === 0
+      && melodyCollisionCount === 0
+      && repeatedTrackCopyRatio <= .65,
     summary: score >= 88 ? "Sectionごとの役割差と後半の解放が成立しています" : score >= 75 ? "全曲の起伏は成立しています。試聴で役割密度を確認してください" : "全曲の役割差を再調整する余地があります",
     metrics: {
       distinctSectionTextures,
@@ -1979,6 +2014,7 @@ export function reviewGeneratedArrangement(
       averageActiveRoleCount,
       generatedNotesPerBeat,
       repeatedSectionCopyCount,
+      repeatedTrackCopyRatio,
       boundaryContrastScore,
       motifDevelopmentCount,
     },
@@ -2038,6 +2074,79 @@ function candidateReason(summary: Omit<ArrangementCandidateSummary, "selected" |
   return "基礎品質は高いが、他案との実音差が比較的小さい"
 }
 
+function applyArrangementSoundImage(
+  project: ComposerProject,
+  tracks: GeneratedArrangementTrack[],
+): GeneratedArrangementTrack[] {
+  return tracks.map((track) => ({
+    ...track,
+    notes: track.notes.map((note) => {
+      if (track.family === "drums" || note.soundImage) return note
+      const image = resolveMusicContext(project, note.sectionId).aesthetic
+      const rear = track.id.includes("pad") || track.family === "strings" || track.id.includes("glass")
+      const depthShift = Math.max(0, image.depth - .5)
+      const decayShift = Math.max(0, image.decay - .5)
+      return {
+        ...note,
+        velocity: Math.max(1, Math.round(note.velocity - (rear ? 20 : 7) * depthShift)),
+        durationBeats: note.durationBeats * (1 + (rear ? .42 : .14) * decayShift),
+        soundImage: {
+          depth: image.depth,
+          decay: image.decay,
+          transientSoftness: image.transientSoftness,
+          stereoDiffusion: image.stereoDiffusion,
+        },
+      }
+    }),
+  }))
+}
+
+/**
+ * 全曲生成・部分再生成・AI相談後の差し替えを同じ最終工程へ通す。
+ * 音像処理は付与済みの音へ重ねず、Criticは実際に保存・試聴・書き出しされる全トラックを見る。
+ */
+export function finalizeFullSongArrangement(
+  project: ComposerProject,
+  arrangement: FullSongArrangement,
+  options: {
+    editableTrackIds?: ReadonlySet<string>
+    editableSectionIds?: ReadonlySet<string>
+    refine?: boolean
+  } = {},
+): FullSongArrangement {
+  const imageTracks = applyArrangementSoundImage(project, arrangement.tracks)
+  const timelineTracks = applyArrangementTimelineToTracks(
+    imageTracks,
+    arrangement.plan.directive?.timelineConstraints,
+    parseTimeSignature(project.song.timeSignature).beatsPerBar,
+  )
+  const audition = options.refine === false
+    ? { tracks: timelineTracks, report: evaluateArrangementAudition(project, arrangement.plan, timelineTracks) }
+    : refineArrangementByAudition(project, arrangement.plan, timelineTracks, 3, {
+        editableTrackIds: options.editableTrackIds,
+        editableSectionIds: options.editableSectionIds,
+      })
+  // Criticのタイミング移動後にも無音区間をもう一度適用し、書き出し制約を最終優先にする。
+  const finalTracks = applyArrangementTimelineToTracks(
+    audition.tracks,
+    arrangement.plan.directive?.timelineConstraints,
+    parseTimeSignature(project.song.timeSignature).beatsPerBar,
+  )
+  const finalReport = evaluateArrangementAudition(project, arrangement.plan, finalTracks)
+  const finalized = {
+    ...arrangement,
+    tracks: finalTracks,
+    audition: {
+      ...finalReport,
+      repairPasses: audition.report.repairPasses,
+      removedNotes: audition.report.removedNotes,
+      shiftedNotes: audition.report.shiftedNotes,
+      velocityAdjustments: audition.report.velocityAdjustments,
+    },
+  }
+  return { ...finalized, quality: reviewGeneratedArrangement(finalized, project) }
+}
+
 function generateArrangementCandidate(
   project: ComposerProject,
   analysis: ArrangementAnalysis,
@@ -2056,58 +2165,15 @@ function generateArrangementCandidate(
     plan,
     generatedTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision, undefined, variationSeed)),
   )
-  const imageTracks = performedTracks.map((track) => ({
-    ...track,
-    notes: track.notes.map((note) => {
-      const image = resolveMusicContext(project, note.sectionId).aesthetic
-      if (track.family === "drums") return note
-      const rear = track.id.includes("pad") || track.family === "strings" || track.id.includes("glass")
-      const depthShift = Math.max(0, image.depth - .5)
-      const decayShift = Math.max(0, image.decay - .5)
-      return {
-        ...note,
-        velocity: Math.max(1, Math.round(note.velocity - (rear ? 20 : 7) * depthShift)),
-        durationBeats: note.durationBeats * (1 + (rear ? .42 : .14) * decayShift),
-        soundImage: {
-          depth: image.depth,
-          decay: image.decay,
-          transientSoftness: image.transientSoftness,
-          stereoDiffusion: image.stereoDiffusion,
-        },
-      }
-    }),
-  }))
-  const timelineTracks = applyArrangementTimelineToTracks(
-    imageTracks,
-    plan.directive?.timelineConstraints,
-    parseTimeSignature(project.song.timeSignature).beatsPerBar,
-  )
-  // 音像処理と無音区間の反映後、実際に試聴・書き出しへ渡るノート列を点検する。
-  // 中間状態だけを直すと、後段のオクターブ配置や音量補正で濁りが再発し得るため。
-  const auditionRefinement = refineArrangementByAudition(project, plan, timelineTracks)
-  const result: FullSongArrangement = {
+  return finalizeFullSongArrangement(project, {
     version: "1.0.0",
     orchestrationVersion: 3,
     id: `arrangement:${seed}`,
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: auditionRefinement.tracks,
-    audition: auditionRefinement.report,
-  }
-  // Layer tracks are orchestration (音域・アタック・距離の分担)であり、曲の作曲判断そのものではない。
-  // 候補選抜の品質点は従来の21役割で比較し、層を増やした案が音数だけで有利／不利にならないようにする。
-  const compositionalCore = {
-    ...result,
-    // 音像の奥行き・余韻はミックス上の判断であり、編曲候補そのものの優劣や
-    // パート採否を変えない。候補選抜は音像処理前の演奏MIDIで比較する。
-    tracks: applyArrangementTimelineToTracks(
-      performedTracks,
-      plan.directive?.timelineConstraints,
-      parseTimeSignature(project.song.timeSignature).beatsPerBar,
-    ).filter((track) => !isArrangementLayerTrackId(track.id)),
-  }
-  return { ...result, quality: reviewGeneratedArrangement(compositionalCore, project) }
+    tracks: performedTracks,
+  })
 }
 
 export function generateFullSongArrangement(
@@ -2122,7 +2188,7 @@ export function generateFullSongArrangement(
   const analysis = analyzeFullSongArrangement(project)
   const baseSeed = options.seed ?? hashText(`${project.projectId}:${project.title}:${project.song.tempo}`)
   const revision = Math.max(0, Math.round(options.revision ?? 0))
-  const candidates = Array.from({ length: ARRANGEMENT_CANDIDATE_POOL_SIZE }, (_, index) => generateArrangementCandidate(
+  let candidates = Array.from({ length: ARRANGEMENT_CANDIDATE_POOL_SIZE }, (_, index) => generateArrangementCandidate(
     project,
     analysis,
     (baseSeed + index * ARRANGEMENT_CANDIDATE_SEED_STEP) >>> 0,
@@ -2132,8 +2198,8 @@ export function generateFullSongArrangement(
     ARRANGEMENT_APPROACHES[index % ARRANGEMENT_APPROACHES.length],
     baseSeed,
   ))
-  const scored = candidates.map((candidate, index) => {
-    const comparisons = candidates.filter((_, otherIndex) => otherIndex !== index)
+  const scoreCandidates = (pool: FullSongArrangement[]) => pool.map((candidate, index) => {
+    const comparisons = pool.filter((_, otherIndex) => otherIndex !== index)
     const originalityScore = comparisons.length === 0
       ? 100
       : (1 - comparisons.reduce((sum, other) => sum + arrangementSimilarity(candidate, other), 0) / comparisons.length) * 100
@@ -2164,12 +2230,31 @@ export function generateFullSongArrangement(
     }
     return { candidate, summary: { ...draft, selected: false, reason: candidateReason(draft) } }
   })
-  const eligible = scored.filter(({ candidate }) =>
-    (candidate.quality?.score ?? 0) >= ARRANGEMENT_QUALITY_FLOOR
-    && candidate.quality?.metrics.harmonicViolationCount === 0
-    && candidate.quality?.metrics.melodyCollisionCount === 0
+  const eligibleCandidates = (items: ReturnType<typeof scoreCandidates>) => items.filter(({ candidate }) =>
+    candidate.quality?.passed === true
     && (candidate.audition?.score ?? 0) >= 72,
   )
+  let scored = scoreCandidates(candidates)
+  let eligible = eligibleCandidates(scored)
+  // 最初の候補がすべて下限未満なら黙って不合格案を採用せず、別seedでもう一度だけ探索する。
+  if (eligible.length === 0) {
+    const retry = Array.from({ length: ARRANGEMENT_CANDIDATE_POOL_SIZE }, (_, index) => {
+      const candidateIndex = ARRANGEMENT_CANDIDATE_POOL_SIZE + index
+      return generateArrangementCandidate(
+        project,
+        analysis,
+        (baseSeed + candidateIndex * ARRANGEMENT_CANDIDATE_SEED_STEP) >>> 0,
+        options.brief,
+        options.directive,
+        revision + candidateIndex,
+        ARRANGEMENT_APPROACHES[candidateIndex % ARRANGEMENT_APPROACHES.length],
+        baseSeed,
+      )
+    })
+    candidates = [...candidates, ...retry]
+    scored = scoreCandidates(candidates)
+    eligible = eligibleCandidates(scored)
+  }
   const ranked = [...(eligible.length > 0 ? eligible : scored)].sort((left, right) =>
     right.summary.selectionScore - left.summary.selectionScore
     || right.summary.qualityScore - left.summary.qualityScore,
@@ -2189,6 +2274,9 @@ export function generateFullSongArrangement(
       qualityFloor: ARRANGEMENT_QUALITY_FLOOR,
       eligibleCount: eligible.length,
       selectedSeed,
+      ...(eligible.length === 0
+        ? { qualityWarning: "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。" }
+        : {}),
       candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
     },
   }
@@ -2221,11 +2309,11 @@ export function upgradeFullSongArrangementOrchestration(
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
   ).map((track) => ({ ...track, muted: existingById.get(track.id)?.muted ?? false }))
 
-  return {
+  return finalizeFullSongArrangement(project, {
     ...arrangement,
     orchestrationVersion: 3,
     tracks: [...coreTracks, ...performedLayers],
-  }
+  }, { editableTrackIds: new Set(refreshedLayers.map((track) => track.id)) })
 }
 
 export function regenerateFullSongArrangementTarget(
@@ -2269,11 +2357,11 @@ export function regenerateFullSongArrangementTarget(
   }
   const currentTrack = current.tracks.find((track) => track.id === target.trackId) ?? emptyTrack(target.trackId)
   const revision = currentTrack.generationRevision + 1
-  const regenerated = applyArrangementTimelineToTracks(applyArrangementPerformanceDirector(
+  const regenerated = applyArrangementPerformanceDirector(
     project,
     plan,
     [generateTrack(project, plan, target.trackId, revision, target.sectionId)],
-  ), plan.directive?.timelineConstraints, parseTimeSignature(project.song.timeSignature).beatsPerBar)[0]
+  )[0]
   const tracks = current.tracks.some((track) => track.id === target.trackId)
     ? current.tracks.map((track) => {
         if (track.id !== target.trackId) return track
@@ -2306,12 +2394,11 @@ export function regenerateFullSongArrangementTarget(
         }
       })
     : [...current.tracks, regenerated]
-  const updated = { ...current, plan, tracks }
-  return {
-    ...updated,
-    quality: reviewGeneratedArrangement(updated, project),
-    audition: evaluateArrangementAudition(project, plan, tracks),
-  }
+  const updated = { ...current, plan, tracks, selection: undefined }
+  return finalizeFullSongArrangement(project, updated, {
+    editableTrackIds: new Set([target.trackId]),
+    ...(target.sectionId ? { editableSectionIds: new Set([target.sectionId]) } : {}),
+  })
 }
 
 export function setArrangementTrackMuted(

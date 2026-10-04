@@ -40,6 +40,7 @@ import {
 } from "@/melody-engine/developSeed"
 import { createSeed } from "@/core/rng"
 import {
+  finalizeFullSongArrangement,
   generateFullSongArrangement,
   regenerateFullSongArrangementTarget,
   setArrangementTrackMuted,
@@ -661,10 +662,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setArrangementTrackMuted: (trackId, muted) => {
     const prev = get().project
     if (!prev.fullSongArrangement) return
+    const changed = setArrangementTrackMuted(prev.fullSongArrangement, trackId, muted)
     set({
       project: {
         ...prev,
-        fullSongArrangement: setArrangementTrackMuted(prev.fullSongArrangement, trackId, muted),
+        fullSongArrangement: finalizeFullSongArrangement(prev, changed, { refine: false }),
       },
     })
     get().persist()

@@ -72,4 +72,47 @@ describe("Arrangement Audition Critic", () => {
       [0, 2, 69, 92, 0], [4, 2, 72, 92, 0], [8, 2, 69, 92, 0], [12, 2, 72, 92, 0],
     ])
   })
+
+  it("実際の再生と同じ主旋律開始位置を使い、休止中の補助音を避けない", () => {
+    const input = project()
+    const arrangementPlan = {
+      ...plan(),
+      directive: {
+        intention: "主旋律は3小節目から",
+        timelineConstraints: {
+          preserveMelody: true,
+          fullSilenceRanges: [],
+          melodySilenceRanges: [],
+          melodyStartBar: 3,
+        },
+      },
+    }
+    const source = crowdedTracks().slice(0, 1).map((track) => ({
+      ...track,
+      notes: track.notes.filter((note) => note.startBeat < 8),
+    }))
+    const refined = refineArrangementByAudition(input, arrangementPlan, source)
+    expect(refined.tracks).toEqual(source)
+  })
+
+  it("1回目のタイミング整理で生じた別の接触を2回目に検査する", () => {
+    const input = project()
+    const source = crowdedTracks().map((track, index) => ({
+      ...track,
+      notes: Array.from({ length: 12 }, (_, group) => ({
+        id: `${track.id}:iterative:${group}`,
+        sectionId: "chorus",
+        startBeat: group === 2 ? 2 : .1 + group,
+        durationBeats: index === 0 && group === 2 ? 2 : .1,
+        pitch: index === 0 && group === 2 ? 69 : 60,
+        velocity: 88 + index,
+        locks: [],
+        character: "safe" as const,
+        reason: "test",
+      })),
+    }))
+    const refined = refineArrangementByAudition(input, plan(), source)
+    expect(refined.report.repairPasses).toBeGreaterThanOrEqual(2)
+    expect(refined.tracks.flatMap((track) => track.notes).some((note) => (note.auditionRepair?.pass ?? 0) >= 2)).toBe(true)
+  })
 })

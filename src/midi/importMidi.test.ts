@@ -239,6 +239,38 @@ describe("MIDI project import", () => {
     expect(report.warnings.some((warning) => warning.includes("1セクション"))).toBe(true)
   })
 
+  it("マーカーがない長いMIDIは密度・休止・反復変化からSectionを自動推定する", () => {
+    const beat = TICKS_PER_QUARTER
+    const melody = Array.from({ length: 32 }, (_, bar) => {
+      const dense = bar >= 8 && bar < 16 || bar >= 24
+      return Array.from({ length: dense ? 4 : 1 }, (_, index) => ({
+        pitch: 60 + (bar % 4) * 2 + index,
+        start: (bar * 4 + index * (dense ? 1 : 0)) * beat,
+        duration: (dense ? .5 : 2) * beat,
+        velocity: dense ? 92 : 66,
+        channel: 0,
+      }))
+    }).flat()
+    const harmony = Array.from({ length: 32 }, (_, bar) => [0, 4, 7].map((interval) => ({
+      pitch: 48 + (bar % 4) * 2 + interval,
+      start: bar * 4 * beat,
+      duration: 4 * beat,
+      velocity: bar >= 8 && bar < 16 || bar >= 24 ? 74 : 52,
+      channel: 0,
+    }))).flat()
+    const bytes = buildSmf({
+      name: "Markerless Long Form",
+      tempoBpm: 112,
+      timeSignature: { numerator: 4, denominator: 4 },
+      markers: [],
+      tracks: [{ name: "Lead", notes: melody }, { name: "Harmony", notes: harmony }],
+    })
+    const { project } = midiToComposerProject(bytes, "markerless-long.mid")
+    expect(project.sections.length).toBeGreaterThan(1)
+    expect(project.sourceImport?.sectionsInferred).toBe(true)
+    expect(project.sections.every((section) => section.id.startsWith("inferred:"))).toBe(true)
+  })
+
   it("確認画面のMelody選択・Section境界・コード修正を確定プロジェクトへ反映する", () => {
     const analysis = analyzeMidiImport(fixture(), "review.mid")
     expect(analysis.tracks.find((track) => track.name === "Lead Melody")?.recommendedRole).toBe("melody")

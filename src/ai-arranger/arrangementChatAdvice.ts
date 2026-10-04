@@ -18,7 +18,7 @@ import type { FullSongArrangement } from "@/core/arrangementGeneration"
 import type { ComposerProject } from "@/core/project"
 import { SECTION_ROLE_LABELS } from "@/core/section"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
-import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { finalizeFullSongArrangement, generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { buildAiArrangementContext } from "./context"
 import { directionAuditionDirectiveForIntent, directionAuditionSeed } from "./directionAudition"
 import { conciseDirectionText, plainDirectionText } from "./directionPresentation"
@@ -104,11 +104,16 @@ export function arrangementChatConversation(chat: ArrangementChatState | undefin
  * その範囲だけを新しい音にし、ほかはいまの全曲アレンジのまま残す。
  */
 export function arrangementFromRecipe(project: ComposerProject, recipe: ArrangementRecipe): FullSongArrangement {
-  return withoutPartRows(
+  const changed = withoutPartRows(
     spliceArrangement(project.fullSongArrangement, generateFullSongArrangement(project, recipe), recipe.scopeSectionIds),
     recipe.removeRowIds,
     recipe.scopeSectionIds,
   )
+  // 差し替え・除去後の実トラックで品質点を作り直す。削除だけの指示では他パートを勝手に変更しない。
+  return finalizeFullSongArrangement(project, changed, {
+    refine: !recipe.removeRowIds?.length,
+    ...(recipe.scopeSectionIds?.length ? { editableSectionIds: new Set(recipe.scopeSectionIds) } : {}),
+  })
 }
 
 const WHOLE_SONG_WORDS = /曲全体|全体を通|全曲|曲全部|全部のセクション|全セクション/
@@ -231,11 +236,20 @@ export function proposalsFromResponse(
       { ...base, soundInstruction: arrangementSoundInstructionFromText(brief) ?? base.soundInstruction },
       brief,
       totalBars,
+      project.sections,
     )
     // 別の入口で決めた小節指定(無音区間など)は、新しい案が指定しない限り引き継ぐ
+    const parsedTimeline = directive.timelineConstraints
+    const hasParsedTimeline = Boolean(parsedTimeline && (
+      parsedTimeline.fullSilenceRanges.length > 0
+      || parsedTimeline.melodySilenceRanges.length > 0
+      || parsedTimeline.melodyStartBar !== undefined
+    ))
     const effectiveDirective = {
       ...directive,
-      timelineConstraints: directive.timelineConstraints ?? current?.plan.directive?.timelineConstraints,
+      timelineConstraints: hasParsedTimeline
+        ? parsedTimeline
+        : current?.plan.directive?.timelineConstraints ?? parsedTimeline,
     }
     const targetSectionId = intent.soundInstruction?.targetSectionId
     const scope = scopeSectionIdsFromText(project, userMessage, [

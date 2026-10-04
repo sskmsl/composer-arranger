@@ -285,6 +285,11 @@ export interface GeneratedArrangementNote extends MelodyNote {
   reason: string
   /** 既存音の距離と輪郭。音色やパートの追加とは独立したSound Image。 */
   soundImage?: { depth: number; decay: number; transientSoftness: number; stereoDiffusion: number }
+  /** Audition Criticが行った変更。説明文ではなく構造化データで反復修正を管理する。 */
+  auditionRepair?: {
+    pass: number
+    actions: Array<"harmony" | "melody-space" | "low-end" | "attack" | "shorten" | "register" | "energy">
+  }
 }
 
 export interface GeneratedArrangementTrack {
@@ -378,6 +383,8 @@ export interface ArrangementQualityReport {
     generatedNotesPerBeat: number
     /** 同じ役割の再登場で、実音がほぼコピーになっているSection対の数。 */
     repeatedSectionCopyCount?: number
+    /** 同じ役割が再登場したとき、全イベントが一致したトラックの最大割合。 */
+    repeatedTrackCopyRatio?: number
     /** Section境界で、役割または実音密度が十分に変化している割合(0〜1)。 */
     boundaryContrastScore?: number
     /** 核の応答・断片化・反転・拡大を実音に使ったSection数。 */
@@ -403,6 +410,8 @@ export interface ArrangementSelectionDiagnostics {
   qualityFloor: number
   eligibleCount: number
   selectedSeed: number
+  /** 合格案がなく追加生成しても下限へ届かなかった場合だけ設定する。 */
+  qualityWarning?: string
   candidates: ArrangementCandidateSummary[]
 }
 

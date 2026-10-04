@@ -551,6 +551,9 @@ export function spliceArrangement(
       ),
     },
     tracks,
+    quality: undefined,
+    audition: undefined,
+    selection: undefined,
   }
 }
 
@@ -589,6 +592,9 @@ export function withoutPartRows(
         ? { ...track, notes: track.notes.filter((note) => scope !== null && !scope.has(note.sectionId)) }
         : track,
     ),
+    quality: undefined,
+    audition: undefined,
+    selection: undefined,
   }
 }
 

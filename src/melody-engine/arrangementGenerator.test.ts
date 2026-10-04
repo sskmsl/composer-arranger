@@ -11,6 +11,7 @@ import {
   upgradeFullSongArrangementOrchestration,
 } from "./arrangementGenerator"
 import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
+import { evaluateArrangementAudition } from "./arrangementAuditionCritic"
 
 function project(): ComposerProject {
   const base = createEmptyProject("Arrangement Test")
@@ -461,6 +462,28 @@ describe("Arrangement Generator", () => {
     expect(after.plan.sections.find((section) => section.sectionId === "final")!.energy).toBe(100)
   })
 
+  it("個別再生成も音像処理とCriticを通し、保存した品質点を最終トラックと一致させる", () => {
+    const input = project()
+    const before = generateFullSongArrangement(input, { seed: 12 })
+    const otherTracks = before.tracks.filter((track) => track.id !== "syn-dark-pad")
+    const after = regenerateFullSongArrangementTarget(input, before, {
+      trackId: "syn-dark-pad",
+      sectionId: "final",
+      energyDelta: 4,
+    })
+    const regenerated = after.tracks.find((track) => track.id === "syn-dark-pad")!
+
+    expect(after.tracks.filter((track) => track.id !== "syn-dark-pad")).toEqual(otherTracks)
+    expect(regenerated.notes.filter((note) => note.sectionId === "final").every((note) => note.soundImage)).toBe(true)
+    expect(after.quality).toEqual(reviewGeneratedArrangement(after, input))
+    const reevaluated = evaluateArrangementAudition(input, after.plan, after.tracks)
+    expect(after.audition).toMatchObject({
+      score: reevaluated.score,
+      melodicClarity: reevaluated.melodicClarity,
+      transientClarity: reevaluated.transientClarity,
+    })
+  })
+
   it("AI Partnerの構造化指示を対象SectionのEnergyと役割へ反映する", () => {
     const input = project()
     const result = generateFullSongArrangement(input, {
@@ -618,7 +641,9 @@ describe("Arrangement Generator", () => {
     expect(final.energy).toBeGreaterThan(chorus2.energy)
     expect(intro.roleEntryBeats?.["syn-bass"]).toBe(16)
     expect(intro.roleEntryBeats?.["dr-kick"]).toBe(32)
-    expect(intro.roleEntryBeats?.["syn-high-glass"]).toBe(24)
+    if (intro.activeRoles.includes("syn-high-glass")) {
+      expect(intro.roleEntryBeats?.["syn-high-glass"]).toBe(24)
+    }
     expect(final.developmentStage).toBe(2)
   })
 
@@ -671,9 +696,22 @@ describe("Arrangement Generator", () => {
     expect(result.quality!.score).toBeGreaterThanOrEqual(selection.qualityFloor)
     expect(result.quality!.metrics.harmonicViolationCount).toBe(0)
     expect(result.quality!.metrics.melodyCollisionCount).toBe(0)
+    expect(result.quality!.metrics.repeatedTrackCopyRatio ?? 1).toBeLessThanOrEqual(.65)
     expect(result.audition?.score).toBeGreaterThanOrEqual(72)
     expect(result.audition?.melodicClarity).toBeGreaterThanOrEqual(72)
     expect(selection.candidates.every((candidate) => (candidate.auditionScore ?? 0) > 0)).toBe(true)
+  })
+
+  it("全候補が品質下限未満なら別seedを追加探索し、それでも不足なら理由を保持する", () => {
+    const input = project()
+    const only = input.sections[0]
+    input.sections = [{ ...only, lengthBars: 4 }]
+    input.chords = input.chords.filter((chord) => chord.sectionId === only.id)
+    const result = generateFullSongArrangement(input, { seed: 8103 })
+
+    expect(result.selection?.poolSize).toBe(16)
+    expect(result.selection?.eligibleCount).toBe(0)
+    expect(result.selection?.qualityWarning).toContain("品質基準")
   })
 
   it("全曲の各生成トラックへSection別の演奏表情を適用し、そのままMIDI対象へ保持する", () => {

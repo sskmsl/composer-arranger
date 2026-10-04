@@ -3,6 +3,7 @@ import type { MelodyNote } from "@/core/melody"
 import type { ComposerProject } from "@/core/project"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { parseTimeSignature } from "@/core/section"
+import { parseChordSymbol } from "@/core/chord"
 
 const LAYER_TRACKS = new Set([
   "dr-kick-sub", "dr-kick-click", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride",
@@ -17,6 +18,29 @@ const FOREGROUND_SUPPORT = new Set([
 ])
 
 const LOW_SUPPORT = new Set(["str-cello", "str-contrabass", "syn-pad-motion"])
+const LOW_DRUM_TRACKS = new Set(["dr-kick", "dr-kick-sub", "dr-low-tom", "dr-gran-cassa", "dr-impact"])
+
+const TRACK_RANGES: Record<string, readonly [number, number]> = {
+  "syn-pulse": [48, 84],
+  "syn-stabs": [48, 88],
+  "syn-dark-pad": [43, 84],
+  "syn-high-glass": [72, 104],
+  "syn-transition-phrase": [52, 92],
+  "syn-final-lift": [60, 104],
+  "syn-arp-low": [48, 72],
+  "syn-arp-high": [60, 96],
+  "syn-chord-wide": [48, 92],
+  "syn-pad-air": [60, 100],
+  "syn-pad-motion": [52, 84],
+  "str-cello": [36, 72],
+  "str-contrabass": [28, 60],
+  "str-viola": [48, 84],
+  "str-spiccato": [48, 84],
+  "str-violin-2": [55, 96],
+  "str-violin-1": [55, 100],
+  "str-upper": [67, 104],
+  "str-high-octave": [67, 104],
+}
 
 function clamp(value: number, low = 0, high = 100): number {
   return Math.max(low, Math.min(high, Number.isFinite(value) ? value : low))
@@ -60,20 +84,72 @@ function registerIndex(pitch: number): 0 | 1 | 2 {
   return pitch < 52 ? 0 : pitch < 73 ? 1 : 2
 }
 
+function playbackMaterial(project: ComposerProject, plan: ArrangementPlan) {
+  return buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints)
+}
+
+function protectedForeground(project: ComposerProject, plan: ArrangementPlan): MelodyNote[] {
+  const material = playbackMaterial(project, plan)
+  return [
+    ...material.lead,
+    ...material.counterLayers,
+    ...material.decorationLayers,
+    ...material.phraseLayers,
+    ...material.signaturePhraseLayers,
+  ]
+}
+
+function chordPitchClassesAt(project: ComposerProject, note: GeneratedArrangementNote): Set<number> | null {
+  const section = project.sections.find((candidate) => candidate.id === note.sectionId)
+  if (!section) return null
+  const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const localBeat = note.startBeat - (section.startBar - 1) * beatsPerBar
+  const chord = project.chords
+    .filter((candidate) => candidate.sectionId === section.id)
+    .find((candidate) => localBeat >= candidate.startBeat && localBeat < candidate.startBeat + candidate.durationBeats)
+  const parsed = chord ? parseChordSymbol(chord.symbol, chord.bass ?? undefined) : null
+  return parsed ? new Set([...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass)) : null
+}
+
+function nearestAllowedPitch(pitch: number, allowed: Set<number>, low: number, high: number): number | null {
+  const candidates: number[] = []
+  for (let candidate = low; candidate <= high; candidate += 1) {
+    if (allowed.has(((candidate % 12) + 12) % 12)) candidates.push(candidate)
+  }
+  return candidates.sort((left, right) => Math.abs(left - pitch) - Math.abs(right - pitch))[0] ?? null
+}
+
+function withRepair(
+  note: GeneratedArrangementNote,
+  pass: number,
+  action: NonNullable<GeneratedArrangementNote["auditionRepair"]>["actions"][number],
+  changes: Partial<GeneratedArrangementNote>,
+): GeneratedArrangementNote {
+  return {
+    ...note,
+    ...changes,
+    auditionRepair: {
+      pass,
+      actions: [...new Set([...(note.auditionRepair?.actions ?? []), action])],
+    },
+  }
+}
+
 function auditionMetrics(
   project: ComposerProject,
   plan: ArrangementPlan,
   tracks: GeneratedArrangementTrack[],
 ): Omit<ArrangementAuditionReport, "repairPasses" | "removedNotes" | "shiftedNotes" | "velocityAdjustments"> {
-  const lead = buildSongPlaybackMaterial(project).lead
+  const material = playbackMaterial(project, plan)
+  const foreground = protectedForeground(project, plan)
   const tonal = tracks.filter((track) => !track.muted && isTonal(track))
   const tonalNotes = tonal.flatMap((track) => track.notes.map((note) => ({ track, note })))
   const masking = tonalNotes.filter(({ track, note }) =>
     note.character === "safe"
     && (FOREGROUND_SUPPORT.has(track.id) || LAYER_TRACKS.has(track.id))
-    && lead.some((leadNote) => overlaps(note, leadNote) && Math.abs(note.pitch - leadNote.pitch) <= 5 && note.velocity >= leadNote.velocity - 22),
+    && foreground.some((leadNote) => overlaps(note, leadNote) && Math.abs(note.pitch - leadNote.pitch) <= 5 && note.velocity >= leadNote.velocity - 22),
   )
-  const melodicClarity = clamp(100 - masking.length / Math.max(1, lead.length) * 75)
+  const melodicClarity = clamp(100 - masking.length / Math.max(1, foreground.length) * 75)
 
   const attackGroups = new Map<number, Set<string>>()
   for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
@@ -82,12 +158,24 @@ function auditionMetrics(
     group.add(track.id)
     attackGroups.set(key, group)
   }
+  const fixedLayers = [
+    material.counterLayers,
+    material.decorationLayers,
+    material.phraseLayers,
+    material.signaturePhraseLayers,
+  ]
+  fixedLayers.forEach((notes, index) => notes.forEach((note) => {
+    const key = Math.round(note.startBeat * 8)
+    const group = attackGroups.get(key) ?? new Set<string>()
+    group.add(`selected:${index}`)
+    attackGroups.set(key, group)
+  }))
   const congestedAttacks = [...attackGroups.values()].filter((group) => group.size > 9)
   const transientClarity = clamp(100 - congestedAttacks.reduce((sum, group) => sum + group.size - 9, 0) * 2.5)
 
   const lowFrames = new Map<number, Set<string>>()
   for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
-    if (track.family === "drums" ? ![35, 36, 41, 45].includes(note.pitch) : note.pitch >= 52) continue
+    if (track.family === "drums" ? !LOW_DRUM_TRACKS.has(track.id) : note.pitch >= 52) continue
     const first = Math.floor(note.startBeat * 2)
     const last = Math.max(first, Math.ceil((note.startBeat + Math.min(note.durationBeats, 4)) * 2) - 1)
     for (let frame = first; frame <= last; frame += 1) {
@@ -96,6 +184,15 @@ function auditionMetrics(
       lowFrames.set(frame, group)
     }
   }
+  fixedLayers.forEach((notes, index) => notes.filter((note) => note.pitch < 52).forEach((note) => {
+    const first = Math.floor(note.startBeat * 2)
+    const last = Math.max(first, Math.ceil((note.startBeat + Math.min(note.durationBeats, 4)) * 2) - 1)
+    for (let frame = first; frame <= last; frame += 1) {
+      const group = lowFrames.get(frame) ?? new Set<string>()
+      group.add(`selected:${index}`)
+      lowFrames.set(frame, group)
+    }
+  }))
   const crowdedLowFrames = [...lowFrames.values()].filter((group) => group.size > 5)
   const lowEndClarity = clamp(100 - crowdedLowFrames.length / Math.max(1, lowFrames.size) * 125)
 
@@ -124,7 +221,9 @@ function auditionMetrics(
     targetEnergy.push(sectionPlan.energy)
   }
   const registerBalance = clamp(100 - registerError / Math.max(1, registerSections) * 100)
-  const dynamicArc = clamp((correlation(targetEnergy, perceivedDensity) + .2) / 1.2 * 100)
+  const dynamicArc = plan.sections.length < 2
+    ? 100
+    : clamp((correlation(targetEnergy, perceivedDensity) + .2) / 1.2 * 100)
 
   const boundaryValues = plan.sections.slice(1).map((section, index) => {
     const previous = plan.sections[index]
@@ -145,7 +244,13 @@ function auditionMetrics(
     + dynamicArc * .13
     + sectionContrast * .10,
   )
+  const layerHarmonyViolations = tonalNotes.filter(({ track, note }) => {
+    if (!LAYER_TRACKS.has(track.id) || note.character !== "safe") return false
+    const allowed = chordPitchClassesAt(project, note)
+    return allowed !== null && !allowed.has(((note.pitch % 12) + 12) % 12)
+  }).length
   const issues: string[] = []
+  if (layerHarmonyViolations > 0) issues.push("補助層に現在のコードから外れる音があります")
   if (melodicClarity < 82) issues.push("主旋律と補助パートの中域が重なりすぎています")
   if (lowEndClarity < 82) issues.push("低域の持続パートが同時に重なりすぎています")
   if (transientClarity < 82) issues.push("同時に始まるパートが多く、アタックが一塊になっています")
@@ -155,7 +260,14 @@ function auditionMetrics(
   return {
     version: "1.0.0",
     score: Math.round(score * 10) / 10,
-    passed: score >= 78 && melodicClarity >= 72 && lowEndClarity >= 68,
+    passed: layerHarmonyViolations === 0
+      && score >= 78
+      && melodicClarity >= 72
+      && lowEndClarity >= 68
+      && transientClarity >= 68
+      && registerBalance >= 55
+      && dynamicArc >= 55
+      && sectionContrast >= 55,
     melodicClarity: Math.round(melodicClarity),
     lowEndClarity: Math.round(lowEndClarity),
     transientClarity: Math.round(transientClarity),
@@ -170,59 +282,149 @@ function repairPass(
   project: ComposerProject,
   plan: ArrangementPlan,
   tracks: GeneratedArrangementTrack[],
+  pass: number,
+  issues: readonly string[],
+  editableTrackIds?: ReadonlySet<string>,
+  editableSectionIds?: ReadonlySet<string>,
 ): { tracks: GeneratedArrangementTrack[]; removedNotes: number; shiftedNotes: number; velocityAdjustments: number } {
-  const lead = buildSongPlaybackMaterial(project).lead
+  const foreground = protectedForeground(project, plan)
   const attackCounts = new Map<number, Set<string>>()
-  for (const track of tracks) for (const note of track.notes) {
+  for (const track of tracks.filter((candidate) => !candidate.muted)) for (const note of track.notes) {
     const key = Math.round(note.startBeat * 8)
     const group = attackCounts.get(key) ?? new Set<string>()
     group.add(track.id)
     attackCounts.set(key, group)
   }
+  const material = playbackMaterial(project, plan)
+  ;[material.counterLayers, material.decorationLayers, material.phraseLayers, material.signaturePhraseLayers]
+    .forEach((notes, index) => notes.forEach((note) => {
+      const key = Math.round(note.startBeat * 8)
+      const group = attackCounts.get(key) ?? new Set<string>()
+      group.add(`selected:${index}`)
+      attackCounts.set(key, group)
+    }))
   const bass = tracks.find((track) => track.id === "syn-bass")?.notes ?? []
   let removedNotes = 0
   let shiftedNotes = 0
   let velocityAdjustments = 0
   const repaired = tracks.map((track): GeneratedArrangementTrack => ({
     ...track,
-    notes: track.notes.flatMap((note): GeneratedArrangementNote[] => {
-      if (note.reason.includes("聴感調整済み")) return [note]
+    notes: track.notes.flatMap((note, noteIndex): GeneratedArrangementNote[] => {
+      if (track.muted || editableTrackIds && !editableTrackIds.has(track.id) || editableSectionIds && !editableSectionIds.has(note.sectionId)) return [note]
       let next = note
+      const actions = new Set(note.auditionRepair?.actions ?? [])
+      if (LAYER_TRACKS.has(track.id) && note.character === "safe") {
+        const allowed = chordPitchClassesAt(project, next)
+        const pitchClass = ((next.pitch % 12) + 12) % 12
+        if (allowed && !allowed.has(pitchClass)) {
+          const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
+          const pitch = nearestAllowedPitch(next.pitch, allowed, low, high)
+          if (pitch !== null && pitch !== next.pitch) {
+            next = withRepair(next, pass, "harmony", {
+              pitch,
+              reason: `${next.reason}。現在のコードへ合わせて補助層を修正`,
+            })
+            shiftedNotes += 1
+          }
+        }
+      }
+      const sectionPlan = plan.sections.find((section) => section.sectionId === next.sectionId)
+      if (sectionPlan && LAYER_TRACKS.has(track.id) && issues.some((issue) => issue.includes("音域配分")) && !actions.has("register")) {
+        const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
+        const strongest = [...(["low", "mid", "high"] as const)].sort((left, right) => {
+          const weight = (value: "open" | "medium" | "strong") => value === "strong" ? 2 : value === "medium" ? 1 : 0
+          return weight(sectionPlan.register[right]) - weight(sectionPlan.register[left])
+        })[0]
+        const wanted = strongest === "low" && next.pitch > 60
+          ? next.pitch - 12
+          : strongest === "high" && next.pitch < 72
+            ? next.pitch + 12
+            : strongest === "mid" && next.pitch < 52
+              ? next.pitch + 12
+              : strongest === "mid" && next.pitch >= 73
+                ? next.pitch - 12
+                : next.pitch
+        if (wanted !== next.pitch && wanted >= low && wanted <= high) {
+          next = withRepair(next, pass, "register", { pitch: wanted, reason: `${next.reason}。Sectionの音域配分へ合わせる` })
+          shiftedNotes += 1
+        }
+      }
+      if (sectionPlan && LAYER_TRACKS.has(track.id)
+        && issues.some((issue) => issue.includes("強弱設計") || issue.includes("Section境界"))
+        && !actions.has("energy")) {
+        const targetVelocity = 28 + sectionPlan.energy * .68
+        const difference = targetVelocity - next.velocity
+        if (Math.abs(difference) >= 5) {
+          next = withRepair(next, pass, "energy", {
+            velocity: Math.max(1, Math.min(127, Math.round(next.velocity + Math.max(-8, Math.min(8, difference))))),
+            reason: `${next.reason}。曲の強弱へ発音の存在感を合わせる`,
+          })
+          velocityAdjustments += 1
+        }
+      }
       const leadCollision = track.family !== "drums" && track.family !== "bass" && note.character === "safe"
-        ? lead.find((leadNote) => overlaps(note, leadNote) && Math.abs(note.pitch - leadNote.pitch) <= 5 && note.velocity >= leadNote.velocity - 22)
+        ? foreground.find((leadNote) => overlaps(next, leadNote) && Math.abs(next.pitch - leadNote.pitch) <= 5 && next.velocity >= leadNote.velocity - 22)
         : undefined
-      if (leadCollision && (FOREGROUND_SUPPORT.has(track.id) || LAYER_TRACKS.has(track.id))) {
-        const candidates = note.pitch >= leadCollision.pitch
-          ? [note.pitch + 12, note.pitch - 12]
-          : [note.pitch - 12, note.pitch + 12]
-        const pitch = candidates.find((candidate) => candidate >= 31 && candidate <= 100 && Math.abs(candidate - leadCollision.pitch) >= 9)
+      if (leadCollision) {
+        const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
+        const previousPitch = track.notes.slice(0, noteIndex).reverse()
+          .find((candidate) => candidate.sectionId === note.sectionId && Math.abs(candidate.pitch - note.pitch) <= 7)?.pitch
+        const followingPitch = track.notes.slice(noteIndex + 1)
+          .find((candidate) => candidate.sectionId === note.sectionId && Math.abs(candidate.pitch - note.pitch) <= 7)?.pitch
+        const candidates = [next.pitch + 12, next.pitch - 12]
+          .filter((candidate) => candidate >= low && candidate <= high
+            && Math.abs(candidate - leadCollision.pitch) >= 9
+            && (previousPitch === undefined || Math.abs(candidate - previousPitch) <= 10)
+            && (followingPitch === undefined || Math.abs(candidate - followingPitch) <= 10))
+          .sort((left, right) => {
+            const cost = (pitch: number) => Math.abs(pitch - next.pitch)
+              + (previousPitch === undefined ? 0 : Math.max(0, Math.abs(pitch - previousPitch) - 9) * 4)
+              + (followingPitch === undefined ? 0 : Math.max(0, Math.abs(pitch - followingPitch) - 9) * 4)
+            return cost(left) - cost(right)
+          })
+        const pitch = !actions.has("melody-space") ? candidates[0] : undefined
         if (pitch !== undefined) {
-          next = { ...next, pitch, reason: `${next.reason}。主旋律の音域を空ける聴感調整済み` }
+          next = withRepair(next, pass, "melody-space", {
+            pitch,
+            reason: `${next.reason}。主旋律の音域を空ける`,
+          })
           shiftedNotes += 1
         } else {
-          next = { ...next, velocity: Math.max(1, next.velocity - 12), reason: `${next.reason}。主旋律の手前を空ける聴感調整済み` }
+          const velocity = Math.max(1, Math.min(next.velocity - 8, leadCollision.velocity - 24))
+          next = withRepair(next, pass, actions.has("shorten") ? "melody-space" : "shorten", {
+            velocity,
+            durationBeats: actions.has("shorten") ? next.durationBeats : Math.min(next.durationBeats, .5),
+            reason: `${next.reason}。主旋律の前を空ける`,
+          })
           velocityAdjustments += 1
         }
       }
       if (LOW_SUPPORT.has(track.id) && next.pitch < 52 && bass.some((bassNote) => overlaps(next, bassNote))) {
-        next = { ...next, pitch: Math.min(100, next.pitch + 12), reason: `${next.reason}。Bassと低域を分ける聴感調整済み` }
-        shiftedNotes += 1
-      }
-      const attackSize = attackCounts.get(Math.round(next.startBeat * 8))?.size ?? 0
-      if (attackSize > 9 && (LAYER_TRACKS.has(track.id) || FOREGROUND_SUPPORT.has(track.id))) {
-        if (LAYER_TRACKS.has(track.id) && next.velocity < 48 && (Math.round(next.startBeat * 8) + track.id.length) % 3 === 0) {
+        if (!actions.has("low-end")) {
+          const [, high] = TRACK_RANGES[track.id] ?? [31, 100]
+          next = withRepair(next, pass, "low-end", {
+            pitch: Math.min(high, next.pitch + 12),
+            reason: `${next.reason}。Bassと低域を分ける`,
+          })
+          shiftedNotes += 1
+        } else if (LAYER_TRACKS.has(track.id) && next.velocity < 58) {
           removedNotes += 1
           return []
         }
-        next = { ...next, velocity: Math.max(1, next.velocity - Math.min(14, (attackSize - 8) * 2)), reason: `${next.reason}。同時アタックを整理する聴感調整済み` }
-        velocityAdjustments += 1
       }
-      const sectionPlan = plan.sections.find((section) => section.sectionId === next.sectionId)
-      if (sectionPlan?.sectionShape === "release" && !LAYER_TRACKS.has(track.id) && next.velocity < 116) {
-        next = { ...next, velocity: Math.min(127, next.velocity + 4), reason: `${next.reason}。曲の頂点を明確にする聴感調整済み` }
-        velocityAdjustments += 1
-      } else if ((sectionPlan?.sectionShape === "drop" || sectionPlan?.sectionShape === "withdraw") && next.velocity > 22) {
-        next = { ...next, velocity: Math.max(1, next.velocity - 4), reason: `${next.reason}。前後の落差を作る聴感調整済み` }
+      const attackSize = attackCounts.get(Math.round(next.startBeat * 8))?.size ?? 0
+      if (attackSize > 9 && (LAYER_TRACKS.has(track.id) || FOREGROUND_SUPPORT.has(track.id))) {
+        if (actions.has("attack") && LAYER_TRACKS.has(track.id) && next.velocity < 64) {
+          removedNotes += 1
+          return []
+        }
+        const slot = [...`${track.id}:${note.id}`].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 3 + 1
+        const shift = .25 * slot
+        next = withRepair(next, pass, "attack", {
+          startBeat: next.startBeat + shift,
+          velocity: Math.max(1, next.velocity - Math.min(12, (attackSize - 8) * 2)),
+          reason: `${next.reason}。同時アタックを前後へ分ける`,
+        })
         velocityAdjustments += 1
       }
       return [next]
@@ -240,6 +442,10 @@ export function refineArrangementByAudition(
   plan: ArrangementPlan,
   sourceTracks: GeneratedArrangementTrack[],
   maximumPasses = 3,
+  options: {
+    editableTrackIds?: ReadonlySet<string>
+    editableSectionIds?: ReadonlySet<string>
+  } = {},
 ): { tracks: GeneratedArrangementTrack[]; report: ArrangementAuditionReport } {
   let tracks = sourceTracks
   let metrics = auditionMetrics(project, plan, tracks)
@@ -248,7 +454,7 @@ export function refineArrangementByAudition(
   let shiftedNotes = 0
   let velocityAdjustments = 0
   for (let pass = 0; pass < maximumPasses && (!metrics.passed || metrics.issues.length > 0); pass += 1) {
-    const repaired = repairPass(project, plan, tracks)
+    const repaired = repairPass(project, plan, tracks, pass + 1, metrics.issues, options.editableTrackIds, options.editableSectionIds)
     if (repaired.removedNotes + repaired.shiftedNotes + repaired.velocityAdjustments === 0) break
     const nextMetrics = auditionMetrics(project, plan, repaired.tracks)
     if (nextMetrics.score + .01 < metrics.score) break
