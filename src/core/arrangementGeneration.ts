@@ -98,6 +98,32 @@ export type ArrangementHarmonyStrategy =
   | "sparse-stabs"
   | "register-expansion"
 
+/** Genreと曲中の役割から選ぶ、ドラム・Bass・Pulseが共有する拍の文法。 */
+export type ArrangementRhythmGrammar =
+  | "song-led"
+  | "half-time"
+  | "four-on-floor"
+  | "syncopated-pocket"
+  | "cinematic-pulse"
+
+/** セクション内で何を起こすか。単なる音量差ではなく、入口・後半・出口の振る舞いを決める。 */
+export type ArrangementSectionShape =
+  | "statement"
+  | "answer"
+  | "build"
+  | "drop"
+  | "expansion"
+  | "release"
+  | "withdraw"
+
+/** 主旋律から抽出した核を、伴奏側でどう発展させるか。 */
+export type ArrangementMotifTreatment =
+  | "none"
+  | "answer"
+  | "fragmentation"
+  | "inversion"
+  | "augmentation"
+
 /** 同じ制作意図を、異なる作曲判断で実音化する候補内の解釈軸。 */
 export type ArrangementCandidateApproach =
   | "space-led"
@@ -157,6 +183,16 @@ export interface ArrangementSectionPlan {
   grooveFamily?: ArrangementGrooveFamily
   bassStrategy?: ArrangementBassStrategy
   harmonyStrategy?: ArrangementHarmonyStrategy
+  /** 複数パートで共有し、Genre差を実際のオンセットへ反映する。 */
+  rhythmGrammar?: ArrangementRhythmGrammar
+  /** 同じ役割の再登場をコピーにしないための、セクション内の展開。 */
+  sectionShape?: ArrangementSectionShape
+  /** 主旋律の核を複製せず、輪郭またはリズムだけを伴奏へ渡す方法。 */
+  motifTreatment?: ArrangementMotifTreatment
+  /** 次Sectionの入口を強くするため、末尾で骨格パートを休ませる拍数。 */
+  preBoundaryDropBeats?: number
+  /** 後半で初めて密度・音域を一段開く場合の、Section先頭からの拍位置。 */
+  backHalfLiftBeat?: number
   /** Section先頭から何拍待って役割を登場させるか。 */
   roleEntryBeats?: Partial<Record<ArrangementTrackId, number>>
   /**
@@ -321,6 +357,12 @@ export interface ArrangementQualityReport {
     energyDensityCorrelation: number
     averageActiveRoleCount: number
     generatedNotesPerBeat: number
+    /** 同じ役割の再登場で、実音がほぼコピーになっているSection対の数。 */
+    repeatedSectionCopyCount?: number
+    /** Section境界で、役割または実音密度が十分に変化している割合(0〜1)。 */
+    boundaryContrastScore?: number
+    /** 核の応答・断片化・反転・拡大を実音に使ったSection数。 */
+    motifDevelopmentCount?: number
   }
   recommendations: string[]
 }

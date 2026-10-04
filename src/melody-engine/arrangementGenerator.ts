@@ -1,6 +1,6 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
 import { parseChordSymbol } from "@/core/chord"
-import { hasActiveSoundImage, resolveMusicContext, type GenreTraits, type SoundImageTraits } from "@/core/musicContext"
+import { resolveMusicContext, type GenreTraits, type SoundImageTraits } from "@/core/musicContext"
 import { applyReferenceArc } from "@/core/referenceProfile"
 import type { MelodyNote } from "@/core/melody"
 import {
@@ -470,6 +470,7 @@ function transitionCandidate(
   character: ArrangementCandidateCharacter,
   seed: number,
   lead: MelodyNote[],
+  approach: ArrangementCandidateApproach,
 ): ArrangementTransitionCandidate {
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const source = project.sections.find((candidate) => candidate.id === section.sectionId)!
@@ -482,17 +483,34 @@ function transitionCandidate(
   const parsed = nextChord ? parseChordSymbol(nextChord.symbol, nextChord.bass ?? undefined) : null
   const targetPc = parsed?.tones[0]?.pitchClass ?? 9
   const target = midiForPc(targetPc, character === "surprise" ? 81 : 72)
+  const sectionLead = notesInRange(lead, offset, end).sort((left, right) => left.startBeat - right.startBeat)
+  const motifHead = sectionLead.slice(0, 4)
+  const motifIntervals = motifHead.slice(1).map((note, index) => Math.max(-7, Math.min(7, note.pitch - motifHead[index].pitch)))
+  const usesMotif = motifIntervals.length >= 2 && (approach === "motif-led" || approach === "counterpoint-led") && character !== "safe"
+  const reverseMotif = usesMotif && character === "surprise"
   const reason = character === "safe"
     ? `主旋律の休符を使い、次の${next?.sectionName ?? "終止"}のコードトーンへ順次接続する`
     : character === "edge"
-      ? `次の${next?.sectionName ?? "終止"}へ半音で解決する非和声音を、休符の末尾だけに置く`
-      : `未使用高域を一瞬だけ開き、次の${next?.sectionName ?? "終止"}の入口で解決して落差を記憶させる`
+      ? usesMotif
+        ? `主旋律冒頭の上下の動きだけを短く変形し、次の${next?.sectionName ?? "終止"}へ解決する`
+        : `次の${next?.sectionName ?? "終止"}へ半音で解決する非和声音を、休符の末尾だけに置く`
+      : reverseMotif
+        ? `主旋律冒頭の動きを逆順にして高域へ一度だけ置き、次の${next?.sectionName ?? "終止"}で回収する`
+        : `未使用高域を一瞬だけ開き、次の${next?.sectionName ?? "終止"}の入口で解決して落差を記憶させる`
   const start = end - (character === "surprise" ? 1.5 : 1.25)
   const hasEndingRest = !lead.some((note) => note.startBeat < end && note.startBeat + note.durationBeats > start)
   if (!next || section.melodyRestRatio < 0.08 || !hasEndingRest) {
     return { id: `${section.sectionId}:${character}:silence`, sectionId: section.sectionId, character, kind: "silence", reason: "主旋律の余白が不足しているため、音を足さないことを最も強い選択とする", notes: [] }
   }
-  const intervals = character === "safe" ? [-4, -2, 0] : character === "edge" ? [-3, -1, 0] : [7, 1, 0]
+  const transformedMotif = usesMotif
+    ? (reverseMotif ? [...motifIntervals].reverse().map((interval) => -interval) : motifIntervals)
+    : []
+  const motifLeadIn = transformedMotif.slice(0, 2).reduceRight<number[]>((result, interval) => {
+    const nextValue = result[0] ?? 0
+    result.unshift(nextValue - interval)
+    return result
+  }, [0])
+  const intervals = usesMotif ? motifLeadIn.slice(-3) : character === "safe" ? [-4, -2, 0] : character === "edge" ? [-3, -1, 0] : [7, 1, 0]
   const notes = intervals.map((interval, index): MelodyNote => ({
     id: `transition:${section.sectionId}:${character}:${seed}:${index}`,
     startBeat: start + index * 0.375,
@@ -507,7 +525,7 @@ function transitionCandidate(
     id: `${section.sectionId}:${character}:${seed}`,
     sectionId: section.sectionId,
     character,
-    kind: character === "safe" ? "ascending" : character === "edge" ? "chromatic-approach" : "synth-fill",
+    kind: usesMotif ? reverseMotif ? "reverse-motif" : "motif-variation" : character === "safe" ? "ascending" : character === "edge" ? "chromatic-approach" : "synth-fill",
     reason,
     notes,
   }
@@ -608,6 +626,74 @@ function motifEchoFor(
   return undefined
 }
 
+function rhythmGrammarFor(
+  section: ArrangementAnalysisSection,
+  genre: GenreTraits,
+  approach: ArrangementCandidateApproach,
+  isPeak: boolean,
+): NonNullable<ArrangementSectionPlan["rhythmGrammar"]> {
+  if (isPeak && genre.rhythmDensity >= .58) return "four-on-floor"
+  if (genre.rhythmDensity >= .72) return "four-on-floor"
+  if (genre.syncopation >= .66) return "syncopated-pocket"
+  if (["intro", "bridge", "build", "final"].includes(section.semanticRole ?? "")
+    && genre.sustain >= .68 && genre.dynamicContrast >= .64) return "cinematic-pulse"
+  if (genre.rhythmDensity <= .30 || approach === "space-led") return "half-time"
+  if (approach === "motif-led") return "syncopated-pocket"
+  if (approach === "rhythm-led") return "four-on-floor"
+  return "song-led"
+}
+
+function sectionShapeFor(
+  section: ArrangementAnalysisSection,
+  isPeak: boolean,
+): NonNullable<ArrangementSectionPlan["sectionShape"]> {
+  if (isPeak || section.semanticRole === "final") return "release"
+  if (["pre", "build"].includes(section.semanticRole ?? "")) return "build"
+  if (["breakdown", "bridge"].includes(section.semanticRole ?? "")) return "drop"
+  if (["reprise", "outro"].includes(section.semanticRole ?? "")) return "withdraw"
+  if (section.occurrence >= 3) return "expansion"
+  if (section.occurrence === 2) return "answer"
+  return "statement"
+}
+
+function motifTreatmentFor(
+  section: ArrangementAnalysisSection,
+  approach: ArrangementCandidateApproach,
+  shape: NonNullable<ArrangementSectionPlan["sectionShape"]>,
+): NonNullable<ArrangementSectionPlan["motifTreatment"]> {
+  if (shape === "withdraw" || section.melodyRestRatio < .10) return "none"
+  if (shape === "drop") return "augmentation"
+  if (shape === "answer") return approach === "counterpoint-led" ? "inversion" : "answer"
+  if (shape === "expansion" || shape === "release") return "fragmentation"
+  return approach === "motif-led" ? "answer" : "none"
+}
+
+function boundaryDropFor(
+  section: ArrangementAnalysisSection,
+  next: ArrangementAnalysisSection | undefined,
+  beatsPerBar: number,
+  approach: ArrangementCandidateApproach,
+): number {
+  if (!next || ["outro", "reprise"].includes(section.semanticRole ?? "")) return 0
+  const rise = next.energy - section.energy
+  if (rise < 10) return 0
+  if (approach === "dynamic-contrast" || rise >= 24) return Math.min(beatsPerBar, 1)
+  if (rise >= 14) return Math.min(beatsPerBar / 2, .5)
+  return 0
+}
+
+function backHalfLiftFor(
+  source: ComposerProject["sections"][number] | undefined,
+  section: ArrangementAnalysisSection,
+  shape: NonNullable<ArrangementSectionPlan["sectionShape"]>,
+  beatsPerBar: number,
+): number | undefined {
+  if (!source || source.lengthBars < 6) return undefined
+  if (!["build", "answer", "expansion", "release"].includes(shape)) return undefined
+  if (section.energy < 48) return undefined
+  return Math.floor(source.lengthBars / 2) * beatsPerBar
+}
+
 export function buildFullSongArrangementPlan(
   project: ComposerProject,
   analysis: ArrangementAnalysis,
@@ -624,6 +710,15 @@ export function buildFullSongArrangementPlan(
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const lead = buildSongPlaybackMaterial(project).lead
   const candidateApproach = forcedApproach ?? candidateApproachFor(seed)
+  const effectiveEnergyBySection = new Map(analysis.sections.map((section) => {
+    const { genre } = resolveMusicContext(project, section.sectionId)
+    const applies = !effectiveDirective?.sectionId || effectiveDirective.sectionId === section.sectionId
+    const contrastShift = genre.dynamicContrast === .5 ? 0
+      : (genre.dynamicContrast - .5) * (section.energy >= 65 ? 10 : -6)
+    return [section.sectionId, Math.max(10, Math.min(100,
+      section.energy + contrastShift + (applies ? effectiveDirective?.energyDelta ?? 0 : 0),
+    ))] as const
+  }))
   return {
     version: "1.0.0",
     brief,
@@ -632,16 +727,24 @@ export function buildFullSongArrangementPlan(
     directive: effectiveDirective,
     sections: analysis.sections.map((section, index): ArrangementSectionPlan => {
       const { genre, aesthetic } = resolveMusicContext(project, section.sectionId)
+      const nextAnalysisSection = analysis.sections[index + 1]
+      const sourceSection = project.sections.find((candidate) => candidate.id === section.sectionId)
       const applies = !effectiveDirective?.sectionId || effectiveDirective.sectionId === section.sectionId
-      const contrastShift = genre.dynamicContrast === .5 ? 0
-        : (genre.dynamicContrast - .5) * (section.energy >= 65 ? 10 : -6)
-      const effectiveEnergy = Math.max(10, Math.min(100,
-        section.energy + contrastShift + (applies ? effectiveDirective?.energyDelta ?? 0 : 0),
-      ))
+      const character = applies ? effectiveDirective?.character : undefined
+      const effectiveEnergy = effectiveEnergyBySection.get(section.sectionId) ?? section.energy
       const effectiveSection = { ...section, energy: effectiveEnergy }
+      const effectiveNextSection = nextAnalysisSection
+        ? { ...nextAnalysisSection, energy: effectiveEnergyBySection.get(nextAnalysisSection.sectionId) ?? nextAnalysisSection.energy }
+        : undefined
       const isPeak = section.sectionId === analysis.peakSectionId
+      let rhythmGrammar = rhythmGrammarFor(section, genre, candidateApproach, isPeak)
+      if (character === "minimal" && !isPeak) rhythmGrammar = "half-time"
+      else if (character === "cinematic") rhythmGrammar = "cinematic-pulse"
+      else if (character === "rhythmic") rhythmGrammar = genre.rhythmDensity >= .78 ? "four-on-floor" : "syncopated-pocket"
+      const sectionShape = sectionShapeFor(section, isPeak)
+      const motifTreatment = motifTreatmentFor(section, candidateApproach, sectionShape)
       const transitionCandidates = (["safe", "edge", "surprise"] as const).map((character) =>
-        transitionCandidate(project, section, analysis.sections[index + 1], character, seed, lead))
+        transitionCandidate(project, section, analysis.sections[index + 1], character, seed, lead, candidateApproach))
       const decorationCandidates = (["safe", "edge", "surprise"] as const).map((character) =>
         decorationCandidate(project, section, character, seed))
       const hasTransition = transitionCandidates.some((candidate) => candidate.notes.length > 0)
@@ -658,7 +761,6 @@ export function buildFullSongArrangementPlan(
           ? "surprise"
           : section.energy >= 65 ? "edge" : "safe"
       const activeRoles = rolesFor(effectiveSection, isPeak)
-      const character = applies ? effectiveDirective?.character : undefined
       if (character === "minimal") {
         const removable = new Set<ArrangementTrackId>(["dr-closed-hat", "dr-open-hat", "syn-pulse", "syn-stabs", "str-viola", "str-violin-1", "str-upper"])
         for (let roleIndex = activeRoles.length - 1; roleIndex >= 0; roleIndex -= 1) {
@@ -744,13 +846,19 @@ export function buildFullSongArrangementPlan(
         removeRoles(activeRoles, ["syn-high-glass"])
         selectedDecorationCharacter = "silence"
       }
-      const sourceSection = project.sections.find((candidate) => candidate.id === section.sectionId)
       const sectionLengthBeats = (sourceSection?.lengthBars ?? 1) * beatsPerBar
       const uniqueRoles = [...new Set(activeRoles)]
       const roleEntryBeats = roleEntryBeatsFor(section, uniqueRoles, sectionLengthBeats, beatsPerBar)
       if (candidateApproach === "space-led" && effectiveEnergy < 55) {
         if (uniqueRoles.includes("dr-kick")) roleEntryBeats["dr-kick"] = Math.max(roleEntryBeats["dr-kick"] ?? 0, beatsPerBar)
         if (uniqueRoles.includes("dr-snare")) roleEntryBeats["dr-snare"] = Math.max(roleEntryBeats["dr-snare"] ?? 0, beatsPerBar * 2)
+      }
+      const backHalfLiftBeat = backHalfLiftFor(sourceSection, effectiveSection, sectionShape, beatsPerBar)
+      // 後半の発展はSection頭から全パートを鳴らすのではなく、役割の登場時点そのものを変える。
+      if (backHalfLiftBeat !== undefined) {
+        if (uniqueRoles.includes("dr-open-hat")) roleEntryBeats["dr-open-hat"] = Math.max(roleEntryBeats["dr-open-hat"] ?? 0, backHalfLiftBeat)
+        if (uniqueRoles.includes("str-viola") && sectionShape !== "release") roleEntryBeats["str-viola"] = Math.max(roleEntryBeats["str-viola"] ?? 0, backHalfLiftBeat)
+        if (uniqueRoles.includes("syn-high-glass")) roleEntryBeats["syn-high-glass"] = Math.max(roleEntryBeats["syn-high-glass"] ?? 0, backHalfLiftBeat)
       }
       return {
         sectionId: section.sectionId,
@@ -780,12 +888,13 @@ export function buildFullSongArrangementPlan(
           : genre.rhythmDensity > .73 && !isPeak ? "driving"
           : genre.syncopation > .72 && !isPeak ? "broken"
           : character === "rhythmic" || candidateApproach === "rhythm-led" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
-        bassStrategy: genre.bassMovement < .32 && !isPeak ? "sustain"
+        bassStrategy: character === "rhythmic" ? (isPeak ? "octave-drive" : "syncopated")
+          : genre.bassMovement < .32 && !isPeak ? "sustain"
           : genre.bassMovement > .7 && genre.syncopation > .64 && !isPeak ? "syncopated"
           : genre.bassMovement > .62 && !isPeak ? "approach-led"
           : candidateApproach === "space-led"
           ? "sustain"
-          : character === "rhythmic" || candidateApproach === "rhythm-led"
+          : candidateApproach === "rhythm-led"
             ? (isPeak ? "octave-drive" : "syncopated")
             : candidateApproach === "motif-led" && effectiveEnergy < 68
               ? "melodic-pulse"
@@ -793,6 +902,11 @@ export function buildFullSongArrangementPlan(
         harmonyStrategy: (genre.harmonicDensity < .36 || genre.sustain > .8 && genre.harmonicDensity < .6) && !isPeak ? "pedal-space"
           : genre.harmonicDensity > .72 && isPeak ? "register-expansion"
           : character === "minimal" ? "pedal-space" : character === "dark-experimental" ? "sparse-stabs" : character === "cinematic" && isPeak ? "register-expansion" : harmonyStrategyFor(section),
+        rhythmGrammar,
+        sectionShape,
+        motifTreatment,
+        preBoundaryDropBeats: boundaryDropFor(effectiveSection, effectiveNextSection, beatsPerBar, candidateApproach),
+        backHalfLiftBeat,
         roleEntryBeats,
         harmonicHaze: harmonicHazeFor(genre, aesthetic),
         motifEcho: motifEchoFor(section, uniqueRoles, effectiveEnergy, isPeak),
@@ -894,25 +1008,46 @@ function generateDrums(
     const cycleBar = (bar + revision) % (section.phraseCycleBars ?? 4)
     const isPhraseEnd = cycleBar === (section.phraseCycleBars ?? 4) - 1 || bar === bars - 1
     const groove = section.grooveFamily ?? "restrained"
+    const grammar = section.rhythmGrammar ?? "song-led"
+    const localSectionBeat = bar * beatsPerBar
+    const afterLift = section.backHalfLiftBeat !== undefined && localSectionBeat >= section.backHalfLiftBeat
     if (trackId === "dr-kick") {
-      if (groove !== "suspended" || cycleBar % 2 === 0) beats.push(base)
-      if (groove === "restrained" && section.energy >= 34) beats.push(base + beatsPerBar / 2)
-      if (["driving", "release"].includes(groove)) beats.push(base + beatsPerBar / 2)
-      if (groove === "release") beats.push(base + beatsPerBar / 4, base + beatsPerBar * 0.75)
-      if (groove === "driving" && section.developmentStage === 0 && cycleBar % 2 === 1) beats.push(base + beatsPerBar / 4)
-      if (groove === "building" && cycleBar >= 2) beats.push(base + beatsPerBar / 2)
-      if ((groove === "release" || (groove === "driving" && cycleBar % 2 === 1)) && !isPhraseEnd) beats.push(base + beatsPerBar - 0.5)
-      if (groove === "broken" && cycleBar % 2 === 1) beats.push(base + beatsPerBar * 0.625)
+      if (grammar === "four-on-floor") {
+        for (let beat = 0; beat < beatsPerBar; beat += beatsPerBar / 4) beats.push(base + beat)
+        if ((section.sectionShape === "expansion" || section.sectionShape === "release") && (afterLift || cycleBar % 2 === 1)) beats.push(base + beatsPerBar - .5)
+      } else if (grammar === "half-time") {
+        if (cycleBar % 2 === 0 || section.sectionShape === "build") beats.push(base)
+        if (afterLift || section.energy >= 58) beats.push(base + beatsPerBar * .625)
+      } else if (grammar === "syncopated-pocket") {
+        beats.push(base, base + beatsPerBar * .375)
+        if (cycleBar % 2 === 1 || afterLift) beats.push(base + beatsPerBar * .6875)
+        if (!isPhraseEnd && section.sectionShape !== "drop") beats.push(base + beatsPerBar - .5)
+      } else if (grammar === "cinematic-pulse") {
+        if (cycleBar % 2 === 0 || section.sectionShape === "build") beats.push(base)
+        if (isPhraseEnd || afterLift) beats.push(base + beatsPerBar * .75)
+      } else {
+        if (groove !== "suspended" || cycleBar % 2 === 0) beats.push(base)
+        if (groove === "restrained" && section.energy >= 34) beats.push(base + beatsPerBar / 2)
+        if (["driving", "release"].includes(groove)) beats.push(base + beatsPerBar / 2)
+        if (groove === "release") beats.push(base + beatsPerBar / 4, base + beatsPerBar * 0.75)
+        if (groove === "driving" && section.developmentStage === 0 && cycleBar % 2 === 1) beats.push(base + beatsPerBar / 4)
+        if (groove === "building" && cycleBar >= 2) beats.push(base + beatsPerBar / 2)
+        if ((groove === "release" || (groove === "driving" && cycleBar % 2 === 1)) && !isPhraseEnd) beats.push(base + beatsPerBar - 0.5)
+        if (groove === "broken" && cycleBar % 2 === 1) beats.push(base + beatsPerBar * 0.625)
+      }
     } else if (trackId === "dr-snare") {
-      beats.push(base + beatsPerBar / 4, base + (beatsPerBar * 3) / 4)
-      if ((groove === "release" || section.developmentStage === 2) && cycleBar % 2 === 1) {
+      if (grammar === "half-time" || grammar === "cinematic-pulse") beats.push(base + beatsPerBar / 2)
+      else beats.push(base + beatsPerBar / 4, base + (beatsPerBar * 3) / 4)
+      if (grammar === "syncopated-pocket" && cycleBar % 2 === 1) beats.push(base + beatsPerBar * .625)
+      if ((groove === "release" || section.developmentStage === 2 || afterLift && section.sectionShape === "expansion") && cycleBar % 2 === 1) {
         beats.push(base + beatsPerBar / 4 + 0.03, base + (beatsPerBar * 3) / 4 + 0.03)
       }
       if (groove === "release" && isPhraseEnd) beats.push(base + beatsPerBar - 0.25)
     } else if (trackId === "dr-closed-hat") {
-      const step = groove === "release" ? 0.5 : cycleBar >= 2 && groove === "building" ? 0.5 : 1
+      const step = grammar === "four-on-floor" || grammar === "syncopated-pocket" || afterLift || groove === "release" || cycleBar >= 2 && groove === "building" ? 0.5 : 1
       for (let beat = step / 2; beat < beatsPerBar; beat += step) {
-        if (!(isPhraseEnd && beat >= beatsPerBar - 0.5)) beats.push(base + beat)
+        const pocketGap = grammar === "syncopated-pocket" && cycleBar % 2 === 0 && Math.abs(beat - beatsPerBar * .625) < .08
+        if (!pocketGap && !(isPhraseEnd && beat >= beatsPerBar - 0.5)) beats.push(base + beat)
       }
     } else if (trackId === "dr-open-hat") {
       if (cycleBar % 2 === 1 || groove === "release") beats.push(base + beatsPerBar - 0.5)
@@ -926,8 +1061,11 @@ function generateDrums(
       if (bar === 0 || (groove === "release" && cycleBar === 0)) beats.push(base)
     }
   }
-  const shapedBeats = beats.filter((beat) => {
+  const dropStart = start + length - (section.preBoundaryDropBeats ?? 0)
+  const dropsAtBoundary = new Set<ArrangementTrackId>(["dr-kick", "dr-snare", "dr-closed-hat", "dr-open-hat"])
+  const shapedBeats = [...new Set(beats.map((beat) => Math.round(beat * 1000) / 1000))].filter((beat) => {
     if (beat >= start + length) return false
+    if ((section.preBoundaryDropBeats ?? 0) > 0 && dropsAtBoundary.has(trackId) && beat >= dropStart) return false
     const nearLeadAttack = melody.some((note) => Math.abs(note.startBeat - beat) <= 0.12)
     const barOffset = ((beat - start) % beatsPerBar + beatsPerBar) % beatsPerBar
     if (trackId === "dr-kick") return barOffset < 0.08 || !nearLeadAttack
@@ -1020,11 +1158,13 @@ function generateTonalTrack(
   melody: MelodyNote[],
   beatsPerBar: number,
   revision: number,
+  arrangementSeed: number,
   soundInstruction?: ArrangementSoundInstruction,
   directedSectionId?: string,
 ): GeneratedArrangementNote[] {
   const start = sectionOffset(sourceSection.startBar, beatsPerBar)
   const length = sourceSection.lengthBars * beatsPerBar
+  const variationPhase = (arrangementSeed + hashText(`${section.sectionId}:${trackId}`)) % (section.phraseCycleBars ?? 4)
   const notes: GeneratedArrangementNote[] = []
   const add = (beat: number, duration: number, pitch: number, velocity: number, index: number, character: ArrangementCandidateCharacter = "safe", reason = TRACK_PURPOSE[trackId]) => {
     notes.push(avoidMelodyCollision(makeNote(trackId, section.sectionId, index, start + beat, duration, pitch, velocity, reason, character), melody))
@@ -1170,8 +1310,16 @@ function generateTonalTrack(
     }
     const bars = Math.max(1, Math.ceil(length / beatsPerBar))
     for (let bar = 0; bar < bars; bar += 1) {
-      const cycleBar = (bar + revision) % (section.phraseCycleBars ?? 4)
-      const offsets = strategy === "sustain" && cycleBar % 2 === 1 ? [] : patterns[strategy]
+      const cycleBar = (bar + revision + variationPhase) % (section.phraseCycleBars ?? 4)
+      let offsets = strategy === "sustain" && cycleBar % 2 === 1 ? [] : patterns[strategy]
+      if (strategy !== "sustain") {
+        if (section.rhythmGrammar === "half-time") offsets = section.energy >= 58 ? [0, 2.5] : [0]
+        else if (section.rhythmGrammar === "four-on-floor") offsets = [0, 1, 2, 3]
+        else if (section.rhythmGrammar === "syncopated-pocket") offsets = [0, 1.5, 2.75, 3.5]
+        else if (section.rhythmGrammar === "cinematic-pulse") offsets = cycleBar % 2 === 0 ? [0, 3] : [2.5]
+        if (section.motifTreatment === "fragmentation" && cycleBar % 2 === 1) offsets = offsets.filter((_, index) => index !== 1)
+        if (section.motifTreatment === "augmentation" && cycleBar % 2 === 1) offsets = offsets.slice(0, 1)
+      }
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
@@ -1190,7 +1338,8 @@ function generateTonalTrack(
         // 歌が密な小節ではBassの補助音を引く。次コードへの明確な接近音だけは残せる。
         const isApproach = strategy === "approach-led" && hitIndex === offsets.length - 1 && nextParsed && nextChord?.id !== chord?.id
         if (hitIndex > 0 && leadOccupancy >= 0.72 && !isApproach) return
-        if (hitIndex > 0 && melody.some((lead) => Math.abs(lead.startBeat - start - localBeat) <= 0.12)) return
+        if (hitIndex > 0 && section.rhythmGrammar !== "four-on-floor"
+          && melody.some((lead) => Math.abs(lead.startBeat - start - localBeat) <= 0.12)) return
         let pitch = rootPitch
         let character: ArrangementCandidateCharacter = "safe"
         let reason = bassPedal === null
@@ -1201,9 +1350,17 @@ function generateTonalTrack(
         else if (strategy === "syncopated" && hitIndex === offsets.length - 1) pitch = midiForPc(parsed.tones[1]?.pitchClass ?? parsed.rootPc, 40)
         else if (isApproach && nextParsed) {
           const target = midiForPc(nextParsed.bassPc, 39)
-          pitch = target + ((bar + revision) % 2 === 0 ? -1 : 2)
+          pitch = target + ((bar + revision + variationPhase) % 2 === 0 ? -1 : 2)
           character = "edge"
           reason = "次の和音へ解決するアプローチ音でSectionの方向を作る"
+        }
+        if (section.motifTreatment === "inversion" && hitIndex > 0 && !isApproach) {
+          const colour = parsed.tones[(parsed.tones.length - hitIndex % parsed.tones.length) % parsed.tones.length]?.pitchClass ?? parsed.rootPc
+          pitch = midiForPc(colour, 40)
+          reason = "前回の動きと逆向きの応答を低音に作り、同じSectionのコピーを避ける"
+        } else if (section.motifTreatment === "answer" && hitIndex === offsets.length - 1 && !isApproach) {
+          pitch = midiForPc(parsed.tones[1]?.pitchClass ?? parsed.rootPc, 42)
+          reason = "前回と同じコードでも終わりの音を変え、低音に短い応答を作る"
         }
         const duration = strategy === "sustain" ? Math.min(beatsPerBar * 2, length - localBeat) : hitIndex === 0 ? 0.8 : 0.42
         add(localBeat, duration, pitch, 52 + section.energy * 0.34 + (hitIndex === 0 ? 5 : -2), notes.length, character, reason)
@@ -1214,14 +1371,20 @@ function generateTonalTrack(
   if (trackId === "syn-stabs") {
     const bars = Math.max(1, Math.ceil(length / beatsPerBar))
     for (let bar = 0; bar < bars; bar += 1) {
-      const cycleBar = (bar + revision) % (section.phraseCycleBars ?? 4)
-      const offsets = cycleBar === 0
+      const cycleBar = (bar + revision + variationPhase) % (section.phraseCycleBars ?? 4)
+      let offsets = cycleBar === 0
           ? [1.5]
           : cycleBar === 2
             ? [3.5]
             : (section.developmentStage ?? 0) >= 1 && cycleBar === 3
               ? [3.5]
               : []
+      if (section.rhythmGrammar === "four-on-floor") offsets = cycleBar % 2 === 0 ? [1.5, 3.5] : [2.5]
+      else if (section.rhythmGrammar === "syncopated-pocket") offsets = cycleBar % 2 === 0 ? [.75, 2.75] : [1.5, 3.5]
+      else if (section.rhythmGrammar === "cinematic-pulse") offsets = cycleBar === 0 || cycleBar === 3 ? [0] : []
+      else if (section.rhythmGrammar === "half-time") offsets = cycleBar % 2 === 0 ? [2.5] : []
+      if (section.motifTreatment === "fragmentation" && cycleBar % 2 === 1) offsets = offsets.slice(-1)
+      if (section.motifTreatment === "inversion") offsets = offsets.map((offset) => Math.max(.25, beatsPerBar - offset - .5))
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
@@ -1236,14 +1399,16 @@ function generateTonalTrack(
           43 + section.energy * 0.28 + (hitIndex === 0 ? 5 : 0),
           notes.length,
           "safe",
-          "主旋律の空白と裏拍だけに短い和音アクセントを置く",
+          section.motifTreatment === "none"
+            ? "主旋律の空白と裏拍だけに短い和音アクセントを置く"
+            : `主旋律の空白で特徴を${section.motifTreatment === "fragmentation" ? "短く切り分け" : section.motifTreatment === "inversion" ? "逆向きに応答させ" : "別の位置から答え"}、前回のSectionをコピーしない`,
         ))
       })
     }
     return notes
   }
   if (trackId === "syn-dark-pad" || trackId.startsWith("str-")) {
-    const stringPeriodBars = trackId === "str-upper" ? 4 : 2
+    const stringPeriodBars = section.motifTreatment === "augmentation" ? 4 : trackId === "str-upper" ? 4 : 2
     const segmentBeats = trackId === "syn-dark-pad" ? beatsPerBar : beatsPerBar * stringPeriodBars
     let previousPadPitches: number[] = []
     const padVoiceNotes: GeneratedArrangementNote[] = []
@@ -1256,10 +1421,10 @@ function generateTonalTrack(
       if (trackId === "syn-dark-pad") {
         const haze = section.harmonicHaze ?? .5
         const pitches = quietPadVoicing(parsed, previousPadPitches, haze)
-        const padCycle = (Math.floor(localBeat / beatsPerBar) + revision) % 4
+        const padCycle = (Math.floor(localBeat / beatsPerBar) + revision + variationPhase) % 4
         const breathFactors = [0.96, 0.88, 0.94, 0.84]
         pitches.forEach((pitch, voice) => {
-          const voiceOffset = padCycle === 2 && voice === 2 ? 0.25 : 0
+          const voiceOffset = 0
           // 漂わせる場面では、次の和音にも残る音を弾き直さず伸ばす(長い持続と共通音で境目を溶かす)
           const held = haze > .6 && previousPadPitches[voice] === pitch ? padVoiceNotes[voice] : undefined
           if (held && Math.abs(held.startBeat + held.durationBeats - (start + localBeat)) < beatsPerBar * .2) {
@@ -1267,23 +1432,32 @@ function generateTonalTrack(
             held.reason = "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす"
             return
           }
-          add(localBeat + voiceOffset, Math.max(0.25, duration * (haze > .6 ? 1 : breathFactors[padCycle]) - voiceOffset), pitch, 30 + section.energy * 0.17,
+          const harmonyBreath = section.harmonyStrategy === "pedal-space"
+            ? 1
+            : section.harmonyStrategy === "sparse-stabs"
+              ? .72
+              : breathFactors[padCycle]
+          add(localBeat + voiceOffset, Math.max(0.25, duration * (haze > .6 ? 1 : harmonyBreath) - voiceOffset), pitch, 30 + section.energy * 0.17,
             notes.length, "safe", "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す")
           padVoiceNotes[voice] = notes[notes.length - 1]
         })
         previousPadPitches = pitches
       } else {
-        const phraseOffset = ((Math.floor(localBeat / segmentBeats) + revision) % 2) * (beatsPerBar / 2)
+        const phraseIndex = Math.floor(localBeat / segmentBeats)
+        const phraseOffset = section.motifTreatment === "inversion"
+          ? ((phraseIndex + revision + variationPhase + 1) % 2) * (beatsPerBar / 2)
+          : ((phraseIndex + revision + variationPhase) % 2) * (beatsPerBar / 2)
         const soundingChord = chordAtBeat(sectionChords, localBeat + phraseOffset)
         const soundingParsed = (soundingChord ? parseChordSymbol(soundingChord.symbol, soundingChord.bass ?? undefined) : null) ?? parsed
         const targetIndex = trackId === "str-cello" ? 0 : trackId === "str-viola" ? 1 : trackId === "str-violin-2" ? 2 : trackId === "str-violin-1" ? 1 : 2
         const around = trackId === "str-cello" ? 48 : trackId === "str-viola" ? 60 : trackId === "str-violin-2" ? 67 : trackId === "str-violin-1" ? 74 : 86
         const pool = [...soundingParsed.tones.slice(1), ...soundingParsed.tensions]
-        const shiftedIndex = (targetIndex + Math.floor(localBeat / segmentBeats) + (section.developmentStage ?? 0)) % Math.max(1, pool.length)
+        const motion = section.motifTreatment === "inversion" ? -phraseIndex : phraseIndex
+        const shiftedIndex = ((targetIndex + motion + (section.developmentStage ?? 0)) % Math.max(1, pool.length) + Math.max(1, pool.length)) % Math.max(1, pool.length)
         const tone = pool[shiftedIndex]?.pitchClass ?? soundingParsed.rootPc
         const pitch = midiForPc(tone, previousPitch ?? around)
         previousPitch = pitch
-        add(localBeat + phraseOffset, Math.max(0.25, duration - phraseOffset), pitch, 38 + section.energy * 0.3, notes.length, trackId === "str-upper" ? "edge" : "safe", trackId === "str-upper" ? "最終ピークだけに上声を開く" : "2〜4小節単位の長い弧で内声を動かし、主旋律の呼吸を残す")
+        add(localBeat + phraseOffset, Math.max(0.25, duration - phraseOffset), pitch, 38 + section.energy * 0.3, notes.length, trackId === "str-upper" ? "edge" : "safe", trackId === "str-upper" ? "最終ピークだけに上声を開く" : section.motifTreatment === "none" ? "2〜4小節単位の長い弧で内声を動かし、主旋律の呼吸を残す" : "前回の輪郭をそのまま複製せず、内声の向きと長さを発展させる")
       }
     }
     return notes
@@ -1295,14 +1469,24 @@ function generateTonalTrack(
       const pcs = [parsed.tones[0]?.pitchClass, parsed.tones[2]?.pitchClass, parsed.tones[1]?.pitchClass].filter((value): value is number => value !== undefined)
       const chordEnd = chord.startBeat + chord.durationBeats
       for (let barBeat = chord.startBeat; barBeat < chordEnd; barBeat += beatsPerBar) {
-        const cycleBar = (Math.floor(barBeat / beatsPerBar) + revision + chordIndex) % (section.phraseCycleBars ?? 4)
-        const offsets = section.energy >= 82
+        const cycleBar = (Math.floor(barBeat / beatsPerBar) + revision + variationPhase + chordIndex) % (section.phraseCycleBars ?? 4)
+        let offsets = section.energy >= 82
           ? cycleBar === 3 ? [0, 0.5, 1.5, 2.5, 3.5] : [0.5, 1.5, 2.5, 3.5]
           : cycleBar === 3 ? [0.5, 1.5, 3.5] : cycleBar === 1 ? [0.5, 2.5] : [0.5, 1.5, 2.5]
+        if (section.rhythmGrammar === "half-time") offsets = cycleBar % 2 === 0 ? [.5, 2.5] : [1.5]
+        else if (section.rhythmGrammar === "four-on-floor") offsets = cycleBar % 4 !== 1 ? [.5, 1.5, 2.5, 3.5] : [.5, 1.5, 3.5]
+        else if (section.rhythmGrammar === "syncopated-pocket") offsets = cycleBar % 2 === 0 ? [.75, 1.5, 2.75] : [.5, 2.25, 3.5]
+        else if (section.rhythmGrammar === "cinematic-pulse") offsets = cycleBar % 2 === 0 ? [0, 2] : [1.5, 3.5]
+        if (section.motifTreatment === "fragmentation" && cycleBar % 2 === 1) offsets = offsets.filter((_, index) => index % 2 === 0)
+        if (section.motifTreatment === "augmentation") offsets = offsets.slice(0, Math.max(1, Math.ceil(offsets.length / 2)))
         for (const offsetInBar of offsets) {
           const beat = barBeat + offsetInBar
           if (beat >= chordEnd) continue
-          add(beat, 0.22, midiForPc(pcs[notes.length % pcs.length], 57), 40 + section.energy * 0.28, notes.length, "safe", "4〜8小節周期の欠落とアクセントで、連打ではない推進力を作る")
+          const register = section.sectionShape === "release" || section.backHalfLiftBeat !== undefined && beat >= section.backHalfLiftBeat ? 69 : 57
+          const pcIndex = section.motifTreatment === "inversion"
+            ? (pcs.length - 1 - (notes.length + variationPhase) % pcs.length)
+            : (notes.length + variationPhase) % pcs.length
+          add(beat, 0.22, midiForPc(pcs[pcIndex], register), 40 + section.energy * 0.28, notes.length, "safe", section.motifTreatment === "none" ? "4〜8小節周期の欠落とアクセントで、連打ではない推進力を作る" : "主旋律の特徴を短く変形し、同じコードでも前回と異なる推進を作る")
         }
       }
     }
@@ -1461,11 +1645,12 @@ function generateTrack(
   trackId: ArrangementTrackId,
   revision = 0,
   onlySectionId?: string,
+  variationSeed = plan.seed,
 ): GeneratedArrangementTrack {
   if (isArrangementLayerTrackId(trackId)) {
     const sourceId = ARRANGEMENT_LAYER_SOURCES[trackId]
     return deriveArrangementLayerTrack(
-      generateTrack(project, plan, sourceId, revision, onlySectionId),
+      generateTrack(project, plan, sourceId, revision, onlySectionId, variationSeed),
       trackId,
       plan,
       revision,
@@ -1505,6 +1690,7 @@ function generateTrack(
         material.lead,
         beatsPerBar,
         revision,
+        variationSeed,
         plan.directive?.soundInstruction,
         plan.directive?.sectionId,
       )
@@ -1514,6 +1700,15 @@ function generateTrack(
     if (echoes) {
       const chords = project.chords.filter((chord) => chord.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat)
       generated = applyMotifEcho(generated, trackId, sectionPlan, offset, length, chords, material.lead, beatsPerBar)
+    }
+    const boundaryDrop = sectionPlan.preBoundaryDropBeats ?? 0
+    if (boundaryDrop > 0 && ["syn-bass", "syn-pulse", "syn-stabs"].includes(trackId)) {
+      const dropStart = offset + length - boundaryDrop
+      generated = generated.flatMap((note) => {
+        if (note.startBeat >= dropStart) return []
+        if (note.startBeat + note.durationBeats <= dropStart) return [note]
+        return [{ ...note, durationBeats: Math.max(.0625, dropStart - note.startBeat), reason: `${note.reason}。次のSection直前は休ませる` }]
+      })
     }
     track.notes.push(...generated.filter((note) => note.startBeat + 0.001 >= entryBeat))
   }
@@ -1666,6 +1861,42 @@ export function reviewGeneratedArrangement(
   ) / Math.max(1, arrangement.plan.sections.length)
   const generatedNotesPerBeat = arrangement.tracks.reduce((sum, track) => sum + track.notes.length, 0)
     / Math.max(1, arrangement.analysis.totalBeats)
+  const normalizedSectionEvents = (sectionId: string) => {
+    const source = project?.sections.find((section) => section.id === sectionId)
+    const start = source ? sectionOffset(source.startBar, beatsPerBar) : 0
+    return new Set(arrangement.tracks.flatMap((track) => track.notes
+      .filter((note) => note.sectionId === sectionId)
+      .map((note) => `${track.id}:${Math.round((note.startBeat - start) * 4)}:${Math.round(note.durationBeats * 4)}:${pc(note.pitch)}`)))
+  }
+  let repeatedSectionCopyCount = 0
+  const lastByRole = new Map<string, string>()
+  for (const section of arrangement.plan.sections) {
+    const role = section.semanticRole ?? section.sectionRole
+    const previousId = lastByRole.get(role)
+    if (previousId) {
+      const similarity = setSimilarity(normalizedSectionEvents(previousId), normalizedSectionEvents(section.sectionId))
+      if (similarity >= .86) repeatedSectionCopyCount += 1
+    }
+    lastByRole.set(role, section.sectionId)
+  }
+  const boundaryContrasts = arrangement.plan.sections.slice(1).map((section, index) => {
+    const previous = arrangement.plan.sections[index]
+    const roleDifference = 1 - setSimilarity(new Set(previous.activeRoles), new Set(section.activeRoles))
+    const previousDensity = sectionDensities[index] ?? 0
+    const density = sectionDensities[index + 1] ?? 0
+    const densityDifference = Math.abs(density - previousDensity) / Math.max(1, density, previousDensity)
+    const energyDifference = Math.abs(section.energy - previous.energy) / 100
+    return Math.max(roleDifference, densityDifference, energyDifference)
+  })
+  const boundaryContrastScore = boundaryContrasts.length > 0
+    ? boundaryContrasts.filter((contrast) => contrast >= .16).length / boundaryContrasts.length
+    : 1
+  const motifDevelopmentCount = arrangement.plan.sections.filter((section) =>
+    section.motifTreatment && section.motifTreatment !== "none"
+    && arrangement.tracks.some((track) => track.notes.some((note) =>
+      note.sectionId === section.sectionId && /核|応答|発展|前回/.test(note.reason),
+    )),
+  ).length
   const harmonicViolationCount = project
     ? arrangement.tracks.reduce((sum, track) => sum + (HARMONIC_REVIEW_TRACKS.has(track.id)
       ? track.notes.filter((note) => {
@@ -1704,6 +1935,8 @@ export function reviewGeneratedArrangement(
   if (melodyCollisionCount > 0) recommendations.push("主旋律と同音域で接触する補助声部を整理する")
   if (rhythmLeadAttackConflictCount > 0) recommendations.push("主旋律のアタックに重なるKick/Fillを引く")
   if (arrangement.plan.sections.length >= 4 && energyDensityCorrelation < 0.2) recommendations.push("Energy Curveと実際の発音密度を一致させる")
+  if (repeatedSectionCopyCount > 0) recommendations.push("再登場するVerse/Chorusのリズム・低音・内声を発展させる")
+  if (arrangement.plan.sections.length >= 4 && boundaryContrastScore < .55) recommendations.push("Section境界で一度引くか、新しい役割の入口を明確にする")
   const score = Math.max(0, Math.min(100,
     24
     + Math.min(18, distinctSectionTextures * 1.5)
@@ -1719,7 +1952,10 @@ export function reviewGeneratedArrangement(
     - Math.max(0, generatedNotesPerBeat - 7) * 1.5
     - Math.min(28, harmonicViolationCount * 7)
     - Math.min(20, melodyCollisionCount * 2)
-    - Math.min(12, rhythmLeadAttackConflictCount * 1.5),
+    - Math.min(12, rhythmLeadAttackConflictCount * 1.5)
+    - repeatedSectionCopyCount * 8
+    + Math.round(boundaryContrastScore * 5)
+    + Math.min(4, motifDevelopmentCount * .5),
   ))
   return {
     score,
@@ -1741,6 +1977,9 @@ export function reviewGeneratedArrangement(
       energyDensityCorrelation,
       averageActiveRoleCount,
       generatedNotesPerBeat,
+      repeatedSectionCopyCount,
+      boundaryContrastScore,
+      motifDevelopmentCount,
     },
     recommendations,
   }
@@ -1806,6 +2045,7 @@ function generateArrangementCandidate(
   directive: ArrangementGenerationDirective | undefined,
   revision: number,
   approach: ArrangementCandidateApproach,
+  variationSeed: number,
 ): FullSongArrangement {
   const plan = buildFullSongArrangementPlan(project, analysis, seed, brief, directive, approach)
   const activeTrackIds = [...new Set(plan.sections.flatMap((section) => section.activeRoles))]
@@ -1813,7 +2053,7 @@ function generateArrangementCandidate(
   const performedTracks = applyArrangementPerformanceDirector(
     project,
     plan,
-    generatedTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision)),
+    generatedTrackIds.map((trackId) => generateTrack(project, plan, trackId, revision, undefined, variationSeed)),
   )
   const imageTracks = performedTracks.map((track) => ({
     ...track,
@@ -1853,7 +2093,13 @@ function generateArrangementCandidate(
   // 候補選抜の品質点は従来の21役割で比較し、層を増やした案が音数だけで有利／不利にならないようにする。
   const compositionalCore = {
     ...result,
-    tracks: result.tracks.filter((track) => !isArrangementLayerTrackId(track.id)),
+    // 音像の奥行き・余韻はミックス上の判断であり、編曲候補そのものの優劣や
+    // パート採否を変えない。候補選抜は音像処理前の演奏MIDIで比較する。
+    tracks: applyArrangementTimelineToTracks(
+      performedTracks,
+      plan.directive?.timelineConstraints,
+      parseTimeSignature(project.song.timeSignature).beatsPerBar,
+    ).filter((track) => !isArrangementLayerTrackId(track.id)),
   }
   return { ...result, quality: reviewGeneratedArrangement(compositionalCore, project) }
 }
@@ -1878,6 +2124,7 @@ export function generateFullSongArrangement(
     options.directive,
     revision + index,
     ARRANGEMENT_APPROACHES[index % ARRANGEMENT_APPROACHES.length],
+    baseSeed,
   ))
   const scored = candidates.map((candidate, index) => {
     const comparisons = candidates.filter((_, otherIndex) => otherIndex !== index)
@@ -1895,7 +2142,7 @@ export function generateFullSongArrangement(
       const targetSupport = Math.max(0, (genre.phraseDensity + genre.decorationDensity) * .35 - (aesthetic.layerTransparency - .5) * .3)
       return sum + Math.max(0, 100 - Math.abs(rhythm - targetRhythm) * 90 - Math.abs(support - targetSupport) * 70)
     }, 0) / Math.max(1, candidate.plan.sections.length)
-    const hasExplicitContext = resolveMusicContext(project).styleActive || hasActiveSoundImage(project)
+    const hasExplicitContext = resolveMusicContext(project).styleActive
     const selectionScore = hasExplicitContext
       ? qualityScore * 0.68 + originalityScore * 0.13 + intentionFit * 0.11 + contextualFit * 0.08
       : qualityScore * 0.72 + originalityScore * 0.15 + intentionFit * 0.13

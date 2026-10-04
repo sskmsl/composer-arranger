@@ -200,6 +200,55 @@ describe("Arrangement Generator", () => {
     expect(final.activeRoles).toContain("dr-gran-cassa")
   })
 
+  it("再登場するSectionは役割数だけでなくBass・Pulse・和音の実音を発展させる", () => {
+    const input = project()
+    const result = generateFullSongArrangement(input, { seed: 4281 })
+    const start = (sectionId: string) => (input.sections.find((section) => section.id === sectionId)!.startBar - 1) * 4
+    const signature = (trackId: string, sectionId: string) => result.tracks
+      .find((track) => track.id === trackId)!.notes
+      .filter((note) => note.sectionId === sectionId)
+      .map((note) => `${Math.round((note.startBeat - start(sectionId)) * 4)}:${note.pitch % 12}:${Math.round(note.durationBeats * 4)}`)
+    const first = result.plan.sections.find((section) => section.sectionId === "chorus-1")!
+    const second = result.plan.sections.find((section) => section.sectionId === "chorus-2")!
+
+    expect(first.sectionShape).toBe("statement")
+    expect(second.sectionShape).toBe("answer")
+    expect(second.motifTreatment).not.toBe("none")
+    expect(signature("syn-bass", "chorus-2")).not.toEqual(signature("syn-bass", "chorus-1"))
+    expect(result.quality?.metrics.repeatedSectionCopyCount).toBe(0)
+  })
+
+  it("Genreの拍の作法とSection直前の引き算を、計画だけでなくオンセットへ反映する", () => {
+    const energetic = project()
+    energetic.song = { ...energetic.song, genreBlend: [{ id: "hi-nrg", weight: 1 }] }
+    const result = generateFullSongArrangement(energetic, { seed: 4282 })
+    const verse = result.plan.sections.find((section) => section.sectionId === "verse")!
+    const beforeFinal = result.plan.sections.find((section) => section.sectionId === "chorus-2")!
+    const source = energetic.sections.find((section) => section.id === "chorus-2")!
+    const sectionEnd = (source.startBar - 1 + source.lengthBars) * 4
+    const dropStart = sectionEnd - (beforeFinal.preBoundaryDropBeats ?? 0)
+
+    expect(verse.rhythmGrammar).toBe("four-on-floor")
+    expect(beforeFinal.preBoundaryDropBeats).toBeGreaterThan(0)
+    for (const trackId of ["dr-kick", "dr-snare", "dr-closed-hat", "syn-bass", "syn-pulse"] as const) {
+      const crossing = result.tracks.find((track) => track.id === trackId)?.notes.filter((note) =>
+        note.sectionId === "chorus-2" && note.startBeat < sectionEnd && note.startBeat + note.durationBeats > dropStart,
+      ) ?? []
+      expect(crossing, trackId).toEqual([])
+    }
+  })
+
+  it("Motif主導案では主旋律の輪郭を変形したSection間フレーズを作る", () => {
+    const input = project()
+    const analysis = analyzeFullSongArrangement(input)
+    const plan = buildFullSongArrangementPlan(input, analysis, 4283, "主旋律の特徴をつないで展開", undefined, "motif-led")
+    const pre = plan.sections.find((section) => section.sectionId === "pre")!
+
+    expect(pre.transitionCandidates.some((candidate) => candidate.kind === "motif-variation")).toBe(true)
+    expect(pre.transitionCandidates.some((candidate) => candidate.kind === "reverse-motif")).toBe(true)
+    expect(pre.transitionCandidates.filter((candidate) => candidate.kind.includes("motif")).every((candidate) => candidate.reason.includes("主旋律"))).toBe(true)
+  })
+
   it("TransitionはSafe/Edge/Surpriseと無音判断を持ち、理由を説明する", () => {
     const input = project()
     const result = generateFullSongArrangement(input, { seed: 44, brief: "意外性のあるセクション間フレーズ" })
