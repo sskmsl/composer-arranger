@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
-import { GripVertical, Play, Square, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass, AudioLines, TrendingUp, ListOrdered, SlidersHorizontal, type LucideIcon } from "lucide-react"
+import { GripVertical, Play, Square, SkipBack, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass, AudioLines, TrendingUp, ListOrdered, SlidersHorizontal, type LucideIcon } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
@@ -245,6 +245,14 @@ export function ArrangementWorkspace({
         <Button variant="dark" onClick={playing ? () => stop() : () => playSong()} disabled={project.sections.length === 0}>
           {playing ? <Square size={14} /> : <Play size={14} />}
           {playing ? "停止" : "曲全体を再生"}
+        </Button>
+        <Button
+          variant="dark"
+          onClick={() => stop(true)}
+          disabled={project.sections.length === 0 || (!playing && playbackBeat <= 0)}
+          aria-label="再生位置を最初に戻す"
+        >
+          <SkipBack size={14} /> 最初に戻る
         </Button>
         <Button
           variant="dark"
