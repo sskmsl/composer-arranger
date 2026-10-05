@@ -1,7 +1,6 @@
 import { useMemo } from "react"
 import { logicSoundRows } from "@/midi/logicProductionPackage"
 import { useProjectStore } from "@/store/useProjectStore"
-import { useSoundSettings } from "@/audio/soundSettings"
 
 /**
  * Logic Pro用の音源と設定。曲全体MIDIに入るトラックごとに「おすすめ音源」と「一言の設定」だけを並べる。
@@ -9,8 +8,7 @@ import { useSoundSettings } from "@/audio/soundSettings"
  */
 export function LogicProductionPackagePanel() {
   const project = useProjectStore((state) => state.project)
-  const soundSettings = useSoundSettings()
-  const rows = useMemo(() => logicSoundRows(project, soundSettings.programs), [project, soundSettings.programs])
+  const rows = useMemo(() => logicSoundRows(project), [project])
 
   return (
     <section aria-labelledby="logic-package-heading" className="flex flex-col gap-3">
@@ -19,8 +17,8 @@ export function LogicProductionPackagePanel() {
         <p className="mt-1 text-[13px] leading-5 text-body-muted">
           画面上部の「曲全体MIDI」を書き出してLogic Proの新規プロジェクトへ読み込み、テンポ情報を使ってください。
           下の表のトラックがすべて入っています。各トラックに、表の音源を割り当てます。
-          音色名は架空の候補名ではなく、現在の試聴とGM書き出しで使う標準GMの番号と正式名です。
-          Logicでは同じ種類の音色を出発点にして、曲に合う音へ置き換えられます。
+          Reproは、この端末にあるファクトリープリセットの実名を表示します。
+          Kontakt音源は、読み込むライブラリと楽器・奏法を表示します。必要に応じて曲に合うスナップショットへ置き換えられます。
         </p>
       </div>
 
@@ -32,8 +30,8 @@ export function LogicProductionPackagePanel() {
             <thead className="bg-white/[0.04] text-[12px] text-ink-soft">
               <tr>
                 <th scope="col" className="px-3 py-2 font-medium">トラック</th>
-                <th scope="col" className="px-3 py-2 font-medium">音源</th>
-                <th scope="col" className="px-3 py-2 font-medium">標準音色</th>
+                <th scope="col" className="px-3 py-2 font-medium">所有音源</th>
+                <th scope="col" className="px-3 py-2 font-medium">プリセット／読み込み先</th>
                 <th scope="col" className="px-3 py-2 font-medium">設定</th>
               </tr>
             </thead>

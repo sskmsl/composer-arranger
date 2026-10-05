@@ -13,13 +13,6 @@ import {
 import type { WholeSongDirectionId } from "@/ai-arranger/wholeSongDirectionPlan"
 import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { arrangementTrackLabel } from "@/core/arrangementChat"
-import {
-  DEFAULT_PART_PROGRAMS,
-  arrangementTrackProgram,
-  gmProgramPresetLabel,
-  type SoundPart,
-  type SoundSettings,
-} from "@/core/gmInstruments"
 
 export type LogicProductionTrackId =
   | "bass-guide"
@@ -350,7 +343,7 @@ export interface LogicSoundRow {
   trackName: string
   role: string
   product: string
-  /** General MIDIで定義済みのProgram番号と正式音色名。 */
+  /** 実在するFactory preset名、またはKontaktで読み込む実在ライブラリ／楽器名。 */
   preset: string
   setting: string
 }
@@ -379,32 +372,51 @@ const SONG_TRACK_ROLES: Partial<Record<LogicProductionTrackId, string>> = {
   "selected-intro-phrase": "イントロのフレーズ",
 }
 
-const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; setting: string }> = [
-  { match: (id) => id.startsWith("dr-"), role: "ドラム", setting: "キックとスネアを基準に、ハイハットは控えめ／定位 中央〜左右30／残響 短い部屋" },
-  { match: (id) => id.includes("bass"), role: "ベース", setting: "音を短めに切り、キックと重ねない／定位 中央／残響 なし" },
-  { match: (id) => id === "syn-pulse" || id.startsWith("syn-arp-"), role: "短く繰り返すシンセ", setting: "短く歯切れよく／定位 左右20／残響 テンポに合うディレイを少し" },
-  { match: (id) => id === "syn-stabs" || id === "syn-chord-wide", role: "短い和音", setting: "一音ごとの輪郭を残す／定位 左右25／残響 短め" },
-  { match: (id) => id === "syn-dark-pad" || id.startsWith("syn-pad-"), role: "背景の和音", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 長いホール" },
-  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", setting: "音量は控えめに、一音ずつ置く／定位 左右40／残響 長め" },
-  { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", setting: "セクションの境目だけで鳴らす／定位 左右30／残響 長いホール" },
-  { match: (id) => id === "str-cello" || id === "str-viola" || id === "str-contrabass", role: "弦（低音）", setting: "長めになめらかにつなぐ／定位 左右20／残響 ホール" },
-  { match: (id) => id === "str-spiccato", role: "弦（短音）", setting: "短くそろえ、拍の頭だけ少し強く／定位 左右25／残響 短いホール" },
-  { match: (id) => id.startsWith("str-"), role: "弦（高音）", setting: "なめらかにつなぎ、曲の頂点だけ強く／定位 左右30／残響 ホール" },
-]
-
-const SOURCE_SOUND_PART: Partial<Record<LogicProductionTrackId, SoundPart>> = {
-  "chord-guide": "chords",
-  "active-melody": "melody",
-  "melody-accompaniment": "accompaniment",
-  pulse: "accompaniment",
-  counter: "counter",
-  decoration: "decoration",
-  "selected-phrase": "phrase",
-  "selected-intro-phrase": "signature",
+type OwnedSound = Pick<LogicSoundRow, "product" | "preset" | "setting"> & {
+  match: (id: ArrangementTrackId) => boolean
+  role: string
 }
 
-function standardSound(program: number): Pick<LogicSoundRow, "product" | "preset"> {
-  return { product: "標準GM音源", preset: gmProgramPresetLabel(program) }
+/**
+ * この制作環境で確認できた所有音源だけを使う。Reproは端末上のFactory .h2pと
+ * 一致する「フォルダ / プリセット名」、Kontakt音源は実在する読み込み先を示す。
+ */
+const ARRANGEMENT_SOUNDS: OwnedSound[] = [
+  { match: (id) => ["dr-kick", "dr-kick-sub", "dr-kick-click"].includes(id), role: "キック", product: "Battery 4", preset: "Factory Library > Kits", setting: "低いキックを中心に置き、クリック成分は小さめ／残響 なし〜短め" },
+  { match: (id) => ["dr-snare", "dr-snare-body", "dr-clap"].includes(id), role: "スネア", product: "Butch Vig Drums", preset: "Butch Vig Drums（Factory Kit）", setting: "胴鳴りとクラップを同じ音量にせず、主役は中央／残響 短め" },
+  { match: (id) => ["dr-closed-hat", "dr-open-hat", "dr-ride", "dr-crash"].includes(id), role: "シンバル", product: "Studio Drummer", preset: "Studio Drummer（Factory Kit）", setting: "ハイハットは控えめ、オープンとクラッシュは節目だけ／定位はキットに従う" },
+  { match: (id) => ["dr-field-drum", "dr-low-tom", "dr-high-tom", "dr-shaker", "dr-percussion-high"].includes(id), role: "パーカッション", product: "Session Percussionist", preset: "Session Percussionist（Factory Preset）", setting: "主旋律の切れ目だけに置き、フィル後半へ向けて少し強くする" },
+  { match: (id) => ["dr-gran-cassa", "dr-cymbal-swell", "dr-impact"].includes(id), role: "大きな打撃", product: "Damage", preset: "Damage（Factory Kit）", setting: "セクションの境目だけで鳴らし、連打しない／低音の余韻を整理" },
+  { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", preset: "01 Basses / EH Heavy Pulse Bass", setting: "音を短めに切り、キックと重ねない／定位 中央／残響 なし" },
+  { match: (id) => id === "syn-sub-bass", role: "サブベース", product: "Repro-1", preset: "1981 Historic / 14 Bass Synth Sustain", setting: "最低音だけを薄く支え、長く重なる場所は短くする／定位 中央" },
+  { match: (id) => id === "syn-bass-mid", role: "中域ベース", product: "Session Bassist - Prime Bass", preset: "Prime Bass（初期Instrument）", setting: "高くなりすぎる音を避け、シンセベースより少し奥へ置く" },
+  { match: (id) => id === "syn-pulse", role: "短く繰り返すシンセ", product: "Repro-1", preset: "07 Seq - Melodic / HS Metronomi", setting: "短く歯切れよく／定位 左右15／ディレイは少量" },
+  { match: (id) => id === "syn-arp-low", role: "低い分散音", product: "Repro-1", preset: "06 Arpeggios / EH Classic Runner", setting: "ベースの邪魔をしない音域へ上げ、主旋律が動く所では音数を減らす" },
+  { match: (id) => id === "syn-arp-high", role: "高い分散音", product: "Repro-1", preset: "07 Seq - Melodic / SA Shimmer Sequence", setting: "サビや後半だけに使い、音量を抑える／定位 左右25" },
+  { match: (id) => id === "syn-stabs", role: "短い和音", product: "Repro-5", preset: "03 Keys - Synths / JH Midrange Synthstab (MW)", setting: "一音ごとの輪郭を残し、主旋律と同時に強く鳴らさない／残響 短め" },
+  { match: (id) => id === "syn-chord-wide", role: "広い和音", product: "Repro-5", preset: "07 Chords / HS Seventh Soft", setting: "左右へ広げるが低音は中央から外す／残響 中程度" },
+  { match: (id) => id === "syn-dark-pad", role: "暗い背景の和音", product: "Repro-5", preset: "09 Pads - Orchestral / EH Dark Emotion Pad", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め" },
+  { match: (id) => id === "syn-pad-air", role: "薄い高域パッド", product: "Repro-5", preset: "08 Pads - Synths / HS Glass Glider", setting: "高域を小さく足し、主旋律が高い所では休ませる／残響 長め" },
+  { match: (id) => id === "syn-pad-motion", role: "動くパッド", product: "Repro-5", preset: "08 Pads - Synths / SD Musical Sync", setting: "動きは背景に留め、ほかの反復音がある場所では使わない" },
+  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", product: "Repro-5", preset: "05 Keys - Plucks & Mallets / SD Synthetic Bells", setting: "音量は控えめに、一音ずつ置く／定位 左右40／残響 長め" },
+  { match: (id) => id === "syn-transition-phrase", role: "つなぎのフレーズ", product: "Repro-5", preset: "10 Effects / EH Mod-ex Q Sweep", setting: "セクションの境目だけで鳴らし、次の主旋律が始まる前に消す" },
+  { match: (id) => id === "syn-final-lift", role: "最後の広がり", product: "Repro-5", preset: "09 Pads - Orchestral / TUC Brass Crescendo", setting: "最後のサビだけに使い、ゆっくり大きくする／定位 広め" },
+  { match: (id) => id === "str-cello", role: "チェロ", product: "Session Strings Pro 2", preset: "Celli（Sustain / True Legato）", setting: "長めになめらかにつなぐ／定位 やや左／残響 ホール" },
+  { match: (id) => id === "str-viola", role: "ビオラ", product: "Session Strings Pro 2", preset: "Violas（Sustain / True Legato）", setting: "主旋律の下で内声をつなぎ、同じ音域では音量を下げる" },
+  { match: (id) => id === "str-contrabass", role: "コントラバス", product: "Session Strings Pro 2", preset: "Basses（Sustain）", setting: "ベースと同時に全音を重ねず、長い支えが必要な場所だけ使う" },
+  { match: (id) => id === "str-spiccato", role: "短い弦", product: "Session Strings Pro 2", preset: "Ensemble（Spiccato）", setting: "短くそろえ、拍の頭だけ少し強く／定位は自然な配置" },
+  { match: (id) => id.startsWith("str-"), role: "高い弦", product: "Session Strings Pro 2", preset: "Violins（Sustain / True Legato）", setting: "なめらかにつなぎ、曲の最後の盛り上がりだけ強くする" },
+]
+
+const SOURCE_SOUNDS: Partial<Record<LogicProductionTrackId, Pick<LogicSoundRow, "product" | "preset">>> = {
+  "chord-guide": { product: "Repro-5", preset: "09 Pads - Orchestral / EH Dark Emotion Pad" },
+  "active-melody": { product: "Noire", preset: "Noire（Pure）" },
+  "melody-accompaniment": { product: "Repro-1", preset: "07 Seq - Melodic / HS Zing Pluck" },
+  pulse: { product: "Repro-1", preset: "07 Seq - Melodic / HS Metronomi" },
+  counter: { product: "Session Strings Pro 2", preset: "Celli（Sustain / True Legato）" },
+  decoration: { product: "Playbox", preset: "Playbox（Factory Presets）" },
+  "selected-phrase": { product: "Repro-5", preset: "05 Keys - Plucks & Mallets / SD Mellow Vibes" },
+  "selected-intro-phrase": { product: "Playbox", preset: "Playbox（Factory Presets）" },
 }
 
 function sourceSetting(source: TrackSource): string {
@@ -419,10 +431,7 @@ function sourceSetting(source: TrackSource): string {
  * 曲全体MIDIに入るトラックごとの、おすすめ音源と一言の設定。
  * トラックの並びと名前は曲全体MIDIと同じにする(Logicで開いたときに対応が分かるように)。
  */
-export function logicSoundRows(
-  project: ComposerProject,
-  programs: SoundSettings["programs"] = DEFAULT_PART_PROGRAMS,
-): LogicSoundRow[] {
+export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
   const byId = new Map(sources(project).map((source) => [source.id, source]))
   const order: LogicProductionTrackId[] = [
     "chord-guide",
@@ -437,8 +446,7 @@ export function logicSoundRows(
   const rows: LogicSoundRow[] = order.flatMap((id) => {
     const source = byId.get(id)
     if (!source || source.notes.length === 0) return []
-    const part = SOURCE_SOUND_PART[id]
-    const sound = standardSound(part ? programs[part] : DEFAULT_PART_PROGRAMS.chords)
+    const sound = SOURCE_SOUNDS[id] ?? { product: "Kontakt 8", preset: "初期Instrument" }
     return [{
       trackName: SONG_MIDI_TRACK_NAMES[id] ?? source.name,
       role: SONG_TRACK_ROLES[id] ?? source.role,
@@ -451,11 +459,7 @@ export function logicSoundRows(
     const sound = ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue
     const label = arrangementTrackLabel(track.id)
-    const program = arrangementTrackProgram(track.id)
-    const standard = program === "drums"
-      ? { product: "標準GMドラム", preset: "Standard Drum Kit（GM 10チャンネル）" }
-      : standardSound(program)
-    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, ...standard, setting: sound.setting })
+    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: sound.preset, setting: sound.setting })
   }
   return rows
 }

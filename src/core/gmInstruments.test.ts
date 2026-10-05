@@ -5,9 +5,7 @@ import {
   DEFAULT_SOUND_SETTINGS,
   GM_INSTRUMENT_CHOICES,
   GM_PROGRAM_FILES,
-  GM_PROGRAM_NAMES,
   gmFileForProgram,
-  gmProgramPresetLabel,
   normalizeSoundSettings,
 } from "./gmInstruments"
 
@@ -20,13 +18,6 @@ describe("GM の楽器と設定", () => {
     expect(gmFileForProgram(73)).toBe("flute")
     expect(gmFileForProgram(89)).toBe("pad_2_warm")
     expect(gmFileForProgram(108)).toBe("kalimba")
-  })
-
-  it("128音色を正式なGM番号付きで表示する", () => {
-    expect(GM_PROGRAM_NAMES).toHaveLength(128)
-    expect(gmProgramPresetLabel(0)).toBe("GM 001 Acoustic Grand Piano")
-    expect(gmProgramPresetLabel(89)).toBe("GM 090 Pad 2 (warm)")
-    expect(gmProgramPresetLabel(127)).toBe("GM 128 Gunshot")
   })
 
   it("画面で選べる楽器は、重複のない GM の番号", () => {

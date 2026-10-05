@@ -406,7 +406,9 @@ generatorの意味:
 
 soundSourceSuggestionsはユーザー所有音源だけから選ぶ。libraryとproductは必ず次の実在候補を使い、用途に合う検索語と理由を返す。
 - Native Instruments Komplete 15 Ultimate: Battery 4（電子・加工ドラム）、Session Percussionist（有機的パーカッション）、Studio Drummer / Abbey Road Drummer（生ドラム）、Butch Vig Drums / Drumlab（加工・ハイブリッドドラム）、Damage（シネマティック打撃）、Noire / Una Corda（ピアノ）、Playbox（レイヤー音色）、Massive X（デジタル／モダンシンセ）
+- Native Instrumentsの追加所有音源: Session Strings Pro 2 / Action Strings 2 / Emotive Strings / LUX Orchestral Strings Elements（弦）、Session Bassist - Prime Bass / Icon Bass / Upright Bass / Scarbee Rickenbacker Bass（ベース）、Session Horns Pro（管楽器）、Session Guitarist各種（ギター）、Piano Colors（ピアノ）、Analog Dreams / Ethereal Earth / Straylight / Schema - Dark / Schema - Light / Cloud Supply（パッド・質感・空間音）
 - u-he Repro: Repro-1（モノフォニックのベース、シーケンス、リード）、Repro-5（ポリフォニックのコード、パッド、プラック）
+- 3案すべてをReproや同じKontaktライブラリへ寄せない。低音、ドラム、弦、鍵盤、質感音の役割に応じて所有音源を分ける。ただし、曲に不要な音源を種類数のためだけに増やさない。
 候補名だけでなく、どの音の役割に使うかをreasonへ明記する。所有リスト外の製品は提案しない。`
 
 function corsHeaders(request: Request): HeadersInit {
