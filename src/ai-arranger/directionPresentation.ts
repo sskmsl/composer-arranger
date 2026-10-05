@@ -171,6 +171,18 @@ export function plainDirectionText(value: string): string {
     .replace(/オンセット/gi, "音を鳴らす位置")
     .replace(/フック/gi, "耳に残る短いフレーズ")
     .replace(/アプローチ/gi, "近づき方")
+    // AIが比喩的に返した場合も、画面では作曲者が聴き方を想像できる言葉へ寄せる。
+    .replace(/主権/g, "中心")
+    .replace(/重心/g, "低音の支え")
+    .replace(/前景/g, "手前で聴こえる音")
+    .replace(/後景/g, "奥で聴こえる音")
+    .replace(/退場させる/g, "鳴らし終える")
+    .replace(/退場/g, "鳴らし終える")
+    .replace(/役割密度|発音密度/g, "音の量")
+    .replace(/構造的な対比/g, "曲の部分ごとの違い")
+    .replace(/因果(?:のある形)?/g, "前後のつながり")
+    .replace(/頂点/g, "いちばん盛り上がる所")
+    .replace(/回収/g, "落ち着く音へ戻す")
     .replace(/\s{2,}/g, " ")
 }
 

@@ -6,7 +6,8 @@ import type {
 } from "./types"
 
 const FUNCTION_NAME = "composer-arranger-ai"
-const CACHE_PREFIX = "composer-arranger:ai-advice:v4:"
+// 文章方針を変えたときに、以前の抽象的な返答を24時間再表示しない。
+const CACHE_PREFIX = "composer-arranger:ai-advice:v5:"
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 interface CachedAdvice {

@@ -44,8 +44,12 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     for (const row of rows) {
       expect(midi).toContain(row.trackName)
       expect(row.product.length).toBeGreaterThan(0)
+      expect(row.preset).toMatch(/^(GM \d{3}|Standard Drum Kit)/)
       expect(row.setting.length).toBeGreaterThan(0)
     }
+    expect(rows.some((row) => row.preset.includes("Pad 2 (warm)"))).toBe(true)
+    expect(rows.some((row) => row.preset.includes("Synth Bass"))).toBe(true)
+    expect(new Set(rows.map((row) => row.preset)).size).toBeGreaterThan(5)
     expect(rows.map((row) => row.trackName)).toEqual(expect.arrayContaining(playing.map((track) => track.name)))
   })
 

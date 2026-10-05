@@ -80,7 +80,16 @@ describe("AI Direction presentation", () => {
     expect(result).toContain("追加パート")
     expect(result).toContain("緊張感を作る音")
     expect(plainDirectionText("各Sectionで主役となる素材だけを先にSet Activeし、高Energy側へ足す前に低Energy側のLayerを退場させる。Active素材を設定する。")).toBe(
-      "各セクションで主役となる素材だけを先に採用し、盛り上がる所へ足す前に静かな所の追加パートを退場させる。採用中の素材を設定する。",
+      "各セクションで主役となる素材だけを先に採用し、盛り上がる所へ足す前に静かな所の追加パートを鳴らし終える。採用中の素材を設定する。",
     )
+  })
+
+  it("抽象的な比喩を、実際の聴こえ方が分かる言葉へ直す", () => {
+    const result = plainDirectionText("主旋律の主権を守り、低域の重心と後景の余韻で頂点へ向かう。")
+    expect(result).not.toMatch(/主権|重心|後景|頂点/)
+    expect(result).toContain("主旋律")
+    expect(result).toContain("低音の支え")
+    expect(result).toContain("奥で聴こえる音")
+    expect(result).toContain("いちばん盛り上がる所")
   })
 })

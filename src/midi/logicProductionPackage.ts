@@ -13,6 +13,13 @@ import {
 import type { WholeSongDirectionId } from "@/ai-arranger/wholeSongDirectionPlan"
 import { buildSmf, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { arrangementTrackLabel } from "@/core/arrangementChat"
+import {
+  DEFAULT_PART_PROGRAMS,
+  arrangementTrackProgram,
+  gmProgramPresetLabel,
+  type SoundPart,
+  type SoundSettings,
+} from "@/core/gmInstruments"
 
 export type LogicProductionTrackId =
   | "bass-guide"
@@ -343,7 +350,7 @@ export interface LogicSoundRow {
   trackName: string
   role: string
   product: string
-  /** 音源のプリセットブラウザで検索すると合うものが見つかる言葉(製品の版で名前が変わるため、決まった名前ではなく検索語で示す) */
+  /** General MIDIで定義済みのProgram番号と正式音色名。 */
   preset: string
   setting: string
 }
@@ -372,17 +379,33 @@ const SONG_TRACK_ROLES: Partial<Record<LogicProductionTrackId, string>> = {
   "selected-intro-phrase": "イントロのフレーズ",
 }
 
-const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; product: string; preset: string; setting: string }> = [
-  { match: (id) => id.startsWith("dr-"), role: "ドラム", product: "Battery 4", preset: "dry electronic kit", setting: "KickとSnareを基準に、Hatは控えめ／定位 Center〜±30／残響 Short Room" },
-  { match: (id) => id.includes("bass"), role: "ベース", product: "Repro-1", preset: "dark mono bass", setting: "音を短めに切り、Kickと重ねない／定位 Center／残響 なし" },
-  { match: (id) => id === "syn-pulse" || id.startsWith("syn-arp-") || id === "syn-stabs" || id === "syn-chord-wide", role: "シンセの刻み", product: "Repro-1", preset: "muted sequence", setting: "短く歯切れよく／定位 ±20／残響 Tempo Delay少し" },
-  { match: (id) => id === "syn-dark-pad" || id.startsWith("syn-pad-"), role: "パッド", product: "Repro-5", preset: "soft poly pad", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 Long Hall" },
-  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", product: "Playbox", preset: "glass bell", setting: "音量は控えめに、一音ずつ置く／定位 ±40／残響 Long Plate" },
-  { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", product: "Playbox", preset: "reverse tonal", setting: "セクションの境目だけで鳴らす／定位 ±30／残響 Long Hall" },
-  { match: (id) => id === "str-cello" || id === "str-viola" || id === "str-contrabass", role: "弦（低音）", product: "Session Strings Pro 2", preset: "cellos legato", setting: "レガートで長めに／定位 ±20／残響 Hall" },
-  { match: (id) => id === "str-spiccato", role: "弦（短音）", product: "Session Strings Pro 2", preset: "spiccato ensemble", setting: "短くそろえ、強拍だけ少し強く／定位 ±25／残響 Short Hall" },
-  { match: (id) => id.startsWith("str-"), role: "弦（高音）", product: "Session Strings Pro 2", preset: "soft legato ensemble", setting: "レガート、頂点だけ強く／定位 ±30／残響 Hall" },
+const ARRANGEMENT_SOUNDS: Array<{ match: (id: ArrangementTrackId) => boolean; role: string; setting: string }> = [
+  { match: (id) => id.startsWith("dr-"), role: "ドラム", setting: "キックとスネアを基準に、ハイハットは控えめ／定位 中央〜左右30／残響 短い部屋" },
+  { match: (id) => id.includes("bass"), role: "ベース", setting: "音を短めに切り、キックと重ねない／定位 中央／残響 なし" },
+  { match: (id) => id === "syn-pulse" || id.startsWith("syn-arp-"), role: "短く繰り返すシンセ", setting: "短く歯切れよく／定位 左右20／残響 テンポに合うディレイを少し" },
+  { match: (id) => id === "syn-stabs" || id === "syn-chord-wide", role: "短い和音", setting: "一音ごとの輪郭を残す／定位 左右25／残響 短め" },
+  { match: (id) => id === "syn-dark-pad" || id.startsWith("syn-pad-"), role: "背景の和音", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め／残響 長いホール" },
+  { match: (id) => id === "syn-high-glass", role: "高音のきらめき", setting: "音量は控えめに、一音ずつ置く／定位 左右40／残響 長め" },
+  { match: (id) => id === "syn-transition-phrase" || id === "syn-final-lift", role: "つなぎのフレーズ", setting: "セクションの境目だけで鳴らす／定位 左右30／残響 長いホール" },
+  { match: (id) => id === "str-cello" || id === "str-viola" || id === "str-contrabass", role: "弦（低音）", setting: "長めになめらかにつなぐ／定位 左右20／残響 ホール" },
+  { match: (id) => id === "str-spiccato", role: "弦（短音）", setting: "短くそろえ、拍の頭だけ少し強く／定位 左右25／残響 短いホール" },
+  { match: (id) => id.startsWith("str-"), role: "弦（高音）", setting: "なめらかにつなぎ、曲の頂点だけ強く／定位 左右30／残響 ホール" },
 ]
+
+const SOURCE_SOUND_PART: Partial<Record<LogicProductionTrackId, SoundPart>> = {
+  "chord-guide": "chords",
+  "active-melody": "melody",
+  "melody-accompaniment": "accompaniment",
+  pulse: "accompaniment",
+  counter: "counter",
+  decoration: "decoration",
+  "selected-phrase": "phrase",
+  "selected-intro-phrase": "signature",
+}
+
+function standardSound(program: number): Pick<LogicSoundRow, "product" | "preset"> {
+  return { product: "標準GM音源", preset: gmProgramPresetLabel(program) }
+}
 
 function sourceSetting(source: TrackSource): string {
   return [
@@ -396,7 +419,10 @@ function sourceSetting(source: TrackSource): string {
  * 曲全体MIDIに入るトラックごとの、おすすめ音源と一言の設定。
  * トラックの並びと名前は曲全体MIDIと同じにする(Logicで開いたときに対応が分かるように)。
  */
-export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
+export function logicSoundRows(
+  project: ComposerProject,
+  programs: SoundSettings["programs"] = DEFAULT_PART_PROGRAMS,
+): LogicSoundRow[] {
   const byId = new Map(sources(project).map((source) => [source.id, source]))
   const order: LogicProductionTrackId[] = [
     "chord-guide",
@@ -411,11 +437,12 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
   const rows: LogicSoundRow[] = order.flatMap((id) => {
     const source = byId.get(id)
     if (!source || source.notes.length === 0) return []
+    const part = SOURCE_SOUND_PART[id]
+    const sound = standardSound(part ? programs[part] : DEFAULT_PART_PROGRAMS.chords)
     return [{
       trackName: SONG_MIDI_TRACK_NAMES[id] ?? source.name,
       role: SONG_TRACK_ROLES[id] ?? source.role,
-      product: source.recommendations[0]?.product ?? "—",
-      preset: source.recommendations[0]?.searchTerms[0] ?? "—",
+      ...sound,
       setting: sourceSetting(source),
     }]
   })
@@ -424,7 +451,11 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
     const sound = ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue
     const label = arrangementTrackLabel(track.id)
-    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: sound.preset, setting: sound.setting })
+    const program = arrangementTrackProgram(track.id)
+    const standard = program === "drums"
+      ? { product: "標準GMドラム", preset: "Standard Drum Kit（GM 10チャンネル）" }
+      : standardSound(program)
+    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, ...standard, setting: sound.setting })
   }
   return rows
 }
