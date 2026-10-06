@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { composerSongExchangeToProject } from "@/core/composerSongExchange"
@@ -21,6 +22,31 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   const arrangement = generateFullSongArrangement(base, { seed: 7 })
   const project = { ...base, fullSongArrangement: arrangement }
   const playing = arrangement.tracks.filter((track) => track.notes.length > 0)
+  const directions = ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const
+  const withShape = (tempo: number, rest: number, repetition: number, energyScale: number) => ({
+    ...project,
+    song: { ...project.song, tempo },
+    fullSongArrangement: {
+      ...arrangement,
+      analysis: {
+        ...arrangement.analysis,
+        bpm: tempo,
+        sections: arrangement.analysis.sections.map((section, index) => ({
+          ...section,
+          melodyRestRatio: rest,
+          melodyRepetition: repetition,
+          chordRepetition: repetition,
+          energy: Math.min(100, Math.round(index * energyScale)),
+        })),
+      },
+    },
+  })
+  const soundWorldSongs = [
+    withShape(68, 0.72, 0.1, 2),
+    withShape(148, 0.04, 0.92, 1),
+    withShape(136, 0.03, 0.18, 3),
+    withShape(104, 0.24, 0.48, 7),
+  ]
 
   it("全曲アレンジのパートも1つのファイルに入れ、ミュート中のパートは入れない", () => {
     expect(playing.length).toBeGreaterThan(1)
@@ -84,7 +110,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       arrangementDirectorWorkspace: { brief: "", selectedDirectionId: "preserve-space" },
     })
 
-    expect(rhythmic.some((row) => row.preset.includes("Session Strings Pro 2 / Violins - Modern / Violins Mod - Dry Strings"))).toBe(true)
+    expect(rhythmic.some((row) => row.preset.includes("Action Strings 2 / Action Strings 2.nki / Single Articulations - Staccato/Spiccato"))).toBe(true)
     expect(cinematic.some((row) => row.preset.startsWith("LUX Orchestral Strings Elements /"))).toBe(true)
     expect(spacious.some((row) => row.preset.startsWith("Emotive Strings /"))).toBe(true)
     expect(rhythmic.map((row) => row.preset)).toContain("Session Guitarist - Electric Mint / Melody / Clean and Wide (Melody)")
@@ -99,7 +125,6 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   })
 
   it("5つの方向カードは、保存された方向に応じて音の世界または音源表を変える", () => {
-    const directions = ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const
     const signatures = directions.map((selectedDirectionId) => {
       const target = { ...project, arrangementDirectorWorkspace: { brief: "", selectedDirectionId } }
       const palette = logicSoundPalette(target)
@@ -145,38 +170,27 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   })
 
   it("曲の速さ・反復・余白と5方向の組み合わせで主役を一種類に固定しない", () => {
-    const withShape = (tempo: number, rest: number, repetition: number, energyScale: number) => ({
-      ...project,
-      song: { ...project.song, tempo },
-      fullSongArrangement: {
-        ...arrangement,
-        analysis: {
-          ...arrangement.analysis,
-          bpm: tempo,
-          sections: arrangement.analysis.sections.map((section, index) => ({
-            ...section,
-            melodyRestRatio: rest,
-            melodyRepetition: repetition,
-            chordRepetition: repetition,
-            energy: Math.min(100, Math.round(index * energyScale)),
-          })),
-        },
-      },
-    })
-    const songs = [
-      withShape(68, 0.72, 0.1, 2),
-      withShape(148, 0.04, 0.92, 1),
-      withShape(96, 0.3, 0.35, 12),
-      withShape(112, 0.18, 0.55, 5),
-    ]
-    const directions = ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const
-    const families = songs.flatMap((song) => directions.map((selectedDirectionId) => logicSoundPalette({
+    const matrix = soundWorldSongs.map((song) => directions.map((selectedDirectionId) => logicSoundPalette({
       ...song,
       arrangementDirectorWorkspace: { brief: "", selectedDirectionId },
     }).dominantFamily))
-    expect(new Set(families).size).toBeGreaterThan(1)
-    expect(new Set(families.slice(0, 5))).not.toEqual(new Set(families.slice(5, 10)))
-    expect(families[4]).not.toBe(families[9])
+    const families = matrix.flat()
+    const counts = Object.values(families.reduce<Record<string, number>>((result, family) => ({
+      ...result,
+      [family]: (result[family] ?? 0) + 1,
+    }), {}))
+    const songsChangedByDirection = matrix.filter((row) => new Set(row).size > 1).length
+    const directionsChangedBySong = directions.filter((_, directionIndex) => new Set(matrix.map((row) => row[directionIndex])).size > 1).length
+    const titles = directions.map((selectedDirectionId) => logicSoundPalette({
+      ...soundWorldSongs[0],
+      arrangementDirectorWorkspace: { brief: "", selectedDirectionId },
+    }).title)
+
+    expect(Math.max(...counts)).toBeLessThanOrEqual(10)
+    expect(songsChangedByDirection).toBeGreaterThanOrEqual(3)
+    expect(directionsChangedBySong).toBeGreaterThanOrEqual(3)
+    expect(new Set(titles).size).toBeGreaterThanOrEqual(3)
+    expect(matrix.some((row) => ["strings", "piano"].includes(row[0]))).toBe(true)
   })
 
   it("音源の希望が明記された場合は、方向性を変えず音の世界へ反映する", () => {
@@ -234,7 +248,6 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   })
 
   it("音源希望と方向だけを変えても3種類のMIDI書き出しを1バイトも変えない", () => {
-    const directions = ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const
     const trackId = playing[0].id
     const exported = directions.map((selectedDirectionId, index) => {
       const target = {
@@ -247,9 +260,30 @@ describe("曲全体MIDI(アレンジ画面)", () => {
         track: exportArrangementTrackMidi(target, arrangement, trackId),
       }
     })
-    for (const key of ["arrangement", "song", "track"] as const) {
-      exported.slice(1).forEach((value) => expect(Array.from(value[key])).toEqual(Array.from(exported[0][key])))
+    const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex")
+    for (const key of ["arrangement", "song", "track"] as const) expect(new Set(exported.map((value) => digest(value[key]))).size).toBe(1)
+  })
+
+  it("100通りでも弦を一つのライブラリへ集中させない", () => {
+    const briefs = ["", "弦主体", "ピアノ主体", "シンセ主体", "ギターと生ドラム主体"]
+    const stringTrackNames = new Set(arrangement.tracks.filter((track) => track.id.startsWith("str-") && track.notes.length > 0).map((track) => track.name))
+    let uniformLibraryCount = 0
+    let sessionStringsMajorityCount = 0
+    let actionStringsCount = 0
+
+    for (const song of soundWorldSongs) for (const selectedDirectionId of directions) for (const brief of briefs) {
+      const stringRows = logicSoundRows({ ...song, arrangementDirectorWorkspace: { brief, selectedDirectionId } })
+        .filter((row) => stringTrackNames.has(row.trackName))
+      if (stringRows.length < 4) continue
+      const libraries = stringRows.map((row) => row.preset.split(" / ")[0])
+      if (new Set(libraries).size === 1) uniformLibraryCount += 1
+      if (libraries.filter((library) => library === "Session Strings Pro 2").length > libraries.length / 2) sessionStringsMajorityCount += 1
+      if (libraries.includes("Action Strings 2")) actionStringsCount += 1
     }
+
+    expect(uniformLibraryCount).toBe(0)
+    expect(sessionStringsMajorityCount).toBeLessThan(10)
+    expect(actionStringsCount).toBeGreaterThan(0)
   })
 
   it("リズム型とシンセ主体でもドラムを役割別の3種類以上へ分ける", () => {
@@ -268,7 +302,6 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   it("提案する音源は所有一覧だけに限定する", () => {
     const allowed = /Battery 4|Repro-[15]|Session Strings Pro 2|LUX Orchestral Strings Elements|Emotive Strings|Action Strings 2|Symphony Essentials (?:String Ensemble|Percussion)|Session Guitarist - |Session Bassist - |Noire|Una Corda|Piano Colors|Schema (?:Dark|Light)|Straylight|Ethereal Earth|Playbox|Analog Dreams|Studio Drummer|Butch Vig Drums|Session Percussionist|Damage/
     const briefs = ["", "弦主体", "ピアノ主体", "シンセ主体", "ギターと生ドラム主体", "ストリングスなしでピアノ主体"]
-    const directions = ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const
     for (const brief of briefs) for (const selectedDirectionId of directions) {
       const target = { ...project, arrangementDirectorWorkspace: { brief, selectedDirectionId } }
       for (const sound of logicSoundPalette(target).coreSounds) expect(sound).toMatch(allowed)

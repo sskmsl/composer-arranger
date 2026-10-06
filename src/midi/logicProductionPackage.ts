@@ -443,11 +443,11 @@ const SOUND_FAMILY_LABELS: Record<LogicSoundWorldFamily, string> = {
 }
 
 const DIRECTION_FAMILY_SCORES: Record<WholeSongDirectionId, Record<LogicSoundWorldFamily, number>> = {
-  "preserve-space": { strings: 2.4, band: 0.8, synth: 0.8, piano: 2.2, percussion: 0.2, hybrid: 1.4 },
-  "controlled-escalation": { strings: 2.8, band: 1.0, synth: 1.2, piano: 1.2, percussion: 1.2, hybrid: 2.2 },
-  "rhythmic-propulsion": { strings: 0.6, band: 2.4, synth: 2.0, piano: 0.4, percussion: 3.0, hybrid: 1.4 },
-  "motif-relay": { strings: 1.4, band: 1.0, synth: 2.6, piano: 1.2, percussion: 0.8, hybrid: 2.0 },
-  "balanced-architecture": { strings: 1.2, band: 1.4, synth: 1.4, piano: 1.2, percussion: 1.0, hybrid: 2.4 },
+  "preserve-space": { strings: 7.5, band: 0.8, synth: 0.6, piano: 9.0, percussion: 0.2, hybrid: 1.4 },
+  "controlled-escalation": { strings: 8.0, band: 1.0, synth: 1.2, piano: 1.4, percussion: 1.2, hybrid: 9.0 },
+  "rhythmic-propulsion": { strings: 0.6, band: 8.0, synth: 1.8, piano: 0.4, percussion: 5.0, hybrid: 1.4 },
+  "motif-relay": { strings: 1.4, band: 1.0, synth: 5.0, piano: 1.4, percussion: 0.8, hybrid: 8.0 },
+  "balanced-architecture": { strings: 2.0, band: 2.0, synth: 2.0, piano: 2.0, percussion: 2.0, hybrid: 2.0 },
 }
 
 function addScore(scores: Record<LogicSoundWorldFamily, number>, family: LogicSoundWorldFamily, value: number): void {
@@ -524,54 +524,81 @@ function explicitlyRequestedLeadFamily(
 }
 
 function scoreArrangementTracks(project: ComposerProject, scores: Record<LogicSoundWorldFamily, number>): void {
-  const activity = new Map<LogicSoundWorldFamily, { notes: number; soundingBeats: number; weightedVelocity: number }>()
-  const collect = (family: LogicSoundWorldFamily, track: NonNullable<ComposerProject["fullSongArrangement"]>["tracks"][number], share = 1) => {
-    const current = activity.get(family) ?? { notes: 0, soundingBeats: 0, weightedVelocity: 0 }
-    for (const note of track.notes) {
-      current.notes += share
-      current.soundingBeats += Math.min(8, note.durationBeats) * share
-      current.weightedVelocity += note.velocity * share
-    }
-    activity.set(family, current)
+  type TrackActivity = { notes: number; soundingBeats: number; averageVelocity: number; share: number }
+  const tracks = (project.fullSongArrangement?.tracks ?? []).filter((track) => !track.muted && track.notes.length > 0)
+  const activity = new Map<LogicSoundWorldFamily, TrackActivity[]>()
+  const collect = (family: LogicSoundWorldFamily, track: typeof tracks[number], share = 1) => {
+    const soundingBeats = track.notes.reduce((sum, note) => sum + Math.min(8, note.durationBeats), 0)
+    const averageVelocity = track.notes.reduce((sum, note) => sum + note.velocity, 0) / track.notes.length
+    activity.set(family, [...(activity.get(family) ?? []), {
+      notes: track.notes.length,
+      soundingBeats,
+      averageVelocity,
+      share,
+    }])
   }
-  for (const track of project.fullSongArrangement?.tracks ?? []) {
-    if (track.muted || track.notes.length === 0) continue
+  for (const track of tracks) {
     if (track.id.startsWith("str-")) collect("strings", track)
     else if (track.id.startsWith("dr-")) collect("percussion", track)
     else if (["syn-bass", "syn-bass-mid"].includes(track.id)) {
-      collect("band", track, 0.7)
-      collect("synth", track, 0.3)
+      collect("band", track, 0.9)
+      collect("synth", track, 0.1)
     } else if (track.id === "syn-sub-bass") {
       collect("synth", track)
     } else if (["syn-stabs", "syn-chord-wide"].includes(track.id)) {
-      collect("piano", track, 0.4)
-      collect("band", track, 0.25)
-      collect("synth", track, 0.35)
+      collect("piano", track, 0.45)
+      collect("band", track, 0.4)
+      collect("synth", track, 0.15)
     } else if (track.id.startsWith("syn-")) {
       collect("synth", track)
     }
   }
-  const values = [...activity.values()]
-  const maxNotes = Math.max(1, ...values.map((value) => value.notes))
-  const maxBeats = Math.max(1, ...values.map((value) => value.soundingBeats))
-  for (const [family, value] of activity) {
-    const averageVelocity = value.weightedVelocity / Math.max(1, value.notes)
-    const normalizedAmount = Math.sqrt(value.notes / maxNotes) * 2
-      + Math.sqrt(value.soundingBeats / maxBeats) * 2
-      + Math.min(1, averageVelocity / 100) * 0.75
-    // 多数のドラム分割トラックを、同じ数の独立した主役として数えない。
-    addScore(scores, family, normalizedAmount * (family === "percussion" ? 0.78 : 1))
+  const all = [...activity.values()].flat()
+  const maxNotes = Math.max(1, ...all.map((value) => value.notes))
+  const maxBeats = Math.max(1, ...all.map((value) => value.soundingBeats))
+  const representativeByFamily = new Map<LogicSoundWorldFamily, number>()
+  for (const [family, familyTracks] of activity) {
+    const perTrack = familyTracks.map((value) => (
+      Math.sqrt(value.notes / maxNotes) * 1.25
+      + Math.sqrt(value.soundingBeats / maxBeats) * 1.25
+      + Math.min(1, value.averageVelocity / 100) * 0.5
+    ) * value.share).sort((left, right) => right - left)
+    // パッドやドラムが細かく分割されても、トラック本数だけで主役にはしない。
+    // 最も存在感のある3トラックの平均を、そのファミリーの実際の量として扱う。
+    const representative = perTrack.slice(0, 3).reduce((sum, value) => sum + value, 0) / Math.min(3, perTrack.length)
+    representativeByFamily.set(family, representative)
+    // 実際に鳴っているファミリーは方向性の事前点よりも軽く扱わない。
+    // ただし平均なので、同系統を何本増やしても加点は膨らまない。
+    addScore(scores, family, representative * 1.75)
+  }
+  const hybridIngredients = (["strings", "band", "synth", "piano"] as const)
+    .map((family) => representativeByFamily.get(family))
+    .filter((value): value is number => value !== undefined)
+    .sort((left, right) => right - left)
+  if (hybridIngredients.length >= 2) {
+    addScore(scores, "hybrid", hybridIngredients.slice(0, 3).reduce((sum, value) => sum + value, 0) / Math.min(3, hybridIngredients.length) * 1.2)
+  }
+  for (const family of ["strings", "band", "synth", "piano", "percussion"] as const) {
+    if (!activity.has(family)) addScore(scores, family, -4)
   }
 }
 
 function scoreSongShape(project: ComposerProject, scores: Record<LogicSoundWorldFamily, number>): void {
   const tempo = project.fullSongArrangement?.analysis.bpm ?? project.song.tempo
-  if (tempo >= 124) {
-    addScore(scores, "percussion", 1.7)
+  if (tempo >= 132) {
+    addScore(scores, "percussion", 2.4)
+    addScore(scores, "band", 1.6)
     addScore(scores, "synth", 1.2)
-  } else if (tempo <= 84) {
-    addScore(scores, "piano", 1.4)
-    addScore(scores, "strings", 1.1)
+  } else if (tempo >= 112) {
+    addScore(scores, "band", 1.0)
+    addScore(scores, "percussion", 0.8)
+    addScore(scores, "synth", 0.5)
+  } else if (tempo <= 78) {
+    addScore(scores, "piano", 2.2)
+    addScore(scores, "strings", 1.7)
+  } else if (tempo <= 92) {
+    addScore(scores, "piano", 1.2)
+    addScore(scores, "strings", 1.0)
   }
   const sections = project.fullSongArrangement?.analysis.sections ?? []
   if (sections.length === 0) return
@@ -580,15 +607,28 @@ function scoreSongShape(project: ComposerProject, scores: Record<LogicSoundWorld
   const repetition = average(sections.map((section) => Math.max(section.chordRepetition, section.melodyRepetition)))
   const energies = sections.map((section) => section.energy)
   const energyRange = Math.max(...energies) - Math.min(...energies)
-  if (restRatio >= 0.28) {
+  if (restRatio >= 0.5) {
+    addScore(scores, "strings", 2.0)
+    addScore(scores, "piano", 2.0)
+  } else if (restRatio >= 0.28) {
     addScore(scores, "strings", 1.0)
-    addScore(scores, "piano", 0.8)
+    addScore(scores, "piano", 1.0)
+  } else if (restRatio < 0.12) {
+    addScore(scores, "band", 1.0)
+    addScore(scores, "percussion", 1.0)
   }
-  if (repetition >= 0.58) {
+  if (repetition >= 0.75) {
+    addScore(scores, "synth", 2.0)
+    addScore(scores, "percussion", 1.8)
+    addScore(scores, "band", 0.8)
+  } else if (repetition >= 0.5) {
     addScore(scores, "synth", 1.0)
-    addScore(scores, "percussion", 0.7)
+    addScore(scores, "percussion", 0.8)
   }
-  if (energyRange >= 35) {
+  if (energyRange >= 50) {
+    addScore(scores, "strings", 1.5)
+    addScore(scores, "hybrid", 2.0)
+  } else if (energyRange >= 25) {
     addScore(scores, "strings", 0.8)
     addScore(scores, "hybrid", 1.1)
   }
@@ -596,7 +636,7 @@ function scoreSongShape(project: ComposerProject, scores: Record<LogicSoundWorld
 
 function coreSoundsFor(family: LogicSoundWorldFamily, direction: WholeSongDirectionId): string[] {
   if (family === "strings") {
-    if (direction === "rhythmic-propulsion") return ["Session Strings Pro 2", "LUX Orchestral Strings Elements", "Session Bassist - Prime Bass", "Studio Drummer", "Repro-1"]
+    if (direction === "rhythmic-propulsion") return ["Action Strings 2", "LUX Orchestral Strings Elements", "Session Bassist - Prime Bass", "Studio Drummer", "Repro-1"]
     if (direction === "controlled-escalation") return ["LUX Orchestral Strings Elements", "Emotive Strings", "Symphony Essentials Percussion", "Piano Colors", "Straylight"]
     return ["Emotive Strings", "Session Strings Pro 2", "LUX Orchestral Strings Elements", "Noire", "Ethereal Earth"]
   }
@@ -685,69 +725,32 @@ function kontaktStringSound(id: ArrangementTrackId, world: LogicSoundWorld): Sou
   const role = stringRole(id)
   const direction = world.directionId
 
-  if (id === "str-spiccato" || direction === "rhythmic-propulsion") {
+  if (id === "str-spiccato") {
     return {
       role,
       product: "Kontakt 8",
-      preset: "Session Strings Pro 2",
-      setting: direction === "rhythmic-propulsion"
-        ? "Dry Stringsを選び、短い刻みを中心にする。ドラムと同時に強く鳴らしすぎない"
-        : "短くそろえ、拍の頭だけ少し強くする。長音パートとは役割を分ける",
+      preset: "Action Strings 2",
+      setting: "Action Strings 2.nkiのSingle ArticulationsでStaccato/Spiccatoを選び、短くそろえる。拍の頭だけ少し強くし、長音パートとは役割を分ける",
     }
   }
-
-  if (world.dominantFamily === "strings") {
-    const preset = id === "str-cello"
-      ? "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber"
-      : id === "str-contrabass" ? "Symphony Essentials String Ensemble"
-        : id === "str-viola" ? "Emotive Strings"
-          : direction === "controlled-escalation" && ["str-violin-1", "str-high-octave", "str-upper"].includes(id)
-            ? "LUX Orchestral Strings Elements"
-            : "Emotive Strings"
-    return {
-      role,
-      product: "Kontakt 8",
-      preset,
-      setting: direction === "controlled-escalation"
-        ? "前半は少人数のように薄く、後半ほど音域と強さを開く。弦主体でも全パートを同時に大きくしない"
-        : "主旋律の休みにだけ薄く入り、別の弦パートと同じ強さ・同じ距離で重ねない",
-    }
-  }
-
-  if (direction === "preserve-space" || direction === "motif-relay") {
-    return {
-      role,
-      product: "Kontakt 8",
-      preset: id === "str-cello" ? "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber" : "Emotive Strings",
-      setting: direction === "preserve-space"
-        ? "音を長く残しすぎず、主旋律の休みにだけ薄く入れる。余白を生かす方針を保つ"
-        : "主旋律の切れ目へ短く応答し、同じ旋律をなぞらない。モチーフ受け渡しの方針を保つ",
-    }
-  }
-
-  if (direction === "controlled-escalation") {
-    return {
-      role,
-      product: "Kontakt 8",
-      preset: "LUX Orchestral Strings Elements",
-      setting: "前半は薄く、後半ほど音域と強さを開く。壮大に盛り上げる方針を保つ",
-    }
-  }
-
-  if (id === "str-cello") {
-    return {
-      role,
-      product: "Kontakt 8",
-      preset: "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber",
-      setting: "長くなめらかに鳴らす／定位 やや左／残響 ホール。輪郭を明瞭にしたい場合はCelli Mod - Dry Stringsへ変更",
-    }
-  }
-
+  const preset = id === "str-cello"
+    ? "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber"
+    : id === "str-contrabass" ? "Symphony Essentials String Ensemble"
+      : ["str-viola", "str-violin-2", "str-upper"].includes(id) ? "Emotive Strings"
+        : "LUX Orchestral Strings Elements"
   return {
     role,
     product: "Kontakt 8",
-    preset: "LUX Orchestral Strings Elements",
-    setting: "主旋律を覆わない音量にし、必要な所だけ支える。バランス重視の方針を保つ",
+    preset,
+    setting: direction === "controlled-escalation"
+      ? "前半は薄く、後半ほど音域と強さを開く。弦主体でも全パートを同時に大きくしない"
+      : direction === "rhythmic-propulsion"
+        ? "長音は拍を埋めすぎず、Action Strings 2の短い弦と役割を分ける。ドラムより一段奥へ置く"
+        : direction === "preserve-space"
+          ? "音を長く残しすぎず、主旋律の休みにだけ薄く入れる。余白を生かす方針を保つ"
+          : direction === "motif-relay"
+            ? "主旋律の切れ目へ短く応答し、同じ旋律をなぞらない。モチーフ受け渡しの方針を保つ"
+            : "主旋律を覆わない音量にし、必要な所だけ支える。バランス重視の方針を保つ",
   }
 }
 
@@ -992,14 +995,17 @@ function sourceSound(id: LogicProductionTrackId, world: LogicSoundWorld): Pick<L
 }
 
 /**
- * Kontaktの製品名だけで終わらず、この端末のKomplete Kontrol DBで確認できた
- * 最後のSnapshot / Instrument名まで表示する。ユーザーは末尾の名前を検索すればよい。
+ * Kontaktの製品名だけで終わらず、端末のKomplete Kontrol DBまたは製品の公式階層で確認できた
+ * 最後のSnapshot / Instrument / 奏法名まで表示する。ユーザーは末尾の名前を検索すればよい。
  */
 function finalPresetName(
   preset: string,
   id: LogicProductionTrackId | ArrangementTrackId,
   world: LogicSoundWorld,
 ): string {
+  if (preset === "Action Strings 2") {
+    return "Action Strings 2 / Action Strings 2.nki / Single Articulations - Staccato/Spiccato"
+  }
   if (preset === "Session Strings Pro 2") {
     if (id === "str-cello") return "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber"
     if (id === "str-contrabass") return "Session Strings Pro 2 / Basses - Modern / Basses Mod - Small & Dry"
