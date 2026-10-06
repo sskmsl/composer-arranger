@@ -1813,7 +1813,7 @@ function countMelodyCollisions(project: ComposerProject, plan: ArrangementPlan, 
   ]
   return tracks.reduce((sum, track) => {
     if (track.family === "drums" || track.family === "bass") return sum
-    return sum + track.notes.filter((note) => note.character === "safe" && lead.some((melodyNote) =>
+    return sum + track.notes.filter((note) => (note.character === "safe" || note.character === "edge") && lead.some((melodyNote) =>
       melodyNote.startBeat < note.startBeat + note.durationBeats
       && melodyNote.startBeat + melodyNote.durationBeats > note.startBeat
       && Math.abs(melodyNote.pitch - note.pitch) <= 2,

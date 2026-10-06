@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   arrangementSoundInstructionFromText,
   requestsPercussiveChordRiff,
+  unsupportedArrangementInstructionNotice,
 } from "./arrangementIntent"
 
 describe("arrangement intent", () => {
@@ -19,5 +20,17 @@ describe("arrangement intent", () => {
     ["間奏の終わりにベル1音で次へつなぐ", { target: "interlude", role: "bell", behavior: "fill" }],
   ])("特定の例に限らず自然文を演奏指示へ変換する: %s", (source, expected) => {
     expect(arrangementSoundInstructionFromText(source)).toMatchObject(expected)
+  })
+
+  it("最終サビ・大サビ・最後のサビを最後のサビだけの指示として読む", () => {
+    for (const source of ["最終サビだけストリングスを足して", "大サビで弦を長く伸ばす", "最後のサビでシンセを反復"]) {
+      expect(arrangementSoundInstructionFromText(source)?.target).toBe("final")
+    }
+  })
+
+  it("未対応のギター追加指示は無言で成功扱いにしない", () => {
+    expect(unsupportedArrangementInstructionNotice("後半だけギターを追加する"))
+      .toBe("この指示は反映できませんでした。ギターパートの新規追加にはまだ対応していません。")
+    expect(unsupportedArrangementInstructionNotice("後半だけ弦を追加する")).toBeNull()
   })
 })

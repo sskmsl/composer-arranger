@@ -461,18 +461,34 @@ function briefForSoundWorld(project: ComposerProject): string {
   ].filter(Boolean).join(" ").toLowerCase()
 }
 
-function scoreBrief(scores: Record<LogicSoundWorldFamily, number>, brief: string): LogicSoundWorldFamily[] {
-  const signals: Array<[LogicSoundWorldFamily, RegExp]> = [
+const BRIEF_FAMILY_SIGNALS: Array<[LogicSoundWorldFamily, RegExp]> = [
     ["strings", /弦|ストリング|strings?|orchestr|オーケストラ|室内楽/iu],
     ["band", /ギター|バンド|ロック|生演奏|guitar|band|rock/iu],
     ["synth", /シンセ|電子|テクノ|エレクトロ|アナログ|synth|techno|electro/iu],
     ["piano", /ピアノ|鍵盤|フェルト|piano|keys?|felt/iu],
     ["percussion", /ドラム|打楽器|パーカッション|ビート|リズム主体|drums?|percussion|beat/iu],
     ["hybrid", /ハイブリッド|生音.*電子|電子.*生音|hybrid/iu],
-  ]
+]
+
+interface BriefFamilyIntent {
+  requested: LogicSoundWorldFamily[]
+  excluded: LogicSoundWorldFamily[]
+  lead: LogicSoundWorldFamily | null
+}
+
+function familyIsExcluded(brief: string, pattern: RegExp): boolean {
+  const source = pattern.source
+  return new RegExp(`(?:${source})(?:を|は|が|系)?[^。、「」,]{0,8}(?:なし|使わない|使わず|抜き|除外|以外)`, "iu").test(brief)
+}
+
+function scoreBrief(scores: Record<LogicSoundWorldFamily, number>, brief: string): BriefFamilyIntent {
+  const excluded = BRIEF_FAMILY_SIGNALS
+    .filter(([, pattern]) => familyIsExcluded(brief, pattern))
+    .map(([family]) => family)
   const requested: LogicSoundWorldFamily[] = []
-  for (const [family, pattern] of signals) {
-    if (!pattern.test(brief)) continue
+  for (const [family, pattern] of BRIEF_FAMILY_SIGNALS) {
+    if (excluded.includes(family) || !pattern.test(brief)) continue
+    // 「主体」がなくても、利用者が列挙した音源は世界観の候補として優先する。
     addScore(scores, family, 12)
     requested.push(family)
   }
@@ -484,15 +500,19 @@ function scoreBrief(scores: Record<LogicSoundWorldFamily, number>, brief: string
     ["percussion", /(?:ドラム|打楽器|パーカッション|drums?|percussion).{0,8}(?:主体|中心|主役)/iu],
   ]
   for (const [family, pattern] of leadRequests) {
-    if (pattern.test(brief)) addScore(scores, family, 8)
+    if (!excluded.includes(family) && pattern.test(brief)) addScore(scores, family, 8)
   }
   // ギター／ベースと生ドラムをまとめて求める指示は、ドラム単体ではなくバンド編成として扱う。
   if (requested.includes("band") && requested.includes("percussion")) addScore(scores, "band", 10)
-  return requested
+  const lead = explicitlyRequestedLeadFamily(brief, excluded)
+  return { requested, excluded, lead }
 }
 
-function explicitlyRequestedLeadFamily(brief: string): LogicSoundWorldFamily | null {
-  if (/(?:ギター|バンド|guitar|band)/iu.test(brief) && /(?:ドラム|打楽器|drums?|percussion)/iu.test(brief) && /主体|中心|主役/iu.test(brief)) return "band"
+function explicitlyRequestedLeadFamily(
+  brief: string,
+  excluded: readonly LogicSoundWorldFamily[] = [],
+): LogicSoundWorldFamily | null {
+  if (!excluded.includes("band") && !excluded.includes("percussion") && /(?:ギター|バンド|guitar|band)/iu.test(brief) && /(?:ドラム|打楽器|drums?|percussion)/iu.test(brief) && /主体|中心|主役/iu.test(brief)) return "band"
   const patterns: Array<[LogicSoundWorldFamily, RegExp]> = [
     ["strings", /(?:弦|ストリング|strings?).{0,12}(?:主体|中心|主役)/iu],
     ["band", /(?:ギター|バンド|guitar|band).{0,12}(?:主体|中心|主役)/iu],
@@ -500,27 +520,47 @@ function explicitlyRequestedLeadFamily(brief: string): LogicSoundWorldFamily | n
     ["piano", /(?:ピアノ|鍵盤|piano|keys?).{0,12}(?:主体|中心|主役)/iu],
     ["percussion", /(?:ドラム|打楽器|パーカッション|drums?|percussion).{0,12}(?:主体|中心|主役)/iu],
   ]
-  return patterns.find(([, pattern]) => pattern.test(brief))?.[0] ?? null
+  return patterns.find(([family, pattern]) => !excluded.includes(family) && pattern.test(brief))?.[0] ?? null
 }
 
 function scoreArrangementTracks(project: ComposerProject, scores: Record<LogicSoundWorldFamily, number>): void {
+  const activity = new Map<LogicSoundWorldFamily, { notes: number; soundingBeats: number; weightedVelocity: number }>()
+  const collect = (family: LogicSoundWorldFamily, track: NonNullable<ComposerProject["fullSongArrangement"]>["tracks"][number], share = 1) => {
+    const current = activity.get(family) ?? { notes: 0, soundingBeats: 0, weightedVelocity: 0 }
+    for (const note of track.notes) {
+      current.notes += share
+      current.soundingBeats += Math.min(8, note.durationBeats) * share
+      current.weightedVelocity += note.velocity * share
+    }
+    activity.set(family, current)
+  }
   for (const track of project.fullSongArrangement?.tracks ?? []) {
     if (track.muted || track.notes.length === 0) continue
-    const weight = Math.min(2.4, 0.35 + Math.sqrt(track.notes.length) / 8)
-    if (track.id.startsWith("str-")) addScore(scores, "strings", weight)
-    else if (track.id.startsWith("dr-")) addScore(scores, "percussion", weight)
+    if (track.id.startsWith("str-")) collect("strings", track)
+    else if (track.id.startsWith("dr-")) collect("percussion", track)
     else if (["syn-bass", "syn-bass-mid"].includes(track.id)) {
-      addScore(scores, "band", weight * 0.75)
-      addScore(scores, "synth", weight * 0.35)
+      collect("band", track, 0.7)
+      collect("synth", track, 0.3)
     } else if (track.id === "syn-sub-bass") {
-      addScore(scores, "synth", weight)
+      collect("synth", track)
     } else if (["syn-stabs", "syn-chord-wide"].includes(track.id)) {
-      addScore(scores, "piano", weight * 0.45)
-      addScore(scores, "band", weight * 0.35)
-      addScore(scores, "synth", weight * 0.35)
+      collect("piano", track, 0.4)
+      collect("band", track, 0.25)
+      collect("synth", track, 0.35)
     } else if (track.id.startsWith("syn-")) {
-      addScore(scores, "synth", weight)
+      collect("synth", track)
     }
+  }
+  const values = [...activity.values()]
+  const maxNotes = Math.max(1, ...values.map((value) => value.notes))
+  const maxBeats = Math.max(1, ...values.map((value) => value.soundingBeats))
+  for (const [family, value] of activity) {
+    const averageVelocity = value.weightedVelocity / Math.max(1, value.notes)
+    const normalizedAmount = Math.sqrt(value.notes / maxNotes) * 2
+      + Math.sqrt(value.soundingBeats / maxBeats) * 2
+      + Math.min(1, averageVelocity / 100) * 0.75
+    // 多数のドラム分割トラックを、同じ数の独立した主役として数えない。
+    addScore(scores, family, normalizedAmount * (family === "percussion" ? 0.78 : 1))
   }
 }
 
@@ -556,7 +596,7 @@ function scoreSongShape(project: ComposerProject, scores: Record<LogicSoundWorld
 
 function coreSoundsFor(family: LogicSoundWorldFamily, direction: WholeSongDirectionId): string[] {
   if (family === "strings") {
-    if (direction === "rhythmic-propulsion") return ["Action Strings 2", "Session Strings Pro 2", "Session Bassist - Prime Bass", "Studio Drummer", "Repro-1"]
+    if (direction === "rhythmic-propulsion") return ["Session Strings Pro 2", "LUX Orchestral Strings Elements", "Session Bassist - Prime Bass", "Studio Drummer", "Repro-1"]
     if (direction === "controlled-escalation") return ["LUX Orchestral Strings Elements", "Emotive Strings", "Symphony Essentials Percussion", "Piano Colors", "Straylight"]
     return ["Emotive Strings", "Session Strings Pro 2", "LUX Orchestral Strings Elements", "Noire", "Ethereal Earth"]
   }
@@ -567,11 +607,11 @@ function coreSoundsFor(family: LogicSoundWorldFamily, direction: WholeSongDirect
           : "Session Guitarist - Electric Mint"
     return [guitar, "Session Bassist - Icon Bass", "Studio Drummer", "Noire", "Repro-1"]
   }
-  if (family === "synth") return ["Repro-1", "Repro-5", "Schema - Dark", "Analog Dreams", "Straylight"]
+  if (family === "synth") return ["Repro-1", "Repro-5", "Schema Dark", "Analog Dreams", "Straylight"]
   if (family === "piano") return ["Noire", "Piano Colors", "Una Corda", "Emotive Strings", "Ethereal Earth"]
   if (family === "percussion") return ["Battery 4", "Studio Drummer", "Butch Vig Drums", "Session Percussionist", "Damage"]
   return direction === "motif-relay"
-    ? ["Schema - Dark", "Electric Vintage", "Emotive Strings", "Playbox", "Butch Vig Drums"]
+    ? ["Schema Dark", "Session Guitarist - Electric Vintage", "Emotive Strings", "Playbox", "Butch Vig Drums"]
     : ["Noire", "Repro-5", "Session Bassist - Prime Bass", "Session Strings Pro 2", "Studio Drummer"]
 }
 
@@ -605,13 +645,14 @@ function planLogicSoundWorld(project: ComposerProject): LogicSoundWorld {
   scoreArrangementTracks(project, scores)
   scoreSongShape(project, scores)
   const brief = briefForSoundWorld(project)
-  const requestedFamilies = scoreBrief(scores, brief)
+  const intent = scoreBrief(scores, brief)
   const ranked = (Object.entries(scores) as Array<[LogicSoundWorldFamily, number]>)
+    .filter(([family]) => !intent.excluded.includes(family))
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-  const dominantFamily = explicitlyRequestedLeadFamily(brief) ?? ranked[0][0]
+  const dominantFamily = intent.lead ?? ranked[0]?.[0] ?? "hybrid"
   const supportingFamilies = ranked.filter(([family]) => family !== dominantFamily).slice(0, 2).map(([family]) => family)
   const copy = soundWorldCopy(dominantFamily, directionId)
-  const explicit = requestedFamilies.includes(dominantFamily)
+  const explicit = intent.requested.includes(dominantFamily)
   return {
     directionId,
     dominantFamily,
@@ -648,9 +689,9 @@ function kontaktStringSound(id: ArrangementTrackId, world: LogicSoundWorld): Sou
     return {
       role,
       product: "Kontakt 8",
-      preset: "Action Strings 2",
+      preset: "Session Strings Pro 2",
       setting: direction === "rhythmic-propulsion"
-        ? "短い刻みを中心にし、ドラムと同時に強く鳴らしすぎない。選択中のリズム重視の方針を保つ"
+        ? "Dry Stringsを選び、短い刻みを中心にする。ドラムと同時に強く鳴らしすぎない"
         : "短くそろえ、拍の頭だけ少し強くする。長音パートとは役割を分ける",
     }
   }
@@ -726,12 +767,18 @@ function directionBasedDrumSound(id: ArrangementTrackId, world: LogicSoundWorld)
   const percussion = ["dr-field-drum", "dr-low-tom", "dr-high-tom", "dr-shaker", "dr-percussion-high"].includes(id)
 
   if (world.dominantFamily === "synth" || direction === "rhythmic-propulsion") {
+    const sound = largeHit
+      ? { product: "Kontakt 8", preset: "Damage" }
+      : percussion
+        ? { product: "Kontakt 8", preset: "Session Percussionist" }
+        : id.includes("snare") || id === "dr-clap"
+          ? { product: "Kontakt 8", preset: "Butch Vig Drums" }
+          : ["dr-closed-hat", "dr-open-hat", "dr-ride", "dr-crash"].includes(id)
+            ? { product: "Kontakt 8", preset: "Studio Drummer" }
+            : { product: "Battery 4", preset: "Battery 4 Factory Library / Kits / Elektro 500 Kit" }
     return {
       role,
-      product: "Battery 4",
-      preset: largeHit
-        ? "Battery 4 Factory Library / Kits / 909 Detailed Kit"
-        : world.dominantFamily === "synth" ? "Battery 4 Factory Library / Kits / Elektro 500 Kit" : "Battery 4 Factory Library / Kits / Elektro 500 Kit",
+      ...sound,
       setting: "短く乾いた音を中心にし、キック・スネア・ハイハットの前後関係を明確にする。電子音の輪郭と競わせない",
     }
   }
@@ -802,13 +849,13 @@ function directionBasedBassSound(id: ArrangementTrackId, world: LogicSoundWorld)
     return { role, product: "Repro-1", preset: "01 Basses / EH Heavy Pulse Bass", setting: "アタックを短くし、サブベースと同じ音域を長く重ねない" }
   }
   if (world.dominantFamily === "band") {
-    return { role, product: "Kontakt 8", preset: id === "syn-bass-mid" ? "Scarbee Rickenbacker Bass" : "Session Bassist - Icon Bass", setting: "Melody Instrumentを使い、キックの直前を短くして奏者同士の隙間を作る" }
+    return { role, product: "Kontakt 8", preset: id === "syn-bass-mid" ? "Session Bassist - Prime Bass" : "Session Bassist - Icon Bass", setting: "Melody Instrumentを使い、キックの直前を短くして奏者同士の隙間を作る" }
   }
   if (world.dominantFamily === "strings" || world.dominantFamily === "piano" || direction === "preserve-space") {
     return { role, product: "Kontakt 8", preset: "Session Bassist - Upright Bass", setting: "Melody Instrumentを使い、音数を減らして自然な減衰を残す。余白重視の世界を保つ" }
   }
   if (direction === "rhythmic-propulsion") {
-    return { role, product: "Kontakt 8", preset: id === "syn-bass-mid" ? "Scarbee Rickenbacker Bass" : "Session Bassist - Icon Bass", setting: "Melody Instrumentを使い、ゲートを短めにしてキックと交互に前へ進める" }
+    return { role, product: "Kontakt 8", preset: id === "syn-bass-mid" ? "Session Bassist - Prime Bass" : "Session Bassist - Icon Bass", setting: "Melody Instrumentを使い、ゲートを短めにしてキックと交互に前へ進める" }
   }
   if (direction === "controlled-escalation") {
     return { role, product: "Kontakt 8", preset: "Session Bassist - Prime Bass", setting: "Melody Instrumentを使い、前半は低く小さく、後半だけオクターブ感を足す" }
@@ -829,6 +876,9 @@ function directionBasedSound(id: ArrangementTrackId, world: LogicSoundWorld): So
   if (bass) return bass
 
   if (id === "syn-stabs") {
+    if (direction === "rhythmic-propulsion" && !["strings", "piano"].includes(world.dominantFamily)) {
+      return { role: "短い和音", product: "Kontakt 8", preset: "Session Guitarist - Electric Mint", setting: "Melody Instrumentを選び、短い刻みでドラムと噛み合わせる。リズム重視の方針を保つ" }
+    }
     if (world.dominantFamily === "strings") {
       return { role: "短い和音", product: "Kontakt 8", preset: direction === "controlled-escalation" ? "LUX Orchestral Strings Elements" : "Session Strings Pro 2", setting: "短い弦の和音として使い、長音の弦とは同時に強く鳴らさない" }
     }
@@ -843,9 +893,6 @@ function directionBasedSound(id: ArrangementTrackId, world: LogicSoundWorld): So
     }
     if (direction === "controlled-escalation") {
       return { role: "短い和音", product: "Kontakt 8", preset: "Session Guitarist - Electric Sunburst Deluxe", setting: "Melody Instrumentを選び、後半ほど音量と開放弦の響きを増やす。盛り上げる方針を保つ" }
-    }
-    if (direction === "rhythmic-propulsion") {
-      return { role: "短い和音", product: "Kontakt 8", preset: "Session Guitarist - Electric Mint", setting: "Melody Instrumentを選び、短い刻みでドラムと噛み合わせる。リズム重視の方針を保つ" }
     }
     if (direction === "motif-relay") {
       return { role: "短い和音", product: "Kontakt 8", preset: "Session Guitarist - Electric Vintage", setting: "Melody Instrumentを選び、主旋律の切れ目にだけ短く応答する。モチーフ受け渡しの方針を保つ" }
@@ -865,12 +912,12 @@ function directionBasedSound(id: ArrangementTrackId, world: LogicSoundWorld): So
     return { role: "背景の和音", product: "Kontakt 8", preset: id === "syn-chord-wide" ? "Piano Colors" : "Noire", setting: "鍵盤の余韻だけを背景に残し、主旋律と同じ高さのアタックを弱くする" }
   }
   if (world.dominantFamily === "synth" && ["syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-chord-wide"].includes(id)) {
-    const preset = id === "syn-dark-pad" ? "Schema - Dark" : id === "syn-pad-air" ? "Schema - Light" : id === "syn-pad-motion" ? "Analog Dreams" : "Straylight"
+    const preset = id === "syn-dark-pad" ? "Schema Dark" : id === "syn-pad-air" ? "Schema Light" : id === "syn-pad-motion" ? "Analog Dreams" : "Straylight"
     return { role: id === "syn-chord-wide" ? "広い和音" : "背景の和音", product: "Kontakt 8", preset, setting: "電子的な質感として奥へ置き、Reproの反復音と同時に動かしすぎない" }
   }
 
   if (id === "syn-dark-pad" && direction === "motif-relay") {
-    return { role: "暗い背景の和音", product: "Kontakt 8", preset: "Schema - Dark", setting: "低い持続音を薄く使い、フレーズ間の陰影だけを作る。主旋律より手前へ出さない" }
+    return { role: "暗い背景の和音", product: "Kontakt 8", preset: "Schema Dark", setting: "低い持続音を薄く使い、フレーズ間の陰影だけを作る。主旋律より手前へ出さない" }
   }
   if (id === "syn-pad-air" && direction === "preserve-space") {
     return { role: "薄い高域パッド", product: "Kontakt 8", preset: "Ethereal Earth", setting: "高域の尾だけを小さく残し、主旋律が高い所では休ませる。余白重視の方針を保つ" }
@@ -891,7 +938,7 @@ function directionBasedSound(id: ArrangementTrackId, world: LogicSoundWorld): So
     return { role: "動くパッド", product: "Kontakt 8", preset: "Analog Dreams", setting: "動きを小さく保ち、キックとベースの隙間だけで周期を感じさせる" }
   }
   if (id === "syn-pad-air" && direction === "motif-relay") {
-    return { role: "薄い高域パッド", product: "Kontakt 8", preset: "Schema - Light", setting: "高い断片を小さく置き、Schema - Darkと同時に強く鳴らさない" }
+    return { role: "薄い高域パッド", product: "Kontakt 8", preset: "Schema Light", setting: "高い断片を小さく置き、Schema Darkと同時に強く鳴らさない" }
   }
   return null
 }
@@ -908,7 +955,7 @@ function counterSound(world: LogicSoundWorld): Pick<LogicSoundRow, "product" | "
     return { product: "Kontakt 8", preset: "LUX Orchestral Strings Elements" }
   }
   if (direction === "rhythmic-propulsion") {
-    return { product: "Kontakt 8", preset: "Action Strings 2" }
+    return { product: "Kontakt 8", preset: "Session Strings Pro 2" }
   }
   return { product: "Kontakt 8", preset: "Session Strings Pro 2 / Celli - Modern / Celli Mod - Dry Strings" }
 }
@@ -939,9 +986,102 @@ function sourceSound(id: LogicProductionTrackId, world: LogicSoundWorld): Pick<L
     return { product: "Kontakt 8", preset: "Straylight" }
   }
   if (id === "selected-intro-phrase" && direction === "motif-relay") {
-    return { product: "Kontakt 8", preset: "Schema - Dark" }
+    return { product: "Kontakt 8", preset: "Schema Dark" }
   }
-  return SOURCE_SOUNDS[id] ?? { product: "Kontakt 8", preset: "初期Instrument" }
+  return SOURCE_SOUNDS[id] ?? { product: "Kontakt 8", preset: "Noire" }
+}
+
+/**
+ * Kontaktの製品名だけで終わらず、この端末のKomplete Kontrol DBで確認できた
+ * 最後のSnapshot / Instrument名まで表示する。ユーザーは末尾の名前を検索すればよい。
+ */
+function finalPresetName(
+  preset: string,
+  id: LogicProductionTrackId | ArrangementTrackId,
+  world: LogicSoundWorld,
+): string {
+  if (preset === "Session Strings Pro 2") {
+    if (id === "str-cello") return "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber"
+    if (id === "str-contrabass") return "Session Strings Pro 2 / Basses - Modern / Basses Mod - Small & Dry"
+    if (id === "str-viola") return "Session Strings Pro 2 / Violas - Modern / Violas Mod - Dry Strings"
+    if (id === "str-spiccato") return "Session Strings Pro 2 / Violins - Modern / Violins Mod - Dry Strings"
+    if (id === "syn-stabs") return "Session Strings Pro 2 / Ensemble - Modern / Ens Mod - Small & Dry"
+    return "Session Strings Pro 2 / Violins - Modern / Violins Mod - Chamber"
+  }
+  if (preset === "Emotive Strings") {
+    if (["str-cello", "str-contrabass"].includes(id)) return "Emotive Strings / Low Melodic / Dark Prophecy Low"
+    if (id === "str-spiccato") return "Emotive Strings / High Basic / Basic Ostinatos 2"
+    return "Emotive Strings / High Melodic / Afterlife"
+  }
+  if (preset === "LUX Orchestral Strings Elements") {
+    if (id === "str-violin-2") return "LUX Orchestral Strings Elements / 02 LUX Violins 2 Elements"
+    if (id === "str-viola") return "LUX Orchestral Strings Elements / 03 LUX Violas Elements"
+    if (id === "str-cello") return "LUX Orchestral Strings Elements / 04 LUX Celli Elements"
+    if (id === "str-contrabass") return "LUX Orchestral Strings Elements / 05 LUX Basses Elements"
+    return "LUX Orchestral Strings Elements / 01 LUX Violins 1 Elements"
+  }
+  if (preset === "Symphony Essentials String Ensemble") {
+    if (id === "str-contrabass") return "Symphony Essentials String Ensemble / Basses Essential"
+    if (id === "str-cello") return "Symphony Essentials String Ensemble / Cellos Essential"
+    if (id === "str-viola") return "Symphony Essentials String Ensemble / Violas Essential"
+    if (id === "str-violin-2") return "Symphony Essentials String Ensemble / Violins 2 Essential"
+    return "Symphony Essentials String Ensemble / Violins 1 Essential"
+  }
+  if (preset === "Studio Drummer" || preset === "Studio Drummer / Factory Kit") {
+    if (world.directionId === "controlled-escalation") return "Studio Drummer / Stadium Kit - Full / Stadium Ballad"
+    if (world.directionId === "preserve-space") return "Studio Drummer / Session Kit - Full / Session Ballad"
+    return "Studio Drummer / Session Kit - Full / Session Indie Rock"
+  }
+  if (preset === "Butch Vig Drums" || preset === "Butch Vig Drums / Factory Kit") {
+    return world.directionId === "preserve-space"
+      ? "Butch Vig Drums / Dead Room (87 bpm)"
+      : "Butch Vig Drums / The Nasty Room (140 bpm)"
+  }
+  if (preset === "Session Percussionist" || preset === "Session Percussionist / Factory Preset") {
+    if (id === "dr-shaker") return "Session Percussionist / 3 Players / Double Shaker I"
+    if (id === "dr-percussion-high") return "Session Percussionist / 1 Player / Bright Chimes"
+    if (["dr-low-tom", "dr-high-tom", "dr-field-drum"].includes(id)) return "Session Percussionist / 3 Players / Organic Clock"
+    return "Session Percussionist / 3 Players / Small Combo"
+  }
+  if (preset === "Damage" || preset === "Damage / Factory Kit") {
+    if (id === "dr-gran-cassa") return "Damage / Main Percussion / PERC Studio Concert Bass Drum"
+    if (id === "dr-cymbal-swell") return "Damage / Main Percussion / PERC Cymbal Performance FX"
+    return "Damage / One Shot / Kits / PERC Damage Hit Impacts"
+  }
+  if (preset === "Symphony Essentials Percussion") {
+    if (id === "dr-field-drum") return "Symphony Essentials Percussion / Drums / Field Drum"
+    if (id === "dr-low-tom") return "Symphony Essentials Percussion / Drums / Tom 1"
+    if (id === "dr-high-tom") return "Symphony Essentials Percussion / Drums / Tom 3"
+    if (id === "dr-shaker") return "Symphony Essentials Percussion / Wood / Shakers"
+    if (id === "dr-cymbal-swell") return "Symphony Essentials Percussion / Cymbals / Cymbal 2"
+    return "Symphony Essentials Percussion / Orchestral Percussion Kit"
+  }
+  if (preset === "Session Bassist - Prime Bass" || preset === "Session Bassist - Prime Bass / Prime Bass") return "Session Bassist - Prime Bass / Melody / 8th Bass (Melody)"
+  if (preset === "Session Bassist - Icon Bass") return "Session Bassist - Icon Bass / Melody / In the Pocket (Melody)"
+  if (preset === "Session Bassist - Upright Bass") return "Session Bassist - Upright Bass / Melody / Keep It Simple (Melody)"
+  if (preset === "Session Guitarist - Picked Nylon") return "Session Guitarist - Picked Nylon / Melody / Calm Sea (Melody)"
+  if (preset === "Session Guitarist - Electric Mint") return "Session Guitarist - Electric Mint / Melody / Clean and Wide (Melody)"
+  if (preset === "Session Guitarist - Electric Vintage") return "Session Guitarist - Electric Vintage / Melody / Cold Lake (Melody)"
+  if (preset === "Session Guitarist - Electric Sunburst Deluxe") return "Session Guitarist - Electric Sunburst Deluxe / Melody / In the Clouds (Melody)"
+  if (preset === "Piano Colors") {
+    return id === "syn-stabs"
+      ? "Piano Colors / Combined / Dark Mallet"
+      : "Piano Colors / Combined / Relaxed Chords"
+  }
+  if (preset === "Noire" || preset === "Noire / Pure") {
+    return id === "syn-dark-pad" ? "Noire / Felt - Grand Piano / Gentle Dark" : "Noire / Basic Pure"
+  }
+  if (preset === "Playbox" || preset === "Playbox / Factory Presets") {
+    return id === "selected-intro-phrase"
+      ? "Playbox / Instruments / A Movie Plot"
+      : "Playbox / Instruments / Dream Sequence"
+  }
+  if (preset === "Schema Dark") return "Schema Dark / Tonal / Orchestral / Dirty Sustain Strings"
+  if (preset === "Schema Light") return "Schema Light / Chord / Ghost Chords"
+  if (preset === "Straylight") return "Straylight / Atmospheres / Cold Morning"
+  if (preset === "Analog Dreams") return "Analog Dreams / Analog Dreams 2.0 / Sensual Background"
+  if (preset === "Ethereal Earth") return "Ethereal Earth / Ethereal Earth 1.0 / Angelic Whispers"
+  return preset
 }
 
 const SOURCE_VOLUME_DB: Record<LogicProductionTrackId, number> = {
@@ -1027,6 +1167,7 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
       trackName: SONG_MIDI_TRACK_NAMES[id] ?? source.name,
       role: SONG_TRACK_ROLES[id] ?? source.role,
       ...sound,
+      preset: finalPresetName(sound.preset, id, world),
       volumeDb: SOURCE_VOLUME_DB[id],
       setting: sourceSetting(source),
     }]
@@ -1037,7 +1178,7 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
       ?? ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue
     const label = arrangementTrackLabel(track.id)
-    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: sound.preset, volumeDb: arrangementVolumeDb(track.id, world), setting: sound.setting })
+    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: finalPresetName(sound.preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world), setting: sound.setting })
   }
   return rows
 }

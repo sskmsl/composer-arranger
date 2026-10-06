@@ -54,6 +54,7 @@ export function parseArrangementTimelineConstraints(
   sections: readonly Section[] = [],
 ): ArrangementTimelineConstraints {
   const text = asciiDigits(source)
+  const foldedText = text.toLocaleLowerCase()
   const fullSilenceRanges: ArrangementBarRange[] = []
   const melodySilenceRanges: ArrangementBarRange[] = []
   const rangeList = String.raw`\d+(?:\s*[〜～~\-–—]\s*\d+)?(?:\s*(?:\/|／|、|,|・)\s*\d+(?:\s*[〜～~\-–—]\s*\d+)?)*`
@@ -78,13 +79,27 @@ export function parseArrangementTimelineConstraints(
     const kind = silenceKind(clause)
     // Section名を含む指示は、曲全体の「最初／最後」より先にSection相対で解決する。
     // 例:「FINAL CHORUSの最初の2小節」は曲頭ではなく、そのSection先頭を指す。
-    const exactNameMatches = sections.filter((section) => section.name && clause.includes(section.name))
+    const foldedClause = clause.toLocaleLowerCase()
+    const finalChorusRequested = /大サビ|最終サビ|ラスサビ|最後のサビ|final\s*chorus/i.test(clause)
+    const genericVerseRequested = /(?:すべての|全ての|全部の)?\s*(?:aメロ|verse)(?!\s*\d)/i.test(clause)
+    const genericChorusRequested = !finalChorusRequested && /(?:すべての|全ての|全部の)?\s*(?:サビ|chorus)(?!\s*\d)/i.test(clause)
+    const chorusSections = sections.filter((section) => ["chorus", "breakdown-chorus", "grand-chorus"].includes(section.role))
+    const roleMatches = finalChorusRequested
+      ? chorusSections.slice(-1)
+      : genericVerseRequested
+        ? sections.filter((section) => section.role === "verse")
+        : genericChorusRequested
+          ? chorusSections
+          : []
+    const exactNameMatches = roleMatches.length > 0 ? [] : sections.filter((section) => section.name && foldedClause.includes(section.name.toLocaleLowerCase()))
     const longestExactName = exactNameMatches.reduce((length, section) => Math.max(length, section.name.length), 0)
-    const namedSections = longestExactName > 0
+    const namedSections = roleMatches.length > 0
+      ? roleMatches
+      : longestExactName > 0
       ? exactNameMatches.filter((section) => section.name.length === longestExactName)
       : sections.filter((section) => {
           const roleLabel = SECTION_ROLE_LABELS[section.role]
-          return roleLabel && clause.includes(roleLabel)
+          return roleLabel && foldedClause.includes(roleLabel.toLocaleLowerCase())
         })
     if (namedSections.length > 0) {
       const before = /(?:直前|前)[^。\n]{0,10}(?:全休止|一瞬(?:止|休)|何も鳴らさ)/i.test(clause)
@@ -122,6 +137,13 @@ export function parseArrangementTimelineConstraints(
       })
       continue
     }
+  }
+
+  // 「25〜28小節、45〜48小節、65〜68小節は完全無音」のように、
+  // 各範囲へ「小節」が付く列挙も、末尾の述語を全範囲へ適用する。
+  const repeatedRangeSequence = String.raw`(\d+\s*(?:[〜～~\-–—]\s*\d+)?\s*小節(?:目)?(?:\s*(?:\/|／|、|,|・)\s*\d+\s*(?:[〜～~\-–—]\s*\d+)?\s*小節(?:目)?)+)`
+  for (const match of foldedText.matchAll(new RegExp(`${repeatedRangeSequence}(?:\\s*(?:は|を|で|に))?\\s*(?:完全(?:に)?)?\\s*(?:無音|鳴らさない|音を出さない)`, "gi"))) {
+    fullSilenceRanges.push(...rangesFromList(match[1], totalBars))
   }
 
   for (const match of text.matchAll(new RegExp(`(${rangeList})\\s*小節(?:目)?(?:\\s*(?:は|を|で|に))?\\s*(?:完全(?:に)?)?\\s*(?:無音|鳴らさない|音を出さない)`, "gi"))) {

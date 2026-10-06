@@ -62,6 +62,10 @@ const TRACK_RANGES: Record<string, readonly [number, number]> = {
   "str-high-octave": [67, 104],
 }
 
+function canMaskMelody(note: GeneratedArrangementNote): boolean {
+  return note.character === "safe" || note.character === "edge"
+}
+
 function clamp(value: number, low = 0, high = 100): number {
   return Math.max(low, Math.min(high, Number.isFinite(value) ? value : low))
 }
@@ -195,7 +199,7 @@ function auditionMetrics(
   const tonalNotes = tonal.flatMap((track) => track.notes.map((note) => ({ track, note })))
   const masking = tonalNotes.filter(({ track, note }) =>
     track.family !== "bass"
-    && note.character === "safe"
+    && canMaskMelody(note)
     && (FOREGROUND_SUPPORT.has(track.id) || LAYER_TRACKS.has(track.id))
     && overlappingNotes(foregroundIndex, note).some((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 5),
   )
@@ -204,7 +208,7 @@ function auditionMetrics(
   // 主旋律の音数が多くても、1件残っていれば修理ループを開始する。
   const blockingMelodyCollisions = tonalNotes.filter(({ track, note }) =>
     track.family !== "bass"
-    && note.character === "safe"
+    && canMaskMelody(note)
     && overlappingNotes(foregroundIndex, note).some((leadNote) => Math.abs(note.pitch - leadNote.pitch) <= 2),
   ).length
 
@@ -474,7 +478,7 @@ function repairPass(
           velocityAdjustments += 1
         }
       }
-      const leadCollision = !groupDecision && track.family !== "drums" && track.family !== "bass" && note.character === "safe"
+      const leadCollision = !groupDecision && track.family !== "drums" && track.family !== "bass" && canMaskMelody(note)
         ? overlappingNotes(foregroundIndex, next).find((leadNote) => Math.abs(next.pitch - leadNote.pitch) <= 5)
         : undefined
       if (leadCollision) {

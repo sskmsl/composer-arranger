@@ -9,6 +9,7 @@ import {
   proposalsFromResponse,
 } from "@/ai-arranger/arrangementChatAdvice"
 import { plainDirectionText } from "@/ai-arranger/directionPresentation"
+import { unsupportedArrangementInstructionNotice } from "@/core/arrangementIntent"
 import {
   entriesInMonth,
   formatTokens,
@@ -121,11 +122,12 @@ export function ArrangementChatPanel({
       const now = new Date().toISOString()
       const replyId = `reply:${response.requestId}:${now}`
       const proposals = proposalsFromResponse(current, response, text, response.confirmedConstraints, replyId)
+      const unsupportedNotice = unsupportedArrangementInstructionNotice(text)
       const reply: ArrangementChatMessage = {
         id: replyId,
         role: "assistant",
         createdAt: now,
-        text: plainDirectionText(response.partnerReply),
+        text: [plainDirectionText(response.partnerReply), unsupportedNotice].filter(Boolean).join("\n\n"),
         proposals,
         usage: {
           costUsd: response.cached ? 0 : response.usage.estimatedCostUsd,

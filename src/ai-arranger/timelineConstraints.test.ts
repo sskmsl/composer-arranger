@@ -18,6 +18,17 @@ describe("AI arrangement timeline constraints", () => {
     })
   })
 
+  it("各範囲に小節と書いた列挙も、すべて完全無音にする", () => {
+    expect(parseArrangementTimelineConstraints(
+      "25〜28小節、45〜48小節、65〜68小節は完全無音",
+      80,
+    ).fullSilenceRanges).toEqual([
+      { startBar: 25, endBar: 28 },
+      { startBar: 45, endBar: 48 },
+      { startBar: 65, endBar: 68 },
+    ])
+  })
+
   it("全角数字を扱い、曲長の外側は末尾へ収める", () => {
     expect(parseArrangementTimelineConstraints(
       "９９〜１２０小節を完全に無音。９小節目から主旋律",
@@ -132,5 +143,37 @@ describe("AI arrangement timeline constraints", () => {
       64,
       sections,
     ).fullSilenceRanges).toEqual([{ startBar: 41, endBar: 42 }])
+  })
+
+  it("大サビとFINAL CHORUSを、日本語名・英語名に関係なく最後のサビだけへ解決する", () => {
+    const sections = [
+      { id: "intro", name: "イントロ", role: "intro" as const, startBar: 1, lengthBars: 8 },
+      { id: "chorus-1", name: "サビ", role: "chorus" as const, startBar: 25, lengthBars: 8 },
+      { id: "chorus-2", name: "Chorus 2", role: "chorus" as const, startBar: 41, lengthBars: 8 },
+      { id: "final", name: "Final Chorus", role: "chorus" as const, startBar: 57, lengthBars: 8 },
+      { id: "outro", name: "アウトロ", role: "outro" as const, startBar: 65, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints("FINAL CHORUS直前で全休止", 72, sections).fullSilenceRanges)
+      .toEqual([{ startBar: 56, endBar: 56 }])
+    expect(parseArrangementTimelineConstraints("大サビの直前で全休止", 72, sections).fullSilenceRanges)
+      .toEqual([{ startBar: 56, endBar: 56 }])
+    expect(parseArrangementTimelineConstraints("ラスト2小節は完全無音", 72, sections).fullSilenceRanges)
+      .toEqual([{ startBar: 71, endBar: 72 }])
+  })
+
+  it("日本語名でも同じ役割のAメロとサビすべてへ適用する", () => {
+    const sections = [
+      { id: "verse-1", name: "Aメロ", role: "verse" as const, startBar: 9, lengthBars: 8 },
+      { id: "chorus-1", name: "サビ", role: "chorus" as const, startBar: 17, lengthBars: 8 },
+      { id: "verse-2", name: "Aメロ2", role: "verse" as const, startBar: 25, lengthBars: 8 },
+      { id: "chorus-2", name: "サビ2", role: "chorus" as const, startBar: 33, lengthBars: 8 },
+    ]
+    expect(parseArrangementTimelineConstraints("すべてのAメロの最初の2小節は無音。サビ前で一瞬止める", 40, sections).fullSilenceRanges)
+      .toEqual([
+        { startBar: 9, endBar: 10 },
+        { startBar: 16, endBar: 16 },
+        { startBar: 25, endBar: 26 },
+        { startBar: 32, endBar: 32 },
+      ])
   })
 })

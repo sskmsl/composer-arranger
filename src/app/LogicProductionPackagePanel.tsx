@@ -22,6 +22,7 @@ export function LogicProductionPackagePanel() {
           下の表のトラックがすべて入っています。各トラックに、表の音源を割り当てます。
           Reproは、この端末にあるファクトリープリセットの実名を表示します。
           Kontakt音源は、Logic Proでは「Kontakt 8」を選び、その中で表示されたライブラリと楽器・奏法を読み込みます。
+          「最終プリセット」の末尾にある名前まで選んでください。Kontaktの検索欄には末尾の名前を入力できます。
           音量はミックス開始時の目安です。まず表示値へ合わせ、マスターの最大音量が-6 dB前後に収まるよう最後に微調整してください。
           設定中のトラックは、行をクリックすると目印として選択できます。
         </p>
@@ -49,7 +50,7 @@ export function LogicProductionPackagePanel() {
               <tr>
                 <th scope="col" className="px-3 py-2 font-medium">トラック</th>
                 <th scope="col" className="px-3 py-2 font-medium">Logicで選ぶ音源</th>
-                <th scope="col" className="px-3 py-2 font-medium">プリセット／読み込み先</th>
+                <th scope="col" className="px-3 py-2 font-medium">最終プリセット（検索名まで）</th>
                 <th scope="col" className="px-3 py-2 font-medium">音量目安</th>
                 <th scope="col" className="px-3 py-2 font-medium">設定</th>
               </tr>

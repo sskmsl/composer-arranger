@@ -12,7 +12,8 @@ import {
   upgradeFullSongArrangementOrchestration,
 } from "./arrangementGenerator"
 import { arrangementTrackPlacement, exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
-import { evaluateArrangementAudition } from "./arrangementAuditionCritic"
+import { evaluateArrangementAudition, refineArrangementByAudition } from "./arrangementAuditionCritic"
+import { parseMidi } from "@/midi/importMidi"
 
 function project(): ComposerProject {
   const base = createEmptyProject("Arrangement Test")
@@ -923,6 +924,53 @@ describe("Arrangement Generator", () => {
     expect(result.plan.directive?.timelineConstraints?.fullSilenceRanges).toEqual([
       { startBar: 25, endBar: 28 },
     ])
+  })
+
+  it("edge音も密な主旋律との全音以内の衝突を修理し、書き出し後も0件にする", () => {
+    const input = project()
+    const denseLead = Array.from({ length: 112 * 4 }, (_, index) => [
+      index * 0.25,
+      0.25,
+      84 + index % 3,
+      88,
+      0,
+    ] as [number, number, number, number, number])
+    input.importedArrangement = {
+      ...input.importedArrangement!,
+      tracks: [{ ...input.importedArrangement!.tracks[0], notes: denseLead }],
+    }
+    const generated = generateFullSongArrangement(input, { seed: 2468 })
+    const collidingBeat = 80
+    const collidingPitch = denseLead.find((note) => note[0] === collidingBeat)![2] - 2
+    const injected = generated.tracks.map((track) => {
+      if (track.id !== "syn-final-lift") return track
+      const template = track.notes[0]
+      return {
+          ...track,
+          notes: [{
+            ...template,
+            id: template?.id ?? "edge-collision",
+            locks: template?.locks ?? { pitch: false, rhythm: false },
+            startBeat: collidingBeat,
+            durationBeats: 1.75,
+            pitch: collidingPitch,
+            velocity: 88,
+            sectionId: "final",
+            character: "edge" as const,
+            reason: "edge collision regression",
+          }],
+        }
+    })
+    const refined = refineArrangementByAudition(input, generated.plan, injected)
+    const exported = parseMidi(exportArrangementMidi(input, { ...generated, tracks: refined.tracks }))
+    const finalLift = exported.tracks.find((track) => track.name === ARRANGEMENT_TRACK_NAMES["syn-final-lift"])
+    const lead = denseLead.map((note) => ({ start: note[0], end: note[0] + note[1], pitch: note[2] }))
+    const collisions = (finalLift?.notes ?? []).filter((note) => {
+      const start = note.startTick / exported.ppq
+      const end = start + note.durationTicks / exported.ppq
+      return lead.some((melody) => melody.start < end && melody.end > start && Math.abs(melody.pitch - note.pitch) <= 2)
+    })
+    expect(collisions).toEqual([])
   })
 
   it("同一のコード・歌メロ・Tempo・SectionでGenreだけを変えるとBassとRhythmの実音MIDIが変わる", () => {

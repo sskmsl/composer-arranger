@@ -11,6 +11,7 @@ import {
 import { useProjectStore } from "@/store/useProjectStore"
 import { DIRECTION_DESCRIPTIONS, DIRECTION_DETAILS, DIRECTION_NAMES } from "./directionNames"
 import { Button } from "@/ui/primitives"
+import { generateSelectedDirection } from "./directionGeneration"
 
 const ENERGY_DELTA: Record<WholeSongArrangementDirection["character"], number> = {
   minimal: -8,
@@ -37,6 +38,7 @@ export function DirectionPicker({
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
   const generate = useProjectStore((state) => state.generateDirectionArrangement)
+  const setArrangementDirectorWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
   const [selectedId, setSelectedId] = useState<WholeSongDirectionId | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -55,12 +57,12 @@ export function DirectionPicker({
     // 押した直後に「作っています」を描画してから、重い生成を始める
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     try {
-      generate(DIRECTION_NAMES[chosen.id], `${chosen.title}。${chosen.summary}`, {
-        intention: chosen.summary,
-        character: chosen.character,
-        energyDelta: ENERGY_DELTA[chosen.character],
-        surpriseLevel: chosen.character === "dark-experimental" ? 0.6 : 0.15,
-      })
+      generateSelectedDirection(
+        chosen,
+        (selectedDirectionId) => setArrangementDirectorWorkspace({ selectedDirectionId }),
+        generate,
+        ENERGY_DELTA[chosen.character],
+      )
       onDone?.()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "全曲アレンジを作れませんでした。")

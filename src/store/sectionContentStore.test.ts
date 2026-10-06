@@ -671,6 +671,13 @@ describe("Arrangement Director Workspace", () => {
       selectedDirectionId: "controlled-escalation",
     })
   })
+
+  it("選んだDirectionは保存データを読み直しても残る", () => {
+    useProjectStore.getState().setArrangementDirectorWorkspace({ selectedDirectionId: "motif-relay" })
+    const saved = JSON.parse(JSON.stringify(useProjectStore.getState().project))
+    useProjectStore.getState().loadProject(saved)
+    expect(useProjectStore.getState().project.arrangementDirectorWorkspace?.selectedDirectionId).toBe("motif-relay")
+  })
 })
 
 describe("セクションの複製", () => {

@@ -43,13 +43,23 @@ function targetFrom(source: string): ArrangementSoundTarget {
   if (/イントロ|曲の頭|冒頭|intro/.test(source)) return "intro"
   if (/aメロ|verse/.test(source)) return "verse"
   if (/bメロ|プレコーラス|pre[ -]?chorus/.test(source)) return "pre"
-  if (/ラスサビ|最後のサビ|final/.test(source)) return "final"
+  if (/ラスサビ|最終(?:の)?サビ|大サビ|最後(?:の)?サビ|final/.test(source)) return "final"
   if (/サビ|chorus/.test(source)) return "chorus"
   if (/ブリッジ|bridge/.test(source)) return "bridge"
   if (/間奏|interlude/.test(source)) return "interlude"
   if (/アウトロ|outro|終わり/.test(source)) return "outro"
   if (/全曲|曲全体|whole/.test(source)) return "whole-song"
   return "selected-section"
+}
+
+/** 今回の決定論的Generatorがまだ音として実行できない指示を、無言で成功扱いにしない。 */
+export function unsupportedArrangementInstructionNotice(source: string): string | null {
+  const normalized = source.normalize("NFKC").toLocaleLowerCase()
+  const requestsGuitar = /ギター|guitar/.test(normalized)
+    && /追加|足し|入れ|加え|鳴ら|add/.test(normalized)
+  return requestsGuitar
+    ? "この指示は反映できませんでした。ギターパートの新規追加にはまだ対応していません。"
+    : null
 }
 
 function roleFrom(source: string): ArrangementSoundRole | null {
