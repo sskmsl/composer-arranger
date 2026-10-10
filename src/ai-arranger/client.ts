@@ -6,8 +6,8 @@ import type {
 } from "./types"
 
 const FUNCTION_NAME = "composer-arranger-ai"
-// 文章方針を変えたときに、以前の抽象的な返答を24時間再表示しない。
-const CACHE_PREFIX = "composer-arranger:ai-advice:v5:"
+// 対話→確認→変更案の流れに変えたため、旧形式の3案を再表示しない。
+const CACHE_PREFIX = "composer-arranger:ai-advice:v6:"
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 interface CachedAdvice {
@@ -24,7 +24,8 @@ function cacheKey(request: AiArrangementRequest): string {
       })
     : "no-audio"
   const conversationFingerprint = JSON.stringify(request.conversation ?? null)
-  return `${CACHE_PREFIX}${aiContextFingerprint(`${request.prompt}\n${audioFingerprint}\n${conversationFingerprint}`, request.context)}`
+  const requestedMode = request.requestedResponseMode ?? "legacy"
+  return `${CACHE_PREFIX}${aiContextFingerprint(`${request.prompt}\n${audioFingerprint}\n${conversationFingerprint}\n${requestedMode}`, request.context)}`
 }
 
 function cachedAdvice(request: AiArrangementRequest): AiArrangementResponse | null {
@@ -51,14 +52,20 @@ function saveCachedAdvice(
   }
 }
 
-function isArrangementResponse(value: unknown): value is AiArrangementResponse {
+export function isArrangementResponse(value: unknown): value is AiArrangementResponse {
   if (!value || typeof value !== "object") return false
   const candidate = value as Partial<AiArrangementResponse>
+  const intents = candidate.intents
+  const mode = candidate.responseMode
+  const validModeAndIntents = mode === undefined
+    ? Array.isArray(intents) && intents.length === 3
+    : mode === "discussion"
+      ? Array.isArray(intents) && intents.length === 0 && typeof candidate.confirmationQuestion === "string" && candidate.confirmationQuestion.trim().length > 0
+      : mode === "proposal" && Array.isArray(intents) && intents.length === 3
   return (
     typeof candidate.requestId === "string" &&
     typeof candidate.model === "string" &&
-    Array.isArray(candidate.intents) &&
-    candidate.intents.length === 3 &&
+    validModeAndIntents &&
     typeof candidate.partnerReply === "string" &&
     Array.isArray(candidate.confirmedConstraints) &&
     Boolean(candidate.diagnosis) &&

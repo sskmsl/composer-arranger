@@ -141,16 +141,26 @@ export interface AiUsage {
   estimatedCostUsd: number
 }
 
+export type AiArrangementResponseMode = "discussion" | "proposal"
+
 export interface AiArrangementResponse {
   requestId: string
   createdAt: string
   model: string
+  /**
+   * discussion は相談への回答と方向確認だけを行い、proposal は確認後の変更案を返す。
+   * 省略は旧形式との読み込み互換用で、3案を持つ proposal として扱う。
+   */
+  responseMode?: AiArrangementResponseMode
   /** 最新の相談へ直接答える、会話表示用の短い返答。 */
   partnerReply: string
+  /** discussion のとき、変更案を作る前に作曲者へ確認する質問。 */
+  confirmationQuestion?: string
   /** 後続ターンでも維持する、現在有効な制約の完全な一覧。 */
   confirmedConstraints: string[]
   diagnosis: AiArrangementDiagnosis
-  intents: [AiArrangementIntent, AiArrangementIntent, AiArrangementIntent]
+  /** discussion では空、proposal では3案。 */
+  intents: AiArrangementIntent[]
   usage: AiUsage
   cached?: boolean
 }
@@ -556,6 +566,8 @@ export interface AiArrangementRequest {
   context: AiArrangementContext
   conversation?: AiConversationContext
   audio?: AiAudioPayload
+  /** 通常の相談か、作曲者が確認済みの3案作成かを画面側で明示する。 */
+  requestedResponseMode?: AiArrangementResponseMode
 }
 
 export interface AiCurrentArrangementSummary {

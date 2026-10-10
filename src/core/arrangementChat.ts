@@ -102,6 +102,11 @@ export interface ArrangementChatMessage {
   createdAt: string
   text: string
   proposals?: ArrangementChatProposal[]
+  /** 相談だけの返答で、変更案を作る前に作曲者へ確認する内容。 */
+  proposalConfirmation?: {
+    question: string
+    prompt: string
+  }
   /** 適用した案のIDと、その結果できた版 */
   appliedProposalId?: string
   appliedVersionId?: string

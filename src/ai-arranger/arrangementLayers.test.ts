@@ -69,7 +69,9 @@ function response(generator: AiArrangementIntent["generator"]): AiArrangementRes
     requestId: "req-1",
     createdAt: "2026-09-25T00:00:00.000Z",
     model: "test",
+    responseMode: "proposal",
     partnerReply: "対旋律を足します。",
+    confirmationQuestion: "",
     confirmedConstraints: [],
     diagnosis: {
       currentStrength: "", primaryOpportunity: "", protect: [], avoid: [],

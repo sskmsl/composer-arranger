@@ -9,6 +9,7 @@ import {
   proposalsFromResponse,
 } from "@/ai-arranger/arrangementChatAdvice"
 import { plainDirectionText } from "@/ai-arranger/directionPresentation"
+import { requestedResponseModeForConsultation } from "@/ai-arranger/consultationFlow"
 import { unsupportedArrangementInstructionNotice } from "@/core/arrangementIntent"
 import {
   entriesInMonth,
@@ -47,7 +48,7 @@ const FOLLOW_UP_SUGGESTIONS = ["理由をもっと詳しく", ANOTHER_PROPOSAL, 
 type ListenKey = `${string}:${"before" | "after"}`
 
 /**
- * アレンジ相談チャット。形になった曲について会話し、AIの提案を変更案カードとして受け取る。
+ * アレンジ相談チャット。まず会話で方向を確認し、作曲者が了承してから変更案カードを作る。
  * 変更案は実際に作った全曲アレンジと、いまの版の違いを示し、変更前/変更後を聴き比べてから適用できる。
  */
 export function ArrangementChatPanel({
@@ -88,6 +89,11 @@ export function ArrangementChatPanel({
   const chatUsage = summarizeAiUsage(
     messages.flatMap((message) => (message.usage ? [{ at: message.createdAt, ...message.usage }] : [])),
   )
+  const latestAssistantId = [...messages].reverse().find((message) => message.role === "assistant")?.id
+  const awaitingProposalConfirmation = Boolean(
+    latestAssistantId
+    && messages.find((message) => message.id === latestAssistantId)?.proposalConfirmation,
+  )
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -98,7 +104,7 @@ export function ArrangementChatPanel({
     previewPlayer.stop()
   }, [])
 
-  const send = async (raw: string) => {
+  const send = async (raw: string, forceProposal = false) => {
     const text = raw.trim()
     if (text.length < 3 || sendingText) return
     const latest = useProjectStore.getState().project
@@ -111,9 +117,13 @@ export function ArrangementChatPanel({
     setSendingText(text)
     setInput("")
     try {
+      const requestedResponseMode = forceProposal
+        ? "proposal"
+        : requestedResponseModeForConsultation(text, awaitingProposalConfirmation)
       const response = await requestArrangementAdvice({
         prompt: text,
         context,
+        requestedResponseMode,
         ...(arrangementChatConversation(latest.arrangementChat)
           ? { conversation: arrangementChatConversation(latest.arrangementChat) }
           : {}),
@@ -121,7 +131,10 @@ export function ArrangementChatPanel({
       const current = useProjectStore.getState().project
       const now = new Date().toISOString()
       const replyId = `reply:${response.requestId}:${now}`
-      const proposals = proposalsFromResponse(current, response, text, response.confirmedConstraints, replyId)
+      const isDiscussion = response.responseMode === "discussion"
+      const proposals = isDiscussion
+        ? []
+        : proposalsFromResponse(current, response, text, response.confirmedConstraints, replyId)
       const unsupportedNotice = unsupportedArrangementInstructionNotice(text)
       const reply: ArrangementChatMessage = {
         id: replyId,
@@ -129,6 +142,14 @@ export function ArrangementChatPanel({
         createdAt: now,
         text: [plainDirectionText(response.partnerReply), unsupportedNotice].filter(Boolean).join("\n\n"),
         proposals,
+        ...(isDiscussion && response.confirmationQuestion
+          ? {
+              proposalConfirmation: {
+                question: plainDirectionText(response.confirmationQuestion),
+                prompt: "はい、その方向で具体的な3案を作ってください。",
+              },
+            }
+          : {}),
         usage: {
           costUsd: response.cached ? 0 : response.usage.estimatedCostUsd,
           inputTokens: response.usage.inputTokens,
@@ -140,9 +161,10 @@ export function ArrangementChatPanel({
       setUsageEntries(readAiUsage())
       appendMessages(
         [{ id: `user:${now}`, role: "user", createdAt: now, text }, reply],
-        response.confirmedConstraints,
+        // 相談中の希望はまだ確定扱いにしない。確認後の変更案で初めて保存する。
+        isDiscussion ? undefined : response.confirmedConstraints,
       )
-      model.selectProposal(proposals[0]?.id ?? "")
+      if (proposals[0]) model.selectProposal(proposals[0].id)
     } catch (reason) {
       setInput(text)
       setError(reason instanceof Error ? reason.message : "AI相談に失敗しました。")
@@ -223,7 +245,7 @@ export function ArrangementChatPanel({
       model.selectProposal(proposals[index + 1].id)
       return
     }
-    void send(ANOTHER_PROPOSAL)
+    void send(ANOTHER_PROPOSAL, true)
   }
 
   const suggestions = messages.length === 0 ? FIRST_SUGGESTIONS : FOLLOW_UP_SUGGESTIONS
@@ -291,7 +313,7 @@ export function ArrangementChatPanel({
         {messages.length === 0 && !sendingText && (
           <div className="rounded-lg border border-hairline bg-white/[0.03] p-3 text-[13px] leading-6 text-body-muted">
             {model.project.fullSongArrangement
-              ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。メロディの後ろに流す対旋律や、フレーズの切れ目の合いの手も頼めます（「サビに弦で対旋律を」など）。AIの提案は「変更案」として1つずつ届き、変更前と変更後を聴き比べてから適用できます。適用した結果は版として残り、いつでも戻せます。"
+              ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。AIはまず質問に答え、「こういう方向でどうですか？」と確認します。内容に納得してから3つの変更案を作り、変更前と変更後を聴き比べて適用できます。"
               : "まず全曲の方向を選んで全曲アレンジを作ると、それを土台に相談できます。いきなり「こんな感じにしたい」と伝えて始めることもできます。"}
           </div>
         )}
@@ -312,6 +334,7 @@ export function ArrangementChatPanel({
               listening={listening}
               versionNumber={chat?.versions.find((version) => version.id === message.appliedVersionId)?.number}
               isCurrentVersion={Boolean(message.appliedVersionId) && chat?.currentVersionId === message.appliedVersionId}
+              canConfirm={latestAssistantId === message.id}
               onListen={listen}
               onApply={(proposal) => apply(message, proposal)}
               onDismiss={() => dismissProposals(message.id)}
@@ -320,6 +343,7 @@ export function ArrangementChatPanel({
                 stopListening()
                 model.selectProposal(proposalId)
               }}
+              onConfirm={(prompt) => void send(prompt, true)}
             />
           ),
         )}
@@ -402,11 +426,13 @@ function AssistantMessage({
   listening,
   versionNumber,
   isCurrentVersion,
+  canConfirm,
   onListen,
   onApply,
   onDismiss,
   onUndo,
   onNextProposal,
+  onConfirm,
 }: {
   message: ArrangementChatMessage
   model: ArrangementChatModel
@@ -414,11 +440,13 @@ function AssistantMessage({
   listening: ListenKey | null
   versionNumber: number | undefined
   isCurrentVersion: boolean
+  canConfirm: boolean
   onListen: (key: ListenKey, arrangement: FullSongArrangement | undefined, changes: ArrangementCellChange[], target?: ComposerProject) => void
   onApply: (proposal: ArrangementChatProposal) => void
   onDismiss: () => void
   onUndo: () => void
   onNextProposal: (proposalId: string) => void
+  onConfirm: (prompt: string) => void
 }) {
   const proposals = message.proposals ?? []
   const applied = proposals.find((proposal) => proposal.id === message.appliedProposalId)
@@ -439,6 +467,17 @@ function AssistantMessage({
   return (
     <div className="flex flex-col gap-2">
       <p className="whitespace-pre-wrap text-[13px] leading-7 text-[#e8e8ea]">{message.text}</p>
+      {message.proposalConfirmation && canConfirm && (
+        <div className="rounded-xl border border-primary/35 bg-primary/10 p-3">
+          <p className="text-[13px] leading-6 text-body-on-dark">{message.proposalConfirmation.question}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button onClick={() => onConfirm(message.proposalConfirmation!.prompt)}>
+              <Check size={13} /> この方向で3案を見る
+            </Button>
+            <span className="text-[12px] text-ink-soft">修正したい点があれば、そのまま返信できます</span>
+          </div>
+        </div>
+      )}
       {message.usage && (
         <p className="text-[12px] text-ink-soft">
           {message.usage.cached

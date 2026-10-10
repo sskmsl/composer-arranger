@@ -52,7 +52,9 @@ function response(id: string, constraints: string[]): AiArrangementResponse {
     requestId: id,
     createdAt: `2026-08-19T00:00:${id.padStart(2, "0")}.000Z`,
     model: "test",
+    responseMode: "proposal",
     partnerReply: "主旋律を維持したまま、余白を増やして更新しました。",
+    confirmationQuestion: "",
     confirmedConstraints: constraints,
     diagnosis: {
       currentStrength: "主旋律",

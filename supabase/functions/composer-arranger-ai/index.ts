@@ -222,7 +222,9 @@ const responseSchema = {
   type: "object",
   additionalProperties: false,
   properties: {
+    responseMode: { type: "string", enum: ["discussion", "proposal"] },
     partnerReply: { type: "string", minLength: 1, maxLength: 700 },
+    confirmationQuestion: { type: "string", maxLength: 300 },
     confirmedConstraints: {
       type: "array",
       minItems: 0,
@@ -268,7 +270,7 @@ const responseSchema = {
     },
     intents: {
       type: "array",
-      minItems: 3,
+      minItems: 0,
       maxItems: 3,
       items: {
         type: "object",
@@ -278,19 +280,29 @@ const responseSchema = {
       },
     },
   },
-  required: ["partnerReply", "confirmedConstraints", "diagnosis", "intents"],
+  required: ["responseMode", "partnerReply", "confirmationQuestion", "confirmedConstraints", "diagnosis", "intents"],
 }
 
 const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟練アレンジャーです。
 入力には相談文と、Composer Arrangerが抽出したコード、Active Melody、Section、抽象化済みTechnique preferenceが含まれます。
 
+会話を先に進めるための最優先規則:
+- 入力のrequestedResponseModeは画面が作曲者の操作から決めた値であり、必ず同じ値をresponseModeへ返す。discussionをproposalへ、proposalをdiscussionへ勝手に変えない。
+- 返答にはresponseModeを必ず指定する。質問や相談へ答える段階はdiscussion、作曲者が明確に案の作成を承認・依頼した段階だけproposalにする。
+- 「どう思う？」「できる？」「なぜ？」「何がいい？」「〜したい」のような質問・相談・希望だけでは、変更案を作らない。responseMode=discussion、intents=[]とし、まず質問へ直接答える。
+- discussionでは、曲のどこをどうするのがよさそうか、暫定案を1つだけ平易に説明する。そのうえでconfirmationQuestionに「こういう方向で具体的な3案を作ってよいですか？」という確認を書く。断定して作業を進めない。
+- discussionでは、まだ同意されていない希望をconfirmedConstraintsへ追加しない。conversationHistory.confirmedConstraintsをそのまま維持する。
+- 「3案を作って」「変更案を出して」「提案して」「この方向で進めて」、または直前の確認に対する「はい」「OK」「それで進めて」のような明確な承認がある場合だけresponseMode=proposalにする。
+- proposalではintentsを必ず3件返し、confirmationQuestionは空文字にする。discussionではintentsを必ず0件にする。
+- 直前がdiscussionで作曲者が修正を加えた場合は、修正内容を受け止めた暫定案を説明し、再度確認する。承認されたことにしない。
+
 ユーザー向け文章の最優先規則:
 - partnerReply、diagnosis、protect、avoid、audioEvidence、各Directionのtitle・emotionalFunction・why・necessityReason・generationBrief・soundPalette・performanceDirection・音源理由は、専門知識がなくても一度で意味が分かる日本語にする。
 - 作曲者に隣で話しかけるような、落ち着いた温かい文体にする。評価者の報告書、仕様書、宣伝文句のように書かない。
-- partnerReplyの1文目は相談への直接の答えにする。2文目は「どの部分に、何の音を、どう置くか」を伝える。例:「はい、サビを広げながら主旋律はそのまま残せます。サビの後半だけ高い弦を加え、最後の1小節でドラムを一度休ませる3案にしました。」
+- partnerReplyの1文目は相談への直接の答えにする。discussionの2文目は「どの部分に、何の音を、どう置く案がよさそうか」を伝える。proposalの2文目だけ、確認済みの方向を3案にしたことを伝える。
 - 「成立しています」「〜を設計します」「役割を担います」だけで終わらせない。聴いて分かる変化を具体的に書く。
 - 「主権」「重心」「輪郭」「余白」「前景・後景」「構造的」「因果」「頂点」「回収」など、意味が広すぎる比喩や制作内部の言葉を単独で使わない。「主旋律を一番よく聴こえる状態にする」「低い音で支える」「音を鳴らさない時間を作る」のように言い換える。
-- 利用者の希望を最初に受け止めるが、過度に褒めたり同じ内容を復唱したりしない。できることと、今回3案で変えることを自然に伝える。
+- 利用者の希望を最初に受け止めるが、過度に褒めたり同じ内容を復唱したりしない。discussionでは考え方と暫定案、proposalでは3案で変えることを自然に伝える。
 - 内部フィールド名、英語ラベル、評価スコア、反復率・コードトーン率・休符率などの割合をユーザー向け文章へ書かない。数値ではなく「繰り返しが多い」「休みがほとんどない」「コードになじむ音が中心」のように聴こえ方を説明する。
 - パルス、シンコペーション、レジスター、モチーフ、アタック、テンション、クライマックス、レイヤー、テクスチャ、ボイスリーディング等の専門語は原則使わない。必要な場合は、専門語を出さず平易な意味だけを書く。
 - 抽象語だけの説明を禁止する。「低域の推進力」「構造的な対比」ではなく、「低い反復音をAメロから加える」「サビ前の最後の1小節を休ませる」のように、音・場所・変化を明記する。
@@ -369,7 +381,7 @@ Orchestration & Performance Intelligence:
 - 実在を確認できないプリセット名を作らない。soundSourceSuggestions.searchTermsはプリセット名ではなく「音源内で探すための一般的な音色の特徴」として書く。
 
 目的:
-- 現状の良さを診断し、採用価値のある3つの同等なArrangement Directionを返す。
+- discussionでは現状の良さを踏まえて相談に答え、作曲者と方向をすり合わせる。proposalでは確認済みの方向について、採用価値のある3つの同等なArrangement Directionを返す。
 - 3案は密度、音域、リズム、余白、役割、感情的入口のうち最低4軸で異ならせる。
 - 音を増やすことを正解にせず、不要ならgenerator=noneを含める。
 - コードとActive Melodyの衝突、機械的なコード追従、全拍の充填を避ける。
@@ -386,7 +398,7 @@ Orchestration & Performance Intelligence:
 - 固有曲や固有アーティストが相談文に含まれても、既存フレーズを再現しない。余白、輪郭、反復、音色、残響、演奏意図などの抽象属性へ変換する。
 - 日本語で簡潔に書く。Technique名と音源検索語は一般的・抽象的な名称にする。
 - 3案に優先順位を付けない。
-- conversationHistoryがある場合、最新相談へpartnerReplyで直接答え、過去の合意と変更経緯を踏まえて3案を更新する。同じ説明を最初から繰り返さない。
+- conversationHistoryがある場合、最新相談へpartnerReplyで直接答え、過去の合意と変更経緯を踏まえる。proposalの場合だけ3案を更新し、discussionでは案を作らず確認を続ける。同じ説明を最初から繰り返さない。
 - conversationHistory.confirmedConstraintsを現在有効な制約の正とする。過去turnにだけ残り、現在一覧から外れた制約はUIで解除済みなので復活させない。
 - confirmedConstraintsは今回だけの提案ではなく、ユーザーが明示的に確定した制約の「現在有効な完全一覧」にする。既存制約はユーザーが明示的に解除・変更しない限り維持する。
 - 「メロディは変えない」「音数を増やさない」「もっと不穏」「ベルは使わない」等を、後続Directionのdensity、register、silenceStrategy、soundPalette、generationBriefへ実際に反映する。
@@ -671,7 +683,7 @@ Deno.serve(async (request) => {
   if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
     return json(request, { error: "Request is too large" }, 413)
   }
-  let body: { prompt?: unknown; context?: unknown; conversation?: unknown; audio?: unknown }
+  let body: { prompt?: unknown; context?: unknown; conversation?: unknown; audio?: unknown; requestedResponseMode?: unknown }
   try {
     body = JSON.parse(rawBody)
   } catch {
@@ -681,6 +693,8 @@ Deno.serve(async (request) => {
   if (prompt.length < 3 || prompt.length > 1500 || !body.context || typeof body.context !== "object") {
     return json(request, { error: "相談内容または楽曲コンテキストが不正です。" }, 400)
   }
+  // requestedResponseMode のない旧クライアントは、従来どおり3案を受け取れるようにする。
+  const requestedResponseMode = body.requestedResponseMode === "discussion" ? "discussion" : "proposal"
   const audio = body.audio === undefined ? null : validAudioInput(body.audio) ? body.audio : undefined
   if (audio === undefined) return json(request, { error: "添付音源の形式またはサイズが不正です。" }, 400)
   const conversation = body.conversation === undefined
@@ -721,6 +735,7 @@ Deno.serve(async (request) => {
           role: "user",
           content: JSON.stringify({
             consultation: prompt,
+            requestedResponseMode,
             musicalContext: body.context,
             conversationHistory: conversation,
             audioAnalysis: audioAnalysis?.text ?? null,
@@ -756,6 +771,22 @@ Deno.serve(async (request) => {
   try {
     advice = JSON.parse(outputText)
   } catch {
+    return json(request, { error: "AI response could not be parsed" }, 502)
+  }
+  const responseMode = advice.responseMode
+  const intents = advice.intents
+  const confirmationQuestion = advice.confirmationQuestion
+  const validConversationStep = responseMode === "discussion"
+    && Array.isArray(intents)
+    && intents.length === 0
+    && typeof confirmationQuestion === "string"
+    && confirmationQuestion.trim().length > 0
+  const validProposalStep = responseMode === "proposal"
+    && Array.isArray(intents)
+    && intents.length === 3
+    && confirmationQuestion === ""
+  if ((!validConversationStep && !validProposalStep) || responseMode !== requestedResponseMode) {
+    console.error("OpenAI response violated conversation protocol", responseMode, Array.isArray(intents) ? intents.length : "invalid")
     return json(request, { error: "AI response could not be parsed" }, 502)
   }
 

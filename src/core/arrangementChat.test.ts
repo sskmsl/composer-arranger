@@ -196,6 +196,29 @@ describe("アレンジ相談チャット: 会話と適用", () => {
     expect(conversation?.turns[0].partnerReply).toContain("「サビを開く」を適用した")
     expect(conversation?.turns[0].directions[0]).toMatchObject({ title: "サビを開く", generationBrief: "サビのパッドを外す" })
   })
+
+  it("相談段階の返答は会話履歴に残すが、未確認の変更案や制約は作らない", () => {
+    const store = useProjectStore.getState()
+    store.appendArrangementChatMessages([
+      { id: "user-1", role: "user", createdAt: "2026-01-01T00:00:00.000Z", text: "弦を増やした方がいい？" },
+      {
+        id: "reply-1",
+        role: "assistant",
+        createdAt: "2026-01-01T00:00:01.000Z",
+        text: "サビ後半だけ弦を足すのが合いそうです。",
+        proposals: [],
+        proposalConfirmation: {
+          question: "この方向で具体的な3案を作ってよいですか？",
+          prompt: "はい、その方向で具体的な3案を作ってください。",
+        },
+      },
+    ])
+    const chat = useProjectStore.getState().project.arrangementChat
+    const conversation = arrangementChatConversation(chat)
+    expect(chat?.confirmedConstraints).toEqual([])
+    expect(conversation?.turns[0].directions).toEqual([])
+    expect(conversation?.turns[0].partnerReply).toContain("サビ後半")
+  })
 })
 
 describe("アレンジ相談チャット: 作り直す範囲", () => {
