@@ -26,7 +26,7 @@ export type LogicProductionTrackId =
   | "selected-intro-phrase"
 
 export interface LogicSoundRecommendation {
-  library: "Native Instruments Komplete 15 Ultimate" | "u-he Repro"
+  library: "Native Instruments Komplete 15 Ultimate" | "u-he Repro" | "Arturia"
   product: string
   searchTerms: string[]
   reason: string
@@ -146,6 +146,7 @@ function sources(project: ComposerProject): TrackSource[] {
       recommendations: [
         { library: "u-he Repro", product: "Repro-5", searchTerms: ["soft poly pad", "dark sustained chord", "slow attack pad"], reason: "幅を持つ和声と緩やかなFilter変化に向く。" },
         { library: "Native Instruments Komplete 15 Ultimate", product: "Noire", searchTerms: ["felt", "pure", "soft cinematic piano"], reason: "和声を説明しすぎない減衰と余白を作れる。" },
+        { library: "Arturia", product: "Analog Lab Play", searchTerms: ["warm keys", "soft pluck", "spacious pad"], reason: "鍵盤・プラック・パッドを同じ音色ブラウザで比較し、曲の色を決めやすい。" },
       ],
     },
     {
@@ -163,7 +164,10 @@ function sources(project: ComposerProject): TrackSource[] {
       role: "Motif / Ostinato", purpose: "Melody Variant内の補助レイヤーを独立編集する。",
       performance: "Leadと同時アタックを続けず、反復の一部を抜いて呼吸を作る。",
       panorama: "±15〜35", reverb: "Short PlateまたはTempo Delay。Leadより後景。",
-      recommendations: [{ library: "u-he Repro", product: "Repro-1", searchTerms: ["muted sequence", "soft pluck", "dark pulse"], reason: "短いMotifと局所的なFilter motionに向く。" }],
+      recommendations: [
+        { library: "u-he Repro", product: "Repro-1", searchTerms: ["muted sequence", "soft pluck", "dark pulse"], reason: "短いMotifと局所的なFilter motionに向く。" },
+        { library: "Arturia", product: "Pigments Play", searchTerms: ["modern sequence", "moving pad", "textured pluck"], reason: "現代的な動きのある音で、伴奏の周期と質感をまとめやすい。" },
+      ],
     },
     {
       id: "pulse", name: "05 Accompaniment Pulse", notes: material.accompanimentPattern, statusWithoutNotes: "empty",
@@ -647,12 +651,12 @@ function coreSoundsFor(family: LogicSoundWorldFamily, direction: WholeSongDirect
           : "Session Guitarist - Electric Mint"
     return [guitar, "Session Bassist - Icon Bass", "Studio Drummer", "Noire", "Repro-1"]
   }
-  if (family === "synth") return ["Repro-1", "Repro-5", "Schema Dark", "Analog Dreams", "Straylight"]
+  if (family === "synth") return ["Repro-1", "Repro-5", "Analog Lab Play", "Pigments Play", "Schema Dark"]
   if (family === "piano") return ["Noire", "Piano Colors", "Una Corda", "Emotive Strings", "Ethereal Earth"]
   if (family === "percussion") return ["Battery 4", "Studio Drummer", "Butch Vig Drums", "Session Percussionist", "Damage"]
   return direction === "motif-relay"
-    ? ["Schema Dark", "Session Guitarist - Electric Vintage", "Emotive Strings", "Playbox", "Butch Vig Drums"]
-    : ["Noire", "Repro-5", "Session Bassist - Prime Bass", "Session Strings Pro 2", "Studio Drummer"]
+    ? ["Pigments Play", "Schema Dark", "Session Guitarist - Electric Vintage", "Emotive Strings", "Butch Vig Drums"]
+    : ["Noire", "Analog Lab Play", "Repro-5", "Session Strings Pro 2", "Studio Drummer"]
 }
 
 function soundWorldCopy(family: LogicSoundWorldFamily, direction: WholeSongDirectionId): Omit<LogicSoundPalette, "dominantFamily" | "supportingFamilies" | "reason"> {
@@ -666,7 +670,7 @@ function soundWorldCopy(family: LogicSoundWorldFamily, direction: WholeSongDirec
   const copy: Record<LogicSoundWorldFamily, { title: string; description: string; mixFocus: string }> = {
     strings: { title: "弦の表情が曲を動かす世界", description: "長い弦、短い弦、低い弦を別のライブラリへ分け、同じストリングス音色の重ね録りにはしません。", mixFocus: "主旋律に近い弦は一つまで。残りは音域と距離を分け、全員を同じ強さで鳴らさない。" },
     band: { title: "奏者の距離が見えるバンドの世界", description: "ギター、ベース、ドラム、鍵盤を独立した奏者として割り当て、シンセは必要な背景だけに使います。", mixFocus: "キックとベースを中央へ置き、ギターと鍵盤は左右と音域を分ける。" },
-    synth: { title: "アナログシンセが形を変える世界", description: "Reproの芯、SchemaとStraylightの質感、Analog Dreamsの動きを役割ごとに使い分けます。", mixFocus: "低いシンセ、反復音、広いパッドを同時に前へ出さず、主役をセクションごとに交代する。" },
+    synth: { title: "シンセの質感が形を変える世界", description: "Reproの芯、Analog Lab Playの鍵盤感、Pigments Playの動く質感を役割ごとに使い分けます。", mixFocus: "低いシンセ、反復音、広いパッドを同時に前へ出さず、主役をセクションごとに交代する。" },
     piano: { title: "鍵盤の手触りから広がる世界", description: "Noire、Piano Colors、Una Cordaを同じピアノ扱いにせず、輪郭・色・近さの役割に分けます。", mixFocus: "鍵盤の中域を空けて主旋律を通し、弦と質感音は残響の奥へ置く。" },
     percussion: { title: "打音の個性で景色を作る世界", description: "Battery、Studio Drummer、Butch Vig Drums、Session Percussionistを役割別に使い、キット一つで全曲を埋めません。", mixFocus: "キックとスネア以外は小さく始め、節目の打撃だけに十分な余白を残す。" },
     hybrid: { title: "生音と電子音が交代する世界", description: "弦・バンド・鍵盤・シンセを均等に足すのではなく、各セクションで主役の音色を交代します。", mixFocus: "同じ音域では生音か電子音のどちらかを前へ出し、もう一方は背景へ下げる。" },
@@ -889,7 +893,7 @@ function directionBasedSound(id: ArrangementTrackId, world: LogicSoundWorld): So
       return { role: "短い和音", product: "Kontakt 8", preset: "Piano Colors", setting: "短い鍵盤の色として使い、主旋律の直前では一段小さくする" }
     }
     if (world.dominantFamily === "synth") {
-      return { role: "短い和音", product: "Repro-5", preset: "03 Keys - Synths / JH Midrange Synthstab (MW)", setting: "短いアナログ和音として使い、パッドと同時に中域を埋めない" }
+      return { role: "短い和音", product: "Analog Lab Play", preset: "Analog Lab Play", setting: "短い鍵盤系の和音として使い、パッドと同時に中域を埋めない" }
     }
     if (direction === "preserve-space") {
       return { role: "短い和音", product: "Kontakt 8", preset: "Session Guitarist - Picked Nylon", setting: "Melody Instrumentを選び、音を短くしすぎず余韻を残す。余白重視の方針を保つ" }
@@ -915,8 +919,10 @@ function directionBasedSound(id: ArrangementTrackId, world: LogicSoundWorld): So
     return { role: "背景の和音", product: "Kontakt 8", preset: id === "syn-chord-wide" ? "Piano Colors" : "Noire", setting: "鍵盤の余韻だけを背景に残し、主旋律と同じ高さのアタックを弱くする" }
   }
   if (world.dominantFamily === "synth" && ["syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-chord-wide"].includes(id)) {
-    const preset = id === "syn-dark-pad" ? "Schema Dark" : id === "syn-pad-air" ? "Schema Light" : id === "syn-pad-motion" ? "Analog Dreams" : "Straylight"
-    return { role: id === "syn-chord-wide" ? "広い和音" : "背景の和音", product: "Kontakt 8", preset, setting: "電子的な質感として奥へ置き、Reproの反復音と同時に動かしすぎない" }
+    if (id === "syn-pad-air" || id === "syn-chord-wide") {
+      return { role: id === "syn-chord-wide" ? "広い和音" : "背景の和音", product: "Analog Lab Play", preset: "Analog Lab Play", setting: "鍵盤由来の輪郭を薄く残し、主旋律と同じ高さでは音量を下げる" }
+    }
+    return { role: "背景の和音", product: "Pigments Play", preset: "Pigments Play", setting: "現代的な動く質感として奥へ置き、Reproの反復音と同時に動かしすぎない" }
   }
 
   if (id === "syn-dark-pad" && direction === "motif-relay") {
@@ -995,14 +1001,29 @@ function sourceSound(id: LogicProductionTrackId, world: LogicSoundWorld): Pick<L
 }
 
 /**
- * Kontaktの製品名だけで終わらず、端末のKomplete Kontrol DBまたは製品の公式階層で確認できた
- * 最後のSnapshot / Instrument / 奏法名まで表示する。ユーザーは末尾の名前を検索すればよい。
+ * 製品名だけで終わらず、端末のKomplete Kontrol / Arturia DBまたは製品の公式階層で確認できた
+ * 最後のSnapshot / Instrument / Preset / 奏法名まで表示する。ユーザーは末尾の名前を検索すればよい。
  */
 function finalPresetName(
   preset: string,
   id: LogicProductionTrackId | ArrangementTrackId,
   world: LogicSoundWorld,
 ): string {
+  if (preset === "Analog Lab Play") {
+    if (id === "syn-stabs") return "Analog Lab Play / Factory / Classic Jun Keys"
+    if (id === "syn-chord-wide") return "Analog Lab Play / Factory / Book of Memories"
+    if (id === "syn-pad-air") return "Analog Lab Play / Factory / Sustained Strings"
+    if (id === "syn-high-glass") return "Analog Lab Play / Factory / Space Mallets"
+    if (id === "selected-phrase") return "Analog Lab Play / Factory / Deep Pluck"
+    return "Analog Lab Play / Factory / Arp Simplicity"
+  }
+  if (preset === "Pigments Play") {
+    if (id === "syn-dark-pad") return "Pigments Play / Factory / Canopy Pad"
+    if (id === "syn-pad-motion") return "Pigments Play / Factory / Arp for Life"
+    if (id === "syn-high-glass") return "Pigments Play / Factory / Glassy Sky"
+    if (id === "syn-stabs") return "Pigments Play / Factory / Rave Stab"
+    return "Pigments Play / Factory / ASMR Sine Pad"
+  }
   if (preset === "Action Strings 2") {
     return "Action Strings 2 / Action Strings 2.nki / Single Articulations - Staccato/Spiccato"
   }

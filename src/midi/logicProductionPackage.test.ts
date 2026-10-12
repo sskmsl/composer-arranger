@@ -70,6 +70,7 @@ describe("Logic Pro Production Package", () => {
     expect(libraries).toEqual(new Set([
       "Native Instruments Komplete 15 Ultimate",
       "u-he Repro",
+      "Arturia",
     ]))
     expect(result.tracks.find((track) => track.id === "bass-guide")?.recommendations[0].product).toBe("Repro-1")
   })

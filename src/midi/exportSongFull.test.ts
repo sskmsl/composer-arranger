@@ -96,6 +96,25 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(rows.map((row) => row.trackName)).toEqual(expect.arrayContaining(playing.map((track) => track.name)))
   })
 
+  it("シンセ主体ではAnalog Lab PlayとPigments Playを役割別に使い、最終プリセット名まで表示する", () => {
+    const target = {
+      ...project,
+      arrangementDirectorWorkspace: {
+        brief: "シンセ主体",
+        selectedDirectionId: "balanced-architecture" as const,
+      },
+    }
+    const palette = logicSoundPalette(target)
+    const rows = logicSoundRows(target)
+    expect(palette.dominantFamily).toBe("synth")
+    expect(palette.coreSounds).toContain("Analog Lab Play")
+    expect(palette.coreSounds).toContain("Pigments Play")
+    expect(rows.some((row) => row.product === "Analog Lab Play" && row.preset.startsWith("Analog Lab Play / Factory / "))).toBe(true)
+    expect(rows.some((row) => row.product === "Pigments Play" && row.preset.startsWith("Pigments Play / Factory / "))).toBe(true)
+    expect(rows.filter((row) => ["Analog Lab Play", "Pigments Play"].includes(row.product))
+      .every((row) => row.preset.split(" / ").at(-1) !== row.product)).toBe(true)
+  })
+
   it("全曲の方向性を変えず、弦の推奨音源をKontakt内で分担する", () => {
     const rhythmic = logicSoundRows({
       ...project,
@@ -300,7 +319,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   })
 
   it("提案する音源は所有一覧だけに限定する", () => {
-    const allowed = /Battery 4|Repro-[15]|Session Strings Pro 2|LUX Orchestral Strings Elements|Emotive Strings|Action Strings 2|Symphony Essentials (?:String Ensemble|Percussion)|Session Guitarist - |Session Bassist - |Noire|Una Corda|Piano Colors|Schema (?:Dark|Light)|Straylight|Ethereal Earth|Playbox|Analog Dreams|Studio Drummer|Butch Vig Drums|Session Percussionist|Damage/
+    const allowed = /Battery 4|Repro-[15]|Analog Lab Play|Pigments Play|Session Strings Pro 2|LUX Orchestral Strings Elements|Emotive Strings|Action Strings 2|Symphony Essentials (?:String Ensemble|Percussion)|Session Guitarist - |Session Bassist - |Noire|Una Corda|Piano Colors|Schema (?:Dark|Light)|Straylight|Ethereal Earth|Playbox|Analog Dreams|Studio Drummer|Butch Vig Drums|Session Percussionist|Damage/
     const briefs = ["", "弦主体", "ピアノ主体", "シンセ主体", "ギターと生ドラム主体", "ストリングスなしでピアノ主体"]
     for (const brief of briefs) for (const selectedDirectionId of directions) {
       const target = { ...project, arrangementDirectorWorkspace: { brief, selectedDirectionId } }

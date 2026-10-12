@@ -36,7 +36,7 @@ export type AiSilenceStrategy = "minimal" | "breathing" | "structural"
 export type AiCreativeRisk = "focused" | "bold" | "radical"
 
 export interface AiSoundSourceSuggestion {
-  library: "Native Instruments Komplete 15 Ultimate" | "u-he Repro"
+  library: "Native Instruments Komplete 15 Ultimate" | "u-he Repro" | "Arturia"
   product: string
   family: string
   character: string
