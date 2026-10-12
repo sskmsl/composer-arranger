@@ -6,6 +6,7 @@ import { requestArrangementAdvice } from "@/ai-arranger/client"
 import {
   arrangementChatContext,
   arrangementChatConversation,
+  pendingConsultationRequestText,
   proposalsFromResponse,
 } from "@/ai-arranger/arrangementChatAdvice"
 import { plainDirectionText } from "@/ai-arranger/directionPresentation"
@@ -132,10 +133,13 @@ export function ArrangementChatPanel({
       const now = new Date().toISOString()
       const replyId = `reply:${response.requestId}:${now}`
       const isDiscussion = response.responseMode === "discussion"
+      const consultationRequest = isDiscussion
+        ? text
+        : pendingConsultationRequestText(current.arrangementChat, text)
       const proposals = isDiscussion
         ? []
-        : proposalsFromResponse(current, response, text, response.confirmedConstraints, replyId)
-      const unsupportedNotice = unsupportedArrangementInstructionNotice(text)
+        : proposalsFromResponse(current, response, consultationRequest, response.confirmedConstraints, replyId)
+      const unsupportedNotice = unsupportedArrangementInstructionNotice(consultationRequest)
       const reply: ArrangementChatMessage = {
         id: replyId,
         role: "assistant",

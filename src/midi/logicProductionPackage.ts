@@ -638,27 +638,6 @@ function scoreSongShape(project: ComposerProject, scores: Record<LogicSoundWorld
   }
 }
 
-function coreSoundsFor(family: LogicSoundWorldFamily, direction: WholeSongDirectionId): string[] {
-  if (family === "strings") {
-    if (direction === "rhythmic-propulsion") return ["Action Strings 2", "LUX Orchestral Strings Elements", "Session Bassist - Prime Bass", "Studio Drummer", "Repro-1"]
-    if (direction === "controlled-escalation") return ["LUX Orchestral Strings Elements", "Emotive Strings", "Symphony Essentials Percussion", "Piano Colors", "Straylight"]
-    return ["Emotive Strings", "Session Strings Pro 2", "LUX Orchestral Strings Elements", "Noire", "Ethereal Earth"]
-  }
-  if (family === "band") {
-    const guitar = direction === "preserve-space" ? "Session Guitarist - Picked Nylon"
-      : direction === "motif-relay" ? "Session Guitarist - Electric Vintage"
-        : direction === "controlled-escalation" ? "Session Guitarist - Electric Sunburst Deluxe"
-          : "Session Guitarist - Electric Mint"
-    return [guitar, "Session Bassist - Icon Bass", "Studio Drummer", "Noire", "Repro-1"]
-  }
-  if (family === "synth") return ["Repro-1", "Repro-5", "Analog Lab Play", "Pigments Play", "Schema Dark"]
-  if (family === "piano") return ["Noire", "Piano Colors", "Una Corda", "Emotive Strings", "Ethereal Earth"]
-  if (family === "percussion") return ["Battery 4", "Studio Drummer", "Butch Vig Drums", "Session Percussionist", "Damage"]
-  return direction === "motif-relay"
-    ? ["Pigments Play", "Schema Dark", "Session Guitarist - Electric Vintage", "Emotive Strings", "Butch Vig Drums"]
-    : ["Noire", "Analog Lab Play", "Repro-5", "Session Strings Pro 2", "Studio Drummer"]
-}
-
 function soundWorldCopy(family: LogicSoundWorldFamily, direction: WholeSongDirectionId): Omit<LogicSoundPalette, "dominantFamily" | "supportingFamilies" | "reason"> {
   const directionPhrase: Record<WholeSongDirectionId, string> = {
     "preserve-space": "音数を詰めず、近い音と遠い余韻の差を保ちます。",
@@ -668,22 +647,22 @@ function soundWorldCopy(family: LogicSoundWorldFamily, direction: WholeSongDirec
     "balanced-architecture": "主旋律を中心に、生音と電子音が同じ場所で競わないよう分担します。",
   }
   const copy: Record<LogicSoundWorldFamily, { title: string; description: string; mixFocus: string }> = {
-    strings: { title: "弦の表情が曲を動かす世界", description: "長い弦、短い弦、低い弦を別のライブラリへ分け、同じストリングス音色の重ね録りにはしません。", mixFocus: "主旋律に近い弦は一つまで。残りは音域と距離を分け、全員を同じ強さで鳴らさない。" },
-    band: { title: "奏者の距離が見えるバンドの世界", description: "ギター、ベース、ドラム、鍵盤を独立した奏者として割り当て、シンセは必要な背景だけに使います。", mixFocus: "キックとベースを中央へ置き、ギターと鍵盤は左右と音域を分ける。" },
-    synth: { title: "シンセの質感が形を変える世界", description: "Reproの芯、Analog Lab Playの鍵盤感、Pigments Playの動く質感を役割ごとに使い分けます。", mixFocus: "低いシンセ、反復音、広いパッドを同時に前へ出さず、主役をセクションごとに交代する。" },
-    piano: { title: "鍵盤の手触りから広がる世界", description: "Noire、Piano Colors、Una Cordaを同じピアノ扱いにせず、輪郭・色・近さの役割に分けます。", mixFocus: "鍵盤の中域を空けて主旋律を通し、弦と質感音は残響の奥へ置く。" },
-    percussion: { title: "打音の個性で景色を作る世界", description: "Battery、Studio Drummer、Butch Vig Drums、Session Percussionistを役割別に使い、キット一つで全曲を埋めません。", mixFocus: "キックとスネア以外は小さく始め、節目の打撃だけに十分な余白を残す。" },
+    strings: { title: "弦の表情が曲を動かす世界", description: "長い弦、短い弦、低い弦を別の役割へ分け、同じ音色の重ね録りにはしません。", mixFocus: "主旋律に近い弦は一つまで。残りは音域と距離を分け、全員を同じ強さで鳴らさない。" },
+    band: { title: "奏者の距離が見えるバンドの世界", description: "ギター、ベース、ドラム、鍵盤を独立した奏者として扱い、電子音は必要な背景だけに使います。", mixFocus: "キックとベースを中央へ置き、ギターと鍵盤は左右と音域を分ける。" },
+    synth: { title: "シンセの質感が形を変える世界", description: "芯のある音、鍵盤らしい輪郭、動く質感を別々の役割へ割り当てます。", mixFocus: "低いシンセ、反復音、広いパッドを同時に前へ出さず、主役をセクションごとに交代する。" },
+    piano: { title: "鍵盤の手触りから広がる世界", description: "鍵盤音を一括りにせず、輪郭・色・近さの役割に分けます。", mixFocus: "鍵盤の中域を空けて主旋律を通し、弦と質感音は残響の奥へ置く。" },
+    percussion: { title: "打音の個性で景色を作る世界", description: "キック、スネア、細かな打楽器、大きな打撃を役割別に分け、一つのキットだけで全曲を埋めません。", mixFocus: "キックとスネア以外は小さく始め、節目の打撃だけに十分な余白を残す。" },
     hybrid: { title: "生音と電子音が交代する世界", description: "弦・バンド・鍵盤・シンセを均等に足すのではなく、各セクションで主役の音色を交代します。", mixFocus: "同じ音域では生音か電子音のどちらかを前へ出し、もう一方は背景へ下げる。" },
   }
   return {
     title: copy[family].title,
     description: `${copy[family].description}${directionPhrase[direction]}`,
-    coreSounds: coreSoundsFor(family, direction),
+    coreSounds: [],
     mixFocus: copy[family].mixFocus,
   }
 }
 
-function planLogicSoundWorld(project: ComposerProject): LogicSoundWorld {
+function planLogicSoundWorldBase(project: ComposerProject): LogicSoundWorld {
   const directionId = selectedDirection(project)
   const scores = { ...DIRECTION_FAMILY_SCORES[directionId] }
   scoreArrangementTracks(project, scores)
@@ -709,7 +688,16 @@ function planLogicSoundWorld(project: ComposerProject): LogicSoundWorld {
 }
 
 export function logicSoundPalette(project: ComposerProject): LogicSoundPalette {
-  return planLogicSoundWorld(project)
+  const world = planLogicSoundWorldBase(project)
+  const rows = logicSoundRowsForWorld(project, world)
+  const coreSounds = coreSoundsFromRows(rows, world)
+  return {
+    ...world,
+    coreSounds,
+    description: coreSounds.length > 0
+      ? `${world.description}実際の割り当てでは${coreSounds.slice(0, 3).join("、")}を中心に使います。`
+      : world.description,
+  }
 }
 
 function stringRole(id: ArrangementTrackId): string {
@@ -1009,6 +997,8 @@ function finalPresetName(
   id: LogicProductionTrackId | ArrangementTrackId,
   world: LogicSoundWorld,
 ): string {
+  // 未確認: 以下のArturia名は端末内Preset DBには存在するが、各100音色のPlay無料版で
+  // 実際に選択できるかは実機確認できていない。確認済みになるまで名前を追加・創作しない。
   if (preset === "Analog Lab Play") {
     if (id === "syn-stabs") return "Analog Lab Play / Factory / Classic Jun Keys"
     if (id === "syn-chord-wide") return "Analog Lab Play / Factory / Book of Memories"
@@ -1161,6 +1151,47 @@ function arrangementVolumeDb(id: ArrangementTrackId, world: LogicSoundWorld): nu
   return Math.max(-24, Math.min(0, base + adjustment))
 }
 
+function displayedSoundName(row: LogicSoundRow): string {
+  if (row.product !== "Kontakt 8") return row.product
+  return row.preset.split(" / ")[0] || row.product
+}
+
+function soundFamilyForRow(row: LogicSoundRow): LogicSoundWorldFamily {
+  const source = `${row.product} ${row.preset}`
+  if (/Strings?|Orchestral Strings|Violin|Viola|Cell[oi]|Basses Essential|Emotive/i.test(source)) return "strings"
+  if (/Guitarist|Bassist/i.test(source)) return "band"
+  if (/Battery|Drummer|Drums|Percussion|Damage/i.test(source)) return "percussion"
+  if (/Noire|Una Corda|Piano Colors/i.test(source)) return "piano"
+  if (/Repro|Analog Lab|Pigments|Schema|Straylight|Ethereal Earth|Playbox|Analog Dreams/i.test(source)) return "synth"
+  return "hybrid"
+}
+
+/** 実際の音源表から、主役との一致・音量・使用トラック数を使って中心音源を選ぶ。 */
+function coreSoundsFromRows(rows: readonly LogicSoundRow[], world: LogicSoundWorld): string[] {
+  const usage = new Map<string, { count: number; loudestDb: number; family: LogicSoundWorldFamily }>()
+  for (const row of rows) {
+    const name = displayedSoundName(row)
+    const current = usage.get(name)
+    usage.set(name, {
+      count: (current?.count ?? 0) + 1,
+      loudestDb: Math.max(current?.loudestDb ?? -24, row.volumeDb),
+      family: current?.family ?? soundFamilyForRow(row),
+    })
+  }
+  return [...usage.entries()]
+    .sort(([leftName, left], [rightName, right]) => {
+      const score = (value: typeof left) => (
+        value.count * 5
+        + (24 + value.loudestDb)
+        + (value.family === world.dominantFamily ? 18 : 0)
+        + (world.supportingFamilies.includes(value.family) ? 5 : 0)
+      )
+      return score(right) - score(left) || right.count - left.count || leftName.localeCompare(rightName)
+    })
+    .slice(0, 5)
+    .map(([name]) => name)
+}
+
 function sourceSetting(source: TrackSource): string {
   return [
     source.performance.split("。")[0],
@@ -1173,9 +1204,8 @@ function sourceSetting(source: TrackSource): string {
  * 曲全体MIDIに入るトラックごとの、おすすめ音源と一言の設定。
  * トラックの並びと名前は曲全体MIDIと同じにする(Logicで開いたときに対応が分かるように)。
  */
-export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
+function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld): LogicSoundRow[] {
   const byId = new Map(sources(project).map((source) => [source.id, source]))
-  const world = planLogicSoundWorld(project)
   const order: LogicProductionTrackId[] = [
     "chord-guide",
     "active-melody",
@@ -1208,4 +1238,8 @@ export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
     rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: finalPresetName(sound.preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world), setting: sound.setting })
   }
   return rows
+}
+
+export function logicSoundRows(project: ComposerProject): LogicSoundRow[] {
+  return logicSoundRowsForWorld(project, planLogicSoundWorldBase(project))
 }

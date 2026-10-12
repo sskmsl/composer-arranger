@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { composerSongExchangeToProject } from "@/core/composerSongExchange"
-import { arrangementPartMatrix, projectWithLayerProposal, type ArrangementChatMessage } from "@/core/arrangementChat"
+import { arrangementPartMatrix, projectWithLayerProposal, type ArrangementChatMessage, type ArrangementChatState } from "@/core/arrangementChat"
+import { unsupportedArrangementInstructionNotice } from "@/core/arrangementIntent"
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { useProjectStore } from "@/store/useProjectStore"
 import type { AiArrangementIntent, AiArrangementResponse } from "./types"
-import { proposalsFromResponse } from "./arrangementChatAdvice"
+import { pendingConsultationRequestText, proposalsFromResponse } from "./arrangementChatAdvice"
 import {
   buildLayerProposal,
   counterModeFromText,
@@ -79,6 +80,25 @@ function response(generator: AiArrangementIntent["generator"]): AiArrangementRes
     },
     intents: [intent(generator), intent(generator), intent(generator)],
     usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: 0, estimatedCostUsd: 0 },
+  }
+}
+
+function discussionChat(userText: string): ArrangementChatState {
+  return {
+    updatedAt: "2026-09-25T00:00:01.000Z",
+    currentVersionId: null,
+    confirmedConstraints: [],
+    versions: [],
+    messages: [
+      { id: "user-1", role: "user", createdAt: "2026-09-25T00:00:00.000Z", text: userText },
+      {
+        id: "assistant-1",
+        role: "assistant",
+        createdAt: "2026-09-25T00:00:01.000Z",
+        text: "その方向でよいですか？",
+        proposalConfirmation: { question: "この方向で進めますか？", prompt: "はい" },
+      },
+    ],
   }
 }
 
@@ -173,5 +193,65 @@ describe("対旋律・合いの手の案", () => {
     const layer = buildLayerProposal(project, "fill", { seed: 3, text: "" })
     expect(layer.candidates.length).toBeGreaterThan(0)
     expect(layer.candidates.every((candidate) => candidate.kind === "decoration")).toBe(true)
+  })
+})
+
+describe("相談から確認を経た変更案", () => {
+  beforeEach(() => {
+    useProjectStore.setState({ history: [], future: [], persist: () => {} })
+  })
+
+  it("相談中のベース除去を、確認の返事の後も3案すべてへ引き継ぐ", () => {
+    const { project } = songWithMelody()
+    const request = pendingConsultationRequestText(discussionChat("ベースを外して"), "はい")
+    const proposals = proposalsFromResponse(project, response("none"), request, [], "confirmed-bass")
+    expect(proposals).toHaveLength(3)
+    expect(proposals.every((proposal) => proposal.recipe.removeRowIds?.includes("bass"))).toBe(true)
+  })
+
+  it("相談中の無音区間と主旋律の開始位置を、確認後の案へ引き継ぐ", () => {
+    const { project } = songWithMelody()
+    const longProject = {
+      ...project,
+      sections: project.sections.map((section, index) => index === project.sections.length - 1
+        ? { ...section, lengthBars: section.lengthBars + 32 }
+        : section),
+    }
+    const silenceRequest = pendingConsultationRequestText(discussionChat("25〜28小節を無音にして"), "はい")
+    const startRequest = pendingConsultationRequestText(discussionChat("主旋律は9小節目から"), "はい")
+    const silence = proposalsFromResponse(longProject, response("none"), silenceRequest, [], "confirmed-silence")
+    const start = proposalsFromResponse(longProject, response("none"), startRequest, [], "confirmed-start")
+    expect(silence.every((proposal) => proposal.recipe.directive?.timelineConstraints?.fullSilenceRanges
+      .some((range) => range.startBar === 25 && range.endBar === 28))).toBe(true)
+    expect(start.every((proposal) => proposal.recipe.directive?.timelineConstraints?.melodyStartBar === 9)).toBe(true)
+  })
+
+  it("相談中の非対応指示を、確認後の返答でも通知できる", () => {
+    const request = pendingConsultationRequestText(discussionChat("ギターを足して"), "はい")
+    expect(unsupportedArrangementInstructionNotice(request)).toContain("反映できませんでした")
+  })
+
+  it("相談を挟まない直接の案作成は現在の発言だけを使う", () => {
+    const { project } = songWithMelody()
+    const request = pendingConsultationRequestText(undefined, "ベースを外して")
+    expect(request).toBe("ベースを外して")
+    const proposals = proposalsFromResponse(project, response("none"), request, [], "direct-proposal")
+    expect(proposals.every((proposal) => proposal.recipe.removeRowIds?.includes("bass"))).toBe(true)
+  })
+
+  it("前回の案作成より前の相談は新しい依頼文へ持ち越さない", () => {
+    const chat = discussionChat("ベースを外して")
+    chat.messages.push({
+      id: "assistant-proposal",
+      role: "assistant",
+      createdAt: "2026-09-25T00:00:02.000Z",
+      text: "3案です。",
+      proposals: [{
+        id: "proposal", label: "案A", title: "案", summary: "案", points: [], generator: "none",
+        generationBrief: "", recipe: { brief: "", seed: 1, revision: 0 },
+      }],
+    })
+    chat.messages.push({ id: "user-2", role: "user", createdAt: "2026-09-25T00:00:03.000Z", text: "パッドを外して" })
+    expect(pendingConsultationRequestText(chat, "はい")).toBe("パッドを外して\nはい")
   })
 })

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createEmptyProject } from "@/core/project"
 import type { MelodyVariant } from "@/core/melody"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
-import { buildLogicProductionPackage } from "./logicProductionPackage"
+import { buildLogicProductionPackage, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
 
 function melody(): MelodyVariant {
   return {
@@ -39,6 +39,27 @@ function project() {
   value.reactiveLayerCandidates = [counter()]
   value.sectionReactiveLayerAssignments = { intro: "counter" }
   return value
+}
+
+function legacyCoreSounds(family: string, direction: string): string[] {
+  if (family === "strings") {
+    if (direction === "rhythmic-propulsion") return ["Action Strings 2", "LUX Orchestral Strings Elements", "Session Bassist - Prime Bass", "Studio Drummer", "Repro-1"]
+    if (direction === "controlled-escalation") return ["LUX Orchestral Strings Elements", "Emotive Strings", "Symphony Essentials Percussion", "Piano Colors", "Straylight"]
+    return ["Emotive Strings", "Session Strings Pro 2", "LUX Orchestral Strings Elements", "Noire", "Ethereal Earth"]
+  }
+  if (family === "band") {
+    const guitar = direction === "preserve-space" ? "Session Guitarist - Picked Nylon"
+      : direction === "motif-relay" ? "Session Guitarist - Electric Vintage"
+        : direction === "controlled-escalation" ? "Session Guitarist - Electric Sunburst Deluxe"
+          : "Session Guitarist - Electric Mint"
+    return [guitar, "Session Bassist - Icon Bass", "Studio Drummer", "Noire", "Repro-1"]
+  }
+  if (family === "synth") return ["Repro-1", "Repro-5", "Analog Lab Play", "Pigments Play", "Schema Dark"]
+  if (family === "piano") return ["Noire", "Piano Colors", "Una Corda", "Emotive Strings", "Ethereal Earth"]
+  if (family === "percussion") return ["Battery 4", "Studio Drummer", "Butch Vig Drums", "Session Percussionist", "Damage"]
+  return direction === "motif-relay"
+    ? ["Pigments Play", "Schema Dark", "Session Guitarist - Electric Vintage", "Emotive Strings", "Butch Vig Drums"]
+    : ["Noire", "Analog Lab Play", "Repro-5", "Session Strings Pro 2", "Studio Drummer"]
 }
 
 describe("Logic Pro Production Package", () => {
@@ -81,5 +102,31 @@ describe("Logic Pro Production Package", () => {
     expect(decoration?.status).toBe("empty")
     expect(decoration?.noteCount).toBe(0)
     expect(result.guideMarkdown).toContain("### 07 Decoration and Transition")
+  })
+
+  it("30通りすべてで中心音源と説明文の音源名が実際の音源表に存在する", () => {
+    const directions = ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const
+    const briefs = ["", "シンセ主体", "弦主体", "ピアノ主体", "ドラム主体", "ギターと生ドラム主体"]
+    let combinations = 0
+    let changedCombinations = 0
+    for (const selectedDirectionId of directions) for (const brief of briefs) {
+      const target = { ...project(), arrangementDirectorWorkspace: { brief, selectedDirectionId } }
+      const palette = logicSoundPalette(target)
+      const rows = logicSoundRows(target)
+      const assigned = rows.map((row) => `${row.product} ${row.preset}`).join("\n")
+      expect(palette.coreSounds.length).toBeGreaterThan(0)
+      expect(palette.coreSounds.length).toBeLessThanOrEqual(5)
+      for (const sound of palette.coreSounds) expect(assigned).toContain(sound)
+      expect(palette.coreSounds.slice(0, 3).every((name) => palette.description.includes(name))).toBe(true)
+      for (const sound of palette.coreSounds.slice(0, 3)) {
+        expect(assigned).toContain(sound)
+      }
+      if (JSON.stringify(palette.coreSounds) !== JSON.stringify(legacyCoreSounds(palette.dominantFamily, selectedDirectionId))) {
+        changedCombinations += 1
+      }
+      combinations += 1
+    }
+    expect(combinations).toBe(30)
+    expect(changedCombinations).toBe(30)
   })
 })

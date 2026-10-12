@@ -26,4 +26,34 @@ describe("アレンジ相談の確認フロー", () => {
     expect(requestedResponseModeForConsultation("はい")).toBe("discussion")
     expect(requestedResponseModeForConsultation("はい", true)).toBe("proposal")
   })
+
+  it.each([
+    "はい",
+    "はい、お願いします",
+    "いいですね、お願いします",
+    "OK、進めてください",
+    "はい、進めてください",
+    "その方向でいいです",
+    "それでいいです",
+    "進めてください",
+    "お願い",
+    "いいね!作って",
+    "うん、いいよ",
+  ])("確認待ちでは短い肯定の返事から案作成へ進む: %s", (text) => {
+    expect(requestedResponseModeForConsultation(text, true)).toBe("proposal")
+  })
+
+  it.each([
+    "はい、でも少し違う",
+    "いや、やっぱりやめて",
+    "まだ待って",
+    "本当にそれでいい？",
+    "もう少しストリングスを増やしたい",
+  ])("確認待ちでも疑問・保留・修正を含む返事は相談を続ける: %s", (text) => {
+    expect(requestedResponseModeForConsultation(text, true)).toBe("discussion")
+  })
+
+  it.each(["はい", "お願いします"])("確認待ちでなければ短い肯定だけで案を作らない: %s", (text) => {
+    expect(requestedResponseModeForConsultation(text, false)).toBe("discussion")
+  })
 })

@@ -100,6 +100,29 @@ export function arrangementChatConversation(chat: ArrangementChatState | undefin
 }
 
 /**
+ * 直前に変更案を作ってから現在までの、利用者の発言だけを相談中の依頼文としてまとめる。
+ * AIの返答は「抜きすぎない」などを削除指示と誤認しうるため、決定論的な解析には含めない。
+ */
+export function pendingConsultationRequestText(
+  chat: ArrangementChatState | undefined,
+  currentUserMessage: string,
+): string {
+  const messages = chat?.messages ?? []
+  let start = 0
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message.role === "assistant" && (message.proposals?.length ?? 0) > 0) {
+      start = index + 1
+      break
+    }
+  }
+  return [
+    ...messages.slice(start).filter((message) => message.role === "user").map((message) => message.text),
+    currentUserMessage,
+  ].map((text) => text.trim()).filter(Boolean).join("\n")
+}
+
+/**
  * 変更案を適用したときの全曲アレンジ。作り直す範囲が決まっている案は、
  * その範囲だけを新しい音にし、ほかはいまの全曲アレンジのまま残す。
  */
@@ -175,9 +198,8 @@ export function proposalsFromResponse(
     index: number,
     kind: "counter" | "fill",
   ): ArrangementChatProposal => {
-    // 利用者がセクションを名指ししていればそれだけ。していなければAIの案の文面から
+    // セクション範囲は利用者の依頼だけから読む。AIの説明文は決定論的な解析へ混ぜない。
     const scope = scopeSectionIdsFromText(project, userMessage, [])
-      ?? (WHOLE_SONG_WORDS.test(userMessage) ? undefined : scopeSectionIdsFromText(project, "", [intent.title, intent.generationBrief]))
     // 対旋律は、言葉で指定がなければ 案A=下で流れる・案B=上で流れる・案C=答える の3通りを出す
     const counterMode = kind === "counter"
       ? counterModeFromText(userMessage) ?? (["flowing-below", "flowing-above", "answer"] as const)[index % 3]
@@ -231,10 +253,11 @@ export function proposalsFromResponse(
     const brief = [...confirmedConstraints, userMessage, intent.title, intent.generationBrief]
       .filter(Boolean)
       .join("。")
+    const requestAnalysisText = [...confirmedConstraints, userMessage].filter(Boolean).join("。")
     const base = directionAuditionDirectiveForIntent(intent)
     const directive = directiveWithTimelineConstraints(
-      { ...base, soundInstruction: arrangementSoundInstructionFromText(brief) ?? base.soundInstruction },
-      brief,
+      { ...base, soundInstruction: arrangementSoundInstructionFromText(requestAnalysisText) ?? base.soundInstruction },
+      requestAnalysisText,
       totalBars,
       project.sections,
     )
@@ -251,12 +274,7 @@ export function proposalsFromResponse(
         ? parsedTimeline
         : current?.plan.directive?.timelineConstraints ?? parsedTimeline,
     }
-    const targetSectionId = intent.soundInstruction?.targetSectionId
-    const scope = scopeSectionIdsFromText(project, userMessage, [
-      intent.title,
-      intent.generationBrief,
-      ...(targetSectionId ? [project.sections.find((section) => section.id === targetSectionId)?.name ?? ""] : []),
-    ])
+    const scope = scopeSectionIdsFromText(project, userMessage, [])
     // 外す指示は利用者の言葉だけから読む(AIの説明文の「抜きすぎない」などを誤って拾わない)
     const removeRowIds = partRowsToRemove([userMessage])
     const recipe: ArrangementRecipe = {
