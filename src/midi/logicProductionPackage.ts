@@ -412,11 +412,11 @@ type SoundDetails = Omit<OwnedSound, "match">
  * 一致する「フォルダ / プリセット名」、Kontakt音源は実在する読み込み先を示す。
  */
 const ARRANGEMENT_SOUNDS: OwnedSound[] = [
-  { match: (id) => ["dr-kick", "dr-kick-sub", "dr-kick-click"].includes(id), role: "キック", product: "Battery 4", preset: "Battery 4 Factory Library / Kits / Elektro 500 Kit", setting: "低いキックを中心に置き、クリック成分は小さめ／残響 なし〜短め" },
-  { match: (id) => ["dr-snare", "dr-snare-body", "dr-clap"].includes(id), role: "スネア", product: "Kontakt 8", preset: "Butch Vig Drums / Factory Kit", setting: "Kontakt 8内でButch Vig Drumsを開く。胴鳴りとクラップを同じ音量にせず、主役は中央／残響 短め" },
-  { match: (id) => ["dr-closed-hat", "dr-open-hat", "dr-ride", "dr-crash"].includes(id), role: "シンバル", product: "Kontakt 8", preset: "Studio Drummer / Factory Kit", setting: "Kontakt 8内でStudio Drummerを開く。ハイハットは控えめ、オープンとクラッシュは節目だけ" },
-  { match: (id) => ["dr-field-drum", "dr-low-tom", "dr-high-tom", "dr-shaker", "dr-percussion-high"].includes(id), role: "パーカッション", product: "Kontakt 8", preset: "Session Percussionist / Factory Preset", setting: "Kontakt 8内でSession Percussionistを開く。主旋律の切れ目だけに置き、フィル後半へ向けて少し強くする" },
-  { match: (id) => ["dr-gran-cassa", "dr-cymbal-swell", "dr-impact"].includes(id), role: "大きな打撃", product: "Kontakt 8", preset: "Damage / Factory Kit", setting: "Kontakt 8内でDamageを開く。セクションの境目だけで鳴らし、連打しない／低音の余韻を整理" },
+  { match: (id) => ["dr-kick", "dr-kick-sub", "dr-kick-click"].includes(id), role: "キック", product: "Battery 4", preset: "Battery 4", setting: "低いキックを中心に置き、クリック成分は小さめ／残響 なし〜短め" },
+  { match: (id) => ["dr-snare", "dr-snare-body", "dr-clap"].includes(id), role: "スネア", product: "Kontakt 8", preset: "Butch Vig Drums", setting: "Kontakt 8内でButch Vig Drumsを開く。胴鳴りとクラップを同じ音量にせず、主役は中央／残響 短め" },
+  { match: (id) => ["dr-closed-hat", "dr-open-hat", "dr-ride", "dr-crash"].includes(id), role: "シンバル", product: "Kontakt 8", preset: "Studio Drummer", setting: "Kontakt 8内でStudio Drummerを開く。ハイハットは控えめ、オープンとクラッシュは節目だけ" },
+  { match: (id) => ["dr-field-drum", "dr-low-tom", "dr-high-tom", "dr-shaker", "dr-percussion-high"].includes(id), role: "パーカッション", product: "Kontakt 8", preset: "Session Percussionist", setting: "Kontakt 8内でSession Percussionistを開く。主旋律の切れ目だけに置き、フィル後半へ向けて少し強くする" },
+  { match: (id) => ["dr-gran-cassa", "dr-cymbal-swell", "dr-impact"].includes(id), role: "大きな打撃", product: "Kontakt 8", preset: "Damage", setting: "Kontakt 8内でDamageを開く。セクションの境目だけで鳴らし、連打しない／低音の余韻を整理" },
   { match: (id) => id === "syn-bass", role: "ベース", product: "Repro-1", preset: "01 Basses / EH Heavy Pulse Bass", setting: "音を短めに切り、キックと重ねない／定位 中央／残響 なし" },
   { match: (id) => id === "syn-sub-bass", role: "サブベース", product: "Repro-1", preset: "1981 Historic / 14 Bass Synth Sustain", setting: "最低音だけを薄く支え、長く重なる場所は短くする／定位 中央" },
   { match: (id) => id === "syn-bass-mid", role: "中域ベース", product: "Kontakt 8", preset: "Session Bassist - Prime Bass / Prime Bass", setting: "Kontakt 8内でPrime Bassを開く。高くなりすぎる音を避け、シンセベースより少し奥へ置く" },
@@ -721,8 +721,8 @@ function kontaktStringSound(id: ArrangementTrackId, world: LogicSoundWorld): Sou
     return {
       role,
       product: "Kontakt 8",
-      preset: "Action Strings 2",
-      setting: "Action Strings 2.nkiのSingle ArticulationsでStaccato/Spiccatoを選び、短くそろえる。拍の頭だけ少し強くし、長音パートとは役割を分ける",
+      preset: "Emotive Strings",
+      setting: "High BasicのBasic Ostinatos 2を選び、短くそろえる。拍の頭だけ少し強くし、長音パートとは役割を分ける",
     }
   }
   const preset = id === "str-cello"
@@ -737,7 +737,7 @@ function kontaktStringSound(id: ArrangementTrackId, world: LogicSoundWorld): Sou
     setting: direction === "controlled-escalation"
       ? "前半は薄く、後半ほど音域と強さを開く。弦主体でも全パートを同時に大きくしない"
       : direction === "rhythmic-propulsion"
-        ? "長音は拍を埋めすぎず、Action Strings 2の短い弦と役割を分ける。ドラムより一段奥へ置く"
+        ? "長音は拍を埋めすぎず、短い弦と役割を分ける。ドラムより一段奥へ置く"
         : direction === "preserve-space"
           ? "音を長く残しすぎず、主旋律の休みにだけ薄く入れる。余白を生かす方針を保つ"
           : direction === "motif-relay"
@@ -770,7 +770,7 @@ function directionBasedDrumSound(id: ArrangementTrackId, world: LogicSoundWorld)
           ? { product: "Kontakt 8", preset: "Butch Vig Drums" }
           : ["dr-closed-hat", "dr-open-hat", "dr-ride", "dr-crash"].includes(id)
             ? { product: "Kontakt 8", preset: "Studio Drummer" }
-            : { product: "Battery 4", preset: "Battery 4 Factory Library / Kits / Elektro 500 Kit" }
+            : { product: "Battery 4", preset: "Battery 4" }
     return {
       role,
       ...sound,
@@ -791,7 +791,7 @@ function directionBasedDrumSound(id: ArrangementTrackId, world: LogicSoundWorld)
       : percussion ? { product: "Kontakt 8", preset: "Session Percussionist" }
         : id.includes("snare") || id === "dr-clap" ? { product: "Kontakt 8", preset: "Butch Vig Drums" }
           : ["dr-closed-hat", "dr-open-hat", "dr-ride", "dr-crash"].includes(id) ? { product: "Kontakt 8", preset: "Studio Drummer" }
-            : { product: "Battery 4", preset: "Battery 4 Factory Library / Kits / Elektro 500 Kit" }
+            : { product: "Battery 4", preset: "Battery 4" }
     return {
       role,
       ...sound,
@@ -823,7 +823,7 @@ function directionBasedDrumSound(id: ArrangementTrackId, world: LogicSoundWorld)
     }
   }
   if (id.includes("kick")) {
-    return { role, product: "Battery 4", preset: "Battery 4 Factory Library / Kits / Elektro 500 Kit", setting: "輪郭のあるキックを中央へ置き、低い成分とクリック成分の音量を分ける" }
+    return { role, product: "Battery 4", preset: "Battery 4", setting: "輪郭のあるキックを中央へ置き、低い成分とクリック成分の音量を分ける" }
   }
   return {
     role,
@@ -962,9 +962,9 @@ const SOURCE_SOUNDS: Partial<Record<LogicProductionTrackId, Pick<LogicSoundRow, 
   "active-melody": { product: "Kontakt 8", preset: "Noire / Pure" },
   "melody-accompaniment": { product: "Repro-1", preset: "07 Seq - Melodic / HS Zing Pluck" },
   pulse: { product: "Repro-1", preset: "07 Seq - Melodic / HS Metronomi" },
-  decoration: { product: "Kontakt 8", preset: "Playbox / Factory Presets" },
+  decoration: { product: "Kontakt 8", preset: "Playbox" },
   "selected-phrase": { product: "Repro-5", preset: "05 Keys - Plucks & Mallets / SD Mellow Vibes" },
-  "selected-intro-phrase": { product: "Kontakt 8", preset: "Playbox / Factory Presets" },
+  "selected-intro-phrase": { product: "Kontakt 8", preset: "Playbox" },
 }
 
 function sourceSound(id: LogicProductionTrackId, world: LogicSoundWorld): Pick<LogicSoundRow, "product" | "preset"> {
@@ -989,33 +989,29 @@ function sourceSound(id: LogicProductionTrackId, world: LogicSoundWorld): Pick<L
 }
 
 /**
- * 製品名だけで終わらず、端末のKomplete Kontrol / Arturia DBまたは製品の公式階層で確認できた
- * 最後のSnapshot / Instrument / Preset / 奏法名まで表示する。ユーザーは末尾の名前を検索すればよい。
+ * 製品名だけで終わらず、端末のKomplete Kontrol / Arturia DBまたは実プリセットファイルで
+ * 確認できた名前まで表示する。製品名は別欄にあるため、存在しない階層を補って表示しない。
  */
 function finalPresetName(
   preset: string,
   id: LogicProductionTrackId | ArrangementTrackId,
   world: LogicSoundWorld,
 ): string {
-  // 未確認: 以下のArturia名は端末内Preset DBには存在するが、各100音色のPlay無料版で
-  // 実際に選択できるかは実機確認できていない。確認済みになるまで名前を追加・創作しない。
+  if (preset === "Battery 4") return "909 Detailed Kit"
   if (preset === "Analog Lab Play") {
-    if (id === "syn-stabs") return "Analog Lab Play / Factory / Classic Jun Keys"
-    if (id === "syn-chord-wide") return "Analog Lab Play / Factory / Book of Memories"
-    if (id === "syn-pad-air") return "Analog Lab Play / Factory / Sustained Strings"
-    if (id === "syn-high-glass") return "Analog Lab Play / Factory / Space Mallets"
-    if (id === "selected-phrase") return "Analog Lab Play / Factory / Deep Pluck"
-    return "Analog Lab Play / Factory / Arp Simplicity"
+    if (id === "syn-stabs") return "Classic Jun Keys"
+    if (id === "syn-chord-wide") return "Book of Memories"
+    if (id === "syn-pad-air") return "Sustained Strings"
+    if (id === "syn-high-glass") return "Space Mallets"
+    if (id === "selected-phrase") return "Deep Pluck"
+    return "Arp Simplicity"
   }
   if (preset === "Pigments Play") {
-    if (id === "syn-dark-pad") return "Pigments Play / Factory / Canopy Pad"
-    if (id === "syn-pad-motion") return "Pigments Play / Factory / Arp for Life"
-    if (id === "syn-high-glass") return "Pigments Play / Factory / Glassy Sky"
-    if (id === "syn-stabs") return "Pigments Play / Factory / Rave Stab"
-    return "Pigments Play / Factory / ASMR Sine Pad"
-  }
-  if (preset === "Action Strings 2") {
-    return "Action Strings 2 / Action Strings 2.nki / Single Articulations - Staccato/Spiccato"
+    if (id === "syn-dark-pad") return "Canopy Pad"
+    if (id === "syn-pad-motion") return "Arp for Life"
+    if (id === "syn-high-glass") return "Glassy Sky"
+    if (id === "syn-stabs") return "Rave Stab"
+    return "ASMR Sine Pad"
   }
   if (preset === "Session Strings Pro 2") {
     if (id === "str-cello") return "Session Strings Pro 2 / Celli - Modern / Celli Mod - Chamber"
@@ -1044,26 +1040,26 @@ function finalPresetName(
     if (id === "str-violin-2") return "Symphony Essentials String Ensemble / Violins 2 Essential"
     return "Symphony Essentials String Ensemble / Violins 1 Essential"
   }
-  if (preset === "Studio Drummer" || preset === "Studio Drummer / Factory Kit") {
+  if (preset === "Studio Drummer") {
     if (world.directionId === "controlled-escalation") return "Studio Drummer / Stadium Kit - Full / Stadium Ballad"
     if (world.directionId === "preserve-space") return "Studio Drummer / Session Kit - Full / Session Ballad"
     return "Studio Drummer / Session Kit - Full / Session Indie Rock"
   }
-  if (preset === "Butch Vig Drums" || preset === "Butch Vig Drums / Factory Kit") {
+  if (preset === "Butch Vig Drums") {
     return world.directionId === "preserve-space"
       ? "Butch Vig Drums / Dead Room (87 bpm)"
       : "Butch Vig Drums / The Nasty Room (140 bpm)"
   }
-  if (preset === "Session Percussionist" || preset === "Session Percussionist / Factory Preset") {
+  if (preset === "Session Percussionist") {
     if (id === "dr-shaker") return "Session Percussionist / 3 Players / Double Shaker I"
     if (id === "dr-percussion-high") return "Session Percussionist / 1 Player / Bright Chimes"
     if (["dr-low-tom", "dr-high-tom", "dr-field-drum"].includes(id)) return "Session Percussionist / 3 Players / Organic Clock"
     return "Session Percussionist / 3 Players / Small Combo"
   }
-  if (preset === "Damage" || preset === "Damage / Factory Kit") {
-    if (id === "dr-gran-cassa") return "Damage / Main Percussion / PERC Studio Concert Bass Drum"
+  if (preset === "Damage") {
+    if (id === "dr-gran-cassa") return "Damage / Main Percussion / PERC  Studio Concert Bass Drum"
     if (id === "dr-cymbal-swell") return "Damage / Main Percussion / PERC Cymbal Performance FX"
-    return "Damage / One Shot / Kits / PERC Damage Hit Impacts"
+    return "Damage / One Shot / Kits / PERC  Damage Hit Impacts"
   }
   if (preset === "Symphony Essentials Percussion") {
     if (id === "dr-field-drum") return "Symphony Essentials Percussion / Drums / Field Drum"
@@ -1088,13 +1084,13 @@ function finalPresetName(
   if (preset === "Noire" || preset === "Noire / Pure") {
     return id === "syn-dark-pad" ? "Noire / Felt - Grand Piano / Gentle Dark" : "Noire / Basic Pure"
   }
-  if (preset === "Playbox" || preset === "Playbox / Factory Presets") {
+  if (preset === "Playbox") {
     return id === "selected-intro-phrase"
       ? "Playbox / Instruments / A Movie Plot"
       : "Playbox / Instruments / Dream Sequence"
   }
-  if (preset === "Schema Dark") return "Schema Dark / Tonal / Orchestral / Dirty Sustain Strings"
-  if (preset === "Schema Light") return "Schema Light / Chord / Ghost Chords"
+  if (preset === "Schema Dark") return "Schema - Dark / Tonal / Orchestral / Dirty Sustain Strings"
+  if (preset === "Schema Light") return "Schema - Light / Chord / Ghost Chords"
   if (preset === "Straylight") return "Straylight / Atmospheres / Cold Morning"
   if (preset === "Analog Dreams") return "Analog Dreams / Analog Dreams 2.0 / Sensual Background"
   if (preset === "Ethereal Earth") return "Ethereal Earth / Ethereal Earth 1.0 / Angelic Whispers"

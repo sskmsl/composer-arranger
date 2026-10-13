@@ -88,7 +88,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(rows.some((row) => row.preset.includes("Celli Mod - Chamber") || row.preset.includes("Celli Mod - Dry Strings"))).toBe(true)
     expect(rows.filter((row) => row.preset.startsWith("Session Strings Pro 2 /"))
       .every((row) => / \/ [^/]+$/.test(row.preset))).toBe(true)
-    expect(rows.some((row) => row.product === "Battery 4" && row.preset.includes("Elektro 500 Kit"))).toBe(true)
+    expect(rows.some((row) => row.product === "Battery 4" && row.preset === "909 Detailed Kit")).toBe(true)
     expect(rows.every((row) => row.preset !== "Factory Library > Kits")).toBe(true)
     // Kontakt内ライブラリはLogic上では同じ「Kontakt 8」なので、製品名の水増しをしない。
     expect(new Set(rows.map((row) => row.product).filter((product) => product !== "Kontakt 8")).size).toBeGreaterThan(2)
@@ -109,8 +109,8 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(palette.dominantFamily).toBe("synth")
     expect(palette.coreSounds).toContain("Analog Lab Play")
     expect(palette.coreSounds).toContain("Pigments Play")
-    expect(rows.some((row) => row.product === "Analog Lab Play" && row.preset.startsWith("Analog Lab Play / Factory / "))).toBe(true)
-    expect(rows.some((row) => row.product === "Pigments Play" && row.preset.startsWith("Pigments Play / Factory / "))).toBe(true)
+    expect(rows.some((row) => row.product === "Analog Lab Play" && row.preset === "Book of Memories")).toBe(true)
+    expect(rows.some((row) => row.product === "Pigments Play" && row.preset === "Canopy Pad")).toBe(true)
     expect(rows.filter((row) => ["Analog Lab Play", "Pigments Play"].includes(row.product))
       .every((row) => row.preset.split(" / ").at(-1) !== row.product)).toBe(true)
   })
@@ -129,7 +129,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       arrangementDirectorWorkspace: { brief: "", selectedDirectionId: "preserve-space" },
     })
 
-    expect(rhythmic.some((row) => row.preset.includes("Action Strings 2 / Action Strings 2.nki / Single Articulations - Staccato/Spiccato"))).toBe(true)
+    expect(rhythmic.some((row) => row.preset === "Emotive Strings / High Basic / Basic Ostinatos 2")).toBe(true)
     expect(cinematic.some((row) => row.preset.startsWith("LUX Orchestral Strings Elements /"))).toBe(true)
     expect(spacious.some((row) => row.preset.startsWith("Emotive Strings /"))).toBe(true)
     expect(rhythmic.map((row) => row.preset)).toContain("Session Guitarist - Electric Mint / Melody / Clean and Wide (Melody)")
@@ -316,7 +316,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     const stringTrackNames = new Set(arrangement.tracks.filter((track) => track.id.startsWith("str-") && track.notes.length > 0).map((track) => track.name))
     let uniformLibraryCount = 0
     let sessionStringsMajorityCount = 0
-    let actionStringsCount = 0
+    let verifiedShortStringsCount = 0
 
     for (const song of soundWorldSongs) for (const selectedDirectionId of directions) for (const brief of briefs) {
       const stringRows = logicSoundRows({ ...song, arrangementDirectorWorkspace: { brief, selectedDirectionId } })
@@ -325,12 +325,12 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       const libraries = stringRows.map((row) => row.preset.split(" / ")[0])
       if (new Set(libraries).size === 1) uniformLibraryCount += 1
       if (libraries.filter((library) => library === "Session Strings Pro 2").length > libraries.length / 2) sessionStringsMajorityCount += 1
-      if (libraries.includes("Action Strings 2")) actionStringsCount += 1
+      if (stringRows.some((row) => row.preset === "Emotive Strings / High Basic / Basic Ostinatos 2")) verifiedShortStringsCount += 1
     }
 
     expect(uniformLibraryCount).toBe(0)
     expect(sessionStringsMajorityCount).toBeLessThan(10)
-    expect(actionStringsCount).toBeGreaterThan(0)
+    expect(verifiedShortStringsCount).toBeGreaterThan(0)
   })
 
   it("リズム型とシンセ主体でもドラムを役割別の3種類以上へ分ける", () => {
@@ -347,7 +347,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
   })
 
   it("提案する音源は所有一覧だけに限定する", () => {
-    const allowed = /Battery 4|Repro-[15]|Analog Lab Play|Pigments Play|Session Strings Pro 2|LUX Orchestral Strings Elements|Emotive Strings|Action Strings 2|Symphony Essentials (?:String Ensemble|Percussion)|Session Guitarist - |Session Bassist - |Noire|Una Corda|Piano Colors|Schema (?:Dark|Light)|Straylight|Ethereal Earth|Playbox|Analog Dreams|Studio Drummer|Butch Vig Drums|Session Percussionist|Damage/
+    const allowed = /Battery 4|Repro-[15]|Analog Lab Play|Pigments Play|Session Strings Pro 2|LUX Orchestral Strings Elements|Emotive Strings|Symphony Essentials (?:String Ensemble|Percussion)|Session Guitarist - |Session Bassist - |Noire|Una Corda|Piano Colors|Schema - (?:Dark|Light)|Straylight|Ethereal Earth|Playbox|Analog Dreams|Studio Drummer|Butch Vig Drums|Session Percussionist|Damage/
     const briefs = ["", "弦主体", "ピアノ主体", "シンセ主体", "ギターと生ドラム主体", "ストリングスなしでピアノ主体"]
     for (const brief of briefs) for (const selectedDirectionId of directions) {
       const target = { ...project, arrangementDirectorWorkspace: { brief, selectedDirectionId } }
@@ -355,6 +355,28 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       for (const row of logicSoundRows(target)) {
         expect(`${row.product} ${row.preset}`).toMatch(allowed)
         expect(row.preset).not.toContain("Scarbee Rickenbacker Bass")
+      }
+    }
+  })
+
+  it("実機で確認できたBattery 4とArturiaのプリセット名だけを表示する", () => {
+    const batteryPresets = new Set(["909 Detailed Kit"])
+    const analogLabPresets = new Set([
+      "Arp Simplicity", "Book of Memories", "Classic Jun Keys",
+      "Deep Pluck", "Space Mallets", "Sustained Strings",
+    ])
+    const pigmentsPresets = new Set([
+      "Arp for Life", "ASMR Sine Pad", "Canopy Pad", "Glassy Sky", "Rave Stab",
+    ])
+    const briefs = ["", "弦主体", "ピアノ主体", "シンセ主体", "ギターと生ドラム主体", "ストリングスなしでピアノ主体"]
+
+    for (const brief of briefs) for (const selectedDirectionId of directions) {
+      const rows = logicSoundRows({ ...project, arrangementDirectorWorkspace: { brief, selectedDirectionId } })
+      for (const row of rows) {
+        if (row.product === "Battery 4") expect(batteryPresets.has(row.preset)).toBe(true)
+        if (row.product === "Analog Lab Play") expect(analogLabPresets.has(row.preset)).toBe(true)
+        if (row.product === "Pigments Play") expect(pigmentsPresets.has(row.preset)).toBe(true)
+        expect(row.preset).not.toMatch(/Elektro 500|Factory (?:Library|Kit|Preset)|Action Strings 2/)
       }
     }
   })
