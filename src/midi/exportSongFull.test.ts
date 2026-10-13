@@ -3,10 +3,11 @@ import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { composerSongExchangeToProject } from "@/core/composerSongExchange"
+import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { logicSoundFamilyForRow, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
 import { exportSongMidi } from "./exportMelody"
-import { exportArrangementMidi, exportArrangementTrackMidi } from "./exportArrangement"
+import { exportArrangementLeadMidi, exportArrangementMidi, exportArrangementTrackMidi } from "./exportArrangement"
 import { parseMidi } from "./importMidi"
 
 const fixture = JSON.parse(
@@ -62,6 +63,41 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       },
     }
     expect(text(exportSongMidi(muted, true, true))).not.toContain(playing[0].name)
+  })
+
+  it("パートごとの書き出しで、採用中の主旋律だけを全曲MIDIにできる", () => {
+    const section = project.sections[0]
+    const variant = {
+      id: "lead-for-single-export",
+      name: "Lead for single export",
+      sectionId: section.id,
+      sourceMode: "generate" as const,
+      notes: [{ id: "lead-note", pitch: 69, startBeat: 0, durationBeats: 1, velocity: 82, locks: [] }],
+      phrasePlans: [],
+      lockedBars: [],
+      motifLocked: false,
+      features: null,
+      generatorVersion: "test",
+      seed: 1,
+      songProfile: "original-custom",
+      parentMelodyId: null,
+      batchId: "lead-export-batch",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }
+    const withLead = {
+      ...project,
+      melodyVariants: [...project.melodyVariants, variant],
+      sectionMelodyAssignments: { ...project.sectionMelodyAssignments, [section.id]: variant.id },
+    }
+    const expectedLead = buildSongPlaybackMaterial(withLead, arrangement.plan.directive?.timelineConstraints).lead
+    const midi = parseMidi(exportArrangementLeadMidi(withLead, arrangement))
+    const noteTracks = midi.tracks.filter((track) => track.notes.length > 0)
+
+    expect(expectedLead.length).toBeGreaterThan(0)
+    expect(noteTracks).toHaveLength(1)
+    expect(noteTracks[0].name).toBe("Active Melody")
+    expect(noteTracks[0].notes).toHaveLength(expectedLead.length)
+    for (const track of playing) expect(noteTracks[0].name).not.toBe(track.name)
   })
 
   it("Logic Proの音源表は、曲全体MIDIのトラック名と同じ名前で並ぶ", () => {

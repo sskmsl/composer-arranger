@@ -67,6 +67,7 @@ function song(
   tracks: GeneratedArrangementTrack[],
   includeAdoptedLayers = false,
   gmPrograms?: SoundSettings["programs"],
+  standaloneTracks: SoundedTrack[] = [],
 ): Uint8Array {
   const timeSignature = parseTimeSignature(project.song.timeSignature)
   const selectedMaterial = includeAdoptedLayers
@@ -138,6 +139,7 @@ function song(
     tracks: withGmSounds([
       ...arrangementSoundedTracks({ tracks } as FullSongArrangement),
       ...selectedTracks,
+      ...standaloneTracks,
     ], gmPrograms),
   })
 }
@@ -158,4 +160,26 @@ export function exportArrangementTrackMidi(
 ): Uint8Array {
   const track = arrangement.tracks.find((candidate) => candidate.id === trackId)
   return song(project, track ? [{ ...track, muted: false }] : [], false, gmPrograms)
+}
+
+/** アレンジ画面から、現在採用されている全セクションの主旋律だけを書き出す。 */
+export function exportArrangementLeadMidi(
+  project: ComposerProject,
+  arrangement: FullSongArrangement,
+  gmPrograms?: SoundSettings["programs"],
+): Uint8Array {
+  const material = buildSongPlaybackMaterial(project, arrangement.plan.directive?.timelineConstraints)
+  const leadTrack: SoundedTrack = {
+    sound: "melody",
+    track: {
+      name: "Active Melody",
+      notes: material.lead.map((note) => ({
+        pitch: note.pitch,
+        ...gridAlignedTicks(note.startBeat, note.durationBeats),
+        velocity: note.velocity,
+        channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+      })),
+    },
+  }
+  return song(project, [], false, gmPrograms, [leadTrack])
 }

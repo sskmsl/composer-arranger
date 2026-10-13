@@ -6,7 +6,7 @@ import type { ArrangementTrackId, GeneratedArrangementTrack } from "@/core/arran
 import { arrangementTrackColor, arrangementTrackLabel, arrangementTrackOrder } from "@/core/arrangementChat"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { downloadMidi } from "@/midi/exportMelody"
-import { exportArrangementTrackMidi } from "@/midi/exportArrangement"
+import { exportArrangementLeadMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
 import { useProjectStore } from "@/store/useProjectStore"
 import { gmExportPrograms } from "@/audio/soundSettings"
 
@@ -26,7 +26,7 @@ export function FullSongArrangementPanel() {
   const project = useProjectStore((state) => state.project)
   const setMuted = useProjectStore((state) => state.setArrangementTrackMuted)
   const arrangement = project.fullSongArrangement
-  const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | null>(null)
+  const [playingTrack, setPlayingTrack] = useState<ArrangementTrackId | "active-melody" | null>(null)
   const playbackRunRef = useRef(0)
   const material = useMemo(
     () => buildSongPlaybackMaterial(project, arrangement?.plan.directive?.timelineConstraints),
@@ -71,22 +71,80 @@ export function FullSongArrangementPanel() {
     })
   }
 
+  const playLead = () => {
+    if (material.lead.length === 0) return
+    const runId = playbackRunRef.current + 1
+    playbackRunRef.current = runId
+    setPlayingTrack("active-melody")
+    previewPlayer.playContinuous({
+      bpm: project.song.tempo,
+      tempoChanges: songTempoChanges(project),
+      chords: [],
+      accompaniment: [],
+      arrangementTracks: [],
+      mode: "melody-only",
+      melody: material.lead,
+      startBeat: 0,
+      range: { startBeat: 0, endBeat: material.totalBeats },
+      onEnded: () => {
+        if (playbackRunRef.current !== runId) return
+        setPlayingTrack(null)
+      },
+    })
+  }
+
   if (!arrangement) return null
   const families = (Object.keys(TRACK_FAMILY_LABEL) as GeneratedArrangementTrack["family"][])
     .map((family) => ({ family, tracks: tracks.filter((track) => track.family === family) }))
     .filter((group) => group.tracks.length > 0)
   const soundingTrackCount = tracks.filter((track) => !track.muted && track.notes.length > 0).length
+  const hasLead = material.lead.length > 0
+  const playingLead = playingTrack === "active-melody"
 
   return (
     <section className="flex min-w-0 max-w-full flex-col gap-3" aria-labelledby="generated-parts-heading">
       <div>
         <h3 id="generated-parts-heading" className="text-[14px] font-semibold text-body-on-dark">パートごとに聴く・書き出す</h3>
         <p className="mt-1 text-[13px] leading-5 text-body-muted">
-          生成済み {tracks.length}トラック（この曲で発音 {soundingTrackCount}トラック）。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。1パートだけのMIDIは、Logic Proの1小節目に置いてください。
+          {hasLead ? "主旋律と" : ""}生成済み {tracks.length}トラック（生成パートのうち発音 {soundingTrackCount}トラック）。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。1パートだけのMIDIは、Logic Proの1小節目に置いてください。
         </p>
       </div>
 
       <div className="space-y-4">
+        {hasLead && (
+          <section aria-label="主旋律">
+            <h4 className="mb-2 text-[12px] font-semibold text-body-muted">
+              主旋律 <span className="font-normal">1トラック</span>
+            </h4>
+            <div className="grid gap-2 lg:grid-cols-2">
+              <article className="flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-surface-tile-1 px-3 py-2">
+                <span className="size-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] text-body-on-dark">主旋律</p>
+                  <p className="truncate text-[11px] text-body-muted">{material.lead.length}音 · 現在採用しているメロディー</p>
+                </div>
+                <button
+                  type="button"
+                  title={playingLead ? "停止" : "主旋律だけ再生"}
+                  aria-label={playingLead ? "主旋律の再生を停止" : "主旋律だけ再生"}
+                  onClick={() => playingLead ? stop() : playLead()}
+                  className="rounded-full p-2 text-primary-on-dark hover:bg-white/8"
+                >
+                  {playingLead ? <Square size={15} /> : <Play size={15} />}
+                </button>
+                <button
+                  type="button"
+                  title="主旋律のMIDIを保存"
+                  aria-label="主旋律のMIDIを保存"
+                  onClick={() => downloadMidi(exportArrangementLeadMidi(project, arrangement, gmExportPrograms()), "Active-Melody-bar-1")}
+                  className="rounded-full p-2 text-primary-on-dark hover:bg-white/8"
+                >
+                  <Download size={15} />
+                </button>
+              </article>
+            </div>
+          </section>
+        )}
         {families.map(({ family, tracks: familyTracks }) => (
           <section key={family} aria-label={TRACK_FAMILY_LABEL[family]}>
             <h4 className="mb-2 text-[12px] font-semibold text-body-muted">
