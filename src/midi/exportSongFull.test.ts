@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { composerSongExchangeToProject } from "@/core/composerSongExchange"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
-import { logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
+import { logicSoundFamilyForRow, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
 import { exportSongMidi } from "./exportMelody"
 import { exportArrangementMidi, exportArrangementTrackMidi } from "./exportArrangement"
 import { parseMidi } from "./importMidi"
@@ -210,6 +210,34 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(directionsChangedBySong).toBeGreaterThanOrEqual(3)
     expect(new Set(titles).size).toBeGreaterThanOrEqual(3)
     expect(matrix.some((row) => ["strings", "piano"].includes(row[0]))).toBe(true)
+  })
+
+  it("90通りで中心音源の先頭を主役の家族へそろえ、ハイブリッドは複数家族を見せる", () => {
+    const briefs = ["", "シンセ主体", "弦主体", "ピアノ主体", "ドラム主体", "ギターと生ドラム主体"]
+    const totals: Record<string, number> = {}
+    const matches: Record<string, number> = {}
+    let combinations = 0
+    for (const song of soundWorldSongs.slice(0, 3)) for (const selectedDirectionId of directions) for (const brief of briefs) {
+      const target = { ...song, arrangementDirectorWorkspace: { brief, selectedDirectionId } }
+      const rows = logicSoundRows(target)
+      const palette = logicSoundPalette(target)
+      const familyForSound = (sound: string) => {
+        const row = rows.find((candidate) => (
+          candidate.product === "Kontakt 8" ? candidate.preset.split(" / ")[0] : candidate.product
+        ) === sound)
+        return row ? logicSoundFamilyForRow(row) : undefined
+      }
+      totals[palette.dominantFamily] = (totals[palette.dominantFamily] ?? 0) + 1
+      if (palette.dominantFamily === "hybrid") {
+        expect(new Set(palette.coreSounds.map(familyForSound).filter(Boolean)).size).toBeGreaterThanOrEqual(2)
+      } else {
+        expect(familyForSound(palette.coreSounds[0])).toBe(palette.dominantFamily)
+        matches[palette.dominantFamily] = (matches[palette.dominantFamily] ?? 0) + 1
+      }
+      combinations += 1
+    }
+    expect(combinations).toBe(90)
+    expect(matches).toEqual(Object.fromEntries(Object.entries(totals).filter(([family]) => family !== "hybrid")))
   })
 
   it("音源の希望が明記された場合は、方向性を変えず音の世界へ反映する", () => {

@@ -7,6 +7,7 @@ import {
   arrangementChatContext,
   arrangementChatConversation,
   pendingConsultationRequestText,
+  pendingConsultationUserMessages,
   proposalsFromResponse,
 } from "@/ai-arranger/arrangementChatAdvice"
 import { plainDirectionText } from "@/ai-arranger/directionPresentation"
@@ -136,9 +137,12 @@ export function ArrangementChatPanel({
       const consultationRequest = isDiscussion
         ? text
         : pendingConsultationRequestText(current.arrangementChat, text)
+      const consultationStatements = isDiscussion
+        ? [text]
+        : pendingConsultationUserMessages(current.arrangementChat, text)
       const proposals = isDiscussion
         ? []
-        : proposalsFromResponse(current, response, consultationRequest, response.confirmedConstraints, replyId)
+        : proposalsFromResponse(current, response, consultationRequest, response.confirmedConstraints, replyId, consultationStatements)
       const unsupportedNotice = unsupportedArrangementInstructionNotice(consultationRequest)
       const reply: ArrangementChatMessage = {
         id: replyId,

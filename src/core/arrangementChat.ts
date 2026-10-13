@@ -28,6 +28,11 @@ export interface ArrangementRecipe {
   scopeSectionIds?: string[]
   /** 「パッドは抜いて」のように外すよう言われたパート(作り直す範囲の中で外す) */
   removeRowIds?: ArrangementPartRowId[]
+  /**
+   * 発言ごとの範囲を保った除去指示。scopeSectionIds がなければ曲全体から外す。
+   * 旧データの removeRowIds は引き続き読み込める。
+   */
+  removeRowScopes?: Array<{ rowId: ArrangementPartRowId; scopeSectionIds?: string[] }>
 }
 
 export type ArrangementCellChangeKind = "added" | "removed" | "changed"
@@ -577,7 +582,21 @@ export function arrangementForVersion(
   const base = scope?.length && version.baseVersionId && depth < MAX_ARRANGEMENT_VERSIONS
     ? arrangementForVersion(versions, version.baseVersionId, generate, depth + 1)
     : undefined
-  return withoutPartRows(spliceArrangement(base, generated, scope), version.recipe.removeRowIds, scope)
+  return applyRecipePartRemovals(
+    withoutPartRows(spliceArrangement(base, generated, scope), version.recipe.removeRowIds, scope),
+    version.recipe.removeRowScopes,
+  )
+}
+
+/** 新形式の発言単位の除去を順に適用する。 */
+export function applyRecipePartRemovals(
+  arrangement: FullSongArrangement,
+  removals: ArrangementRecipe["removeRowScopes"],
+): FullSongArrangement {
+  return (removals ?? []).reduce(
+    (current, removal) => withoutPartRows(current, [removal.rowId], removal.scopeSectionIds),
+    arrangement,
+  )
 }
 
 /** 指定したパートの音を、範囲(なければ曲全体)の中から外す */
@@ -626,6 +645,17 @@ export function partRowsToRemove(texts: string[]): ArrangementPartRowId[] {
       if (/^(か|さ|め|か)?(ない|ず)/.test(after) || /^[かさ]なく/.test(after)) continue
       targets.forEach((row) => rows.add(row))
     }
+  }
+  return [...rows]
+}
+
+/** 「やっぱりベースは残して」のような、直前の除去を取り消す対象を読む。 */
+export function partRowsToKeep(texts: string[]): ArrangementPartRowId[] {
+  const text = texts.join("\n")
+  const rows = new Set<ArrangementPartRowId>()
+  for (const { pattern, rows: targets } of REMOVAL_WORDS) {
+    const regex = new RegExp(`(?:${pattern})(?:の音|の音色|パート)?(?:は|を|も)?[^。\n]{0,10}(?:残|戻|維持|キープ|外さない|抜かない|なくさない|消さない|止めない)`, "g")
+    if (regex.test(text)) targets.forEach((row) => rows.add(row))
   }
   return [...rows]
 }

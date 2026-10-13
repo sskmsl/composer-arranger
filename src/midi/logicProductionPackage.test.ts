@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
+import { composerSongExchangeToProject } from "@/core/composerSongExchange"
 import { createEmptyProject } from "@/core/project"
+import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import type { MelodyVariant } from "@/core/melody"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
-import { buildLogicProductionPackage, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
+import { buildLogicProductionPackage, logicSoundFamilyForRow, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
+
+const arrangementFixture = JSON.parse(
+  readFileSync(resolve(__dirname, "../../contracts/composer-song-exchange.v2.example.json"), "utf8"),
+)
+const arrangedBase = composerSongExchangeToProject(arrangementFixture)
+const arrangedProject = { ...arrangedBase, fullSongArrangement: generateFullSongArrangement(arrangedBase, { seed: 7 }) }
 
 function melody(): MelodyVariant {
   return {
@@ -110,16 +120,33 @@ describe("Logic Pro Production Package", () => {
     let combinations = 0
     let changedCombinations = 0
     for (const selectedDirectionId of directions) for (const brief of briefs) {
-      const target = { ...project(), arrangementDirectorWorkspace: { brief, selectedDirectionId } }
+      const target = { ...arrangedProject, arrangementDirectorWorkspace: { brief, selectedDirectionId } }
       const palette = logicSoundPalette(target)
       const rows = logicSoundRows(target)
       const assigned = rows.map((row) => `${row.product} ${row.preset}`).join("\n")
+      const familyForSound = (sound: string) => {
+        const row = rows.find((candidate) => (
+          candidate.product === "Kontakt 8" ? candidate.preset.split(" / ")[0] : candidate.product
+        ) === sound)
+        return row ? logicSoundFamilyForRow(row) : undefined
+      }
       expect(palette.coreSounds.length).toBeGreaterThan(0)
       expect(palette.coreSounds.length).toBeLessThanOrEqual(5)
       for (const sound of palette.coreSounds) expect(assigned).toContain(sound)
       expect(palette.coreSounds.slice(0, 3).every((name) => palette.description.includes(name))).toBe(true)
       for (const sound of palette.coreSounds.slice(0, 3)) {
         expect(assigned).toContain(sound)
+      }
+      const representedFamilies = new Set(rows.map(logicSoundFamilyForRow))
+      if (palette.dominantFamily !== "hybrid" && representedFamilies.has(palette.dominantFamily)) {
+        expect(familyForSound(palette.coreSounds[0])).toBe(palette.dominantFamily)
+      }
+      if (palette.dominantFamily === "piano") expect(palette.coreSounds).toContain("Noire")
+      if (palette.dominantFamily === "strings") {
+        expect(palette.coreSounds.slice(0, 3).filter((sound) => familyForSound(sound) === "strings").length).toBeGreaterThanOrEqual(2)
+      }
+      if (palette.dominantFamily === "hybrid") {
+        expect(new Set(palette.coreSounds.map(familyForSound).filter(Boolean)).size).toBeGreaterThanOrEqual(2)
       }
       if (JSON.stringify(palette.coreSounds) !== JSON.stringify(legacyCoreSounds(palette.dominantFamily, selectedDirectionId))) {
         changedCombinations += 1

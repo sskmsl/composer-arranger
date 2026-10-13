@@ -7,7 +7,7 @@ import { unsupportedArrangementInstructionNotice } from "@/core/arrangementInten
 import { normalizeSectionTimeline } from "@/core/sectionTimeline"
 import { useProjectStore } from "@/store/useProjectStore"
 import type { AiArrangementIntent, AiArrangementResponse } from "./types"
-import { pendingConsultationRequestText, proposalsFromResponse } from "./arrangementChatAdvice"
+import { arrangementFromRecipe, pendingConsultationRequestText, proposalsFromResponse } from "./arrangementChatAdvice"
 import {
   buildLayerProposal,
   counterModeFromText,
@@ -253,5 +253,44 @@ describe("相談から確認を経た変更案", () => {
     })
     chat.messages.push({ id: "user-2", role: "user", createdAt: "2026-09-25T00:00:03.000Z", text: "パッドを外して" })
     expect(pendingConsultationRequestText(chat, "はい")).toBe("パッドを外して\nはい")
+  })
+
+  it("全曲のベース除去を、後のサビ指定へ混ぜずに適用する", () => {
+    const { project } = songWithMelody()
+    const statements = ["ベースを外して", "サビを盛り上げたい", "はい"]
+    const proposals = proposalsFromResponse(project, response("none"), statements.join("\n"), [], "scoped-bass", statements)
+    const chorusIds = project.sections.filter((section) => section.role === "chorus").map((section) => section.id)
+    expect(proposals.every((proposal) => proposal.recipe.scopeSectionIds?.some((id) => chorusIds.includes(id)))).toBe(true)
+    expect(proposals.every((proposal) => proposal.recipe.removeRowScopes?.some(
+      (removal) => removal.rowId === "bass" && removal.scopeSectionIds === undefined,
+    ))).toBe(true)
+    for (const proposal of proposals) {
+      const matrix = arrangementPartMatrix(project, arrangementFromRecipe(project, proposal.recipe))
+      expect(matrix.every((section) => section.cells.bass.noteCount === 0)).toBe(true)
+    }
+  })
+
+  it("後の『残して』で、先のベース除去を取り消す", () => {
+    const { project } = songWithMelody()
+    const statements = ["ベースを外して", "やっぱりベースは残して", "はい"]
+    const proposals = proposalsFromResponse(project, response("none"), statements.join("\n"), [], "keep-bass", statements)
+    expect(proposals.every((proposal) => !proposal.recipe.removeRowIds?.includes("bass"))).toBe(true)
+    expect(proposals.every((proposal) => !proposal.recipe.removeRowScopes?.some((removal) => removal.rowId === "bass"))).toBe(true)
+  })
+
+  it("後の無音区間への変更を優先する", () => {
+    const { project } = songWithMelody()
+    const longProject = {
+      ...project,
+      sections: project.sections.map((section, index) => index === project.sections.length - 1
+        ? { ...section, lengthBars: section.lengthBars + 32 }
+        : section),
+    }
+    const statements = ["25〜28小節を無音にして", "やっぱり26〜28小節にして", "はい"]
+    const proposals = proposalsFromResponse(longProject, response("none"), statements.join("\n"), [], "replace-silence", statements)
+    expect(proposals.every((proposal) => {
+      const ranges = proposal.recipe.directive?.timelineConstraints?.fullSilenceRanges
+      return ranges?.length === 1 && ranges[0].startBar === 26 && ranges[0].endBar === 28
+    })).toBe(true)
   })
 })

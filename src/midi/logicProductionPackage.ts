@@ -1156,7 +1156,7 @@ function displayedSoundName(row: LogicSoundRow): string {
   return row.preset.split(" / ")[0] || row.product
 }
 
-function soundFamilyForRow(row: LogicSoundRow): LogicSoundWorldFamily {
+export function logicSoundFamilyForRow(row: LogicSoundRow): LogicSoundWorldFamily {
   const source = `${row.product} ${row.preset}`
   if (/Strings?|Orchestral Strings|Violin|Viola|Cell[oi]|Basses Essential|Emotive/i.test(source)) return "strings"
   if (/Guitarist|Bassist/i.test(source)) return "band"
@@ -1166,7 +1166,7 @@ function soundFamilyForRow(row: LogicSoundRow): LogicSoundWorldFamily {
   return "hybrid"
 }
 
-/** 実際の音源表から、主役との一致・音量・使用トラック数を使って中心音源を選ぶ。 */
+/** 実際の音源表から、主役→支える音→残りの順で中心音源を選ぶ。 */
 function coreSoundsFromRows(rows: readonly LogicSoundRow[], world: LogicSoundWorld): string[] {
   const usage = new Map<string, { count: number; loudestDb: number; family: LogicSoundWorldFamily }>()
   for (const row of rows) {
@@ -1175,21 +1175,59 @@ function coreSoundsFromRows(rows: readonly LogicSoundRow[], world: LogicSoundWor
     usage.set(name, {
       count: (current?.count ?? 0) + 1,
       loudestDb: Math.max(current?.loudestDb ?? -24, row.volumeDb),
-      family: current?.family ?? soundFamilyForRow(row),
+      family: current?.family ?? logicSoundFamilyForRow(row),
     })
   }
-  return [...usage.entries()]
-    .sort(([leftName, left], [rightName, right]) => {
-      const score = (value: typeof left) => (
-        value.count * 5
-        + (24 + value.loudestDb)
-        + (value.family === world.dominantFamily ? 18 : 0)
-        + (world.supportingFamilies.includes(value.family) ? 5 : 0)
-      )
-      return score(right) - score(left) || right.count - left.count || leftName.localeCompare(rightName)
-    })
-    .slice(0, 5)
-    .map(([name]) => name)
+  type UsageEntry = [string, { count: number; loudestDb: number; family: LogicSoundWorldFamily }]
+  const score = ([name, value]: UsageEntry) => (
+    value.count * 5
+    + (24 + value.loudestDb)
+    // 鍵盤主役ではNoireを中心音源として必ず見つけられるようにする。
+    + (value.family === "piano" && name === "Noire" ? 12 : 0)
+  )
+  const entries = [...usage.entries()] as UsageEntry[]
+  const byFamily = new Map<LogicSoundWorldFamily, UsageEntry[]>()
+  for (const entry of entries) {
+    const family = entry[1].family
+    byFamily.set(family, [...(byFamily.get(family) ?? []), entry])
+  }
+  for (const familyEntries of byFamily.values()) {
+    familyEntries.sort((left, right) => score(right) - score(left) || right[1].count - left[1].count || left[0].localeCompare(right[0]))
+  }
+  const result: string[] = []
+  const append = (family: LogicSoundWorldFamily, limit = Number.POSITIVE_INFINITY) => {
+    for (const [name] of (byFamily.get(family) ?? []).slice(0, limit)) {
+      if (!result.includes(name) && result.length < 5) result.push(name)
+    }
+  }
+
+  if (world.dominantFamily !== "hybrid") {
+    append(world.dominantFamily, 3)
+    for (const family of world.supportingFamilies) append(family)
+    const remainingFamilies = [...byFamily.keys()]
+      .filter((family) => family !== world.dominantFamily && !world.supportingFamilies.includes(family))
+      .sort((left, right) => score(byFamily.get(right)![0]) - score(byFamily.get(left)![0]))
+    for (const family of remainingFamilies) append(family)
+    return result.slice(0, 5)
+  }
+
+  // ハイブリッドは同じ家族を複数並べず、家族ごとの代表を一つずつ選ぶ。
+  // 上位が電子音でも生音でも、両方が中心音源へ入るよう二つ目を補正する。
+  const rankedFamilies = [...byFamily.keys()]
+    .filter((family) => family !== "hybrid")
+    .sort((left, right) => score(byFamily.get(right)![0]) - score(byFamily.get(left)![0]))
+  const electronic = rankedFamilies.filter((family) => family === "synth")
+  const acoustic = rankedFamilies.filter((family) => family !== "synth")
+  const first = rankedFamilies[0]
+  const hybridOrder = first === "synth"
+    ? [first, acoustic[0], ...rankedFamilies]
+    : [first, electronic[0], ...rankedFamilies]
+  for (const family of hybridOrder) if (family) append(family, 1)
+  if (result.length < 5) {
+    const remaining = entries.sort((left, right) => score(right) - score(left))
+    for (const [name] of remaining) if (!result.includes(name) && result.length < 5) result.push(name)
+  }
+  return result.slice(0, 5)
 }
 
 function sourceSetting(source: TrackSource): string {
