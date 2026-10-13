@@ -72,7 +72,10 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       name: "Lead for single export",
       sectionId: section.id,
       sourceMode: "generate" as const,
-      notes: [{ id: "lead-note", pitch: 69, startBeat: 0, durationBeats: 1, velocity: 82, locks: [] }],
+      notes: [
+        { id: "lead-note", pitch: 69, startBeat: 0.03, durationBeats: 0.04, velocity: 82, locks: [] },
+        { id: "lead-note-2", pitch: 72, startBeat: 0.09, durationBeats: 0.08, velocity: 67, locks: [] },
+      ],
       phrasePlans: [],
       lockedBars: [],
       motifLocked: false,
@@ -90,6 +93,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       sectionMelodyAssignments: { ...project.sectionMelodyAssignments, [section.id]: variant.id },
     }
     const expectedLead = buildSongPlaybackMaterial(withLead, arrangement.plan.directive?.timelineConstraints).lead
+    const before = structuredClone(withLead)
     const midi = parseMidi(exportArrangementLeadMidi(withLead, arrangement))
     const noteTracks = midi.tracks.filter((track) => track.notes.length > 0)
 
@@ -97,6 +101,16 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(noteTracks).toHaveLength(1)
     expect(noteTracks[0].name).toBe("Active Melody")
     expect(noteTracks[0].notes).toHaveLength(expectedLead.length)
+    expect(noteTracks[0].notes.map(({ pitch, velocity, startTick, durationTicks }) => ({ pitch, velocity, startTick, durationTicks })))
+      .toEqual(expectedLead.map((note) => ({
+        pitch: note.pitch,
+        velocity: note.velocity,
+        startTick: Math.round(note.startBeat * midi.ppq),
+        durationTicks: Math.round((note.startBeat + note.durationBeats) * midi.ppq) - Math.round(note.startBeat * midi.ppq),
+      })))
+    const wholeSongLead = parseMidi(exportSongMidi(withLead, true, true)).tracks.find((track) => track.name === "Active Melodies")!
+    expect(noteTracks[0].notes).toEqual(wholeSongLead.notes)
+    expect(withLead).toEqual(before)
     for (const track of playing) expect(noteTracks[0].name).not.toBe(track.name)
   })
 

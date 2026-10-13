@@ -9,7 +9,7 @@ import { notesByPartRole } from "@/core/sectionLayers"
 import { parseTimeSignature } from "@/core/section"
 import { parseChordSymbol } from "@/core/chord"
 import { voiceChord } from "@/audio/chordVoicing"
-import { buildSmf, gridAlignedTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
+import { buildSmf, gridAlignedTicks, preservedNoteTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 
 /**
@@ -77,7 +77,11 @@ export function exportMelodyMidi(opts: ExportMelodyOptions): Uint8Array {
   const tracks: SoundedTrack[] =
     opts.includeLeadTrack === false
       ? []
-      : [{ sound: opts.leadPart ?? "melody", track: { name: opts.leadTrackName ?? "Active Melody", notes: leadNotes.map(toSmfNote) } }]
+      : [{ sound: opts.leadPart ?? "melody", track: { name: opts.leadTrackName ?? "Active Melody", notes: leadNotes.map((note) => (
+          !opts.leadPart || opts.leadPart === "melody"
+            ? { ...toSmfNote(note), ...preservedNoteTicks(note.startBeat - range.startBeat, note.durationBeats) }
+            : toSmfNote(note)
+        )) } }]
   if (accompanimentNotes.length > 0) {
     tracks.push({ sound: "accompaniment", track: { name: "Accompaniment", notes: accompanimentNotes.map(toSmfNote) } })
   }
@@ -155,7 +159,12 @@ export function exportSongMidi(
   })
 
   // Issue #41: lead と accompaniment(Ostinato/Drone)を別トラックへ分ける
-  const tracks: SoundedTrack[] = [{ sound: "melody", track: { name: "Active Melodies", notes: material.lead.map(toSmfNote) } }]
+  const tracks: SoundedTrack[] = [{ sound: "melody", track: { name: "Active Melodies", notes: material.lead.map((note) => ({
+    pitch: note.pitch,
+    ...preservedNoteTicks(note.startBeat, note.durationBeats),
+    velocity: note.velocity,
+    channel: SOFTWARE_INSTRUMENT_MIDI_CHANNEL,
+  })) } }]
   const layers: Array<[SoundPart, string, MelodyNote[]]> = [
     ["accompaniment", "Accompaniment", material.accompaniment],
     ["accompaniment", "Accompaniment Pattern", material.accompanimentPattern],

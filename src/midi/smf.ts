@@ -3,6 +3,13 @@
  */
 export const TICKS_PER_QUARTER = 480
 
+/** 保護対象の主旋律はグリッド補正せず、MIDIのtick精度だけで変換する。 */
+export function preservedNoteTicks(startBeat: number, durationBeats: number): { start: number; duration: number } {
+  const start = Math.max(0, Math.round(startBeat * TICKS_PER_QUARTER))
+  const end = Math.round((startBeat + durationBeats) * TICKS_PER_QUARTER)
+  return { start, duration: Math.max(1, end - start) }
+}
+
 /** 16分・3連のグリッドへ寄せる距離(拍)。これより大きいずれは意図したリズムとして残す */
 const GRID_SNAP_BEATS = 0.06
 
