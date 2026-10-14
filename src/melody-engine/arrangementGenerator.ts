@@ -2101,7 +2101,9 @@ function applyArrangementSoundImage(
       return {
         ...note,
         velocity: Math.max(1, Math.round(note.velocity - (rear ? 20 : 7) * depthShift)),
-        durationBeats: note.durationBeats * (1 + (rear ? .42 : .14) * decayShift),
+        durationBeats: project.sections.find((s) => s.id === note.sectionId)?.role === "outro"
+          ? note.durationBeats
+          : note.durationBeats * (1 + (rear ? .42 : .14) * decayShift),
         soundImage: {
           depth: image.depth,
           decay: image.decay,
@@ -2328,8 +2330,47 @@ function generateArrangementCandidate(
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: addSectionBoundaryPerformances(project, plan, performedTracks, revision),
+    tracks: sustainOutroEnding(project, plan, addSectionBoundaryPerformances(project, plan, performedTracks, revision), revision),
   })
+}
+
+/** 最後の和音を低音・内声・背景で支え、曲末まで響かせる。 */
+function sustainOutroEnding(project: ComposerProject, plan: ArrangementPlan, input: GeneratedArrangementTrack[], revision: number): GeneratedArrangementTrack[] {
+  const tracks = input.map((t) => ({ ...t, notes: [...t.notes] }))
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const lead = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints).lead
+  for (const section of normalizeSectionTimeline(project.sections).filter((s) => s.role === "outro")) {
+    const start = (section.startBar - 1) * bpb, end = start + section.lengthBars * bpb
+    // 最終小節は3声へ整理する。前の和音の尾もコード境界で止める。
+    for (const track of tracks) track.notes = track.notes.flatMap((n) => {
+      if (n.sectionId !== section.id) return [n]
+      if (n.startBeat >= end - bpb) return []
+      return [{ ...n, durationBeats: Math.min(n.durationBeats, end - bpb - n.startBeat) }]
+    })
+    const chords = project.chords.filter((c) => c.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat)
+    for (const [index, chord] of chords.entries()) {
+      const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+      if (!parsed) continue
+      const beat = start + chord.startBeat
+      const stop = Math.min(end, start + (chords[index + 1]?.startBeat ?? section.lengthBars * bpb))
+      const soundingLead = lead.filter((n) => n.startBeat < stop && n.startBeat + n.durationBeats > beat)
+      const pitches = parsed.tones.flatMap((t) => [48, 60, 72, 84].map((octave) => octave + t.pitchClass))
+        .filter((p) => p >= 52 && p <= 95 && soundingLead.every((n) => Math.abs(n.pitch - p) > 5))
+        .sort((a, b) => a - b)
+      const voices: Array<[ArrangementTrackId, number]> = [
+        ["syn-bass", midiForPc(parsed.bassPc, 36)],
+        ["syn-dark-pad", pitches.find((p) => p >= 72) ?? midiForPc(parsed.tones[1]?.pitchClass ?? parsed.rootPc, 84)],
+        ["str-cello", pitches[0] ?? midiForPc(parsed.rootPc, 60)],
+      ]
+      for (const [id, pitch] of voices) {
+        let track = tracks.find((t) => t.id === id)
+        if (!track) { track = emptyTrack(id, revision); tracks.push(track) }
+        if (beat < end - bpb) track.notes = track.notes.filter((n) => n.sectionId !== section.id || n.startBeat < beat || n.startBeat >= stop)
+        track.notes.push(makeNote(id, section.id, 10000 + index, beat, stop - beat, pitch, Math.max(42, 60 - index * 2), "アウトロの和音を曲末まで支える"))
+      }
+    }
+  }
+  return tracks
 }
 
 /** 区切りの打楽器と、反復サビから最終サビへの強弱を生成候補に組み込む。 */
@@ -2370,6 +2411,20 @@ function addSectionBoundaryPerformances(
   }
   let verseMean = 0, chorusMean = 0
   for (const section of sections) {
+    if (section.role === "grand-chorus") {
+      const previousChorus = sections.slice(0, sections.indexOf(section)).filter((s) => s.role === "chorus").at(-1)
+      if (previousChorus) {
+        const previousCount = tracks.filter((t) => t.notes.some((n) => n.sectionId === previousChorus.id)).length
+        const active = tracks.filter((t) => t.notes.some((n) => n.sectionId === section.id))
+        const expendable = active.filter((t) => isArrangementLayerTrackId(t.id) && t.id !== "str-spiccato").reverse()
+        let excess = active.length - previousCount - 9
+        for (const track of expendable) {
+          if (excess <= 0) break
+          track.notes = track.notes.filter((n) => n.sectionId !== section.id)
+          excess--
+        }
+      }
+    }
     if (section.role === "verse") verseMean = meanVelocity(section.id)
     if (section.role !== "chorus" && section.role !== "grand-chorus") continue
     const current = meanVelocity(section.id)
