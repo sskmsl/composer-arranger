@@ -13,6 +13,16 @@ function setup() {
   return { project, source, target: project.sections[4].id }
 }
 describe("反復セクションの旋律", () => {
+  it("土台にある1拍以上の休符の位置を変奏でも保つ", () => {
+    const { project, source, target } = setup()
+    source.notes = source.notes.filter((n) => n.startBeat !== 15)
+    for (const pattern of [1, 2, 3] as const) {
+      const notes = varyRepeatedSection(source, project, target, 32, 4, { low: 60, high: 77 }, 12, pattern)
+      expect(notes.find((n) => n.startBeat === 14)?.durationBeats).toBe(0.5)
+      expect(notes.some((n) => n.startBeat > 14 && n.startBeat < 16)).toBe(false)
+      expect(notes.some((n) => n.startBeat === 16)).toBe(true)
+    }
+  })
   it("冒頭に重なる音があっても、冒頭2小節の長さと強弱を変えない", () => {
     const { project, source, target } = setup()
     source.notes[0].durationBeats = 2

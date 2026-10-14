@@ -29,6 +29,7 @@ import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generati
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
 import { finalChorusRange } from "@/melody-engine/finalChorusRange"
+import { shapeMelodyBreathing } from "@/melody-engine/melodyBreathing"
 import { parseKey } from "@/core/scale"
 import { extractMotifDNA } from "@/melody-engine/motifDNA"
 import { generateRangeRegenerationCandidates } from "@/melody-engine/rangeRegeneration"
@@ -1165,7 +1166,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           variant.notes,
           "lead-focus",
         )
-        const performedVariant = replaceVariantNotes(variant, performed.notes)
+        const performedVariant = replaceVariantNotes(variant, variant.leadContent === "melody"
+          ? shapeMelodyBreathing(performed.notes, totalBeats, ts.beatsPerBar) : performed.notes)
         performedVariant.performanceSpec = performed.performanceSpec
         return performedVariant
       })
@@ -1340,7 +1342,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const performed = repeatedSource
         ? { notes: v.notes, performanceSpec: repeatedSource.performanceSpec }
         : performGeneratedNotes(prev, sectionId, v.notes, "lead-focus")
-      const performedVariant = replaceVariantNotes(v, performed.notes)
+      const performedVariant = replaceVariantNotes(v, repeatedSource ? performed.notes
+        : shapeMelodyBreathing(performed.notes, totalBeats, ts.beatsPerBar))
       performedVariant.performanceSpec = performed.performanceSpec
       performedVariant.features = computeMelodyFeatures(
         performedVariant.notes,

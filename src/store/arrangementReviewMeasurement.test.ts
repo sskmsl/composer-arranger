@@ -8,6 +8,7 @@ import { arrangementQualityDiagnostics, generateFullSongArrangement } from "@/me
 import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
 import { keyScalePitchClasses, parseKey } from "@/core/scale"
 import { effectiveSectionKey } from "@/core/project"
+import { measureBass, measureBreathing, measureLowEnd } from "./arrangementPerformanceMeasurements"
 
 function lcs(a: number[], b: number[]) {
   let row = Array(b.length + 1).fill(0) as number[]
@@ -78,6 +79,9 @@ describe("レビュー指定2曲の決定的測定", () => {
       })
       results.push({ which, seed, pairs: [similarity(lead(1), lead(4)), similarity(lead(3), lead(5))],
         means: [avg(lead(3)), avg(lead(5)), avg(lead(7))], peaks: [peak(lead(3)), peak(lead(5)), peak(lead(7))],
+        breathing: project.sections.map((s, i) => ({ name: s.name, bars: s.lengthBars, ...measureBreathing(lead(i), s.lengthBars * 4) })),
+        lowEnd: arrangement ? measureLowEnd(arrangement.tracks, arrangement.analysis.totalBeats) : null,
+        bass: arrangement ? measureBass(project, arrangement) : null,
         repeated, sections: arrangement ? project.sections.map((s) => {
           const start = (s.startBar - 1) * 4, end = start + s.lengthBars * 4
           const tracks = arrangement.tracks.filter((t) => !t.muted && t.notes.some((n) => n.startBeat >= start && n.startBeat < end))
@@ -102,6 +106,11 @@ describe("レビュー指定2曲の決定的測定", () => {
     const path = process.env.ARRANGEMENT_REVIEW_RESULT_PATH
     if (path) writeFileSync(path, JSON.stringify(results, null, 2))
     expect(results).toHaveLength(12)
+    const breathingSections = results.flatMap((r) => r.breathing)
+    expect(breathingSections.filter((s) => s.bars >= 8 && !s.hasBreath).length).toBeLessThanOrEqual(5)
+    const breathingBlocks = breathingSections.flatMap((s) => s.blocks)
+    expect(breathingBlocks.filter((b) => b.hasBreath).length / breathingBlocks.length).toBeGreaterThanOrEqual(0.9)
+    expect(breathingSections.reduce((sum, s) => sum + s.noteCount, 0)).toBeGreaterThanOrEqual(2499 * 0.9)
     expect(results.filter((r) => r.means[2] > Math.max(...r.means.slice(0, 2))).length).toBeGreaterThanOrEqual(10)
     expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2))).length).toBe(12)
     expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2)) + 2).length).toBeGreaterThanOrEqual(8)

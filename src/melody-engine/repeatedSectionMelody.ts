@@ -31,6 +31,14 @@ export function varyRepeatedSection(
   const parsedKey = parseKey(key)
   if (parsedKey?.isMinor) scale.add((parsedKey.rootPc + 11) % 12)
   const hookEnd = Math.min(totalBeats, beatsPerBar * 2)
+  const restBoundaries = new Set<number>()
+  notes.forEach((n, index) => {
+    const next = notes[index + 1]
+    if (next && next.startBeat - n.startBeat - n.durationBeats >= 1 - 1e-6) {
+      restBoundaries.add(index)
+      restBoundaries.add(index + 1)
+    }
+  })
   const result = notes.map((note, index): MelodyNote => {
     if (note.startBeat < hookEnd) return { ...note }
     const last = index === notes.length - 1
@@ -43,7 +51,7 @@ export function varyRepeatedSection(
     const move = pattern === 1 ? tail && index % 2 === 0
       : pattern === 2 ? note.startBeat >= totalBeats / 2 && index % 3 === 0
         : index % 3 === 1
-    if (move && !last) {
+    if (move && !last && !restBoundaries.has(index)) {
       const next = notes[index + 1]?.startBeat ?? totalBeats
       if (note.startBeat + 0.25 < Math.min(chordEnd, next)) startBeat += 0.25
     }
