@@ -2034,6 +2034,55 @@ export function reviewGeneratedArrangement(
   }
 }
 
+/** 既存の品質式を変更せず、実際に減点された生成ノートと寄与を監査する。 */
+export function arrangementQualityDiagnostics(project: ComposerProject, arrangement: FullSongArrangement) {
+  const metrics = reviewGeneratedArrangement(arrangement, project).metrics
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const locate = (track: GeneratedArrangementTrack, note: GeneratedArrangementNote) => {
+    const section = project.sections.find((s) => s.id === note.sectionId)!
+    const localBeat = note.startBeat - (section.startBar - 1) * bpb
+    const chord = chordAtBeat(project.chords.filter((c) => c.sectionId === section.id), localBeat)
+    return { source: "generated-track", trackId: track.id, section: section.name,
+      bar: Math.floor(note.startBeat / bpb) + 1, startBeat: note.startBeat, durationBeats: note.durationBeats,
+      pitch: note.pitch, chord: chord?.symbol, reason: note.reason }
+  }
+  const harmonic = arrangement.tracks.flatMap((track) => !HARMONIC_REVIEW_TRACKS.has(track.id) ? [] : track.notes.flatMap((note) => {
+    if (note.character !== "safe") return []
+    const allowed = allowedPitchClassesAtNote(project, note, track.id)
+    return allowed && !allowed.has(pc(note.pitch)) ? [{ ...locate(track, note), violation: "発音開始時のコード構成音・テンション・指定低音に含まれない", allowed: [...allowed] }] : []
+  }))
+  const leaps = arrangement.plan.sections.flatMap((section) => arrangement.tracks.flatMap((track) => {
+    if (track.id !== "syn-dark-pad" && !["str-cello", "str-viola", "str-violin-1", "str-violin-2"].includes(track.id)) return []
+    const notes = track.notes.filter((n) => n.sectionId === section.sectionId && !n.reason.startsWith("指定を実音化"))
+    const stride = track.id === "syn-dark-pad" ? 3 : 1
+    return notes.flatMap((note, index) => index >= stride && Math.abs(note.pitch - notes[index - stride].pitch) > 9
+      ? [{ ...locate(track, note), previousPitch: notes[index - stride].pitch, previousBeat: notes[index - stride].startBeat, semitones: Math.abs(note.pitch - notes[index - stride].pitch) }] : [])
+  }))
+  const density = arrangement.plan.sections.map((section) => ({
+    section: project.sections.find((s) => s.id === section.sectionId)?.name,
+    energy: section.energy,
+    notes: arrangement.tracks.reduce((sum, t) => sum + t.notes.filter((n) => n.sectionId === section.sectionId).length, 0),
+    bars: project.sections.find((s) => s.id === section.sectionId)?.lengthBars,
+  }))
+  const contributions = {
+    base: 24, textures: Math.min(18, metrics.distinctSectionTextures * 1.5),
+    entries: Math.min(10, metrics.stagedEntryCount * 1.5), latePeak: metrics.peakIsLate ? 12 : 0,
+    overfilled: -metrics.overfilledSectionCount * 8, silentRoles: -metrics.silentRoleCount * 5,
+    mechanical: -metrics.mechanicalLoopCount * 4, supportLeaps: -Math.min(12, metrics.largeSupportLeapCount * 2),
+    density: metrics.densityContrastRatio >= 2.5 ? 6 : metrics.densityContrastRatio >= 1.8 ? 3 : -6,
+    energy: Math.round(clamp01((metrics.energyDensityCorrelation + 0.2) / 1.1) * 20),
+    roles: -Math.max(0, metrics.averageActiveRoleCount - 8) * 1.8,
+    noteDensity: -Math.max(0, metrics.generatedNotesPerBeat - 7) * 1.5,
+    harmony: -Math.min(28, metrics.harmonicViolationCount * 7),
+    melody: -Math.min(20, metrics.melodyCollisionCount * 2),
+    attacks: -Math.min(12, metrics.rhythmLeadAttackConflictCount * 1.5),
+    sectionCopy: -metrics.repeatedSectionCopyCount * 8,
+    trackCopy: -Math.max(0, metrics.repeatedTrackCopyRatio - .35) * 20,
+    boundary: Math.round(metrics.boundaryContrastScore * 5), motif: Math.min(4, metrics.motifDevelopmentCount * .5),
+  }
+  return { contributions, harmonic, leaps, density }
+}
+
 function setSimilarity(left: Set<string>, right: Set<string>): number {
   const union = new Set([...left, ...right])
   if (union.size === 0) return 1

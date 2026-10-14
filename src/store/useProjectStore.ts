@@ -28,6 +28,7 @@ import { resolveMusicContext } from "@/core/musicContext"
 import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
+import { finalChorusRange } from "@/melody-engine/finalChorusRange"
 import { parseKey } from "@/core/scale"
 import { extractMotifDNA } from "@/melody-engine/motifDNA"
 import { generateRangeRegenerationCandidates } from "@/melody-engine/rangeRegeneration"
@@ -1113,11 +1114,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return v ? v.notes : []
     })
     const priorPeak = chorusNotes.length ? Math.max(...chorusNotes.map((n) => n.pitch)) : configuredRange.low
-    const range = liftedFinal
-      ? { low: Math.min(configuredRange.high, configuredRange.low + keyRise), high: configuredRange.high }
-      : configuredRange
-    const finalRangeNotice = liftedFinal && priorPeak + keyRise > configuredRange.high
-      ? "音域の上限のため、最終サビの最高音をキーの上昇分だけ高くできません。"
+    const range = finalChorusRange(configuredRange, liftedFinal, keyRise)
+    const finalRangeNotice = liftedFinal
+      ? `最終サビは転調に合わせて、音域の上限を${range.high - configuredRange.high}半音広げました（MIDI ${range.high}まで）。${priorPeak + keyRise > range.high ? "拡張後の上限でも、前のサビの最高音をキーの上昇分だけ高くできません。" : ""}`
       : null
     const sectionContent = section.content ?? DEFAULT_SECTION_CONTENT
 
@@ -1358,12 +1357,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       sectionId,
       [],
     )
-    const variants = melodySurpriseContext
+    const annotatedVariants = melodySurpriseContext
       ? annotateArrangementApproaches(rawVariants, melodySurpriseContext, {
           maximumSurpriseCount: 1,
           minimumScore: 78,
         })
       : rawVariants
+
+    // 最終サビの候補は、このセクションの目標音域への到達を先に比較する。
+    // 音楽品質のしきい値は変えず、生成済み候補の並び順だけに役割を反映する。
+    const priorMean = Math.max(0, ...earlierChoruses.map((s) => {
+      const v = prev.melodyVariants.find((v) => v.id === prev.sectionMelodyAssignments[s.id])
+      return v?.notes.length ? v.notes.reduce((sum, n) => sum + n.pitch, 0) / v.notes.length : 0
+    }))
+    const registerDeficit = (variant: MelodyVariant) => {
+      const peak = Math.max(...variant.notes.map((n) => n.pitch))
+      const mean = variant.notes.reduce((sum, n) => sum + n.pitch, 0) / Math.max(1, variant.notes.length)
+      return Math.max(0, Math.min(range.high, priorPeak + keyRise) - peak) * 4
+        + Math.max(0, priorMean + 1 - mean) * 2
+    }
+    const variants = liftedFinal
+      ? [...annotatedVariants].sort((a, b) => registerDeficit(a) - registerDeficit(b))
+      : annotatedVariants
 
     set({
       history: [...get().history, snapshot(prev)],

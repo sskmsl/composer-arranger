@@ -4,7 +4,7 @@ import { arrangementReviewSong } from "./arrangementReviewFixtures"
 import { useProjectStore } from "./useProjectStore"
 import { notesByPartRole } from "@/core/sectionLayers"
 import type { MelodyNote } from "@/core/melody"
-import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { arrangementQualityDiagnostics, generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
 import { keyScalePitchClasses, parseKey } from "@/core/scale"
 import { effectiveSectionKey } from "@/core/project"
@@ -45,7 +45,7 @@ describe("レビュー指定2曲の決定的測定", () => {
         const state = useProjectStore.getState()
         const candidate = state.project.melodyVariants.find((v) => v.sectionId === section.id && v.batchId === state.activeBatchId)!
         expect(candidate).toBeDefined()
-        expect(candidate.notes.every((n) => n.pitch >= 60 && n.pitch <= 77)).toBe(true)
+        expect(candidate.notes.every((n) => n.pitch >= 60 && n.pitch <= (section.role === "grand-chorus" ? 79 : 77))).toBe(true)
         state.assignVariantToSection(section.id, candidate.id)
       }
       const project = useProjectStore.getState().project
@@ -95,12 +95,16 @@ describe("レビュー指定2曲の決定的測定", () => {
             ending: s.role === "outro" ? finalTracks.map((t) => ({ id: t.id, notes: t.notes.filter((n) => n.sectionId === s.id && n.startBeat + n.durationBeats > end - 4) })) : undefined,
           }
         }) : null, quality: arrangement?.quality, audition: arrangement?.audition, selection: arrangement?.selection,
+        diagnostics: arrangement ? arrangementQualityDiagnostics(project, arrangement) : null,
       })
       vi.restoreAllMocks()
     }
     const path = process.env.ARRANGEMENT_REVIEW_RESULT_PATH
     if (path) writeFileSync(path, JSON.stringify(results, null, 2))
     expect(results).toHaveLength(12)
+    expect(results.filter((r) => r.means[2] > Math.max(...r.means.slice(0, 2))).length).toBeGreaterThanOrEqual(10)
+    expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2))).length).toBe(12)
+    expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2)) + 2).length).toBeGreaterThanOrEqual(8)
     const pairs = results.flatMap((r) => r.pairs)
     const mean = (key: keyof ReturnType<typeof similarity>) => pairs.reduce((sum, pair) => sum + pair[key], 0) / pairs.length
     expect(mean("rhythm")).toBeGreaterThanOrEqual(0.6)
