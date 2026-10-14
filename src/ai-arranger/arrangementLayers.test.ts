@@ -278,7 +278,11 @@ describe("相談から確認を経た変更案", () => {
     expect(proposals.every((proposal) => !proposal.recipe.removeRowScopes?.some((removal) => removal.rowId === "bass"))).toBe(true)
   })
 
-  it("後の無音区間への変更を優先する", () => {
+  it.each([
+    ["33〜36小節も無音にして", [{ startBar: 25, endBar: 28 }, { startBar: 33, endBar: 36 }]],
+    ["やっぱり26〜28小節にして", [{ startBar: 26, endBar: 28 }]],
+    ["無音を26〜28に変更して", [{ startBar: 26, endBar: 28 }]],
+  ])("無音区間の追加と言い直しを区別する: %s", (followup, expected) => {
     const { project } = songWithMelody()
     const longProject = {
       ...project,
@@ -286,11 +290,8 @@ describe("相談から確認を経た変更案", () => {
         ? { ...section, lengthBars: section.lengthBars + 32 }
         : section),
     }
-    const statements = ["25〜28小節を無音にして", "やっぱり26〜28小節にして", "はい"]
+    const statements = ["25〜28小節を無音にして", followup, "はい"]
     const proposals = proposalsFromResponse(longProject, response("none"), statements.join("\n"), [], "replace-silence", statements)
-    expect(proposals.every((proposal) => {
-      const ranges = proposal.recipe.directive?.timelineConstraints?.fullSilenceRanges
-      return ranges?.length === 1 && ranges[0].startBar === 26 && ranges[0].endBar === 28
-    })).toBe(true)
+    for (const proposal of proposals) expect(proposal.recipe.directive?.timelineConstraints?.fullSilenceRanges).toEqual(expected)
   })
 })

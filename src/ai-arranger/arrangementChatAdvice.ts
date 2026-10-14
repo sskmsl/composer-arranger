@@ -245,8 +245,11 @@ function timelineConstraintsFromStatements(
   let melodySilenceRanges: ArrangementBarRange[] = []
   let melodyStartBar: number | undefined
   for (const statement of statements) {
-    const isReplacement = /やっぱり|やはり|変更|変えて|修正|にして/.test(statement)
-    let parsed = parseArrangementTimelineConstraints(statement, totalBars, sections)
+    const isReplacement = /やっぱり|やはり|変更|変えて|修正/.test(statement)
+    const normalizedStatement = isReplacement && /無音/.test(statement)
+      ? statement.replace(/(\d+\s*[〜～~\-–—]\s*\d+)(?!\d)(?!\s*小節)/g, "$1小節")
+      : statement
+    let parsed = parseArrangementTimelineConstraints(normalizedStatement, totalBars, sections)
     // 「25〜28小節を無音に」→「やっぱり26〜28小節にして」のように、
     // 後の発言で述語を省略しても、直前の無音指定の変更として扱う。
     if (isReplacement && parsed.fullSilenceRanges.length === 0 && fullSilenceRanges.length > 0 && /\d+\s*[〜～~\-–—]\s*\d+\s*小節/.test(statement)) {
