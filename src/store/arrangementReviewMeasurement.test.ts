@@ -5,7 +5,9 @@ import { useProjectStore } from "./useProjectStore"
 import { notesByPartRole } from "@/core/sectionLayers"
 import type { MelodyNote } from "@/core/melody"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
-import { parseChordSymbol } from "@/core/chord"
+import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
+import { keyScalePitchClasses, parseKey } from "@/core/scale"
+import { effectiveSectionKey } from "@/core/project"
 
 function lcs(a: number[], b: number[]) {
   let row = Array(b.length + 1).fill(0) as number[]
@@ -51,9 +53,32 @@ describe("レビュー指定2曲の決定的測定", () => {
       const avg = (notes: MelodyNote[]) => notes.reduce((s, n) => s + n.pitch, 0) / notes.length
       const peak = (notes: MelodyNote[]) => Math.max(...notes.map((n) => n.pitch))
       const arrangement = seed <= 3 ? generateFullSongArrangement(project, { seed }) : null
+      const repeated = [4, 5].map((index, pair) => {
+        const section = project.sections[index], source = lead(pair === 0 ? 1 : 3)
+        const candidates = project.melodyVariants.filter((v) => v.sectionId === section.id).slice(0, 3).map((v) => notesByPartRole(v, "lead"))
+        const key = effectiveSectionKey(project, section.id), parsedKey = parseKey(key)
+        const scale = new Set(keyScalePitchClasses(key))
+        if (parsedKey?.isMinor) scale.add((parsedKey.rootPc + 11) % 12)
+        const chords = project.chords.filter((c) => c.sectionId === section.id)
+        const harmonic = (notes: MelodyNote[]) => {
+          const tail = notes.filter((n) => n.startBeat >= section.lengthBars * 4 - 8)
+          const chordOf = (n: MelodyNote) => parseChordSymbol(chords.find((c) => n.startBeat >= c.startBeat && n.startBeat < c.startBeat + c.durationBeats)?.symbol ?? chords.at(-1)!.symbol)!
+          const strong = tail.filter((n) => Math.abs(n.startBeat / 2 - Math.round(n.startBeat / 2)) < 1e-6)
+          const last = notes.at(-1)!
+          return { count: tail.length, scaleOutside: tail.filter((n) => !scale.has(n.pitch % 12)).length,
+            chordOutside: tail.filter((n) => !allUsablePitchClasses(chordOf(n)).includes(n.pitch % 12)).length,
+            strongCount: strong.length, strongChord: strong.filter((n) => chordOf(n).tones.some((t) => t.pitchClass === n.pitch % 12)).length,
+            cadence: last.durationBeats >= 1 && chordOf(last).tones.some((t) => t.pitchClass === last.pitch % 12),
+          }
+        }
+        return { source: harmonic(source), candidates: candidates.map((notes) => ({ ...harmonic(notes), ...similarity(source, notes),
+          hook: notes.filter((n) => n.startBeat < 8).map(({ pitch, startBeat, durationBeats, velocity }) => ({ pitch, startBeat, durationBeats, velocity })),
+        })), sourceHook: source.filter((n) => n.startBeat < 8).map(({ pitch, startBeat, durationBeats, velocity }) => ({ pitch, startBeat, durationBeats, velocity })),
+        candidatePairs: [[0, 1], [0, 2], [1, 2]].map(([a, b]) => similarity(candidates[a], candidates[b]).exact) }
+      })
       results.push({ which, seed, pairs: [similarity(lead(1), lead(4)), similarity(lead(3), lead(5))],
         means: [avg(lead(3)), avg(lead(5)), avg(lead(7))], peaks: [peak(lead(3)), peak(lead(5)), peak(lead(7))],
-        sections: arrangement ? project.sections.map((s) => {
+        repeated, sections: arrangement ? project.sections.map((s) => {
           const start = (s.startBar - 1) * 4, end = start + s.lengthBars * 4
           const tracks = arrangement.tracks.filter((t) => !t.muted && t.notes.some((n) => n.startBeat >= start && n.startBeat < end))
           const notes = tracks.filter((t) => t.family !== "drums").flatMap((t) => t.notes.filter((n) => n.startBeat >= start && n.startBeat < end))
@@ -69,7 +94,7 @@ describe("レビュー指定2曲の決定的測定", () => {
             finalBass: finalTracks.some((t) => t.family !== "drums" && t.notes.some((n) => n.pitch < 52 && n.pitch % 12 === bassPc && n.startBeat < end && n.startBeat + n.durationBeats > end - 4)),
             ending: s.role === "outro" ? finalTracks.map((t) => ({ id: t.id, notes: t.notes.filter((n) => n.sectionId === s.id && n.startBeat + n.durationBeats > end - 4) })) : undefined,
           }
-        }) : null, quality: arrangement?.quality, audition: arrangement?.audition,
+        }) : null, quality: arrangement?.quality, audition: arrangement?.audition, selection: arrangement?.selection,
       })
       vi.restoreAllMocks()
     }
@@ -82,6 +107,24 @@ describe("レビュー指定2曲の決定的測定", () => {
     expect(mean("rhythm")).toBeLessThan(0.95)
     expect(mean("contour")).toBeGreaterThanOrEqual(0.8)
     expect(mean("exact")).toBeLessThan(0.9)
+    const repeated = results.flatMap((r) => r.repeated)
+    const rate = (values: typeof repeated[number]["candidates"], key: "scaleOutside" | "chordOutside" | "strongChord", denominator: "count" | "strongCount") =>
+      values.reduce((sum, v) => sum + v[key], 0) / Math.max(1, values.reduce((sum, v) => sum + v[denominator], 0))
+    const sources = repeated.map((r) => ({ ...r.source, rhythm: 1, contour: 1, exact: 1, hook: r.sourceHook }))
+    const candidates = repeated.flatMap((r) => r.candidates)
+    expect(rate(candidates, "scaleOutside", "count")).toBeLessThanOrEqual(rate(sources, "scaleOutside", "count") + 0.03)
+    expect(rate(candidates, "chordOutside", "count")).toBeLessThanOrEqual(rate(sources, "chordOutside", "count") + 0.03)
+    expect(rate(candidates, "strongChord", "strongCount")).toBeGreaterThanOrEqual(rate(sources, "strongChord", "strongCount") - 0.05)
+    expect(candidates.every((c) => c.cadence)).toBe(true)
+    const candidatePairs = repeated.flatMap((r) => r.candidatePairs)
+    expect(candidatePairs.reduce((sum, n) => sum + n, 0) / candidatePairs.length).toBeLessThanOrEqual(0.7)
+    for (const repeat of repeated) for (const candidate of repeat.candidates) expect(candidate.hook).toEqual(repeat.sourceHook)
+    for (let pattern = 0; pattern < 3; pattern++) {
+      const values = repeated.map((r) => r.candidates[pattern])
+      expect(values.reduce((sum, v) => sum + v.rhythm, 0) / values.length).toBeGreaterThanOrEqual(0.6)
+      expect(values.reduce((sum, v) => sum + v.rhythm, 0) / values.length).toBeLessThan(0.95)
+      expect(values.reduce((sum, v) => sum + v.contour, 0) / values.length).toBeGreaterThanOrEqual(0.8)
+    }
     for (const result of results.filter((r) => r.sections)) {
       const choruses = result.sections!.filter((s) => s.role === "chorus" || s.role === "grand-chorus")
       for (const section of choruses) {

@@ -1299,7 +1299,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       }
       v.leadContent = "melody"
       if (repeatedSource) {
-        v.notes = varyRepeatedSection(repeatedSource, prev, sectionId, totalBeats, ts.beatsPerBar, range, v.seed)
+        v.notes = varyRepeatedSection(repeatedSource, prev, sectionId, totalBeats, ts.beatsPerBar, range, v.seed, v.patternIndex ?? 1)
       }
       const primaryNotes = v.notes
       v.layers = [
@@ -1337,7 +1337,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         })
         v.notes = flattenLayerNotes(v.layers)
       }
-      const performed = performGeneratedNotes(prev, sectionId, v.notes, "lead-focus")
+      // 土台はすでに演奏処理済み。二重適用すると保護した冒頭の長さ・強弱まで変わる。
+      const performed = repeatedSource
+        ? { notes: v.notes, performanceSpec: repeatedSource.performanceSpec }
+        : performGeneratedNotes(prev, sectionId, v.notes, "lead-focus")
       const performedVariant = replaceVariantNotes(v, performed.notes)
       performedVariant.performanceSpec = performed.performanceSpec
       performedVariant.features = computeMelodyFeatures(

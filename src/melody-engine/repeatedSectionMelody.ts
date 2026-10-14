@@ -1,4 +1,6 @@
-import type { ComposerProject } from "@/core/project"
+import { effectiveSectionKey, type ComposerProject } from "@/core/project"
+import { allUsablePitchClasses } from "@/core/chord"
+import { keyScalePitchClasses, parseKey } from "@/core/scale"
 import type { MelodyNote, MelodyVariant } from "@/core/melody"
 import { notesByPartRole, resolvedLeadContent } from "@/core/sectionLayers"
 import { buildHarmonicMap, chordAtBeat } from "./harmonicMap"
@@ -19,27 +21,58 @@ export function repeatedSectionSource(project: ComposerProject, sectionId: strin
 
 export function varyRepeatedSection(
   source: MelodyVariant, project: ComposerProject, sectionId: string,
-  totalBeats: number, beatsPerBar: number, range: RangeSetting, seed: number,
+  totalBeats: number, beatsPerBar: number, range: RangeSetting, seed: number, pattern: 1 | 2 | 3 = 1,
 ): MelodyNote[] {
   const notes = notesByPartRole(source, "lead").slice().sort((a, b) => a.startBeat - b.startBeat)
   const tailStart = Math.max(0, totalBeats - beatsPerBar * 2)
   const map = buildHarmonicMap(project.chords.filter((c) => c.sectionId === sectionId))
-  const tail = notes.filter((n) => n.startBeat >= tailStart)
-  // フレーズをまとめて移調することで輪郭を維持し、末尾だけ新しい着地にする。
-  const shifts = seed % 2 ? [2, -2, 1, -1] : [-2, 2, -1, 1]
-  const shift = shifts.find((delta) => tail.every((n) => n.pitch + delta >= range.low && n.pitch + delta <= range.high)) ?? 0
-  return notes.flatMap((note, index) => {
-    const isTail = note.startBeat >= tailStart
-    const startBeat = note.startBeat + (isTail ? 0.5 : 0)
-    if (startBeat >= totalBeats) return []
-    let pitch = note.pitch + (isTail ? shift : 0)
-    const chord = chordAtBeat(map, startBeat)
-    if (isTail && chord && Math.abs(startBeat - chord.chord.startBeat) < 0.06) {
-      const tones = chord.parsed.tones.map((t) => t.pitchClass)
-      const choices = Array.from({ length: range.high - range.low + 1 }, (_, i) => range.low + i).filter((p) => tones.includes(p % 12))
-      pitch = choices.sort((a, b) => Math.abs(a - pitch) - Math.abs(b - pitch))[0] ?? pitch
+  const key = effectiveSectionKey(project, sectionId)
+  const scale = new Set(keyScalePitchClasses(key))
+  const parsedKey = parseKey(key)
+  if (parsedKey?.isMinor) scale.add((parsedKey.rootPc + 11) % 12)
+  const hookEnd = Math.min(totalBeats, beatsPerBar * 2)
+  const result = notes.map((note, index): MelodyNote => {
+    if (note.startBeat < hookEnd) return { ...note }
+    const last = index === notes.length - 1
+    const tail = note.startBeat >= tailStart
+    const change = tail || (pattern === 2 ? note.startBeat >= totalBeats / 2 : pattern === 3 && index % 2 === 0)
+    let startBeat = note.startBeat
+    const originalChord = chordAtBeat(map, note.startBeat)!
+    const chordEnd = Math.min(totalBeats, originalChord.chord.startBeat + originalChord.chord.durationBeats)
+    // 各案で変更箇所を変え、和音の境界を越えない短い入りの変化を使う。
+    const move = pattern === 1 ? tail && index % 2 === 0
+      : pattern === 2 ? note.startBeat >= totalBeats / 2 && index % 3 === 0
+        : index % 3 === 1
+    if (move && !last) {
+      const next = notes[index + 1]?.startBeat ?? totalBeats
+      if (note.startBeat + 0.25 < Math.min(chordEnd, next)) startBeat += 0.25
     }
-    return [{ ...note, id: `${sectionId}:variation:${seed}:${index}`, locks: [], pitch, startBeat,
-      durationBeats: Math.min(note.durationBeats, totalBeats - startBeat) }]
+    if (last) startBeat = Math.min(startBeat, totalBeats - 1)
+    const chord = chordAtBeat(map, startBeat)!
+    const strong = Math.abs(startBeat / 2 - Math.round(startBeat / 2)) < 0.03
+      || Math.abs(startBeat - chord.chord.startBeat) < 0.06 || last
+    const tones = chord.parsed.tones.map((t) => t.pitchClass)
+    const usable = allUsablePitchClasses(chord.parsed)
+    // スケールとコード双方に入る音を優先し、強拍・終止は必ず和声音にする。
+    const allowed = strong ? tones : usable.filter((p) => scale.has(p))
+    const choices = Array.from({ length: range.high - range.low + 1 }, (_, i) => range.low + i)
+      .filter((p) => (allowed.length ? allowed : tones).includes(p % 12))
+    const previous = notes[index - 1]
+    const following = notes[index + 1]
+    const cost = (pitch: number) => {
+      const distance = Math.abs(pitch - note.pitch)
+      const contourCost = (previous && Math.sign(pitch - previous.pitch) !== Math.sign(note.pitch - previous.pitch) ? 4 : 0)
+        + (following && Math.sign(following.pitch - pitch) !== Math.sign(following.pitch - note.pitch) ? 4 : 0)
+      return distance + Math.max(0, distance - 2) * 3 + contourCost
+        + (change && pitch === note.pitch ? 3.5 : 0)
+        + (pattern === 2 && pitch < note.pitch || pattern === 3 && pitch > note.pitch ? 0.7 : 0)
+    }
+    const pitch = change || last ? choices.sort((a, b) => cost(a) - cost(b))[0] ?? note.pitch : note.pitch
+    return { ...note, id: `${sectionId}:variation:${seed}:${index}`, locks: [], pitch, startBeat,
+      durationBeats: last ? totalBeats - startBeat : Math.min(note.durationBeats, chordEnd - startBeat) }
   })
+  // 最後の音を1拍確保するために移した場合、直前の音を重ねない。
+  const last = result.at(-1)
+  return result.filter((note, index) => index === result.length - 1 || !last || note.startBeat < last.startBeat)
+    .map((note, index, all) => ({ ...note, durationBeats: Math.max(0.01, Math.min(note.durationBeats, (all[index + 1]?.startBeat ?? totalBeats) - note.startBeat)) }))
 }
