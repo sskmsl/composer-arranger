@@ -197,7 +197,8 @@ describe("Arrangement Generator", () => {
     expect(chorus2.energy).toBeGreaterThan(chorus1.energy)
     expect(final.energy).toBeGreaterThan(chorus2.energy)
     expect(chorus2.activeRoles).not.toEqual(chorus1.activeRoles)
-    expect(chorus2.activeRoles.length - chorus1.activeRoles.length).toBeLessThanOrEqual(1)
+    // 2回目のサビで層を増やし、最終サビだけに全員が入る段差を避ける。
+    expect(chorus2.activeRoles.length - chorus1.activeRoles.length).toBeGreaterThanOrEqual(2)
     expect(chorus2.activeRoles).not.toContain("str-violin-1")
     expect(final.activeRoles).toContain("str-upper")
     expect(final.activeRoles).toContain("dr-gran-cassa")

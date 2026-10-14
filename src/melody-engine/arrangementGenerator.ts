@@ -384,8 +384,7 @@ function rolesFor(section: ArrangementAnalysisSection, isPeak: boolean): Arrange
     roles.push("dr-kick", "dr-snare", "dr-closed-hat", "syn-bass", "syn-dark-pad", "syn-stabs")
     if (section.occurrence > 1) {
       // 再提示は音量と一つの音色交代で進め、最終ピークの上声を先取りしない。
-      removeRoles(roles, ["syn-dark-pad"])
-      roles.push("str-cello")
+      roles.push("str-cello", "str-viola", "syn-pulse")
       if (restAllowsColour) roles.push("dr-open-hat")
     }
   } else if (semantic === "breakdown") {
@@ -2329,8 +2328,58 @@ function generateArrangementCandidate(
     createdAt: new Date().toISOString(),
     analysis,
     plan,
-    tracks: performedTracks,
+    tracks: addSectionBoundaryPerformances(project, plan, performedTracks, revision),
   })
+}
+
+/** 区切りの打楽器と、反復サビから最終サビへの強弱を生成候補に組み込む。 */
+function addSectionBoundaryPerformances(
+  project: ComposerProject, plan: ArrangementPlan, input: GeneratedArrangementTrack[], revision: number,
+): GeneratedArrangementTrack[] {
+  const tracks = input.map((t) => ({ ...t, notes: t.notes.map((n) => ({ ...n })) }))
+  const sections = normalizeSectionTimeline(project.sections)
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const lead = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints).lead
+  const hasDrums = tracks.some((t) => t.family === "drums" && !t.muted && t.notes.length > 0)
+  const append = (id: ArrangementTrackId, sectionId: string, beat: number, duration: number, pitch: number, velocity: number) => {
+    if (["dr-low-tom", "dr-high-tom"].includes(id) && lead.some((n) => Math.abs(n.startBeat - beat) <= 0.12)) beat += 0.25
+    if (["dr-low-tom", "dr-high-tom"].includes(id) && lead.some((n) => Math.abs(n.startBeat - beat) <= 0.12)) return
+    let track = tracks.find((t) => t.id === id)
+    if (!track) { track = emptyTrack(id, revision); tracks.push(track) }
+    if (track.notes.some((n) => Math.abs(n.startBeat - beat) < 0.125 && n.pitch === pitch)) return
+    track.notes.push(makeNote(id, sectionId, 9000 + track.notes.length, beat, duration, pitch, velocity, "セクションの入りへ向かう演奏"))
+  }
+  if (hasDrums) sections.forEach((section, index) => {
+    if (index === 0) return
+    const previous = sections[index - 1]
+    const start = (section.startBar - 1) * bpb
+    const chorus = section.role === "chorus" || section.role === "grand-chorus"
+    if (chorus) {
+      append("dr-crash", section.id, start, 1, 49, section.role === "grand-chorus" ? 96 : 86)
+      append("dr-cymbal-swell", previous.id, start - bpb * (section.role === "grand-chorus" ? 2 : 1), bpb * (section.role === "grand-chorus" ? 2 : 1), 49, section.role === "grand-chorus" ? 74 : 58)
+    }
+    // seedと区切り位置で決定する。毎回全区切りに同じフィルを置かない。
+    if (chorus || (hashText(`${plan.seed}:boundary:${index}`) % 10 < 6 && section.role !== "outro")) {
+      for (let hit = 0; hit < 4; hit++) append(hit < 2 ? "dr-low-tom" : "dr-high-tom", previous.id,
+        start - bpb + hit * bpb / 4, 0.25, hit < 2 ? 45 : 50, 62 + hit * 6)
+    }
+  })
+  const meanVelocity = (sectionId: string) => {
+    const notes = tracks.filter((t) => t.family !== "drums").flatMap((t) => t.notes.filter((n) => n.sectionId === sectionId))
+    return notes.reduce((sum, n) => sum + n.velocity, 0) / Math.max(1, notes.length)
+  }
+  let verseMean = 0, chorusMean = 0
+  for (const section of sections) {
+    if (section.role === "verse") verseMean = meanVelocity(section.id)
+    if (section.role !== "chorus" && section.role !== "grand-chorus") continue
+    const current = meanVelocity(section.id)
+    const wanted = section.role === "grand-chorus" && chorusMean ? chorusMean + 7 : Math.max(current, verseMean + 8)
+    const delta = wanted - current
+    for (const track of tracks) if (track.family !== "drums") track.notes = track.notes.map((n) => n.sectionId === section.id
+      ? { ...n, velocity: Math.max(30, Math.min(115, Math.round(n.velocity + delta))) } : n)
+    if (section.role === "chorus") chorusMean = meanVelocity(section.id)
+  }
+  return tracks
 }
 
 export function generateFullSongArrangement(

@@ -74,5 +74,17 @@ describe("レビュー指定2曲の決定的測定", () => {
     expect(mean("rhythm")).toBeLessThan(0.95)
     expect(mean("contour")).toBeGreaterThanOrEqual(0.8)
     expect(mean("exact")).toBeLessThan(0.9)
+    for (const result of results.filter((r) => r.sections)) {
+      const choruses = result.sections!.filter((s) => s.role === "chorus" || s.role === "grand-chorus")
+      for (const section of choruses) {
+        expect(section.crash).toBe(true)
+        expect(section.fill).toBe(true)
+        expect(section.rise).toBe(true)
+      }
+      expect(choruses[1].layers - choruses[0].layers).toBeGreaterThanOrEqual(2)
+      expect(choruses[2].layers - choruses[1].layers).toBeLessThanOrEqual(10)
+      expect(choruses[2].velocity - choruses[1].velocity).toBeGreaterThanOrEqual(4)
+      expect(choruses[2].velocity - choruses[1].velocity).toBeLessThanOrEqual(10)
+    }
   }, 240000)
 })
