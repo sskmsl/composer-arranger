@@ -1,0 +1,5403 @@
+{
+  "baselineCommit": "b239bcc",
+  "beforeGenerationFixCommit": "43787f4",
+  "before": [
+    {
+      "song": "A",
+      "seed": 1,
+      "quality": {
+        "score": 59.095703125,
+        "passed": false,
+        "summary": "全曲の役割差を再調整する余地があります",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000061",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 3,
+          "densityContrastRatio": 38,
+          "harmonicViolationCount": 10,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.9391385925235017,
+          "averageActiveRoleCount": 6.333333333333333,
+          "generatedNotesPerBeat": 7.26953125,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.24,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 6
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す",
+          "Safeパートのコード外音を解決可能な音へ修正する"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.8,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 98,
+        "transientClarity": 100,
+        "registerBalance": 73,
+        "dynamicArc": 97,
+        "sectionContrast": 100,
+        "issues": [],
+        "repairPasses": 1,
+        "removedNotes": 47,
+        "shiftedNotes": 97,
+        "velocityAdjustments": 6
+      },
+      "selection": {
+        "poolSize": 16,
+        "qualityFloor": 76,
+        "eligibleCount": 0,
+        "selectedSeed": 942562,
+        "qualityWarning": "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。",
+        "candidates": [
+          {
+            "seed": 942562,
+            "approach": "motif-led",
+            "qualityScore": 59.095703125,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 65.3,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 418917,
+            "approach": "motif-led",
+            "qualityScore": 59.060546875,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 65.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1466207,
+            "approach": "motif-led",
+            "qualityScore": 59.08984375,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 65.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 209459,
+            "approach": "counterpoint-led",
+            "qualityScore": 58.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 64.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1047291,
+            "approach": "space-led",
+            "qualityScore": 56.8,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 64.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 733104,
+            "approach": "counterpoint-led",
+            "qualityScore": 58.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 64.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 837833,
+            "approach": "dynamic-contrast",
+            "qualityScore": 58.22727272727273,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 64.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1256749,
+            "approach": "counterpoint-led",
+            "qualityScore": 57.80769230769231,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 64.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1570936,
+            "approach": "space-led",
+            "qualityScore": 55.5,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 94.4,
+            "selectionScore": 63.6,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1152020,
+            "approach": "rhythm-led",
+            "qualityScore": 55.97956730769231,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.9,
+            "selectionScore": 63.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1,
+            "approach": "space-led",
+            "qualityScore": 54.90909090909091,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 63.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523646,
+            "approach": "space-led",
+            "qualityScore": 53.40909090909091,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 94.3,
+            "selectionScore": 62.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1361478,
+            "approach": "dynamic-contrast",
+            "qualityScore": 54.59090909090909,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 62.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 314188,
+            "approach": "dynamic-contrast",
+            "qualityScore": 54.59090909090909,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 62.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 628375,
+            "approach": "rhythm-led",
+            "qualityScore": 48.38386418269231,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 59.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 104730,
+            "approach": "rhythm-led",
+            "qualityScore": 46.41180889423077,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 58.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -6,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": -0.404296875,
+          "harmony": -28,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3
+        },
+        "harmonic": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 11,
+            "startBeat": 40,
+            "durationBeats": 3.2095,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 25,
+            "startBeat": 96,
+            "durationBeats": 2.7703,
+            "pitch": 52,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 35,
+            "startBeat": 136,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 41,
+            "startBeat": 160,
+            "durationBeats": 2.0777,
+            "pitch": 52,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "間奏",
+            "bar": 46,
+            "startBeat": 180,
+            "durationBeats": 3.8208,
+            "pitch": 57,
+            "chord": "G7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              7,
+              11,
+              2,
+              5
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "間奏",
+            "bar": 48,
+            "startBeat": 188,
+            "durationBeats": 0.75,
+            "pitch": 55,
+            "chord": "Fmaj7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "間奏",
+            "bar": 51,
+            "startBeat": 200,
+            "durationBeats": 2,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 54,
+            "startBeat": 212,
+            "durationBeats": 3.6276,
+            "pitch": 59,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              1,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 2.4071,
+            "pitch": 49,
+            "chord": "Bm",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              11,
+              2,
+              6
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 57,
+            "startBeat": 224,
+            "durationBeats": 3.386,
+            "pitch": 66,
+            "chord": "Em7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              4,
+              7,
+              11,
+              2
+            ]
+          }
+        ],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 27,
+            "startBeat": 104,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Bm7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 100,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 34,
+            "startBeat": 132,
+            "durationBeats": 2.7786,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 130,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 43,
+            "startBeat": 168,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Bm7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 164,
+            "semitones": 10
+          }
+        ],
+        "density": [
+          {
+            "section": "イントロ",
+            "energy": 27.5,
+            "notes": 29,
+            "bars": 4
+          },
+          {
+            "section": "Aメロ",
+            "energy": 35.5,
+            "notes": 120,
+            "bars": 8
+          },
+          {
+            "section": "Bメロ",
+            "energy": 53.5,
+            "notes": 265,
+            "bars": 8
+          },
+          {
+            "section": "サビ",
+            "energy": 72.5,
+            "notes": 374,
+            "bars": 8
+          },
+          {
+            "section": "Aメロ2",
+            "energy": 40.5,
+            "notes": 154,
+            "bars": 8
+          },
+          {
+            "section": "サビ2",
+            "energy": 80.5,
+            "notes": 405,
+            "bars": 8
+          },
+          {
+            "section": "間奏",
+            "energy": 48.5,
+            "notes": 46,
+            "bars": 8
+          },
+          {
+            "section": "大サビ",
+            "energy": 100,
+            "notes": 456,
+            "bars": 8
+          },
+          {
+            "section": "アウトロ",
+            "energy": 21.5,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "A",
+      "seed": 2,
+      "quality": {
+        "score": 54.01953125,
+        "passed": false,
+        "summary": "全曲の役割差を再調整する余地があります",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000061",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 5,
+          "densityContrastRatio": 39,
+          "harmonicViolationCount": 11,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.969806903780631,
+          "averageActiveRoleCount": 7.111111111111111,
+          "generatedNotesPerBeat": 7.3203125,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.34615384615384615,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 4
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す",
+          "Safeパートのコード外音を解決可能な音へ修正する"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.8,
+        "passed": true,
+        "melodicClarity": 99,
+        "lowEndClarity": 98,
+        "transientClarity": 100,
+        "registerBalance": 75,
+        "dynamicArc": 97,
+        "sectionContrast": 100,
+        "issues": [],
+        "repairPasses": 1,
+        "removedNotes": 57,
+        "shiftedNotes": 108,
+        "velocityAdjustments": 12
+      },
+      "selection": {
+        "poolSize": 16,
+        "qualityFloor": 76,
+        "eligibleCount": 0,
+        "selectedSeed": 104731,
+        "qualityWarning": "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。",
+        "candidates": [
+          {
+            "seed": 104731,
+            "approach": "rhythm-led",
+            "qualityScore": 54.01953125,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 62.3,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 1152021,
+            "approach": "rhythm-led",
+            "qualityScore": 53.33894230769231,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 62,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 418918,
+            "approach": "motif-led",
+            "qualityScore": 53,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 61.9,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1361479,
+            "approach": "dynamic-contrast",
+            "qualityScore": 54.3,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 94.1,
+            "selectionScore": 61.9,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1466208,
+            "approach": "motif-led",
+            "qualityScore": 53,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 61.8,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 942563,
+            "approach": "motif-led",
+            "qualityScore": 53,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 94.4,
+            "selectionScore": 61.7,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523647,
+            "approach": "space-led",
+            "qualityScore": 51.5,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 93.3,
+            "selectionScore": 61.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1570937,
+            "approach": "space-led",
+            "qualityScore": 51.22727272727273,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 93.3,
+            "selectionScore": 61.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 837834,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 94.3,
+            "selectionScore": 60.9,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 209460,
+            "approach": "counterpoint-led",
+            "qualityScore": 51.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 94.3,
+            "selectionScore": 60.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 314189,
+            "approach": "dynamic-contrast",
+            "qualityScore": 51.93478260869565,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 93.8,
+            "selectionScore": 60.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 628376,
+            "approach": "rhythm-led",
+            "qualityScore": 50.539713541666664,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 60.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1256750,
+            "approach": "counterpoint-led",
+            "qualityScore": 51.5,
+            "originalityScore": 26,
+            "intentionFitScore": 84,
+            "auditionScore": 94,
+            "selectionScore": 60.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 2,
+            "approach": "space-led",
+            "qualityScore": 49.5,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 93.6,
+            "selectionScore": 60.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1047292,
+            "approach": "space-led",
+            "qualityScore": 49.22727272727273,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 93.4,
+            "selectionScore": 60.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 733105,
+            "approach": "counterpoint-led",
+            "qualityScore": 49.333333333333336,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 94.5,
+            "selectionScore": 59.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -10,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": -0.48046875,
+          "harmony": -28,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 2
+        },
+        "harmonic": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 11,
+            "startBeat": 40,
+            "durationBeats": 3.668,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 23,
+            "startBeat": 88,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 25,
+            "startBeat": 96.75,
+            "durationBeats": 2.020300000000006,
+            "pitch": 52,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 35,
+            "startBeat": 136,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 39,
+            "startBeat": 152,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 41,
+            "startBeat": 160.75,
+            "durationBeats": 1.327699999999993,
+            "pitch": 52,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の後から入る",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "間奏",
+            "bar": 46,
+            "startBeat": 180,
+            "durationBeats": 3.8208,
+            "pitch": 57,
+            "chord": "G7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              7,
+              11,
+              2,
+              5
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "間奏",
+            "bar": 48,
+            "startBeat": 188,
+            "durationBeats": 3.8208,
+            "pitch": 55,
+            "chord": "Fmaj7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 54,
+            "startBeat": 212,
+            "durationBeats": 3.2095,
+            "pitch": 59,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              1,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 2.751,
+            "pitch": 49,
+            "chord": "Bm",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              11,
+              2,
+              6
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 57,
+            "startBeat": 224,
+            "durationBeats": 3.6168,
+            "pitch": 66,
+            "chord": "Em7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              4,
+              7,
+              11,
+              2
+            ]
+          }
+        ],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 9,
+            "startBeat": 32,
+            "durationBeats": 2,
+            "pitch": 69,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 28,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 10,
+            "startBeat": 36,
+            "durationBeats": 0.5,
+            "pitch": 56,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 32,
+            "semitones": 13
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 33,
+            "startBeat": 128,
+            "durationBeats": 2,
+            "pitch": 69,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 124,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 34,
+            "startBeat": 132,
+            "durationBeats": 0.5,
+            "pitch": 56,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 128,
+            "semitones": 13
+          },
+          {
+            "source": "generated-track",
+            "trackId": "str-viola",
+            "section": "大サビ",
+            "bar": 59,
+            "startBeat": 234.0023,
+            "durationBeats": 3.8979,
+            "pitch": 52,
+            "chord": "C#m7b5",
+            "reason": "前回の輪郭をそのまま複製せず、内声の向きと長さを発展させる。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 62,
+            "previousBeat": 224.5,
+            "semitones": 10
+          }
+        ],
+        "density": [
+          {
+            "section": "イントロ",
+            "energy": 27.5,
+            "notes": 33,
+            "bars": 4
+          },
+          {
+            "section": "Aメロ",
+            "energy": 35.5,
+            "notes": 146,
+            "bars": 8
+          },
+          {
+            "section": "Bメロ",
+            "energy": 53.5,
+            "notes": 248,
+            "bars": 8
+          },
+          {
+            "section": "サビ",
+            "energy": 72.5,
+            "notes": 318,
+            "bars": 8
+          },
+          {
+            "section": "Aメロ2",
+            "energy": 40.5,
+            "notes": 194,
+            "bars": 8
+          },
+          {
+            "section": "サビ2",
+            "energy": 80.5,
+            "notes": 331,
+            "bars": 8
+          },
+          {
+            "section": "間奏",
+            "energy": 48.5,
+            "notes": 124,
+            "bars": 8
+          },
+          {
+            "section": "大サビ",
+            "energy": 100,
+            "notes": 468,
+            "bars": 8
+          },
+          {
+            "section": "アウトロ",
+            "energy": 21.5,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "A",
+      "seed": 3,
+      "quality": {
+        "score": 58.5,
+        "passed": false,
+        "summary": "全曲の役割差を再調整する余地があります",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000061",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 4,
+          "densityContrastRatio": 40,
+          "harmonicViolationCount": 10,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.911806551713212,
+          "averageActiveRoleCount": 6.444444444444445,
+          "generatedNotesPerBeat": 6.4765625,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.2,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 8
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す",
+          "Safeパートのコード外音を解決可能な音へ修正する"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.1,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 98,
+        "transientClarity": 100,
+        "registerBalance": 73,
+        "dynamicArc": 93,
+        "sectionContrast": 97,
+        "issues": [],
+        "repairPasses": 3,
+        "removedNotes": 35,
+        "shiftedNotes": 133,
+        "velocityAdjustments": 13
+      },
+      "selection": {
+        "poolSize": 16,
+        "qualityFloor": 76,
+        "eligibleCount": 0,
+        "selectedSeed": 942564,
+        "qualityWarning": "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。",
+        "candidates": [
+          {
+            "seed": 942564,
+            "approach": "motif-led",
+            "qualityScore": 58.5,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 95.1,
+            "selectionScore": 64.8,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 1466209,
+            "approach": "motif-led",
+            "qualityScore": 56.5,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 63.8,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 418919,
+            "approach": "motif-led",
+            "qualityScore": 56.5,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 63.7,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1152022,
+            "approach": "rhythm-led",
+            "qualityScore": 55.421875,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 96.1,
+            "selectionScore": 63.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 104732,
+            "approach": "rhythm-led",
+            "qualityScore": 55.345703125,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 63.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 314190,
+            "approach": "dynamic-contrast",
+            "qualityScore": 56.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 94.9,
+            "selectionScore": 63.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 733106,
+            "approach": "counterpoint-led",
+            "qualityScore": 56.5,
+            "originalityScore": 26,
+            "intentionFitScore": 84,
+            "auditionScore": 94.8,
+            "selectionScore": 63.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1361480,
+            "approach": "dynamic-contrast",
+            "qualityScore": 56.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 93.9,
+            "selectionScore": 63.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 628377,
+            "approach": "rhythm-led",
+            "qualityScore": 53.9140625,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.9,
+            "selectionScore": 62.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 209461,
+            "approach": "counterpoint-led",
+            "qualityScore": 54.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 94.4,
+            "selectionScore": 62.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 837835,
+            "approach": "dynamic-contrast",
+            "qualityScore": 54.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 94.6,
+            "selectionScore": 62.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1256751,
+            "approach": "counterpoint-led",
+            "qualityScore": 54.5,
+            "originalityScore": 26,
+            "intentionFitScore": 84,
+            "auditionScore": 94.5,
+            "selectionScore": 62.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523648,
+            "approach": "space-led",
+            "qualityScore": 52.22727272727273,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 93.6,
+            "selectionScore": 61.7,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1570938,
+            "approach": "space-led",
+            "qualityScore": 52.22727272727273,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 93.7,
+            "selectionScore": 61.7,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 3,
+            "approach": "space-led",
+            "qualityScore": 50.22727272727273,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 94.2,
+            "selectionScore": 60.8,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1047293,
+            "approach": "space-led",
+            "qualityScore": 50.22727272727273,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 94.3,
+            "selectionScore": 60.8,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -8,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": -28,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 4
+        },
+        "harmonic": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 11,
+            "startBeat": 40,
+            "durationBeats": 3.3623,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 21,
+            "startBeat": 81.5,
+            "durationBeats": 1.2980000000000018,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 23,
+            "startBeat": 88,
+            "durationBeats": 1.75,
+            "pitch": 47,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 35,
+            "startBeat": 136,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 37,
+            "startBeat": 145.5,
+            "durationBeats": 1.2980000000000018,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 39,
+            "startBeat": 152,
+            "durationBeats": 1.75,
+            "pitch": 47,
+            "chord": "Am",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              0,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "間奏",
+            "bar": 46,
+            "startBeat": 180,
+            "durationBeats": 3.5,
+            "pitch": 57,
+            "chord": "G7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              7,
+              11,
+              2,
+              5
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 54,
+            "startBeat": 212,
+            "durationBeats": 3.7048,
+            "pitch": 59,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              9,
+              1,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 0.25,
+            "pitch": 49,
+            "chord": "Bm",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              11,
+              2,
+              6
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 57,
+            "startBeat": 224,
+            "durationBeats": 3.2321,
+            "pitch": 66,
+            "chord": "Em7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              4,
+              7,
+              11,
+              2
+            ]
+          }
+        ],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 10,
+            "startBeat": 38.5,
+            "durationBeats": 1.2047999999999988,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 69,
+            "previousBeat": 32,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 28,
+            "startBeat": 108,
+            "durationBeats": 2,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 104,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 34,
+            "startBeat": 132,
+            "durationBeats": 0.5,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 128,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 44,
+            "startBeat": 172,
+            "durationBeats": 2,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 168,
+            "semitones": 10
+          }
+        ],
+        "density": [
+          {
+            "section": "イントロ",
+            "energy": 27.5,
+            "notes": 30,
+            "bars": 4
+          },
+          {
+            "section": "Aメロ",
+            "energy": 35.5,
+            "notes": 152,
+            "bars": 8
+          },
+          {
+            "section": "Bメロ",
+            "energy": 53.5,
+            "notes": 227,
+            "bars": 8
+          },
+          {
+            "section": "サビ",
+            "energy": 72.5,
+            "notes": 249,
+            "bars": 8
+          },
+          {
+            "section": "Aメロ2",
+            "energy": 40.5,
+            "notes": 177,
+            "bars": 8
+          },
+          {
+            "section": "サビ2",
+            "energy": 80.5,
+            "notes": 292,
+            "bars": 8
+          },
+          {
+            "section": "間奏",
+            "energy": 48.5,
+            "notes": 39,
+            "bars": 8
+          },
+          {
+            "section": "大サビ",
+            "energy": 100,
+            "notes": 480,
+            "bars": 8
+          },
+          {
+            "section": "アウトロ",
+            "energy": 21.5,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "B",
+      "seed": 1,
+      "quality": {
+        "score": 53.5,
+        "passed": false,
+        "summary": "全曲の役割差を再調整する余地があります",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000063",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 12,
+          "densityContrastRatio": 30.25,
+          "harmonicViolationCount": 5,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.8753808971408901,
+          "averageActiveRoleCount": 6.444444444444445,
+          "generatedNotesPerBeat": 6.34375,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.25,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 6
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す",
+          "Safeパートのコード外音を解決可能な音へ修正する"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 96,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 99,
+        "transientClarity": 100,
+        "registerBalance": 79,
+        "dynamicArc": 95,
+        "sectionContrast": 94,
+        "issues": [],
+        "repairPasses": 2,
+        "removedNotes": 29,
+        "shiftedNotes": 128,
+        "velocityAdjustments": 5
+      },
+      "selection": {
+        "poolSize": 16,
+        "qualityFloor": 76,
+        "eligibleCount": 0,
+        "selectedSeed": 942562,
+        "qualityWarning": "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。",
+        "candidates": [
+          {
+            "seed": 942562,
+            "approach": "motif-led",
+            "qualityScore": 53.5,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 62.3,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 418917,
+            "approach": "motif-led",
+            "qualityScore": 52.5,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 61.6,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1466207,
+            "approach": "motif-led",
+            "qualityScore": 52.5,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 61.6,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1152020,
+            "approach": "rhythm-led",
+            "qualityScore": 52,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 96.6,
+            "selectionScore": 61.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 104730,
+            "approach": "rhythm-led",
+            "qualityScore": 51.994140625,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 96.5,
+            "selectionScore": 61.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1047291,
+            "approach": "space-led",
+            "qualityScore": 50.5,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 96.2,
+            "selectionScore": 61.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 837833,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 96.4,
+            "selectionScore": 61.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1361478,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 61.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1,
+            "approach": "space-led",
+            "qualityScore": 50.22727272727273,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 209459,
+            "approach": "counterpoint-led",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 96.1,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 314188,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 628375,
+            "approach": "rhythm-led",
+            "qualityScore": 51.30769230769231,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96.3,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 733104,
+            "approach": "counterpoint-led",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1256749,
+            "approach": "counterpoint-led",
+            "qualityScore": 52,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 96.2,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1570936,
+            "approach": "space-led",
+            "qualityScore": 49,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 95.2,
+            "selectionScore": 60.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523646,
+            "approach": "space-led",
+            "qualityScore": 48.72727272727273,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 95.1,
+            "selectionScore": 60,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": -28,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3
+        },
+        "harmonic": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 21,
+            "startBeat": 80,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 37,
+            "startBeat": 144,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 3.8592,
+            "pitch": 56,
+            "chord": "F#m7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              6,
+              9,
+              1,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.6476,
+            "pitch": 52,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              6,
+              9
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "str-viola",
+            "section": "Bridge",
+            "bar": 48,
+            "startBeat": 189.5,
+            "durationBeats": 1.522500000000008,
+            "pitch": 57,
+            "chord": "Em7",
+            "reason": "前回の輪郭をそのまま複製せず、内声の向きと長さを発展させる。和音のまとまりを保ったまま主旋律の後から入る",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              4,
+              7,
+              11,
+              2
+            ]
+          }
+        ],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 24,
+            "startBeat": 92,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 50,
+            "previousBeat": 84,
+            "semitones": 19
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 3.8592,
+            "pitch": 55,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 92,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 36,
+            "startBeat": 140,
+            "durationBeats": 0.25,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 53,
+            "previousBeat": 136,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 40,
+            "startBeat": 156,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 50,
+            "previousBeat": 148,
+            "semitones": 19
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 2.8944,
+            "pitch": 55,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 69,
+            "previousBeat": 156,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Bridge",
+            "bar": 48,
+            "startBeat": 189.5,
+            "durationBeats": 2.4850000000000136,
+            "pitch": 55,
+            "chord": "Em7",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 69,
+            "previousBeat": 176,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Bridge",
+            "bar": 51,
+            "startBeat": 200,
+            "durationBeats": 1.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 47,
+            "previousBeat": 196,
+            "semitones": 22
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 3.8592,
+            "pitch": 56,
+            "chord": "F#m7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 67,
+            "previousBeat": 208,
+            "semitones": 11
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 57,
+            "startBeat": 224,
+            "durationBeats": 3.8477,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 56,
+            "previousBeat": 216,
+            "semitones": 11
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 229.75,
+            "durationBeats": 2.2350000000000136,
+            "pitch": 69,
+            "chord": "A",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 50,
+            "previousBeat": 224,
+            "semitones": 19
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.6476,
+            "pitch": 52,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 67,
+            "previousBeat": 224,
+            "semitones": 15
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.5716,
+            "pitch": 62,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 49,
+            "previousBeat": 229.75,
+            "semitones": 13
+          }
+        ],
+        "density": [
+          {
+            "section": "Intro",
+            "energy": 27.02,
+            "notes": 20,
+            "bars": 4
+          },
+          {
+            "section": "Verse",
+            "energy": 35.02,
+            "notes": 122,
+            "bars": 8
+          },
+          {
+            "section": "Pre-Chorus",
+            "energy": 53.02,
+            "notes": 286,
+            "bars": 8
+          },
+          {
+            "section": "Chorus",
+            "energy": 73.3,
+            "notes": 301,
+            "bars": 8
+          },
+          {
+            "section": "Verse 2",
+            "energy": 40.02,
+            "notes": 151,
+            "bars": 8
+          },
+          {
+            "section": "Chorus 2",
+            "energy": 81.3,
+            "notes": 363,
+            "bars": 8
+          },
+          {
+            "section": "Bridge",
+            "energy": 48.02,
+            "notes": 38,
+            "bars": 8
+          },
+          {
+            "section": "Final Chorus",
+            "energy": 100,
+            "notes": 331,
+            "bars": 8
+          },
+          {
+            "section": "Outro",
+            "energy": 21.02,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "B",
+      "seed": 2,
+      "quality": {
+        "score": 53.5,
+        "passed": false,
+        "summary": "全曲の役割差を再調整する余地があります",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000063",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 9,
+          "densityContrastRatio": 33.75,
+          "harmonicViolationCount": 4,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.8739277392932102,
+          "averageActiveRoleCount": 6.444444444444445,
+          "generatedNotesPerBeat": 6.5703125,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.3333333333333333,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 6
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す",
+          "Safeパートのコード外音を解決可能な音へ修正する"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.5,
+        "passed": true,
+        "melodicClarity": 98,
+        "lowEndClarity": 99,
+        "transientClarity": 100,
+        "registerBalance": 77,
+        "dynamicArc": 95,
+        "sectionContrast": 100,
+        "issues": [],
+        "repairPasses": 1,
+        "removedNotes": 13,
+        "shiftedNotes": 77,
+        "velocityAdjustments": 0
+      },
+      "selection": {
+        "poolSize": 16,
+        "qualityFloor": 76,
+        "eligibleCount": 0,
+        "selectedSeed": 942563,
+        "qualityWarning": "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。",
+        "candidates": [
+          {
+            "seed": 942563,
+            "approach": "motif-led",
+            "qualityScore": 53.5,
+            "originalityScore": 32,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 62.3,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 418918,
+            "approach": "motif-led",
+            "qualityScore": 53.5,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 62.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1466208,
+            "approach": "motif-led",
+            "qualityScore": 53.5,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95.1,
+            "selectionScore": 62.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 628376,
+            "approach": "rhythm-led",
+            "qualityScore": 51.736328125,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 61.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 2,
+            "approach": "space-led",
+            "qualityScore": 50.5,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 94.9,
+            "selectionScore": 61.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 104731,
+            "approach": "rhythm-led",
+            "qualityScore": 51.7421875,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 61.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 314189,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 61.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1152021,
+            "approach": "rhythm-led",
+            "qualityScore": 51.748046875,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 61.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 209460,
+            "approach": "counterpoint-led",
+            "qualityScore": 52,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.2,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 733105,
+            "approach": "counterpoint-led",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 837834,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1256750,
+            "approach": "counterpoint-led",
+            "qualityScore": 52,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1361479,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 61,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1047292,
+            "approach": "space-led",
+            "qualityScore": 50.22727272727273,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 94.8,
+            "selectionScore": 60.9,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523647,
+            "approach": "space-led",
+            "qualityScore": 49,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 94.2,
+            "selectionScore": 60.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1570937,
+            "approach": "space-led",
+            "qualityScore": 48.72727272727273,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 94.3,
+            "selectionScore": 60,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": -28,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3
+        },
+        "harmonic": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 21,
+            "startBeat": 80,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 37,
+            "startBeat": 144,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 3.8592,
+            "pitch": 56,
+            "chord": "F#m7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              6,
+              9,
+              1,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.2617,
+            "pitch": 52,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              6,
+              9
+            ]
+          }
+        ],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse",
+            "bar": 9,
+            "startBeat": 32,
+            "durationBeats": 3.985,
+            "pitch": 48,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 59,
+            "previousBeat": 20,
+            "semitones": 11
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse",
+            "bar": 11,
+            "startBeat": 42.25,
+            "durationBeats": 1.6092000000000013,
+            "pitch": 65,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 53,
+            "previousBeat": 32,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 33,
+            "startBeat": 128,
+            "durationBeats": 3.985,
+            "pitch": 48,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 59,
+            "previousBeat": 116,
+            "semitones": 11
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 35,
+            "startBeat": 136,
+            "durationBeats": 2.8944,
+            "pitch": 65,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 53,
+            "previousBeat": 128,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 3.8592,
+            "pitch": 56,
+            "chord": "F#m7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 67,
+            "previousBeat": 208,
+            "semitones": 11
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 56,
+            "startBeat": 220,
+            "durationBeats": 2.8656,
+            "pitch": 66,
+            "chord": "Bm",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 56,
+            "previousBeat": 216,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 2.8944,
+            "pitch": 49,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 66,
+            "previousBeat": 220,
+            "semitones": 17
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.2617,
+            "pitch": 52,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 67,
+            "previousBeat": 224,
+            "semitones": 15
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.1895,
+            "pitch": 62,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 49,
+            "previousBeat": 228,
+            "semitones": 13
+          }
+        ],
+        "density": [
+          {
+            "section": "Intro",
+            "energy": 27.02,
+            "notes": 25,
+            "bars": 4
+          },
+          {
+            "section": "Verse",
+            "energy": 35.02,
+            "notes": 147,
+            "bars": 8
+          },
+          {
+            "section": "Pre-Chorus",
+            "energy": 53.02,
+            "notes": 215,
+            "bars": 8
+          },
+          {
+            "section": "Chorus",
+            "energy": 73.3,
+            "notes": 345,
+            "bars": 8
+          },
+          {
+            "section": "Verse 2",
+            "energy": 40.02,
+            "notes": 168,
+            "bars": 8
+          },
+          {
+            "section": "Chorus 2",
+            "energy": 81.3,
+            "notes": 405,
+            "bars": 8
+          },
+          {
+            "section": "Bridge",
+            "energy": 48.02,
+            "notes": 39,
+            "bars": 8
+          },
+          {
+            "section": "Final Chorus",
+            "energy": 100,
+            "notes": 326,
+            "bars": 8
+          },
+          {
+            "section": "Outro",
+            "energy": 21.02,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "B",
+      "seed": 3,
+      "quality": {
+        "score": 52.5,
+        "passed": false,
+        "summary": "全曲の役割差を再調整する余地があります",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000063",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 14,
+          "densityContrastRatio": 27.333333333333332,
+          "harmonicViolationCount": 5,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.8835104759811953,
+          "averageActiveRoleCount": 7.111111111111111,
+          "generatedNotesPerBeat": 6.53125,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.34615384615384615,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 4
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す",
+          "Safeパートのコード外音を解決可能な音へ修正する"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.6,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 99,
+        "transientClarity": 100,
+        "registerBalance": 77,
+        "dynamicArc": 96,
+        "sectionContrast": 93,
+        "issues": [],
+        "repairPasses": 2,
+        "removedNotes": 41,
+        "shiftedNotes": 108,
+        "velocityAdjustments": 6
+      },
+      "selection": {
+        "poolSize": 16,
+        "qualityFloor": 76,
+        "eligibleCount": 0,
+        "selectedSeed": 104732,
+        "qualityWarning": "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。",
+        "candidates": [
+          {
+            "seed": 104732,
+            "approach": "rhythm-led",
+            "qualityScore": 52.5,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 61.5,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 942564,
+            "approach": "motif-led",
+            "qualityScore": 52,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 61.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 418919,
+            "approach": "motif-led",
+            "qualityScore": 52,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 94.9,
+            "selectionScore": 61.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 628377,
+            "approach": "rhythm-led",
+            "qualityScore": 52,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 95.9,
+            "selectionScore": 61.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1466209,
+            "approach": "motif-led",
+            "qualityScore": 52,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 94.9,
+            "selectionScore": 61.3,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 314190,
+            "approach": "dynamic-contrast",
+            "qualityScore": 52.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 61.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1152022,
+            "approach": "rhythm-led",
+            "qualityScore": 52,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 61.2,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 209461,
+            "approach": "counterpoint-led",
+            "qualityScore": 51.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.1,
+            "selectionScore": 60.7,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 733106,
+            "approach": "counterpoint-led",
+            "qualityScore": 51.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 60.7,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1256751,
+            "approach": "counterpoint-led",
+            "qualityScore": 51.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 60.6,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1361480,
+            "approach": "dynamic-contrast",
+            "qualityScore": 50.40909090909091,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 60.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 837835,
+            "approach": "dynamic-contrast",
+            "qualityScore": 50.40909090909091,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 60,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1047293,
+            "approach": "space-led",
+            "qualityScore": 47.40909090909091,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 95.1,
+            "selectionScore": 59.5,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 3,
+            "approach": "space-led",
+            "qualityScore": 47.40909090909091,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 94.8,
+            "selectionScore": 59.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523648,
+            "approach": "space-led",
+            "qualityScore": 47.40909090909091,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 94.8,
+            "selectionScore": 59.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 1570938,
+            "approach": "space-led",
+            "qualityScore": 47.40909090909091,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 94.6,
+            "selectionScore": 59.4,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": -28,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 2
+        },
+        "harmonic": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 21,
+            "startBeat": 80,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 37,
+            "startBeat": 144,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "F",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              5,
+              9,
+              0
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 3.5,
+            "pitch": 68,
+            "chord": "F#m7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              6,
+              9,
+              1,
+              4
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.7248,
+            "pitch": 52,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              2,
+              6,
+              9
+            ]
+          },
+          {
+            "source": "generated-track",
+            "trackId": "str-cello",
+            "section": "Chorus 2",
+            "bar": 38,
+            "startBeat": 148,
+            "durationBeats": 3.541799999999995,
+            "pitch": 60,
+            "chord": "G",
+            "reason": "前回の輪郭をそのまま複製せず、内声の向きと長さを発展させる。Bassと低域を分ける。和音のまとまりを保ったまま主旋律の後から入る",
+            "violation": "発音開始時のコード構成音・テンション・指定低音に含まれない",
+            "allowed": [
+              7,
+              11,
+              2
+            ]
+          }
+        ],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse",
+            "bar": 9,
+            "startBeat": 32,
+            "durationBeats": 3.8861,
+            "pitch": 53,
+            "chord": "F",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 67,
+            "previousBeat": 16,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 24,
+            "startBeat": 92,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 50,
+            "previousBeat": 84,
+            "semitones": 19
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 3.8592,
+            "pitch": 55,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 92,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 33,
+            "startBeat": 128,
+            "durationBeats": 2.9146,
+            "pitch": 53,
+            "chord": "F",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 67,
+            "previousBeat": 112,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 36,
+            "startBeat": 140,
+            "durationBeats": 1,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 53,
+            "previousBeat": 136,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 40,
+            "startBeat": 156,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 50,
+            "previousBeat": 148,
+            "semitones": 19
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 2.8944,
+            "pitch": 55,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 69,
+            "previousBeat": 156,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Bridge",
+            "bar": 52,
+            "startBeat": 204,
+            "durationBeats": 3.8208,
+            "pitch": 48,
+            "chord": "Gsus4",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 59,
+            "previousBeat": 196,
+            "semitones": 11
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 55,
+            "startBeat": 216,
+            "durationBeats": 3.5,
+            "pitch": 68,
+            "chord": "F#m7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 55,
+            "previousBeat": 208.5,
+            "semitones": 13
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 57,
+            "startBeat": 224,
+            "durationBeats": 2.9146,
+            "pitch": 50,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 68,
+            "previousBeat": 216,
+            "semitones": 18
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 2.8944,
+            "pitch": 49,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 66,
+            "previousBeat": 220,
+            "semitones": 17
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 3.985,
+            "pitch": 69,
+            "chord": "A",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 50,
+            "previousBeat": 224,
+            "semitones": 19
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.7248,
+            "pitch": 52,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 67,
+            "previousBeat": 224,
+            "semitones": 15
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 7.648,
+            "pitch": 62,
+            "chord": "D",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 49,
+            "previousBeat": 228,
+            "semitones": 13
+          }
+        ],
+        "density": [
+          {
+            "section": "Intro",
+            "energy": 27.02,
+            "notes": 23,
+            "bars": 4
+          },
+          {
+            "section": "Verse",
+            "energy": 35.02,
+            "notes": 122,
+            "bars": 8
+          },
+          {
+            "section": "Pre-Chorus",
+            "energy": 53.02,
+            "notes": 298,
+            "bars": 8
+          },
+          {
+            "section": "Chorus",
+            "energy": 73.3,
+            "notes": 305,
+            "bars": 8
+          },
+          {
+            "section": "Verse 2",
+            "energy": 40.02,
+            "notes": 181,
+            "bars": 8
+          },
+          {
+            "section": "Chorus 2",
+            "energy": 81.3,
+            "notes": 315,
+            "bars": 8
+          },
+          {
+            "section": "Bridge",
+            "energy": 48.02,
+            "notes": 88,
+            "bars": 8
+          },
+          {
+            "section": "Final Chorus",
+            "energy": 100,
+            "notes": 328,
+            "bars": 8
+          },
+          {
+            "section": "Outro",
+            "energy": 21.02,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    }
+  ],
+  "after": [
+    {
+      "song": "A",
+      "seed": 1,
+      "quality": {
+        "score": 85.06640625,
+        "passed": true,
+        "summary": "全曲の起伏は成立しています。試聴で役割密度を確認してください",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000061",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 4,
+          "densityContrastRatio": 36,
+          "harmonicViolationCount": 0,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.9274961778842612,
+          "averageActiveRoleCount": 6.333333333333333,
+          "generatedNotesPerBeat": 7.2890625,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.2608695652173913,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 6
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.7,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 99,
+        "transientClarity": 100,
+        "registerBalance": 72,
+        "dynamicArc": 97,
+        "sectionContrast": 100,
+        "issues": [],
+        "repairPasses": 2,
+        "removedNotes": 37,
+        "shiftedNotes": 106,
+        "velocityAdjustments": 12
+      },
+      "selection": {
+        "poolSize": 8,
+        "qualityFloor": 76,
+        "eligibleCount": 8,
+        "selectedSeed": 418917,
+        "candidates": [
+          {
+            "seed": 418917,
+            "approach": "motif-led",
+            "qualityScore": 85.06640625,
+            "originalityScore": 33,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 79.8,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 209459,
+            "approach": "counterpoint-led",
+            "qualityScore": 84.5,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 78.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 733104,
+            "approach": "counterpoint-led",
+            "qualityScore": 84.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 78.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 628375,
+            "approach": "rhythm-led",
+            "qualityScore": 82.3780048076923,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 78.1,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 1,
+            "approach": "space-led",
+            "qualityScore": 80.9090909090909,
+            "originalityScore": 37,
+            "intentionFitScore": 84,
+            "auditionScore": 95.2,
+            "selectionScore": 77.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 104730,
+            "approach": "rhythm-led",
+            "qualityScore": 80.41180889423077,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.9,
+            "selectionScore": 77,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 523646,
+            "approach": "space-led",
+            "qualityScore": 79.4090909090909,
+            "originalityScore": 37,
+            "intentionFitScore": 84,
+            "auditionScore": 94.1,
+            "selectionScore": 76.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 314188,
+            "approach": "dynamic-contrast",
+            "qualityScore": 80.5909090909091,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 76.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -8,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": -0.43359375,
+          "harmony": 0,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3
+        },
+        "harmonic": [],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 27,
+            "startBeat": 104,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Bm7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 100,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 34,
+            "startBeat": 132,
+            "durationBeats": 2.7786,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 130,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 43,
+            "startBeat": 168,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Bm7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 164,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 55,
+            "startBeat": 218,
+            "durationBeats": 1.5915999999999997,
+            "pitch": 71,
+            "chord": "Bm",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 61,
+            "previousBeat": 212,
+            "semitones": 10
+          }
+        ],
+        "density": [
+          {
+            "section": "イントロ",
+            "energy": 27.5,
+            "notes": 33,
+            "bars": 4
+          },
+          {
+            "section": "Aメロ",
+            "energy": 35.5,
+            "notes": 124,
+            "bars": 8
+          },
+          {
+            "section": "Bメロ",
+            "energy": 53.5,
+            "notes": 263,
+            "bars": 8
+          },
+          {
+            "section": "サビ",
+            "energy": 72.5,
+            "notes": 378,
+            "bars": 8
+          },
+          {
+            "section": "Aメロ2",
+            "energy": 40.5,
+            "notes": 153,
+            "bars": 8
+          },
+          {
+            "section": "サビ2",
+            "energy": 80.5,
+            "notes": 425,
+            "bars": 8
+          },
+          {
+            "section": "間奏",
+            "energy": 48.5,
+            "notes": 46,
+            "bars": 8
+          },
+          {
+            "section": "大サビ",
+            "energy": 100,
+            "notes": 432,
+            "bars": 8
+          },
+          {
+            "section": "アウトロ",
+            "energy": 21.5,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "A",
+      "seed": 2,
+      "quality": {
+        "score": 81,
+        "passed": true,
+        "summary": "全曲の起伏は成立しています。試聴で役割密度を確認してください",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 6,
+          "peakSectionId": "00000000-0000-4000-8000-000000000061",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 7,
+          "densityContrastRatio": 41.25,
+          "harmonicViolationCount": 0,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.925684253731773,
+          "averageActiveRoleCount": 6.111111111111111,
+          "generatedNotesPerBeat": 6.72265625,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.3333333333333333,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 7
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.4,
+        "passed": true,
+        "melodicClarity": 99,
+        "lowEndClarity": 100,
+        "transientClarity": 100,
+        "registerBalance": 73,
+        "dynamicArc": 94,
+        "sectionContrast": 100,
+        "issues": [],
+        "repairPasses": 1,
+        "removedNotes": 43,
+        "shiftedNotes": 118,
+        "velocityAdjustments": 5
+      },
+      "selection": {
+        "poolSize": 8,
+        "qualityFloor": 76,
+        "eligibleCount": 8,
+        "selectedSeed": 418918,
+        "candidates": [
+          {
+            "seed": 418918,
+            "approach": "motif-led",
+            "qualityScore": 81,
+            "originalityScore": 32,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 77.6,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 104731,
+            "approach": "rhythm-led",
+            "qualityScore": 80.048828125,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 76.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 209460,
+            "approach": "counterpoint-led",
+            "qualityScore": 79.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 94.5,
+            "selectionScore": 76.1,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 2,
+            "approach": "space-led",
+            "qualityScore": 77.5,
+            "originalityScore": 37,
+            "intentionFitScore": 84,
+            "auditionScore": 93.5,
+            "selectionScore": 75.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 523647,
+            "approach": "space-led",
+            "qualityScore": 77.5,
+            "originalityScore": 37,
+            "intentionFitScore": 84,
+            "auditionScore": 93.4,
+            "selectionScore": 75.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 628376,
+            "approach": "rhythm-led",
+            "qualityScore": 78.55729166666667,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 75.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 314189,
+            "approach": "dynamic-contrast",
+            "qualityScore": 77.93478260869566,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 93.6,
+            "selectionScore": 74.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 733105,
+            "approach": "counterpoint-led",
+            "qualityScore": 77.33333333333333,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 94.8,
+            "selectionScore": 74.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 9,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": 0,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3.5
+        },
+        "harmonic": [],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 9,
+            "startBeat": 32,
+            "durationBeats": 2,
+            "pitch": 69,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 28,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 10,
+            "startBeat": 36,
+            "durationBeats": 0.5,
+            "pitch": 56,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 32,
+            "semitones": 13
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 27,
+            "startBeat": 104,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Bm7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 96.75,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 33,
+            "startBeat": 128,
+            "durationBeats": 2,
+            "pitch": 69,
+            "chord": "Dm7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 124,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 34,
+            "startBeat": 132,
+            "durationBeats": 0.5,
+            "pitch": 56,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 128,
+            "semitones": 13
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 43,
+            "startBeat": 168,
+            "durationBeats": 2.751,
+            "pitch": 59,
+            "chord": "Bm7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 69,
+            "previousBeat": 160.75,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 3.2095,
+            "pitch": 61,
+            "chord": "C#m7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 71,
+            "previousBeat": 228,
+            "semitones": 10
+          }
+        ],
+        "density": [
+          {
+            "section": "イントロ",
+            "energy": 27.5,
+            "notes": 27,
+            "bars": 4
+          },
+          {
+            "section": "Aメロ",
+            "energy": 35.5,
+            "notes": 156,
+            "bars": 8
+          },
+          {
+            "section": "Bメロ",
+            "energy": 53.5,
+            "notes": 216,
+            "bars": 8
+          },
+          {
+            "section": "サビ",
+            "energy": 72.5,
+            "notes": 272,
+            "bars": 8
+          },
+          {
+            "section": "Aメロ2",
+            "energy": 40.5,
+            "notes": 182,
+            "bars": 8
+          },
+          {
+            "section": "サビ2",
+            "energy": 80.5,
+            "notes": 320,
+            "bars": 8
+          },
+          {
+            "section": "間奏",
+            "energy": 48.5,
+            "notes": 41,
+            "bars": 8
+          },
+          {
+            "section": "大サビ",
+            "energy": 100,
+            "notes": 495,
+            "bars": 8
+          },
+          {
+            "section": "アウトロ",
+            "energy": 21.5,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "A",
+      "seed": 3,
+      "quality": {
+        "score": 82.5,
+        "passed": true,
+        "summary": "全曲の起伏は成立しています。試聴で役割密度を確認してください",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000061",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 6,
+          "densityContrastRatio": 37.666666666666664,
+          "harmonicViolationCount": 0,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.9230097693113707,
+          "averageActiveRoleCount": 6.444444444444445,
+          "generatedNotesPerBeat": 6.46875,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.2,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 8
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.4,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 99,
+        "transientClarity": 100,
+        "registerBalance": 73,
+        "dynamicArc": 94,
+        "sectionContrast": 99,
+        "issues": [],
+        "repairPasses": 2,
+        "removedNotes": 23,
+        "shiftedNotes": 132,
+        "velocityAdjustments": 13
+      },
+      "selection": {
+        "poolSize": 8,
+        "qualityFloor": 76,
+        "eligibleCount": 8,
+        "selectedSeed": 418919,
+        "candidates": [
+          {
+            "seed": 418919,
+            "approach": "motif-led",
+            "qualityScore": 82.5,
+            "originalityScore": 32,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 78.3,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 314190,
+            "approach": "dynamic-contrast",
+            "qualityScore": 82.5,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 94.9,
+            "selectionScore": 77.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 104732,
+            "approach": "rhythm-led",
+            "qualityScore": 81.31640625,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 77.6,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 733106,
+            "approach": "counterpoint-led",
+            "qualityScore": 82.5,
+            "originalityScore": 27,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 77.6,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 628377,
+            "approach": "rhythm-led",
+            "qualityScore": 79.873046875,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.9,
+            "selectionScore": 76.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 209461,
+            "approach": "counterpoint-led",
+            "qualityScore": 80.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 94.5,
+            "selectionScore": 76.6,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 523648,
+            "approach": "space-led",
+            "qualityScore": 78.22727272727272,
+            "originalityScore": 37,
+            "intentionFitScore": 84,
+            "auditionScore": 93.6,
+            "selectionScore": 76.3,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 3,
+            "approach": "space-led",
+            "qualityScore": 77.22727272727272,
+            "originalityScore": 37,
+            "intentionFitScore": 84,
+            "auditionScore": 94.1,
+            "selectionScore": 75.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 20,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": 0,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 4
+        },
+        "harmonic": [],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 6,
+            "startBeat": 20,
+            "durationBeats": 2,
+            "pitch": 69,
+            "chord": "Am/G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 16,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ",
+            "bar": 10,
+            "startBeat": 38.5,
+            "durationBeats": 0.7417000000000016,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 69,
+            "previousBeat": 32,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ",
+            "bar": 28,
+            "startBeat": 108,
+            "durationBeats": 2,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 104,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Aメロ2",
+            "bar": 34,
+            "startBeat": 132,
+            "durationBeats": 0.5,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 128,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "サビ2",
+            "bar": 44,
+            "startBeat": 172,
+            "durationBeats": 2,
+            "pitch": 59,
+            "chord": "E7",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 168,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "大サビ",
+            "bar": 59,
+            "startBeat": 232,
+            "durationBeats": 3.668,
+            "pitch": 61,
+            "chord": "C#m7b5",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 71,
+            "previousBeat": 228,
+            "semitones": 10
+          }
+        ],
+        "density": [
+          {
+            "section": "イントロ",
+            "energy": 27.5,
+            "notes": 30,
+            "bars": 4
+          },
+          {
+            "section": "Aメロ",
+            "energy": 35.5,
+            "notes": 152,
+            "bars": 8
+          },
+          {
+            "section": "Bメロ",
+            "energy": 53.5,
+            "notes": 224,
+            "bars": 8
+          },
+          {
+            "section": "サビ",
+            "energy": 72.5,
+            "notes": 261,
+            "bars": 8
+          },
+          {
+            "section": "Aメロ2",
+            "energy": 40.5,
+            "notes": 174,
+            "bars": 8
+          },
+          {
+            "section": "サビ2",
+            "energy": 80.5,
+            "notes": 310,
+            "bars": 8
+          },
+          {
+            "section": "間奏",
+            "energy": 48.5,
+            "notes": 41,
+            "bars": 8
+          },
+          {
+            "section": "大サビ",
+            "energy": 100,
+            "notes": 452,
+            "bars": 8
+          },
+          {
+            "section": "アウトロ",
+            "energy": 21.5,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "B",
+      "seed": 1,
+      "quality": {
+        "score": 80.5,
+        "passed": true,
+        "summary": "全曲の起伏は成立しています。試聴で役割密度を確認してください",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000063",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 9,
+          "densityContrastRatio": 29.5,
+          "harmonicViolationCount": 0,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.8620026919335442,
+          "averageActiveRoleCount": 6.444444444444445,
+          "generatedNotesPerBeat": 6.2890625,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.17391304347826086,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 6
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.3,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 100,
+        "transientClarity": 100,
+        "registerBalance": 78,
+        "dynamicArc": 94,
+        "sectionContrast": 89,
+        "issues": [],
+        "repairPasses": 2,
+        "removedNotes": 12,
+        "shiftedNotes": 114,
+        "velocityAdjustments": 5
+      },
+      "selection": {
+        "poolSize": 8,
+        "qualityFloor": 76,
+        "eligibleCount": 8,
+        "selectedSeed": 418917,
+        "candidates": [
+          {
+            "seed": 418917,
+            "approach": "motif-led",
+            "qualityScore": 80.5,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 77.3,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 104730,
+            "approach": "rhythm-led",
+            "qualityScore": 79.982421875,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96.3,
+            "selectionScore": 76.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 1,
+            "approach": "space-led",
+            "qualityScore": 78.22727272727272,
+            "originalityScore": 38,
+            "intentionFitScore": 84,
+            "auditionScore": 95.9,
+            "selectionScore": 76.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 209459,
+            "approach": "counterpoint-led",
+            "qualityScore": 80,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 96.1,
+            "selectionScore": 76.6,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 314188,
+            "approach": "dynamic-contrast",
+            "qualityScore": 80,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 76.5,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 628375,
+            "approach": "rhythm-led",
+            "qualityScore": 79.3076923076923,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 96.2,
+            "selectionScore": 76.4,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 733104,
+            "approach": "counterpoint-led",
+            "qualityScore": 80,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.8,
+            "selectionScore": 76.4,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 523646,
+            "approach": "space-led",
+            "qualityScore": 76.72727272727272,
+            "originalityScore": 38,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 75.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 19,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": 0,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3
+        },
+        "harmonic": [],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 24,
+            "startBeat": 92,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 59,
+            "previousBeat": 84,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 3.8208,
+            "pitch": 50,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 60,
+            "previousBeat": 92,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 69,
+            "previousBeat": 92,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 36,
+            "startBeat": 140,
+            "durationBeats": 0.25,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 136,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 40,
+            "startBeat": 156,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 59,
+            "previousBeat": 148,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 2.8656,
+            "pitch": 50,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 60,
+            "previousBeat": 156,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 3.985,
+            "pitch": 55,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 69,
+            "previousBeat": 156,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Bridge",
+            "bar": 48,
+            "startBeat": 189.5,
+            "durationBeats": 1.7616999999999905,
+            "pitch": 55,
+            "chord": "Em7",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 69,
+            "previousBeat": 176,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 229.75,
+            "durationBeats": 2.2350000000000136,
+            "pitch": 69,
+            "chord": "A",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の後から入る",
+            "previousPitch": 55,
+            "previousBeat": 224,
+            "semitones": 14
+          }
+        ],
+        "density": [
+          {
+            "section": "Intro",
+            "energy": 27.02,
+            "notes": 23,
+            "bars": 4
+          },
+          {
+            "section": "Verse",
+            "energy": 35.02,
+            "notes": 129,
+            "bars": 8
+          },
+          {
+            "section": "Pre-Chorus",
+            "energy": 53.02,
+            "notes": 290,
+            "bars": 8
+          },
+          {
+            "section": "Chorus",
+            "energy": 73.3,
+            "notes": 293,
+            "bars": 8
+          },
+          {
+            "section": "Verse 2",
+            "energy": 40.02,
+            "notes": 151,
+            "bars": 8
+          },
+          {
+            "section": "Chorus 2",
+            "energy": 81.3,
+            "notes": 354,
+            "bars": 8
+          },
+          {
+            "section": "Bridge",
+            "energy": 48.02,
+            "notes": 39,
+            "bars": 8
+          },
+          {
+            "section": "Final Chorus",
+            "energy": 100,
+            "notes": 319,
+            "bars": 8
+          },
+          {
+            "section": "Outro",
+            "energy": 21.02,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "B",
+      "seed": 2,
+      "quality": {
+        "score": 82.5,
+        "passed": true,
+        "summary": "全曲の起伏は成立しています。試聴で役割密度を確認してください",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 7,
+          "peakSectionId": "00000000-0000-4000-8000-000000000063",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 5,
+          "densityContrastRatio": 34.416666666666664,
+          "harmonicViolationCount": 0,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.8710880393899183,
+          "averageActiveRoleCount": 6.333333333333333,
+          "generatedNotesPerBeat": 6.546875,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.3333333333333333,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 6
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 95.2,
+        "passed": true,
+        "melodicClarity": 97,
+        "lowEndClarity": 98,
+        "transientClarity": 100,
+        "registerBalance": 77,
+        "dynamicArc": 94,
+        "sectionContrast": 100,
+        "issues": [],
+        "repairPasses": 1,
+        "removedNotes": 14,
+        "shiftedNotes": 77,
+        "velocityAdjustments": 6
+      },
+      "selection": {
+        "poolSize": 8,
+        "qualityFloor": 76,
+        "eligibleCount": 8,
+        "selectedSeed": 418918,
+        "candidates": [
+          {
+            "seed": 418918,
+            "approach": "motif-led",
+            "qualityScore": 82.5,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.2,
+            "selectionScore": 78.4,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 2,
+            "approach": "space-led",
+            "qualityScore": 80.5,
+            "originalityScore": 39,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 78,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 209460,
+            "approach": "counterpoint-led",
+            "qualityScore": 82,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 77.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 314189,
+            "approach": "dynamic-contrast",
+            "qualityScore": 82,
+            "originalityScore": 31,
+            "intentionFitScore": 84,
+            "auditionScore": 96,
+            "selectionScore": 77.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 628376,
+            "approach": "rhythm-led",
+            "qualityScore": 81.7890625,
+            "originalityScore": 36,
+            "intentionFitScore": 84,
+            "auditionScore": 95.5,
+            "selectionScore": 77.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 733105,
+            "approach": "counterpoint-led",
+            "qualityScore": 82,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 95.6,
+            "selectionScore": 77.7,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 104731,
+            "approach": "rhythm-led",
+            "qualityScore": 80.80078125,
+            "originalityScore": 35,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 77.3,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 523647,
+            "approach": "space-led",
+            "qualityScore": 79,
+            "originalityScore": 39,
+            "intentionFitScore": 84,
+            "auditionScore": 94.4,
+            "selectionScore": 77,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 10,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -10,
+          "density": 6,
+          "energy": 19,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": 0,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3
+        },
+        "harmonic": [],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 2.5,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 53,
+            "previousBeat": 96,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 2.5,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 53,
+            "previousBeat": 160,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 56,
+            "startBeat": 220,
+            "durationBeats": 1.5,
+            "pitch": 71,
+            "chord": "Bm",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 61,
+            "previousBeat": 212,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 2.8656,
+            "pitch": 52,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 62,
+            "previousBeat": 220,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 3.985,
+            "pitch": 57,
+            "chord": "A",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 71,
+            "previousBeat": 220,
+            "semitones": 14
+          }
+        ],
+        "density": [
+          {
+            "section": "Intro",
+            "energy": 27.02,
+            "notes": 25,
+            "bars": 4
+          },
+          {
+            "section": "Verse",
+            "energy": 35.02,
+            "notes": 148,
+            "bars": 8
+          },
+          {
+            "section": "Pre-Chorus",
+            "energy": 53.02,
+            "notes": 204,
+            "bars": 8
+          },
+          {
+            "section": "Chorus",
+            "energy": 73.3,
+            "notes": 342,
+            "bars": 8
+          },
+          {
+            "section": "Verse 2",
+            "energy": 40.02,
+            "notes": 169,
+            "bars": 8
+          },
+          {
+            "section": "Chorus 2",
+            "energy": 81.3,
+            "notes": 413,
+            "bars": 8
+          },
+          {
+            "section": "Bridge",
+            "energy": 48.02,
+            "notes": 40,
+            "bars": 8
+          },
+          {
+            "section": "Final Chorus",
+            "energy": 100,
+            "notes": 323,
+            "bars": 8
+          },
+          {
+            "section": "Outro",
+            "energy": 21.02,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    },
+    {
+      "song": "B",
+      "seed": 3,
+      "quality": {
+        "score": 80,
+        "passed": true,
+        "summary": "全曲の起伏は成立しています。試聴で役割密度を確認してください",
+        "metrics": {
+          "distinctSectionTextures": 9,
+          "stagedEntryCount": 6,
+          "peakSectionId": "00000000-0000-4000-8000-000000000063",
+          "peakIsLate": true,
+          "overfilledSectionCount": 0,
+          "silentRoleCount": 0,
+          "mechanicalLoopCount": 0,
+          "largeSupportLeapCount": 18,
+          "densityContrastRatio": 26,
+          "harmonicViolationCount": 0,
+          "melodyCollisionCount": 0,
+          "rhythmLeadAttackConflictCount": 0,
+          "energyDensityCorrelation": 0.8360391487918193,
+          "averageActiveRoleCount": 6.333333333333333,
+          "generatedNotesPerBeat": 6.0078125,
+          "repeatedSectionCopyCount": 0,
+          "repeatedTrackCopyRatio": 0.16666666666666666,
+          "boundaryContrastScore": 1,
+          "motifDevelopmentCount": 7
+        },
+        "recommendations": [
+          "背景声部の大きな跳躍を共通音または順次進行へ戻す"
+        ]
+      },
+      "audition": {
+        "version": "1.0.0",
+        "score": 94.8,
+        "passed": true,
+        "melodicClarity": 100,
+        "lowEndClarity": 100,
+        "transientClarity": 100,
+        "registerBalance": 74,
+        "dynamicArc": 93,
+        "sectionContrast": 91,
+        "issues": [],
+        "repairPasses": 2,
+        "removedNotes": 29,
+        "shiftedNotes": 106,
+        "velocityAdjustments": 4
+      },
+      "selection": {
+        "poolSize": 8,
+        "qualityFloor": 76,
+        "eligibleCount": 6,
+        "selectedSeed": 418919,
+        "candidates": [
+          {
+            "seed": 418919,
+            "approach": "motif-led",
+            "qualityScore": 80,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 94.8,
+            "selectionScore": 77,
+            "selected": true,
+            "reason": "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用"
+          },
+          {
+            "seed": 104732,
+            "approach": "rhythm-led",
+            "qualityScore": 80.5,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 76.9,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 314190,
+            "approach": "dynamic-contrast",
+            "qualityScore": 80.5,
+            "originalityScore": 30,
+            "intentionFitScore": 84,
+            "auditionScore": 95.3,
+            "selectionScore": 76.8,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 209461,
+            "approach": "counterpoint-led",
+            "qualityScore": 79.5,
+            "originalityScore": 29,
+            "intentionFitScore": 84,
+            "auditionScore": 95,
+            "selectionScore": 76.2,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 733106,
+            "approach": "counterpoint-led",
+            "qualityScore": 79.5,
+            "originalityScore": 28,
+            "intentionFitScore": 84,
+            "auditionScore": 95.4,
+            "selectionScore": 76.2,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 628377,
+            "approach": "rhythm-led",
+            "qualityScore": 79,
+            "originalityScore": 34,
+            "intentionFitScore": 84,
+            "auditionScore": 95.7,
+            "selectionScore": 76.1,
+            "selected": false,
+            "reason": "基礎品質は高いが、他案との実音差が比較的小さい"
+          },
+          {
+            "seed": 3,
+            "approach": "space-led",
+            "qualityScore": 75.4090909090909,
+            "originalityScore": 38,
+            "intentionFitScore": 84,
+            "auditionScore": 94.6,
+            "selectionScore": 75.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          },
+          {
+            "seed": 523648,
+            "approach": "space-led",
+            "qualityScore": 75.4090909090909,
+            "originalityScore": 38,
+            "intentionFitScore": 84,
+            "auditionScore": 94.6,
+            "selectionScore": 75.1,
+            "selected": false,
+            "reason": "音楽品質の下限に届かなかったため除外"
+          }
+        ]
+      },
+      "diagnostics": {
+        "contributions": {
+          "base": 24,
+          "textures": 13.5,
+          "entries": 9,
+          "latePeak": 12,
+          "overfilled": 0,
+          "silentRoles": 0,
+          "mechanical": 0,
+          "supportLeaps": -12,
+          "density": 6,
+          "energy": 19,
+          "roles": 0,
+          "noteDensity": 0,
+          "harmony": 0,
+          "melody": 0,
+          "attacks": 0,
+          "sectionCopy": 0,
+          "trackCopy": 0,
+          "boundary": 5,
+          "motif": 3.5
+        },
+        "harmonic": [],
+        "leaps": [
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Intro",
+            "bar": 3,
+            "startBeat": 8,
+            "durationBeats": 0.75,
+            "pitch": 48,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 60,
+            "previousBeat": 0,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse",
+            "bar": 7,
+            "startBeat": 24,
+            "durationBeats": 1.5,
+            "pitch": 57,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 67,
+            "previousBeat": 16,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 22,
+            "startBeat": 84,
+            "durationBeats": 7.7248,
+            "pitch": 59,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 69,
+            "previousBeat": 80,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 24,
+            "startBeat": 92,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 59,
+            "previousBeat": 84,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 0.75,
+            "pitch": 50,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 60,
+            "previousBeat": 92,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 0.75,
+            "pitch": 59,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 92,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus",
+            "bar": 26,
+            "startBeat": 100,
+            "durationBeats": 0.75,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 53,
+            "previousBeat": 96,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 31,
+            "startBeat": 120,
+            "durationBeats": 1.5,
+            "pitch": 57,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 67,
+            "previousBeat": 112,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Verse 2",
+            "bar": 36,
+            "startBeat": 140,
+            "durationBeats": 1,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 57,
+            "previousBeat": 136,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 38,
+            "startBeat": 148,
+            "durationBeats": 7.4161,
+            "pitch": 59,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす",
+            "previousPitch": 69,
+            "previousBeat": 144,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 40,
+            "startBeat": 156,
+            "durationBeats": 0.5,
+            "pitch": 69,
+            "chord": "Am",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 59,
+            "previousBeat": 148,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 0.75,
+            "pitch": 50,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 60,
+            "previousBeat": 156,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 0.75,
+            "pitch": 59,
+            "chord": "G",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 69,
+            "previousBeat": 156,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Chorus 2",
+            "bar": 42,
+            "startBeat": 164,
+            "durationBeats": 0.75,
+            "pitch": 67,
+            "chord": "G",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 53,
+            "previousBeat": 160,
+            "semitones": 14
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 56,
+            "startBeat": 220,
+            "durationBeats": 1.5,
+            "pitch": 71,
+            "chord": "Bm",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。和音のまとまりを保ったまま主旋律の前で止める",
+            "previousPitch": 59,
+            "previousBeat": 208.5,
+            "semitones": 12
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 2.8656,
+            "pitch": 52,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 62,
+            "previousBeat": 220,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 3.8592,
+            "pitch": 61,
+            "chord": "A",
+            "reason": "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す",
+            "previousPitch": 71,
+            "previousBeat": 220,
+            "semitones": 10
+          },
+          {
+            "source": "generated-track",
+            "trackId": "syn-dark-pad",
+            "section": "Final Chorus",
+            "bar": 58,
+            "startBeat": 228,
+            "durationBeats": 3.985,
+            "pitch": 69,
+            "chord": "A",
+            "reason": "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす。再登場Sectionでは余白を変えて発展",
+            "previousPitch": 55,
+            "previousBeat": 224,
+            "semitones": 14
+          }
+        ],
+        "density": [
+          {
+            "section": "Intro",
+            "energy": 27.02,
+            "notes": 17,
+            "bars": 4
+          },
+          {
+            "section": "Verse",
+            "energy": 35.02,
+            "notes": 124,
+            "bars": 8
+          },
+          {
+            "section": "Pre-Chorus",
+            "energy": 53.02,
+            "notes": 303,
+            "bars": 8
+          },
+          {
+            "section": "Chorus",
+            "energy": 73.3,
+            "notes": 267,
+            "bars": 8
+          },
+          {
+            "section": "Verse 2",
+            "energy": 40.02,
+            "notes": 161,
+            "bars": 8
+          },
+          {
+            "section": "Chorus 2",
+            "energy": 81.3,
+            "notes": 310,
+            "bars": 8
+          },
+          {
+            "section": "Bridge",
+            "energy": 48.02,
+            "notes": 32,
+            "bars": 8
+          },
+          {
+            "section": "Final Chorus",
+            "energy": 100,
+            "notes": 312,
+            "bars": 8
+          },
+          {
+            "section": "Outro",
+            "energy": 21.02,
+            "notes": 12,
+            "bars": 4
+          }
+        ]
+      }
+    }
+  ]
+}

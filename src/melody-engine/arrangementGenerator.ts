@@ -1122,11 +1122,9 @@ function quietPadVoicing(
 ): number[] {
   // 漂わせるほど付加音(9th など)を残し、半音で動く声部を選ぶ(Delius 的な色)。中立(0.5)以下では従来どおり
   const drift = Math.max(0, haze - .5) * 2
-  // 三和音しか書かれていなくても、漂わせる場面では 9th(根音の全音上)を色として残せる。減5度を含む和音には足さない
-  const ninth = drift > 0 && chord.tensions.length === 0 && !chord.tones.some((tone) => (tone.pitchClass - chord.rootPc + 12) % 12 === 6)
-    ? [{ ...chord.tones[0], pitchClass: (chord.rootPc + 2) % 12 }]
-    : []
-  const palette = [...chord.tones.slice(1), ...chord.tensions.slice(0, 1), ...ninth, chord.tones[0]]
+  // 背景のSafe声部は、明示されたコードとテンションの範囲で色を選ぶ。
+  // 三和音へ無断で9thを足すと、既存の和声保護と品質評価に反する。
+  const palette = [...chord.tones.slice(1), ...chord.tensions.slice(0, 1), chord.tones[0]]
     .filter((tone, index, all) => all.findIndex((candidate) => candidate.pitchClass === tone.pitchClass) === index)
   const anchors = [53, 60, 67]
   const options = anchors.map((anchor, voice) => palette.flatMap((tone) => {
@@ -1174,7 +1172,21 @@ function generateTonalTrack(
   const variationPhase = (arrangementSeed + hashText(`${section.sectionId}:${trackId}`)) % (section.phraseCycleBars ?? 4)
   const notes: GeneratedArrangementNote[] = []
   const add = (beat: number, duration: number, pitch: number, velocity: number, index: number, character: ArrangementCandidateCharacter = "safe", reason = TRACK_PURPOSE[trackId]) => {
-    notes.push(avoidMelodyCollision(makeNote(trackId, section.sectionId, index, start + beat, duration, pitch, velocity, reason, character), melody))
+    const note = makeNote(trackId, section.sectionId, index, start + beat, duration, pitch, velocity, reason, character)
+    if (trackId.startsWith("str-") && character === "safe") {
+      const parsed = parseChordSymbol(chordAtBeat(sectionChords, beat)?.symbol ?? "")
+      const allowed = parsed ? new Set([...parsed.tones, ...parsed.tensions].map((t) => t.pitchClass)) : new Set([pc(pitch)])
+      const previous = notes.at(-1)?.pitch
+      const low = trackId === "str-cello" ? 36 : trackId === "str-viola" ? 48 : 55
+      const high = trackId === "str-cello" ? 67 : trackId === "str-viola" ? 79 : 96
+      const choices = Array.from({ length: high - low + 1 }, (_, i) => low + i).filter((p) => allowed.has(pc(p))
+        && (previous === undefined || Math.abs(p - previous) <= 9)
+        && melody.every((lead) => lead.startBeat >= note.startBeat + note.durationBeats
+          || lead.startBeat + lead.durationBeats <= note.startBeat || Math.abs(lead.pitch - p) > 2))
+      const cost = (p: number) => Math.abs(p - pitch) + (previous === undefined ? 0 : Math.abs(p - previous) * .6)
+      const placed = choices.sort((a, b) => cost(a) - cost(b))[0]
+      if (placed !== undefined) notes.push({ ...note, pitch: placed })
+    } else notes.push(avoidMelodyCollision(note, melody))
   }
   const directedSoundApplies = Boolean(
     soundInstruction
@@ -2449,9 +2461,20 @@ function addSectionBoundaryPerformances(
       append("dr-cymbal-swell", previous.id, start - bpb * (section.role === "grand-chorus" ? 2 : 1), bpb * (section.role === "grand-chorus" ? 2 : 1), 49, section.role === "grand-chorus" ? 74 : 58)
     }
     // seedと区切り位置で決定する。毎回全区切りに同じフィルを置かない。
-    if (chorus || (hashText(`${plan.seed}:boundary:${index}`) % 10 < 6 && section.role !== "outro")) {
+    const addFill = chorus || (hashText(`${plan.seed}:boundary:${index}`) % 10 < 6 && section.role !== "outro")
+    if (addFill) {
       for (let hit = 0; hit < 4; hit++) append(hit < 2 ? "dr-low-tom" : "dr-high-tom", previous.id,
         start - bpb + hit * bpb / 4, 0.25, hit < 2 ? 45 : 50, 62 + hit * 6)
+    } else if (section.role !== "outro") {
+      // 元のパターン由来のフィルも含めて頻度を制御し、二重に足して過剰にしない。
+      for (const track of tracks) {
+        if (["dr-low-tom", "dr-high-tom"].includes(track.id)) track.notes = track.notes.filter((n) =>
+          n.startBeat < start - bpb || n.startBeat >= start || n.reason.startsWith("指定を実音化"))
+        if (track.id === "dr-snare") {
+          const hits = track.notes.filter((n) => n.startBeat >= start - bpb && n.startBeat < start)
+          if (hits.length > 2) track.notes = track.notes.filter((n) => !hits.includes(n) || hits.indexOf(n) < 2 || n.reason.startsWith("指定を実音化"))
+        }
+      }
     }
   })
   const meanVelocity = (sectionId: string) => {
@@ -2585,11 +2608,27 @@ export function generateFullSongArrangement(
       eligibleCount: eligible.length,
       selectedSeed,
       ...(eligible.length === 0
-        ? { qualityWarning: "品質基準を満たす案を作れませんでした。Section区切り・コード・主旋律を確認してください。" }
+        ? { qualityWarning: arrangementQualityWarning(project, winner.candidate) }
         : {}),
       candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
     },
   }
+}
+
+export function arrangementQualityWarning(project: ComposerProject, arrangement: FullSongArrangement): string {
+  const { contributions } = arrangementQualityDiagnostics(project, arrangement)
+  const messages: Partial<Record<keyof typeof contributions, string>> = {
+    harmony: "和音に合わない音が多い", supportLeaps: "伴奏の音が大きく跳んでいる",
+    melody: "伴奏が主旋律と重なっている", attacks: "打楽器が主旋律の出だしと重なっている",
+    overfilled: "同時に鳴るパートが多すぎる", silentRoles: "鳴っていないパートが残っている",
+    mechanical: "同じ演奏の繰り返しが多い", noteDensity: "音が詰まりすぎている",
+    roles: "パートを重ねすぎている", sectionCopy: "繰り返す部分に変化が少ない", trackCopy: "同じ伴奏が続きすぎている",
+  }
+  const reasons = (Object.keys(messages) as Array<keyof typeof contributions>)
+    .filter((key) => contributions[key] < 0).sort((a, b) => contributions[a] - contributions[b])
+    .slice(0, 2).map((key) => messages[key])
+  if (reasons.length === 0) reasons.push("曲の部分ごとの音の変化を十分に作れていない")
+  return `品質基準を満たす案を作れませんでした。${reasons.join("、")}ため、伴奏の調整が必要です。`
 }
 
 /**

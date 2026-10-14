@@ -13,6 +13,15 @@ function setup() {
   return { project, source, target: project.sections[4].id }
 }
 describe("反復セクションの旋律", () => {
+  it("冒頭に重なる音があっても、冒頭2小節の長さと強弱を変えない", () => {
+    const { project, source, target } = setup()
+    source.notes[0].durationBeats = 2
+    const hook = structuredClone(source.notes.filter((n) => n.startBeat < 8))
+    for (const pattern of [1, 2, 3] as const) {
+      const result = varyRepeatedSection(source, project, target, 32, 4, { low: 60, high: 77 }, 12, pattern)
+      expect(result.filter((n) => n.startBeat < 8)).toEqual(hook)
+    }
+  })
   it("コード・長さ・役割が一致するときだけ前の採用済み旋律を参照する", () => {
     const { project, source, target } = setup()
     expect(repeatedSectionSource(project, target)).toBe(source)

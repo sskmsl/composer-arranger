@@ -163,14 +163,6 @@ function chordPitchClassesAt(project: ComposerProject, note: GeneratedArrangemen
   return parsed ? new Set([...parsed.tones, ...parsed.tensions].map((tone) => tone.pitchClass)) : null
 }
 
-function nearestAllowedPitch(pitch: number, allowed: Set<number>, low: number, high: number): number | null {
-  const candidates: number[] = []
-  for (let candidate = low; candidate <= high; candidate += 1) {
-    if (allowed.has(((candidate % 12) + 12) % 12)) candidates.push(candidate)
-  }
-  return candidates.sort((left, right) => Math.abs(left - pitch) - Math.abs(right - pitch))[0] ?? null
-}
-
 function withRepair(
   note: GeneratedArrangementNote,
   pass: number,
@@ -429,12 +421,20 @@ function repairPass(
         shiftedNotes += 1
       }
       // ドラムのpitchは音高ではなくGM打楽器番号。和声・音域修理で絶対に変更しない。
-      if (isTonal(track) && LAYER_TRACKS.has(track.id) && note.character === "safe") {
+      if (isTonal(track) && (LAYER_TRACKS.has(track.id) || track.family === "strings") && note.character === "safe") {
         const allowed = chordPitchClassesAt(project, next)
         const pitchClass = ((next.pitch % 12) + 12) % 12
         if (allowed && !allowed.has(pitchClass)) {
           const [low, high] = TRACK_RANGES[track.id] ?? [31, 100]
-          const pitch = nearestAllowedPitch(next.pitch, allowed, low, high)
+          const previousPitch = track.notes.slice(0, noteIndex).reverse().find((n) => n.sectionId === note.sectionId)?.pitch
+          const followingPitch = track.notes.slice(noteIndex + 1).find((n) => n.sectionId === note.sectionId)?.pitch
+          const candidates = Array.from({ length: high - low + 1 }, (_, i) => low + i)
+            .filter((p) => allowed.has(((p % 12) + 12) % 12)
+              && overlappingNotes(foregroundIndex, next).every((lead) => Math.abs(p - lead.pitch) > 2))
+          const cost = (p: number) => Math.abs(p - next.pitch)
+            + (previousPitch === undefined ? 0 : Math.max(0, Math.abs(p - previousPitch) - 9) * 4)
+            + (followingPitch === undefined ? 0 : Math.max(0, Math.abs(p - followingPitch) - 9) * 4)
+          const pitch = candidates.sort((a, b) => cost(a) - cost(b))[0] ?? null
           if (pitch !== null && pitch !== next.pitch) {
             next = withRepair(next, pass, "harmony", {
               pitch,

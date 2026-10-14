@@ -56,6 +56,17 @@ function crowdedTracks(): GeneratedArrangementTrack[] {
 }
 
 describe("Arrangement Audition Critic", () => {
+  it("コアの弦も、入口を移した先のコードへ合わせ直す", () => {
+    const input = project()
+    input.importedArrangement = undefined
+    const track = crowdedTracks().find((t) => t.id === "str-viola")!
+    track.notes = [{ ...track.notes[0], pitch: 61, startBeat: 3, durationBeats: 2 }]
+    const before = structuredClone(track)
+    const result = refineArrangementByAudition(input, plan(), [track])
+    expect(result.tracks[0].notes.length).toBeGreaterThan(0)
+    expect(result.tracks[0].notes.every((n) => [9, 0, 4].includes(n.pitch % 12))).toBe(true)
+    expect(track).toEqual(before)
+  })
   it("主旋律を覆う同時発音を検出し、音域と音量を反復修正して再採点する", () => {
     const input = project()
     const arrangementPlan = plan()

@@ -106,6 +106,16 @@ describe("レビュー指定2曲の決定的測定", () => {
     expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2))).length).toBe(12)
     expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2)) + 2).length).toBeGreaterThanOrEqual(8)
     const pairs = results.flatMap((r) => r.pairs)
+    const arrangements = results.filter((r) => r.quality)
+    expect(arrangements.filter((r) => (r.selection?.eligibleCount ?? 0) >= 1).length).toBeGreaterThanOrEqual(4)
+    expect(arrangements.every((r) => r.quality!.metrics.harmonicViolationCount === 0 && r.quality!.metrics.melodyCollisionCount === 0)).toBe(true)
+    expect(arrangements.reduce((sum, r) => sum + r.quality!.score, 0) / arrangements.length).toBeGreaterThanOrEqual(55.582682291666664)
+    for (const result of arrangements) {
+      const sum = Object.values(result.diagnostics!.contributions).reduce((sum, n) => sum + n, 0)
+      expect(Math.max(0, Math.min(100, sum))).toBeCloseTo(result.quality!.score)
+      expect(result.diagnostics!.harmonic).toHaveLength(result.quality!.metrics.harmonicViolationCount)
+      expect(result.diagnostics!.leaps).toHaveLength(result.quality!.metrics.largeSupportLeapCount)
+    }
     const mean = (key: keyof ReturnType<typeof similarity>) => pairs.reduce((sum, pair) => sum + pair[key], 0) / pairs.length
     expect(mean("rhythm")).toBeGreaterThanOrEqual(0.6)
     expect(mean("rhythm")).toBeLessThan(0.95)

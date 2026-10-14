@@ -4,6 +4,7 @@ import { ARRANGEMENT_TRACK_NAMES, type ArrangementTrackId } from "@/core/arrange
 import { parseChordSymbol } from "@/core/chord"
 import {
   analyzeFullSongArrangement,
+  arrangementQualityWarning,
   buildFullSongArrangementPlan,
   finalizeFullSongArrangement,
   generateFullSongArrangement,
@@ -289,6 +290,20 @@ describe("Arrangement Generator", () => {
       expect(notes[index].pitch).toBeLessThan(notes[index + 1].pitch)
       expect(notes[index + 1].pitch).toBeLessThan(notes[index + 2].pitch)
     }
+  })
+
+  it("品質警告に実際の主な不足理由をやさしい言葉で添える", () => {
+    const input = project()
+    const result = generateFullSongArrangement(input, { seed: 44 })
+    const pad = result.tracks.find((t) => t.id === "syn-dark-pad")!
+    const badPad = { ...pad, notes: [...pad.notes, ...Array.from({ length: 8 }, (_, i) => ({
+      ...pad.notes[0], id: `bad-${i}`, pitch: i % 2 ? 85 : 37,
+    }))] }
+    const bad = { ...result, tracks: result.tracks.map((t) => t.id === pad.id ? badPad : t) }
+    const warning = arrangementQualityWarning(input, bad)
+    expect(warning).toContain("和音に合わない音が多い")
+    expect(warning).toContain("伴奏の音が大きく跳んでいる")
+    expect(warning).not.toMatch(/harmonic|largeSupport|Section|主旋律を確認/)
   })
 
   it("候補評価は背景声部の不要な大跳躍を検出する", () => {

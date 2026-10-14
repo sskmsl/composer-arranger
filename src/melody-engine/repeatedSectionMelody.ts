@@ -74,5 +74,6 @@ export function varyRepeatedSection(
   // 最後の音を1拍確保するために移した場合、直前の音を重ねない。
   const last = result.at(-1)
   return result.filter((note, index) => index === result.length - 1 || !last || note.startBeat < last.startBeat)
-    .map((note, index, all) => ({ ...note, durationBeats: Math.max(0.01, Math.min(note.durationBeats, (all[index + 1]?.startBeat ?? totalBeats) - note.startBeat)) }))
+    .map((note, index, all) => note.startBeat < hookEnd ? note
+      : { ...note, durationBeats: Math.max(0.01, Math.min(note.durationBeats, (all[index + 1]?.startBeat ?? totalBeats) - note.startBeat)) })
 }
