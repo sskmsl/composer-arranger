@@ -27,6 +27,7 @@ import { generateFromChordsWithProfiles, toMelodyVariantFromProfile } from "@/me
 import { resolveMusicContext } from "@/core/musicContext"
 import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
+import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
 import { extractMotifDNA } from "@/melody-engine/motifDNA"
 import { generateRangeRegenerationCandidates } from "@/melody-engine/rangeRegeneration"
 import {
@@ -1253,6 +1254,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     const harmonicMap = buildHarmonicMap(chords)
     const batchId = crypto.randomUUID()
+    const repeatedSource = fullSection ? repeatedSectionSource(prev, sectionId) : undefined
     const rawVariants: MelodyVariant[] = taggedCandidates.map(
       ({ candidate: c, experimentMode }) => {
       const v = toMelodyVariantFromProfile(sectionId, profile, c, batchId)
@@ -1278,6 +1280,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         }))
       }
       v.leadContent = "melody"
+      if (repeatedSource) {
+        v.notes = varyRepeatedSection(repeatedSource, prev, sectionId, totalBeats, ts.beatsPerBar, range, v.seed)
+      }
       const primaryNotes = v.notes
       v.layers = [
         {
@@ -1345,7 +1350,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: { ...prev, melodyVariants: [...prev.melodyVariants, ...variants] },
       activeBatchId: batchId,
       activeCandidateIndex: 0,
-      workflowNotice: null,
+      workflowNotice: repeatedSource
+        ? `${prev.sections.find((s) => s.id === repeatedSource.sectionId)?.name ?? "前のセクション"}の旋律を土台にした変奏です。`
+        : null,
     })
     get().persist()
   },
