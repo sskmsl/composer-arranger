@@ -40,6 +40,7 @@ describe("レビュー指定2曲の決定的測定", () => {
         const state = useProjectStore.getState()
         const candidate = state.project.melodyVariants.find((v) => v.sectionId === section.id && v.batchId === state.activeBatchId)!
         expect(candidate).toBeDefined()
+        expect(candidate.notes.every((n) => n.pitch >= 60 && n.pitch <= 77)).toBe(true)
         state.assignVariantToSection(section.id, candidate.id)
       }
       const project = useProjectStore.getState().project

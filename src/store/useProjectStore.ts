@@ -28,6 +28,7 @@ import { resolveMusicContext } from "@/core/musicContext"
 import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
+import { parseKey } from "@/core/scale"
 import { extractMotifDNA } from "@/melody-engine/motifDNA"
 import { generateRangeRegenerationCandidates } from "@/melody-engine/rangeRegeneration"
 import {
@@ -1100,7 +1101,24 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (diagnoseChordInput(chords, totalBeats).hasError) return
     const profile = effectiveSongProfile(prev, sectionId)
     const settings = get().generationSettings
-    const range = resolveRange(settings)
+    const configuredRange = resolveRange(settings)
+    const earlierChoruses = prev.sections.slice(0, prev.sections.indexOf(section)).filter((s) => s.role === "chorus")
+    const previousChorus = earlierChoruses.at(-1)
+    const keyNow = parseKey(effectiveSectionKey(prev, sectionId))
+    const keyBefore = previousChorus ? parseKey(effectiveSectionKey(prev, previousChorus.id)) : null
+    const keyRise = keyNow && keyBefore ? (keyNow.rootPc - keyBefore.rootPc + 12) % 12 : 0
+    const liftedFinal = section.role === "grand-chorus" && keyRise > 0 && keyRise <= 5
+    const chorusNotes = earlierChoruses.flatMap((s) => {
+      const v = prev.melodyVariants.find((v) => v.id === prev.sectionMelodyAssignments[s.id])
+      return v ? v.notes : []
+    })
+    const priorPeak = chorusNotes.length ? Math.max(...chorusNotes.map((n) => n.pitch)) : configuredRange.low
+    const range = liftedFinal
+      ? { low: Math.min(configuredRange.high, configuredRange.low + keyRise), high: configuredRange.high }
+      : configuredRange
+    const finalRangeNotice = liftedFinal && priorPeak + keyRise > configuredRange.high
+      ? "音域の上限のため、最終サビの最高音をキーの上昇分だけ高くできません。"
+      : null
     const sectionContent = section.content ?? DEFAULT_SECTION_CONTENT
 
     // Issue #41: melody以外のリード内容は、通常のMelody Engineではなく
@@ -1350,9 +1368,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       project: { ...prev, melodyVariants: [...prev.melodyVariants, ...variants] },
       activeBatchId: batchId,
       activeCandidateIndex: 0,
-      workflowNotice: repeatedSource
+      workflowNotice: finalRangeNotice ?? (repeatedSource
         ? `${prev.sections.find((s) => s.id === repeatedSource.sectionId)?.name ?? "前のセクション"}の旋律を土台にした変奏です。`
-        : null,
+        : null),
     })
     get().persist()
   },
