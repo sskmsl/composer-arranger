@@ -116,6 +116,8 @@ describe("レビュー指定2曲の決定的測定", () => {
     expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2)) + 2).length).toBeGreaterThanOrEqual(8)
     const pairs = results.flatMap((r) => r.pairs)
     const arrangements = results.filter((r) => r.quality)
+    expect(arrangements.every((r) => r.lowEnd!.ratio <= 0.04)).toBe(true)
+    expect(arrangements.reduce((sum, r) => sum + r.lowEnd!.padNotes, 0)).toBeGreaterThanOrEqual(744 * 0.9)
     expect(arrangements.filter((r) => (r.selection?.eligibleCount ?? 0) >= 1).length).toBeGreaterThanOrEqual(4)
     expect(arrangements.every((r) => r.quality!.metrics.harmonicViolationCount === 0 && r.quality!.metrics.melodyCollisionCount === 0)).toBe(true)
     expect(arrangements.reduce((sum, r) => sum + r.quality!.score, 0) / arrangements.length).toBeGreaterThanOrEqual(55.582682291666664)

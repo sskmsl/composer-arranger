@@ -32,6 +32,7 @@ import { buildSongPlaybackMaterial, normalizeSectionTimeline } from "@/core/sect
 import { applyArrangementTimelineToTracks } from "@/core/arrangementTimelineConstraints"
 import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDirector"
 import { evaluateArrangementAudition, refineArrangementByAudition } from "./arrangementAuditionCritic"
+import { separateLowRegister } from "./lowRegisterSeparation"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
   "dr-kick": 36,
@@ -1126,11 +1127,11 @@ function quietPadVoicing(
   // 三和音へ無断で9thを足すと、既存の和声保護と品質評価に反する。
   const palette = [...chord.tones.slice(1), ...chord.tensions.slice(0, 1), chord.tones[0]]
     .filter((tone, index, all) => all.findIndex((candidate) => candidate.pitchClass === tone.pitchClass) === index)
-  const anchors = [53, 60, 67]
+  const anchors = [55, 60, 67]
   const options = anchors.map((anchor, voice) => palette.flatMap((tone) => {
     const nearest = midiForPc(tone.pitchClass, previous[voice] ?? anchor)
     return [nearest - 12, nearest, nearest + 12]
-      .filter((pitch) => pitch >= 48 + voice * 4 && pitch <= 64 + voice * 5)
+      .filter((pitch) => pitch >= 55 && pitch <= 64 + voice * 5)
       .map((pitch) => ({ pitch, pitchClass: tone.pitchClass, isTension: !chord.tones.some((item) => item.pitchClass === tone.pitchClass) }))
   }))
   let best: number[] | undefined
@@ -1445,7 +1446,8 @@ function generateTonalTrack(
         pitches.forEach((pitch, voice) => {
           const voiceOffset = 0
           // 漂わせる場面では、次の和音にも残る音を弾き直さず伸ばす(長い持続と共通音で境目を溶かす)
-          const held = haze > .6 && previousPadPitches[voice] === pitch ? padVoiceNotes[voice] : undefined
+          const previousChord = localBeat > 0 ? chordAtBeat(sectionChords, localBeat - .01) : undefined
+          const held = haze > .6 && previousChord?.symbol === chord?.symbol && previousPadPitches[voice] === pitch ? padVoiceNotes[voice] : undefined
           if (held && Math.abs(held.startBeat + held.durationBeats - (start + localBeat)) < beatsPerBar * .2) {
             held.durationBeats = start + localBeat + Math.max(0.25, duration * breathFactors[padCycle]) - held.startBeat
             held.reason = "次の和音にも残る音を弾き直さずに伸ばし、和声の境目を溶かす"
@@ -2319,7 +2321,7 @@ export function finalizeFullSongArrangement(
     refine?: boolean
   } = {},
 ): FullSongArrangement {
-  const imageTracks = applyArrangementSoundImage(project, arrangement.tracks)
+  const imageTracks = separateLowRegister(applyArrangementSoundImage(project, arrangement.tracks), options.editableTrackIds, options.editableSectionIds)
   const timelineTracks = applyArrangementTimelineToTracks(
     imageTracks,
     arrangement.plan.directive?.timelineConstraints,
@@ -2500,7 +2502,7 @@ function addSectionBoundaryPerformances(
     if (section.role === "verse") verseMean = meanVelocity(section.id)
     if (section.role !== "chorus" && section.role !== "grand-chorus") continue
     const current = meanVelocity(section.id)
-    const wanted = section.role === "grand-chorus" && chorusMean ? chorusMean + 7 : Math.max(current, verseMean + 8)
+    const wanted = section.role === "grand-chorus" && chorusMean ? chorusMean + 7 : Math.max(current, verseMean + 12)
     const delta = wanted - current
     for (const track of tracks) if (track.family !== "drums") track.notes = track.notes.map((n) => n.sectionId === section.id
       ? { ...n, velocity: Math.max(30, Math.min(115, Math.round(n.velocity + delta))) } : n)

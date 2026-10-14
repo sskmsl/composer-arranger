@@ -4,6 +4,7 @@ import type { ComposerProject } from "@/core/project"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { parseTimeSignature } from "@/core/section"
 import { parseChordSymbol } from "@/core/chord"
+import { separateLowRegister } from "./lowRegisterSeparation"
 
 const LAYER_TRACKS = new Set([
   "dr-kick-sub", "dr-kick-click", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride",
@@ -584,7 +585,7 @@ export function refineArrangementByAudition(
     editableSectionIds?: ReadonlySet<string>
   } = {},
 ): { tracks: GeneratedArrangementTrack[]; report: ArrangementAuditionReport } {
-  let tracks = sourceTracks
+  let tracks = separateLowRegister(sourceTracks, options.editableTrackIds, options.editableSectionIds)
   let metrics = auditionMetrics(project, plan, tracks)
   let repairPasses = 0
   let removedNotes = 0
