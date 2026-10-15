@@ -392,7 +392,7 @@ function rolesFor(section: ArrangementAnalysisSection, isPeak: boolean): Arrange
     roles.push("syn-dark-pad", "syn-bass")
     if (restAllowsColour) roles.push("syn-high-glass")
   } else if (semantic === "bridge") {
-    roles.push("syn-dark-pad", "str-cello", "str-viola")
+    roles.push("syn-dark-pad", "syn-bass", "str-cello", "str-viola")
     if (section.energyDelta > 0) roles.push("syn-transition-phrase")
   } else if (semantic === "build") {
     roles.push("dr-kick", "dr-snare", "dr-closed-hat", "dr-field-drum", "syn-bass", "syn-pulse", "str-cello", "syn-transition-phrase")
@@ -828,6 +828,9 @@ export function buildFullSongArrangementPlan(
         removeRoles(activeRoles, ["syn-high-glass"])
         selectedDecorationCharacter = "silence"
       }
+      // 奥行きの指定で、近景の鋭い装飾を新たに増やさない。
+      // この後の明示的なSound Instructionは引き続き優先する。
+      if (aesthetic.layerTransparency >= .75) removeRoles(activeRoles, ["syn-high-glass"])
       const soundApplies = arrangementSoundInstructionAppliesTo(
         effectiveDirective?.soundInstruction,
         section.sectionId,
@@ -1399,6 +1402,14 @@ function generateTonalTrack(
         add(localBeat, duration, pitch, 52 + section.energy * 0.34 + (hitIndex === 0 ? 5 : -2), notes.length, character, reason)
       })
     }
+    if (bassPedal === null) for (const [index, chord] of sectionChords.entries()) {
+      const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+      if (!parsed) continue
+      const onHead = notes.find((note) => Math.abs(note.startBeat - start - chord.startBeat) < .06)
+      if (onHead) onHead.pitch = midiForPc(parsed.bassPc, 39)
+      else add(chord.startBeat, strategy === "sustain" ? chord.durationBeats : .8,
+        midiForPc(parsed.bassPc, 39), 57 + section.energy * .34, 20000 + index)
+    }
     if (bassPedal === null && (chorus || pre || sourceSection.role === "verse")) {
       sectionChords.slice(1).forEach((next, index) => {
         if (next.symbol === sectionChords[index].symbol) return
@@ -1806,7 +1817,9 @@ function applyMotifEcho(
   if (echoStart === null) return generated
   const echoEnd = echoStart + span
   const center = trackId === "syn-bass" ? 43 : 62
-  const kept = generated.filter((note) => note.startBeat + note.durationBeats <= echoStart! || note.startBeat >= echoEnd)
+  const onChordHead = (note: MelodyNote) => chords.some((c) => Math.abs(note.startBeat - offset - c.startBeat) < .06)
+  const kept = generated.filter((note) => trackId === "syn-bass" && onChordHead(note)
+    || note.startBeat + note.durationBeats <= echoStart! || note.startBeat >= echoEnd)
   let previous: number | undefined
   const echo = head.map((note, index) => {
     const beat = echoStart! + (note.startBeat - head[0].startBeat)
@@ -1822,7 +1835,7 @@ function applyMotifEcho(
       ? "主旋律の休みで、核のリズムを低音が一度だけ受け継ぐ"
       : "主旋律の休みで、核のリズムを内声が一度だけ受け継ぐ", "safe")
   })
-  return [...kept, ...echo].sort((a, b) => a.startBeat - b.startBeat)
+  return [...kept, ...echo.filter((note) => trackId !== "syn-bass" || !onChordHead(note))].sort((a, b) => a.startBeat - b.startBeat)
 }
 
 const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([
