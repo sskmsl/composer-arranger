@@ -9,6 +9,7 @@ import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
 import { keyScalePitchClasses, parseKey } from "@/core/scale"
 import { effectiveSectionKey, normalizeProject } from "@/core/project"
 import { measureBass, measureBreathing, measureLowEnd, measurePadMotion } from "./arrangementPerformanceMeasurements"
+import { chorusBassActivity } from "@/melody-engine/chorusBassActivity"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 
 function lcs(a: number[], b: number[]) {
@@ -121,6 +122,8 @@ describe("レビュー指定2曲の決定的測定", () => {
         bass: arrangement ? measureBass(project, arrangement) : null,
         padMotion: arrangement ? measurePadMotion(arrangement.tracks) : null,
         backgroundRepairs: arrangement?.backgroundVoiceRepairs,
+        bassSignals: project.sections.flatMap((s, i) => ["chorus", "grand-chorus"].includes(s.role)
+          ? [{ name: s.name, ...chorusBassActivity(project, s.id, lead(i).reduce((sum, n) => sum + n.durationBeats, 0) / (s.lengthBars * 4)) }] : []),
         auditMaterial: arrangement && process.env.ARRANGEMENT_REVIEW_RESULT_PATH ? { project, arrangement } : undefined,
         repeated, sections: arrangement ? project.sections.map((s) => {
           const start = (s.startBar - 1) * 4, end = start + s.lengthBars * 4
@@ -181,6 +184,17 @@ describe("レビュー指定2曲の決定的測定", () => {
       if (role === "grand-chorus") expect(sections.every((s) => s.rhythmTypes >= 4)).toBe(true)
     }
     for (const result of arrangements) {
+      for (const section of result.bass!.filter((s) => ["chorus", "grand-chorus"].includes(s.role))) {
+        const calm = result.which === "A"
+        expect(section.approaches / section.changes).toBeGreaterThanOrEqual(calm ? .25 : .6)
+        expect(section.approaches / section.changes).toBeLessThanOrEqual(calm ? .4 : .9)
+        expect(section.layers[0].notesPerBar).toBeLessThanOrEqual(calm ? 3.5 : 6)
+        expect(section.layers[1].notesPerBar).toBeLessThanOrEqual(2.5)
+        expect(section.layers[2].notesPerBar).toBeLessThanOrEqual(2)
+        expect(section.layers[2].approaches).toBe(0)
+        expect(section.layers.reduce((sum, l) => sum + l.notesPerBar, 0)).toBeLessThanOrEqual(calm ? 7 : 10)
+        if (section.role === "chorus") expect(section.matchedKicks / section.kicks).toBeGreaterThanOrEqual(.7)
+      }
       const bass = result.bass!
       const total = (key: "matchedRoots" | "roots" | "matchedSlashes" | "slashes") => bass.reduce((sum, s) => sum + s[key], 0)
       expect(total("matchedRoots") / total("roots")).toBeGreaterThanOrEqual(.95)

@@ -35,6 +35,7 @@ import { evaluateArrangementAudition, refineArrangementByAudition } from "./arra
 import { separateLowRegister } from "./lowRegisterSeparation"
 import { supportVoiceLeaps } from "./supportVoiceLeaps"
 import { minimizeBackgroundVoiceMovement } from "./backgroundVoiceLeading"
+import { shapeChorusBass } from "./chorusBassActivity"
 import { repairBackgroundOctaveConflicts } from "./backgroundConflictRepair"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
@@ -834,6 +835,7 @@ export function buildFullSongArrangementPlan(
       // 奥行きの指定で、近景の鋭い装飾を新たに増やさない。
       // この後の明示的なSound Instructionは引き続き優先する。
       if (aesthetic.layerTransparency >= .75) removeRoles(activeRoles, ["syn-high-glass"])
+      if (character === "minimal" && !isPeak) removeRoles(activeRoles, ["syn-pulse"])
       const soundApplies = arrangementSoundInstructionAppliesTo(
         effectiveDirective?.soundInstruction,
         section.sectionId,
@@ -2374,7 +2376,8 @@ export function finalizeFullSongArrangement(
     refine?: boolean
   } = {},
 ): FullSongArrangement {
-  const imageTracks = separateLowRegister(applyArrangementSoundImage(project, arrangement.tracks), options.editableTrackIds, options.editableSectionIds)
+  const bassTracks = shapeChorusBass(project, arrangement.plan, arrangement.tracks, options.editableTrackIds, options.editableSectionIds)
+  const imageTracks = separateLowRegister(applyArrangementSoundImage(project, bassTracks), options.editableTrackIds, options.editableSectionIds)
   const timelineTracks = applyArrangementTimelineToTracks(
     imageTracks,
     arrangement.plan.directive?.timelineConstraints,
@@ -2397,6 +2400,25 @@ export function finalizeFullSongArrangement(
     : repairBackgroundOctaveConflicts(project, arrangement.plan, finalTracks,
       arrangement.backgroundVoiceRepairs, options.editableTrackIds, options.editableSectionIds)
   finalTracks = backgroundRepair.tracks
+  // 低音層の整理で平均の重みが変わっても、既存のサビ／大サビの強弱差を保つ。
+  // 部分再生成では範囲外の演奏を一切変更しない。
+  if (!options.editableTrackIds && !options.editableSectionIds) {
+    const mean = (id: string) => {
+      const notes = finalTracks.filter((t) => t.family !== "drums").flatMap((t) => t.notes.filter((n) => n.sectionId === id))
+      return notes.reduce((sum, n) => sum + n.velocity, 0) / Math.max(1, notes.length)
+    }
+    let verse = 0, chorus = 0
+    for (const section of normalizeSectionTimeline(project.sections)) {
+      if (section.role === "verse") verse = mean(section.id)
+      if (!["chorus", "grand-chorus"].includes(section.role)) continue
+      const current = mean(section.id)
+      const target = section.role === "grand-chorus" && chorus && (current - chorus < 4 || current - chorus > 10)
+        ? chorus + 7 : section.role === "chorus" && current - verse < 6 ? verse + 8 : current
+      if (target !== current) finalTracks = finalTracks.map((t) => t.family === "drums" ? t : ({ ...t,
+        notes: t.notes.map((n) => n.sectionId === section.id ? { ...n, velocity: Math.max(30, Math.min(115, Math.round(n.velocity + target - current))) } : n) }))
+      if (section.role === "chorus") chorus = mean(section.id)
+    }
+  }
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {
