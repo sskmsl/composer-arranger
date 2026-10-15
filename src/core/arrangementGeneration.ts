@@ -281,6 +281,8 @@ export interface ArrangementGenerationDirective {
 
 export interface GeneratedArrangementNote extends MelodyNote {
   sectionId: string
+  /** 同一トラック内の声部。旧保存データでは省略される。 */
+  voiceId?: string
   character: ArrangementCandidateCharacter
   reason: string
   /** 既存音の距離と輪郭。音色やパートの追加とは独立したSound Image。 */

@@ -4,10 +4,10 @@ import { arrangementReviewSong } from "./arrangementReviewFixtures"
 import { useProjectStore } from "./useProjectStore"
 import { notesByPartRole } from "@/core/sectionLayers"
 import type { MelodyNote } from "@/core/melody"
-import { arrangementQualityDiagnostics, generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { arrangementQualityDiagnostics, generateFullSongArrangement, reviewGeneratedArrangement } from "@/melody-engine/arrangementGenerator"
 import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
 import { keyScalePitchClasses, parseKey } from "@/core/scale"
-import { effectiveSectionKey } from "@/core/project"
+import { effectiveSectionKey, normalizeProject } from "@/core/project"
 import { measureBass, measureBreathing, measureLowEnd } from "./arrangementPerformanceMeasurements"
 
 function lcs(a: number[], b: number[]) {
@@ -54,6 +54,18 @@ describe("レビュー指定2曲の決定的測定", () => {
       const avg = (notes: MelodyNote[]) => notes.reduce((s, n) => s + n.pitch, 0) / notes.length
       const peak = (notes: MelodyNote[]) => Math.max(...notes.map((n) => n.pitch))
       const arrangement = seed <= 3 ? generateFullSongArrangement(project, { seed }) : null
+      const gmDrumPitches = new Set([35, 36, 37, 38, 39, 40, 41, 42, 45, 46, 49, 50, 51, 52, 63, 82])
+      const drumPitchViolations = arrangement?.tracks.filter((t) => t.family === "drums")
+        .flatMap((t) => t.notes).filter((n) => !gmDrumPitches.has(n.pitch)).length ?? 0
+      expect(drumPitchViolations).toBe(0)
+      const legacy = arrangement ? structuredClone(arrangement) : null
+      if (legacy) {
+        legacy.tracks.forEach((t) => t.notes.forEach((n) => { delete n.voiceId }))
+        const before = reviewGeneratedArrangement(legacy, project)
+        const loaded = normalizeProject(JSON.parse(JSON.stringify({ ...project, fullSongArrangement: legacy })))
+        expect(reviewGeneratedArrangement(loaded.fullSongArrangement!, loaded)).toEqual(before)
+        expect(before.metrics.largeSupportLeapCount).toBe(arrangementQualityDiagnostics(project, legacy).legacyLeaps.length)
+      }
       const repeated = [4, 5].map((index, pair) => {
         const section = project.sections[index], source = lead(pair === 0 ? 1 : 3)
         const candidates = project.melodyVariants.filter((v) => v.sectionId === section.id).slice(0, 3).map((v) => notesByPartRole(v, "lead"))
@@ -80,7 +92,7 @@ describe("レビュー指定2曲の決定的測定", () => {
       results.push({ which, seed, pairs: [similarity(lead(1), lead(4)), similarity(lead(3), lead(5))],
         means: [avg(lead(3)), avg(lead(5)), avg(lead(7))], peaks: [peak(lead(3)), peak(lead(5)), peak(lead(7))],
         breathing: project.sections.map((s, i) => ({ name: s.name, bars: s.lengthBars, ...measureBreathing(lead(i), s.lengthBars * 4) })),
-        lowEnd: arrangement ? measureLowEnd(arrangement.tracks, arrangement.analysis.totalBeats) : null,
+        lowEnd: arrangement ? measureLowEnd(arrangement.tracks, arrangement.analysis.totalBeats) : null, drumPitchViolations,
         bass: arrangement ? measureBass(project, arrangement) : null,
         repeated, sections: arrangement ? project.sections.map((s) => {
           const start = (s.startBar - 1) * 4, end = start + s.lengthBars * 4
@@ -100,6 +112,7 @@ describe("レビュー指定2曲の決定的測定", () => {
           }
         }) : null, quality: arrangement?.quality, audition: arrangement?.audition, selection: arrangement?.selection,
         diagnostics: arrangement ? arrangementQualityDiagnostics(project, arrangement) : null,
+        legacyQuality: legacy ? reviewGeneratedArrangement(legacy, project) : null,
       })
       vi.restoreAllMocks()
     }
@@ -130,10 +143,18 @@ describe("レビュー指定2曲の決定的測定", () => {
         expect(sections.every((s) => s.rhythmTypes >= 3)).toBe(true)
       }
       if (role === "verse") expect(sections.every((s) => s.rhythmTypes >= 2)).toBe(true)
+      if (role === "grand-chorus") expect(sections.every((s) => s.rhythmTypes >= 4)).toBe(true)
     }
-    expect(arrangements.filter((r) => (r.selection?.eligibleCount ?? 0) >= 1).length).toBeGreaterThanOrEqual(4)
+    for (const result of arrangements) {
+      const bass = result.bass!
+      const total = (key: "matchedRoots" | "roots" | "matchedSlashes" | "slashes") => bass.reduce((sum, s) => sum + s[key], 0)
+      expect(total("matchedRoots") / total("roots")).toBeGreaterThanOrEqual(.95)
+      expect(total("matchedSlashes")).toBe(total("slashes"))
+    }
+    expect(arrangements.filter((r) => (r.selection?.eligibleCount ?? 0) >= 1).length).toBe(6)
     expect(arrangements.every((r) => r.quality!.metrics.harmonicViolationCount === 0 && r.quality!.metrics.melodyCollisionCount === 0)).toBe(true)
-    expect(arrangements.reduce((sum, r) => sum + r.quality!.score, 0) / arrangements.length).toBeGreaterThanOrEqual(55.582682291666664)
+    expect(arrangements.reduce((sum, r) => sum + r.quality!.score, 0) / arrangements.length).toBeGreaterThanOrEqual(80)
+    expect(arrangements.reduce((sum, r) => sum + r.audition!.score, 0) / arrangements.length).toBeGreaterThanOrEqual(95)
     for (const result of arrangements) {
       const sum = Object.values(result.diagnostics!.contributions).reduce((sum, n) => sum + n, 0)
       expect(Math.max(0, Math.min(100, sum))).toBeCloseTo(result.quality!.score)

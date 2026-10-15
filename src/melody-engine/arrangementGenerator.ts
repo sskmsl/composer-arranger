@@ -33,6 +33,7 @@ import { applyArrangementTimelineToTracks } from "@/core/arrangementTimelineCons
 import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDirector"
 import { evaluateArrangementAudition, refineArrangementByAudition } from "./arrangementAuditionCritic"
 import { separateLowRegister } from "./lowRegisterSeparation"
+import { supportVoiceLeaps } from "./supportVoiceLeaps"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
   "dr-kick": 36,
@@ -944,6 +945,7 @@ function makeNote(
   return {
     id: `${trackId}:${sectionId}:${index}:${Math.round(startBeat * 1000)}`,
     sectionId,
+    ...(trackId.startsWith("str-") || trackId === "syn-dark-pad" ? { voiceId: `${trackId}:voice:0` } : {}),
     startBeat,
     durationBeats: Math.max(0.0625, durationBeats),
     pitch: Math.max(0, Math.min(127, Math.round(pitch))),
@@ -1189,7 +1191,7 @@ function generateTonalTrack(
           || lead.startBeat + lead.durationBeats <= note.startBeat || Math.abs(lead.pitch - p) > 2))
       const cost = (p: number) => Math.abs(p - pitch) + (previous === undefined ? 0 : Math.abs(p - previous) * .6)
       const placed = choices.sort((a, b) => cost(a) - cost(b))[0]
-      if (placed !== undefined) notes.push({ ...note, pitch: placed })
+      if (placed !== undefined) notes.push({ ...note, pitch: placed, voiceId: `${trackId}:voice:0` })
     } else notes.push(avoidMelodyCollision(note, melody))
   }
   const directedSoundApplies = Boolean(
@@ -1502,6 +1504,7 @@ function generateTonalTrack(
           add(localBeat + voiceOffset, Math.max(0.25, duration * (haze > .6 ? 1 : harmonyBreath) - voiceOffset), pitch, 30 + section.energy * 0.17,
             notes.length, "safe", "共通音と最短Voice Leadingを優先し、和声の変化だけを静かに示す")
           padVoiceNotes[voice] = notes[notes.length - 1]
+          padVoiceNotes[voice].voiceId = `${trackId}:voice:${voice}`
         })
         previousPadPitches = pitches
       } else {
@@ -1917,8 +1920,7 @@ export function reviewGeneratedArrangement(
     if (track.id !== "syn-dark-pad" && !["str-cello", "str-viola", "str-violin-1", "str-violin-2"].includes(track.id)) return trackSum
     const notes = track.notes.filter((note) => note.sectionId === section.sectionId && !note.reason.startsWith("指定を実音化"))
     const stride = track.id === "syn-dark-pad" ? 3 : 1
-    return trackSum + notes.reduce((count, note, index) =>
-      count + (index >= stride && Math.abs(note.pitch - notes[index - stride].pitch) > 9 ? 1 : 0), 0)
+    return trackSum + supportVoiceLeaps(notes, stride).length
   }, 0), 0)
   const sectionNoteCounts = arrangement.plan.sections.map((section) => arrangement.tracks.reduce(
     (sum, track) => sum + track.notes.filter((note) => note.sectionId === section.sectionId).length,
@@ -2109,13 +2111,16 @@ export function arrangementQualityDiagnostics(project: ComposerProject, arrangem
     const allowed = allowedPitchClassesAtNote(project, note, track.id)
     return allowed && !allowed.has(pc(note.pitch)) ? [{ ...locate(track, note), violation: "発音開始時のコード構成音・テンション・指定低音に含まれない", allowed: [...allowed] }] : []
   }))
-  const leaps = arrangement.plan.sections.flatMap((section) => arrangement.tracks.flatMap((track) => {
+  const leapDetails = (legacy = false) => arrangement.plan.sections.flatMap((section) => arrangement.tracks.flatMap((track) => {
     if (track.id !== "syn-dark-pad" && !["str-cello", "str-viola", "str-violin-1", "str-violin-2"].includes(track.id)) return []
     const notes = track.notes.filter((n) => n.sectionId === section.sectionId && !n.reason.startsWith("指定を実音化"))
     const stride = track.id === "syn-dark-pad" ? 3 : 1
-    return notes.flatMap((note, index) => index >= stride && Math.abs(note.pitch - notes[index - stride].pitch) > 9
-      ? [{ ...locate(track, note), previousPitch: notes[index - stride].pitch, previousBeat: notes[index - stride].startBeat, semitones: Math.abs(note.pitch - notes[index - stride].pitch) }] : [])
+    return supportVoiceLeaps(notes, stride, legacy).map(({ note, previous }) => ({
+      ...locate(track, note), voiceId: note.voiceId, previousPitch: previous.pitch, previousBeat: previous.startBeat,
+      semitones: Math.abs(note.pitch - previous.pitch),
+    }))
   }))
+  const leaps = leapDetails(), legacyLeaps = leapDetails(true)
   const density = arrangement.plan.sections.map((section) => ({
     section: project.sections.find((s) => s.id === section.sectionId)?.name,
     energy: section.energy,
@@ -2138,7 +2143,9 @@ export function arrangementQualityDiagnostics(project: ComposerProject, arrangem
     trackCopy: -Math.max(0, metrics.repeatedTrackCopyRatio - .35) * 20,
     boundary: Math.round(metrics.boundaryContrastScore * 5), motif: Math.min(4, metrics.motifDevelopmentCount * .5),
   }
-  return { contributions, harmonic, leaps, density }
+  const perBeat = density.map((s) => s.notes / Math.max(1, (s.bars ?? 1) * bpb)).filter((n) => n > 0)
+  const densityPerBeatRatio = perBeat.length ? Math.max(...perBeat) / Math.min(...perBeat) : 0
+  return { contributions, harmonic, leaps, legacyLeaps, density, densityPerBeatRatio }
 }
 
 function setSimilarity(left: Set<string>, right: Set<string>): number {
