@@ -54,8 +54,39 @@ export function measureBass(project: ComposerProject, arrangement: FullSongArran
     const rhythms = Array.from({ length: section.lengthBars }, (_, i) => [...new Set(notes.filter((n) => n.startBeat >= start + i * 4 && n.startBeat < start + (i + 1) * 4)
       .map((n) => Math.round((n.startBeat - start - i * 4) * 4) / 4))].sort((a, b) => a - b).join(","))
     return { role: section.role, name: section.name, changes: changes.length, approaches: approaches.length,
+      bars: section.lengthBars, noteCount: notes.length,
+      layers: ["syn-bass", "syn-bass-mid", "syn-sub-bass"].map((id) => {
+        const layer = arrangement.tracks.find((t) => t.id === id)?.notes.filter((n) => n.sectionId === section.id) ?? []
+        return { id, notes: layer.length, notesPerBar: layer.length / section.lengthBars,
+          approaches: changes.filter((c) => {
+            const target = parseChordSymbol(c.symbol, c.bass ?? undefined)!.bassPc
+            return layer.some((n) => n.startBeat >= start + c.startBeat - 1 && n.startBeat < start + c.startBeat
+              && [1, 2, 10, 11].includes((n.pitch % 12 - target + 12) % 12))
+          }).length }
+      }),
       rhythmTypes: new Set(rhythms).size, roots: roots.length, matchedRoots: matched.length,
       slashes: slashes.length, matchedSlashes: slashes.filter((s) => matched.includes(s)).length,
       kicks: kicks.length, matchedKicks: kicks.filter((k) => notes.some((n) => Math.abs(n.startBeat - k.startBeat) < 0.1)).length }
   })
+}
+
+export function measurePadMotion(tracks: GeneratedArrangementTrack[]) {
+  const pad = tracks.find((t) => t.id === "syn-dark-pad")?.notes ?? []
+  const groups = new Map<string, typeof pad>()
+  for (const note of pad) if (note.voiceId) {
+    const key = `${note.sectionId}:${note.voiceId}`
+    groups.set(key, [...(groups.get(key) ?? []), note])
+  }
+  const moves = [...groups.values()].flatMap((notes) => {
+    const sorted = [...notes].sort((a, b) => a.startBeat - b.startBeat)
+    return sorted.slice(1).map((note, i) => {
+      const previous = sorted[i], distance = Math.abs(note.pitch - previous.pitch)
+      const alternatives = Array.from({ length: 30 }, (_, j) => 55 + j).filter((p) => p % 12 === note.pitch % 12)
+      return { sectionId: note.sectionId, voiceId: note.voiceId, beat: note.startBeat, from: previous.pitch,
+        to: note.pitch, distance, avoidable: distance >= 10 && alternatives.some((p) => Math.abs(p - previous.pitch) <= 6) }
+    })
+  })
+  return { notes: pad.length, transitions: moves.length, leaps: moves.filter((m) => m.distance >= 10).length,
+    avoidable: moves.filter((m) => m.avoidable).length, octaves: moves.filter((m) => m.distance === 12).length,
+    mean: moves.reduce((s, m) => s + m.distance, 0) / Math.max(1, moves.length), moves }
 }

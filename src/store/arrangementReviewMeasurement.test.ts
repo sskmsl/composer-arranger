@@ -8,7 +8,7 @@ import { arrangementQualityDiagnostics, generateFullSongArrangement, reviewGener
 import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
 import { keyScalePitchClasses, parseKey } from "@/core/scale"
 import { effectiveSectionKey, normalizeProject } from "@/core/project"
-import { measureBass, measureBreathing, measureLowEnd } from "./arrangementPerformanceMeasurements"
+import { measureBass, measureBreathing, measureLowEnd, measurePadMotion } from "./arrangementPerformanceMeasurements"
 
 function lcs(a: number[], b: number[]) {
   let row = Array(b.length + 1).fill(0) as number[]
@@ -94,6 +94,8 @@ describe("レビュー指定2曲の決定的測定", () => {
         breathing: project.sections.map((s, i) => ({ name: s.name, bars: s.lengthBars, ...measureBreathing(lead(i), s.lengthBars * 4) })),
         lowEnd: arrangement ? measureLowEnd(arrangement.tracks, arrangement.analysis.totalBeats) : null, drumPitchViolations,
         bass: arrangement ? measureBass(project, arrangement) : null,
+        padMotion: arrangement ? measurePadMotion(arrangement.tracks) : null,
+        auditMaterial: arrangement && process.env.ARRANGEMENT_REVIEW_RESULT_PATH ? { project, arrangement } : undefined,
         repeated, sections: arrangement ? project.sections.map((s) => {
           const start = (s.startBar - 1) * 4, end = start + s.lengthBars * 4
           const tracks = arrangement.tracks.filter((t) => !t.muted && t.notes.some((n) => n.startBeat >= start && n.startBeat < end))
@@ -129,7 +131,14 @@ describe("レビュー指定2曲の決定的測定", () => {
     expect(results.filter((r) => r.peaks[2] >= Math.max(...r.peaks.slice(0, 2)) + 2).length).toBeGreaterThanOrEqual(8)
     const pairs = results.flatMap((r) => r.pairs)
     const arrangements = results.filter((r) => r.quality)
-    expect(arrangements.every((r) => r.lowEnd!.ratio <= 0.04)).toBe(true)
+    expect(arrangements.every((r) => r.lowEnd!.ratio <= 0.01)).toBe(true)
+    const motions = arrangements.map((r) => r.padMotion!)
+    const motionSum = (key: "transitions" | "leaps" | "avoidable" | "octaves" | "notes") => motions.reduce((sum, m) => sum + m[key], 0)
+    expect(motionSum("leaps") / motionSum("transitions")).toBeLessThanOrEqual(.05)
+    expect(motionSum("avoidable")).toBeLessThanOrEqual(5)
+    expect(motionSum("octaves")).toBeLessThanOrEqual(10)
+    expect(motions.reduce((sum, m) => sum + m.mean * m.transitions, 0) / motionSum("transitions")).toBeLessThanOrEqual(2.5368589743589745 * .7)
+    expect(motionSum("notes")).toBeGreaterThanOrEqual(756 * .95)
     expect(arrangements.reduce((sum, r) => sum + r.lowEnd!.padNotes, 0)).toBeGreaterThanOrEqual(744 * 0.9)
     for (const role of ["verse", "pre-chorus", "chorus", "grand-chorus", "intro", "bridge", "outro"]) {
       const sections = arrangements.flatMap((r) => r.bass!).filter((s) => s.role === role)

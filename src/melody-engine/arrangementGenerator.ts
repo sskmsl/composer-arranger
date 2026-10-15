@@ -34,6 +34,7 @@ import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDir
 import { evaluateArrangementAudition, refineArrangementByAudition } from "./arrangementAuditionCritic"
 import { separateLowRegister } from "./lowRegisterSeparation"
 import { supportVoiceLeaps } from "./supportVoiceLeaps"
+import { minimizeBackgroundVoiceMovement } from "./backgroundVoiceLeading"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
   "dr-kick": 36,
@@ -2385,11 +2386,11 @@ export function finalizeFullSongArrangement(
         editableSectionIds: options.editableSectionIds,
       })
   // Criticのタイミング移動後にも無音区間をもう一度適用し、書き出し制約を最終優先にする。
-  const finalTracks = realignPhaseLockedDrumLayers(applyArrangementTimelineToTracks(
+  const finalTracks = minimizeBackgroundVoiceMovement(project, arrangement.plan, realignPhaseLockedDrumLayers(applyArrangementTimelineToTracks(
     audition.tracks,
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
-  ))
+  )), options.editableTrackIds, options.editableSectionIds)
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {
