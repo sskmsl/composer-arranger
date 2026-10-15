@@ -1328,6 +1328,11 @@ function generateTonalTrack(
       "octave-drive": [0, 1.5, 2.75],
       "approach-led": [0, 2.5, 3.5],
     }
+    const chorus = sourceSection.role === "chorus" || sourceSection.role === "grand-chorus"
+    const grand = sourceSection.role === "grand-chorus"
+    const pre = sourceSection.role === "pre-chorus"
+    const kickBeats = chorus ? generateDrums("dr-kick", section, start, length, beatsPerBar, revision, melody)
+      .map((note) => note.startBeat - start) : []
     const bars = Math.max(1, Math.ceil(length / beatsPerBar))
     for (let bar = 0; bar < bars; bar += 1) {
       const cycleBar = (bar + revision + variationPhase) % (section.phraseCycleBars ?? 4)
@@ -1339,6 +1344,14 @@ function generateTonalTrack(
         else if (section.rhythmGrammar === "cinematic-pulse") offsets = cycleBar % 2 === 0 ? [0, 3] : [2.5]
         if (section.motifTreatment === "fragmentation" && cycleBar % 2 === 1) offsets = offsets.filter((_, index) => index !== 1)
         if (section.motifTreatment === "augmentation" && cycleBar % 2 === 1) offsets = offsets.slice(0, 1)
+      }
+      if (strategy !== "sustain" && (chorus || pre && bar >= bars / 2)) {
+        const shapes = grand ? [[0, 1, 2, 3], [0, .75, 2, 3.5], [0, 1.5, 2.5], [0, .5, 2, 3.25]]
+          : [[0, 1, 2], [0, 1.5, 3], [0, .5, 2.5, 3.5]]
+        offsets = [...new Set([...offsets, ...shapes[cycleBar % shapes.length],
+          ...kickBeats.filter((beat) => beat >= bar * beatsPerBar && beat < (bar + 1) * beatsPerBar).map((beat) => beat - bar * beatsPerBar)])].sort((a, b) => a - b)
+      } else if (strategy !== "sustain" && sourceSection.role === "verse" && cycleBar % 2 === 1) {
+        offsets = offsets.map((beat) => beat === 2.5 ? 1.5 : beat)
       }
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
@@ -1357,8 +1370,8 @@ function generateTonalTrack(
         const nextParsed = nextChord ? parseChordSymbol(nextChord.symbol, nextChord.bass ?? undefined) : null
         // 歌が密な小節ではBassの補助音を引く。次コードへの明確な接近音だけは残せる。
         const isApproach = strategy === "approach-led" && hitIndex === offsets.length - 1 && nextParsed && nextChord?.id !== chord?.id
-        if (hitIndex > 0 && leadOccupancy >= 0.72 && !isApproach) return
-        if (hitIndex > 0 && section.rhythmGrammar !== "four-on-floor"
+        if (!chorus && hitIndex > 0 && leadOccupancy >= 0.72 && !isApproach) return
+        if (!chorus && hitIndex > 0 && section.rhythmGrammar !== "four-on-floor"
           && melody.some((lead) => Math.abs(lead.startBeat - start - localBeat) <= 0.12)) return
         let pitch = rootPitch
         let character: ArrangementCandidateCharacter = "safe"
@@ -1386,6 +1399,23 @@ function generateTonalTrack(
         add(localBeat, duration, pitch, 52 + section.energy * 0.34 + (hitIndex === 0 ? 5 : -2), notes.length, character, reason)
       })
     }
+    if (bassPedal === null && (chorus || pre || sourceSection.role === "verse")) {
+      sectionChords.slice(1).forEach((next, index) => {
+        if (next.symbol === sectionChords[index].symbol) return
+        if (!chorus && !(pre && next.startBeat >= length / 2)
+          && !(sourceSection.role === "verse" && Math.round(next.startBeat / beatsPerBar) % 4 === 0)) return
+        const target = parseChordSymbol(next.symbol, next.bass ?? undefined)
+        if (!target) return
+        const beat = next.startBeat - .5
+        const existing = notes.findIndex((note) => Math.abs(note.startBeat - start - beat) < .06)
+        if (existing >= 0) notes.splice(existing, 1)
+        add(beat, .25, midiForPc(target.bassPc, 39) - 1, 50 + section.energy * .34, 10000 + index, "edge", "次のコードの低音へ半音下から短く近づく")
+      })
+    }
+    notes.sort((a, b) => a.startBeat - b.startBeat)
+    notes.forEach((note, index) => {
+      if (notes[index + 1]) note.durationBeats = Math.min(note.durationBeats, notes[index + 1].startBeat - note.startBeat)
+    })
     return notes
   }
   if (trackId === "syn-stabs") {
@@ -1610,9 +1640,10 @@ function deriveArrangementLayerTrack(
       if (trackId === "dr-cymbal-swell") return [makeLayerNote(note, index, { pitch: 52, durationBeats: 1.5, velocity: note.velocity - 24 })]
       if (trackId === "dr-impact") return [makeLayerNote(note, index, { pitch: 41, durationBeats: 0.55, velocity: note.velocity - 8 })]
       if (trackId === "syn-sub-bass") {
+        if (note.character !== "safe") return []
         let pitch = note.pitch
         while (pitch > 35) pitch -= 12
-        return [makeLayerNote(note, index, { pitch, durationBeats: Math.max(0.7, note.durationBeats), velocity: note.velocity - 15 })]
+        return [makeLayerNote(note, index, { pitch, durationBeats: note.durationBeats, velocity: note.velocity - 15 })]
       }
       if (trackId === "syn-bass-mid") {
         if (index % 2 === 1 && note.durationBeats < 0.7) return []
@@ -2485,6 +2516,20 @@ function addSectionBoundaryPerformances(
   }
   let verseMean = 0, chorusMean = 0
   for (const section of sections) {
+    if (hasDrums && section.role === "chorus") {
+      const previous = sections.slice(0, sections.indexOf(section)).filter((s) => s.role === "chorus").at(-1)
+      if (previous) {
+        const previousCount = tracks.filter((t) => t.notes.some((n) => n.sectionId === previous.id)).length
+        let currentCount = tracks.filter((t) => t.notes.some((n) => n.sectionId === section.id)).length
+        for (const [id, pitch] of [["dr-ride", 51], ["dr-percussion-high", 63], ["dr-clap", 39], ["dr-shaker", 82]] as const) {
+          if (currentCount >= previousCount + 3) break
+          if (tracks.some((t) => t.id === id && t.notes.some((n) => n.sectionId === section.id))) continue
+          const start = (section.startBar - 1) * bpb
+          for (let bar = 0; bar < section.lengthBars; bar++) append(id, section.id, start + bar * bpb + 2, .15, pitch, 52)
+          currentCount++
+        }
+      }
+    }
     if (section.role === "grand-chorus") {
       const previousChorus = sections.slice(0, sections.indexOf(section)).filter((s) => s.role === "chorus").at(-1)
       if (previousChorus) {
@@ -2502,7 +2547,7 @@ function addSectionBoundaryPerformances(
     if (section.role === "verse") verseMean = meanVelocity(section.id)
     if (section.role !== "chorus" && section.role !== "grand-chorus") continue
     const current = meanVelocity(section.id)
-    const wanted = section.role === "grand-chorus" && chorusMean ? chorusMean + 7 : Math.max(current, verseMean + 12)
+    const wanted = section.role === "grand-chorus" && chorusMean ? chorusMean + 7 : Math.max(current, verseMean + 14)
     const delta = wanted - current
     for (const track of tracks) if (track.family !== "drums") track.notes = track.notes.map((n) => n.sectionId === section.id
       ? { ...n, velocity: Math.max(30, Math.min(115, Math.round(n.velocity + delta))) } : n)
