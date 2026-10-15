@@ -224,7 +224,7 @@ describe("相談から確認を経た変更案", () => {
     expect(silence.every((proposal) => proposal.recipe.directive?.timelineConstraints?.fullSilenceRanges
       .some((range) => range.startBar === 25 && range.endBar === 28))).toBe(true)
     expect(start.every((proposal) => proposal.recipe.directive?.timelineConstraints?.melodyStartBar === 9)).toBe(true)
-  })
+  }, 30000) // 長尺曲の3案を2回生成するため、低速なCIでも完走を待つ。
 
   it("相談中の非対応指示を、確認後の返答でも通知できる", () => {
     const request = pendingConsultationRequestText(discussionChat("ギターを足して"), "はい")
