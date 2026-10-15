@@ -1,0 +1,1793 @@
+{
+  "summaries": {
+    "original": {
+      "notes": 756,
+      "transitions": 738,
+      "leaps": 100,
+      "leapRatio": 0.13550135501355012,
+      "avoidable": 55,
+      "octaves": 49,
+      "mean": 2.7574525745257454,
+      "quality": 80.97786458333333,
+      "audition": 96.68333333333334,
+      "eligible": 6,
+      "breathless": 0,
+      "breathingBlocks": 0.9583333333333334
+    },
+    "octaveOnly": {
+      "notes": 762,
+      "transitions": 744,
+      "leaps": 26,
+      "leapRatio": 0.03494623655913978,
+      "avoidable": 24,
+      "octaves": 6,
+      "mean": 1.4798387096774193,
+      "quality": 88.88932291666667,
+      "audition": 96.48333333333333,
+      "eligible": 6,
+      "breathless": 0,
+      "breathingBlocks": 0.9583333333333334
+    },
+    "final": {
+      "notes": 751,
+      "transitions": 733,
+      "leaps": 9,
+      "leapRatio": 0.01227830832196453,
+      "avoidable": 8,
+      "octaves": 1,
+      "mean": 1.2019099590723057,
+      "quality": 91.22265625,
+      "audition": 96.39999999999999,
+      "eligible": 6,
+      "breathless": 0,
+      "breathingBlocks": 0.9583333333333334
+    }
+  },
+  "ratios": {
+    "original": [
+      {
+        "which": "A",
+        "role": "intro",
+        "approach": 0,
+        "changes": 6,
+        "approaches": 0,
+        "layers": [
+          1.25,
+          0,
+          0
+        ],
+        "total": 1.25,
+        "rhythm": [
+          1,
+          2
+        ],
+        "kick": 0.5384615384615384
+      },
+      {
+        "which": "A",
+        "role": "verse",
+        "approach": 0.14285714285714285,
+        "changes": 42,
+        "approaches": 6,
+        "layers": [
+          1.8333333333333333,
+          0,
+          1.7083333333333333
+        ],
+        "total": 3.5416666666666665,
+        "rhythm": [
+          2,
+          5
+        ],
+        "kick": 0.6371681415929203
+      },
+      {
+        "which": "A",
+        "role": "pre-chorus",
+        "approach": 0.6190476190476191,
+        "changes": 21,
+        "approaches": 13,
+        "layers": [
+          2.625,
+          1.8333333333333333,
+          2.125
+        ],
+        "total": 6.583333333333333,
+        "rhythm": [
+          4,
+          5
+        ],
+        "kick": 0.7580645161290323
+      },
+      {
+        "which": "A",
+        "role": "chorus",
+        "approach": 1,
+        "changes": 42,
+        "approaches": 42,
+        "layers": [
+          5.625,
+          3.1875,
+          4.75
+        ],
+        "total": 13.5625,
+        "rhythm": [
+          3,
+          3
+        ],
+        "kick": 1
+      },
+      {
+        "which": "A",
+        "role": "grand-chorus",
+        "approach": 1,
+        "changes": 21,
+        "approaches": 21,
+        "layers": [
+          6.25,
+          3.5,
+          5.375
+        ],
+        "total": 15.125,
+        "rhythm": [
+          4,
+          4
+        ],
+        "kick": 1
+      },
+      {
+        "which": "A",
+        "role": "bridge",
+        "approach": 0,
+        "changes": 21,
+        "approaches": 0,
+        "layers": [
+          1.625,
+          1.2916666666666667,
+          1.625
+        ],
+        "total": 4.541666666666667,
+        "rhythm": [
+          2,
+          3
+        ],
+        "kick": null
+      },
+      {
+        "which": "A",
+        "role": "outro",
+        "approach": 0,
+        "changes": 6,
+        "approaches": 0,
+        "layers": [
+          1,
+          0,
+          0
+        ],
+        "total": 1,
+        "rhythm": [
+          1,
+          1
+        ],
+        "kick": null
+      },
+      {
+        "which": "B",
+        "role": "intro",
+        "approach": 0,
+        "changes": 9,
+        "approaches": 0,
+        "layers": [
+          1.4166666666666667,
+          0,
+          0
+        ],
+        "total": 1.4166666666666667,
+        "rhythm": [
+          1,
+          3
+        ],
+        "kick": 0.875
+      },
+      {
+        "which": "B",
+        "role": "verse",
+        "approach": 0.14285714285714285,
+        "changes": 42,
+        "approaches": 6,
+        "layers": [
+          1.5208333333333333,
+          0,
+          1.3958333333333333
+        ],
+        "total": 2.9166666666666665,
+        "rhythm": [
+          2,
+          3
+        ],
+        "kick": 0.6019417475728155
+      },
+      {
+        "which": "B",
+        "role": "pre-chorus",
+        "approach": 0.7619047619047619,
+        "changes": 21,
+        "approaches": 16,
+        "layers": [
+          2.75,
+          1.75,
+          2.125
+        ],
+        "total": 6.625,
+        "rhythm": [
+          4,
+          6
+        ],
+        "kick": 0.7666666666666667
+      },
+      {
+        "which": "B",
+        "role": "chorus",
+        "approach": 1,
+        "changes": 42,
+        "approaches": 42,
+        "layers": [
+          5.916666666666667,
+          3.4375,
+          5.041666666666667
+        ],
+        "total": 14.395833333333336,
+        "rhythm": [
+          3,
+          5
+        ],
+        "kick": 0.9924812030075187
+      },
+      {
+        "which": "B",
+        "role": "grand-chorus",
+        "approach": 1,
+        "changes": 21,
+        "approaches": 21,
+        "layers": [
+          5.458333333333333,
+          3.1666666666666665,
+          4.583333333333333
+        ],
+        "total": 13.208333333333332,
+        "rhythm": [
+          7,
+          7
+        ],
+        "kick": 1
+      },
+      {
+        "which": "B",
+        "role": "bridge",
+        "approach": 0,
+        "changes": 15,
+        "approaches": 0,
+        "layers": [
+          1.6666666666666667,
+          1.5,
+          1.6666666666666667
+        ],
+        "total": 4.833333333333334,
+        "rhythm": [
+          3,
+          3
+        ],
+        "kick": null
+      },
+      {
+        "which": "B",
+        "role": "outro",
+        "approach": 0,
+        "changes": 9,
+        "approaches": 0,
+        "layers": [
+          1,
+          0,
+          0
+        ],
+        "total": 1,
+        "rhythm": [
+          1,
+          1
+        ],
+        "kick": null
+      }
+    ],
+    "octaveOnly": [
+      {
+        "which": "A",
+        "role": "intro",
+        "approach": 0,
+        "changes": 6,
+        "approaches": 0,
+        "layers": [
+          1.25,
+          0,
+          0
+        ],
+        "total": 1.25,
+        "rhythm": [
+          1,
+          2
+        ],
+        "kick": 0.75
+      },
+      {
+        "which": "A",
+        "role": "verse",
+        "approach": 0.14285714285714285,
+        "changes": 42,
+        "approaches": 6,
+        "layers": [
+          1.8333333333333333,
+          0,
+          1.7083333333333333
+        ],
+        "total": 3.5416666666666665,
+        "rhythm": [
+          2,
+          5
+        ],
+        "kick": 0.782608695652174
+      },
+      {
+        "which": "A",
+        "role": "pre-chorus",
+        "approach": 0.7142857142857143,
+        "changes": 21,
+        "approaches": 15,
+        "layers": [
+          2.4583333333333335,
+          1.8333333333333333,
+          1.875
+        ],
+        "total": 6.166666666666667,
+        "rhythm": [
+          4,
+          5
+        ],
+        "kick": 0.7254901960784313
+      },
+      {
+        "which": "A",
+        "role": "chorus",
+        "approach": 0.2857142857142857,
+        "changes": 42,
+        "approaches": 12,
+        "layers": [
+          2.8958333333333335,
+          1,
+          1
+        ],
+        "total": 4.895833333333334,
+        "rhythm": [
+          4,
+          7
+        ],
+        "kick": 0.8376068376068376
+      },
+      {
+        "which": "A",
+        "role": "grand-chorus",
+        "approach": 0.2857142857142857,
+        "changes": 21,
+        "approaches": 6,
+        "layers": [
+          3.5,
+          1,
+          1
+        ],
+        "total": 5.5,
+        "rhythm": [
+          6,
+          8
+        ],
+        "kick": 0.7659574468085106
+      },
+      {
+        "which": "A",
+        "role": "bridge",
+        "approach": 0,
+        "changes": 21,
+        "approaches": 0,
+        "layers": [
+          1.2916666666666667,
+          1.125,
+          1.2916666666666667
+        ],
+        "total": 3.708333333333334,
+        "rhythm": [
+          1,
+          3
+        ],
+        "kick": null
+      },
+      {
+        "which": "A",
+        "role": "outro",
+        "approach": 0,
+        "changes": 6,
+        "approaches": 0,
+        "layers": [
+          1,
+          0,
+          0
+        ],
+        "total": 1,
+        "rhythm": [
+          1,
+          1
+        ],
+        "kick": null
+      },
+      {
+        "which": "B",
+        "role": "intro",
+        "approach": 0,
+        "changes": 9,
+        "approaches": 0,
+        "layers": [
+          1.5833333333333333,
+          0,
+          0
+        ],
+        "total": 1.5833333333333333,
+        "rhythm": [
+          2,
+          3
+        ],
+        "kick": 0.875
+      },
+      {
+        "which": "B",
+        "role": "verse",
+        "approach": 0.19047619047619047,
+        "changes": 42,
+        "approaches": 8,
+        "layers": [
+          1.6041666666666667,
+          0,
+          1.4791666666666667
+        ],
+        "total": 3.0833333333333335,
+        "rhythm": [
+          2,
+          3
+        ],
+        "kick": 0.5116279069767442
+      },
+      {
+        "which": "B",
+        "role": "pre-chorus",
+        "approach": 0.6190476190476191,
+        "changes": 21,
+        "approaches": 13,
+        "layers": [
+          2.8333333333333335,
+          1.875,
+          2.3333333333333335
+        ],
+        "total": 7.041666666666668,
+        "rhythm": [
+          5,
+          6
+        ],
+        "kick": 0.7142857142857143
+      },
+      {
+        "which": "B",
+        "role": "chorus",
+        "approach": 0.7142857142857143,
+        "changes": 42,
+        "approaches": 30,
+        "layers": [
+          4.229166666666667,
+          1.125,
+          1.125
+        ],
+        "total": 6.479166666666667,
+        "rhythm": [
+          6,
+          8
+        ],
+        "kick": 0.7851851851851852
+      },
+      {
+        "which": "B",
+        "role": "grand-chorus",
+        "approach": 0.7142857142857143,
+        "changes": 21,
+        "approaches": 15,
+        "layers": [
+          3.9583333333333335,
+          1.125,
+          1.125
+        ],
+        "total": 6.208333333333334,
+        "rhythm": [
+          7,
+          8
+        ],
+        "kick": 0.7692307692307693
+      },
+      {
+        "which": "B",
+        "role": "bridge",
+        "approach": 0,
+        "changes": 15,
+        "approaches": 0,
+        "layers": [
+          1.6666666666666667,
+          1.5,
+          1.6666666666666667
+        ],
+        "total": 4.833333333333334,
+        "rhythm": [
+          3,
+          3
+        ],
+        "kick": null
+      },
+      {
+        "which": "B",
+        "role": "outro",
+        "approach": 0,
+        "changes": 9,
+        "approaches": 0,
+        "layers": [
+          1,
+          0,
+          0
+        ],
+        "total": 1,
+        "rhythm": [
+          1,
+          1
+        ],
+        "kick": null
+      }
+    ],
+    "final": [
+      {
+        "which": "A",
+        "role": "intro",
+        "approach": 0,
+        "changes": 6,
+        "approaches": 0,
+        "layers": [
+          1.25,
+          0,
+          0
+        ],
+        "total": 1.25,
+        "rhythm": [
+          1,
+          2
+        ],
+        "kick": 0.75
+      },
+      {
+        "which": "A",
+        "role": "verse",
+        "approach": 0.14285714285714285,
+        "changes": 42,
+        "approaches": 6,
+        "layers": [
+          1.8333333333333333,
+          0,
+          1.7083333333333333
+        ],
+        "total": 3.5416666666666665,
+        "rhythm": [
+          2,
+          5
+        ],
+        "kick": 0.782608695652174
+      },
+      {
+        "which": "A",
+        "role": "pre-chorus",
+        "approach": 0.7142857142857143,
+        "changes": 21,
+        "approaches": 15,
+        "layers": [
+          2.4583333333333335,
+          1.8333333333333333,
+          1.875
+        ],
+        "total": 6.166666666666667,
+        "rhythm": [
+          4,
+          5
+        ],
+        "kick": 0.7254901960784313
+      },
+      {
+        "which": "A",
+        "role": "chorus",
+        "approach": 0.2857142857142857,
+        "changes": 42,
+        "approaches": 12,
+        "layers": [
+          2.8958333333333335,
+          1,
+          1
+        ],
+        "total": 4.895833333333334,
+        "rhythm": [
+          4,
+          7
+        ],
+        "kick": 0.8376068376068376
+      },
+      {
+        "which": "A",
+        "role": "grand-chorus",
+        "approach": 0.2857142857142857,
+        "changes": 21,
+        "approaches": 6,
+        "layers": [
+          3.5,
+          1,
+          1
+        ],
+        "total": 5.5,
+        "rhythm": [
+          6,
+          8
+        ],
+        "kick": 0.7659574468085106
+      },
+      {
+        "which": "A",
+        "role": "bridge",
+        "approach": 0,
+        "changes": 21,
+        "approaches": 0,
+        "layers": [
+          1.2916666666666667,
+          1.125,
+          1.2916666666666667
+        ],
+        "total": 3.708333333333334,
+        "rhythm": [
+          1,
+          3
+        ],
+        "kick": null
+      },
+      {
+        "which": "A",
+        "role": "outro",
+        "approach": 0,
+        "changes": 6,
+        "approaches": 0,
+        "layers": [
+          1,
+          0,
+          0
+        ],
+        "total": 1,
+        "rhythm": [
+          1,
+          1
+        ],
+        "kick": null
+      },
+      {
+        "which": "B",
+        "role": "intro",
+        "approach": 0,
+        "changes": 9,
+        "approaches": 0,
+        "layers": [
+          1.5833333333333333,
+          0,
+          0
+        ],
+        "total": 1.5833333333333333,
+        "rhythm": [
+          2,
+          3
+        ],
+        "kick": 0.875
+      },
+      {
+        "which": "B",
+        "role": "verse",
+        "approach": 0.19047619047619047,
+        "changes": 42,
+        "approaches": 8,
+        "layers": [
+          1.6041666666666667,
+          0,
+          1.4791666666666667
+        ],
+        "total": 3.0833333333333335,
+        "rhythm": [
+          2,
+          3
+        ],
+        "kick": 0.5116279069767442
+      },
+      {
+        "which": "B",
+        "role": "pre-chorus",
+        "approach": 0.6190476190476191,
+        "changes": 21,
+        "approaches": 13,
+        "layers": [
+          2.8333333333333335,
+          1.875,
+          2.3333333333333335
+        ],
+        "total": 7.041666666666668,
+        "rhythm": [
+          5,
+          6
+        ],
+        "kick": 0.7142857142857143
+      },
+      {
+        "which": "B",
+        "role": "chorus",
+        "approach": 0.7142857142857143,
+        "changes": 42,
+        "approaches": 30,
+        "layers": [
+          4.229166666666667,
+          1.125,
+          1.125
+        ],
+        "total": 6.479166666666667,
+        "rhythm": [
+          6,
+          8
+        ],
+        "kick": 0.7851851851851852
+      },
+      {
+        "which": "B",
+        "role": "grand-chorus",
+        "approach": 0.7142857142857143,
+        "changes": 21,
+        "approaches": 15,
+        "layers": [
+          3.9583333333333335,
+          1.125,
+          1.125
+        ],
+        "total": 6.208333333333334,
+        "rhythm": [
+          7,
+          8
+        ],
+        "kick": 0.7692307692307693
+      },
+      {
+        "which": "B",
+        "role": "bridge",
+        "approach": 0,
+        "changes": 15,
+        "approaches": 0,
+        "layers": [
+          1.6666666666666667,
+          1.5,
+          1.6666666666666667
+        ],
+        "total": 4.833333333333334,
+        "rhythm": [
+          3,
+          3
+        ],
+        "kick": null
+      },
+      {
+        "which": "B",
+        "role": "outro",
+        "approach": 0,
+        "changes": 9,
+        "approaches": 0,
+        "layers": [
+          1,
+          0,
+          0
+        ],
+        "total": 1,
+        "rhythm": [
+          1,
+          1
+        ],
+        "kick": null
+      }
+    ]
+  },
+  "rows": [
+    {
+      "which": "A",
+      "seed": 1,
+      "selectedSeeds": {
+        "original": 418917,
+        "octaveOnly": 209459,
+        "final": 209459
+      },
+      "quality": 92.5,
+      "eligible": 8,
+      "audition": 96.6,
+      "harmony": 0,
+      "collisions": 0,
+      "drumPitchViolations": 0,
+      "mud": 0.00390625,
+      "copyBefore": 0.2608695652173913,
+      "copy": 0.23076923076923078,
+      "qualityBefore": 79.671875,
+      "eligibleBefore": 6,
+      "sourceNotes": 133,
+      "limit": 6,
+      "padNotes": 129,
+      "leaps": 1,
+      "avoidable": 1,
+      "octaves": 0,
+      "mean": 1.1904761904761905,
+      "records": [
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000034:8:120000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000034",
+          "bar": 31,
+          "startBeat": 121.5,
+          "action": "rest",
+          "originalPitch": 77,
+          "attemptedPitch": 65,
+          "originalDurationBeats": 1.2510000000000048,
+          "durationBeats": 0,
+          "collisionStartBeat": 121.5066,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Aメロ2",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000061:2:208000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000061",
+          "bar": 53,
+          "startBeat": 208,
+          "action": "rest",
+          "originalPitch": 62,
+          "attemptedPitch": 74,
+          "originalDurationBeats": 3.6168,
+          "durationBeats": 0,
+          "collisionStartBeat": 208,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "大サビ",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000061:5:212000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000061",
+          "bar": 54,
+          "startBeat": 212,
+          "action": "rest",
+          "originalPitch": 64,
+          "attemptedPitch": 76,
+          "originalDurationBeats": 2,
+          "durationBeats": 0,
+          "collisionStartBeat": 211.5066,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "大サビ",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000052:5:180000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000052",
+          "bar": 46,
+          "startBeat": 180,
+          "action": "rest",
+          "originalPitch": 77,
+          "attemptedPitch": 65,
+          "originalDurationBeats": 3.8592,
+          "durationBeats": 0,
+          "collisionStartBeat": 180,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "間奏",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000052:17:196000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000052",
+          "bar": 50,
+          "startBeat": 196,
+          "action": "shorten",
+          "originalPitch": 76,
+          "attemptedPitch": 64,
+          "originalDurationBeats": 3.8592,
+          "durationBeats": 2.9979999999999905,
+          "collisionStartBeat": 198.998,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "間奏",
+          "finalPitch": 64
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000052:23:204000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000052",
+          "bar": 52,
+          "startBeat": 204,
+          "action": "shorten",
+          "originalPitch": 76,
+          "attemptedPitch": 64,
+          "originalDurationBeats": 3.8592,
+          "durationBeats": 0.9979999999999905,
+          "collisionStartBeat": 204.998,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "間奏",
+          "finalPitch": 64
+        }
+      ],
+      "remaining": [
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000070",
+          "voiceId": "syn-dark-pad:voice:0",
+          "beat": 240,
+          "from": 58,
+          "to": 74,
+          "distance": 16,
+          "avoidable": true,
+          "bar": 61,
+          "section": "アウトロ"
+        }
+      ],
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "tracks": [
+            "dr-kick",
+            "dr-kick-click",
+            "syn-sub-bass"
+          ],
+          "comparable": 13,
+          "ratio": 0.23076923076923078
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "tracks": [
+            "dr-snare",
+            "dr-crash",
+            "dr-snare-body",
+            "dr-clap",
+            "syn-bass-mid"
+          ],
+          "comparable": 25,
+          "ratio": 0.2
+        }
+      ],
+      "bassSignals": [
+        {
+          "name": "サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.004267968749999995,
+          "value": 0.039232031249999993,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.528453125
+          }
+        },
+        {
+          "name": "サビ2",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.008074687499999999,
+          "value": 0.03542531249999999,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.55383125
+          }
+        },
+        {
+          "name": "大サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.038110781250000024,
+          "value": 0.005389218749999966,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7540718750000002
+          }
+        }
+      ]
+    },
+    {
+      "which": "A",
+      "seed": 2,
+      "selectedSeeds": {
+        "original": 418918,
+        "octaveOnly": 418918,
+        "final": 418918
+      },
+      "quality": 91.8359375,
+      "eligible": 8,
+      "audition": 96.8,
+      "harmony": 0,
+      "collisions": 0,
+      "drumPitchViolations": 0,
+      "mud": 0,
+      "copyBefore": 0.25,
+      "copy": 0.25,
+      "qualityBefore": 80.60546875,
+      "eligibleBefore": 8,
+      "sourceNotes": 148,
+      "limit": 7,
+      "padNotes": 148,
+      "leaps": 1,
+      "avoidable": 0,
+      "octaves": 0,
+      "mean": 0.9793103448275862,
+      "records": [
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000007:23:44000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000007",
+          "bar": 12,
+          "startBeat": 44,
+          "action": "shorten",
+          "originalPitch": 52,
+          "attemptedPitch": 64,
+          "originalDurationBeats": 3.7048,
+          "durationBeats": 3.5,
+          "collisionStartBeat": 47.5,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Aメロ",
+          "finalPitch": 64
+        }
+      ],
+      "remaining": [
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000070",
+          "voiceId": "syn-dark-pad:voice:0",
+          "beat": 248,
+          "from": 59,
+          "to": 78,
+          "distance": 19,
+          "avoidable": false,
+          "bar": 63,
+          "section": "アウトロ"
+        }
+      ],
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "tracks": [
+            "dr-kick",
+            "dr-low-tom",
+            "dr-kick-click"
+          ],
+          "comparable": 12,
+          "ratio": 0.25
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ],
+          "comparable": 25,
+          "ratio": 0.12
+        }
+      ],
+      "bassSignals": [
+        {
+          "name": "サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.043273125,
+          "value": 0.0002268749999999875,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7884875
+          }
+        },
+        {
+          "name": "サビ2",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.047079374999999986,
+          "value": 0,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.8138624999999999
+          }
+        },
+        {
+          "name": "大サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.0019476562499999904,
+          "value": 0.04155234375,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.5129843749999999
+          }
+        }
+      ]
+    },
+    {
+      "which": "A",
+      "seed": 3,
+      "selectedSeeds": {
+        "original": 418919,
+        "octaveOnly": 418919,
+        "final": 418919
+      },
+      "quality": 92.5,
+      "eligible": 8,
+      "audition": 97.1,
+      "harmony": 0,
+      "collisions": 0,
+      "drumPitchViolations": 0,
+      "mud": 0.00390625,
+      "copyBefore": 0.16,
+      "copy": 0.16,
+      "qualityBefore": 81.7734375,
+      "eligibleBefore": 8,
+      "sourceNotes": 127,
+      "limit": 6,
+      "padNotes": 127,
+      "leaps": 2,
+      "avoidable": 2,
+      "octaves": 0,
+      "mean": 1.096774193548387,
+      "records": [],
+      "remaining": [
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000025",
+          "voiceId": "syn-dark-pad:voice:2",
+          "beat": 88,
+          "from": 74,
+          "to": 64,
+          "distance": 10,
+          "avoidable": true,
+          "bar": 23,
+          "section": "サビ"
+        },
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000070",
+          "voiceId": "syn-dark-pad:voice:0",
+          "beat": 240,
+          "from": 58,
+          "to": 74,
+          "distance": 16,
+          "avoidable": true,
+          "bar": 61,
+          "section": "アウトロ"
+        }
+      ],
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "tracks": [
+            "dr-low-tom"
+          ],
+          "comparable": 12,
+          "ratio": 0.08333333333333333
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "tracks": [
+            "syn-stabs",
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ],
+          "comparable": 25,
+          "ratio": 0.16
+        }
+      ],
+      "bassSignals": [
+        {
+          "name": "サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.04316250000000003,
+          "value": 0.00033749999999996283,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7877500000000002
+          }
+        },
+        {
+          "name": "サビ2",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.04229484375000003,
+          "value": 0.0012051562499999571,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7819656250000002
+          }
+        },
+        {
+          "name": "大サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.039556875,
+          "value": 0.003943124999999992,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7637125
+          }
+        }
+      ]
+    },
+    {
+      "which": "B",
+      "seed": 1,
+      "selectedSeeds": {
+        "original": 314188,
+        "octaveOnly": 418917,
+        "final": 418917
+      },
+      "quality": 91.5,
+      "eligible": 8,
+      "audition": 96.2,
+      "harmony": 0,
+      "collisions": 0,
+      "drumPitchViolations": 0,
+      "mud": 0,
+      "copyBefore": 0.18181818181818182,
+      "copy": 0.21739130434782608,
+      "qualityBefore": 82,
+      "eligibleBefore": 8,
+      "sourceNotes": 106,
+      "limit": 5,
+      "padNotes": 102,
+      "leaps": 1,
+      "avoidable": 1,
+      "octaves": 0,
+      "mean": 1.2727272727272727,
+      "records": [
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000054:16:204000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000054",
+          "bar": 52,
+          "startBeat": 204,
+          "action": "rest",
+          "originalPitch": 74,
+          "attemptedPitch": 62,
+          "originalDurationBeats": 3,
+          "durationBeats": 0,
+          "collisionStartBeat": 204,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Bridge",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000054:17:204000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000054",
+          "bar": 52,
+          "startBeat": 204,
+          "action": "shorten",
+          "originalPitch": 72,
+          "attemptedPitch": 60,
+          "originalDurationBeats": 3,
+          "durationBeats": 0.5101999999999975,
+          "collisionStartBeat": 204.5102,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Bridge",
+          "finalPitch": 60
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000025:20:104000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000025",
+          "bar": 27,
+          "startBeat": 104,
+          "action": "rest",
+          "originalPitch": 64,
+          "attemptedPitch": 76,
+          "originalDurationBeats": 7.1895,
+          "durationBeats": 0,
+          "collisionStartBeat": 104,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Chorus",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000025:8:88000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000025",
+          "bar": 23,
+          "startBeat": 88,
+          "action": "rest",
+          "originalPitch": 62,
+          "attemptedPitch": 74,
+          "originalDurationBeats": 3.8208,
+          "durationBeats": 0,
+          "collisionStartBeat": 88,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Chorus",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000044:8:152000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000044",
+          "bar": 39,
+          "startBeat": 152,
+          "action": "rest",
+          "originalPitch": 62,
+          "attemptedPitch": 74,
+          "originalDurationBeats": 3.8208,
+          "durationBeats": 0,
+          "collisionStartBeat": 152,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Chorus 2",
+          "finalPitch": null
+        }
+      ],
+      "remaining": [
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000044",
+          "voiceId": "syn-dark-pad:voice:2",
+          "beat": 156,
+          "from": 74,
+          "to": 64,
+          "distance": 10,
+          "avoidable": true,
+          "bar": 40,
+          "section": "Chorus 2"
+        }
+      ],
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "tracks": [
+            "dr-high-tom",
+            "syn-sub-bass"
+          ],
+          "comparable": 12,
+          "ratio": 0.16666666666666666
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "tracks": [
+            "dr-snare",
+            "dr-crash",
+            "dr-snare-body",
+            "dr-clap",
+            "syn-bass-mid"
+          ],
+          "comparable": 23,
+          "ratio": 0.21739130434782608
+        }
+      ],
+      "bassSignals": [
+        {
+          "name": "Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.021409687499999996,
+          "value": 0.9575903125,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.64273125
+          }
+        },
+        {
+          "name": "Chorus 2",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.025123593749999982,
+          "value": 0.95387640625,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.6674906249999999
+          }
+        },
+        {
+          "name": "Final Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.04729734375,
+          "value": 0.9317026562499999,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.815315625
+          }
+        }
+      ]
+    },
+    {
+      "which": "B",
+      "seed": 2,
+      "selectedSeeds": {
+        "original": 418918,
+        "octaveOnly": 418918,
+        "final": 418918
+      },
+      "quality": 90,
+      "eligible": 8,
+      "audition": 95.9,
+      "harmony": 0,
+      "collisions": 0,
+      "drumPitchViolations": 0,
+      "mud": 0,
+      "copyBefore": 0.3333333333333333,
+      "copy": 0.3333333333333333,
+      "qualityBefore": 81.197265625,
+      "eligibleBefore": 8,
+      "sourceNotes": 127,
+      "limit": 6,
+      "padNotes": 127,
+      "leaps": 2,
+      "avoidable": 2,
+      "octaves": 0,
+      "mean": 1.403225806451613,
+      "records": [],
+      "remaining": [
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000073",
+          "voiceId": "syn-dark-pad:voice:0",
+          "beat": 244,
+          "from": 62,
+          "to": 73,
+          "distance": 11,
+          "avoidable": true,
+          "bar": 62,
+          "section": "Outro"
+        },
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000073",
+          "voiceId": "syn-dark-pad:voice:0",
+          "beat": 248,
+          "from": 73,
+          "to": 83,
+          "distance": 10,
+          "avoidable": true,
+          "bar": 63,
+          "section": "Outro"
+        }
+      ],
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "tracks": [
+            "dr-kick",
+            "dr-low-tom",
+            "dr-high-tom",
+            "dr-kick-click"
+          ],
+          "comparable": 12,
+          "ratio": 0.3333333333333333
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ],
+          "comparable": 25,
+          "ratio": 0.12
+        }
+      ],
+      "bassSignals": [
+        {
+          "name": "Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.013917187500000006,
+          "value": 0.9650828124999999,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.59278125
+          }
+        },
+        {
+          "name": "Chorus 2",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.011036250000000008,
+          "value": 0.96796375,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.5735750000000001
+          }
+        },
+        {
+          "name": "Final Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.0372121875,
+          "value": 0.9417878125,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.74808125
+          }
+        }
+      ]
+    },
+    {
+      "which": "B",
+      "seed": 3,
+      "selectedSeeds": {
+        "original": 418919,
+        "octaveOnly": 418919,
+        "final": 418919
+      },
+      "quality": 89,
+      "eligible": 8,
+      "audition": 95.8,
+      "harmony": 0,
+      "collisions": 0,
+      "drumPitchViolations": 0,
+      "mud": 0,
+      "copyBefore": 0.16666666666666666,
+      "copy": 0.16666666666666666,
+      "qualityBefore": 80.619140625,
+      "eligibleBefore": 7,
+      "sourceNotes": 121,
+      "limit": 6,
+      "padNotes": 118,
+      "leaps": 2,
+      "avoidable": 2,
+      "octaves": 1,
+      "mean": 1.3304347826086957,
+      "records": [
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000054:16:204000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000054",
+          "bar": 52,
+          "startBeat": 204,
+          "action": "shorten",
+          "originalPitch": 74,
+          "attemptedPitch": 62,
+          "originalDurationBeats": 3.8592,
+          "durationBeats": 0.24690000000001078,
+          "collisionStartBeat": 204.2469,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Bridge",
+          "finalPitch": 62
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000054:8:192000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000054",
+          "bar": 49,
+          "startBeat": 192,
+          "action": "shorten",
+          "originalPitch": 77,
+          "attemptedPitch": 65,
+          "originalDurationBeats": 3.8477,
+          "durationBeats": 2.7469000000000108,
+          "collisionStartBeat": 194.7469,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Bridge",
+          "finalPitch": 65
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000002:5:4000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000002",
+          "bar": 2,
+          "startBeat": 4,
+          "action": "rest",
+          "originalPitch": 62,
+          "attemptedPitch": 74,
+          "originalDurationBeats": 3.8592,
+          "durationBeats": 0,
+          "collisionStartBeat": 3.5102,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Intro",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000054:17:204000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000054",
+          "bar": 52,
+          "startBeat": 204,
+          "action": "shorten",
+          "originalPitch": 72,
+          "attemptedPitch": 60,
+          "originalDurationBeats": 3.8592,
+          "durationBeats": 0.24690000000001078,
+          "collisionStartBeat": 204.2469,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Bridge",
+          "finalPitch": 60
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000007:20:40000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000007",
+          "bar": 11,
+          "startBeat": 40,
+          "action": "rest",
+          "originalPitch": 77,
+          "attemptedPitch": 65,
+          "originalDurationBeats": 1.5,
+          "durationBeats": 0,
+          "collisionStartBeat": 40,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Verse",
+          "finalPitch": null
+        },
+        {
+          "noteId": "syn-dark-pad:00000000-0000-4000-8000-000000000007:14:32000",
+          "trackId": "syn-dark-pad",
+          "sectionId": "00000000-0000-4000-8000-000000000007",
+          "bar": 9,
+          "startBeat": 32,
+          "action": "rest",
+          "originalPitch": 77,
+          "attemptedPitch": 65,
+          "originalDurationBeats": 3.8477,
+          "durationBeats": 0,
+          "collisionStartBeat": 31.0118,
+          "reason": "近いオクターブは主旋律と接触するため、同じ和音の他声部を残し、この音だけ主旋律の直前で止める",
+          "section": "Verse",
+          "finalPitch": null
+        }
+      ],
+      "remaining": [
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000073",
+          "voiceId": "syn-dark-pad:voice:0",
+          "beat": 244,
+          "from": 62,
+          "to": 73,
+          "distance": 11,
+          "avoidable": true,
+          "bar": 62,
+          "section": "Outro"
+        },
+        {
+          "sectionId": "00000000-0000-4000-8000-000000000007",
+          "voiceId": "syn-dark-pad:voice:2",
+          "beat": 31,
+          "from": 76,
+          "to": 64,
+          "distance": 12,
+          "avoidable": true,
+          "bar": 8,
+          "section": "Verse"
+        }
+      ],
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "tracks": [
+            "dr-low-tom",
+            "dr-high-tom"
+          ],
+          "comparable": 12,
+          "ratio": 0.16666666666666666
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ],
+          "comparable": 24,
+          "ratio": 0.125
+        }
+      ],
+      "bassSignals": [
+        {
+          "name": "Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.0452071875,
+          "value": 0.9337928125,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.80138125
+          }
+        },
+        {
+          "name": "Chorus 2",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.04314703125000001,
+          "value": 0.93585296875,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.7876468750000001
+          }
+        },
+        {
+          "name": "Final Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.034563281249999966,
+          "value": 0.94443671875,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.7304218749999998
+          }
+        }
+      ]
+    }
+  ]
+}

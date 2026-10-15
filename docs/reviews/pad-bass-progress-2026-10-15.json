@@ -1,0 +1,4652 @@
+{
+  "before": [
+    {
+      "song": "A",
+      "seed": 1,
+      "motion": {
+        "notes": 133,
+        "transitions": 130,
+        "leaps": 14,
+        "avoidable": 8,
+        "octaves": 5,
+        "mean": 2.3384615384615386
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "イントロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 12,
+          "matchedKicks": 4
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 18,
+          "matchedKicks": 8
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Bメロ",
+          "changes": 7,
+          "approaches": 4,
+          "bars": 8,
+          "noteCount": 25,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 4
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 21,
+              "notesPerBar": 2.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 21,
+          "matchedKicks": 18
+        },
+        {
+          "role": "chorus",
+          "name": "サビ",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 24,
+          "matchedKicks": 24
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 19,
+          "matchedKicks": 8
+        },
+        {
+          "role": "chorus",
+          "name": "サビ2",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 26,
+              "notesPerBar": 3.25,
+              "approaches": 5
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 26,
+          "matchedKicks": 26
+        },
+        {
+          "role": "bridge",
+          "name": "間奏",
+          "changes": 7,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 16,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "大サビ",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 50,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 50,
+              "notesPerBar": 6.25,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 6
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 43,
+              "notesPerBar": 5.375,
+              "approaches": 5
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 27,
+          "matchedKicks": 27
+        },
+        {
+          "role": "outro",
+          "name": "アウトロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "quality": 79.671875,
+      "eligible": 6,
+      "pool": 8,
+      "audition": 96.9,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.2608695652173913,
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "comparable": 12,
+          "copied": 3,
+          "ratio": 0.25,
+          "tracks": [
+            "dr-low-tom",
+            "dr-high-tom",
+            "syn-sub-bass"
+          ]
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "comparable": 23,
+          "copied": 6,
+          "ratio": 0.2608695652173913,
+          "tracks": [
+            "dr-snare",
+            "syn-stabs",
+            "dr-crash",
+            "dr-snare-body",
+            "dr-clap",
+            "syn-sub-bass"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "A",
+      "seed": 2,
+      "motion": {
+        "notes": 148,
+        "transitions": 145,
+        "leaps": 27,
+        "avoidable": 13,
+        "octaves": 15,
+        "mean": 3.0620689655172413
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "イントロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 5,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 5,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 6,
+          "matchedKicks": 5
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 21,
+          "matchedKicks": 15
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Bメロ",
+          "changes": 7,
+          "approaches": 4,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 4
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 21,
+          "matchedKicks": 14
+        },
+        {
+          "role": "chorus",
+          "name": "サビ",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 24,
+          "matchedKicks": 24
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 21,
+          "matchedKicks": 15
+        },
+        {
+          "role": "chorus",
+          "name": "サビ2",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 26,
+              "notesPerBar": 3.25,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 26,
+          "matchedKicks": 26
+        },
+        {
+          "role": "bridge",
+          "name": "間奏",
+          "changes": 7,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "大サビ",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 50,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 50,
+              "notesPerBar": 6.25,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 6
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 43,
+              "notesPerBar": 5.375,
+              "approaches": 5
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 33,
+          "matchedKicks": 33
+        },
+        {
+          "role": "outro",
+          "name": "アウトロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "quality": 80.60546875,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.7,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.25,
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "comparable": 12,
+          "copied": 3,
+          "ratio": 0.25,
+          "tracks": [
+            "dr-kick",
+            "dr-low-tom",
+            "dr-kick-click"
+          ]
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "comparable": 25,
+          "copied": 3,
+          "ratio": 0.12,
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-sub-bass"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "A",
+      "seed": 3,
+      "motion": {
+        "notes": 127,
+        "transitions": 124,
+        "leaps": 18,
+        "avoidable": 11,
+        "octaves": 10,
+        "mean": 2.693548387096774
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "イントロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 6,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 6,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 8,
+          "matchedKicks": 5
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 17,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 17,
+          "matchedKicks": 13
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Bメロ",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 20,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 20,
+              "notesPerBar": 2.5,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 3
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 20,
+          "matchedKicks": 15
+        },
+        {
+          "role": "chorus",
+          "name": "サビ",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 5
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 17,
+          "matchedKicks": 17
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 17,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 17,
+          "matchedKicks": 13
+        },
+        {
+          "role": "chorus",
+          "name": "サビ2",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 26,
+              "notesPerBar": 3.25,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 19,
+          "matchedKicks": 19
+        },
+        {
+          "role": "bridge",
+          "name": "間奏",
+          "changes": 7,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 10,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "大サビ",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 50,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 50,
+              "notesPerBar": 6.25,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 6
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 43,
+              "notesPerBar": 5.375,
+              "approaches": 5
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 34,
+          "matchedKicks": 34
+        },
+        {
+          "role": "outro",
+          "name": "アウトロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "quality": 81.7734375,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.9,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.16,
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "comparable": 12,
+          "copied": 1,
+          "ratio": 0.08333333333333333,
+          "tracks": [
+            "dr-low-tom"
+          ]
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "comparable": 25,
+          "copied": 4,
+          "ratio": 0.16,
+          "tracks": [
+            "syn-stabs",
+            "dr-crash",
+            "dr-clap",
+            "syn-sub-bass"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "B",
+      "seed": 1,
+      "motion": {
+        "notes": 100,
+        "transitions": 97,
+        "leaps": 9,
+        "avoidable": 5,
+        "octaves": 4,
+        "mean": 2.4948453608247423
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "Intro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 3,
+          "matchedKicks": 2
+        },
+        {
+          "role": "verse",
+          "name": "Verse",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 9,
+          "matchedKicks": 8
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Pre-Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 19,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 19,
+              "notesPerBar": 2.375,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 10,
+          "matchedKicks": 8
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 51,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 51,
+              "notesPerBar": 6.375,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 31,
+              "notesPerBar": 3.875,
+              "approaches": 6
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 44,
+              "notesPerBar": 5.5,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 20,
+          "matchedKicks": 20
+        },
+        {
+          "role": "verse",
+          "name": "Verse 2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 11,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 10,
+          "matchedKicks": 8
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus 2",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 50,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 50,
+              "notesPerBar": 6.25,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 43,
+              "notesPerBar": 5.375,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 17,
+          "matchedKicks": 17
+        },
+        {
+          "role": "bridge",
+          "name": "Bridge",
+          "changes": 5,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 14,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "Final Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 44,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 44,
+              "notesPerBar": 5.5,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 26,
+              "notesPerBar": 3.25,
+              "approaches": 5
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 37,
+              "notesPerBar": 4.625,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 8,
+          "matchedKicks": 8
+        },
+        {
+          "role": "outro",
+          "name": "Outro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "quality": 82,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.7,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.18181818181818182,
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "comparable": 11,
+          "copied": 2,
+          "ratio": 0.18181818181818182,
+          "tracks": [
+            "dr-snare",
+            "dr-high-tom"
+          ]
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "comparable": 23,
+          "copied": 4,
+          "ratio": 0.17391304347826086,
+          "tracks": [
+            "dr-snare",
+            "dr-crash",
+            "dr-snare-body",
+            "dr-clap"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "B",
+      "seed": 2,
+      "motion": {
+        "notes": 127,
+        "transitions": 124,
+        "leaps": 16,
+        "avoidable": 9,
+        "octaves": 7,
+        "mean": 2.8870967741935485
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "Intro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 7,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 7,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 3,
+          "matchedKicks": 3
+        },
+        {
+          "role": "verse",
+          "name": "Verse",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 21,
+          "matchedKicks": 11
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Pre-Chorus",
+          "changes": 7,
+          "approaches": 4,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 4
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 22,
+          "matchedKicks": 15
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 46,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 46,
+              "notesPerBar": 5.75,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 3
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 39,
+              "notesPerBar": 4.875,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 24,
+          "matchedKicks": 24
+        },
+        {
+          "role": "verse",
+          "name": "Verse 2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 15,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 21,
+          "matchedKicks": 13
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus 2",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 45,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 45,
+              "notesPerBar": 5.625,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 26,
+              "notesPerBar": 3.25,
+              "approaches": 3
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 38,
+              "notesPerBar": 4.75,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 26,
+          "matchedKicks": 25
+        },
+        {
+          "role": "bridge",
+          "name": "Bridge",
+          "changes": 5,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "Final Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 44,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 44,
+              "notesPerBar": 5.5,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 37,
+              "notesPerBar": 4.625,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 8,
+          "matchedKicks": 8
+        },
+        {
+          "role": "outro",
+          "name": "Outro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "quality": 81.197265625,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.2,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.3333333333333333,
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "comparable": 12,
+          "copied": 4,
+          "ratio": 0.3333333333333333,
+          "tracks": [
+            "dr-kick",
+            "dr-low-tom",
+            "dr-high-tom",
+            "dr-kick-click"
+          ]
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "comparable": 25,
+          "copied": 2,
+          "ratio": 0.08,
+          "tracks": [
+            "dr-crash",
+            "dr-clap"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "B",
+      "seed": 3,
+      "motion": {
+        "notes": 121,
+        "transitions": 118,
+        "leaps": 16,
+        "avoidable": 9,
+        "octaves": 8,
+        "mean": 2.9915254237288136
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "Intro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 6,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 6,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 2,
+          "matchedKicks": 2
+        },
+        {
+          "role": "verse",
+          "name": "Verse",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 20,
+          "matchedKicks": 8
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Pre-Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 29,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 29,
+              "notesPerBar": 3.625,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 19,
+              "notesPerBar": 2.375,
+              "approaches": 3
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 6,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 28,
+          "matchedKicks": 23
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 46,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 46,
+              "notesPerBar": 5.75,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 27,
+              "notesPerBar": 3.375,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 39,
+              "notesPerBar": 4.875,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 22,
+          "matchedKicks": 22
+        },
+        {
+          "role": "verse",
+          "name": "Verse 2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 16,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 22,
+          "matchedKicks": 14
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus 2",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 46,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 46,
+              "notesPerBar": 5.75,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 39,
+              "notesPerBar": 4.875,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 24,
+          "matchedKicks": 24
+        },
+        {
+          "role": "bridge",
+          "name": "Bridge",
+          "changes": 5,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "Final Chorus",
+          "changes": 7,
+          "approaches": 7,
+          "bars": 8,
+          "noteCount": 43,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 43,
+              "notesPerBar": 5.375,
+              "approaches": 7
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 36,
+              "notesPerBar": 4.5,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 9,
+          "matchedKicks": 9
+        },
+        {
+          "role": "outro",
+          "name": "Outro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "quality": 80.619140625,
+      "eligible": 7,
+      "pool": 8,
+      "audition": 96.7,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.16666666666666666,
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "comparable": 12,
+          "copied": 2,
+          "ratio": 0.16666666666666666,
+          "tracks": [
+            "dr-low-tom",
+            "dr-high-tom"
+          ]
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "comparable": 24,
+          "copied": 2,
+          "ratio": 0.08333333333333333,
+          "tracks": [
+            "dr-crash",
+            "dr-clap"
+          ]
+        }
+      ],
+      "breathing": 0
+    }
+  ],
+  "current": [
+    {
+      "song": "A",
+      "seed": 1,
+      "motion": {
+        "notes": 133,
+        "transitions": 130,
+        "leaps": 5,
+        "avoidable": 5,
+        "octaves": 1,
+        "mean": 1.5538461538461539
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "イントロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 2,
+          "matchedKicks": 2
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 8,
+          "matchedKicks": 8
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Bメロ",
+          "changes": 7,
+          "approaches": 6,
+          "bars": 8,
+          "noteCount": 21,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 21,
+              "notesPerBar": 2.625,
+              "approaches": 6
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 5
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 10,
+          "matchedKicks": 8
+        },
+        {
+          "role": "chorus",
+          "name": "サビ",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 20,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 20,
+              "notesPerBar": 2.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 16,
+          "matchedKicks": 13
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 8,
+          "matchedKicks": 8
+        },
+        {
+          "role": "chorus",
+          "name": "サビ2",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 20,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 20,
+              "notesPerBar": 2.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 15,
+          "matchedKicks": 14
+        },
+        {
+          "role": "bridge",
+          "name": "間奏",
+          "changes": 7,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 8,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "大サビ",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 28,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 8,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 27,
+          "matchedKicks": 21
+        },
+        {
+          "role": "outro",
+          "name": "アウトロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "signals": [
+        {
+          "name": "サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.004267968749999995,
+          "value": 0.039232031249999993,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.528453125
+          }
+        },
+        {
+          "name": "サビ2",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.008074687499999999,
+          "value": 0.03542531249999999,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.55383125
+          }
+        },
+        {
+          "name": "大サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.038110781250000024,
+          "value": 0.005389218749999966,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7540718750000002
+          }
+        }
+      ],
+      "quality": 90.5,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.8,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0.00390625,
+      "copy": 0.23076923076923078,
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "comparable": 13,
+          "copied": 3,
+          "ratio": 0.23076923076923078,
+          "tracks": [
+            "dr-kick",
+            "dr-kick-click",
+            "syn-sub-bass"
+          ]
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "comparable": 25,
+          "copied": 5,
+          "ratio": 0.2,
+          "tracks": [
+            "dr-snare",
+            "dr-crash",
+            "dr-snare-body",
+            "dr-clap",
+            "syn-bass-mid"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "A",
+      "seed": 2,
+      "motion": {
+        "notes": 148,
+        "transitions": 145,
+        "leaps": 3,
+        "avoidable": 1,
+        "octaves": 1,
+        "mean": 1.1448275862068966
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "イントロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 5,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 5,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 6,
+          "matchedKicks": 5
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 21,
+          "matchedKicks": 15
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Bメロ",
+          "changes": 7,
+          "approaches": 4,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 4
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 4
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 21,
+          "matchedKicks": 14
+        },
+        {
+          "role": "chorus",
+          "name": "サビ",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 27,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 27,
+              "notesPerBar": 3.375,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 4,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 24,
+          "matchedKicks": 20
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 21,
+          "matchedKicks": 15
+        },
+        {
+          "role": "chorus",
+          "name": "サビ2",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 25,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 26,
+          "matchedKicks": 21
+        },
+        {
+          "role": "bridge",
+          "name": "間奏",
+          "changes": 7,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "大サビ",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 28,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 6,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 33,
+          "matchedKicks": 25
+        },
+        {
+          "role": "outro",
+          "name": "アウトロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "signals": [
+        {
+          "name": "サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.043273125,
+          "value": 0.0002268749999999875,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7884875
+          }
+        },
+        {
+          "name": "サビ2",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.047079374999999986,
+          "value": 0,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.8138624999999999
+          }
+        },
+        {
+          "name": "大サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.0019476562499999904,
+          "value": 0.04155234375,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.5129843749999999
+          }
+        }
+      ],
+      "quality": 89.8359375,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.8,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.25,
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "comparable": 12,
+          "copied": 3,
+          "ratio": 0.25,
+          "tracks": [
+            "dr-kick",
+            "dr-low-tom",
+            "dr-kick-click"
+          ]
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "comparable": 25,
+          "copied": 3,
+          "ratio": 0.12,
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "A",
+      "seed": 3,
+      "motion": {
+        "notes": 127,
+        "transitions": 124,
+        "leaps": 2,
+        "avoidable": 2,
+        "octaves": 0,
+        "mean": 1.096774193548387
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "イントロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 6,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 6,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 8,
+          "matchedKicks": 5
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 17,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 17,
+          "matchedKicks": 13
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Bメロ",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 20,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 20,
+              "notesPerBar": 2.5,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 3
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 20,
+          "matchedKicks": 15
+        },
+        {
+          "role": "chorus",
+          "name": "サビ",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 23,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 23,
+              "notesPerBar": 2.875,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 17,
+          "matchedKicks": 14
+        },
+        {
+          "role": "verse",
+          "name": "Aメロ2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 17,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 1,
+          "matchedSlashes": 1,
+          "kicks": 17,
+          "matchedKicks": 13
+        },
+        {
+          "role": "chorus",
+          "name": "サビ2",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 24,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 24,
+              "notesPerBar": 3,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 6,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 19,
+          "matchedKicks": 16
+        },
+        {
+          "role": "bridge",
+          "name": "間奏",
+          "changes": 7,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 10,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 10,
+              "notesPerBar": 1.25,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "大サビ",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 28,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 28,
+              "notesPerBar": 3.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 34,
+          "matchedKicks": 26
+        },
+        {
+          "role": "outro",
+          "name": "アウトロ",
+          "changes": 2,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "signals": [
+        {
+          "name": "サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.04316250000000003,
+          "value": 0.00033749999999996283,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7877500000000002
+          }
+        },
+        {
+          "name": "サビ2",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.04229484375000003,
+          "value": 0.0012051562499999571,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7819656250000002
+          }
+        },
+        {
+          "name": "大サビ",
+          "tempo": 0,
+          "character": 0.04349999999999999,
+          "vocal": -0.039556875,
+          "value": 0.003943124999999992,
+          "signals": {
+            "bpm": 76,
+            "bassMovement": 0.62,
+            "rhythmDensity": 0.58,
+            "space": 0.45,
+            "leadOccupancy": 0.7637125
+          }
+        }
+      ],
+      "quality": 92.5,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 97.1,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0.00390625,
+      "copy": 0.16,
+      "copies": [
+        {
+          "from": "Aメロ",
+          "to": "Aメロ2",
+          "comparable": 12,
+          "copied": 1,
+          "ratio": 0.08333333333333333,
+          "tracks": [
+            "dr-low-tom"
+          ]
+        },
+        {
+          "from": "サビ",
+          "to": "サビ2",
+          "comparable": 25,
+          "copied": 4,
+          "ratio": 0.16,
+          "tracks": [
+            "syn-stabs",
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "B",
+      "seed": 1,
+      "motion": {
+        "notes": 106,
+        "transitions": 103,
+        "leaps": 6,
+        "avoidable": 6,
+        "octaves": 3,
+        "mean": 1.9029126213592233
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "Intro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 6,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 6,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 3,
+          "matchedKicks": 2
+        },
+        {
+          "role": "verse",
+          "name": "Verse",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 12,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 23,
+          "matchedKicks": 10
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Pre-Chorus",
+          "changes": 7,
+          "approaches": 4,
+          "bars": 8,
+          "noteCount": 21,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 21,
+              "notesPerBar": 2.625,
+              "approaches": 4
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 2
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 17,
+              "notesPerBar": 2.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 27,
+          "matchedKicks": 17
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 31,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 31,
+              "notesPerBar": 3.875,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 6,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 18,
+          "matchedKicks": 14
+        },
+        {
+          "role": "verse",
+          "name": "Verse 2",
+          "changes": 7,
+          "approaches": 2,
+          "bars": 8,
+          "noteCount": 12,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 2
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 1
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 22,
+          "matchedKicks": 10
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus 2",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 34,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 34,
+              "notesPerBar": 4.25,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 8,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 21,
+          "matchedKicks": 16
+        },
+        {
+          "role": "bridge",
+          "name": "Bridge",
+          "changes": 5,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 14,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "Final Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 32,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 32,
+              "notesPerBar": 4,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 8,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 9,
+          "matchedKicks": 7
+        },
+        {
+          "role": "outro",
+          "name": "Outro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "signals": [
+        {
+          "name": "Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.021409687499999996,
+          "value": 0.9575903125,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.64273125
+          }
+        },
+        {
+          "name": "Chorus 2",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.025123593749999982,
+          "value": 0.95387640625,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.6674906249999999
+          }
+        },
+        {
+          "name": "Final Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.04729734375,
+          "value": 0.9317026562499999,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.815315625
+          }
+        }
+      ],
+      "quality": 87.5,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.2,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.21739130434782608,
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "comparable": 12,
+          "copied": 2,
+          "ratio": 0.16666666666666666,
+          "tracks": [
+            "dr-high-tom",
+            "syn-sub-bass"
+          ]
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "comparable": 23,
+          "copied": 5,
+          "ratio": 0.21739130434782608,
+          "tracks": [
+            "dr-snare",
+            "dr-crash",
+            "dr-snare-body",
+            "dr-clap",
+            "syn-bass-mid"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "B",
+      "seed": 2,
+      "motion": {
+        "notes": 127,
+        "transitions": 124,
+        "leaps": 2,
+        "avoidable": 2,
+        "octaves": 0,
+        "mean": 1.403225806451613
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "Intro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 7,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 7,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 3,
+          "matchedKicks": 3
+        },
+        {
+          "role": "verse",
+          "name": "Verse",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 12,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 21,
+          "matchedKicks": 11
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Pre-Chorus",
+          "changes": 7,
+          "approaches": 4,
+          "bars": 8,
+          "noteCount": 18,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 18,
+              "notesPerBar": 2.25,
+              "approaches": 4
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 5,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 22,
+          "matchedKicks": 15
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 33,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 33,
+              "notesPerBar": 4.125,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 24,
+          "matchedKicks": 19
+        },
+        {
+          "role": "verse",
+          "name": "Verse 2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 15,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 14,
+              "notesPerBar": 1.75,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 21,
+          "matchedKicks": 13
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus 2",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 36,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 36,
+              "notesPerBar": 4.5,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 26,
+          "matchedKicks": 21
+        },
+        {
+          "role": "bridge",
+          "name": "Bridge",
+          "changes": 5,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 11,
+              "notesPerBar": 1.375,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "Final Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 31,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 31,
+              "notesPerBar": 3.875,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 8,
+          "matchedKicks": 6
+        },
+        {
+          "role": "outro",
+          "name": "Outro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "signals": [
+        {
+          "name": "Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.013917187500000006,
+          "value": 0.9650828124999999,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.59278125
+          }
+        },
+        {
+          "name": "Chorus 2",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.011036250000000008,
+          "value": 0.96796375,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.5735750000000001
+          }
+        },
+        {
+          "name": "Final Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.0372121875,
+          "value": 0.9417878125,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.74808125
+          }
+        }
+      ],
+      "quality": 90,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 95.9,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.3333333333333333,
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "comparable": 12,
+          "copied": 4,
+          "ratio": 0.3333333333333333,
+          "tracks": [
+            "dr-kick",
+            "dr-low-tom",
+            "dr-high-tom",
+            "dr-kick-click"
+          ]
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "comparable": 25,
+          "copied": 3,
+          "ratio": 0.12,
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ]
+        }
+      ],
+      "breathing": 0
+    },
+    {
+      "song": "B",
+      "seed": 3,
+      "motion": {
+        "notes": 121,
+        "transitions": 118,
+        "leaps": 8,
+        "avoidable": 8,
+        "octaves": 1,
+        "mean": 1.923728813559322
+      },
+      "bass": [
+        {
+          "role": "intro",
+          "name": "Intro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 6,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 6,
+              "notesPerBar": 1.5,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 2,
+          "matchedKicks": 2
+        },
+        {
+          "role": "verse",
+          "name": "Verse",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 9,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 8,
+              "notesPerBar": 1,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 2,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 20,
+          "matchedKicks": 8
+        },
+        {
+          "role": "pre-chorus",
+          "name": "Pre-Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 29,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 29,
+              "notesPerBar": 3.625,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 19,
+              "notesPerBar": 2.375,
+              "approaches": 3
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 25,
+              "notesPerBar": 3.125,
+              "approaches": 2
+            }
+          ],
+          "rhythmTypes": 6,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 2,
+          "matchedSlashes": 2,
+          "kicks": 28,
+          "matchedKicks": 23
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 32,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 32,
+              "notesPerBar": 4,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 7,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 22,
+          "matchedKicks": 17
+        },
+        {
+          "role": "verse",
+          "name": "Verse 2",
+          "changes": 7,
+          "approaches": 1,
+          "bars": 8,
+          "noteCount": 16,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 16,
+              "notesPerBar": 2,
+              "approaches": 1
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 15,
+              "notesPerBar": 1.875,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 3,
+          "matchedSlashes": 3,
+          "kicks": 22,
+          "matchedKicks": 14
+        },
+        {
+          "role": "chorus",
+          "name": "Chorus 2",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 37,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 37,
+              "notesPerBar": 4.625,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 6,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 24,
+          "matchedKicks": 19
+        },
+        {
+          "role": "bridge",
+          "name": "Bridge",
+          "changes": 5,
+          "approaches": 0,
+          "bars": 8,
+          "noteCount": 13,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 13,
+              "notesPerBar": 1.625,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 3,
+          "roots": 8,
+          "matchedRoots": 8,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        },
+        {
+          "role": "grand-chorus",
+          "name": "Final Chorus",
+          "changes": 7,
+          "approaches": 5,
+          "bars": 8,
+          "noteCount": 32,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 32,
+              "notesPerBar": 4,
+              "approaches": 5
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 9,
+              "notesPerBar": 1.125,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 8,
+          "roots": 9,
+          "matchedRoots": 9,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 9,
+          "matchedKicks": 7
+        },
+        {
+          "role": "outro",
+          "name": "Outro",
+          "changes": 3,
+          "approaches": 0,
+          "bars": 4,
+          "noteCount": 4,
+          "layers": [
+            {
+              "id": "syn-bass",
+              "notes": 4,
+              "notesPerBar": 1,
+              "approaches": 0
+            },
+            {
+              "id": "syn-bass-mid",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            },
+            {
+              "id": "syn-sub-bass",
+              "notes": 0,
+              "notesPerBar": 0,
+              "approaches": 0
+            }
+          ],
+          "rhythmTypes": 1,
+          "roots": 4,
+          "matchedRoots": 4,
+          "slashes": 0,
+          "matchedSlashes": 0,
+          "kicks": 0,
+          "matchedKicks": 0
+        }
+      ],
+      "signals": [
+        {
+          "name": "Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.0452071875,
+          "value": 0.9337928125,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.80138125
+          }
+        },
+        {
+          "name": "Chorus 2",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.04314703125000001,
+          "value": 0.93585296875,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.7876468750000001
+          }
+        },
+        {
+          "name": "Final Chorus",
+          "tempo": 1,
+          "character": -0.021,
+          "vocal": -0.034563281249999966,
+          "value": 0.94443671875,
+          "signals": {
+            "bpm": 118,
+            "bassMovement": 0.53,
+            "rhythmDensity": 0.48,
+            "space": 0.66,
+            "leadOccupancy": 0.7304218749999998
+          }
+        }
+      ],
+      "quality": 83,
+      "eligible": 8,
+      "pool": 8,
+      "audition": 96.1,
+      "harmony": 0,
+      "collision": 0,
+      "drums": 0,
+      "low": 0,
+      "copy": 0.16666666666666666,
+      "copies": [
+        {
+          "from": "Verse",
+          "to": "Verse 2",
+          "comparable": 12,
+          "copied": 2,
+          "ratio": 0.16666666666666666,
+          "tracks": [
+            "dr-low-tom",
+            "dr-high-tom"
+          ]
+        },
+        {
+          "from": "Chorus",
+          "to": "Chorus 2",
+          "comparable": 24,
+          "copied": 3,
+          "ratio": 0.125,
+          "tracks": [
+            "dr-crash",
+            "dr-clap",
+            "syn-bass-mid"
+          ]
+        }
+      ],
+      "breathing": 0
+    }
+  ]
+}
