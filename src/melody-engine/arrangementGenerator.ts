@@ -35,6 +35,7 @@ import { evaluateArrangementAudition, refineArrangementByAudition } from "./arra
 import { separateLowRegister } from "./lowRegisterSeparation"
 import { supportVoiceLeaps } from "./supportVoiceLeaps"
 import { minimizeBackgroundVoiceMovement } from "./backgroundVoiceLeading"
+import { repairBackgroundOctaveConflicts } from "./backgroundConflictRepair"
 
 const DRUM_PITCH: Partial<Record<ArrangementTrackId, number>> = {
   "dr-kick": 36,
@@ -2386,17 +2387,23 @@ export function finalizeFullSongArrangement(
         editableSectionIds: options.editableSectionIds,
       })
   // Criticのタイミング移動後にも無音区間をもう一度適用し、書き出し制約を最終優先にする。
-  const finalTracks = minimizeBackgroundVoiceMovement(project, arrangement.plan, realignPhaseLockedDrumLayers(applyArrangementTimelineToTracks(
+  let finalTracks = minimizeBackgroundVoiceMovement(project, arrangement.plan, realignPhaseLockedDrumLayers(applyArrangementTimelineToTracks(
     audition.tracks,
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
   )), options.editableTrackIds, options.editableSectionIds)
+  const backgroundRepair = options.refine === false
+    ? { tracks: finalTracks, report: arrangement.backgroundVoiceRepairs }
+    : repairBackgroundOctaveConflicts(project, arrangement.plan, finalTracks,
+      arrangement.backgroundVoiceRepairs, options.editableTrackIds, options.editableSectionIds)
+  finalTracks = backgroundRepair.tracks
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {
     ...arrangement,
     plan: finalPlan,
     tracks: finalTracks,
+    backgroundVoiceRepairs: backgroundRepair.report,
     audition: {
       ...finalReport,
       repairPasses: audition.report.repairPasses,

@@ -9,6 +9,7 @@ import { allUsablePitchClasses, parseChordSymbol } from "@/core/chord"
 import { keyScalePitchClasses, parseKey } from "@/core/scale"
 import { effectiveSectionKey, normalizeProject } from "@/core/project"
 import { measureBass, measureBreathing, measureLowEnd, measurePadMotion } from "./arrangementPerformanceMeasurements"
+import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 
 function lcs(a: number[], b: number[]) {
   let row = Array(b.length + 1).fill(0) as number[]
@@ -53,7 +54,31 @@ describe("レビュー指定2曲の決定的測定", () => {
       const lead = (index: number) => notesByPartRole(project.melodyVariants.find((v) => v.id === project.sectionMelodyAssignments[project.sections[index].id])!, "lead")
       const avg = (notes: MelodyNote[]) => notes.reduce((s, n) => s + n.pitch, 0) / notes.length
       const peak = (notes: MelodyNote[]) => Math.max(...notes.map((n) => n.pitch))
+      const protectedMelodies = structuredClone(project.melodyVariants)
       const arrangement = seed <= 3 ? generateFullSongArrangement(project, { seed }) : null
+      expect(project.melodyVariants).toEqual(protectedMelodies)
+      if (arrangement?.backgroundVoiceRepairs) {
+        const report = arrangement.backgroundVoiceRepairs
+        expect(report.records.length).toBeLessThanOrEqual(Math.floor(report.sourcePadNoteCount * .05))
+        expect(new Set(report.records.map((r) => r.noteId)).size).toBe(report.records.length)
+        const leadNotes = buildSongPlaybackMaterial(project, arrangement.plan.directive?.timelineConstraints).lead
+        const padNotes = arrangement.tracks.find((t) => t.id === "syn-dark-pad")!.notes
+        for (const record of report.records) {
+          expect(record.trackId).toBe("syn-dark-pad")
+          expect(leadNotes.some((n) => Math.abs(n.pitch - record.attemptedPitch) <= 2
+            && n.startBeat < record.startBeat + record.originalDurationBeats
+            && n.startBeat + n.durationBeats > record.startBeat)).toBe(true)
+          const note = padNotes.find((n) => n.id === record.noteId)
+          if (record.action === "shorten") {
+            expect(note!.startBeat).toBe(record.startBeat)
+            expect(note!.durationBeats).toBe(record.durationBeats)
+            expect(note!.startBeat + note!.durationBeats).toBeCloseTo(record.collisionStartBeat, 8)
+          } else expect(note).toBeUndefined()
+          expect(padNotes.some((n) => n.sectionId === record.sectionId && n.id !== record.noteId
+            && n.startBeat < record.startBeat + record.originalDurationBeats
+            && n.startBeat + n.durationBeats > record.startBeat)).toBe(true)
+        }
+      }
       const gmDrumPitches = new Set([35, 36, 37, 38, 39, 40, 41, 42, 45, 46, 49, 50, 51, 52, 63, 82])
       const drumPitchViolations = arrangement?.tracks.filter((t) => t.family === "drums")
         .flatMap((t) => t.notes).filter((n) => !gmDrumPitches.has(n.pitch)).length ?? 0
@@ -95,6 +120,7 @@ describe("レビュー指定2曲の決定的測定", () => {
         lowEnd: arrangement ? measureLowEnd(arrangement.tracks, arrangement.analysis.totalBeats) : null, drumPitchViolations,
         bass: arrangement ? measureBass(project, arrangement) : null,
         padMotion: arrangement ? measurePadMotion(arrangement.tracks) : null,
+        backgroundRepairs: arrangement?.backgroundVoiceRepairs,
         auditMaterial: arrangement && process.env.ARRANGEMENT_REVIEW_RESULT_PATH ? { project, arrangement } : undefined,
         repeated, sections: arrangement ? project.sections.map((s) => {
           const start = (s.startBar - 1) * 4, end = start + s.lengthBars * 4
@@ -135,7 +161,7 @@ describe("レビュー指定2曲の決定的測定", () => {
     const motions = arrangements.map((r) => r.padMotion!)
     const motionSum = (key: "transitions" | "leaps" | "avoidable" | "octaves" | "notes") => motions.reduce((sum, m) => sum + m[key], 0)
     expect(motionSum("leaps") / motionSum("transitions")).toBeLessThanOrEqual(.05)
-    expect(motionSum("avoidable")).toBeLessThanOrEqual(5)
+    expect(motionSum("avoidable"), "主旋律と声部の制約を守った場合も、単純な置き直し可能な跳躍を5件以下にする").toBeLessThanOrEqual(5)
     expect(motionSum("octaves")).toBeLessThanOrEqual(10)
     expect(motions.reduce((sum, m) => sum + m.mean * m.transitions, 0) / motionSum("transitions")).toBeLessThanOrEqual(2.5368589743589745 * .7)
     expect(motionSum("notes")).toBeGreaterThanOrEqual(756 * .95)

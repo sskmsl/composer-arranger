@@ -74,7 +74,7 @@ export function measurePadMotion(tracks: GeneratedArrangementTrack[]) {
   const pad = tracks.find((t) => t.id === "syn-dark-pad")?.notes ?? []
   const groups = new Map<string, typeof pad>()
   for (const note of pad) if (note.voiceId) {
-    const key = `${note.sectionId}:${note.voiceId}`
+    const key = note.voiceId
     groups.set(key, [...(groups.get(key) ?? []), note])
   }
   const moves = [...groups.values()].flatMap((notes) => {

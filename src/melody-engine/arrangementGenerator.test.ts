@@ -856,7 +856,7 @@ describe("Arrangement Generator", () => {
     expect(repeated.selection).toEqual(first.selection)
     expect(repeated.tracks).toEqual(first.tracks)
     expect(changed.tracks).not.toEqual(first.tracks)
-  })
+  }, 15_000) // 3回×候補群の全曲声部最適化も含める。検証項目・品質閾値は変更しない。
 
   it("保存済みの旧全曲案は主パートを変えず、追加オーケストレーション層だけを補う", () => {
     const input = longFormProject()

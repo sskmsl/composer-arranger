@@ -340,6 +340,18 @@ export interface FullSongArrangement {
   /** 生成後の全パートを聴感指標で反復検査した結果。 */
   audition?: ArrangementAuditionReport
   selection?: ArrangementSelectionDiagnostics
+  /** 主旋律に衝突する近接オクターブの背景音だけを、上限内で短縮／休符化した履歴。 */
+  backgroundVoiceRepairs?: BackgroundVoiceRepairReport
+}
+
+export interface BackgroundVoiceRepairReport {
+  sourcePadNoteCount: number
+  maximumEditedNotes: number
+  records: Array<{
+    noteId: string; trackId: ArrangementTrackId; sectionId: string; bar: number; startBeat: number
+    action: "shorten" | "rest"; originalPitch: number; attemptedPitch: number
+    originalDurationBeats: number; durationBeats: number; collisionStartBeat: number; reason: string
+  }>
 }
 
 export interface ArrangementAuditionReport {
