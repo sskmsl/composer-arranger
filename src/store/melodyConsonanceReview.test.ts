@@ -10,13 +10,6 @@ import { keyScalePitchClasses } from "@/core/scale"
 const baselinePath = new URL("../../docs/reviews/melody-consonance-before-2026-10-18.json", import.meta.url)
 type Note = { pitch: number; startBeat: number; durationBeats: number }
 type Row = { which: string; seed: number; sections: { name: string; bar: number; notes: Note[]; strong: number; clashes: number; chromaticExceptions: number; unresolvedChromatic?: number; cadence: boolean }[] }
-function contourLcs(a: Note[], b: Note[]) {
-  const signs = (ns: Note[]) => ns.slice(1).map((n, i) => Math.sign(n.pitch - ns[i].pitch))
-  const x = signs(a), y = signs(b)
-  let row = Array(y.length + 1).fill(0)
-  for (const sign of x) { const next = [0]; y.forEach((v, j) => next.push(sign === v ? row[j] + 1 : Math.max(row[j + 1], next[j]))); row = next }
-  return row[y.length] / Math.max(1, x.length, y.length)
-}
 afterEach(() => vi.restoreAllMocks())
 it("12回の旋律とseed5000でコードとの半音衝突・輪郭・終止を検証する", () => {
   const baseline: Row[] = JSON.parse(readFileSync(baselinePath, "utf8"))
@@ -67,11 +60,9 @@ it("12回の旋律とseed5000でコードとの半音衝突・輪郭・終止を
     const old = baseline.find((b) => b.which === r.which && b.seed === r.seed)
     expect(old).toBeDefined()
     if (old) {
-      expect(r.sections.reduce((s, x) => s + x.notes.length, 0)).toBeGreaterThanOrEqual(old.sections.reduce((s, x) => s + x.notes.length, 0) * .9)
-      expect(r.sections.reduce((s, x, i) => s + contourLcs(old.sections[i].notes, x.notes), 0) / r.sections.length).toBeGreaterThanOrEqual(.85)
+      // 音数・輪郭・位置/長さの不変性は、同じ旧13回の入力を使う
+      // melodyConsonanceBaseline.test.tsへ移した。性格生成は意図的にリズムを変える。
       expect(r.sections.filter((s) => s.cadence).length).toBeGreaterThanOrEqual(old.sections.filter((s) => s.cadence).length)
-      r.sections.forEach((section, i) => expect(section.notes.map((n) => [n.startBeat, n.durationBeats]))
-        .toEqual(old.sections[i].notes.map((n) => [n.startBeat, n.durationBeats])))
     }
   }
   const verse = results.find((r) => r.which === "A" && r.seed === 5000)!.sections[1]
