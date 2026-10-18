@@ -77,12 +77,13 @@ describe("dramatic minor output distributions", () => {
     }
   })
 
-  it("limits boundary changes and preserves reduction in actual MIDI for fixed seeds", () => {
+  it("records independent layer changes and preserves reduction in actual MIDI for fixed seeds", () => {
     const p = fixture()
     const perSeed: unknown[] = []
     for (const seed of seeds.slice(0, 3)) {
       const arrangement = generateFullSongArrangement(p, { seed })
       const midi = parseMidi(exportArrangementMidi(p, arrangement))
+      const managedNames = new Set(arrangement.tracks.filter((t) => t.family !== "drums" && t.family !== "transition").map((t) => t.name))
       const boundaryChanges = p.sections.slice(1).map((s) => {
         const boundary = (s.startBar - 1) * 4
         return midi.tracks.filter((t) => {
@@ -91,12 +92,23 @@ describe("dramatic minor output distributions", () => {
           return Math.abs(a - b) > Math.max(2, a * .5)
         }).length
       })
+      const layerChanges = p.sections.slice(1).map((s) => {
+        const boundary = (s.startBar - 1) * 4
+        const onset = (t: typeof midi.tracks[number], a: number, b: number) => t.notes.filter((n) => n.startTick / midi.ppq >= a && n.startTick / midi.ppq < b).length
+        const sounding = (t: typeof midi.tracks[number], a: number, b: number) => t.notes.some((n) => n.startTick / midi.ppq < b && (n.startTick + n.durationTicks) / midi.ppq > a)
+        return {
+          onsetFlips: midi.tracks.filter((t) => (onset(t, boundary - 4, boundary) === 0) !== (onset(t, boundary, boundary + 4) === 0)).length,
+          soundingFlips: midi.tracks.filter((t) => sounding(t, boundary - 4, boundary) !== sounding(t, boundary, boundary + 4)).length,
+          managedDensityChanges: midi.tracks.filter((t) => managedNames.has(t.name) && Math.abs(onset(t, boundary - 4, boundary) - onset(t, boundary, boundary + 4)) > Math.max(2, onset(t, boundary - 4, boundary) * .5)).length,
+        }
+      })
       const counts = p.sections.map((s) => midi.tracks.reduce((sum, t) => sum + t.notes.filter((n) => {
         const beat = n.startTick / midi.ppq
         return beat >= (s.startBar - 1) * 4 && beat < (s.startBar + s.lengthBars - 1) * 4
       }).length, 0))
-      perSeed.push({ seed, boundaryChanges, sectionNoteCounts: counts, quality: arrangement.quality?.passed })
-      expect(Math.max(...boundaryChanges)).toBeLessThanOrEqual(2)
+      const row = { seed, boundaryChanges, layerChanges, sectionNoteCounts: counts, quality: arrangement.quality?.passed }
+      perSeed.push(row)
+      expect(Math.max(...layerChanges.map((m) => m.managedDensityChanges))).toBeLessThanOrEqual(2)
       expect(counts.some((n, i) => i > 0 && n < counts[i - 1])).toBe(true)
       // 既存のdynamic-contrast解釈を使い、最終サビ前の削減を生成トラック単位で比較する。
       const plan = buildFullSongArrangementPlan(p, analyzeFullSongArrangement(p), seed, "", undefined, "dynamic-contrast")
@@ -110,6 +122,20 @@ describe("dramatic minor output distributions", () => {
       const baseline = regenerateFullSongArrangementTarget(p, noDrop, { trackId: role, sectionId: "s3" })
       const midiCount = (a: typeof reduced) => parseMidi(exportArrangementTrackMidi(p, a, role)).tracks.reduce((sum, t) => sum + t.notes.length, 0)
       expect(midiCount(reduced)).toBeLessThan(midiCount(baseline))
+      const firstOnset = (entryBeat: number) => {
+        const timingPlan = { ...plan, sections: plan.sections.map((s) => s.sectionId === "s4" ? {
+          ...s, activeRoles: [...new Set([...s.activeRoles, "str-violin-1" as const])],
+          roleEntryBeats: { ...s.roleEntryBeats, "str-violin-1": entryBeat },
+        } : s) }
+        const result = regenerateFullSongArrangementTarget(p, { ...arrangement, plan: timingPlan }, { trackId: "str-violin-1", sectionId: "s4" })
+        const read = parseMidi(exportArrangementTrackMidi(p, result, "str-violin-1"))
+        const offset = (p.sections[4].startBar - 1) * 4
+        return Math.min(...read.tracks.flatMap((t) => t.notes).filter((n) => n.startTick / read.ppq >= offset && n.startTick / read.ppq < offset + 32).map((n) => n.startTick / read.ppq - offset))
+      }
+      const entryOnsets = { safe: firstOnset(8), edge: firstOnset(0), surprise: firstOnset(4) }
+      expect(entryOnsets.safe).toBeGreaterThan(entryOnsets.surprise)
+      expect(entryOnsets.surprise).toBeGreaterThan(entryOnsets.edge)
+      Object.assign(row, { entryOnsets })
       expect(plan.sections.flatMap((s) => s.transitionCandidates).every((c) => c.reason.length > 0)).toBe(true)
     }
     report.arrangement = perSeed
