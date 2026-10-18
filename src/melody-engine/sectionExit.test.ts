@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createEmptyProject, type ChordEvent } from "@/core/project"
 import type { MelodyNote } from "@/core/melody"
-import { applySectionExit, buildSectionExitContext } from "./sectionTransition"
+import { applySectionExit, buildSectionExitContext, type SectionTransitionContext } from "./sectionTransition"
 import { generateFromChordsWithProfiles } from "./generateFromChords"
 import { exportMelodyMidi } from "@/midi/exportMelody"
 import { parseMidi } from "@/midi/importMidi"
@@ -29,13 +29,21 @@ describe("forward section context", () => {
     expect(notes[0].pitch).toBe(71)
     expect(applySectionExit([{ ...notes[0], locks: ["pitch"] }], exit, 32, { low: 60, high: 79 }, chords)[0].pitch).toBe(71)
   })
-  it("changes actual eight-bar output and its exported MIDI across fixed seeds", () => {
-    let changed = 0
+  it.each(["minimal", "standard"] as const)("changes actual eight-bar %s output and its exported MIDI across fixed seeds", (profile) => {
+    let changed = 0, previousChanged = 0
     for (const seed of [19, 41, 73]) {
       const input = { chords, sectionId: "s", sectionRole: "verse" as const, songProfile: "original-custom" as const,
-        density: "balanced" as const, range: { low: 60, high: 79 }, drama: "growing" as const,
-        totalBeats: 32, seed, profiles: ["minimal" as const] }
+        density: "balanced" as const, range: { low: 60, high: 79 }, drama: "open" as const,
+        totalBeats: 32, seed, profiles: [profile] }
+      const previous: SectionTransitionContext = { sourceSectionId: "before", sourceVariantId: "adopted", targetSectionId: "s",
+        targetRole: "verse", targetFirstChord: "Cm", contextFingerprint: "eight-bar-test", previousTailNotes: notes,
+        previousLastPitch: 67, previousDirection: 1, previousRegisterCenter: 65, previousTension: 0,
+        previousMotifIntervals: [0, 1, -1], targetEnergy: .5 }
       const baseline = generateFromChordsWithProfiles(input).candidates
+      const connected = generateFromChordsWithProfiles({ ...input, transitionContext: previous }).candidates
+      expect(connected.every((c) => c.transitionPlan?.sourceVariantId === "adopted")).toBe(true)
+      previousChanged += connected.filter((c, i) => JSON.stringify(c.notes.map((n) => [n.startBeat, n.pitch]))
+        !== JSON.stringify(baseline[i]?.notes.map((n) => [n.startBeat, n.pitch]))).length
       const contextual = generateFromChordsWithProfiles({ ...input, exitContext: exit }).candidates
       for (let i = 0; i < contextual.length; i++) {
         const n = contextual[i].notes
@@ -46,5 +54,6 @@ describe("forward section context", () => {
       }
     }
     expect(changed).toBeGreaterThan(0)
+    expect(previousChanged).toBeGreaterThan(0)
   })
 })

@@ -322,16 +322,16 @@ export function buildSectionExitContext(project: ComposerProject, sectionId: str
 /** 最終の保持音だけを次の開始へ接続。入力コードを変えず、現在和音の構成音から選ぶ。 */
 export function applySectionExit(
   source: readonly MelodyNote[], context: SectionExitContext | undefined,
-  totalBeats: number, range: RangeSetting, chords: readonly ChordEvent[],
+  totalBeats: number, range: RangeSetting, chords: readonly ChordEvent[], beatsPerBar = 4,
 ): MelodyNote[] {
   if (!context || !source.length) return [...source]
   const notes = source.map((n) => ({ ...n })).sort((a, b) => a.startBeat - b.startBeat)
   const last = notes.at(-1)!
-  if (last.locks.length || last.startBeat < totalBeats - 4) return notes
+  if (last.locks.length || last.startBeat < totalBeats - beatsPerBar) return notes
   const current = buildHarmonicMap([...chords]).find((e) => last.startBeat >= e.chord.startBeat
     && last.startBeat < e.chord.startBeat + e.chord.durationBeats)
   const next = buildHarmonicMap([{ id: "next", sectionId: context.targetSectionId,
-    symbol: context.targetFirstChord, bass: null, startBeat: 0, durationBeats: 4 }])[0]
+    symbol: context.targetFirstChord, bass: null, startBeat: 0, durationBeats: beatsPerBar }])[0]
   if (!current || !next) return notes
   const currentPcs = current.parsed.tones.map((t) => t.pitchClass)
   const nextPcs = next.parsed.tones.map((t) => t.pitchClass)

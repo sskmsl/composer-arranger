@@ -1047,7 +1047,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       : notes
     const finishContext = (notes: MelodyNote[]) => enforceHarmonicIntegrity(
       applySectionExit(simplifyAgainstHarmony(notes, input.chords, input.range, profile, input.beatsPerBar),
-        input.exitContext, input.totalBeats, input.range, input.chords),
+        profile !== "standard" || input.drama === "open" ? input.exitContext : undefined, input.totalBeats, input.range, input.chords, input.beatsPerBar),
       input.chords, input.range, { preserveExpressiveChordRoles: true },
     ).notes
     const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => withStageContext({ phase: "craft" }, () => {
