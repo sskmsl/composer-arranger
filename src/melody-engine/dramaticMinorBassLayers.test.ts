@@ -33,7 +33,8 @@ function fixture(spec: [Role, number][]): ComposerProject {
     return section
   })
   p.chords = p.sections.flatMap((s) => ["Cm", "Ab", "Bb", "G7"].map((symbol, i) => ({
-    id: `${s.id}:${i}`, sectionId: s.id, startBeat: (s.startBar - 1) * BEATS_PER_BAR + i * s.lengthBars,
+    // 和音は区間の先頭からの相対位置(曲全体の位置にするのは buildSongPlaybackMaterial)。
+    id: `${s.id}:${i}`, sectionId: s.id, startBeat: i * s.lengthBars,
     durationBeats: s.lengthBars, symbol, bass: null,
   })))
   return p
@@ -88,60 +89,59 @@ function managedChangesAt(p: ComposerProject, notes: ReturnType<typeof exportedN
   }).map(([id]) => id)
 }
 
+const WITH_BREAKDOWN = fixture([
+  ["verse", 8], ["pre-chorus", 8], ["chorus", 8], ["breakdown-chorus", 8], ["pre-chorus", 4], ["grand-chorus", 8], ["outro", 4],
+])
+const VERSE = 0
+const PRE_CHORUS = 1
+const CHORUS = 2
+const GRAND_CHORUS = 5
+
 // ---------------------------------------------------------------------------
 // 規則1：低域を控えるヴァース
-// 既存の dynamic-contrast 候補が選ばれる条件(`character: "minimal"`)で、ヴァース・プレコーラスは補助ベース層を休み、
-// サビの入りで入場する。主ベースは両側で鳴る。
+// 既存の dynamic-contrast 候補が選ばれる指示(`character: "balanced"`)で、最初のヴァース・プレコーラスは
+// 補助ベース層を休み、サビの入りで入場する。主ベースは両側で鳴る。
+// 後半のブレイクダウンと4小節の再構築は規則2の対象なので、ここでは見ない。
 // ---------------------------------------------------------------------------
-const SONG = fixture([
-  ["verse", 8], ["pre-chorus", 8], ["chorus", 8], ["verse", 8], ["pre-chorus", 8], ["chorus", 8], ["grand-chorus", 8], ["outro", 4],
-])
-const dynamicContrastDirective = { intention: "低域を控えたヴァースから、サビで広げる", character: "minimal" as const }
+const dynamicContrastDirective = { intention: "低域を控えたヴァースから、サビで広げる", character: "balanced" as const }
 
 describe("rule 1: the verse holds back the auxiliary bass layers", () => {
-  it("keeps the auxiliary bass layers silent in verse and pre-chorus and brings them in with the chorus", () => {
+  it("keeps the auxiliary bass layers silent in the first verse and pre-chorus and brings them in with the chorus", () => {
     for (const seed of [1, 2, 3]) {
-      const arrangement = generateFullSongArrangement(SONG, { seed, directive: dynamicContrastDirective })
+      const arrangement = generateFullSongArrangement(WITH_BREAKDOWN, { seed, directive: dynamicContrastDirective })
       // この入口で dynamic-contrast 候補が選ばれていること。選ばれなければ、この検証は意味を持たない。
       expect(arrangement.plan.candidateApproach, `seed ${seed}: dynamic-contrast が選ばれていない`).toBe("dynamic-contrast")
-      const notes = exportedNotes(SONG, arrangement)
-      SONG.sections.forEach((section, index) => {
-        const auxiliary = AUXILIARY_BASS.flatMap((id) => soundingBarsIn(SONG, index, notes.get(id)).map((bar) => `${id}@${bar}`))
-        if (section.role === "verse" || section.role === "pre-chorus") {
-          expect(auxiliary, `seed ${seed} ${section.role} (${section.id}): 補助ベース層が鳴っている`).toEqual([])
-        }
-        if (section.role === "chorus" || section.role === "grand-chorus") {
-          expect(auxiliary.length, `seed ${seed} ${section.role} (${section.id}): 補助ベース層がサビで鳴らない`).toBeGreaterThan(0)
-          // 入場は、サビの先頭から後4小節(#193 の窓)までに収まる。
-          const first = Math.min(...AUXILIARY_BASS.flatMap((id) => soundingBarsIn(SONG, index, notes.get(id))))
-          expect(first, `seed ${seed} ${section.role} (${section.id}): 入場が遅い`).toBeLessThanOrEqual(4)
-        }
-        if (section.role !== "outro") {
-          expect(soundingBarsIn(SONG, index, notes.get(MAIN_BASS)).length, `seed ${seed} ${section.role} (${section.id}): 主ベースが鳴らない`).toBeGreaterThan(0)
-        }
-      })
+      const notes = exportedNotes(WITH_BREAKDOWN, arrangement)
+      const auxiliaryIn = (index: number) => AUXILIARY_BASS.flatMap((id) => soundingBarsIn(WITH_BREAKDOWN, index, notes.get(id)).map((bar) => `${id}@${bar}`))
+      for (const index of [VERSE, PRE_CHORUS]) {
+        expect(auxiliaryIn(index), `seed ${seed} ${WITH_BREAKDOWN.sections[index].role}: 補助ベース層が鳴っている`).toEqual([])
+      }
+      for (const index of [CHORUS, GRAND_CHORUS]) {
+        expect(auxiliaryIn(index).length, `seed ${seed} ${WITH_BREAKDOWN.sections[index].role}: 補助ベース層がサビで鳴らない`).toBeGreaterThan(0)
+        // 入場は、サビの先頭から後4小節(#193 の窓)までに収まる。
+        const first = Math.min(...AUXILIARY_BASS.flatMap((id) => soundingBarsIn(WITH_BREAKDOWN, index, notes.get(id))))
+        expect(first, `seed ${seed} ${WITH_BREAKDOWN.sections[index].role}: 入場が遅い`).toBeLessThanOrEqual(4)
+      }
+      for (const index of [VERSE, PRE_CHORUS, CHORUS, GRAND_CHORUS]) {
+        expect(soundingBarsIn(WITH_BREAKDOWN, index, notes.get(MAIN_BASS)).length, `seed ${seed} ${WITH_BREAKDOWN.sections[index].role}: 主ベースが鳴らない`).toBeGreaterThan(0)
+      }
     }
   }, 60_000)
 
   it("keeps a preserved auxiliary bass layer in the verse, even when the others are held back", () => {
     // 明示された保護(preserve)は、規則1の保留より優先する。保護した層は、最初のヴァースで鳴り続ける。
     for (const seed of [1, 2]) {
-      const arrangement = generateFullSongArrangement(SONG, { seed, directive: { ...dynamicContrastDirective, preserve: ["syn-sub-bass"] } })
-      const notes = exportedNotes(SONG, arrangement)
-      const verse = SONG.sections.findIndex((s) => s.role === "verse")
-      expect(soundingBarsIn(SONG, verse, notes.get("syn-sub-bass")).length, `seed ${seed}: 保護した syn-sub-bass が最初のヴァースで鳴らない`).toBeGreaterThan(0)
+      const arrangement = generateFullSongArrangement(WITH_BREAKDOWN, { seed, directive: { ...dynamicContrastDirective, preserve: ["syn-sub-bass"] } })
+      const notes = exportedNotes(WITH_BREAKDOWN, arrangement)
+      expect(soundingBarsIn(WITH_BREAKDOWN, VERSE, notes.get("syn-sub-bass")).length, `seed ${seed}: 保護した syn-sub-bass が最初のヴァースで鳴らない`).toBeGreaterThan(0)
     }
   }, 60_000)
 })
 
 // ---------------------------------------------------------------------------
 // 規則2：ブレイクダウン→4小節の再構築→サビ
-// ブレイクダウン区間は補助ベース層を全休止し、後続の4小節区間で、管理対象を1小節あたり2層までずつ戻す。
+// approach に依らず、構成そのもの(ブレイクダウン→4小節の再構築→サビ)を条件にする。ブレイクダウン区間は補助ベース層を全休止し、後続の4小節区間で、管理対象を1小節あたり2層までずつ戻す。
 // ---------------------------------------------------------------------------
-const WITH_BREAKDOWN = fixture([
-  ["verse", 8], ["pre-chorus", 8], ["chorus", 8], ["breakdown-chorus", 8], ["pre-chorus", 4], ["grand-chorus", 8], ["outro", 4],
-])
-
 describe("rule 2: breakdown, then a four-bar rebuild into the chorus", () => {
   const breakdown = WITH_BREAKDOWN.sections.findIndex((s) => s.role === "breakdown-chorus")
   const rebuild = breakdown + 1
