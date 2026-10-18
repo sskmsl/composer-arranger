@@ -1,0 +1,2594 @@
+[
+  {
+    "which": "A",
+    "run": 0,
+    "section": "イントロ",
+    "pattern": 1,
+    "count": 10,
+    "pitchHash": "11840680c511270b1a772ebf04fa7c516ef6dee7da060b31cc032b022df350b3"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "イントロ",
+    "pattern": 2,
+    "count": 11,
+    "pitchHash": "e96f78beec7fd1c7b404ff2087f852195173563bd3ad3ba94744d4c1e4e008af"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "イントロ",
+    "pattern": 3,
+    "count": 7,
+    "pitchHash": "32af56012e8c95c12448f16eb832a4218b1fc4131a15c76c34cb37e77ba220e0"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Aメロ",
+    "pattern": 1,
+    "count": 40,
+    "pitchHash": "89ec7c224e17f3a655dc67c48b39a1c02a8f60583763b2162bf1e1943f59f0b4"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Aメロ",
+    "pattern": 2,
+    "count": 43,
+    "pitchHash": "51604053d0ff3f6820bdebb6130249864df665c4be82f54d06c9b2ee23af964a"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Aメロ",
+    "pattern": 3,
+    "count": 31,
+    "pitchHash": "dd1b23e5fc46710f3a0f79e8806597626ab99c5c6f72e2f4ff5086c93a81af3d"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Bメロ",
+    "pattern": 1,
+    "count": 19,
+    "pitchHash": "880d76c73f741894b027e147ce70647276d5e1c2724ccb5d4180a9e35080cb38"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Bメロ",
+    "pattern": 2,
+    "count": 16,
+    "pitchHash": "a0abc69f63b8abc46d5429c9633c86586c61a8d66d0c7cd2990b489247d21314"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Bメロ",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "e3fb5d1b30a9c38673880375e14065a204be5615185c0cf9268801a9ea0a1a3c"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "サビ",
+    "pattern": 1,
+    "count": 31,
+    "pitchHash": "fd55c4dea85a40e36ed873aefffac57faa0468a31b0f7ced87dd4304a77ccae6"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "サビ",
+    "pattern": 2,
+    "count": 29,
+    "pitchHash": "a1c651cea741e466ee5b383edfa3adc71abddf7661e9c9e87dcd67ceb1a82b15"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "サビ",
+    "pattern": 3,
+    "count": 33,
+    "pitchHash": "850acb0747e816ee7bdbb992409f7b149a5ddb5f99ba43542c8f6f7cb6c3ab54"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Aメロ2",
+    "pattern": 1,
+    "count": 40,
+    "pitchHash": "2e5363cfdec9c1d266e029404316044c5063ee4f2da84a704f4b7560b977753f"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Aメロ2",
+    "pattern": 2,
+    "count": 40,
+    "pitchHash": "e9541fd1778f5a04d06f64cfad6ab3d6b93a3ed7420883f3f8e8351ea46e2465"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "Aメロ2",
+    "pattern": 3,
+    "count": 40,
+    "pitchHash": "6e8807839d8095401b651e8bc372b34877fe551d33338d126503e9c73fa7ea7a"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "サビ2",
+    "pattern": 1,
+    "count": 31,
+    "pitchHash": "dafdacf65640814fa591104078aacb591b13712581dde8c4c74dffef31bd8319"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "サビ2",
+    "pattern": 2,
+    "count": 31,
+    "pitchHash": "1034c461a642b0c8a3bd507662c19ed3481d8fd3eebffa252144a3f3a622852f"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "サビ2",
+    "pattern": 3,
+    "count": 31,
+    "pitchHash": "52ba861b92e580d7c93a070c2dbb5275dc135e451ef4a748a55b243456c90a59"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "間奏",
+    "pattern": 1,
+    "count": 16,
+    "pitchHash": "a849927bd74488a8e5d00c70440cde2650609fd23ac876676177a95e8be8c911"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "間奏",
+    "pattern": 2,
+    "count": 26,
+    "pitchHash": "375648e937ec3cec47ced69e89d9b54fba7778061581eb86d201ea763d0cb8b1"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "間奏",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "a6d4ad41ccf8321179b2b2e91fdef77589ec9aa5d97829d8074f2759d6e3a85a"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "大サビ",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "218f1f8399105da0d24e332458afc0669ca680ffbfc1bd6977dc73397cb894e6"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "大サビ",
+    "pattern": 2,
+    "count": 17,
+    "pitchHash": "74c64dcee25b7a70895f58eecce26fca37aa4e00cbd6f382e94a86a2b8e57d09"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "大サビ",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "0a659269edebc43d038bbf9570a88581b753fdb2e0f4ffc72ad3419e9b08888a"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "アウトロ",
+    "pattern": 1,
+    "count": 9,
+    "pitchHash": "7c9caad8f886a582eff9b5315ab733c3c2e3a530229d7108d4c223991620d3c5"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "アウトロ",
+    "pattern": 2,
+    "count": 13,
+    "pitchHash": "35c1a460d0558e3b130e248263a7f175de4cf1d130a65612b20912b580234827"
+  },
+  {
+    "which": "A",
+    "run": 0,
+    "section": "アウトロ",
+    "pattern": 3,
+    "count": 10,
+    "pitchHash": "d853b854b4a3191ff450b6e86ff5fe4d02f5730791899308e4f1727a9de02ac6"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "イントロ",
+    "pattern": 1,
+    "count": 8,
+    "pitchHash": "790a1743ccc49990d536e499a0af8955783d47e7781e51ef38fc26f605cd2b06"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "イントロ",
+    "pattern": 2,
+    "count": 12,
+    "pitchHash": "1b82074122195dc57fedc66dd8d83cc8547c9461f634921b5238e7e75946833b"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "イントロ",
+    "pattern": 3,
+    "count": 8,
+    "pitchHash": "54e2ee977a23a2ce772b0c8c311b6314606d1b4a32758abfd8d0867bb31ba7c7"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Aメロ",
+    "pattern": 1,
+    "count": 14,
+    "pitchHash": "e7a79bd2226fb58943b2a4129e1d24015bffb5c742f4cdf553573e803bae7fa8"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Aメロ",
+    "pattern": 2,
+    "count": 19,
+    "pitchHash": "15e309f5028d9e1278850d40e479dfecc8fc933aabac0cb000960144375f68bc"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Aメロ",
+    "pattern": 3,
+    "count": 19,
+    "pitchHash": "d91c2ed77f3e83dbf9b0ccdc8619e49f6e0ca64f287c328649de155b2ffa7a6e"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Bメロ",
+    "pattern": 1,
+    "count": 39,
+    "pitchHash": "ec99547f722249aa33d28648c41e6f04cad9ec89f578270b70e115a42459e92c"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Bメロ",
+    "pattern": 2,
+    "count": 53,
+    "pitchHash": "9ac94c2cd25e09e08e621c84499f8d252cbc1fdae33fd6e7c1029d8fd9228a1f"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Bメロ",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "6640f09298e931158f8a7c92ed8f8871d4c72ff3b6566ade07d798a324aeb633"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "サビ",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "9dbf621403762916519ed0c6e5ea8b3ab3034034e80a4877216895491e5d6aca"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "サビ",
+    "pattern": 2,
+    "count": 17,
+    "pitchHash": "18e89e04b2aad5ae12b2d45845d8817b29d5c7cebd3e922d15ac49d3a7cb4631"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "サビ",
+    "pattern": 3,
+    "count": 23,
+    "pitchHash": "9d7d4f8a894eaf6c29decff1ff5ebe9238519fdd31811a2edc8291b0e30fc802"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Aメロ2",
+    "pattern": 1,
+    "count": 14,
+    "pitchHash": "e7a79bd2226fb58943b2a4129e1d24015bffb5c742f4cdf553573e803bae7fa8"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Aメロ2",
+    "pattern": 2,
+    "count": 14,
+    "pitchHash": "71595b55f9605e85969fe499419f0a8975a02839b24478f5647ec7d617d6db90"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "Aメロ2",
+    "pattern": 3,
+    "count": 14,
+    "pitchHash": "efed9518c4ace1d4d37637eef5d947ef005815e0ae86157e892679066825eace"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "サビ2",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "9dbf621403762916519ed0c6e5ea8b3ab3034034e80a4877216895491e5d6aca"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "サビ2",
+    "pattern": 2,
+    "count": 15,
+    "pitchHash": "9dbf621403762916519ed0c6e5ea8b3ab3034034e80a4877216895491e5d6aca"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "サビ2",
+    "pattern": 3,
+    "count": 15,
+    "pitchHash": "9dbf621403762916519ed0c6e5ea8b3ab3034034e80a4877216895491e5d6aca"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "間奏",
+    "pattern": 1,
+    "count": 17,
+    "pitchHash": "e818bd2df434a65afd1268760294d545c4124c280cf1d026191f21603bb4c6e0"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "間奏",
+    "pattern": 2,
+    "count": 20,
+    "pitchHash": "19f8af6078c4c31b12ccedfd02916cb53e118aea4ad2aa31b56218b2b55d3c78"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "間奏",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "0e6ee8d6ebcccd0e93d8e12ab8a137e54f0e61cb7b12d6d8611984929447c640"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "大サビ",
+    "pattern": 1,
+    "count": 16,
+    "pitchHash": "35d7e91102a5aee0cc1998afd23f4675f9bdc6c9e5c87f909d1ef6e0c0d2653d"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "大サビ",
+    "pattern": 2,
+    "count": 14,
+    "pitchHash": "525dc4506eba8dad95045a4252ebcefdec07fc43f3e04829fafe2f9f8310ceee"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "大サビ",
+    "pattern": 3,
+    "count": 21,
+    "pitchHash": "51cddb7f4e68fdba9e770da3ba3a3ed17a91d24eb41e7737b4887cd9ddc4e194"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "アウトロ",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "a4b9258f8db73c1718394fea2218badde6f3d8263c080ee14a9d78548a7d26a5"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "アウトロ",
+    "pattern": 2,
+    "count": 8,
+    "pitchHash": "2f299d5a52df1dbdbcb15f116296a3a9f6f1e7dbd3bcfd0a429ed75687892e2e"
+  },
+  {
+    "which": "A",
+    "run": 1,
+    "section": "アウトロ",
+    "pattern": 3,
+    "count": 9,
+    "pitchHash": "6c892acc9250796cfd40355933fa371aa3fc39033aee8af3c0c4ab52b7cb2658"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "イントロ",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "c754682b04bf8fd46f8b55c0c657132964eaadc4418388da74fa1dbf8fd6816d"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "イントロ",
+    "pattern": 2,
+    "count": 10,
+    "pitchHash": "5c63d96f156b6272cb4423d2a2b5abfe9fc3df26dde0c49e4a2a1f9ec34ae35e"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "イントロ",
+    "pattern": 3,
+    "count": 11,
+    "pitchHash": "f671ac355ff4c3079218aef6b7a7fcd97a55939f2366f2a9dccd2be0e4b9742d"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Aメロ",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "ca184b129715245a02838113dcfee211e0967fc396b3ddbb48e662b33c2e4ef0"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Aメロ",
+    "pattern": 2,
+    "count": 17,
+    "pitchHash": "ce4c6a9c4dabf30e0c4bf39c366c45bb1353811b18af1e8dd724eacd734dc3c6"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Aメロ",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "612b6005316c772e7f68ffd59b30cf1eb59259f32a7465e89f7dfb63945640d3"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Bメロ",
+    "pattern": 1,
+    "count": 21,
+    "pitchHash": "0e033e3145e336149bef18a217de86388bd363ad96686f5630a03d4df5e9b4be"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Bメロ",
+    "pattern": 2,
+    "count": 21,
+    "pitchHash": "78e9582d8be2ab565bf4bfcc02ae7381376ad5ba2f0a9a4a651e55787feedaa0"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Bメロ",
+    "pattern": 3,
+    "count": 14,
+    "pitchHash": "75d3afd0b5322a236dc6a8b7bbb4f536f4f80901816ad286f95f3a7723c9e637"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "サビ",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "c8a5c1411b6a3f775711ea07968233b72ec0eb353be07f3dd060c1e4f879bd3e"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "サビ",
+    "pattern": 2,
+    "count": 50,
+    "pitchHash": "fb6daa03d08f4c5b7cd4def757ce228da65469545fe06dbed8fbc1e7701cc3c5"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "サビ",
+    "pattern": 3,
+    "count": 22,
+    "pitchHash": "ab9b9ddfad215dcb801690ea34f4aeea6c8c777993f9e0939bee216fbda7daf1"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Aメロ2",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "1642e4117058f12a130d80a8bc6c8da448413f5faa1b30378a67d78608457e93"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Aメロ2",
+    "pattern": 2,
+    "count": 20,
+    "pitchHash": "f2cac95c539fb95a84825ba0259aac95715937a28d62335f54f090e5cc09ea8e"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "Aメロ2",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "1642e4117058f12a130d80a8bc6c8da448413f5faa1b30378a67d78608457e93"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "サビ2",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "c8a5c1411b6a3f775711ea07968233b72ec0eb353be07f3dd060c1e4f879bd3e"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "サビ2",
+    "pattern": 2,
+    "count": 28,
+    "pitchHash": "c8a5c1411b6a3f775711ea07968233b72ec0eb353be07f3dd060c1e4f879bd3e"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "サビ2",
+    "pattern": 3,
+    "count": 28,
+    "pitchHash": "a39872ec761194185f873ff95b6ddb18256c20a6d03451afd5a2ca38d9be84fa"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "間奏",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "5aac63990ce82dbdba0a988df9aa3ea96c2b2d71614f9325aefe0d1cdc16c5ee"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "間奏",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "8ca2f51549f12a1d00953ca057f7e6bdf50b9cb6b5e96814302edea14bf0f74a"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "間奏",
+    "pattern": 3,
+    "count": 15,
+    "pitchHash": "05a7d7881c5ec14a07c32cbd39bfda7451777f0c6c94243f327c750f1a44cdb6"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "大サビ",
+    "pattern": 1,
+    "count": 36,
+    "pitchHash": "c43f0f7c7dc2af5c0b68d8fb09991f571938ffaea263416bcc875716048686ef"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "大サビ",
+    "pattern": 2,
+    "count": 29,
+    "pitchHash": "e87fd8b5a09e4d2de781becc24ba7fe0bc00309963c47d6c5aca795dfc67e553"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "大サビ",
+    "pattern": 3,
+    "count": 38,
+    "pitchHash": "ac53e6f845feeb6e2d10fe13a808e4664ba9844204999842a3a73795a2e6bc39"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "アウトロ",
+    "pattern": 1,
+    "count": 8,
+    "pitchHash": "ed94aea9f1987be546fc2459f143ea606529737b36d38c7d4efeae155e6d6a0a"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "アウトロ",
+    "pattern": 2,
+    "count": 12,
+    "pitchHash": "78b0a3f689243c85cd7a6b169e0b41dd4ce92b4199d13c7587dcdf729d66652a"
+  },
+  {
+    "which": "A",
+    "run": 2,
+    "section": "アウトロ",
+    "pattern": 3,
+    "count": 9,
+    "pitchHash": "48c5b2ff8a85148bc9227b013d1a7e853ad11793ecbb20aeb2f134a076814ac6"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "イントロ",
+    "pattern": 1,
+    "count": 7,
+    "pitchHash": "2d89fe0052db833b70997e5cfd088b6b750800d85d046ed8a46ff8bf774a7b9c"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "イントロ",
+    "pattern": 2,
+    "count": 11,
+    "pitchHash": "787d6759643924c71678c1e2aba2a383c36b066b2372f4834c818b93472714d1"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "イントロ",
+    "pattern": 3,
+    "count": 12,
+    "pitchHash": "3bad55d1ca73da4f57b90e6c3d959e44a1b205c26fcf3a5cf6176d42abb52582"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Aメロ",
+    "pattern": 1,
+    "count": 22,
+    "pitchHash": "7deb6560f5c1cfc901eda453ece596fe92d2bcbbb0ba3854fff57182a329adeb"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Aメロ",
+    "pattern": 2,
+    "count": 13,
+    "pitchHash": "8f8f48c61e7f25431048b85ce1d7848d1a51b492d73cf813b489c8eb1a029537"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Aメロ",
+    "pattern": 3,
+    "count": 22,
+    "pitchHash": "1e5d91b5f0bd25720b5a4a2faab4ac2745a9a12636b6665774de51891400ae7d"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Bメロ",
+    "pattern": 1,
+    "count": 47,
+    "pitchHash": "faf1feb27c3e0e3be5cfe23334da2d8f564e2cd07842e6196ff185224cd153d6"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Bメロ",
+    "pattern": 2,
+    "count": 44,
+    "pitchHash": "ddf9ba8e5288f1dbc34c9c1bb00efac32f94d2ec3a93f6699eb2d6483dc81f80"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Bメロ",
+    "pattern": 3,
+    "count": 36,
+    "pitchHash": "98d64ab7dfe6638973ea2f33e7e7a5a9ec9331148e1ccebccd8fc71731d3b53c"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "サビ",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "06490bf3ee4e95f2f47af78d73cc7c06af9fc9c5f9d20a240994a9d606bf3970"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "サビ",
+    "pattern": 2,
+    "count": 21,
+    "pitchHash": "f52b93821e3e017d18ce9425f2b39a2c0d0c2ea1dfdf2c1c1bcf2270a0f585dd"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "サビ",
+    "pattern": 3,
+    "count": 18,
+    "pitchHash": "3e2186798b7af2da6c198bd1b4967e5fbfd5c655ce9abed5d60fedb0fbeec0ea"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Aメロ2",
+    "pattern": 1,
+    "count": 22,
+    "pitchHash": "c1babc92b171d0fe5db584fefff75e3be7a3475561a866b6365111b2334acb6b"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Aメロ2",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "c1babc92b171d0fe5db584fefff75e3be7a3475561a866b6365111b2334acb6b"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "Aメロ2",
+    "pattern": 3,
+    "count": 22,
+    "pitchHash": "20973d0ad10f9f64084bfc0ae6b3abb8f4c22ca4fa0da473c16c8a45c28f6ebb"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "サビ2",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "f67a09beec0320e673603071611ac792ddf680140a96c45f5a13678e98391e09"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "サビ2",
+    "pattern": 2,
+    "count": 18,
+    "pitchHash": "ef1b1c9be3e5b1c58987f8de9d603f0d99e014877daa99962fadb0f72fa99475"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "サビ2",
+    "pattern": 3,
+    "count": 18,
+    "pitchHash": "df6a187ccbf1cc43a201b80a09922dc35967a436696b02328b5bf4c238d2b9e2"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "間奏",
+    "pattern": 1,
+    "count": 17,
+    "pitchHash": "d462b136c68a9823859ec20952313981a3fab7aaf63c54b9a7c8ed532668089a"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "間奏",
+    "pattern": 2,
+    "count": 24,
+    "pitchHash": "107691ce03774c940ab0cd691e4515c1f54aeb6cfec8ddbdd8f4bbb393664aa3"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "間奏",
+    "pattern": 3,
+    "count": 26,
+    "pitchHash": "bd21452e734338a91b77f7696b3b116bf2d7cd9b483145550883e9eeacd05565"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "大サビ",
+    "pattern": 1,
+    "count": 41,
+    "pitchHash": "a714c01c8a593f4682f78db192f1c1c9d1856e77a78293da6c8398c4fabdd1f9"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "大サビ",
+    "pattern": 2,
+    "count": 39,
+    "pitchHash": "55dfa21fd475c026465bbed1cdbf8676ecf850379c9522903b7ba26cc54e6d44"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "大サビ",
+    "pattern": 3,
+    "count": 32,
+    "pitchHash": "94c383901417679bbff7e2a2fc9e7ef116eafc167d8dff433c21246f760f8645"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "アウトロ",
+    "pattern": 1,
+    "count": 9,
+    "pitchHash": "fd973ca3ce07b0aa6820163e93c4d41c3d08e154826fb02e8af4069a6f1dc1a9"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "アウトロ",
+    "pattern": 2,
+    "count": 14,
+    "pitchHash": "52df7c4b463e335818b4425d8221c11a0c4346273c0c535b9d876a443a2e519b"
+  },
+  {
+    "which": "A",
+    "run": 3,
+    "section": "アウトロ",
+    "pattern": 3,
+    "count": 9,
+    "pitchHash": "e96540fef43fd339fc476d9ee86ffe288f6a0b36533570e221e806b17f94e550"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "イントロ",
+    "pattern": 1,
+    "count": 9,
+    "pitchHash": "6027cde684d2ac5cdcfa3f99b3902bd3d0633b03a429f8d2874728812736b7a0"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "イントロ",
+    "pattern": 2,
+    "count": 13,
+    "pitchHash": "de19024745f52ab57228a1468608d07829d726d8fe058d08fa20827d7865e99b"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "イントロ",
+    "pattern": 3,
+    "count": 10,
+    "pitchHash": "e6e2cc548155f8103e35d53336cd873e1be87efa1a703c7be5b59528017fcc16"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Aメロ",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "e97c354e96a5815028378c2fc634c91ed73402715e5b352a39cb9d144635cba2"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Aメロ",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "acecb12c539132a2fdbb872cf6a15569e1920af397a5f4d426d58befef0789f7"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Aメロ",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "235ca15cc30f93a29e34b2fc165035fc06e5015a76c856097b51ba7b63dbee90"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Bメロ",
+    "pattern": 1,
+    "count": 17,
+    "pitchHash": "fa78f8357c8ad9ab9877e7380b74aa97c435c37bb67122ebc59ea9a3d64354c8"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Bメロ",
+    "pattern": 2,
+    "count": 13,
+    "pitchHash": "832005a7dfe2bbb3a3ba1005745c6935315ce93ee104b2fd0d9cd91922553ed5"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Bメロ",
+    "pattern": 3,
+    "count": 13,
+    "pitchHash": "4cdf6fb281fc501b63399ddd20881c8c08de7df82221158229814e5e661a6a0e"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "サビ",
+    "pattern": 1,
+    "count": 22,
+    "pitchHash": "c2f319f1a33d9b024ccc3cc95924d05b1f97904ec93b750c9537105be4fd40f5"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "サビ",
+    "pattern": 2,
+    "count": 23,
+    "pitchHash": "86e85cb927affe4f288ca5f86d3cbaff1f6ae0ee6f193d314ac43cdebfd303c9"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "サビ",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "3c8a544a2c2d85cf1e2d142912b6e9d41ef2748e342874127acfa2393e4ca4fb"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Aメロ2",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "bf1f558e4ee4c0bf976b969aebb7c0d07d798345f6d9e4c46474efca6942d72c"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Aメロ2",
+    "pattern": 2,
+    "count": 25,
+    "pitchHash": "9c3ed196a1bb9cc16619388d5b6d1300defbc9a567c473fb748c71448e74777c"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "Aメロ2",
+    "pattern": 3,
+    "count": 25,
+    "pitchHash": "8b828f523b65ed97fd18255354d7af58bbd1eebb7dfbd7a6df4f4758dbd6e1ab"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "サビ2",
+    "pattern": 1,
+    "count": 22,
+    "pitchHash": "a6645e492def2e73429bd58ce099bc06a3617b5ca201b3cf49d09d529cf3577c"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "サビ2",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "df2758132c5c5830e96d5fdb09169db26728a99bc02a98793df968579028635e"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "サビ2",
+    "pattern": 3,
+    "count": 22,
+    "pitchHash": "a6645e492def2e73429bd58ce099bc06a3617b5ca201b3cf49d09d529cf3577c"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "間奏",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "a3658dfd9e08d151f08b37afdecdd08ba1833c0fb25b69d91ebeb2448d970d1f"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "間奏",
+    "pattern": 2,
+    "count": 31,
+    "pitchHash": "7463df18c0766f40a2fa6782c0ad03552854823d21cd05028fec2eef880d5478"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "間奏",
+    "pattern": 3,
+    "count": 18,
+    "pitchHash": "38e4ec31619c693e93c7de3f628c8ad31f24eabd224cd3c79e2280dadaffd873"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "大サビ",
+    "pattern": 1,
+    "count": 24,
+    "pitchHash": "f2183cb33a296e24b78622df4b21091b83df0ccc2866cc261acc5a2158e5e6f5"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "大サビ",
+    "pattern": 2,
+    "count": 34,
+    "pitchHash": "13042203e52a27bbc1d9afe1d913ece39bc96391a43c7c0e69cab1476a7c806c"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "大サビ",
+    "pattern": 3,
+    "count": 41,
+    "pitchHash": "25ccb542f7c98c3e0e5111d45a9667ceb2ca286d7775eaf17723348194e07f3e"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "アウトロ",
+    "pattern": 1,
+    "count": 14,
+    "pitchHash": "ac9bca2461a5d10da5a9215f07087895a7a5f86b2f1bd4ba4137bf9765b8a933"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "アウトロ",
+    "pattern": 2,
+    "count": 11,
+    "pitchHash": "9d960edb994a095bad731b2004bedca2354ea9b28f925d870a84a4afd857eeee"
+  },
+  {
+    "which": "A",
+    "run": 4,
+    "section": "アウトロ",
+    "pattern": 3,
+    "count": 8,
+    "pitchHash": "e578f47f6534a5df785d8089229b3ee2d1b7bab75422878be5152659d5cbd7ec"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "イントロ",
+    "pattern": 1,
+    "count": 11,
+    "pitchHash": "601ebc50c21bd5a44f0d783bbc6293ade5ac8ad87b4cff0e91ff8d2fc6cbbd74"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "イントロ",
+    "pattern": 2,
+    "count": 10,
+    "pitchHash": "e545dfb0ad69365d169c20cc485cb4fa3bcfce11176d62831402cf881f79b287"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "イントロ",
+    "pattern": 3,
+    "count": 14,
+    "pitchHash": "4d0492419eb9405e77e14e3964a14acac4915fb9c051da9a456ec2d76b82a917"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Aメロ",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "fdf19879108861b27ef6f64cbadaf48f71a90fad5267264dfe46c16016b0cc66"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Aメロ",
+    "pattern": 2,
+    "count": 24,
+    "pitchHash": "844346a5562d6daf8969c87fa10d87520b32fabd0fa03b7a85896f185f335124"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Aメロ",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "95acaf90d2b181ffc2bdd739156a3b36393364b0adffebcaddf1f1cf9548ff61"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Bメロ",
+    "pattern": 1,
+    "count": 13,
+    "pitchHash": "c478616a2e10817d5f1e1ba555fed1ef5cb3c68f7fbe9759321324701892326b"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Bメロ",
+    "pattern": 2,
+    "count": 26,
+    "pitchHash": "6a9fd655408934bb7be4403d19e93e49e70883e663cf081f4017204f1c9bded0"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Bメロ",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "8a52ddad16ed7f44a0a2532fc70d199caad72f630e3d6b8d622083d57a58e674"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "サビ",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "ed0c4ff89162e4dcadf74bcb0898046c3da5fbe64019e46e30313a6e08ce368e"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "サビ",
+    "pattern": 2,
+    "count": 19,
+    "pitchHash": "3df792e9c79f0ceb11372ca50ea458ec1879210478fdb81e086c60d15e17c0eb"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "サビ",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "b808c5c514ab4b79cbd481093a7d70af8461f065762b01a53f61a2b3a65a0174"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Aメロ2",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "e6402b5cb7fe6dbf1b85803b1228a1b3ddee917d5456fde3eb837c13982b97bb"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Aメロ2",
+    "pattern": 2,
+    "count": 28,
+    "pitchHash": "fdf19879108861b27ef6f64cbadaf48f71a90fad5267264dfe46c16016b0cc66"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "Aメロ2",
+    "pattern": 3,
+    "count": 28,
+    "pitchHash": "cd25aaab6a76e5266d2c38cdb8caba50183bfe968f720982de238feb3c6e690a"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "サビ2",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "e32b610fa5c1bc385b1a7117a37d6fb43def42ca635808d7e6fb8b93d57af5b5"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "サビ2",
+    "pattern": 2,
+    "count": 28,
+    "pitchHash": "a04f92f1bed9d641ce1bad130222e815850123d331220a6960ff89b1999c916e"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "サビ2",
+    "pattern": 3,
+    "count": 28,
+    "pitchHash": "c8c25c08be28229bef8457fb077596b48dad8a19f0ae5d65662abf2caaf4896a"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "間奏",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "12c269d7640aff3e0fc7f805dca5879c8c2c16e74bce62e718fc413cbb10d19d"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "間奏",
+    "pattern": 2,
+    "count": 16,
+    "pitchHash": "0567dbb81f0778bb556c3275d7d86658b148ac7d8c86a1e068f7a1d435a1033f"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "間奏",
+    "pattern": 3,
+    "count": 21,
+    "pitchHash": "fd549b32a02b1b973b2aca1f86acdb4d8f838e4ca992547799b2aaa090254848"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "大サビ",
+    "pattern": 1,
+    "count": 22,
+    "pitchHash": "01b4aabb10ce1132f19cb000ef05ea24af8ecda32f78be809a2ce1cf5373cd49"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "大サビ",
+    "pattern": 2,
+    "count": 41,
+    "pitchHash": "fb14392635ce9a44833a591fb4e9f372012fa05d607a805226a3f78f258cb4c4"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "大サビ",
+    "pattern": 3,
+    "count": 31,
+    "pitchHash": "551665fa36ddc967996b75ee069638d07520a0347bf76c36ee50dc895d55e981"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "アウトロ",
+    "pattern": 1,
+    "count": 16,
+    "pitchHash": "ecd455c3324833de8423f5ae7a7cba26a91cfb9d3ce0028aee40570838beb2e7"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "アウトロ",
+    "pattern": 2,
+    "count": 20,
+    "pitchHash": "36ee5b1d232181440e24d262f4179d4587d4fe4293328515d20725318eaa24f3"
+  },
+  {
+    "which": "A",
+    "run": 5,
+    "section": "アウトロ",
+    "pattern": 3,
+    "count": 23,
+    "pitchHash": "599341921598206d01c395787bc2c6cb47986584223983867ba46847bcf49631"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Intro",
+    "pattern": 1,
+    "count": 8,
+    "pitchHash": "a4ebcbaf0f59bd8651fe4237d26adb7447de565f3758b055b159c91d51884522"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Intro",
+    "pattern": 2,
+    "count": 10,
+    "pitchHash": "19946750cfa0135fc63d3d01b3c8e141eb9f5585a0175458e0cca8a15ef46163"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Intro",
+    "pattern": 3,
+    "count": 10,
+    "pitchHash": "79d18efc640d353e51456513d3580d5b6076c245fd8096657e869aa9404380e1"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Verse",
+    "pattern": 1,
+    "count": 40,
+    "pitchHash": "00c482871c7b6ed25d7d40f5012162594c002a9c8dbb6bd60e6654419097e889"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Verse",
+    "pattern": 2,
+    "count": 35,
+    "pitchHash": "09312669411d9ee2e8581a502552a1aa9cab672ebf72328247889150bdd509c1"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Verse",
+    "pattern": 3,
+    "count": 41,
+    "pitchHash": "35f7878364ae408b7ac1bf3a53ac578112ba037cd65823031a808424108efe47"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Pre-Chorus",
+    "pattern": 1,
+    "count": 19,
+    "pitchHash": "7137f5dfc53a22d3dbb48521e58b0387a2089fcf34dfb2374a78675a2cfe4e7c"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Pre-Chorus",
+    "pattern": 2,
+    "count": 29,
+    "pitchHash": "4f00fa17401663aafa7c38eb1da5ce0c26b83ff4ab5a52518d904b8c3521afb7"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Pre-Chorus",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "d75eeda64d6a59d60afcfe0bcd4e208383a00f4a102b26def5cd7fa0221aa6ba"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Chorus",
+    "pattern": 1,
+    "count": 19,
+    "pitchHash": "5bbbe626d6b4225cd6fd39a458889e0cb0860249d62fad30aca1c2ebc8037065"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Chorus",
+    "pattern": 2,
+    "count": 27,
+    "pitchHash": "92cfc5877df232c1d275df4b4a7d286f4adafc5ce08127f137266fc8215b005b"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Chorus",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "2be2c318d94be090bac6c61872aad83a4fd370084453fb7da701d8a3eebe2e5a"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Verse 2",
+    "pattern": 1,
+    "count": 40,
+    "pitchHash": "ec560326635c3498c4a69994bcd9fe1168c0bbd9fb140f75420c6fbc870334f6"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Verse 2",
+    "pattern": 2,
+    "count": 40,
+    "pitchHash": "2ed803f700ec774b7e1250576a64adbfe01a9525181b743cdd787d3aca78155c"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Verse 2",
+    "pattern": 3,
+    "count": 40,
+    "pitchHash": "941146e7b88e51cf1f73c0ec3a2b4d9d98a3d0ad389e8c32bc432afc7b0f9455"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Chorus 2",
+    "pattern": 1,
+    "count": 19,
+    "pitchHash": "5bbbe626d6b4225cd6fd39a458889e0cb0860249d62fad30aca1c2ebc8037065"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Chorus 2",
+    "pattern": 2,
+    "count": 19,
+    "pitchHash": "5bbbe626d6b4225cd6fd39a458889e0cb0860249d62fad30aca1c2ebc8037065"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Chorus 2",
+    "pattern": 3,
+    "count": 19,
+    "pitchHash": "5bbbe626d6b4225cd6fd39a458889e0cb0860249d62fad30aca1c2ebc8037065"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Bridge",
+    "pattern": 1,
+    "count": 46,
+    "pitchHash": "c76dce548f8de2b044b8c3b08b2687982693dc42472258cc214935e9db84b4a4"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Bridge",
+    "pattern": 2,
+    "count": 45,
+    "pitchHash": "5597d546d8289682e45280a3d6d86cb3a72d065cdaca8628191afa978db7def9"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Bridge",
+    "pattern": 3,
+    "count": 32,
+    "pitchHash": "39e52e2509e553a3a16eb397e04f0568b1e310226d4f52ae64ff954d1c9be2ff"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Final Chorus",
+    "pattern": 1,
+    "count": 19,
+    "pitchHash": "93f33227e0a243eb846a7294647e2ab9e41556e28c629100d603eda51b471788"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Final Chorus",
+    "pattern": 2,
+    "count": 24,
+    "pitchHash": "ce333295a507aec6dcc6499990a7d97c26e8a9ddd69332b095de892ef5782947"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Final Chorus",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "af5fc7a29b05ad804bac346ca3685b9cb3725a2c18e2acd63add7b594699615a"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Outro",
+    "pattern": 1,
+    "count": 23,
+    "pitchHash": "a36f7fbceffa08077d1c171e94528021a19da65ef573377ad6c9f3bae5d40998"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Outro",
+    "pattern": 2,
+    "count": 21,
+    "pitchHash": "e4f9b7a079b35274a234853f1ac6b2dae97eed2aa160c2af0df31084bb64d9b8"
+  },
+  {
+    "which": "B",
+    "run": 0,
+    "section": "Outro",
+    "pattern": 3,
+    "count": 21,
+    "pitchHash": "2bb084325a1423587a1393917fc22c403063b0ac153973219b38d825c0d36cbe"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Intro",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "311a119cd8d17143366943306611b22f41d2626d8c5c267cfe85887c5bf791d3"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Intro",
+    "pattern": 2,
+    "count": 16,
+    "pitchHash": "bc86a862bb87911b8b4e067c56c9fb4f82ade42b098170cfe9cea1b5b24295ef"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Intro",
+    "pattern": 3,
+    "count": 19,
+    "pitchHash": "96a024047cca26405d0e0f40989024701ebcb67878c7728f7127440fd6c8294d"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Verse",
+    "pattern": 1,
+    "count": 45,
+    "pitchHash": "6bf02df106cf51b50c1f0fc018280d6eea750f4e08bad7cb8eebdda80d210c20"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Verse",
+    "pattern": 2,
+    "count": 33,
+    "pitchHash": "a5261dc523cfee58650e830d825fbc4b5e4af1386f56369879a8d1b7f640f3f2"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Verse",
+    "pattern": 3,
+    "count": 23,
+    "pitchHash": "389af63769fe5a02895da7e0b11530612638a312b419d3b8dcb41aee766856bb"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Pre-Chorus",
+    "pattern": 1,
+    "count": 19,
+    "pitchHash": "6b3648a63d439696cecf71b499dba4472addeefee4ba5c68fa42c3e17bb0fb12"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Pre-Chorus",
+    "pattern": 2,
+    "count": 28,
+    "pitchHash": "c19d6579cf15ae8379e23cfe128836430b9cdf8f786d429be486a22edccb6d43"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Pre-Chorus",
+    "pattern": 3,
+    "count": 18,
+    "pitchHash": "51c1d10aa1d83cdac81f8ee1973f1be03f49c2d1cee8097066b82c6e469786de"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Chorus",
+    "pattern": 1,
+    "count": 33,
+    "pitchHash": "629c5248222ed8076c5857cb80e721cbeb14d3fe750580dd8af3a8acc22d0aa8"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Chorus",
+    "pattern": 2,
+    "count": 36,
+    "pitchHash": "1b9f652a31d65852acfbb214ecc1a853e52fa50994b151ecdd8bf07abf719268"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Chorus",
+    "pattern": 3,
+    "count": 45,
+    "pitchHash": "d04ce53b6d3275ad403f179153455cc7b9daa41282a7378802ab7e46b41cca59"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Verse 2",
+    "pattern": 1,
+    "count": 43,
+    "pitchHash": "76c1c36a2a90c41f7b712bdb651b4f902aa02a501d12bfbbf1a3a20ed372feb6"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Verse 2",
+    "pattern": 2,
+    "count": 43,
+    "pitchHash": "61751b71d076d5e2c8507e44dc75c9161396b77b7d71b180a0490f0da264d340"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Verse 2",
+    "pattern": 3,
+    "count": 43,
+    "pitchHash": "e42f2742d237ea905ee49641598991cd710fbeeb0207ec8ff4b37ba9290c0646"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Chorus 2",
+    "pattern": 1,
+    "count": 33,
+    "pitchHash": "629c5248222ed8076c5857cb80e721cbeb14d3fe750580dd8af3a8acc22d0aa8"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Chorus 2",
+    "pattern": 2,
+    "count": 33,
+    "pitchHash": "3b7144b9fb2900f2de784fc455eb346f1d8256475fb76aa7b47e4e6631e12c8d"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Chorus 2",
+    "pattern": 3,
+    "count": 33,
+    "pitchHash": "8763345f335482fbb7d24ebf0a92a6cea2f476a037cf94ebf5ac9fb9bbd16c13"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Bridge",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "b69d01afb65a5c91307a5fd027c304d704571a35a113d3057f9ccb352e18cfed"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Bridge",
+    "pattern": 2,
+    "count": 33,
+    "pitchHash": "fac164d8bfbc1dc29c2a52be869aa310d5b03500d721e90fe865a6d386cfd6b5"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Bridge",
+    "pattern": 3,
+    "count": 45,
+    "pitchHash": "dd7efcb581ae88356a973d3c013b62c79008955f8177e2e0150249eaff158b15"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Final Chorus",
+    "pattern": 1,
+    "count": 35,
+    "pitchHash": "483edbe8e0a7d38763a8e215aac78ca21e594d398b83dde0fed57df4560dee56"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Final Chorus",
+    "pattern": 2,
+    "count": 46,
+    "pitchHash": "781162081a8e3bb80d622616c15293c531e4cfc1168d04f3c749972a1d336c68"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Final Chorus",
+    "pattern": 3,
+    "count": 45,
+    "pitchHash": "9e43a7cfa5763546970e6531ab3eb0ed25ff4dcab80786abe7aeebe780b70aab"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Outro",
+    "pattern": 1,
+    "count": 26,
+    "pitchHash": "49b448e00ff580d0c6fe0a3dce94e84f1b35589a4dcb5baf85588710e60f1881"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Outro",
+    "pattern": 2,
+    "count": 11,
+    "pitchHash": "c95917eef0519035dbb9c2a5cb244a9f79a004951dbcaba74881eea7a8624bdb"
+  },
+  {
+    "which": "B",
+    "run": 1,
+    "section": "Outro",
+    "pattern": 3,
+    "count": 21,
+    "pitchHash": "a9d79f5455a5c333e721d7517a2a4f501cc2f2f25e5877d28feef496849fd21d"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Intro",
+    "pattern": 1,
+    "count": 21,
+    "pitchHash": "1f07b1b28980b8e96356306d8bece2b6d9c07de7da57451b1e1edc39c0f01106"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Intro",
+    "pattern": 2,
+    "count": 26,
+    "pitchHash": "eb260c0738b86956317806caf58bc15e21d03e2af331935f27ebbde8a0711176"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Intro",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "6e5942a9cc727335c0b8bbd38762ad685d4983b97a593aa6a9f263fa5bd15369"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Verse",
+    "pattern": 1,
+    "count": 51,
+    "pitchHash": "2ca232d4b89cd2cb94ec4b8c8192c73ec20d7bfd394f999151deb048ebb6df61"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Verse",
+    "pattern": 2,
+    "count": 32,
+    "pitchHash": "6cf60de36b033361c9fd9bde6fed5cc8f102e4cfaaacb557ef706a9e2d0e64d4"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Verse",
+    "pattern": 3,
+    "count": 43,
+    "pitchHash": "d90c56c87224e1742e95a35e3790e86eb1c93dad44cb889751d958c95229bb1b"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Pre-Chorus",
+    "pattern": 1,
+    "count": 44,
+    "pitchHash": "057b920148d73394bb8dd487c81eaa6068c3812029b7a48e2a9df36353d96f86"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Pre-Chorus",
+    "pattern": 2,
+    "count": 42,
+    "pitchHash": "4da28e995ad672a0937681b8f7592d196ab42027350ad73483210095ac46c434"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Pre-Chorus",
+    "pattern": 3,
+    "count": 37,
+    "pitchHash": "90d69f00f3f0757e728ee9d9e0bac78d725b3d910a1f096bbf36e776b7ddaa8e"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Chorus",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "4680b6d29255543586860d7627ff3f8cbec1b31e48e0a2ce2f05427f048eebf9"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Chorus",
+    "pattern": 2,
+    "count": 26,
+    "pitchHash": "c3e8e58315e9dc10f365c4ca9b1cbde2522b519caed0a0e2798bc2cbc4789427"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Chorus",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "ddbe1b224b73455ceda8c26553d9ab8f1b9c264e262ee953a758208a8f2c16c2"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Verse 2",
+    "pattern": 1,
+    "count": 49,
+    "pitchHash": "f9459abd9a7512e60396af43ddb4658b6e71179def95877947f6459d879c81a9"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Verse 2",
+    "pattern": 2,
+    "count": 49,
+    "pitchHash": "e5ba691d8d4517db4da11cb78209053c3ab06989c6ff6d48299fb202be160c67"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Verse 2",
+    "pattern": 3,
+    "count": 49,
+    "pitchHash": "05572b6a559e05ab3cc7c597f910d3b58244bfa169551ba3673ba4d168531237"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Chorus 2",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "8af3382bdb34d39ae6926cb23b1391992566c350b7f7f7720731954eb6f4b627"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Chorus 2",
+    "pattern": 2,
+    "count": 25,
+    "pitchHash": "904026adf36d3d96578451837d52448d798a8ec9e4b4c6fd55245405d6711e8a"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Chorus 2",
+    "pattern": 3,
+    "count": 25,
+    "pitchHash": "5493c0b27d65ab588b5aa44bfee317e72cb998f0bc8e7de247201246f1858e6a"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Bridge",
+    "pattern": 1,
+    "count": 24,
+    "pitchHash": "1a7b618900bf0ae059b1bc91a00c0c8c0b96fcdc0fa536d681cca537f9809d5c"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Bridge",
+    "pattern": 2,
+    "count": 17,
+    "pitchHash": "7040d458ad56d36b9d87f842ce3980e0af475e84bc31dc767f8ce9cb65a10fe2"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Bridge",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "2ee0a0daee3f955ff8dcc809e49e000fad60ee29edac7d77b95b41c60bc0d77c"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Final Chorus",
+    "pattern": 1,
+    "count": 43,
+    "pitchHash": "3813291196ba2a3e6ec7696cb9557ce5b409c4eb6301d8fa95f3062307f030f9"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Final Chorus",
+    "pattern": 2,
+    "count": 40,
+    "pitchHash": "1b83661d5e1d4bb0bd643f70cf5c13963e81005917f684aa02584520b667d21c"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Final Chorus",
+    "pattern": 3,
+    "count": 36,
+    "pitchHash": "ef1e7fbf90e0e60882a19aba51da8b29db0a58d75af375ec1e71a797a9702b9a"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Outro",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "e85b77430977891db9a6894e1a632f4730f0841e7af6fde17b11671188951009"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Outro",
+    "pattern": 2,
+    "count": 12,
+    "pitchHash": "ae29d405f02a778457dd4ed0f1a49df0ad73e96b81ba415b3bc05866bef3ede1"
+  },
+  {
+    "which": "B",
+    "run": 2,
+    "section": "Outro",
+    "pattern": 3,
+    "count": 21,
+    "pitchHash": "e944b50cb7c27534e8994960df7e3aa8357ce12ada1c1593dc43f5a9663236b3"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Intro",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "28ec6d7f2cba4a9493ffbadcc9fd482965dfafab4928e3485a4b5b9a9dfe0233"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Intro",
+    "pattern": 2,
+    "count": 12,
+    "pitchHash": "f6f6472b176e936009549d44dcef0bdd5259192cbba259972397d60bcbe8ec32"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Intro",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "bcd2605e9fdac6a257757adbaef05d2b2d3a104458ac32a5564625d68641a5c6"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Verse",
+    "pattern": 1,
+    "count": 43,
+    "pitchHash": "5eed52ecb3d6f36929425e71397672eaa11ae27da5920ba915d250398ef2e72e"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Verse",
+    "pattern": 2,
+    "count": 53,
+    "pitchHash": "17cb8176b29cf57f63bb4bbad38e1e58a28d24049585112db140fee2f62317aa"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Verse",
+    "pattern": 3,
+    "count": 34,
+    "pitchHash": "75be2fcda05f54dfdd374531a9d52a0abde526fbb74da6777b168db6dc465dcc"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Pre-Chorus",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "44ea9f1d87d76e8db35ca7cc9fbc0eadf169de902b23ab9e2cbe15b56f5d7172"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Pre-Chorus",
+    "pattern": 2,
+    "count": 29,
+    "pitchHash": "466409de1d55dc66507911f1e76e8b66e4971d95556ec3b01cfaf3a0b2af001a"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Pre-Chorus",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "8785d0ce767d75a2ae7df47a63779d71d62f53459df300204f4ab98580ab1af8"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Chorus",
+    "pattern": 1,
+    "count": 24,
+    "pitchHash": "dccb07844f2deef82d9f5f70afb73eccce5e95b189bec71de3f20cb72612a326"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Chorus",
+    "pattern": 2,
+    "count": 29,
+    "pitchHash": "14f0bb19abee1a3709fb2553d76995a91674ee12a0a75664a1b05dc28a736592"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Chorus",
+    "pattern": 3,
+    "count": 40,
+    "pitchHash": "21c4221af3efd26787a7bdc3c685001021ee9b6e7c692bb781cbb562193026c2"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Verse 2",
+    "pattern": 1,
+    "count": 42,
+    "pitchHash": "ef4d631a45fd32322e7a7707eb2515f9a3fb238eb8cab178e207109785893d3d"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Verse 2",
+    "pattern": 2,
+    "count": 42,
+    "pitchHash": "c1c00142bb70c36a7933752b092f98c31fa21a10e235b8361847ad2aac226843"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Verse 2",
+    "pattern": 3,
+    "count": 42,
+    "pitchHash": "7d443d0e2482730913246f232ab03afad11598fc50b3ab9a44059dcd691fea04"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Chorus 2",
+    "pattern": 1,
+    "count": 24,
+    "pitchHash": "dccb07844f2deef82d9f5f70afb73eccce5e95b189bec71de3f20cb72612a326"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Chorus 2",
+    "pattern": 2,
+    "count": 24,
+    "pitchHash": "dccb07844f2deef82d9f5f70afb73eccce5e95b189bec71de3f20cb72612a326"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Chorus 2",
+    "pattern": 3,
+    "count": 24,
+    "pitchHash": "76dd839d69daf5533247966f15a9cdeb941c4d86db319ede947bc48c147d0df0"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Bridge",
+    "pattern": 1,
+    "count": 17,
+    "pitchHash": "4946966ccbe413763ce9719221d2370eee90647429a7a5ad9de94dd227bfe3dc"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Bridge",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "d6b11f1078c8a2d42702c27aa73c342ee901a56ccf5c2c0fa8dab5ff98635fa3"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Bridge",
+    "pattern": 3,
+    "count": 25,
+    "pitchHash": "8a0c1c837287b388e6791b980fded396b812c397796aaf7df0339d957fc2dc07"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Final Chorus",
+    "pattern": 1,
+    "count": 37,
+    "pitchHash": "a8bcf1e2ed84820ebe9f38432d1032f1bd219b95f1a7d0f4425d17e56741eaf5"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Final Chorus",
+    "pattern": 2,
+    "count": 45,
+    "pitchHash": "71eeab23e6298cd15d9b20d0a53ac72d660ac2672674eab4fbdfbbaec9c75fe2"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Final Chorus",
+    "pattern": 3,
+    "count": 38,
+    "pitchHash": "148a1c5cb05717f7a5a3c4067f5f48058ff9771a3d0416dfe5bb078bcbd9b3de"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Outro",
+    "pattern": 1,
+    "count": 10,
+    "pitchHash": "86805dfae6ea75eb7ff885e4aa58a16585a97afa91a0814ced4c684b13164b59"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Outro",
+    "pattern": 2,
+    "count": 18,
+    "pitchHash": "374068f736c39ce8dd6334a077ee515136f0ad554323b4dc20c4c4616c4fd161"
+  },
+  {
+    "which": "B",
+    "run": 3,
+    "section": "Outro",
+    "pattern": 3,
+    "count": 19,
+    "pitchHash": "ca83b73be8748de2f41a248cfb959e6bf0f04b9fd4cd3f2f6642630a39ff6971"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Intro",
+    "pattern": 1,
+    "count": 12,
+    "pitchHash": "953b7390d68f63ad2fc393393c8144e7e999c22e03f3219c069ac4f297067f5c"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Intro",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "75742008e789e2a48e06cbae5241e4d5c4f8a542fa06f84c6f0122ded5f781ea"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Intro",
+    "pattern": 3,
+    "count": 21,
+    "pitchHash": "89011b0774ab948462e966c1ec77d1a46354dba03265ecae17db9f6309cd9c73"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Verse",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "650cacb21f5867e3a85bbcd9104420819c63a523722ea8286c9bd79e1e1ea4b1"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Verse",
+    "pattern": 2,
+    "count": 25,
+    "pitchHash": "4ab6e0187c6885383a81ab4775912582a8208e8f593675c69876aff4e71c839a"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Verse",
+    "pattern": 3,
+    "count": 17,
+    "pitchHash": "cdff70b4e929a1847f9c22630f1b8b1b998e2e99f6f82abf5d6bcbb5beccfb05"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Pre-Chorus",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "4abfbb4a3a7217f052b8c2dd80188c3c2055f6228030e41f0a361846488bd8f5"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Pre-Chorus",
+    "pattern": 2,
+    "count": 15,
+    "pitchHash": "7289ad42b5615af092524eb1f21ee92db808baec6d9bc30154300b6f61f47242"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Pre-Chorus",
+    "pattern": 3,
+    "count": 16,
+    "pitchHash": "f99f4e8c7b86a4550da1d1ab0552b95d96db90674d50b31c1ac4a0131bcca910"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Chorus",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "fddb3292eca495b76d16dc40f7d692c2d07968e1c88064aee620395a21580434"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Chorus",
+    "pattern": 2,
+    "count": 22,
+    "pitchHash": "4bd402e8e27729f7e783ea74712595e0f3f93204ff3ce3470515af9cc88dd053"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Chorus",
+    "pattern": 3,
+    "count": 31,
+    "pitchHash": "0c88b24c99efb43a5e7ace92530ca3cb236cfe7b37dfe197fc85e28350437b2f"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Verse 2",
+    "pattern": 1,
+    "count": 15,
+    "pitchHash": "ed9af2c63d2cc9a1ce2961a312080fe809096c168c3536b6d29565d6b0af156f"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Verse 2",
+    "pattern": 2,
+    "count": 15,
+    "pitchHash": "ed9af2c63d2cc9a1ce2961a312080fe809096c168c3536b6d29565d6b0af156f"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Verse 2",
+    "pattern": 3,
+    "count": 15,
+    "pitchHash": "ed9af2c63d2cc9a1ce2961a312080fe809096c168c3536b6d29565d6b0af156f"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Chorus 2",
+    "pattern": 1,
+    "count": 25,
+    "pitchHash": "347e6c295be2bc6440059e94e076fb8b12f822021b3487d1403addbb32e62677"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Chorus 2",
+    "pattern": 2,
+    "count": 25,
+    "pitchHash": "71a9b8013104131581f51ef7fa778df7d87bc7700867a03b9f63d4fabf77fe2c"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Chorus 2",
+    "pattern": 3,
+    "count": 25,
+    "pitchHash": "347e6c295be2bc6440059e94e076fb8b12f822021b3487d1403addbb32e62677"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Bridge",
+    "pattern": 1,
+    "count": 28,
+    "pitchHash": "eb6c1689a739aa07b37f30dda3f4612fd83a31c97f785f26fa7eed50f76b42e2"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Bridge",
+    "pattern": 2,
+    "count": 40,
+    "pitchHash": "9328f1be99b750b2df1269b30aed730161d55f661ae9e5f452a8b7e1865ddabf"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Bridge",
+    "pattern": 3,
+    "count": 44,
+    "pitchHash": "bb7b538db97f826d7c7270e8ce3c5a900218b6963f1807f45748c304e6f6cbe3"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Final Chorus",
+    "pattern": 1,
+    "count": 40,
+    "pitchHash": "86582e4b64dc40c3ede142721d483920da162ba962b435d7ad842c00290f41fa"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Final Chorus",
+    "pattern": 2,
+    "count": 23,
+    "pitchHash": "661254e6fe895b0857744650a27c4d57dbc162a46a430e9b2eeb52ef4a9e3464"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Final Chorus",
+    "pattern": 3,
+    "count": 50,
+    "pitchHash": "8958d2982516ad3b021e75fc55eb4f5ef83bcb75857de3132a2d7fff5546b9f8"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Outro",
+    "pattern": 1,
+    "count": 18,
+    "pitchHash": "b1161a7c8ba2315177613d1727bf3d67ffa6131fbaa310a464afe35a56f05bf5"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Outro",
+    "pattern": 2,
+    "count": 20,
+    "pitchHash": "ca050e41fb3650b3483e893df5bcec3423f0cd6e8e587efb153eede9eb806d3a"
+  },
+  {
+    "which": "B",
+    "run": 4,
+    "section": "Outro",
+    "pattern": 3,
+    "count": 18,
+    "pitchHash": "36f73c6eb87afb89af0b8c298cc3c5808c44aa501fc99531e6b64b69bf1e7694"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Intro",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "3c3216e02c8653ce7839e052cf5024c5449fcd5a28818e865745a8cca8a7ea90"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Intro",
+    "pattern": 2,
+    "count": 21,
+    "pitchHash": "cbf1405a5a6bdb0210877d0fe691ed3d5cf57e7035b88caac8ae7627636a53ef"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Intro",
+    "pattern": 3,
+    "count": 25,
+    "pitchHash": "3f1dd57ba7e4568e1a7008a679ebf40855887df7e9eef10924291c7a91bda1e5"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Verse",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "e0be404d5733dc5fa164c90efdd1914ef0410572f4fc7352ceca1605db80b93d"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Verse",
+    "pattern": 2,
+    "count": 46,
+    "pitchHash": "a2321b673ae52cbdb7f60c9a621cc0320c16b0343c99f00fbfe6e4b8030d53e8"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Verse",
+    "pattern": 3,
+    "count": 36,
+    "pitchHash": "de9dcfca469e5f5df7c06d79faabc9bc89ee322678ab4c8aa835a9bcd79bdccf"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Pre-Chorus",
+    "pattern": 1,
+    "count": 30,
+    "pitchHash": "809b302f964dd9ead210be6bb97658ee8ab83a6a8a356958eea800d5198ade46"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Pre-Chorus",
+    "pattern": 2,
+    "count": 25,
+    "pitchHash": "009a2201440bd8dfcb9eeb6c080e24fe66753b33aab77dc05e4649ccc98bfc10"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Pre-Chorus",
+    "pattern": 3,
+    "count": 15,
+    "pitchHash": "bc38406710250d7350413478502dab28c831d915ce26a20d75c2f067a9787824"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Chorus",
+    "pattern": 1,
+    "count": 31,
+    "pitchHash": "85984f8dad836aaa94f8bb4bf4c7170933c18e039916bef3a23570d3c293f933"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Chorus",
+    "pattern": 2,
+    "count": 26,
+    "pitchHash": "645da48b78717e7de0bed46335da495421c2a9b643e67c4cbccc4d53d424a081"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Chorus",
+    "pattern": 3,
+    "count": 26,
+    "pitchHash": "3b9b1722713e33d648e10be764fb2f005e6f77bd5bc6989d512eefef488e33da"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Verse 2",
+    "pattern": 1,
+    "count": 20,
+    "pitchHash": "58c12e1482328d85351c05855d772cb0829c2482e9d7081f55b70c697b909a68"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Verse 2",
+    "pattern": 2,
+    "count": 20,
+    "pitchHash": "8ef21fdf04b6e746f7bccb486b8e32967d8b696a00fd7f3c7bc8e9a75e69fda6"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Verse 2",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "fc49ba1934d8165932ea5c901b665f374237e88a2e9a1e5801548ce1e99ad2de"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Chorus 2",
+    "pattern": 1,
+    "count": 31,
+    "pitchHash": "e816b1d3ee21916b58c6d81cf731b62cdfedd716afed8fb1b64dd473fe472092"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Chorus 2",
+    "pattern": 2,
+    "count": 31,
+    "pitchHash": "72a9afb21b2c8ef0b7681207490842e3fcbb961d1b3cfa6b41bacd8e7dc9a5cc"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Chorus 2",
+    "pattern": 3,
+    "count": 31,
+    "pitchHash": "afce1ded740467c8222c0e3edb35f50d939369170034653e1f6b7c4ec104f2b6"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Bridge",
+    "pattern": 1,
+    "count": 14,
+    "pitchHash": "a6235b7fcdf6bb61156ce1135df52b4845dcab2f0e9b1d87412b5e3589a0055e"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Bridge",
+    "pattern": 2,
+    "count": 25,
+    "pitchHash": "943b3a1517e887cc783be1f9e747455f7b1a51fa94be1d2ae7f7e167216a600b"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Bridge",
+    "pattern": 3,
+    "count": 22,
+    "pitchHash": "35742c4dd6c2a7614fa3eb229125565da300cb2e7d9590d8991213c9d3bf39e5"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Final Chorus",
+    "pattern": 1,
+    "count": 23,
+    "pitchHash": "6e0eb9984d0be7b7eb44d0097ef647e79fa0005fcd8b7c17f5c224c1aa3f300d"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Final Chorus",
+    "pattern": 2,
+    "count": 30,
+    "pitchHash": "a75bb397cdbd182b9fd4c3378772538924d8b54fd1daca9b7f8d54b036e01cc1"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Final Chorus",
+    "pattern": 3,
+    "count": 20,
+    "pitchHash": "59ae61708572814ab9fdceec837cb97b2160ea4e9422c331c17045087681538a"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Outro",
+    "pattern": 1,
+    "count": 16,
+    "pitchHash": "5036bcc20fd55dbaf8661c91efd946c32ef4accfdf994eafea2350258dc2591c"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Outro",
+    "pattern": 2,
+    "count": 26,
+    "pitchHash": "63c85ae5bff297884acc08f4fa467b2af59a6247608451db5d38a7e073e54cfa"
+  },
+  {
+    "which": "B",
+    "run": 5,
+    "section": "Outro",
+    "pattern": 3,
+    "count": 14,
+    "pitchHash": "dc1748f0a89c22cf8f6473ff5b31214fdfbda1f755227581e072cf2b8808987c"
+  }
+]

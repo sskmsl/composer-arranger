@@ -400,6 +400,7 @@ export function performGeneratedNotes(
   notes: MelodyNote[],
   role: PerformanceExecutionPlan["role"],
   preserveLongNotes = false,
+  minimumNoteBeats?: number,
 ): { notes: MelodyNote[]; performanceSpec: PerformanceSpec } {
   const section = project.sections.find((candidate) => candidate.id === sectionId)
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
@@ -410,6 +411,7 @@ export function performGeneratedNotes(
   )
   const plan = buildDefaultPerformancePlan(role, section?.role)
   if (preserveLongNotes && role === "lead-focus") plan.performanceSpec.gate.preserveLongNotes = true
+  if (minimumNoteBeats !== undefined && role === "lead-focus") plan.performanceSpec.gate.minimumNoteBeats = minimumNoteBeats
   const result = applyPerformanceExecution(notes, plan, {
     totalBeats,
     beatsPerBar,

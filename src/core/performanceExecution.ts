@@ -11,6 +11,8 @@ export interface PerformanceSpec {
     variation: number
     /** 歌う長音を明示した新規候補では、1拍以上の記譜音価を保つ。 */
     preserveLongNotes?: boolean
+    /** 新規生成の主旋律だけで指定する最小音価。未指定は従来互換。 */
+    minimumNoteBeats?: number
   }
   timing: {
     humanizeMs: number
@@ -325,6 +327,7 @@ export function applyPerformanceExecution(
   const minimumSource = Math.min(...notes.map((note) => note.velocity))
   const maximumSource = Math.max(...notes.map((note) => note.velocity))
   const spec = resolvePerformanceSpec(plan)
+  const minimumDuration = Math.max(.0625, spec.gate.minimumNoteBeats ?? .0625)
   const diagnostics: PerformanceExecutionDiagnostics = {
     changedVelocityCount: 0,
     changedDurationCount: 0,
@@ -349,7 +352,7 @@ export function applyPerformanceExecution(
       : timingOffset(plan.timing)
     let startBeat = note.startBeat
     if (requestedOffset !== 0 && !startLocked && !boundary) {
-      startBeat = Math.max(0, Math.min(context.totalBeats - 0.0625, note.startBeat + requestedOffset))
+      startBeat = Math.max(0, Math.min(context.totalBeats - minimumDuration, note.startBeat + requestedOffset))
       if (!near(startBeat, note.startBeat, EPSILON)) diagnostics.changedOnsetCount += 1
     } else if (requestedOffset !== 0 && boundary) {
       diagnostics.protectedBoundaryCount += 1
@@ -358,7 +361,7 @@ export function applyPerformanceExecution(
     const durationLocked = note.locks.includes("rhythm")
     let durationBeats = durationLocked || preserveLong
       ? note.durationBeats
-      : Math.max(0.0625, note.durationBeats * (
+      : Math.max(minimumDuration, note.durationBeats * (
           plan.performanceSpec
             ? gateFactor(note, index, spec, context)
             : durationFactor(plan.articulation)
@@ -366,7 +369,7 @@ export function applyPerformanceExecution(
     const nextOnset = nextDistinctOnset(notes, index)
     const releaseGap = preserveLong ? 0 : .015
     if (nextOnset !== null && startBeat + durationBeats > nextOnset - releaseGap) {
-      durationBeats = Math.max(0.0625, nextOnset - startBeat - releaseGap)
+      durationBeats = Math.max(minimumDuration, nextOnset - startBeat - releaseGap)
       diagnostics.collisionTrimCount += 1
     }
     if (plan.role === "counter-voice" && context.melodyNotes) {
@@ -376,7 +379,7 @@ export function applyPerformanceExecution(
         diagnostics.collisionTrimCount += 1
       }
     }
-    durationBeats = Math.min(durationBeats, Math.max(0.0625, context.totalBeats - startBeat))
+    durationBeats = Math.min(durationBeats, Math.max(minimumDuration, context.totalBeats - startBeat))
     if (!near(durationBeats, note.durationBeats, EPSILON)) {
       diagnostics.changedDurationCount += 1
     }

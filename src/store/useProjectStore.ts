@@ -30,6 +30,7 @@ import { computeMelodyFeatures } from "@/melody-engine/features"
 import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
 import { selectConsonantMelodyPitches } from "@/melody-engine/melodyConsonance"
 import { planMelodyCharacter } from "@/melody-engine/melodyCharacter"
+import { mergeCoincidentMelodyNotes, MINIMUM_GENERATED_MELODY_BEATS } from "@/melody-engine/generatedMelodyTiming"
 import { finalChorusRange } from "@/melody-engine/finalChorusRange"
 import { shapeMelodyBreathing } from "@/melody-engine/melodyBreathing"
 import { parseKey } from "@/core/scale"
@@ -1167,6 +1168,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           sectionId,
           variant.notes,
           "lead-focus",
+          false,
+          variant.leadContent === "melody" ? MINIMUM_GENERATED_MELODY_BEATS : undefined,
         )
         const performedVariant = replaceVariantNotes(variant, variant.leadContent === "melody"
           ? shapeMelodyBreathing(performed.notes, totalBeats, ts.beatsPerBar) : performed.notes)
@@ -1353,9 +1356,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // 土台はすでに演奏処理済み。二重適用すると保護した冒頭の長さ・強弱まで変わる。
       const performed = repeatedSource
         ? { notes: v.notes, performanceSpec: repeatedSource.performanceSpec }
-        : performGeneratedNotes(prev, sectionId, v.notes, "lead-focus", melodyCharacter.longNoteRatio >= .5)
-      const performedVariant = replaceVariantNotes(v, repeatedSource ? performed.notes
-        : shapeMelodyBreathing(performed.notes, totalBeats, ts.beatsPerBar))
+        : performGeneratedNotes(prev, sectionId, v.notes, "lead-focus", melodyCharacter.longNoteRatio >= .5, MINIMUM_GENERATED_MELODY_BEATS)
+      const finalNotes = mergeCoincidentMelodyNotes(repeatedSource ? performed.notes
+        : shapeMelodyBreathing(performed.notes, totalBeats, ts.beatsPerBar), chords)
+      const performedVariant = replaceVariantNotes(v, finalNotes)
       performedVariant.performanceSpec = performed.performanceSpec
       performedVariant.features = computeMelodyFeatures(
         performedVariant.notes,

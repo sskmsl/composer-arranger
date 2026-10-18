@@ -1,0 +1,4987 @@
+{
+  "baselineCommit": "fbd5bde",
+  "counts": {
+    "before": 7893,
+    "after": 7893,
+    "shortBefore": 37,
+    "shortAfter": 0,
+    "affectedBefore": 22,
+    "minMidiBefore": 4,
+    "minMidiAfter": 61,
+    "duplicates": 0,
+    "pitchChanges": 0
+  },
+  "before": {
+    "strong": 4320,
+    "clashes": 0,
+    "clashRate": 0,
+    "breathless": 0,
+    "breathlessAllCandidates": 0
+  },
+  "after": {
+    "strong": 4316,
+    "clashes": 0,
+    "clashRate": 0,
+    "breathless": 0,
+    "breathlessAllCandidates": 0
+  },
+  "repeated": {
+    "beforeExact": 0.6722172488869127,
+    "afterExact": 0.6862844332392828,
+    "byCandidate": [
+      {
+        "pattern": 1,
+        "rhythm": 0.8857751738329408,
+        "contour": 0.9902533269199937,
+        "hookSame": true
+      },
+      {
+        "pattern": 2,
+        "rhythm": 0.8432887335466512,
+        "contour": 0.9864888969055635,
+        "hookSame": true
+      },
+      {
+        "pattern": 3,
+        "rhythm": 0.7493611100989067,
+        "contour": 0.9842666746833414,
+        "hookSame": true
+      }
+    ]
+  },
+  "arrangements": [
+    {
+      "which": "A",
+      "run": 0,
+      "quality": 91.5,
+      "eligible": 8,
+      "audition": 96.1,
+      "harmony": 0,
+      "collisions": 0,
+      "drumErrors": 0,
+      "nonDrumShorts": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "quality": 93.5390625,
+      "eligible": 8,
+      "audition": 96.9,
+      "harmony": 0,
+      "collisions": 0,
+      "drumErrors": 0,
+      "nonDrumShorts": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "quality": 92,
+      "eligible": 8,
+      "audition": 94.9,
+      "harmony": 0,
+      "collisions": 0,
+      "drumErrors": 0,
+      "nonDrumShorts": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "quality": 93,
+      "eligible": 8,
+      "audition": 96.2,
+      "harmony": 0,
+      "collisions": 0,
+      "drumErrors": 0,
+      "nonDrumShorts": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "quality": 94,
+      "eligible": 8,
+      "audition": 96.7,
+      "harmony": 0,
+      "collisions": 0,
+      "drumErrors": 0,
+      "nonDrumShorts": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "quality": 93.5,
+      "eligible": 8,
+      "audition": 96.5,
+      "harmony": 0,
+      "collisions": 0,
+      "drumErrors": 0,
+      "nonDrumShorts": 0
+    }
+  ],
+  "traces": [
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "previous": [
+        29.7576,
+        0.4774,
+        68
+      ],
+      "note": [
+        30.5035,
+        0.01,
+        68
+      ],
+      "next": [
+        30.5122,
+        1.4878,
+        71
+      ],
+      "source": [
+        [
+          30.2535,
+          0.2315,
+          68
+        ],
+        [
+          30.5122,
+          1.455,
+          71
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "previous": [
+        25.748,
+        0.487,
+        74
+      ],
+      "note": [
+        26.502,
+        0.01,
+        64
+      ],
+      "next": [
+        26.5066,
+        0.2438,
+        62
+      ],
+      "source": [
+        [
+          26.252,
+          0.233,
+          65
+        ],
+        [
+          26.5066,
+          0.2438,
+          64
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "previous": [
+        9.748,
+        0.487,
+        62
+      ],
+      "note": [
+        10.502,
+        0.01,
+        65
+      ],
+      "next": [
+        10.5066,
+        0.2438,
+        67
+      ],
+      "source": [
+        [
+          10.252,
+          0.233,
+          65
+        ],
+        [
+          10.5066,
+          0.2438,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "previous": [
+        21.752,
+        0.483,
+        68
+      ],
+      "note": [
+        22.498,
+        0.01,
+        68
+      ],
+      "next": [
+        22.5066,
+        0.2463,
+        64
+      ],
+      "source": [
+        [
+          22.248,
+          0.237,
+          68
+        ],
+        [
+          22.5066,
+          0.2463,
+          64
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ2",
+      "pattern": 3,
+      "previous": [
+        11.5066,
+        0.2284,
+        74
+      ],
+      "note": [
+        11.998,
+        0.01,
+        76
+      ],
+      "next": [
+        12,
+        0.485,
+        72
+      ],
+      "source": [
+        [
+          11.748,
+          0.237,
+          74
+        ],
+        [
+          12,
+          0.485,
+          72
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ2",
+      "pattern": 3,
+      "previous": [
+        8,
+        0.235,
+        72
+      ],
+      "note": [
+        8.498,
+        0.01,
+        74
+      ],
+      "next": [
+        8.5066,
+        0.2463,
+        74
+      ],
+      "source": [
+        [
+          8.248,
+          0.237,
+          74
+        ],
+        [
+          8.5066,
+          0.2463,
+          74
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ2",
+      "pattern": 3,
+      "previous": [
+        13.5122,
+        0.4728,
+        69
+      ],
+      "note": [
+        14.2535,
+        0.01,
+        74
+      ],
+      "next": [
+        14.2576,
+        0.2274,
+        72
+      ],
+      "source": [
+        [
+          14.0035,
+          0.2315,
+          76
+        ],
+        [
+          14.2576,
+          0.2274,
+          72
+        ],
+        [
+          14.5122,
+          0.24,
+          74
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        25.0031,
+        0.2319,
+        67
+      ],
+      "note": [
+        25.4969,
+        0.013300000000000978,
+        76
+      ],
+      "next": [
+        25.5102,
+        0.2248,
+        71
+      ],
+      "source": [
+        [
+          25.2469,
+          0.2381,
+          74
+        ],
+        [
+          25.5102,
+          0.2248,
+          72
+        ],
+        [
+          25.7469,
+          0.4875,
+          65
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        28,
+        0.985,
+        67
+      ],
+      "note": [
+        29.2469,
+        0.014900000000000801,
+        69
+      ],
+      "next": [
+        29.2618,
+        0.2232,
+        69
+      ],
+      "source": [
+        [
+          28.9969,
+          0.2381,
+          69
+        ],
+        [
+          29.2618,
+          0.2232,
+          69
+        ],
+        [
+          29.5189,
+          0.2161,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        20.9969,
+        0.2381,
+        74
+      ],
+      "note": [
+        21.5031,
+        0.01,
+        74
+      ],
+      "next": [
+        21.5102,
+        0.2248,
+        72
+      ],
+      "source": [
+        [
+          21.2531,
+          0.2319,
+          74
+        ],
+        [
+          21.5102,
+          0.2248,
+          72
+        ],
+        [
+          21.7531,
+          0.4925,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        28,
+        0.985,
+        67
+      ],
+      "note": [
+        29.2469,
+        0.014900000000000801,
+        69
+      ],
+      "next": [
+        29.2618,
+        0.2232,
+        69
+      ],
+      "source": [
+        [
+          28.9969,
+          0.2381,
+          69
+        ],
+        [
+          29.2618,
+          0.2232,
+          69
+        ],
+        [
+          29.5189,
+          0.2161,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        12,
+        0.985,
+        64
+      ],
+      "note": [
+        13.2469,
+        0.014899999999999025,
+        72
+      ],
+      "next": [
+        13.2618,
+        0.2232,
+        72
+      ],
+      "source": [
+        [
+          12.9969,
+          0.2381,
+          72
+        ],
+        [
+          13.2618,
+          0.2232,
+          72
+        ],
+        [
+          13.5189,
+          0.2161,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        16.9992,
+        0.2358,
+        72
+      ],
+      "note": [
+        17.4929,
+        0.013400000000000745,
+        74
+      ],
+      "next": [
+        17.5063,
+        0.2287,
+        72
+      ],
+      "source": [
+        [
+          17.2429,
+          0.2421,
+          74
+        ],
+        [
+          17.5063,
+          0.2287,
+          72
+        ],
+        [
+          17.7469,
+          0.4875,
+          74
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        28.9969,
+        0.2381,
+        69
+      ],
+      "note": [
+        29.5118,
+        0.01,
+        69
+      ],
+      "next": [
+        29.5189,
+        0.2161,
+        69
+      ],
+      "source": [
+        [
+          29.2618,
+          0.2232,
+          69
+        ],
+        [
+          29.5189,
+          0.2161,
+          69
+        ],
+        [
+          29.7618,
+          1.94,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        27.0031,
+        0.2319,
+        67
+      ],
+      "note": [
+        27.4969,
+        0.013300000000000978,
+        67
+      ],
+      "next": [
+        27.5102,
+        0.4897999999999989,
+        64
+      ],
+      "source": [
+        [
+          27.2469,
+          0.2381,
+          67
+        ],
+        [
+          27.5102,
+          0.4925,
+          65
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        22.9969,
+        0.2381,
+        64
+      ],
+      "note": [
+        23.5031,
+        0.01,
+        64
+      ],
+      "next": [
+        23.5102,
+        0.4875,
+        64
+      ],
+      "source": [
+        [
+          23.2531,
+          0.2319,
+          64
+        ],
+        [
+          23.5102,
+          0.4875,
+          64
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        14.5189,
+        0.4661,
+        71
+      ],
+      "note": [
+        15.2555,
+        0.01,
+        72
+      ],
+      "next": [
+        15.2618,
+        0.2232,
+        72
+      ],
+      "source": [
+        [
+          15.0055,
+          0.2295,
+          72
+        ],
+        [
+          15.2618,
+          0.2232,
+          72
+        ],
+        [
+          15.5189,
+          0.48,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        19.0031,
+        0.2319,
+        69
+      ],
+      "note": [
+        19.4969,
+        0.013300000000000978,
+        67
+      ],
+      "next": [
+        19.5102,
+        0.4897999999999989,
+        67
+      ],
+      "source": [
+        [
+          19.2469,
+          0.2381,
+          67
+        ],
+        [
+          19.5102,
+          0.4925,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        24.5102,
+        0.4748,
+        67
+      ],
+      "note": [
+        25.2469,
+        0.01,
+        64
+      ],
+      "next": [
+        25.2531,
+        0.2319,
+        72
+      ],
+      "source": [
+        [
+          24.9969,
+          0.2381,
+          65
+        ],
+        [
+          25.2531,
+          0.2319,
+          71
+        ],
+        [
+          25.5102,
+          0.4875,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        28,
+        0.235,
+        67
+      ],
+      "note": [
+        28.4969,
+        0.013300000000000978,
+        64
+      ],
+      "next": [
+        28.5102,
+        0.4925,
+        64
+      ],
+      "source": [
+        [
+          28.2469,
+          0.2381,
+          64
+        ],
+        [
+          28.5102,
+          0.4925,
+          64
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        24.9969,
+        0.2381,
+        64
+      ],
+      "note": [
+        25.5031,
+        0.01,
+        72
+      ],
+      "next": [
+        25.5102,
+        0.4875,
+        67
+      ],
+      "source": [
+        [
+          25.2531,
+          0.2319,
+          71
+        ],
+        [
+          25.5102,
+          0.4875,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        8.9969,
+        0.2381,
+        64
+      ],
+      "note": [
+        9.5031,
+        0.01,
+        64
+      ],
+      "next": [
+        9.5102,
+        0.4875,
+        64
+      ],
+      "source": [
+        [
+          9.2531,
+          0.2319,
+          64
+        ],
+        [
+          9.5102,
+          0.4875,
+          64
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        14.5189,
+        0.4661,
+        67
+      ],
+      "note": [
+        15.2555,
+        0.01,
+        67
+      ],
+      "next": [
+        15.2618,
+        0.2232,
+        67
+      ],
+      "source": [
+        [
+          15.0055,
+          0.2295,
+          67
+        ],
+        [
+          15.2618,
+          0.2232,
+          67
+        ],
+        [
+          15.5189,
+          0.48,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        18.0031,
+        0.2319,
+        72
+      ],
+      "note": [
+        18.4969,
+        0.013300000000000978,
+        67
+      ],
+      "next": [
+        18.5102,
+        0.4925,
+        67
+      ],
+      "source": [
+        [
+          18.2469,
+          0.2381,
+          67
+        ],
+        [
+          18.5102,
+          0.4925,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        27.5102,
+        0.2248,
+        69
+      ],
+      "note": [
+        27.9969,
+        0.01,
+        65
+      ],
+      "next": [
+        28.2531,
+        0.2319,
+        62
+      ],
+      "source": [
+        [
+          27.7469,
+          0.4875,
+          67
+        ],
+        [
+          28.2531,
+          0.2319,
+          64
+        ]
+      ],
+      "category": "chord-end"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        15.7555,
+        0.24450000000000038,
+        64
+      ],
+      "note": [
+        16.4992,
+        0.01,
+        65
+      ],
+      "next": [
+        16.5063,
+        0.2455,
+        65
+      ],
+      "source": [
+        [
+          16.2492,
+          0.2358,
+          65
+        ],
+        [
+          16.5063,
+          0.2455,
+          65
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        23.5102,
+        0.2248,
+        69
+      ],
+      "note": [
+        23.9969,
+        0.01,
+        67
+      ],
+      "next": [
+        24.2531,
+        0.2319,
+        64
+      ],
+      "source": [
+        [
+          23.7469,
+          0.4875,
+          67
+        ],
+        [
+          24.2531,
+          0.2319,
+          65
+        ]
+      ],
+      "category": "chord-end"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        27.5102,
+        0.2248,
+        69
+      ],
+      "note": [
+        27.9969,
+        0.01,
+        65
+      ],
+      "next": [
+        28.2531,
+        0.2319,
+        62
+      ],
+      "source": [
+        [
+          27.7469,
+          0.4875,
+          67
+        ],
+        [
+          28.2531,
+          0.2319,
+          64
+        ]
+      ],
+      "category": "chord-end"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        11.7531,
+        0.24690000000000012,
+        67
+      ],
+      "note": [
+        12.4969,
+        0.013299999999999201,
+        65
+      ],
+      "next": [
+        12.5102,
+        0.2463,
+        64
+      ],
+      "source": [
+        [
+          12.2469,
+          0.2381,
+          65
+        ],
+        [
+          12.5102,
+          0.2463,
+          64
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        23.7469,
+        0.2530999999999999,
+        67
+      ],
+      "note": [
+        24.5031,
+        0.01,
+        64
+      ],
+      "next": [
+        24.5102,
+        0.2438,
+        67
+      ],
+      "source": [
+        [
+          24.2531,
+          0.2319,
+          65
+        ],
+        [
+          24.5102,
+          0.2438,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        27.7469,
+        0.2530999999999999,
+        65
+      ],
+      "note": [
+        28.5031,
+        0.01,
+        62
+      ],
+      "next": [
+        28.5102,
+        0.2438,
+        69
+      ],
+      "source": [
+        [
+          28.2531,
+          0.2319,
+          64
+        ],
+        [
+          28.5102,
+          0.2438,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "previous": [
+        26.0031,
+        1.7238,
+        76
+      ],
+      "note": [
+        28.25,
+        0.01,
+        74
+      ],
+      "next": [
+        28.2531,
+        0.4925,
+        67
+      ],
+      "source": [
+        [
+          28,
+          0.235,
+          72
+        ],
+        [
+          28.2531,
+          0.4925,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "previous": [
+        18.5102,
+        1.2313,
+        69
+      ],
+      "note": [
+        20.25,
+        0.01,
+        67
+      ],
+      "next": [
+        20.2531,
+        0.4925,
+        76
+      ],
+      "source": [
+        [
+          20,
+          0.235,
+          67
+        ],
+        [
+          20.2531,
+          0.4925,
+          76
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "previous": [
+        26.0031,
+        1.7238,
+        76
+      ],
+      "note": [
+        28.25,
+        0.01,
+        74
+      ],
+      "next": [
+        28.2531,
+        0.4925,
+        67
+      ],
+      "source": [
+        [
+          28,
+          0.235,
+          72
+        ],
+        [
+          28.2531,
+          0.4925,
+          69
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse 2",
+      "pattern": 1,
+      "previous": [
+        26.7531,
+        1.2469000000000001,
+        67
+      ],
+      "note": [
+        28.4969,
+        0.013300000000000978,
+        71
+      ],
+      "next": [
+        28.5102,
+        3.489799999999999,
+        67
+      ],
+      "source": [
+        [
+          28.2469,
+          0.2381,
+          69
+        ],
+        [
+          28.5102,
+          1.97,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse 2",
+      "pattern": 2,
+      "previous": [
+        26.7531,
+        1.2469000000000001,
+        67
+      ],
+      "note": [
+        28.4969,
+        0.013300000000000978,
+        71
+      ],
+      "next": [
+        28.5102,
+        3.489799999999999,
+        67
+      ],
+      "source": [
+        [
+          28.2469,
+          0.2381,
+          69
+        ],
+        [
+          28.5102,
+          1.97,
+          67
+        ]
+      ],
+      "category": "near-next"
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse 2",
+      "pattern": 3,
+      "previous": [
+        18.7469,
+        0.975,
+        69
+      ],
+      "note": [
+        20.5031,
+        0.01,
+        72
+      ],
+      "next": [
+        20.5102,
+        0.4875,
+        69
+      ],
+      "source": [
+        [
+          20.2531,
+          0.2319,
+          72
+        ],
+        [
+          20.5102,
+          0.4875,
+          67
+        ]
+      ],
+      "category": "near-next"
+    }
+  ],
+  "candidateCounts": [
+    {
+      "which": "A",
+      "run": 0,
+      "section": "イントロ",
+      "pattern": 1,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "イントロ",
+      "pattern": 2,
+      "before": 11,
+      "after": 11,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "イントロ",
+      "pattern": 3,
+      "before": 7,
+      "after": 7,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ",
+      "pattern": 1,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ",
+      "pattern": 2,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ",
+      "pattern": 3,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Bメロ",
+      "pattern": 1,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Bメロ",
+      "pattern": 2,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Bメロ",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ",
+      "pattern": 1,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ",
+      "pattern": 2,
+      "before": 29,
+      "after": 29,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ",
+      "pattern": 3,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ2",
+      "pattern": 1,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ2",
+      "pattern": 2,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "サビ2",
+      "pattern": 3,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "間奏",
+      "pattern": 1,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "間奏",
+      "pattern": 2,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "間奏",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "大サビ",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "大サビ",
+      "pattern": 2,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "大サビ",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "アウトロ",
+      "pattern": 1,
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "アウトロ",
+      "pattern": 2,
+      "before": 13,
+      "after": 13,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 0,
+      "section": "アウトロ",
+      "pattern": 3,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "イントロ",
+      "pattern": 1,
+      "before": 8,
+      "after": 8,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "イントロ",
+      "pattern": 2,
+      "before": 12,
+      "after": 12,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "イントロ",
+      "pattern": 3,
+      "before": 8,
+      "after": 8,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Aメロ",
+      "pattern": 1,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Aメロ",
+      "pattern": 2,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Aメロ",
+      "pattern": 3,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Bメロ",
+      "pattern": 1,
+      "before": 39,
+      "after": 39,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Bメロ",
+      "pattern": 2,
+      "before": 53,
+      "after": 53,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Bメロ",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "サビ",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "サビ",
+      "pattern": 2,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "サビ",
+      "pattern": 3,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "サビ2",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "サビ2",
+      "pattern": 2,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "サビ2",
+      "pattern": 3,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "間奏",
+      "pattern": 1,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "間奏",
+      "pattern": 2,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "間奏",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "大サビ",
+      "pattern": 1,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "大サビ",
+      "pattern": 2,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "大サビ",
+      "pattern": 3,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "アウトロ",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "アウトロ",
+      "pattern": 2,
+      "before": 8,
+      "after": 8,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 1,
+      "section": "アウトロ",
+      "pattern": 3,
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "イントロ",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "イントロ",
+      "pattern": 2,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "イントロ",
+      "pattern": 3,
+      "before": 11,
+      "after": 11,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Aメロ",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Aメロ",
+      "pattern": 2,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Aメロ",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Bメロ",
+      "pattern": 1,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Bメロ",
+      "pattern": 2,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Bメロ",
+      "pattern": 3,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ",
+      "pattern": 2,
+      "before": 50,
+      "after": 50,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ",
+      "pattern": 3,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ2",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ2",
+      "pattern": 2,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "サビ2",
+      "pattern": 3,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "間奏",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "間奏",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "間奏",
+      "pattern": 3,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "大サビ",
+      "pattern": 1,
+      "before": 36,
+      "after": 36,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "大サビ",
+      "pattern": 2,
+      "before": 29,
+      "after": 29,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "大サビ",
+      "pattern": 3,
+      "before": 38,
+      "after": 38,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "アウトロ",
+      "pattern": 1,
+      "before": 8,
+      "after": 8,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "アウトロ",
+      "pattern": 2,
+      "before": 12,
+      "after": 12,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 2,
+      "section": "アウトロ",
+      "pattern": 3,
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "イントロ",
+      "pattern": 1,
+      "before": 7,
+      "after": 7,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "イントロ",
+      "pattern": 2,
+      "before": 11,
+      "after": 11,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "イントロ",
+      "pattern": 3,
+      "before": 12,
+      "after": 12,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Aメロ",
+      "pattern": 1,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Aメロ",
+      "pattern": 2,
+      "before": 13,
+      "after": 13,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Aメロ",
+      "pattern": 3,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Bメロ",
+      "pattern": 1,
+      "before": 47,
+      "after": 47,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Bメロ",
+      "pattern": 2,
+      "before": 44,
+      "after": 44,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Bメロ",
+      "pattern": 3,
+      "before": 36,
+      "after": 36,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "サビ",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "サビ",
+      "pattern": 2,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "サビ",
+      "pattern": 3,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "サビ2",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "サビ2",
+      "pattern": 2,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "サビ2",
+      "pattern": 3,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "間奏",
+      "pattern": 1,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "間奏",
+      "pattern": 2,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "間奏",
+      "pattern": 3,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "大サビ",
+      "pattern": 1,
+      "before": 41,
+      "after": 41,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "大サビ",
+      "pattern": 2,
+      "before": 39,
+      "after": 39,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "大サビ",
+      "pattern": 3,
+      "before": 32,
+      "after": 32,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "アウトロ",
+      "pattern": 1,
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "アウトロ",
+      "pattern": 2,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 3,
+      "section": "アウトロ",
+      "pattern": 3,
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "イントロ",
+      "pattern": 1,
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "イントロ",
+      "pattern": 2,
+      "before": 13,
+      "after": 13,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "イントロ",
+      "pattern": 3,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Aメロ",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Aメロ",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Aメロ",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Bメロ",
+      "pattern": 1,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Bメロ",
+      "pattern": 2,
+      "before": 13,
+      "after": 13,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Bメロ",
+      "pattern": 3,
+      "before": 13,
+      "after": 13,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "サビ",
+      "pattern": 1,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "サビ",
+      "pattern": 2,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "サビ",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "サビ2",
+      "pattern": 1,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "サビ2",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "サビ2",
+      "pattern": 3,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "間奏",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "間奏",
+      "pattern": 2,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "間奏",
+      "pattern": 3,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "大サビ",
+      "pattern": 1,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "大サビ",
+      "pattern": 2,
+      "before": 34,
+      "after": 34,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "大サビ",
+      "pattern": 3,
+      "before": 41,
+      "after": 41,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "アウトロ",
+      "pattern": 1,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "アウトロ",
+      "pattern": 2,
+      "before": 11,
+      "after": 11,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 4,
+      "section": "アウトロ",
+      "pattern": 3,
+      "before": 8,
+      "after": 8,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "イントロ",
+      "pattern": 1,
+      "before": 11,
+      "after": 11,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "イントロ",
+      "pattern": 2,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "イントロ",
+      "pattern": 3,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Aメロ",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Aメロ",
+      "pattern": 2,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Aメロ",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Bメロ",
+      "pattern": 1,
+      "before": 13,
+      "after": 13,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Bメロ",
+      "pattern": 2,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Bメロ",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "サビ",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "サビ",
+      "pattern": 2,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "サビ",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Aメロ2",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Aメロ2",
+      "pattern": 2,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "Aメロ2",
+      "pattern": 3,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "サビ2",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "サビ2",
+      "pattern": 2,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "サビ2",
+      "pattern": 3,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "間奏",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "間奏",
+      "pattern": 2,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "間奏",
+      "pattern": 3,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "大サビ",
+      "pattern": 1,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "大サビ",
+      "pattern": 2,
+      "before": 41,
+      "after": 41,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "大サビ",
+      "pattern": 3,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "アウトロ",
+      "pattern": 1,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "アウトロ",
+      "pattern": 2,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "A",
+      "run": 5,
+      "section": "アウトロ",
+      "pattern": 3,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Intro",
+      "pattern": 1,
+      "before": 8,
+      "after": 8,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Intro",
+      "pattern": 2,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Intro",
+      "pattern": 3,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse",
+      "pattern": 1,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse",
+      "pattern": 2,
+      "before": 35,
+      "after": 35,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse",
+      "pattern": 3,
+      "before": 41,
+      "after": 41,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Pre-Chorus",
+      "pattern": 1,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Pre-Chorus",
+      "pattern": 2,
+      "before": 29,
+      "after": 29,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Pre-Chorus",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Chorus",
+      "pattern": 1,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Chorus",
+      "pattern": 2,
+      "before": 27,
+      "after": 27,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Chorus",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 1,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 2,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Verse 2",
+      "pattern": 3,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Chorus 2",
+      "pattern": 2,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Bridge",
+      "pattern": 1,
+      "before": 46,
+      "after": 46,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Bridge",
+      "pattern": 2,
+      "before": 45,
+      "after": 45,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Bridge",
+      "pattern": 3,
+      "before": 32,
+      "after": 32,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Final Chorus",
+      "pattern": 1,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Final Chorus",
+      "pattern": 2,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Final Chorus",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Outro",
+      "pattern": 1,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Outro",
+      "pattern": 2,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 0,
+      "section": "Outro",
+      "pattern": 3,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Intro",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Intro",
+      "pattern": 2,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Intro",
+      "pattern": 3,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse",
+      "pattern": 1,
+      "before": 45,
+      "after": 45,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse",
+      "pattern": 2,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse",
+      "pattern": 3,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Pre-Chorus",
+      "pattern": 1,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Pre-Chorus",
+      "pattern": 2,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Pre-Chorus",
+      "pattern": 3,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Chorus",
+      "pattern": 1,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Chorus",
+      "pattern": 2,
+      "before": 36,
+      "after": 36,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Chorus",
+      "pattern": 3,
+      "before": 45,
+      "after": 45,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 1,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 2,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Verse 2",
+      "pattern": 3,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Chorus 2",
+      "pattern": 2,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Bridge",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Bridge",
+      "pattern": 2,
+      "before": 33,
+      "after": 33,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Bridge",
+      "pattern": 3,
+      "before": 45,
+      "after": 45,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Final Chorus",
+      "pattern": 1,
+      "before": 35,
+      "after": 35,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Final Chorus",
+      "pattern": 2,
+      "before": 46,
+      "after": 46,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Final Chorus",
+      "pattern": 3,
+      "before": 45,
+      "after": 45,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Outro",
+      "pattern": 1,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Outro",
+      "pattern": 2,
+      "before": 11,
+      "after": 11,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 1,
+      "section": "Outro",
+      "pattern": 3,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Intro",
+      "pattern": 1,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Intro",
+      "pattern": 2,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Intro",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse",
+      "pattern": 1,
+      "before": 51,
+      "after": 51,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse",
+      "pattern": 2,
+      "before": 32,
+      "after": 32,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse",
+      "pattern": 3,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Pre-Chorus",
+      "pattern": 1,
+      "before": 44,
+      "after": 44,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Pre-Chorus",
+      "pattern": 2,
+      "before": 42,
+      "after": 42,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Pre-Chorus",
+      "pattern": 3,
+      "before": 37,
+      "after": 37,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Chorus",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Chorus",
+      "pattern": 2,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Chorus",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 1,
+      "before": 49,
+      "after": 49,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 2,
+      "before": 49,
+      "after": 49,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Verse 2",
+      "pattern": 3,
+      "before": 49,
+      "after": 49,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Chorus 2",
+      "pattern": 2,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Bridge",
+      "pattern": 1,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Bridge",
+      "pattern": 2,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Bridge",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Final Chorus",
+      "pattern": 1,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Final Chorus",
+      "pattern": 2,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Final Chorus",
+      "pattern": 3,
+      "before": 36,
+      "after": 36,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Outro",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Outro",
+      "pattern": 2,
+      "before": 12,
+      "after": 12,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 2,
+      "section": "Outro",
+      "pattern": 3,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Intro",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Intro",
+      "pattern": 2,
+      "before": 12,
+      "after": 12,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Intro",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse",
+      "pattern": 1,
+      "before": 43,
+      "after": 43,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse",
+      "pattern": 2,
+      "before": 53,
+      "after": 53,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse",
+      "pattern": 3,
+      "before": 34,
+      "after": 34,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Pre-Chorus",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Pre-Chorus",
+      "pattern": 2,
+      "before": 29,
+      "after": 29,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Pre-Chorus",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Chorus",
+      "pattern": 1,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Chorus",
+      "pattern": 2,
+      "before": 29,
+      "after": 29,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Chorus",
+      "pattern": 3,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 1,
+      "before": 42,
+      "after": 42,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 2,
+      "before": 42,
+      "after": 42,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Verse 2",
+      "pattern": 3,
+      "before": 42,
+      "after": 42,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Chorus 2",
+      "pattern": 2,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "before": 24,
+      "after": 24,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Bridge",
+      "pattern": 1,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Bridge",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Bridge",
+      "pattern": 3,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Final Chorus",
+      "pattern": 1,
+      "before": 37,
+      "after": 37,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Final Chorus",
+      "pattern": 2,
+      "before": 45,
+      "after": 45,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Final Chorus",
+      "pattern": 3,
+      "before": 38,
+      "after": 38,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Outro",
+      "pattern": 1,
+      "before": 10,
+      "after": 10,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Outro",
+      "pattern": 2,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 3,
+      "section": "Outro",
+      "pattern": 3,
+      "before": 19,
+      "after": 19,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Intro",
+      "pattern": 1,
+      "before": 12,
+      "after": 12,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Intro",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Intro",
+      "pattern": 3,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Verse",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Verse",
+      "pattern": 2,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Verse",
+      "pattern": 3,
+      "before": 17,
+      "after": 17,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Pre-Chorus",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Pre-Chorus",
+      "pattern": 2,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Pre-Chorus",
+      "pattern": 3,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus",
+      "pattern": 2,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus",
+      "pattern": 3,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Verse 2",
+      "pattern": 1,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Verse 2",
+      "pattern": 2,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Verse 2",
+      "pattern": 3,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus 2",
+      "pattern": 2,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Bridge",
+      "pattern": 1,
+      "before": 28,
+      "after": 28,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Bridge",
+      "pattern": 2,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Bridge",
+      "pattern": 3,
+      "before": 44,
+      "after": 44,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Final Chorus",
+      "pattern": 1,
+      "before": 40,
+      "after": 40,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Final Chorus",
+      "pattern": 2,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Final Chorus",
+      "pattern": 3,
+      "before": 50,
+      "after": 50,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Outro",
+      "pattern": 1,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Outro",
+      "pattern": 2,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 4,
+      "section": "Outro",
+      "pattern": 3,
+      "before": 18,
+      "after": 18,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Intro",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Intro",
+      "pattern": 2,
+      "before": 21,
+      "after": 21,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Intro",
+      "pattern": 3,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse",
+      "pattern": 2,
+      "before": 46,
+      "after": 46,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse",
+      "pattern": 3,
+      "before": 36,
+      "after": 36,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Pre-Chorus",
+      "pattern": 1,
+      "before": 30,
+      "after": 30,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Pre-Chorus",
+      "pattern": 2,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Pre-Chorus",
+      "pattern": 3,
+      "before": 15,
+      "after": 15,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Chorus",
+      "pattern": 1,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Chorus",
+      "pattern": 2,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Chorus",
+      "pattern": 3,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse 2",
+      "pattern": 1,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse 2",
+      "pattern": 2,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Verse 2",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Chorus 2",
+      "pattern": 1,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Chorus 2",
+      "pattern": 2,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Chorus 2",
+      "pattern": 3,
+      "before": 31,
+      "after": 31,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Bridge",
+      "pattern": 1,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Bridge",
+      "pattern": 2,
+      "before": 25,
+      "after": 25,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Bridge",
+      "pattern": 3,
+      "before": 22,
+      "after": 22,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Final Chorus",
+      "pattern": 1,
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Final Chorus",
+      "pattern": 2,
+      "before": 30,
+      "after": 30,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Final Chorus",
+      "pattern": 3,
+      "before": 20,
+      "after": 20,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Outro",
+      "pattern": 1,
+      "before": 16,
+      "after": 16,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Outro",
+      "pattern": 2,
+      "before": 26,
+      "after": 26,
+      "delta": 0
+    },
+    {
+      "which": "B",
+      "run": 5,
+      "section": "Outro",
+      "pattern": 3,
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    }
+  ],
+  "timingChanges": {
+    "changed": [
+      {
+        "which": "A",
+        "run": 0,
+        "section": "Aメロ2",
+        "pattern": 1,
+        "index": 38,
+        "before": {
+          "pitch": 68,
+          "startBeat": 30.5035,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 68,
+          "startBeat": 30.3785,
+          "durationBeats": 0.13370000000000104
+        }
+      },
+      {
+        "which": "A",
+        "run": 0,
+        "section": "Aメロ2",
+        "pattern": 2,
+        "index": 33,
+        "before": {
+          "pitch": 64,
+          "startBeat": 26.502,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 64,
+          "startBeat": 26.377,
+          "durationBeats": 0.12959999999999994
+        }
+      },
+      {
+        "which": "A",
+        "run": 0,
+        "section": "Aメロ2",
+        "pattern": 3,
+        "index": 13,
+        "before": {
+          "pitch": 65,
+          "startBeat": 10.502,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 10.377,
+          "durationBeats": 0.12959999999999994
+        }
+      },
+      {
+        "which": "A",
+        "run": 0,
+        "section": "Aメロ2",
+        "pattern": 3,
+        "index": 28,
+        "before": {
+          "pitch": 68,
+          "startBeat": 22.498,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 68,
+          "startBeat": 22.373,
+          "durationBeats": 0.13359999999999772
+        }
+      },
+      {
+        "which": "A",
+        "run": 0,
+        "section": "サビ2",
+        "pattern": 3,
+        "index": 16,
+        "before": {
+          "pitch": 76,
+          "startBeat": 11.998,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 76,
+          "startBeat": 11.873,
+          "durationBeats": 0.12700000000000067
+        }
+      },
+      {
+        "which": "A",
+        "run": 2,
+        "section": "サビ2",
+        "pattern": 3,
+        "index": 10,
+        "before": {
+          "pitch": 74,
+          "startBeat": 8.498,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 74,
+          "startBeat": 8.373,
+          "durationBeats": 0.13360000000000127
+        }
+      },
+      {
+        "which": "A",
+        "run": 2,
+        "section": "サビ2",
+        "pattern": 3,
+        "index": 16,
+        "before": {
+          "pitch": 74,
+          "startBeat": 14.2535,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 74,
+          "startBeat": 14.1285,
+          "durationBeats": 0.12909999999999933
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 32,
+        "before": {
+          "pitch": 77,
+          "startBeat": 25.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 77,
+          "startBeat": 25.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 36,
+        "before": {
+          "pitch": 69,
+          "startBeat": 29.2469,
+          "durationBeats": 0.014900000000000801
+        },
+        "after": {
+          "pitch": 69,
+          "startBeat": 29.1219,
+          "durationBeats": 0.1399000000000008
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 27,
+        "before": {
+          "pitch": 74,
+          "startBeat": 21.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 74,
+          "startBeat": 21.3781,
+          "durationBeats": 0.13210000000000122
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 36,
+        "before": {
+          "pitch": 69,
+          "startBeat": 29.2469,
+          "durationBeats": 0.014900000000000801
+        },
+        "after": {
+          "pitch": 69,
+          "startBeat": 29.1219,
+          "durationBeats": 0.1399000000000008
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 16,
+        "before": {
+          "pitch": 72,
+          "startBeat": 13.2469,
+          "durationBeats": 0.014899999999999025
+        },
+        "after": {
+          "pitch": 72,
+          "startBeat": 13.1219,
+          "durationBeats": 0.13989999999999903
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 22,
+        "before": {
+          "pitch": 74,
+          "startBeat": 17.4929,
+          "durationBeats": 0.013400000000000745
+        },
+        "after": {
+          "pitch": 74,
+          "startBeat": 17.3679,
+          "durationBeats": 0.13840000000000074
+        }
+      },
+      {
+        "which": "B",
+        "run": 0,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 37,
+        "before": {
+          "pitch": 69,
+          "startBeat": 29.5118,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 69,
+          "startBeat": 29.3868,
+          "durationBeats": 0.13209999999999766
+        }
+      },
+      {
+        "which": "B",
+        "run": 1,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 38,
+        "before": {
+          "pitch": 67,
+          "startBeat": 27.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 67,
+          "startBeat": 27.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 1,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 33,
+        "before": {
+          "pitch": 64,
+          "startBeat": 23.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 64,
+          "startBeat": 23.3781,
+          "durationBeats": 0.13210000000000122
+        }
+      },
+      {
+        "which": "B",
+        "run": 1,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 22,
+        "before": {
+          "pitch": 72,
+          "startBeat": 15.2555,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 72,
+          "startBeat": 15.1305,
+          "durationBeats": 0.13129999999999953
+        }
+      },
+      {
+        "which": "B",
+        "run": 1,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 28,
+        "before": {
+          "pitch": 67,
+          "startBeat": 19.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 67,
+          "startBeat": 19.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 2,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 38,
+        "before": {
+          "pitch": 65,
+          "startBeat": 25.2469,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 25.1219,
+          "durationBeats": 0.13119999999999976
+        }
+      },
+      {
+        "which": "B",
+        "run": 2,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 44,
+        "before": {
+          "pitch": 64,
+          "startBeat": 28.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 64,
+          "startBeat": 28.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 2,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 39,
+        "before": {
+          "pitch": 72,
+          "startBeat": 25.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 72,
+          "startBeat": 25.3781,
+          "durationBeats": 0.13210000000000122
+        }
+      },
+      {
+        "which": "B",
+        "run": 2,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 13,
+        "before": {
+          "pitch": 64,
+          "startBeat": 9.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 64,
+          "startBeat": 9.3781,
+          "durationBeats": 0.13209999999999944
+        }
+      },
+      {
+        "which": "B",
+        "run": 2,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 22,
+        "before": {
+          "pitch": 67,
+          "startBeat": 15.2555,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 67,
+          "startBeat": 15.1305,
+          "durationBeats": 0.13129999999999953
+        }
+      },
+      {
+        "which": "B",
+        "run": 2,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 28,
+        "before": {
+          "pitch": 67,
+          "startBeat": 18.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 67,
+          "startBeat": 18.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 36,
+        "before": {
+          "pitch": 65,
+          "startBeat": 27.9969,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 27.8719,
+          "durationBeats": 0.12809999999999988
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 21,
+        "before": {
+          "pitch": 65,
+          "startBeat": 16.4992,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 16.3742,
+          "durationBeats": 0.13210000000000122
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 30,
+        "before": {
+          "pitch": 67,
+          "startBeat": 23.9969,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 67,
+          "startBeat": 23.8719,
+          "durationBeats": 0.12809999999999988
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 36,
+        "before": {
+          "pitch": 65,
+          "startBeat": 27.9969,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 27.8719,
+          "durationBeats": 0.12809999999999988
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 16,
+        "before": {
+          "pitch": 65,
+          "startBeat": 12.4969,
+          "durationBeats": 0.013299999999999201
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 12.3719,
+          "durationBeats": 0.1382999999999992
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 31,
+        "before": {
+          "pitch": 65,
+          "startBeat": 24.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 65,
+          "startBeat": 24.3781,
+          "durationBeats": 0.13210000000000122
+        }
+      },
+      {
+        "which": "B",
+        "run": 3,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 37,
+        "before": {
+          "pitch": 62,
+          "startBeat": 28.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 62,
+          "startBeat": 28.3781,
+          "durationBeats": 0.13210000000000122
+        }
+      },
+      {
+        "which": "B",
+        "run": 4,
+        "section": "Chorus 2",
+        "pattern": 1,
+        "index": 22,
+        "before": {
+          "pitch": 74,
+          "startBeat": 28.25,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 74,
+          "startBeat": 28.125,
+          "durationBeats": 0.12809999999999988
+        }
+      },
+      {
+        "which": "B",
+        "run": 4,
+        "section": "Chorus 2",
+        "pattern": 3,
+        "index": 16,
+        "before": {
+          "pitch": 67,
+          "startBeat": 20.25,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 67,
+          "startBeat": 20.125,
+          "durationBeats": 0.12809999999999988
+        }
+      },
+      {
+        "which": "B",
+        "run": 4,
+        "section": "Chorus 2",
+        "pattern": 3,
+        "index": 22,
+        "before": {
+          "pitch": 74,
+          "startBeat": 28.25,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 74,
+          "startBeat": 28.125,
+          "durationBeats": 0.12809999999999988
+        }
+      },
+      {
+        "which": "B",
+        "run": 5,
+        "section": "Verse 2",
+        "pattern": 1,
+        "index": 18,
+        "before": {
+          "pitch": 71,
+          "startBeat": 28.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 71,
+          "startBeat": 28.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 5,
+        "section": "Verse 2",
+        "pattern": 2,
+        "index": 18,
+        "before": {
+          "pitch": 71,
+          "startBeat": 28.4969,
+          "durationBeats": 0.013300000000000978
+        },
+        "after": {
+          "pitch": 71,
+          "startBeat": 28.3719,
+          "durationBeats": 0.13830000000000098
+        }
+      },
+      {
+        "which": "B",
+        "run": 5,
+        "section": "Verse 2",
+        "pattern": 3,
+        "index": 13,
+        "before": {
+          "pitch": 72,
+          "startBeat": 20.5031,
+          "durationBeats": 0.01
+        },
+        "after": {
+          "pitch": 72,
+          "startBeat": 20.3781,
+          "durationBeats": 0.13210000000000122
+        }
+      }
+    ],
+    "nonTinyChanged": 0
+  }
+}

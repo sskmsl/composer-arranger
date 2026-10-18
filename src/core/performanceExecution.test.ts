@@ -36,6 +36,19 @@ function plan(patch: Partial<PerformanceExecutionPlan> = {}): PerformanceExecuti
 }
 
 describe("Performance Execution Bridge", () => {
+  it("新規主旋律の最小音価を指定したときだけ、Gateで0.1拍未満にしない", () => {
+    const source = [note("a", 0, .125, 60, 70), note("b", .25, .125, 62, 80)]
+    const legacy = buildDefaultPerformancePlan("lead-focus", "verse")
+    legacy.performanceSpec.gate.base = .5
+    legacy.performanceSpec.gate.variation = 0
+    const generated = structuredClone(legacy)
+    generated.performanceSpec.gate.minimumNoteBeats = .1
+    const result = applyPerformanceExecution(source, generated, context)
+    expect(result.notes.every((n) => n.durationBeats >= .1)).toBe(true)
+    expect(result.notes.every((n, i) => !result.notes[i + 1] || n.startBeat + n.durationBeats <= result.notes[i + 1].startBeat)).toBe(true)
+    expect(applyPerformanceExecution(source, legacy, context).notes.some((n) => n.durationBeats < .1)).toBe(true)
+    expect(source.every((n) => n.durationBeats === .125)).toBe(true)
+  })
   it("明示した歌う長音はGateで縮めず、次の発音と重ならない。旧仕様は変えない", () => {
     const source = [note("held", 0, 2, 60, 70), note("next", 2, .5, 62, 90)]
     const legacy = buildDefaultPerformancePlan("lead-focus", "verse")
