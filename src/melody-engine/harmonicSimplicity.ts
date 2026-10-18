@@ -37,7 +37,7 @@ export function simplifyAgainstHarmony(
     const bar = Math.floor(original.startBeat / beatsPerBar)
     if (bar !== previousBar) { busyIndex = 0; previousBar = bar }
     const barNoteCount = notes.filter((n) => Math.floor(n.startBeat / beatsPerBar) === bar).length
-    if (barNoteCount <= Math.ceil(beatsPerBar) || harmonicMotionInBar(chords, bar * beatsPerBar, beatsPerBar) < 2) {
+    if (barNoteCount <= Math.ceil(beatsPerBar) || harmonicMotionInBar(chords, bar * beatsPerBar, beatsPerBar) < (profile === "standard" ? 2 : 1.5)) {
       result.push(original)
       continue
     }

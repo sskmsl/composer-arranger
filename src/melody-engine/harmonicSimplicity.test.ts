@@ -36,6 +36,13 @@ describe("harmonic and melodic activity balance", () => {
     expect(result.length).toBeLessThan(notes.length)
     expect(simplifyAgainstHarmony(result, altered, { low: 60, high: 79 }, "minimal")).toEqual(result)
   })
+  it("simplifies two-beat harmonic changes without requiring three chords per bar", () => {
+    const twoBeat = [chord("Ab", 0, 2), chord("Bb", 2, 2)]
+    const result = simplifyAgainstHarmony(notes, twoBeat, { low: 60, high: 79 }, "cinematic")
+    expect(result.length).toBeLessThan(notes.length)
+    const stable = [chord("Ab", 0, 4)]
+    expect(simplifyAgainstHarmony(notes, stable, { low: 60, high: 79 }, "cinematic")).toEqual(notes)
+  })
   it("respects explicit locks and profile identities", () => {
     const locked = notes.map((n) => ({ ...n, locks: ["pitch" as const] }))
     expect(simplifyAgainstHarmony(locked, busy, { low: 60, high: 79 }, "minimal")).toEqual(locked)
