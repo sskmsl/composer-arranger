@@ -1,3 +1,4 @@
+import { simplifyAgainstHarmony } from "./harmonicSimplicity"
 import { SeededRandom } from "@/core/rng"
 import { measureExpectation } from "./expectation"
 import type { ChordEvent, SongProfileId } from "@/core/project"
@@ -607,6 +608,7 @@ function directPlacementDiagnostics(notes: MelodyNote[], harmonicMap: ReturnType
 }
 
 export interface GenerateProfileBatchInput {
+  beatsPerBar?: number
   melodyCharacter?: MelodyCharacterPlan
   /**
    * 比較実験用: 古典らしさによる選抜の重み(既定は CRAFT_SELECTION_WEIGHT)。
@@ -918,7 +920,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         )
         recordStage("pool:transition", transitioned.notes)
         notes = enforceHarmonicIntegrity(
-          transitioned.notes,
+          simplifyAgainstHarmony(transitioned.notes, input.chords, input.range, profile, input.beatsPerBar),
           input.chords,
           input.range,
           { preserveExpressiveChordRoles: true },
@@ -968,7 +970,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       )
       recordStage("pool:transition", transitioned.notes)
       const finalNotes = enforceHarmonicIntegrity(
-        transitioned.notes,
+        simplifyAgainstHarmony(transitioned.notes, input.chords, input.range, profile, input.beatsPerBar),
         input.chords,
         input.range,
         { preserveExpressiveChordRoles: true },
@@ -1054,7 +1056,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       recordStage("deferEarlySummit", deferred)
       const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
       recordStage("ensureSummitBreath", breathed)
-      const integrated = enforceHarmonicIntegrity(breathed, input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
+      const integrated = enforceHarmonicIntegrity(simplifyAgainstHarmony(breathed, input.chords, input.range, profile, input.beatsPerBar), input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
       recordStage("harmonicIntegrity", integrated)
       return integrated
     })

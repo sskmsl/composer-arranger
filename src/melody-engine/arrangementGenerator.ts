@@ -1452,6 +1452,12 @@ function generateTonalTrack(
       else if (section.rhythmGrammar === "half-time") offsets = cycleBar % 2 === 0 ? [2.5] : []
       if (section.motifTreatment === "fragmentation" && cycleBar % 2 === 1) offsets = offsets.slice(-1)
       if (section.motifTreatment === "inversion") offsets = offsets.map((offset) => Math.max(.25, beatsPerBar - offset - .5))
+      const barLead = melody.filter((n) => n.startBeat >= start + bar * beatsPerBar
+        && n.startBeat < start + (bar + 1) * beatsPerBar)
+      const movingLead = barLead.length > beatsPerBar && barLead.slice(1)
+        .filter((n, i) => n.pitch !== barLead[i].pitch).length > beatsPerBar / 2
+      // 旋律が動く小節では和音アクセントを一度に留め、背景の再発音を抑える。
+      if (movingLead) offsets = offsets.slice(0, 1)
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return

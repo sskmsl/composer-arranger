@@ -158,6 +158,7 @@ function buildMelodyLayers(
     const seed = rng.intBetween(1, 0x7fffffff)
     if (!batch || batch.next >= batch.candidates.length) {
       const { candidates } = generateFromChordsWithProfiles({
+        beatsPerBar: input.beatsPerBar,
         chords: windowChords,
         sectionId: input.sectionId,
         sectionRole: input.sectionRole,

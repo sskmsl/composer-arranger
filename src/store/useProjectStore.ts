@@ -1215,6 +1215,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       sectionRole: section.role,
     }
     const commonGenerationInput = {
+      beatsPerBar: parseTimeSignature(prev.song.timeSignature).beatsPerBar,
       chords: windowChords,
       sectionId,
       sectionRole: section.role,
