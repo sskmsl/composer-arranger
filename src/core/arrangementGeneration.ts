@@ -191,10 +191,14 @@ export interface ArrangementSectionPlan {
   motifTreatment?: ArrangementMotifTreatment
   /** 次Sectionの入口を強くするため、末尾で骨格パートを休ませる拍数。 */
   preBoundaryDropBeats?: number
+  /** 休止する役割。未指定の旧データは骨格の2役割を使う。 */
+  preBoundaryDropRoles?: ArrangementTrackId[]
   /** 後半で初めて密度・音域を一段開く場合の、Section先頭からの拍位置。 */
   backHalfLiftBeat?: number
   /** Section先頭から何拍待って役割を登場させるか。 */
   roleEntryBeats?: Partial<Record<ArrangementTrackId, number>>
+  /** Section先頭から何拍で背景の役割を退出させるか。未指定は末尾まで。 */
+  roleExitBeats?: Partial<Record<ArrangementTrackId, number>>
   /**
    * 和声を漂わせる度合い(0〜1、0.5 が中立)。音像の奥行き・余韻とジャンルの持続から決める。
    * 高いほど、背景の和音に付加音を残し、半音で動く声部と共通音の保持を選び、低音を保続させやすい(Delius 的な空間)。

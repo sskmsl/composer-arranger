@@ -509,8 +509,9 @@ function transitionCandidate(
       : reverseMotif
         ? `主旋律冒頭の動きを逆順にして高域へ一度だけ置き、次の${next?.sectionName ?? "終止"}で回収する`
         : `未使用高域を一瞬だけ開き、次の${next?.sectionName ?? "終止"}の入口で解決して落差を記憶させる`
-  const start = end - (character === "surprise" ? 1.5 : 1.25)
-  const hasEndingRest = !lead.some((note) => note.startBeat < end && note.startBeat + note.durationBeats > start)
+  const windowBeats = Math.min(source.lengthBars * beatsPerBar, beatsPerBar * (character === "surprise" ? 2 : 1))
+  const start = end - windowBeats
+  const hasEndingRest = !lead.some((note) => note.startBeat < end && note.startBeat + note.durationBeats > end - .5)
   if (!next || section.melodyRestRatio < 0.08 || !hasEndingRest) {
     return { id: `${section.sectionId}:${character}:silence`, sectionId: section.sectionId, character, kind: "silence", reason: "主旋律の余白が不足しているため、音を足さないことを最も強い選択とする", notes: [] }
   }
@@ -525,7 +526,7 @@ function transitionCandidate(
   const intervals = usesMotif ? motifLeadIn.slice(-3) : character === "safe" ? [-4, -2, 0] : character === "edge" ? [-3, -1, 0] : [7, 1, 0]
   const notes = intervals.map((interval, index): MelodyNote => ({
     id: `transition:${section.sectionId}:${character}:${seed}:${index}`,
-    startBeat: start + index * 0.375,
+    startBeat: index === intervals.length - 1 ? end - .5 : start + index * (windowBeats - .5) / (intervals.length - 1),
     durationBeats: index === intervals.length - 1 ? 0.5 : 0.25,
     pitch: Math.max(0, Math.min(127, target + interval)),
     velocity: 58 + index * 8 + (character === "surprise" ? 6 : 0),
@@ -533,13 +534,18 @@ function transitionCandidate(
     plannedToneRole: index === intervals.length - 1 ? "anticipation" : character === "safe" ? "passing-tone" : "approach-tone",
     plannedResolution: index === intervals.length - 1 ? { targetPitchClass: targetPc, targetBeat: end, maximumDelayBeats: 1 } : undefined,
   }))
+  const spacedNotes = notes.filter((note) => !lead.some((n) => n.startBeat < note.startBeat + note.durationBeats
+    && n.startBeat + n.durationBeats > note.startBeat))
+  // 転換の窓は広げても、主旋律の上へ無理に全音を置かない。
+  if (spacedNotes.length < 2) return { id: `${section.sectionId}:${character}:silence`, sectionId: section.sectionId,
+    character, kind: "silence", reason: "転換の1〜2小節に十分な余白がないため、休止を選ぶ", notes: [] }
   return {
     id: `${section.sectionId}:${character}:${seed}`,
     sectionId: section.sectionId,
     character,
     kind: usesMotif ? reverseMotif ? "reverse-motif" : "motif-variation" : character === "safe" ? "ascending" : character === "edge" ? "chromatic-approach" : "synth-fill",
-    reason,
-    notes,
+    reason: `${reason}。${character === "surprise" ? "2" : "1"}小節の転換窓で間を残す`,
+    notes: spacedNotes,
   }
 }
 
@@ -731,7 +737,7 @@ export function buildFullSongArrangementPlan(
       section.energy + contrastShift + (applies ? effectiveDirective?.energyDelta ?? 0 : 0),
     ))] as const
   }))
-  return {
+  const plan: ArrangementPlan = {
     version: "1.0.0",
     brief,
     seed,
@@ -869,6 +875,27 @@ export function buildFullSongArrangementPlan(
         if (uniqueRoles.includes("dr-kick")) roleEntryBeats["dr-kick"] = Math.max(roleEntryBeats["dr-kick"] ?? 0, beatsPerBar)
         if (uniqueRoles.includes("dr-snare")) roleEntryBeats["dr-snare"] = Math.max(roleEntryBeats["dr-snare"] ?? 0, beatsPerBar * 2)
       }
+      const finalRebuild = effectiveNextSection?.semanticRole === "final"
+        && candidateApproach === "dynamic-contrast" && section.semanticRole !== "breakdown"
+        && sectionLengthBeats >= beatsPerBar * 8 && !soundApplies && !(applies && effectiveDirective?.intention)
+      const dropCandidates: ArrangementTrackId[] = seed % 2 === 0
+        ? ["syn-bass", "syn-pulse"] : ["str-violin-1", "syn-stabs"]
+      const preBoundaryDropRoles = dropCandidates.filter((id) => uniqueRoles.includes(id)
+        && !(effectiveDirective?.preserve ?? []).includes(id))
+      // 高域が未登場なら、既に鳴る骨格を引いて再構築する。
+      if (finalRebuild && !preBoundaryDropRoles.length) preBoundaryDropRoles.push(...uniqueRoles
+        .filter((id) => ["syn-bass", "syn-pulse"].includes(id) && !(effectiveDirective?.preserve ?? []).includes(id)))
+      if (["chorus", "final"].includes(section.semanticRole ?? "")) {
+        const colours = uniqueRoles.filter((id) => ["syn-stabs", "str-violin-1", "str-viola", "str-upper"].includes(id)
+          && !(applies && [...(effectiveDirective?.add ?? []), ...(effectiveDirective?.preserve ?? [])].includes(id)))
+        colours.forEach((id, i) => {
+          const delay = selectedTransitionCharacter === "edge" ? (i < 2 ? 0 : beatsPerBar)
+            : selectedTransitionCharacter === "surprise" ? beatsPerBar * (1 + Math.floor(i / 2))
+              : beatsPerBar * (1 + i)
+          roleEntryBeats[id] = Math.min(sectionLengthBeats - beatsPerBar,
+            Math.max(roleEntryBeats[id] ?? 0, delay))
+        })
+      }
       const backHalfLiftBeat = backHalfLiftFor(sourceSection, effectiveSection, sectionShape, beatsPerBar)
       // 後半の発展はSection頭から全パートを鳴らすのではなく、役割の登場時点そのものを変える。
       if (backHalfLiftBeat !== undefined) {
@@ -887,7 +914,9 @@ export function buildFullSongArrangementPlan(
           mid: effectiveEnergy >= 45 ? "strong" : "medium",
           high: isPeak ? "strong" : effectiveEnergy >= 65 - (genre.registerRange - .5) * 15 ? "medium" : "open",
         },
-        intention: applies && effectiveDirective?.intention
+        intention: finalRebuild && preBoundaryDropRoles.length
+          ? `${preBoundaryDropRoles.map((id) => ARRANGEMENT_TRACK_NAMES[id]).join("・")}を末尾2小節で休ませ、反復の土台を残して最終サビを再構築する`
+          : applies && effectiveDirective?.intention
           ? effectiveDirective.intention
           : isPeak
           ? "それまで温存した音域と役割を開き、曲全体の最大解放を作る"
@@ -904,7 +933,8 @@ export function buildFullSongArrangementPlan(
           : genre.rhythmDensity > .73 && !isPeak ? "driving"
           : genre.syncopation > .72 && !isPeak ? "broken"
           : character === "rhythmic" || candidateApproach === "rhythm-led" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
-        bassStrategy: character === "rhythmic" ? (isPeak ? "octave-drive" : "syncopated")
+        bassStrategy: !character && sectionShape === "drop" ? "sustain"
+          : character === "rhythmic" ? (isPeak ? "octave-drive" : "syncopated")
           : genre.bassMovement < .32 && !isPeak ? "sustain"
           : genre.bassMovement > .7 && genre.syncopation > .64 && !isPeak ? "syncopated"
           : genre.bassMovement > .62 && !isPeak ? "approach-led"
@@ -921,7 +951,9 @@ export function buildFullSongArrangementPlan(
         rhythmGrammar,
         sectionShape,
         motifTreatment,
-        preBoundaryDropBeats: boundaryDropFor(effectiveSection, effectiveNextSection, beatsPerBar, candidateApproach),
+        preBoundaryDropBeats: finalRebuild && preBoundaryDropRoles.length ? beatsPerBar * 2
+          : boundaryDropFor(effectiveSection, effectiveNextSection, beatsPerBar, candidateApproach),
+        preBoundaryDropRoles: finalRebuild ? preBoundaryDropRoles : undefined,
         backHalfLiftBeat,
         roleEntryBeats,
         harmonicHaze: harmonicHazeFor(genre, aesthetic),
@@ -933,6 +965,7 @@ export function buildFullSongArrangementPlan(
       }
     }),
   }
+  return scheduleBoundaryRoles(project, plan)
 }
 
 function makeNote(
@@ -1082,7 +1115,9 @@ function generateDrums(
   const dropsAtBoundary = new Set<ArrangementTrackId>(["dr-kick", "dr-snare", "dr-closed-hat", "dr-open-hat"])
   const shapedBeats = [...new Set(beats.map((beat) => Math.round(beat * 1000) / 1000))].filter((beat) => {
     if (beat >= start + length) return false
-    if ((section.preBoundaryDropBeats ?? 0) > 0 && dropsAtBoundary.has(trackId) && beat >= dropStart) return false
+    if ((section.preBoundaryDropBeats ?? 0) > 0
+      && (section.preBoundaryDropRoles ? section.preBoundaryDropRoles.includes(trackId) : dropsAtBoundary.has(trackId))
+      && beat >= dropStart) return false
     const nearLeadAttack = melody.some((note) => Math.abs(note.startBeat - beat) <= 0.12)
     const barOffset = ((beat - start) % beatsPerBar + beatsPerBar) % beatsPerBar
     if (trackId === "dr-kick") return barOffset < 0.08 || !nearLeadAttack
@@ -1452,6 +1487,12 @@ function generateTonalTrack(
       else if (section.rhythmGrammar === "half-time") offsets = cycleBar % 2 === 0 ? [2.5] : []
       if (section.motifTreatment === "fragmentation" && cycleBar % 2 === 1) offsets = offsets.slice(-1)
       if (section.motifTreatment === "inversion") offsets = offsets.map((offset) => Math.max(.25, beatsPerBar - offset - .5))
+      const barLead = melody.filter((n) => n.startBeat >= start + bar * beatsPerBar
+        && n.startBeat < start + (bar + 1) * beatsPerBar)
+      const movingLead = barLead.length > beatsPerBar && barLead.slice(1)
+        .filter((n, i) => n.pitch !== barLead[i].pitch).length > beatsPerBar / 2
+      // 旋律が動く小節では和音アクセントを一度に留め、背景の再発音を抑える。
+      if (movingLead) offsets = offsets.slice(0, 1)
       offsets.forEach((offsetInBar, hitIndex) => {
         const localBeat = bar * beatsPerBar + offsetInBar
         if (localBeat >= length) return
@@ -1775,7 +1816,8 @@ function generateTrack(
       generated = applyMotifEcho(generated, trackId, sectionPlan, offset, length, chords, material.lead, beatsPerBar)
     }
     const boundaryDrop = sectionPlan.preBoundaryDropBeats ?? 0
-    if (boundaryDrop > 0 && ["syn-bass", "syn-pulse", "syn-stabs"].includes(trackId)) {
+    if (boundaryDrop > 0 && !(plan.directive?.preserve ?? []).includes(trackId)
+      && (sectionPlan.preBoundaryDropRoles ?? ["syn-bass", "syn-pulse"]).includes(trackId)) {
       const dropStart = offset + length - boundaryDrop
       generated = generated.flatMap((note) => {
         if (note.startBeat >= dropStart) return []
@@ -1783,7 +1825,16 @@ function generateTrack(
         return [{ ...note, durationBeats: Math.max(.0625, dropStart - note.startBeat), reason: `${note.reason}。次のSection直前は休ませる` }]
       })
     }
-    track.notes.push(...generated.filter((note) => note.startBeat + 0.001 >= entryBeat))
+    track.notes.push(...generated.flatMap((note) => {
+      if (note.startBeat + .001 >= entryBeat) return [note]
+      const end = note.startBeat + note.durationBeats
+      // 持続音の途中を入口にした場合、次の再発音まで待たず、その位置から鳴らす。
+      if (section.lengthBars >= 8 && isBoundaryManagedRole(trackId)
+        && entryBeat > offset && end - entryBeat >= .25) return [{ ...note,
+        startBeat: entryBeat, durationBeats: end - entryBeat,
+        reason: `${note.reason}。指定した入口から持続フレーズを受け継ぐ` }]
+      return []
+    }))
   }
   return track
 }
@@ -2243,9 +2294,9 @@ function reconcilePlanWithSoundingRoles(
       const activeRoles = section.activeRoles.filter((role) => tracks.some((track) =>
         track.id === role && track.notes.some((note) => note.sectionId === section.sectionId),
       ))
-      const active = new Set(activeRoles)
+      const active = new Set(tracks.filter((track) => track.notes.some((note) => note.sectionId === section.sectionId)).map((track) => track.id))
       const roleEntryBeats = Object.fromEntries(Object.entries(section.roleEntryBeats ?? {})
-        .filter(([role]) => active.has(role as ArrangementTrackId))) as Partial<Record<ArrangementTrackId, number>>
+        .filter(([role]) => active.has(role as ArrangementTrackId) || isBoundaryManagedRole(role as ArrangementTrackId))) as Partial<Record<ArrangementTrackId, number>>
       return {
         ...section,
         activeRoles,
@@ -2363,6 +2414,199 @@ function realignPhaseLockedDrumLayers(tracks: GeneratedArrangementTrack[]): Gene
   })
 }
 
+/** 反復する背景層。主ベース・打楽器・境界アクセントは別の役割を持つ。 */
+function isBoundaryManagedRole(id: ArrangementTrackId): boolean {
+  return id.startsWith("str-") || ["syn-dark-pad", "syn-pad-air", "syn-pad-motion",
+    "syn-stabs", "syn-chord-wide", "syn-pulse", "syn-arp-low", "syn-arp-high",
+    "syn-sub-bass", "syn-bass-mid"].includes(id)
+}
+
+/** 役割の出入りを音符生成より先に配分し、密度による事後の間引きを行わない。 */
+function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan): ArrangementPlan {
+  if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return plan
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sections = normalizeSectionTimeline(project.sections)
+  const protectedRole = (id: ArrangementTrackId) => (plan.directive?.preserve ?? []).includes(id)
+    || (isArrangementLayerTrackId(id) && (plan.directive?.preserve ?? []).includes(ARRANGEMENT_LAYER_SOURCES[id]))
+  const roles = (section: ArrangementSectionPlan) => (Object.keys(TRACK_FAMILY) as ArrangementTrackId[])
+    .filter((id) => isBoundaryManagedRole(id) && !protectedRole(id) && section.roleExitBeats?.[id] !== 0 && (isArrangementLayerTrackId(id)
+      ? section.activeRoles.includes(ARRANGEMENT_LAYER_SOURCES[id]) && layerEnabledInSection(id, section)
+      : section.activeRoles.includes(id)))
+  // 最初の提示で補助層を使い切らず、繰り返すサビへ色彩を残す。
+  const choruses = plan.sections.filter((section) => section.semanticRole === "chorus")
+  if (choruses.length > 1 && sections.find((section) => section.id === choruses[0].sectionId)!.lengthBars >= 8) {
+    const first = choruses[0], repeated = choruses[1]
+    const available = roles(first).filter((id) => roles(repeated).includes(id))
+    const reserved = ["syn-chord-wide", "syn-arp-low", "str-contrabass", "syn-pad-motion", "syn-bass-mid"] as ArrangementTrackId[]
+    first.roleExitBeats ??= {}
+    reserved.filter((id) => available.includes(id)).slice(0, 3).forEach((id) => { first.roleExitBeats![id] = 0 })
+  }
+  const rank = (id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
+    : id.startsWith("str-") ? 2 : 3
+  // 元の編成を固定してからスケジュールする。繰越した退出を次の比較に混ぜない。
+  const original = plan.sections.map(roles)
+  for (let i = 1; i < plan.sections.length; i++) {
+    const previous = plan.sections[i - 1], next = plan.sections[i]
+    const left = sections.find((s) => s.id === previous.sectionId), right = sections.find((s) => s.id === next.sectionId)
+    if (!left || !right || left.lengthBars < 8 || right.lengthBars < 8 || right.role === "outro") continue
+    const before = original[i - 1], after = original[i]
+    previous.roleExitBeats ??= {}
+    next.roleEntryBeats ??= {}
+    const occupied = new Map<number, number>()
+    const reserve = (earliest: number, capacity: number) => {
+      let bar = earliest
+      while ((occupied.get(bar) ?? 0) >= capacity) bar++
+      occupied.set(bar, (occupied.get(bar) ?? 0) + 1)
+      return bar
+    }
+    const exits = before.filter((id) => !after.includes(id)).sort((a, b) => rank(b) - rank(a) || a.localeCompare(b))
+    for (const id of exits) {
+      const bar = reserve(-Math.max(2, Math.ceil(exits.length / 2)), 2)
+      previous.roleExitBeats[id] = (left.lengthBars + bar) * bpb
+    }
+    for (const id of after.filter((id) => before.includes(id))) {
+      const delay = next.roleEntryBeats[id] ?? 0
+      if (delay > 0) {
+        const bar = reserve(Math.ceil(delay / bpb), 2)
+        next.roleEntryBeats[id] = bar * bpb
+      }
+    }
+    next.intention += "。背景層の入場と退出を小節ごとに分散する"
+    const character = next.selectedTransitionCharacter
+    const entries = after.filter((id) => !before.includes(id)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+    const earliest = character === "surprise" ? 1 : 0
+    const gentleSlots = Array.from({ length: 5 - earliest }, (_, index) =>
+      Math.max(0, 1 - (occupied.get(earliest + index) ?? 0))).reduce((sum, slots) => sum + slots, 0)
+    // 緩い入口でも上声を終盤まで待たせず、待ちが長い場合だけ2層の枠を使う。
+    const capacity = character === "edge" || entries.length > gentleSlots ? 2 : 1
+    for (const id of entries) {
+      const bar = reserve(earliest, capacity)
+      next.roleEntryBeats[id] = Math.min(right.lengthBars - 1, bar) * bpb
+    }
+  }
+  return plan
+}
+
+/**
+ * 計画の入口・出口を実際のフレーズに合わせて選ぶ。
+ * 周期的な休符や派生層を含むため、役割一覧だけでなく音価込みの状態を比較する。
+ * 密度を均すのではなく、任意の補助層を遅らせる／早めに休ませる候補を評価する。
+ */
+function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementPlan, tracks: GeneratedArrangementTrack[]): void {
+  if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sections = normalizeSectionTimeline(project.sections)
+  const windows = new Set<number>()
+  for (let i = 1; i < sections.length; i++) {
+    const left = sections[i - 1], right = sections[i]
+    if (left.lengthBars < 8 || right.lengthBars < 8 || right.role === "outro") continue
+    for (let bar = right.startBar - 3; bar <= right.startBar + 3; bar++) windows.add(bar)
+  }
+  const managed = tracks.filter((track) => {
+    const base = isArrangementLayerTrackId(track.id) ? ARRANGEMENT_LAYER_SOURCES[track.id] : track.id
+    return isBoundaryManagedRole(track.id) && !(plan.directive?.preserve ?? []).includes(track.id)
+      && !(plan.directive?.preserve ?? []).includes(base)
+  })
+  const cells = managed.map((track) => sections.map((section) => {
+    const control = plan.sections.find((s) => s.sectionId === section.id)!
+    const start = section.startBar - 1
+    return { section, control, start,
+      entry: (control.roleEntryBeats?.[track.id] ?? 0) / bpb,
+      exit: (control.roleExitBeats?.[track.id] ?? section.lengthBars * bpb) / bpb,
+      sounding: Array.from({ length: section.lengthBars }, (_, bar) => track.notes.some((n) =>
+        n.sectionId === section.id && n.startBeat < (start + bar + 1) * bpb - .01
+        && n.startBeat + n.durationBeats > (start + bar) * bpb + .01)),
+    }
+  }))
+  const state = (index: number, bar: number) => cells[index].some((cell) => {
+    const local = bar - cell.start
+    return local >= cell.entry && local < cell.exit && cell.sounding[local]
+  })
+  const changes = (bar: number) => managed.map((_, index) => index).filter((index) => state(index, bar - 1) !== state(index, bar))
+  const cost = () => [...windows].reduce((sum, bar) => sum + Math.max(0, changes(bar).length - 2), 0)
+  for (let pass = 0; pass < managed.length * sections.length; pass++) {
+    const current = cost()
+    if (current === 0) break
+    let best: { index: number; cell: typeof cells[number][number]; field: "entry" | "exit"; value: number; cost: number; loss: number } | undefined
+    for (const bar of windows) {
+      const flipped = changes(bar)
+      if (flipped.length <= 2) continue
+      for (const index of flipped) {
+        // 背景和声の土台は保ち、先に補助層の入口・出口を選び直す。
+        if (managed[index].id === "syn-dark-pad") continue
+        const soundingBar = state(index, bar) ? bar : bar - 1
+        const cell = cells[index].find((c) => soundingBar >= c.start && soundingBar < c.start + c.section.lengthBars)
+        if (!cell || cell.section.lengthBars < 8 || cell.section.role === "outro") continue
+        const local = soundingBar - cell.start
+        for (const field of ["entry", "exit"] as const) {
+          const original = cell[field]
+          const value = field === "entry" ? local + 1 : local
+          if (field === "entry" ? value <= original || value > cell.exit : value >= original || value < cell.entry) continue
+          cell[field] = value
+          const candidateCost = cost()
+          cell[field] = original
+          const loss = Math.abs(value - original) * (isArrangementLayerTrackId(managed[index].id) ? 1 : 4)
+          if (candidateCost < current && (!best || candidateCost < best.cost || candidateCost === best.cost && loss < best.loss))
+            best = { index, cell, field, value, cost: candidateCost, loss }
+        }
+      }
+    }
+    if (!best) break
+    const { index, cell, field, value } = best
+    cell[field] = value
+    const key = field === "entry" ? "roleEntryBeats" : "roleExitBeats"
+    cell.control[key] ??= {}
+    cell.control[key]![managed[index].id] = value * bpb
+  }
+}
+
+/** 生成・Critic後にも計画した発音可能範囲を守る。音数の比較による削除はしない。 */
+function stageBoundaryLayers(
+  project: ComposerProject, plan: ArrangementPlan, input: GeneratedArrangementTrack[],
+  editableTrackIds?: ReadonlySet<string>, editableSectionIds?: ReadonlySet<string>,
+): GeneratedArrangementTrack[] {
+  if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return input
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sections = normalizeSectionTimeline(project.sections)
+  const tracks = input.map((track) => {
+    if (editableTrackIds && !editableTrackIds.has(track.id)) return track
+    const base = isArrangementLayerTrackId(track.id) ? ARRANGEMENT_LAYER_SOURCES[track.id] : track.id
+    if (!isBoundaryManagedRole(track.id) || (plan.directive?.preserve ?? []).includes(track.id)
+      || (plan.directive?.preserve ?? []).includes(base)) return track
+    return { ...track, notes: track.notes.flatMap((note) => {
+      if (editableSectionIds && !editableSectionIds.has(note.sectionId)) return [note]
+      const section = sections.find((s) => s.id === note.sectionId)
+      const control = plan.sections.find((s) => s.sectionId === note.sectionId)
+      if (!section || !control) return [note]
+      const offset = sectionOffset(section.startBar, bpb)
+      const entry = offset + (control.roleEntryBeats?.[track.id] ?? 0)
+      const exit = offset + (control.roleExitBeats?.[track.id] ?? section.lengthBars * bpb)
+      const start = Math.max(note.startBeat, entry), end = Math.min(note.startBeat + note.durationBeats, exit)
+      return end - start < .0625 ? [] : [{ ...note, startBeat: start, durationBeats: end - start,
+        reason: start !== note.startBeat || end !== note.startBeat + note.durationBeats
+          ? `${note.reason}。背景層の計画した入口・出口を守り、同時の交代を分散する` : note.reason }]
+    }) }
+  })
+  if (editableTrackIds || editableSectionIds) return tracks
+  // 既存の「最終サビは前のサビより補助層を増やしすぎない」上限を守る。
+  for (let i = 1; i < sections.length; i++) {
+    const section = sections[i]
+    if (section.role !== "grand-chorus") continue
+    const previous = sections.slice(0, i).filter((s) => s.role === "chorus").at(-1)
+    if (!previous) continue
+    const active = tracks.filter((t) => t.notes.some((n) => n.sectionId === section.id))
+    const previousCount = tracks.filter((t) => t.notes.some((n) => n.sectionId === previous.id)).length
+    let excess = active.length - previousCount - 9
+    const expendable = active.filter((t) => isArrangementLayerTrackId(t.id) && t.id !== "str-spiccato"
+      && !PHASE_LOCKED_LAYER_SOURCES.has(t.id) && !(plan.directive?.preserve ?? []).includes(t.id)).reverse()
+    for (const track of expendable) {
+      if (excess-- <= 0) break
+      track.notes = track.notes.filter((n) => n.sectionId !== section.id)
+    }
+  }
+  return tracks
+}
+
 /**
  * 全曲生成・部分再生成・AI相談後の差し替えを同じ最終工程へ通す。
  * 音像処理は付与済みの音へ重ねず、Criticは実際に保存・試聴・書き出しされる全トラックを見る。
@@ -2395,6 +2639,15 @@ export function finalizeFullSongArrangement(
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
   )), options.editableTrackIds, options.editableSectionIds)
+  if (!options.editableTrackIds && !options.editableSectionIds) {
+    // 補助層上限の整理も入口・出口の測定へ反映し、後工程で交代を増やさない。
+    for (let pass = 0; pass < 3; pass++) {
+      finalTracks = stageBoundaryLayers(project, arrangement.plan, finalTracks)
+      refineBoundaryRoleSchedule(project, arrangement.plan, finalTracks)
+    }
+  }
+  finalTracks = realignPhaseLockedDrumLayers(stageBoundaryLayers(project, arrangement.plan, finalTracks,
+    options.editableTrackIds, options.editableSectionIds))
   const backgroundRepair = options.refine === false
     ? { tracks: finalTracks, report: arrangement.backgroundVoiceRepairs }
     : repairBackgroundOctaveConflicts(project, arrangement.plan, finalTracks,
@@ -2419,6 +2672,22 @@ export function finalizeFullSongArrangement(
       if (section.role === "chorus") chorus = mean(section.id)
     }
   }
+  finalTracks = finalTracks.map((track) => {
+    if (options.editableTrackIds && !options.editableTrackIds.has(track.id)) return track
+    const base = isArrangementLayerTrackId(track.id) ? ARRANGEMENT_LAYER_SOURCES[track.id] : track.id
+    if ((arrangement.plan.directive?.preserve ?? []).includes(track.id)
+      || (arrangement.plan.directive?.preserve ?? []).includes(base)) return track
+    return { ...track, notes: track.notes.flatMap((note) => {
+      if (options.editableSectionIds && !options.editableSectionIds.has(note.sectionId)) return [note]
+      const sectionPlan = arrangement.plan.sections.find((s) => s.sectionId === note.sectionId)
+      const source = project.sections.find((s) => s.id === note.sectionId)
+      if (!source || !sectionPlan?.preBoundaryDropRoles?.includes(base) || !sectionPlan.preBoundaryDropBeats) return [note]
+      const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+      const stop = sectionOffset(source.startBar + source.lengthBars, bpb) - sectionPlan.preBoundaryDropBeats
+      if (note.startBeat >= stop) return []
+      return [{ ...note, durationBeats: Math.min(note.durationBeats, stop - note.startBeat) }]
+    }) }
+  })
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {

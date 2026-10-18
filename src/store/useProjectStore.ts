@@ -89,7 +89,7 @@ import {
 import { applyProfileOverride, generatorProfileIntensity } from "@/melody-engine/generatorProfile"
 import type { PhraseLengthBars } from "@/core/phrase"
 import type { SignatureGenerationDirection, SignaturePhraseLengthBars } from "@/core/signaturePhrase"
-import { buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
+import { buildSectionExitContext, buildSectionTransitionContext } from "@/melody-engine/sectionTransition"
 import type { CounterCreativeRisk, CounterGeneratorStyle } from "@/core/reactiveLayer"
 import { annotateArrangementApproaches } from "@/core/arrangementSurprise"
 import type { AiPartnerSession, OrchestrationRole } from "@/ai-arranger/types"
@@ -1150,6 +1150,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         drama: settings.drama,
         // Issue #41: サビが未生成ならundefinedのまま渡し、生成側で予約値へフォールバックさせる
         chorusPeakMidi: chorusPeakMidi(prev),
+        transitionContext: buildSectionTransitionContext(prev, sectionId),
         nextSectionRole: nextSection?.role,
         nextSectionFirstChord,
         songMotifDNA: prev.songMotifDNA,
@@ -1215,6 +1216,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       sectionRole: section.role,
     }
     const commonGenerationInput = {
+      beatsPerBar: parseTimeSignature(prev.song.timeSignature).beatsPerBar,
       chords: windowChords,
       sectionId,
       sectionRole: section.role,
@@ -1230,6 +1232,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       musicContext,
       melodyCharacter,
       // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
+      exitContext: window.endBeat === totalBeats ? buildSectionExitContext(prev, sectionId) : undefined,
       transitionContext:
         window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,
     }

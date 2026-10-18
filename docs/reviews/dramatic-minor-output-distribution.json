@@ -1,0 +1,380 @@
+{
+  "seeds": [
+    19,
+    41,
+    73,
+    101,
+    137,
+    173
+  ],
+  "scope": "generated notes and exported MIDI; no listening guarantee",
+  "motif": [
+    {
+      "seed": 19,
+      "candidates": 3,
+      "semitonePedalCandidates": 0,
+      "identifiableVariations": 5
+    },
+    {
+      "seed": 41,
+      "candidates": 3,
+      "semitonePedalCandidates": 0,
+      "identifiableVariations": 2
+    },
+    {
+      "seed": 73,
+      "candidates": 3,
+      "semitonePedalCandidates": 1,
+      "identifiableVariations": 5
+    },
+    {
+      "seed": 101,
+      "candidates": 3,
+      "semitonePedalCandidates": 0,
+      "identifiableVariations": 0
+    },
+    {
+      "seed": 137,
+      "candidates": 3,
+      "semitonePedalCandidates": 1,
+      "identifiableVariations": 6
+    },
+    {
+      "seed": 173,
+      "candidates": 3,
+      "semitonePedalCandidates": 1,
+      "identifiableVariations": 2
+    }
+  ],
+  "crowdedEntryOnsets": [
+    {
+      "seed": 19,
+      "onsets": {
+        "safe": [
+          4,
+          12,
+          8
+        ],
+        "edge": [
+          2,
+          8,
+          8
+        ],
+        "surprise": [
+          4,
+          18,
+          12
+        ]
+      }
+    },
+    {
+      "seed": 41,
+      "onsets": {
+        "safe": [
+          4,
+          12,
+          8
+        ],
+        "edge": [
+          2,
+          8,
+          8
+        ],
+        "surprise": [
+          4,
+          18,
+          12
+        ]
+      }
+    },
+    {
+      "seed": 73,
+      "onsets": {
+        "safe": [
+          4,
+          12,
+          8
+        ],
+        "edge": [
+          2,
+          8,
+          8
+        ],
+        "surprise": [
+          4,
+          18,
+          12
+        ]
+      }
+    }
+  ],
+  "arrangement": [
+    {
+      "seed": 19,
+      "boundaryChanges": [
+        1,
+        3,
+        2,
+        8,
+        5
+      ],
+      "layerChanges": [
+        {
+          "onsetFlips": 7,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 10,
+          "soundingFlips": 8,
+          "managedDensityChanges": 1
+        },
+        {
+          "onsetFlips": 8,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 15,
+          "soundingFlips": 11,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 14,
+          "soundingFlips": 17,
+          "managedDensityChanges": 0
+        }
+      ],
+      "sectionNoteCounts": [
+        81,
+        181,
+        197,
+        224,
+        315,
+        12
+      ],
+      "sectionLayerCounts": [
+        9,
+        16,
+        17,
+        22,
+        26,
+        3
+      ],
+      "quality": true,
+      "managedBoundaryFlips": [
+        1,
+        0,
+        0,
+        2,
+        1,
+        0,
+        0,
+        2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        1,
+        2,
+        0,
+        2,
+        1,
+        1
+      ],
+      "entryOnsets": {
+        "safe": 8,
+        "edge": 2,
+        "surprise": 4
+      }
+    },
+    {
+      "seed": 41,
+      "boundaryChanges": [
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      "layerChanges": [
+        {
+          "onsetFlips": 7,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 10,
+          "soundingFlips": 10,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 8,
+          "soundingFlips": 7,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 13,
+          "soundingFlips": 11,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 16,
+          "soundingFlips": 19,
+          "managedDensityChanges": 0
+        }
+      ],
+      "sectionNoteCounts": [
+        220,
+        387,
+        401,
+        392,
+        418,
+        12
+      ],
+      "sectionLayerCounts": [
+        10,
+        19,
+        19,
+        21,
+        28,
+        3
+      ],
+      "quality": true,
+      "managedBoundaryFlips": [
+        1,
+        0,
+        1,
+        2,
+        1,
+        0,
+        0,
+        2,
+        0,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        2,
+        0,
+        2,
+        0,
+        1,
+        0,
+        2,
+        1,
+        2,
+        0,
+        2
+      ],
+      "entryOnsets": {
+        "safe": 8,
+        "edge": 2,
+        "surprise": 4
+      }
+    },
+    {
+      "seed": 73,
+      "boundaryChanges": [
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      "layerChanges": [
+        {
+          "onsetFlips": 7,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 10,
+          "soundingFlips": 10,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 6,
+          "soundingFlips": 5,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 13,
+          "soundingFlips": 11,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 15,
+          "soundingFlips": 18,
+          "managedDensityChanges": 0
+        }
+      ],
+      "sectionNoteCounts": [
+        220,
+        387,
+        396,
+        392,
+        413,
+        12
+      ],
+      "sectionLayerCounts": [
+        10,
+        19,
+        17,
+        21,
+        26,
+        3
+      ],
+      "quality": true,
+      "managedBoundaryFlips": [
+        1,
+        0,
+        1,
+        2,
+        1,
+        0,
+        0,
+        2,
+        0,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        2,
+        0,
+        2,
+        0,
+        1,
+        0,
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "entryOnsets": {
+        "safe": 8,
+        "edge": 2,
+        "surprise": 4
+      }
+    }
+  ]
+}
