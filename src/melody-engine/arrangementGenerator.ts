@@ -2421,6 +2421,37 @@ function isBoundaryManagedRole(id: ArrangementTrackId): boolean {
     "syn-sub-bass", "syn-bass-mid"].includes(id)
 }
 
+const AUXILIARY_BASS_ROLES: ArrangementTrackId[] = ["syn-sub-bass", "syn-bass-mid"]
+
+/** 短い再構築区間は、従来の境界窓に収まる構成だけを対象とする。 */
+function rebuildSectionIds(project: ComposerProject, plan: ArrangementPlan): Set<string> {
+  return new Set(plan.sections.filter((section, index) => index > 0
+    && plan.sections[index - 1].semanticRole === "breakdown"
+    && project.sections.find((s) => s.id === section.sectionId)?.lengthBars === 4
+    && ["chorus", "final"].includes(plan.sections[index + 1]?.semanticRole ?? ""))
+    .map((section) => section.sectionId))
+}
+
+function scheduleBreakdownBass(project: ComposerProject, plan: ArrangementPlan): void {
+  const rebuilds = rebuildSectionIds(project, plan)
+  for (const [index, section] of plan.sections.entries()) {
+    const returning = rebuilds.has(section.sectionId) || rebuilds.has(plan.sections[index - 1]?.sectionId)
+    if (section.semanticRole !== "breakdown" && !returning) continue
+    for (const id of AUXILIARY_BASS_ROLES) {
+      if ([id, "syn-bass" as ArrangementTrackId].some((role) =>
+        plan.directive?.preserve?.includes(role) || plan.directive?.add?.includes(role))) continue
+      if (section.semanticRole === "breakdown") {
+        section.roleExitBeats ??= {}
+        section.roleExitBeats[id] = 0
+      } else {
+        if (section.roleExitBeats) delete section.roleExitBeats[id]
+        section.roleEntryBeats ??= {}
+        section.roleEntryBeats[id] = 0
+      }
+    }
+  }
+}
+
 /** 役割の出入りを音符生成より先に配分し、密度による事後の間引きを行わない。 */
 function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan): ArrangementPlan {
   if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return plan
@@ -2441,6 +2472,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     first.roleExitBeats ??= {}
     reserved.filter((id) => available.includes(id)).slice(0, 3).forEach((id) => { first.roleExitBeats![id] = 0 })
   }
+  scheduleBreakdownBass(project, plan)
+  const rebuilds = rebuildSectionIds(project, plan)
   const rank = (id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
     : id.startsWith("str-") ? 2 : 3
   // 元の編成を固定してからスケジュールする。繰越した退出を次の比較に混ぜない。
@@ -2448,7 +2481,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   for (let i = 1; i < plan.sections.length; i++) {
     const previous = plan.sections[i - 1], next = plan.sections[i]
     const left = sections.find((s) => s.id === previous.sectionId), right = sections.find((s) => s.id === next.sectionId)
-    if (!left || !right || left.lengthBars < 8 || right.lengthBars < 8 || right.role === "outro") continue
+    if (!left || !right || right.role === "outro"
+      || ((left.lengthBars < 8 || right.lengthBars < 8) && !rebuilds.has(left.id) && !rebuilds.has(right.id))) continue
     const before = original[i - 1], after = original[i]
     previous.roleExitBeats ??= {}
     next.roleEntryBeats ??= {}
@@ -2496,10 +2530,12 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
   if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const sections = normalizeSectionTimeline(project.sections)
+  const rebuilds = rebuildSectionIds(project, plan)
   const windows = new Set<number>()
   for (let i = 1; i < sections.length; i++) {
     const left = sections[i - 1], right = sections[i]
-    if (left.lengthBars < 8 || right.lengthBars < 8 || right.role === "outro") continue
+    if (right.role === "outro" || ((left.lengthBars < 8 || right.lengthBars < 8)
+      && !rebuilds.has(left.id) && !rebuilds.has(right.id))) continue
     for (let bar = right.startBar - 3; bar <= right.startBar + 3; bar++) windows.add(bar)
   }
   const managed = tracks.filter((track) => {
@@ -2536,7 +2572,7 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
         if (managed[index].id === "syn-dark-pad") continue
         const soundingBar = state(index, bar) ? bar : bar - 1
         const cell = cells[index].find((c) => soundingBar >= c.start && soundingBar < c.start + c.section.lengthBars)
-        if (!cell || cell.section.lengthBars < 8 || cell.section.role === "outro") continue
+        if (!cell || (cell.section.lengthBars < 8 && !rebuilds.has(cell.section.id)) || cell.section.role === "outro") continue
         const local = soundingBar - cell.start
         for (const field of ["entry", "exit"] as const) {
           const original = cell[field]
