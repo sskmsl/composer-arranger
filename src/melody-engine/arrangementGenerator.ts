@@ -879,6 +879,16 @@ export function buildFullSongArrangementPlan(
       // 高域が未登場なら、既に鳴る骨格を引いて再構築する。
       if (finalRebuild && !preBoundaryDropRoles.length) preBoundaryDropRoles.push(...uniqueRoles
         .filter((id) => ["syn-bass", "syn-pulse"].includes(id) && !(effectiveDirective?.preserve ?? []).includes(id)))
+      if (["chorus", "final"].includes(section.semanticRole ?? "")) {
+        const colours = uniqueRoles.filter((id) => ["syn-stabs", "str-violin-1", "str-viola", "str-upper"].includes(id))
+        colours.forEach((id, i) => {
+          const delay = selectedTransitionCharacter === "edge" ? (i < 2 ? 0 : beatsPerBar)
+            : selectedTransitionCharacter === "surprise" ? beatsPerBar * (1 + Math.floor(i / 2))
+              : beatsPerBar * (1 + i)
+          roleEntryBeats[id] = Math.min(sectionLengthBeats - beatsPerBar,
+            Math.max(roleEntryBeats[id] ?? 0, delay))
+        })
+      }
       const backHalfLiftBeat = backHalfLiftFor(sourceSection, effectiveSection, sectionShape, beatsPerBar)
       // 後半の発展はSection頭から全パートを鳴らすのではなく、役割の登場時点そのものを変える。
       if (backHalfLiftBeat !== undefined) {
