@@ -191,6 +191,8 @@ export interface ArrangementSectionPlan {
   motifTreatment?: ArrangementMotifTreatment
   /** 次Sectionの入口を強くするため、末尾で骨格パートを休ませる拍数。 */
   preBoundaryDropBeats?: number
+  /** 休止する役割。未指定の旧データは骨格の2役割を使う。 */
+  preBoundaryDropRoles?: ArrangementTrackId[]
   /** 後半で初めて密度・音域を一段開く場合の、Section先頭からの拍位置。 */
   backHalfLiftBeat?: number
   /** Section先頭から何拍待って役割を登場させるか。 */

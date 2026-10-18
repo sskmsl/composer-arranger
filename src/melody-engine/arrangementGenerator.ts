@@ -869,6 +869,16 @@ export function buildFullSongArrangementPlan(
         if (uniqueRoles.includes("dr-kick")) roleEntryBeats["dr-kick"] = Math.max(roleEntryBeats["dr-kick"] ?? 0, beatsPerBar)
         if (uniqueRoles.includes("dr-snare")) roleEntryBeats["dr-snare"] = Math.max(roleEntryBeats["dr-snare"] ?? 0, beatsPerBar * 2)
       }
+      const finalRebuild = effectiveNextSection?.semanticRole === "final"
+        && candidateApproach === "dynamic-contrast" && section.semanticRole !== "breakdown"
+        && sectionLengthBeats >= beatsPerBar * 4 && !soundApplies
+      const dropCandidates: ArrangementTrackId[] = seed % 2 === 0
+        ? ["syn-bass", "syn-pulse"] : ["str-violin-1", "syn-stabs"]
+      const preBoundaryDropRoles = dropCandidates.filter((id) => uniqueRoles.includes(id)
+        && !(effectiveDirective?.preserve ?? []).includes(id))
+      // 高域が未登場なら、既に鳴る骨格を引いて再構築する。
+      if (finalRebuild && !preBoundaryDropRoles.length) preBoundaryDropRoles.push(...uniqueRoles
+        .filter((id) => ["syn-bass", "syn-pulse"].includes(id) && !(effectiveDirective?.preserve ?? []).includes(id)))
       const backHalfLiftBeat = backHalfLiftFor(sourceSection, effectiveSection, sectionShape, beatsPerBar)
       // 後半の発展はSection頭から全パートを鳴らすのではなく、役割の登場時点そのものを変える。
       if (backHalfLiftBeat !== undefined) {
@@ -887,7 +897,9 @@ export function buildFullSongArrangementPlan(
           mid: effectiveEnergy >= 45 ? "strong" : "medium",
           high: isPeak ? "strong" : effectiveEnergy >= 65 - (genre.registerRange - .5) * 15 ? "medium" : "open",
         },
-        intention: applies && effectiveDirective?.intention
+        intention: finalRebuild && preBoundaryDropRoles.length
+          ? `${preBoundaryDropRoles.join("・")}を末尾2小節で休ませ、反復の土台を残して最終サビを再構築する`
+          : applies && effectiveDirective?.intention
           ? effectiveDirective.intention
           : isPeak
           ? "それまで温存した音域と役割を開き、曲全体の最大解放を作る"
@@ -921,7 +933,9 @@ export function buildFullSongArrangementPlan(
         rhythmGrammar,
         sectionShape,
         motifTreatment,
-        preBoundaryDropBeats: boundaryDropFor(effectiveSection, effectiveNextSection, beatsPerBar, candidateApproach),
+        preBoundaryDropBeats: finalRebuild && preBoundaryDropRoles.length ? beatsPerBar * 2
+          : boundaryDropFor(effectiveSection, effectiveNextSection, beatsPerBar, candidateApproach),
+        preBoundaryDropRoles: finalRebuild ? preBoundaryDropRoles : undefined,
         backHalfLiftBeat,
         roleEntryBeats,
         harmonicHaze: harmonicHazeFor(genre, aesthetic),
@@ -1781,7 +1795,7 @@ function generateTrack(
       generated = applyMotifEcho(generated, trackId, sectionPlan, offset, length, chords, material.lead, beatsPerBar)
     }
     const boundaryDrop = sectionPlan.preBoundaryDropBeats ?? 0
-    if (boundaryDrop > 0 && ["syn-bass", "syn-pulse", "syn-stabs"].includes(trackId)) {
+    if (boundaryDrop > 0 && (sectionPlan.preBoundaryDropRoles ?? ["syn-bass", "syn-pulse"]).includes(trackId)) {
       const dropStart = offset + length - boundaryDrop
       generated = generated.flatMap((note) => {
         if (note.startBeat >= dropStart) return []
