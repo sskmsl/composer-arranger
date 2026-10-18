@@ -871,7 +871,7 @@ export function buildFullSongArrangementPlan(
       }
       const finalRebuild = effectiveNextSection?.semanticRole === "final"
         && candidateApproach === "dynamic-contrast" && section.semanticRole !== "breakdown"
-        && sectionLengthBeats >= beatsPerBar * 4 && !soundApplies
+        && sectionLengthBeats >= beatsPerBar * 4 && !soundApplies && !(applies && effectiveDirective?.intention)
       const dropCandidates: ArrangementTrackId[] = seed % 2 === 0
         ? ["syn-bass", "syn-pulse"] : ["str-violin-1", "syn-stabs"]
       const preBoundaryDropRoles = dropCandidates.filter((id) => uniqueRoles.includes(id)
@@ -2387,6 +2387,54 @@ function realignPhaseLockedDrumLayers(tracks: GeneratedArrangementTrack[]): Gene
  * 全曲生成・部分再生成・AI相談後の差し替えを同じ最終工程へ通す。
  * 音像処理は付与済みの音へ重ねず、Criticは実際に保存・試聴・書き出しされる全トラックを見る。
  */
+/**
+ * 境界の1小節では最大2トラックだけを大きく変える。
+ * 残りの退出を前の小節へ、入場を次の小節へ寄せ、反復を保つ。
+ * 8小節以上の区間を対象とし、短い区間の既存フレーズは削らない。
+ * MIDIにも渡る実音を処理し、個別再生成や明示的な演奏指定には適用しない。
+ */
+function stageBoundaryLayers(
+  project: ComposerProject, plan: ArrangementPlan, input: GeneratedArrangementTrack[],
+): GeneratedArrangementTrack[] {
+  if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return input
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sections = normalizeSectionTimeline(project.sections)
+  const tracks = input.map((t) => ({ ...t, notes: t.notes.map((n) => ({ ...n })) }))
+  for (let index = 1; index < sections.length; index++) {
+    const section = sections[index], previous = sections[index - 1]
+    if (section.lengthBars < 8 || previous.lengthBars < 8) continue
+    const boundary = sectionOffset(section.startBar, bpb)
+    const sectionPlan = plan.sections.find((s) => s.sectionId === section.id)
+    const before = (t: GeneratedArrangementTrack) => t.notes.filter((n) => n.startBeat >= boundary - bpb && n.startBeat < boundary)
+    const after = (t: GeneratedArrangementTrack) => t.notes.filter((n) => n.startBeat >= boundary && n.startBeat < boundary + bpb)
+    const changes = tracks.filter((t) => {
+      const a = before(t).length, b = after(t).length
+      return (a === 0) !== (b === 0) || Math.abs(a - b) > Math.max(1, a * .5)
+    })
+    // 音の入口を支える2役割を優先。位相固定の派生層は単独で変えない。
+    const immediate = sectionPlan?.selectedTransitionCharacter === "edge" ? 2
+      : sectionPlan?.selectedTransitionCharacter === "surprise" ? 1 : 0
+    const phaseSources = new Set(PHASE_LOCKED_LAYER_SOURCES.values())
+    const chosen = new Set(changes.filter((t) => !PHASE_LOCKED_LAYER_SOURCES.has(t.id)
+      && !phaseSources.has(t.id) && !(plan.directive?.preserve ?? []).includes(t.id))
+      .sort((a, b) => Number(b.id === "dr-crash") - Number(a.id === "dr-crash"))
+      .slice(0, immediate).map((t) => t.id))
+    for (const track of changes) {
+      if (chosen.has(track.id) || (plan.directive?.preserve ?? []).includes(track.id)) continue
+      const left = before(track), right = after(track)
+      // 退出は前の小節へ早め、入場は次の小節へ遅らせる。新しい音を補填しない。
+      const larger = left.length > right.length ? left : right
+      const keep = Math.min(left.length, right.length)
+      const kept = new Set(Array.from({ length: keep }, (_, i) => larger[Math.floor(i * larger.length / keep)]?.id))
+      const removed = new Set(larger.filter((n) => !kept.has(n.id)).map((n) => n.id))
+      track.notes = track.notes.filter((n) => !removed.has(n.id)).map((n) => ({ ...n,
+        reason: kept.has(n.id) ? `${n.reason}。境界では反復を保ち、層の交代を隣の小節へ分散する` : n.reason }))
+
+    }
+  }
+  return tracks
+}
+
 export function finalizeFullSongArrangement(
   project: ComposerProject,
   arrangement: FullSongArrangement,
@@ -2438,6 +2486,9 @@ export function finalizeFullSongArrangement(
         notes: t.notes.map((n) => n.sectionId === section.id ? { ...n, velocity: Math.max(30, Math.min(115, Math.round(n.velocity + target - current))) } : n) }))
       if (section.role === "chorus") chorus = mean(section.id)
     }
+  }
+  if (!options.editableTrackIds && !options.editableSectionIds) {
+    finalTracks = realignPhaseLockedDrumLayers(stageBoundaryLayers(project, arrangement.plan, finalTracks))
   }
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
