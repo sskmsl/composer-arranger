@@ -1,0 +1,398 @@
+{
+  "before": {
+    "distribution": {
+      "range": {
+        "p10": 7.7,
+        "median": 10,
+        "p90": 14,
+        "sd": 2.4635361610227413,
+        "mean": 10.8125
+      },
+      "long": {
+        "p10": 0.062,
+        "median": 0.28285714285714286,
+        "p90": 0.5263157894736842,
+        "sd": 0.167113113453256,
+        "mean": 0.28875001320714844
+      },
+      "offbeat": {
+        "p10": 0.2857142857142857,
+        "median": 0.5505050505050505,
+        "p90": 0.7535714285714286,
+        "sd": 0.18824506736773658,
+        "mean": 0.5270943864960601
+      },
+      "density": {
+        "p10": 0.6209132039016858,
+        "median": 0.7712670709253175,
+        "p90": 1.1308133203714865,
+        "sd": 0.21450750025817308,
+        "mean": 0.8257921890629408
+      }
+    },
+    "groups": {
+      "verse": {
+        "range": 11.125,
+        "long": 0.28739042527458986,
+        "offbeat": 0.5240816366782476,
+        "density": 0.8434002890508311
+      },
+      "chorus": {
+        "range": 10.5,
+        "long": 0.290109601139707,
+        "offbeat": 0.5301071363138726,
+        "density": 0.808184089075051
+      },
+      "slow": {
+        "range": 10.777777777777779,
+        "long": 0.28808841375568434,
+        "offbeat": 0.493736072591749,
+        "density": 0.8150972362255895
+      },
+      "fast": {
+        "range": 10.166666666666666,
+        "long": 0.2727135898045509,
+        "offbeat": 0.5716233002631744,
+        "density": 0.7900029580800746
+      }
+    },
+    "quality": {
+      "stepwise": 0.3723842177542176,
+      "leapRate": 0.15459717705586912,
+      "repeatedPitch": 0.2541492698652176,
+      "strongBeatChordTone": 0.9334426857864359,
+      "endsOnChordTone": 1,
+      "hook": 0.5896610067687686,
+      "classical": 57.830911207328136
+    }
+  },
+  "after": {
+    "distribution": {
+      "range": {
+        "p10": 6.4,
+        "median": 9,
+        "p90": 15,
+        "sd": 3.586662697488509,
+        "mean": 10.270833333333334
+      },
+      "long": {
+        "p10": 0.02481707317073171,
+        "median": 0.49,
+        "p90": 0.9047619047619048,
+        "sd": 0.31664558253873903,
+        "mean": 0.47429446089134375
+      },
+      "offbeat": {
+        "p10": 0,
+        "median": 0.375,
+        "p90": 0.6942391304347829,
+        "sd": 0.257099178818657,
+        "mean": 0.37612785322859704
+      },
+      "density": {
+        "p10": 0.46195866141732284,
+        "median": 0.7782845057341302,
+        "p90": 1.3014433889124326,
+        "sd": 0.3364006066248498,
+        "mean": 0.8866163915217399
+      }
+    },
+    "groups": {
+      "verse": {
+        "range": 7.333333333333333,
+        "long": 0.4485234929571586,
+        "offbeat": 0.39114329699750133,
+        "density": 0.8700864400898647
+      },
+      "chorus": {
+        "range": 13.208333333333334,
+        "long": 0.5000654288255287,
+        "offbeat": 0.36111240945969253,
+        "density": 0.903146342953615
+      },
+      "slow": {
+        "range": 10.5,
+        "long": 0.5904519113931421,
+        "offbeat": 0.23874101436630657,
+        "density": 0.7707091969384336
+      },
+      "fast": {
+        "range": 10,
+        "long": 0.3196124657112091,
+        "offbeat": 0.4899752550349869,
+        "density": 1.0164576011183704
+      }
+    },
+    "quality": {
+      "stepwise": 0.40932712038319646,
+      "leapRate": 0.13574513284217748,
+      "repeatedPitch": 0.24494392111662755,
+      "strongBeatChordTone": 0.958913829226329,
+      "endsOnChordTone": 1,
+      "hook": 0.6069680339951239,
+      "classical": 62.18405379592906
+    }
+  },
+  "arrangement": [
+    {
+      "which": "A",
+      "seed": 1,
+      "quality": 90.361328125,
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 7,
+        "peakSectionId": "00000000-0000-4000-8000-000000000061",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 1,
+        "densityContrastRatio": 37.25,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9466577754660359,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 7.42578125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.3333333333333333,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 5
+      },
+      "audition": 96.6,
+      "eligible": 8,
+      "lowEnd": 0.00390625,
+      "drumErrors": 0,
+      "breathless": 0
+    },
+    {
+      "which": "A",
+      "seed": 2,
+      "quality": 91.767578125,
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 7,
+        "peakSectionId": "00000000-0000-4000-8000-000000000061",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 35.833333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9650995529178048,
+        "averageActiveRoleCount": 7.333333333333333,
+        "generatedNotesPerBeat": 7.48828125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.23076923076923078,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4
+      },
+      "audition": 96.7,
+      "eligible": 8,
+      "lowEnd": 0.005859375,
+      "drumErrors": 0,
+      "breathless": 0
+    },
+    {
+      "which": "A",
+      "seed": 3,
+      "quality": 94.03125,
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 7,
+        "peakSectionId": "00000000-0000-4000-8000-000000000061",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 36.916666666666664,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9341623357720943,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 7.3125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.25,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8
+      },
+      "audition": 96.7,
+      "eligible": 8,
+      "lowEnd": 0.00390625,
+      "drumErrors": 0,
+      "breathless": 0
+    },
+    {
+      "which": "B",
+      "seed": 1,
+      "quality": 92.5,
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 7,
+        "peakSectionId": "00000000-0000-4000-8000-000000000063",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 28.75,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.903892846539231,
+        "averageActiveRoleCount": 6.333333333333333,
+        "generatedNotesPerBeat": 6.11328125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.21739130434782608,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 7
+      },
+      "audition": 95.7,
+      "eligible": 8,
+      "lowEnd": 0,
+      "drumErrors": 0,
+      "breathless": 0
+    },
+    {
+      "which": "B",
+      "seed": 2,
+      "quality": 93.5,
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 7,
+        "peakSectionId": "00000000-0000-4000-8000-000000000063",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 30.083333333333332,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8461341505835204,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.80859375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.25,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8
+      },
+      "audition": 95.4,
+      "eligible": 8,
+      "lowEnd": 0,
+      "drumErrors": 0,
+      "breathless": 0
+    },
+    {
+      "which": "B",
+      "seed": 3,
+      "quality": 93.5,
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 7,
+        "peakSectionId": "00000000-0000-4000-8000-000000000063",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 29.916666666666668,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8837178382241405,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.57421875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.16666666666666666,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 6
+      },
+      "audition": 97.2,
+      "eligible": 8,
+      "lowEnd": 0,
+      "drumErrors": 0,
+      "breathless": 0
+    }
+  ],
+  "consonance": [
+    {
+      "which": "A",
+      "seed": 1,
+      "strong": 130,
+      "clashes": 0
+    },
+    {
+      "which": "A",
+      "seed": 2,
+      "strong": 124,
+      "clashes": 0
+    },
+    {
+      "which": "A",
+      "seed": 3,
+      "strong": 108,
+      "clashes": 0
+    },
+    {
+      "which": "A",
+      "seed": 4,
+      "strong": 141,
+      "clashes": 0
+    },
+    {
+      "which": "A",
+      "seed": 5,
+      "strong": 132,
+      "clashes": 0
+    },
+    {
+      "which": "A",
+      "seed": 6,
+      "strong": 139,
+      "clashes": 0
+    },
+    {
+      "which": "B",
+      "seed": 1,
+      "strong": 121,
+      "clashes": 0
+    },
+    {
+      "which": "B",
+      "seed": 2,
+      "strong": 110,
+      "clashes": 0
+    },
+    {
+      "which": "B",
+      "seed": 3,
+      "strong": 130,
+      "clashes": 0
+    },
+    {
+      "which": "B",
+      "seed": 4,
+      "strong": 136,
+      "clashes": 0
+    },
+    {
+      "which": "B",
+      "seed": 5,
+      "strong": 135,
+      "clashes": 0
+    },
+    {
+      "which": "B",
+      "seed": 6,
+      "strong": 119,
+      "clashes": 0
+    }
+  ]
+}

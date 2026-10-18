@@ -36,6 +36,18 @@ function plan(patch: Partial<PerformanceExecutionPlan> = {}): PerformanceExecuti
 }
 
 describe("Performance Execution Bridge", () => {
+  it("明示した歌う長音はGateで縮めず、次の発音と重ならない。旧仕様は変えない", () => {
+    const source = [note("held", 0, 2, 60, 70), note("next", 2, .5, 62, 90)]
+    const legacy = buildDefaultPerformancePlan("lead-focus", "verse")
+    const explicit = structuredClone(legacy)
+    explicit.performanceSpec.gate.preserveLongNotes = true
+    const result = applyPerformanceExecution(source, explicit, context)
+    expect(result.notes[0]).toMatchObject({ startBeat: 0, durationBeats: 2, pitch: 60 })
+    expect(result.notes[1].startBeat).toBe(2)
+    expect(result.notes[0].velocity).not.toBe(source[0].velocity)
+    expect(applyPerformanceExecution(source, legacy, context).notes[0].durationBeats).toBeLessThan(2)
+    expect(source[0].durationBeats).toBe(2)
+  })
   it("PitchとIDを変えず、元のアクセント差をVelocity範囲へ写像する", () => {
     const source = [note("a", 0, 1, 60, 60), note("b", 1, 1, 67, 100)]
     const result = applyPerformanceExecution(source, plan(), context)

@@ -9,6 +9,8 @@ export interface PerformanceSpec {
   gate: {
     base: number
     variation: number
+    /** 歌う長音を明示した新規候補では、1拍以上の記譜音価を保つ。 */
+    preserveLongNotes?: boolean
   }
   timing: {
     humanizeMs: number
@@ -336,7 +338,11 @@ export function applyPerformanceExecution(
     const velocity = velocityFor(note, minimumSource, maximumSource, plan, index, context)
     if (velocity !== note.velocity) diagnostics.changedVelocityCount += 1
 
-    const startLocked = note.locks.includes("startPosition") || note.locks.includes("rhythm")
+    const preserveLong = spec.gate.preserveLongNotes && note.durationBeats >= 1
+    const previous = notes[index - 1]
+    const followsHeld = spec.gate.preserveLongNotes && previous?.durationBeats >= 1
+      && previous.startBeat + previous.durationBeats >= note.startBeat - .001
+    const startLocked = note.locks.includes("startPosition") || note.locks.includes("rhythm") || preserveLong || followsHeld
     const boundary = isStructuralBoundary(note.startBeat, context)
     const requestedOffset = plan.performanceSpec
       ? musicalTimingOffset(note, index, spec, context)
@@ -350,7 +356,7 @@ export function applyPerformanceExecution(
     }
 
     const durationLocked = note.locks.includes("rhythm")
-    let durationBeats = durationLocked
+    let durationBeats = durationLocked || preserveLong
       ? note.durationBeats
       : Math.max(0.0625, note.durationBeats * (
           plan.performanceSpec
@@ -358,8 +364,9 @@ export function applyPerformanceExecution(
             : durationFactor(plan.articulation)
         ))
     const nextOnset = nextDistinctOnset(notes, index)
-    if (nextOnset !== null && startBeat + durationBeats > nextOnset - 0.015) {
-      durationBeats = Math.max(0.0625, nextOnset - startBeat - 0.015)
+    const releaseGap = preserveLong ? 0 : .015
+    if (nextOnset !== null && startBeat + durationBeats > nextOnset - releaseGap) {
+      durationBeats = Math.max(0.0625, nextOnset - startBeat - releaseGap)
       diagnostics.collisionTrimCount += 1
     }
     if (plan.role === "counter-voice" && context.melodyNotes) {

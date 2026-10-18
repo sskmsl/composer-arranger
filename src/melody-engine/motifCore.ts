@@ -83,7 +83,10 @@ function pickDuration(
  * openingが渡された場合は、その冒頭設計(弱起/休符後開始・最初の音価・輪郭)を核の先頭へ反映する。
  */
 export function generateRhythmMotif(rng: SeededRandom, density: Density, params: GenerationParams, opening?: MelodyOpeningPlan, minimumNotes = 2): MotifEvent[] {
-  const palette = DURATION_PALETTE[density]
+  // 演奏後にも長音として残る2拍以上の音価を、静かな性格で多く選ぶ。
+  const character = params.melodyCharacter
+  const palette = character ? character.longNoteRatio >= .5
+    ? [1, 2, 2, 3, 4] : [.25, .25, .5, .5, 1.5] : DURATION_PALETTE[density]
   const noteCount = rng.intBetween(Math.max(2, Math.min(5, Math.round(minimumNotes))), 5)
   const events: MotifEvent[] = []
   let cursor = 0
@@ -91,6 +94,8 @@ export function generateRhythmMotif(rng: SeededRandom, density: Density, params:
   let sameDurationRun = 0
 
   if (opening) {
+    if (character && character.offbeatRatio < .2) opening = { ...opening,
+      startBeatOffset: Math.round(opening.startBeatOffset), firstNoteDuration: Math.max(1, Math.round(opening.firstNoteDuration)) }
     // Opening Plan: 開始拍オフセット(弱起/休符後開始)を休符として先頭へ置く
     if (opening.startBeatOffset > 0) {
       events.push({ offsetBeats: 0, durationBeats: opening.startBeatOffset, isRest: true })

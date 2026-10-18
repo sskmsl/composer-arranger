@@ -9,6 +9,7 @@ import type {
   ElegiacGenerationPlan,
   MelodyGeneratorProfile,
   MelodyNote,
+  MelodyCharacterPlan,
   MelodyOpeningIntent,
   MelodyOpeningPlan,
   MelodyTransitionPlan,
@@ -88,8 +89,10 @@ import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceS
 import { subtleHookVariation } from "./hookDevelopment"
 import { recordStage, withStageContext } from "./stageTrace"
 import { assessEmotionalArc, deferEarlySummit, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
+import { applyMelodyCharacter, placeCharacterRegister } from "./melodyCharacter"
 
 export interface GenerateFromChordsInput {
+  melodyCharacter?: MelodyCharacterPlan
   /**
    * 比較実験用: 頂点の希少化で核の範囲を下げない(既定 false = 従来どおり)。
    * true にすると最高音が核の中に入りやすくなり、既存の下限(古典らしさ・導音の解決・対照の頭の回帰)を割ったので、
@@ -165,6 +168,7 @@ function buildCandidate(
   if (paramsHook) params = paramsHook(params)
   params = applyMelodyReferenceToParams(params, input.musicContext?.reference?.melody)
   if (candidateMelodyDNA) params = applyCandidateMelodyDNA(params, candidateMelodyDNA, generatorProfile)
+  params = applyMelodyCharacter(params, input.melodyCharacter)
   if (forcedContourWeight !== undefined) {
     for (const key of Object.keys(params.contourWeights) as (keyof typeof params.contourWeights)[]) {
       params.contourWeights[key] = key === "arch" ? forcedContourWeight : params.contourWeights[key] * 0.6
@@ -184,7 +188,7 @@ function buildCandidate(
     seed,
     harmonicMap,
     phraseLengths[0] ?? input.totalBeats,
-    rangeForPhrase(input.range, candidateMelodyDNA, 0, phraseLengths.length),
+    input.melodyCharacter ? input.range : rangeForPhrase(input.range, candidateMelodyDNA, 0, phraseLengths.length),
     params,
     input.density,
     input.sectionRole,
@@ -227,7 +231,7 @@ function buildCandidate(
                 ? returningHook(contrastMotifCore)
                 : undefined
 
-    const phraseRange = rangeForPhrase(input.range, candidateMelodyDNA, phraseIdx, phraseLengths.length)
+    const phraseRange = input.melodyCharacter ? input.range : rangeForPhrase(input.range, candidateMelodyDNA, phraseIdx, phraseLengths.length)
     const result = assemblePhrase(
       rng,
       harmonicMap,
@@ -603,6 +607,7 @@ function directPlacementDiagnostics(notes: MelodyNote[], harmonicMap: ReturnType
 }
 
 export interface GenerateProfileBatchInput {
+  melodyCharacter?: MelodyCharacterPlan
   /**
    * 比較実験用: 古典らしさによる選抜の重み(既定は CRAFT_SELECTION_WEIGHT)。
    * 既定で古典らしさを使う作り方(標準・映画的・リズム・最小)にだけ効く
@@ -772,6 +777,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const baseSeed = input.seed + profileIdx * 500009
 
     const baseInput: GenerateFromChordsInput = {
+      melodyCharacter: input.melodyCharacter,
       chords: input.chords,
       sectionId: input.sectionId,
       sectionRole: input.sectionRole,
@@ -1266,7 +1272,15 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         recordStage("deferEarlySummit", deferred)
         const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
         recordStage("ensureSummitBreath", breathed)
-        const notes = enforceHarmonicIntegrity(breathed, input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
+        const registered = input.melodyCharacter ? placeCharacterRegister(breathed, input.melodyCharacter, input.chords, input.key) : breathed
+        // 音域の低点・頂点を保ったまま、周囲の声のつながりを同じ品質基準で推敲する。
+        const characterRefined = input.melodyCharacter ? (() => {
+          const low = Math.min(...registered.map((n) => n.pitch)), high = Math.max(...registered.map((n) => n.pitch))
+          const guarded = registered.map((n) => n.pitch === low || n.pitch === high ? { ...n, locks: [...n.locks, "pitch" as const] } : n)
+          return refineTowardClassical(guarded, { harmonicMap, range: input.range, totalBeats: input.totalBeats,
+            sectionRole: input.sectionRole, key: input.key, models: CLASSICAL_MODELS }).notes.map((n, index) => ({ ...n, locks: registered[index].locks }))
+        })() : registered
+        const notes = enforceHarmonicIntegrity(characterRefined, input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
         recordStage("harmonicIntegrity", notes)
         recordStage("output", notes)
         return notes

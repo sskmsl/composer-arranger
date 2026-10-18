@@ -29,6 +29,7 @@ import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generati
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
 import { selectConsonantMelodyPitches } from "@/melody-engine/melodyConsonance"
+import { planMelodyCharacter } from "@/melody-engine/melodyCharacter"
 import { finalChorusRange } from "@/melody-engine/finalChorusRange"
 import { shapeMelodyBreathing } from "@/melody-engine/melodyBreathing"
 import { parseKey } from "@/core/scale"
@@ -1203,6 +1204,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
 
     const baseSeed = createSeed()
+    const musicContext = resolveMusicContext(prev, sectionId)
+    const melodyCharacter = planMelodyCharacter({ seed: baseSeed, chords: windowChords, tempo: prev.song.tempo,
+      style: JSON.stringify([musicContext.genres, musicContext.genre, musicContext.aesthetic]), role: section.role, range, space: musicContext.genre.space })
     const ruleContext = {
       generatorTarget: "melody" as const,
       sectionRole: section.role,
@@ -1213,14 +1217,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       sectionRole: section.role,
       songProfile: profile,
       density: settings.density,
-      range,
+      range: melodyCharacter.range,
       drama: settings.drama,
       totalBeats: windowBeats,
       seed: baseSeed,
       profiles: selectedProfiles,
       motifDNA: prev.songMotifDNA,
       key: effectiveSectionKey(prev, sectionId),
-      musicContext: resolveMusicContext(prev, sectionId),
+      musicContext,
+      melodyCharacter,
       // セクション途中だけを生成するLead Windowでは、前セクション境界の計画を適用しない。
       transitionContext:
         window.startBeat === 0 ? buildSectionTransitionContext(prev, sectionId) : undefined,
@@ -1278,6 +1283,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const rawVariants: MelodyVariant[] = taggedCandidates.map(
       ({ candidate: c, experimentMode }) => {
       const v = toMelodyVariantFromProfile(sectionId, profile, c, batchId)
+      v.melodyCharacter = repeatedSource?.melodyCharacter ?? melodyCharacter
       if (experimentPreset && experimentMode) {
         v.techniqueExperiment = {
           presetId: experimentPreset.id,
@@ -1347,7 +1353,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // 土台はすでに演奏処理済み。二重適用すると保護した冒頭の長さ・強弱まで変わる。
       const performed = repeatedSource
         ? { notes: v.notes, performanceSpec: repeatedSource.performanceSpec }
-        : performGeneratedNotes(prev, sectionId, v.notes, "lead-focus")
+        : performGeneratedNotes(prev, sectionId, v.notes, "lead-focus", melodyCharacter.longNoteRatio >= .5)
       const performedVariant = replaceVariantNotes(v, repeatedSource ? performed.notes
         : shapeMelodyBreathing(performed.notes, totalBeats, ts.beatsPerBar))
       performedVariant.performanceSpec = performed.performanceSpec

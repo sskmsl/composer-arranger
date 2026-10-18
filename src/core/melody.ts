@@ -10,6 +10,17 @@ import type { ArrangementNecessity } from "./arrangementSurprise"
 
 export type LockKind = "pitch" | "rhythm" | "startPosition" | "ending"
 
+export interface MelodyCharacterPlan {
+  version: 1
+  seed: number
+  rangeSpan: number
+  range: { low: number; high: number }
+  longNoteRatio: number
+  offbeatRatio: number
+  notesPerBeat: number
+  quietBias: number
+}
+
 export interface MelodyNote {
   id: string
   /** セクション先頭からの相対拍位置 */
@@ -398,6 +409,7 @@ export interface SongMotifDNA {
 }
 
 export interface MelodyVariant {
+  melodyCharacter?: MelodyCharacterPlan
   id: string
   name: string
   sectionId: string

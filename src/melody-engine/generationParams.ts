@@ -1,6 +1,6 @@
 import type { SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
-import type { PhraseContour } from "@/core/melody"
+import type { PhraseContour, MelodyCharacterPlan } from "@/core/melody"
 import { keyScalePitchClasses } from "@/core/scale"
 
 export type Density = "sparse" | "balanced" | "active"
@@ -18,6 +18,7 @@ export const RANGE_PRESETS: Record<"low" | "middle" | "high", RangeSetting> = {
 }
 
 export interface GenerationParams {
+  melodyCharacter?: MelodyCharacterPlan
   restRatioTarget: number
   syncopationAmount: number
   tensionUsageTarget: number
