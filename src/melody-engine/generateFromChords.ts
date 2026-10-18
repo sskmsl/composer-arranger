@@ -887,22 +887,28 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
         } else {
-          // incantatory
+          // 既存の詠唱核の一部を、ブレイクダウン向けの短い半音往復として計画する。
+          const neighborCell = input.sectionRole === "breakdown-chorus"
+            && input.drama === "restrained" && candidatePoolIndex % 3 === 0
+            && Math.min(65, input.range.high) > Math.max(60, input.range.low)
+          const patternRange = neighborCell
+            ? { low: Math.max(60, input.range.low), high: Math.min(65, input.range.high) } : input.range
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.58, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
           const r = generateIncantatoryPattern(
             rng,
             harmonicMap,
             input.totalBeats,
-            input.range,
+            patternRange,
             intensity,
             noteDensity,
             dna,
             opening,
             candidateMelodyDNA,
+            neighborCell,
           )
           rawNotesHash = noteHash(r.notes)
           const motifMutationRatio = 1 / r.plan.mutationPeriod
-          notes = applyCandidateNarrative(r.notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
+          notes = applyCandidateNarrative(r.notes, harmonicMap, input.totalBeats, patternRange, candidateMelodyDNA)
           plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = {
             ...computeAdvancedMelodyMetrics(notes, harmonicMap),

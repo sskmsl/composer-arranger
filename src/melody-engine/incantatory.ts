@@ -145,6 +145,7 @@ function realizeCopy(
   anchorPitch: number,
   harmonicMap: HarmonicMapEntry[],
   range: RangeSetting,
+  neighborCell = false,
 ): MelodyNote[] {
   const notes: MelodyNote[] = []
   let cursor = startBeat
@@ -156,7 +157,7 @@ function realizeCopy(
     if (i === copy.nonHarmonicIndex) {
       // harmonic adaptation: あえてコードトーンへスナップさせず、経過的な緊張を残す
       pitch = Math.max(range.low, Math.min(range.high, pitch))
-    } else if (entry && hasSemitoneRisk(entry.parsed, pitch)) {
+    } else if (!neighborCell && entry && hasSemitoneRisk(entry.parsed, pitch)) {
       // 輪郭を保ったまま、半音衝突のみ最小限の和声適応で回避する
       const tones = chordTonePitchClasses(entry.parsed)
       pitch = nearestAllowedPitch(pitch, tones, range)
@@ -240,9 +241,12 @@ export function generateIncantatoryPattern(
   dna?: SongMotifDNA,
   opening?: MelodyOpeningPlan,
   candidateMelodyDNA?: CandidateMelodyDNA,
+  neighborCell = false,
 ): { notes: MelodyNote[]; plan: IncantatoryPatternPlan } {
   const durationPalette = noteDensity > 0.6 ? [0.25, 0.5, 0.5, 0.75] : [0.5, 0.5, 0.75, 1]
-  const coreMotif = generateCoreMotif(rng, durationPalette, opening, candidateMelodyDNA)
+  const coreMotif = neighborCell
+    ? { intervals: [0, 1, 0], durations: [1, .5, .5], lengthBeats: 2 }
+    : generateCoreMotif(rng, durationPalette, opening, candidateMelodyDNA)
   // Song Motif DNA(任意): 反復傾向が高いほど変異周期を長く(=反復をより長く保つ)、
   // 変異そのものも起きにくくする。noteDensityの閾値のように丸めで消えない、
   // 連続的な効き方をする箇所へ反映する。
@@ -281,7 +285,7 @@ export function generateIncantatoryPattern(
       repeatIndex > 0 &&
       (firstCycleAfterOpeningGate || (openingGateReached && repeatIndex % mutationPeriod === 0))
     if (isMutationPoint && rng.chance(mutationChanceBase * intensity + 0.2)) {
-      currentCopy = applyMutation(rng, coreMotif, rng.pick(MUTATION_KINDS))
+      currentCopy = applyMutation(rng, coreMotif, neighborCell ? "accent" : rng.pick(MUTATION_KINDS))
     } else if (repeatIndex > 0) {
       // 変異周期外は同一性を保つ(輪郭retentionを高く保つ)
       currentCopy = { intervals: coreMotif.intervals, durations: coreMotif.durations, nonHarmonicIndex: null, velocityBoostIndex: null }
@@ -289,7 +293,8 @@ export function generateIncantatoryPattern(
 
     // 和声適応: このサイクル先頭のアンカーだけをコード変化へ緩やかに追従させる(モチーフ全体は再スナップしない)
     const entry = chordAtBeat(harmonicMap, cursor)
-    if (entry) anchorPitch = nearestAllowedPitch(anchorPitch, chordTonePitchClasses(entry.parsed), range)
+    if (entry) anchorPitch = nearestAllowedPitch(anchorPitch, chordTonePitchClasses(entry.parsed),
+      neighborCell ? { low: range.low, high: Math.max(range.low, range.high - 1) } : range)
 
     const remaining = totalBeats - cursor
     const copyLength = currentCopy.durations.reduce((a, b) => a + b, 0)
@@ -310,7 +315,7 @@ export function generateIncantatoryPattern(
     }
     if (currentCopy.intervals.length === 0) break
 
-    notes.push(...realizeCopy(rng, currentCopy, cursor, anchorPitch, harmonicMap, range))
+    notes.push(...realizeCopy(rng, currentCopy, cursor, anchorPitch, harmonicMap, range, neighborCell))
     cursor += currentCopy.durations.reduce((a, b) => a + b, 0)
     repeatIndex++
   }
