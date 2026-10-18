@@ -915,7 +915,7 @@ export function buildFullSongArrangementPlan(
           high: isPeak ? "strong" : effectiveEnergy >= 65 - (genre.registerRange - .5) * 15 ? "medium" : "open",
         },
         intention: finalRebuild && preBoundaryDropRoles.length
-          ? `${preBoundaryDropRoles.join("・")}を末尾2小節で休ませ、反復の土台を残して最終サビを再構築する`
+          ? `${preBoundaryDropRoles.map((id) => ARRANGEMENT_TRACK_NAMES[id]).join("・")}を末尾2小節で休ませ、反復の土台を残して最終サビを再構築する`
           : applies && effectiveDirective?.intention
           ? effectiveDirective.intention
           : isPeak
@@ -933,7 +933,8 @@ export function buildFullSongArrangementPlan(
           : genre.rhythmDensity > .73 && !isPeak ? "driving"
           : genre.syncopation > .72 && !isPeak ? "broken"
           : character === "rhythmic" || candidateApproach === "rhythm-led" ? (isPeak ? "release" : "driving") : grooveFamilyFor(section),
-        bassStrategy: character === "rhythmic" ? (isPeak ? "octave-drive" : "syncopated")
+        bassStrategy: !character && sectionShape === "drop" ? "sustain"
+          : character === "rhythmic" ? (isPeak ? "octave-drive" : "syncopated")
           : genre.bassMovement < .32 && !isPeak ? "sustain"
           : genre.bassMovement > .7 && genre.syncopation > .64 && !isPeak ? "syncopated"
           : genre.bassMovement > .62 && !isPeak ? "approach-led"
@@ -1812,7 +1813,8 @@ function generateTrack(
       generated = applyMotifEcho(generated, trackId, sectionPlan, offset, length, chords, material.lead, beatsPerBar)
     }
     const boundaryDrop = sectionPlan.preBoundaryDropBeats ?? 0
-    if (boundaryDrop > 0 && (sectionPlan.preBoundaryDropRoles ?? ["syn-bass", "syn-pulse"]).includes(trackId)) {
+    if (boundaryDrop > 0 && !(plan.directive?.preserve ?? []).includes(trackId)
+      && (sectionPlan.preBoundaryDropRoles ?? ["syn-bass", "syn-pulse"]).includes(trackId)) {
       const dropStart = offset + length - boundaryDrop
       generated = generated.flatMap((note) => {
         if (note.startBeat >= dropStart) return []
@@ -2401,10 +2403,6 @@ function realignPhaseLockedDrumLayers(tracks: GeneratedArrangementTrack[]): Gene
 }
 
 /**
- * 全曲生成・部分再生成・AI相談後の差し替えを同じ最終工程へ通す。
- * 音像処理は付与済みの音へ重ねず、Criticは実際に保存・試聴・書き出しされる全トラックを見る。
- */
-/**
  * 境界の1小節では最大2トラックだけを大きく変える。
  * 残りの退出を前の小節へ、入場を次の小節へ寄せ、反復を保つ。
  * 8小節以上の区間を対象とし、短い区間の既存フレーズは削らない。
@@ -2426,15 +2424,16 @@ function stageBoundaryLayers(
     const after = (t: GeneratedArrangementTrack) => t.notes.filter((n) => n.startBeat >= boundary && n.startBeat < boundary + bpb)
     const changes = tracks.filter((t) => {
       const a = before(t).length, b = after(t).length
-      return (a === 0) !== (b === 0) || Math.abs(a - b) > Math.max(1, a * .5)
+      // 1〜2発の境界アクセントはTransitionの仕事。反復層の密度変化と区別する。
+      return Math.abs(a - b) > Math.max(2, a * .5)
     })
     // 音の入口を支える2役割を優先。位相固定の派生層は単独で変えない。
-    const immediate = sectionPlan?.selectedTransitionCharacter === "edge" ? 2
-      : sectionPlan?.selectedTransitionCharacter === "surprise" ? 1 : 0
+    const immediate = sectionPlan?.selectedTransitionCharacter === "edge" ? 2 : 1
     const phaseSources = new Set(PHASE_LOCKED_LAYER_SOURCES.values())
     const chosen = new Set(changes.filter((t) => !PHASE_LOCKED_LAYER_SOURCES.has(t.id)
       && !phaseSources.has(t.id) && !(plan.directive?.preserve ?? []).includes(t.id))
-      .sort((a, b) => Number(b.id === "dr-crash") - Number(a.id === "dr-crash"))
+      .sort((a, b) => Number(b.id === "syn-bass") * 2 + Number(b.id === "dr-crash")
+        - Number(a.id === "syn-bass") * 2 - Number(a.id === "dr-crash"))
       .slice(0, immediate).map((t) => t.id))
     for (const track of changes) {
       if (chosen.has(track.id) || (plan.directive?.preserve ?? []).includes(track.id)) continue
@@ -2446,12 +2445,33 @@ function stageBoundaryLayers(
       const removed = new Set(larger.filter((n) => !kept.has(n.id)).map((n) => n.id))
       track.notes = track.notes.filter((n) => !removed.has(n.id)).map((n) => ({ ...n,
         reason: kept.has(n.id) ? `${n.reason}。境界では反復を保ち、層の交代を隣の小節へ分散する` : n.reason }))
-
+    }
+  }
+  // 境界の削減後も、既存の「最終サビは前のサビより補助層を増やしすぎない」上限を守る。
+  for (let i = 1; i < sections.length; i++) {
+    const section = sections[i]
+    if (section.role !== "grand-chorus") continue
+    const previous = sections.slice(0, i).filter((s) => s.role === "chorus").at(-1)
+    if (!previous) continue
+    const active = tracks.filter((t) => t.notes.some((n) => n.sectionId === section.id))
+    const previousCount = tracks.filter((t) => t.notes.some((n) => n.sectionId === previous.id)).length
+    let excess = active.length - previousCount - 9
+    const boundary = sectionOffset(section.startBar, bpb)
+    const expendable = active.filter((t) => isArrangementLayerTrackId(t.id) && t.id !== "str-spiccato"
+      && !PHASE_LOCKED_LAYER_SOURCES.has(t.id) && !(plan.directive?.preserve ?? []).includes(t.id)
+      && !t.notes.some((n) => n.startBeat >= boundary - bpb && n.startBeat < boundary + bpb)).reverse()
+    for (const track of expendable) {
+      if (excess-- <= 0) break
+      track.notes = track.notes.filter((n) => n.sectionId !== section.id)
     }
   }
   return tracks
 }
 
+/**
+ * 全曲生成・部分再生成・AI相談後の差し替えを同じ最終工程へ通す。
+ * 音像処理は付与済みの音へ重ねず、Criticは実際に保存・試聴・書き出しされる全トラックを見る。
+ */
 export function finalizeFullSongArrangement(
   project: ComposerProject,
   arrangement: FullSongArrangement,

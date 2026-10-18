@@ -59,6 +59,24 @@ describe("dramatic minor output distributions", () => {
     expect(variations).toBeGreaterThan(0)
   })
 
+  it("uses existing characters for staged or immediate entries and bar-sized transition windows", () => {
+    const p = fixture(), analysis = analyzeFullSongArrangement(p)
+    const calm = { ...analysis, sections: analysis.sections.map((s) => ({ ...s, energyDelta: 0 })) }
+    const rising = { ...analysis, sections: analysis.sections.map((s) => ({ ...s, energyDelta: 30 })) }
+    const safe = buildFullSongArrangementPlan(p, calm, 19, "", undefined, "dynamic-contrast")
+    const edge = buildFullSongArrangementPlan(p, rising, 19, "", undefined, "dynamic-contrast")
+    const surprise = buildFullSongArrangementPlan(p, rising, 19, "", { intention: "contrast", surpriseLevel: 1 }, "dynamic-contrast")
+    const entry = (plan: typeof safe) => plan.sections[2].roleEntryBeats?.["syn-stabs"] ?? 0
+    expect(entry(safe)).toBeGreaterThan(entry(edge))
+    expect(entry(surprise)).toBeGreaterThan(entry(edge))
+    for (const c of safe.sections[1].transitionCandidates) {
+      expect(c.reason.length).toBeGreaterThan(0)
+      expect(c.notes).toHaveLength(3)
+      const first = c.notes[0].startBeat, last = c.notes.at(-1)!
+      expect(last.startBeat + last.durationBeats - first).toBe(c.character === "surprise" ? 8 : 4)
+    }
+  })
+
   it("limits boundary changes and preserves reduction in actual MIDI for fixed seeds", () => {
     const p = fixture()
     const perSeed: unknown[] = []
@@ -70,7 +88,7 @@ describe("dramatic minor output distributions", () => {
         return midi.tracks.filter((t) => {
           const count = (a: number, b: number) => t.notes.filter((n) => n.startTick / midi.ppq >= a && n.startTick / midi.ppq < b).length
           const a = count(boundary - 4, boundary), b = count(boundary, boundary + 4)
-          return (a === 0) !== (b === 0) || Math.abs(a - b) > Math.max(1, a * .5)
+          return Math.abs(a - b) > Math.max(2, a * .5)
         }).length
       })
       const counts = p.sections.map((s) => midi.tracks.reduce((sum, t) => sum + t.notes.filter((n) => {
