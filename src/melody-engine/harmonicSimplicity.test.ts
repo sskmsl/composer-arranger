@@ -28,6 +28,14 @@ describe("harmonic and melodic activity balance", () => {
     expect(read.map((n) => n.pitch)).toEqual(result.map((n) => n.pitch))
     expect(read).toHaveLength(result.length)
   })
+  it("responds to explicit altered colour without treating an ordinary seventh as busy", () => {
+    expect(harmonicMotionInBar([chord("G7", 0, 4)], 0, 4)).toBe(0)
+    const altered = [chord("G7(b9)", 0, 4)]
+    expect(harmonicMotionInBar(altered, 0, 4)).toBeGreaterThanOrEqual(2)
+    const result = simplifyAgainstHarmony(notes, altered, { low: 60, high: 79 }, "minimal")
+    expect(result.length).toBeLessThan(notes.length)
+    expect(simplifyAgainstHarmony(result, altered, { low: 60, high: 79 }, "minimal")).toEqual(result)
+  })
   it("respects explicit locks and profile identities", () => {
     const locked = notes.map((n) => ({ ...n, locks: ["pitch" as const] }))
     expect(simplifyAgainstHarmony(locked, busy, { low: 60, high: 79 }, "minimal")).toEqual(locked)

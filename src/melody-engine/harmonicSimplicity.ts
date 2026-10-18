@@ -11,7 +11,8 @@ export function harmonicMotionInBar(chords: readonly ChordEvent[], start: number
       const parsed = parseChordSymbol(c.symbol, c.bass ?? undefined)
       return parsed ? [parsed] : []
     })
-  let motion = 0
+  let motion = Math.max(0, ...entries.map((entry) => entry.tensions.reduce((sum, tone) =>
+    sum + ([2, 5, 9].includes(tone.interval % 12) ? .5 : 2), 0)))
   for (let i = 1; i < entries.length; i++) {
     const before = entries[i - 1], after = entries[i]
     const a = new Set(before.tones.map((t) => t.pitchClass))
@@ -35,7 +36,8 @@ export function simplifyAgainstHarmony(
   for (const original of notes) {
     const bar = Math.floor(original.startBeat / beatsPerBar)
     if (bar !== previousBar) { busyIndex = 0; previousBar = bar }
-    if (harmonicMotionInBar(chords, bar * beatsPerBar, beatsPerBar) < 2) {
+    const barNoteCount = notes.filter((n) => Math.floor(n.startBeat / beatsPerBar) === bar).length
+    if (barNoteCount <= Math.ceil(beatsPerBar) || harmonicMotionInBar(chords, bar * beatsPerBar, beatsPerBar) < 2) {
       result.push(original)
       continue
     }
