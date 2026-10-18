@@ -1,0 +1,896 @@
+{
+  "base": "cbe75b1",
+  "seeds": [
+    19,
+    41,
+    73,
+    101,
+    137,
+    173
+  ],
+  "conditions": {
+    "key": "Am",
+    "tempo": 100,
+    "meter": "4/4",
+    "bars": 8,
+    "chords": [
+      "Am",
+      "F",
+      "C",
+      "G"
+    ],
+    "note": "exported MIDI reimport; diagnostic only; no listening guarantee"
+  },
+  "drone": [
+    {
+      "seed": 19,
+      "candidates": [
+        {
+          "figure": "color-tone",
+          "notes": [
+            {
+              "pitch": 72,
+              "start": 4,
+              "duration": 14
+            },
+            {
+              "pitch": 72,
+              "start": 18,
+              "duration": 14
+            }
+          ],
+          "maxHeldBeats": 14,
+          "colorIntervals": [],
+          "problems": []
+        },
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 32
+            }
+          ],
+          "maxHeldBeats": 32,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 41,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 32
+            }
+          ],
+          "maxHeldBeats": 32,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 4,
+              "duration": 14
+            },
+            {
+              "pitch": 64,
+              "start": 18,
+              "duration": 14
+            }
+          ],
+          "maxHeldBeats": 14,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 73,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 32
+            }
+          ],
+          "maxHeldBeats": 32,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 4,
+              "duration": 14
+            },
+            {
+              "pitch": 64,
+              "start": 18,
+              "duration": 14
+            }
+          ],
+          "maxHeldBeats": 14,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 101,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 4,
+              "duration": 28
+            }
+          ],
+          "maxHeldBeats": 28,
+          "colorIntervals": [
+            11,
+            9
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 8,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 0,
+              "duration": 16
+            },
+            {
+              "pitch": 64,
+              "start": 16,
+              "duration": 16
+            }
+          ],
+          "maxHeldBeats": 16,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 137,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 32
+            }
+          ],
+          "maxHeldBeats": 32,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 4,
+              "duration": 14
+            },
+            {
+              "pitch": 64,
+              "start": 18,
+              "duration": 14
+            }
+          ],
+          "maxHeldBeats": 14,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 173,
+      "candidates": [
+        {
+          "figure": "color-tone",
+          "notes": [
+            {
+              "pitch": 72,
+              "start": 4,
+              "duration": 14
+            },
+            {
+              "pitch": 72,
+              "start": 18,
+              "duration": 14
+            }
+          ],
+          "maxHeldBeats": 14,
+          "colorIntervals": [],
+          "problems": []
+        },
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 32
+            }
+          ],
+          "maxHeldBeats": 32,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        }
+      ]
+    }
+  ],
+  "semitone": [
+    {
+      "seed": 19,
+      "candidates": [
+        {
+          "count": 42,
+          "low": 60,
+          "high": 62,
+          "maxLeap": 2,
+          "semitoneShare": 0.3333333333333333,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 34,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 4,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 30,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        }
+      ]
+    },
+    {
+      "seed": 41,
+      "candidates": [
+        {
+          "count": 36,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 4,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 29,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 4,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 51,
+          "low": 62,
+          "high": 64,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        }
+      ]
+    },
+    {
+      "seed": 73,
+      "candidates": [
+        {
+          "count": 32,
+          "low": 60,
+          "high": 62,
+          "maxLeap": 2,
+          "semitoneShare": 0.3333333333333333,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 22,
+          "low": 62,
+          "high": 64,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 46,
+          "low": 62,
+          "high": 64,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        }
+      ]
+    },
+    {
+      "seed": 101,
+      "candidates": [
+        {
+          "count": 24,
+          "low": 60,
+          "high": 62,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 28,
+          "low": 60,
+          "high": 65,
+          "maxLeap": 4,
+          "semitoneShare": 0.05,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 49,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 4,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        }
+      ]
+    },
+    {
+      "seed": 137,
+      "candidates": [
+        {
+          "count": 46,
+          "low": 60,
+          "high": 62,
+          "maxLeap": 2,
+          "semitoneShare": 0.5,
+          "semitoneReturns": 1
+        },
+        {
+          "count": 32,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 4,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 26,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        }
+      ]
+    },
+    {
+      "seed": 173,
+      "candidates": [
+        {
+          "count": 29,
+          "low": 60,
+          "high": 64,
+          "maxLeap": 4,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 22,
+          "low": 60,
+          "high": 62,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        },
+        {
+          "count": 64,
+          "low": 62,
+          "high": 64,
+          "maxLeap": 2,
+          "semitoneShare": 0,
+          "semitoneReturns": 0
+        }
+      ]
+    }
+  ],
+  "drone12Bars": [
+    {
+      "seed": 19,
+      "candidates": [
+        {
+          "figure": "color-tone",
+          "notes": [
+            {
+              "pitch": 72,
+              "start": 4,
+              "duration": 22
+            },
+            {
+              "pitch": 72,
+              "start": 26,
+              "duration": 22
+            }
+          ],
+          "maxHeldBeats": 22,
+          "colorIntervals": [],
+          "problems": []
+        },
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 40
+            }
+          ],
+          "maxHeldBeats": 40,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 48
+            }
+          ],
+          "maxHeldBeats": 48,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 41,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 40
+            }
+          ],
+          "maxHeldBeats": 40,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 48
+            }
+          ],
+          "maxHeldBeats": 48,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 4,
+              "duration": 22
+            },
+            {
+              "pitch": 64,
+              "start": 26,
+              "duration": 22
+            }
+          ],
+          "maxHeldBeats": 22,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 73,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 40
+            }
+          ],
+          "maxHeldBeats": 40,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 48
+            }
+          ],
+          "maxHeldBeats": 48,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 4,
+              "duration": 22
+            },
+            {
+              "pitch": 64,
+              "start": 26,
+              "duration": 22
+            }
+          ],
+          "maxHeldBeats": 22,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 101,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 4,
+              "duration": 44
+            }
+          ],
+          "maxHeldBeats": 44,
+          "colorIntervals": [
+            11,
+            9
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 8,
+              "duration": 40
+            }
+          ],
+          "maxHeldBeats": 40,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 0,
+              "duration": 24
+            },
+            {
+              "pitch": 64,
+              "start": 24,
+              "duration": 24
+            }
+          ],
+          "maxHeldBeats": 24,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 137,
+      "candidates": [
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 40
+            }
+          ],
+          "maxHeldBeats": 40,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 48
+            }
+          ],
+          "maxHeldBeats": 48,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        },
+        {
+          "figure": "open-fifth",
+          "notes": [
+            {
+              "pitch": 69,
+              "start": 4,
+              "duration": 22
+            },
+            {
+              "pitch": 64,
+              "start": 26,
+              "duration": 22
+            }
+          ],
+          "maxHeldBeats": 22,
+          "colorIntervals": [
+            9,
+            2,
+            11
+          ],
+          "problems": []
+        }
+      ]
+    },
+    {
+      "seed": 173,
+      "candidates": [
+        {
+          "figure": "color-tone",
+          "notes": [
+            {
+              "pitch": 72,
+              "start": 4,
+              "duration": 22
+            },
+            {
+              "pitch": 72,
+              "start": 26,
+              "duration": 22
+            }
+          ],
+          "maxHeldBeats": 22,
+          "colorIntervals": [],
+          "problems": []
+        },
+        {
+          "figure": "dominant-pedal",
+          "notes": [
+            {
+              "pitch": 64,
+              "start": 8,
+              "duration": 40
+            }
+          ],
+          "maxHeldBeats": 40,
+          "colorIntervals": [
+            9,
+            11
+          ],
+          "problems": []
+        },
+        {
+          "figure": "tonic-pedal",
+          "notes": [
+            {
+              "pitch": 57,
+              "start": 0,
+              "duration": 48
+            }
+          ],
+          "maxHeldBeats": 48,
+          "colorIntervals": [
+            9,
+            2
+          ],
+          "problems": []
+        }
+      ]
+    }
+  ]
+}
