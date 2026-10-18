@@ -2474,9 +2474,13 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     next.intention += "。背景層の入場と退出を小節ごとに分散する"
     const character = next.selectedTransitionCharacter
     const entries = after.filter((id) => !before.includes(id)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+    const earliest = character === "surprise" ? 1 : 0
+    const gentleSlots = Array.from({ length: 5 - earliest }, (_, index) =>
+      Math.max(0, 1 - (occupied.get(earliest + index) ?? 0))).reduce((sum, slots) => sum + slots, 0)
+    // 緩い入口でも上声を終盤まで待たせず、待ちが長い場合だけ2層の枠を使う。
+    const capacity = character === "edge" || entries.length > gentleSlots ? 2 : 1
     for (const id of entries) {
-      const earliest = character === "surprise" ? 1 : 0
-      const bar = reserve(earliest, character === "edge" ? 2 : 1)
+      const bar = reserve(earliest, capacity)
       next.roleEntryBeats[id] = Math.min(right.lengthBars - 1, bar) * bpb
     }
   }

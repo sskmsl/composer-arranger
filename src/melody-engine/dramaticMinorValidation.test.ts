@@ -77,6 +77,36 @@ describe("dramatic minor output distributions", () => {
     }
   })
 
+  it("brings upper strings into a crowded gentle entry by the fourth following bar", () => {
+    const p = fixture(), analysis = analyzeFullSongArrangement(p)
+    const calm = { ...analysis, sections: analysis.sections.map((s) => ({ ...s, energyDelta: 0 })) }
+    const rising = { ...analysis, sections: analysis.sections.map((s) => ({ ...s, energyDelta: 30 })) }
+    const rows: unknown[] = []
+    for (const seed of seeds.slice(0, 3)) {
+      const arrangement = generateFullSongArrangement(p, { seed })
+      const onsets: Record<string, number[]> = {}
+      for (const character of ["safe", "edge", "surprise"] as const) {
+        const plan = buildFullSongArrangementPlan(p, character === "edge" ? rising : calm, seed, "",
+          character === "surprise" ? { intention: "contrast", surpriseLevel: 1 } : undefined, "dynamic-contrast")
+        onsets[character] = ["str-viola", "str-violin-1", "str-upper"].map((id) => {
+          const trackId = id as "str-viola" | "str-violin-1" | "str-upper"
+          expect(plan.sections[4].roleEntryBeats?.[trackId] ?? 0).toBeLessThanOrEqual(16)
+          const generated = regenerateFullSongArrangementTarget(p, { ...arrangement, plan }, { trackId, sectionId: "s4" })
+          const midi = parseMidi(exportArrangementTrackMidi(p, generated, trackId))
+          const start = (p.sections[4].startBar - 1) * 4
+          const onset = Math.min(...midi.tracks.flatMap((t) => t.notes).filter((n) =>
+            n.startTick / midi.ppq >= start && n.startTick / midi.ppq < start + 32).map((n) => n.startTick / midi.ppq - start))
+          expect(onset).toBeLessThan(20)
+          return onset
+        })
+      }
+      expect(onsets.safe).not.toEqual(onsets.surprise)
+      expect(onsets.edge).not.toEqual(onsets.safe)
+      rows.push({ seed, onsets })
+    }
+    report.crowdedEntryOnsets = rows
+  })
+
   it("records independent layer changes and preserves reduction in actual MIDI for fixed seeds", () => {
     const p = fixture()
     const perSeed: unknown[] = []
@@ -106,7 +136,9 @@ describe("dramatic minor output distributions", () => {
         const beat = n.startTick / midi.ppq
         return beat >= (s.startBar - 1) * 4 && beat < (s.startBar + s.lengthBars - 1) * 4
       }).length, 0))
-      const row = { seed, boundaryChanges, layerChanges, sectionNoteCounts: counts, quality: arrangement.quality?.passed }
+      const sectionLayerCounts = p.sections.map((s) => midi.tracks.filter((t) => t.notes.some((n) =>
+        n.startTick / midi.ppq >= (s.startBar - 1) * 4 && n.startTick / midi.ppq < (s.startBar + s.lengthBars - 1) * 4)).length)
+      const row = { seed, boundaryChanges, layerChanges, sectionNoteCounts: counts, sectionLayerCounts, quality: arrangement.quality?.passed }
       // 発音数の差は層の出入りを表さない。音価を含む実MIDIの状態を小節ごとに検証する。
       const managedBoundaryFlips = p.sections.slice(1, -1).flatMap((section) => {
         const boundary = (section.startBar - 1) * 4
