@@ -28,6 +28,7 @@ import { resolveMusicContext } from "@/core/musicContext"
 import { resolveGenerationParams, RANGE_PRESETS } from "@/melody-engine/generationParams"
 import { computeMelodyFeatures } from "@/melody-engine/features"
 import { repeatedSectionSource, varyRepeatedSection } from "@/melody-engine/repeatedSectionMelody"
+import { selectConsonantMelodyPitches } from "@/melody-engine/melodyConsonance"
 import { finalChorusRange } from "@/melody-engine/finalChorusRange"
 import { shapeMelodyBreathing } from "@/melody-engine/melodyBreathing"
 import { parseKey } from "@/core/scale"
@@ -1302,6 +1303,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (repeatedSource) {
         v.notes = varyRepeatedSection(repeatedSource, prev, sectionId, totalBeats, ts.beatsPerBar, range, v.seed, v.patternIndex ?? 1)
       }
+      // 新規候補の音高を確定する。既存の採用旋律や取り込み素材へは適用しない。
+      v.notes = selectConsonantMelodyPitches(v.notes, prev.chords.filter((chord) => chord.sectionId === sectionId),
+        effectiveSectionKey(prev, sectionId), range)
       const primaryNotes = v.notes
       v.layers = [
         {
@@ -1314,7 +1318,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         },
       ]
       // pickupが有効なら、窓の外(セクション末尾)へ弱起を別Layerとして足す
-      const pickupNotes = generateMelodyPickupNotes(v.seed, {
+      const generatedPickupNotes = generateMelodyPickupNotes(v.seed, {
         chords,
         sectionId,
         sectionRole: section.role,
@@ -1327,6 +1331,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         key: effectiveSectionKey(prev, sectionId),
         chorusPeakMidi: chorusPeakMidi(prev),
       })
+      const pickupNotes = selectConsonantMelodyPitches(generatedPickupNotes,
+        prev.chords.filter((chord) => chord.sectionId === sectionId), effectiveSectionKey(prev, sectionId), range)
       if (pickupNotes.length > 0) {
         v.layers.push({
           id: `${v.id}:pickup`,

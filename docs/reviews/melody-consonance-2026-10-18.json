@@ -1,0 +1,735 @@
+{
+  "rows": [
+    {
+      "which": "A",
+      "seed": 1,
+      "before": {
+        "clashes": 17,
+        "strong": 113
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 113
+      },
+      "notesBefore": 195,
+      "notesAfter": 195,
+      "contour": 0.9837962962962964,
+      "globalContour": 0.979381443298969,
+      "cadenceBefore": 5,
+      "cadenceAfter": 5,
+      "exceptions": 0,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "A",
+      "seed": 2,
+      "before": {
+        "clashes": 16,
+        "strong": 124
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 124
+      },
+      "notesBefore": 202,
+      "notesAfter": 202,
+      "contour": 0.9532993809309599,
+      "globalContour": 0.9502487562189055,
+      "cadenceBefore": 3,
+      "cadenceAfter": 3,
+      "exceptions": 1,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "A",
+      "seed": 3,
+      "before": {
+        "clashes": 30,
+        "strong": 138
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 138
+      },
+      "notesBefore": 219,
+      "notesAfter": 219,
+      "contour": 0.9521353132464243,
+      "globalContour": 0.9541284403669725,
+      "cadenceBefore": 4,
+      "cadenceAfter": 4,
+      "exceptions": 0,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "A",
+      "seed": 4,
+      "before": {
+        "clashes": 18,
+        "strong": 142
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 142
+      },
+      "notesBefore": 210,
+      "notesAfter": 210,
+      "contour": 0.9515392015392017,
+      "globalContour": 0.9425837320574163,
+      "cadenceBefore": 6,
+      "cadenceAfter": 6,
+      "exceptions": 1,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "A",
+      "seed": 5,
+      "before": {
+        "clashes": 33,
+        "strong": 139
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 139
+      },
+      "notesBefore": 251,
+      "notesAfter": 251,
+      "contour": 0.9447619698945255,
+      "globalContour": 0.944,
+      "cadenceBefore": 6,
+      "cadenceAfter": 6,
+      "exceptions": 2,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "A",
+      "seed": 6,
+      "before": {
+        "clashes": 24,
+        "strong": 135
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 135
+      },
+      "notesBefore": 237,
+      "notesAfter": 237,
+      "contour": 0.9445264108768221,
+      "globalContour": 0.9491525423728814,
+      "cadenceBefore": 4,
+      "cadenceAfter": 4,
+      "exceptions": 3,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "A",
+      "seed": 5000,
+      "before": {
+        "clashes": 23,
+        "strong": 133
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 133
+      },
+      "notesBefore": 245,
+      "notesAfter": 245,
+      "contour": 0.9628226711560046,
+      "globalContour": 0.9590163934426229,
+      "cadenceBefore": 5,
+      "cadenceAfter": 5,
+      "exceptions": 2,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "B",
+      "seed": 1,
+      "before": {
+        "clashes": 18,
+        "strong": 137
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 137
+      },
+      "notesBefore": 215,
+      "notesAfter": 215,
+      "contour": 0.9588288871622205,
+      "globalContour": 0.9626168224299065,
+      "cadenceBefore": 5,
+      "cadenceAfter": 5,
+      "exceptions": 0,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "B",
+      "seed": 2,
+      "before": {
+        "clashes": 25,
+        "strong": 134
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 134
+      },
+      "notesBefore": 197,
+      "notesAfter": 197,
+      "contour": 0.9653183137054105,
+      "globalContour": 0.9693877551020408,
+      "cadenceBefore": 4,
+      "cadenceAfter": 4,
+      "exceptions": 0,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "B",
+      "seed": 3,
+      "before": {
+        "clashes": 22,
+        "strong": 138
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 138
+      },
+      "notesBefore": 211,
+      "notesAfter": 211,
+      "contour": 0.9251452765341656,
+      "globalContour": 0.9238095238095239,
+      "cadenceBefore": 4,
+      "cadenceAfter": 4,
+      "exceptions": 1,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "B",
+      "seed": 4,
+      "before": {
+        "clashes": 13,
+        "strong": 132
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 132
+      },
+      "notesBefore": 177,
+      "notesAfter": 177,
+      "contour": 0.9824074074074074,
+      "globalContour": 0.9829545454545454,
+      "cadenceBefore": 6,
+      "cadenceAfter": 6,
+      "exceptions": 2,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "B",
+      "seed": 5,
+      "before": {
+        "clashes": 15,
+        "strong": 132
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 132
+      },
+      "notesBefore": 198,
+      "notesAfter": 198,
+      "contour": 0.9812054602027502,
+      "globalContour": 0.9746192893401016,
+      "cadenceBefore": 4,
+      "cadenceAfter": 4,
+      "exceptions": 2,
+      "rhythmUnchanged": true
+    },
+    {
+      "which": "B",
+      "seed": 6,
+      "before": {
+        "clashes": 10,
+        "strong": 132
+      },
+      "after": {
+        "clashes": 0,
+        "strong": 132
+      },
+      "notesBefore": 187,
+      "notesAfter": 187,
+      "contour": 0.967891475137852,
+      "globalContour": 0.9731182795698925,
+      "cadenceBefore": 6,
+      "cadenceAfter": 6,
+      "exceptions": 4,
+      "rhythmUnchanged": true
+    }
+  ],
+  "example": [
+    {
+      "bar": 7,
+      "position": 1,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.985,
+      "durationAfter": 0.985,
+      "chord": "F"
+    },
+    {
+      "bar": 7,
+      "position": 1.9979999999999993,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.975,
+      "durationAfter": 0.975,
+      "chord": "F"
+    },
+    {
+      "bar": 7,
+      "position": 3.5066000000000006,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.4784,
+      "durationAfter": 0.4784,
+      "chord": "F"
+    },
+    {
+      "bar": 7,
+      "position": 3.9979999999999993,
+      "before": "G#4 (68)",
+      "after": "A4 (69)",
+      "durationBefore": 0.487,
+      "durationAfter": 0.487,
+      "chord": "F"
+    },
+    {
+      "bar": 7,
+      "position": 4.506600000000001,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.4925,
+      "durationAfter": 0.4925,
+      "chord": "F"
+    },
+    {
+      "bar": 8,
+      "position": 1.5066000000000006,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.4784,
+      "durationAfter": 0.4784,
+      "chord": "Fmaj7"
+    },
+    {
+      "bar": 8,
+      "position": 2.0020000000000007,
+      "before": "F4 (65)",
+      "after": "F4 (65)",
+      "durationBefore": 0.7388,
+      "durationAfter": 0.7388,
+      "chord": "Fmaj7"
+    },
+    {
+      "bar": 8,
+      "position": 3.0035000000000007,
+      "before": "E4 (64)",
+      "after": "E4 (64)",
+      "durationBefore": 0.5086999999999993,
+      "durationAfter": 0.5086999999999993,
+      "chord": "Fmaj7"
+    },
+    {
+      "bar": 8,
+      "position": 4.5122,
+      "before": "F4 (65)",
+      "after": "F4 (65)",
+      "durationBefore": 0.485,
+      "durationAfter": 0.485,
+      "chord": "Fmaj7"
+    },
+    {
+      "bar": 9,
+      "position": 1.504100000000001,
+      "before": "G#4 (68)",
+      "after": "G#4 (68)",
+      "durationBefore": 0.4809,
+      "durationAfter": 0.4809,
+      "chord": "Dm7"
+    },
+    {
+      "bar": 9,
+      "position": 1.9995000000000012,
+      "before": "A4 (69)",
+      "after": "A4 (69)",
+      "durationBefore": 0.744,
+      "durationAfter": 0.744,
+      "chord": "Dm7"
+    },
+    {
+      "bar": 9,
+      "position": 2.998000000000001,
+      "before": "A4 (69)",
+      "after": "A4 (69)",
+      "durationBefore": 0.975,
+      "durationAfter": 0.975,
+      "chord": "Dm7"
+    },
+    {
+      "bar": 9,
+      "position": 4.001999999999999,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.483,
+      "durationAfter": 0.483,
+      "chord": "Dm7"
+    },
+    {
+      "bar": 9,
+      "position": 4.506599999999999,
+      "before": "F4 (65)",
+      "after": "F4 (65)",
+      "durationBefore": 0.4784,
+      "durationAfter": 0.4784,
+      "chord": "Dm7"
+    },
+    {
+      "bar": 10,
+      "position": 1,
+      "before": "E4 (64)",
+      "after": "E4 (64)",
+      "durationBefore": 0.485,
+      "durationAfter": 0.485,
+      "chord": "E7"
+    },
+    {
+      "bar": 10,
+      "position": 1.5065999999999988,
+      "before": "G4 (67)",
+      "after": "G#4 (68)",
+      "durationBefore": 0.975,
+      "durationAfter": 0.975,
+      "chord": "E7"
+    },
+    {
+      "bar": 10,
+      "position": 2.506599999999999,
+      "before": "F#4 (66)",
+      "after": "E4 (64)",
+      "durationBefore": 0.985,
+      "durationAfter": 0.985,
+      "chord": "E7"
+    },
+    {
+      "bar": 10,
+      "position": 3.998000000000001,
+      "before": "G4 (67)",
+      "after": "G4 (67)",
+      "durationBefore": 0.487,
+      "durationAfter": 0.487,
+      "chord": "E7"
+    },
+    {
+      "bar": 10,
+      "position": 4.506599999999999,
+      "before": "G#4 (68)",
+      "after": "G#4 (68)",
+      "durationBefore": 0.4925,
+      "durationAfter": 0.4925,
+      "chord": "E7"
+    }
+  ],
+  "exceptions": [
+    {
+      "which": "A",
+      "seed": 2,
+      "section": "イントロ",
+      "bar": 4,
+      "position": 4.003500000000001,
+      "note": "A#4 (70)",
+      "duration": 0.48,
+      "chord": "E7",
+      "target": "B4 (71)",
+      "targetChord": "E7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 4,
+      "section": "Bメロ",
+      "bar": 15,
+      "position": 3.5066000000000006,
+      "note": "F#4 (66)",
+      "duration": 0.4875,
+      "chord": "Em",
+      "target": "E4 (64)",
+      "targetChord": "Em",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 5,
+      "section": "大サビ",
+      "bar": 57,
+      "position": 1.9995000000000012,
+      "note": "C5 (72)",
+      "duration": 0.4855,
+      "chord": "Em7",
+      "target": "D5 (74)",
+      "targetChord": "Em7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 5,
+      "section": "大サビ",
+      "bar": 59,
+      "position": 4.506599999999999,
+      "note": "D#5 (75)",
+      "duration": 0.4784,
+      "chord": "C#m7b5",
+      "target": "E5 (76)",
+      "targetChord": "F#7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 6,
+      "section": "サビ",
+      "bar": 25,
+      "position": 1.504100000000001,
+      "note": "A#4 (70)",
+      "duration": 0.4809,
+      "chord": "Dm7",
+      "target": "C5 (72)",
+      "targetChord": "Dm7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 6,
+      "section": "サビ2",
+      "bar": 41,
+      "position": 1.504100000000001,
+      "note": "A#4 (70)",
+      "duration": 0.4809,
+      "chord": "Dm7",
+      "target": "C5 (72)",
+      "targetChord": "Dm7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 6,
+      "section": "間奏",
+      "bar": 48,
+      "position": 4.5122,
+      "note": "G#4 (68)",
+      "duration": 0.4728,
+      "chord": "Fmaj7",
+      "target": "A4 (69)",
+      "targetChord": "Bm7b5",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 5000,
+      "section": "Aメロ",
+      "bar": 9,
+      "position": 1.504100000000001,
+      "note": "G#4 (68)",
+      "duration": 0.4809,
+      "chord": "Dm7",
+      "target": "A4 (69)",
+      "targetChord": "Dm7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "A",
+      "seed": 5000,
+      "section": "Aメロ2",
+      "bar": 33,
+      "position": 1.504100000000001,
+      "note": "G#4 (68)",
+      "duration": 0.4809,
+      "chord": "Dm7",
+      "target": "A4 (69)",
+      "targetChord": "Dm7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 3,
+      "section": "Final Chorus",
+      "bar": 55,
+      "position": 4.2531,
+      "note": "D#5 (75)",
+      "duration": 0.4819,
+      "chord": "F#m7",
+      "target": "C#5 (73)",
+      "targetChord": "F#m7",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 4,
+      "section": "Verse",
+      "bar": 8,
+      "position": 2.5189000000000004,
+      "note": "D#4 (63)",
+      "duration": 0.4661,
+      "chord": "Am7/G",
+      "target": "E4 (64)",
+      "targetChord": "Am7/G",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 4,
+      "section": "Verse 2",
+      "bar": 32,
+      "position": 2.5189000000000004,
+      "note": "D#4 (63)",
+      "duration": 0.4661,
+      "chord": "Am7/G",
+      "target": "E4 (64)",
+      "targetChord": "Am7/G",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 5,
+      "section": "Verse",
+      "bar": 8,
+      "position": 4.261799999999999,
+      "note": "F#4 (66)",
+      "duration": 0.4732,
+      "chord": "Am7/G",
+      "target": "G4 (67)",
+      "targetChord": "Am7/G",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 5,
+      "section": "Verse 2",
+      "bar": 32,
+      "position": 4.261799999999999,
+      "note": "F#4 (66)",
+      "duration": 0.4732,
+      "chord": "Am7/G",
+      "target": "G4 (67)",
+      "targetChord": "Am7/G",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 6,
+      "section": "Chorus",
+      "bar": 21,
+      "position": 1.9929000000000001,
+      "note": "G#4 (68)",
+      "duration": 0.491,
+      "chord": "F",
+      "target": "A4 (69)",
+      "targetChord": "F",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 6,
+      "section": "Chorus",
+      "bar": 25,
+      "position": 1.9928999999999988,
+      "note": "G#4 (68)",
+      "duration": 0.491,
+      "chord": "F",
+      "target": "A4 (69)",
+      "targetChord": "F",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 6,
+      "section": "Chorus 2",
+      "bar": 37,
+      "position": 1.9929000000000001,
+      "note": "G#4 (68)",
+      "duration": 0.491,
+      "chord": "F",
+      "target": "A4 (69)",
+      "targetChord": "F",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    },
+    {
+      "which": "B",
+      "seed": 6,
+      "section": "Chorus 2",
+      "bar": 41,
+      "position": 1.9928999999999988,
+      "note": "G#4 (68)",
+      "duration": 0.491,
+      "chord": "F",
+      "target": "A4 (69)",
+      "targetChord": "F",
+      "reason": "弱い位置・0.5拍以下で、次の和声音へ1〜2半音で解決"
+    }
+  ],
+  "controls": [
+    {
+      "which": "A",
+      "seed": 1,
+      "quality": 90.5,
+      "eligible": 8,
+      "audition": 96.5,
+      "harmony": 0,
+      "collision": 0,
+      "drumPitchViolations": 0
+    },
+    {
+      "which": "A",
+      "seed": 2,
+      "quality": 91.8359375,
+      "eligible": 8,
+      "audition": 96.9,
+      "harmony": 0,
+      "collision": 0,
+      "drumPitchViolations": 0
+    },
+    {
+      "which": "A",
+      "seed": 3,
+      "quality": 94.5,
+      "eligible": 8,
+      "audition": 97.6,
+      "harmony": 0,
+      "collision": 0,
+      "drumPitchViolations": 0
+    },
+    {
+      "which": "B",
+      "seed": 1,
+      "quality": 93.5,
+      "eligible": 8,
+      "audition": 96.1,
+      "harmony": 0,
+      "collision": 0,
+      "drumPitchViolations": 0
+    },
+    {
+      "which": "B",
+      "seed": 2,
+      "quality": 90,
+      "eligible": 8,
+      "audition": 95.8,
+      "harmony": 0,
+      "collision": 0,
+      "drumPitchViolations": 0
+    },
+    {
+      "which": "B",
+      "seed": 3,
+      "quality": 91,
+      "eligible": 8,
+      "audition": 95.9,
+      "harmony": 0,
+      "collision": 0,
+      "drumPitchViolations": 0
+    }
+  ]
+}
