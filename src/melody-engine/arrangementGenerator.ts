@@ -509,8 +509,9 @@ function transitionCandidate(
       : reverseMotif
         ? `主旋律冒頭の動きを逆順にして高域へ一度だけ置き、次の${next?.sectionName ?? "終止"}で回収する`
         : `未使用高域を一瞬だけ開き、次の${next?.sectionName ?? "終止"}の入口で解決して落差を記憶させる`
-  const start = end - (character === "surprise" ? 1.5 : 1.25)
-  const hasEndingRest = !lead.some((note) => note.startBeat < end && note.startBeat + note.durationBeats > start)
+  const windowBeats = Math.min(source.lengthBars * beatsPerBar, beatsPerBar * (character === "surprise" ? 2 : 1))
+  const start = end - windowBeats
+  const hasEndingRest = !lead.some((note) => note.startBeat < end && note.startBeat + note.durationBeats > end - .5)
   if (!next || section.melodyRestRatio < 0.08 || !hasEndingRest) {
     return { id: `${section.sectionId}:${character}:silence`, sectionId: section.sectionId, character, kind: "silence", reason: "主旋律の余白が不足しているため、音を足さないことを最も強い選択とする", notes: [] }
   }
@@ -525,7 +526,7 @@ function transitionCandidate(
   const intervals = usesMotif ? motifLeadIn.slice(-3) : character === "safe" ? [-4, -2, 0] : character === "edge" ? [-3, -1, 0] : [7, 1, 0]
   const notes = intervals.map((interval, index): MelodyNote => ({
     id: `transition:${section.sectionId}:${character}:${seed}:${index}`,
-    startBeat: start + index * 0.375,
+    startBeat: index === intervals.length - 1 ? end - .5 : start + index * (windowBeats - .5) / (intervals.length - 1),
     durationBeats: index === intervals.length - 1 ? 0.5 : 0.25,
     pitch: Math.max(0, Math.min(127, target + interval)),
     velocity: 58 + index * 8 + (character === "surprise" ? 6 : 0),
@@ -533,13 +534,18 @@ function transitionCandidate(
     plannedToneRole: index === intervals.length - 1 ? "anticipation" : character === "safe" ? "passing-tone" : "approach-tone",
     plannedResolution: index === intervals.length - 1 ? { targetPitchClass: targetPc, targetBeat: end, maximumDelayBeats: 1 } : undefined,
   }))
+  const spacedNotes = notes.filter((note) => !lead.some((n) => n.startBeat < note.startBeat + note.durationBeats
+    && n.startBeat + n.durationBeats > note.startBeat))
+  // 転換の窓は広げても、主旋律の上へ無理に全音を置かない。
+  if (spacedNotes.length < 2) return { id: `${section.sectionId}:${character}:silence`, sectionId: section.sectionId,
+    character, kind: "silence", reason: "転換の1〜2小節に十分な余白がないため、休止を選ぶ", notes: [] }
   return {
     id: `${section.sectionId}:${character}:${seed}`,
     sectionId: section.sectionId,
     character,
     kind: usesMotif ? reverseMotif ? "reverse-motif" : "motif-variation" : character === "safe" ? "ascending" : character === "edge" ? "chromatic-approach" : "synth-fill",
-    reason,
-    notes,
+    reason: `${reason}。${character === "surprise" ? "2" : "1"}小節の転換窓で間を残す`,
+    notes: spacedNotes,
   }
 }
 
