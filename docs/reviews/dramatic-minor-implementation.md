@@ -32,3 +32,5 @@ Phase 0は `dramatic-minor-phase0.md`。既存の半音反復、保持音候補�
 ## 共同レビュー後の確認
 
 Claude Codeの隔離環境でのMIDIレビューに基づき、Transition・打楽器の保護と入口の実音化を修正した。3seedで入口を0/4/8拍にした弦の実際の発音開始を比較する。2拍ずつの和声交代もMinimal/Cinematicで簡潔化できるようにし、Standardの既存固定出力は維持した。要件3-2の計画段階での層の交代と、Transitionの最終MIDIでの存続は共同レビューを継続し、解決前には公開しない。
+
+ローカル最終確認（レビュー対応後のコード）：`vitest run --maxWorkers=2` は1364 passed / 7 skipped、`tsc -b`・`npm run build`・`npm run lint`は通過。全MIDIトラックの反転数は2を超えており、要件3-2の未解決状態を独立した測定値として公開JSONにも残す。現段階では公開承認の根拠にしない。
