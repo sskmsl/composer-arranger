@@ -877,7 +877,7 @@ export function buildFullSongArrangementPlan(
       }
       const finalRebuild = effectiveNextSection?.semanticRole === "final"
         && candidateApproach === "dynamic-contrast" && section.semanticRole !== "breakdown"
-        && sectionLengthBeats >= beatsPerBar * 4 && !soundApplies && !(applies && effectiveDirective?.intention)
+        && sectionLengthBeats >= beatsPerBar * 8 && !soundApplies && !(applies && effectiveDirective?.intention)
       const dropCandidates: ArrangementTrackId[] = seed % 2 === 0
         ? ["syn-bass", "syn-pulse"] : ["str-violin-1", "syn-stabs"]
       const preBoundaryDropRoles = dropCandidates.filter((id) => uniqueRoles.includes(id)
@@ -1114,7 +1114,9 @@ function generateDrums(
   const dropsAtBoundary = new Set<ArrangementTrackId>(["dr-kick", "dr-snare", "dr-closed-hat", "dr-open-hat"])
   const shapedBeats = [...new Set(beats.map((beat) => Math.round(beat * 1000) / 1000))].filter((beat) => {
     if (beat >= start + length) return false
-    if ((section.preBoundaryDropBeats ?? 0) > 0 && dropsAtBoundary.has(trackId) && beat >= dropStart) return false
+    if ((section.preBoundaryDropBeats ?? 0) > 0
+      && (section.preBoundaryDropRoles ? section.preBoundaryDropRoles.includes(trackId) : dropsAtBoundary.has(trackId))
+      && beat >= dropStart) return false
     const nearLeadAttack = melody.some((note) => Math.abs(note.startBeat - beat) <= 0.12)
     const barOffset = ((beat - start) % beatsPerBar + beatsPerBar) % beatsPerBar
     if (trackId === "dr-kick") return barOffset < 0.08 || !nearLeadAttack
@@ -2423,6 +2425,8 @@ function stageBoundaryLayers(
     const before = (t: GeneratedArrangementTrack) => t.notes.filter((n) => n.startBeat >= boundary - bpb && n.startBeat < boundary)
     const after = (t: GeneratedArrangementTrack) => t.notes.filter((n) => n.startBeat >= boundary && n.startBeat < boundary + bpb)
     const changes = tracks.filter((t) => {
+      // 転換フレーズと打楽器の終止・フィルは、反復する背景層の間引きから保護する。
+      if (t.family === "drums" || t.family === "transition") return false
       const a = before(t).length, b = after(t).length
       // 1〜2発の境界アクセントはTransitionの仕事。反復層の密度変化と区別する。
       return Math.abs(a - b) > Math.max(2, a * .5)
@@ -2527,6 +2531,22 @@ export function finalizeFullSongArrangement(
   if (!options.editableTrackIds && !options.editableSectionIds) {
     finalTracks = realignPhaseLockedDrumLayers(stageBoundaryLayers(project, arrangement.plan, finalTracks))
   }
+  finalTracks = finalTracks.map((track) => {
+    if (options.editableTrackIds && !options.editableTrackIds.has(track.id)) return track
+    const base = isArrangementLayerTrackId(track.id) ? ARRANGEMENT_LAYER_SOURCES[track.id] : track.id
+    if ((arrangement.plan.directive?.preserve ?? []).includes(track.id)
+      || (arrangement.plan.directive?.preserve ?? []).includes(base)) return track
+    return { ...track, notes: track.notes.flatMap((note) => {
+      if (options.editableSectionIds && !options.editableSectionIds.has(note.sectionId)) return [note]
+      const sectionPlan = arrangement.plan.sections.find((s) => s.sectionId === note.sectionId)
+      const source = project.sections.find((s) => s.id === note.sectionId)
+      if (!source || !sectionPlan?.preBoundaryDropRoles?.includes(base) || !sectionPlan.preBoundaryDropBeats) return [note]
+      const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+      const stop = sectionOffset(source.startBar + source.lengthBars, bpb) - sectionPlan.preBoundaryDropBeats
+      if (note.startBeat >= stop) return []
+      return [{ ...note, durationBeats: Math.min(note.durationBeats, stop - note.startBeat) }]
+    }) }
+  })
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {
