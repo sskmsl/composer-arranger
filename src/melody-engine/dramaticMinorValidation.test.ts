@@ -83,7 +83,7 @@ describe("dramatic minor output distributions", () => {
     for (const seed of seeds.slice(0, 3)) {
       const arrangement = generateFullSongArrangement(p, { seed })
       const midi = parseMidi(exportArrangementMidi(p, arrangement))
-      const managedNames = new Set(arrangement.tracks.filter((t) => t.family !== "drums" && t.family !== "transition").map((t) => t.name))
+      const managedNames = new Set(arrangement.tracks.filter((t) => t.id.startsWith("str-") || ["syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-stabs", "syn-chord-wide", "syn-pulse", "syn-arp-low", "syn-arp-high", "syn-sub-bass", "syn-bass-mid"].includes(t.id)).map((t) => t.name))
       const boundaryChanges = p.sections.slice(1).map((s) => {
         const boundary = (s.startBar - 1) * 4
         return midi.tracks.filter((t) => {
@@ -107,8 +107,20 @@ describe("dramatic minor output distributions", () => {
         return beat >= (s.startBar - 1) * 4 && beat < (s.startBar + s.lengthBars - 1) * 4
       }).length, 0))
       const row = { seed, boundaryChanges, layerChanges, sectionNoteCounts: counts, quality: arrangement.quality?.passed }
+      // 発音数の差は層の出入りを表さない。音価を含む実MIDIの状態を小節ごとに検証する。
+      const managedBoundaryFlips = p.sections.slice(1, -1).flatMap((section) => {
+        const boundary = (section.startBar - 1) * 4
+        return Array.from({ length: 7 }, (_, index) => {
+          const bar = boundary + (index - 2) * 4
+          const sounding = (t: typeof midi.tracks[number], start: number) => t.notes.some((n) =>
+            n.startTick / midi.ppq < start + 4 - .01 && (n.startTick + n.durationTicks) / midi.ppq > start + .01)
+          const changed = midi.tracks.filter((t) => managedNames.has(t.name) && sounding(t, bar - 4) !== sounding(t, bar))
+          return changed.length
+        })
+      })
+      Object.assign(row, { managedBoundaryFlips })
       perSeed.push(row)
-      expect(Math.max(...layerChanges.map((m) => m.managedDensityChanges))).toBeLessThanOrEqual(2)
+      expect(Math.max(...managedBoundaryFlips)).toBeLessThanOrEqual(2)
       expect(counts.some((n, i) => i > 0 && n < counts[i - 1])).toBe(true)
       // 既存のdynamic-contrast解釈を使い、最終サビ前の削減を生成トラック単位で比較する。
       const plan = buildFullSongArrangementPlan(p, analyzeFullSongArrangement(p), seed, "", undefined, "dynamic-contrast")

@@ -50,133 +50,31 @@
     {
       "seed": 19,
       "boundaryChanges": [
-        5,
-        5,
-        5,
-        7,
-        8
-      ],
-      "layerChanges": [
-        {
-          "onsetFlips": 9,
-          "soundingFlips": 9,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 10,
-          "soundingFlips": 12,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 10,
-          "soundingFlips": 11,
-          "managedDensityChanges": 1
-        },
-        {
-          "onsetFlips": 18,
-          "soundingFlips": 16,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 16,
-          "soundingFlips": 19,
-          "managedDensityChanges": 0
-        }
-      ],
-      "sectionNoteCounts": [
-        221,
-        395,
-        420,
-        395,
-        438,
-        12
-      ],
-      "quality": true,
-      "entryOnsets": {
-        "safe": 8,
-        "edge": 2,
-        "surprise": 4
-      }
-    },
-    {
-      "seed": 41,
-      "boundaryChanges": [
-        5,
-        5,
-        5,
-        7,
-        8
-      ],
-      "layerChanges": [
-        {
-          "onsetFlips": 11,
-          "soundingFlips": 11,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 10,
-          "soundingFlips": 12,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 10,
-          "soundingFlips": 11,
-          "managedDensityChanges": 1
-        },
-        {
-          "onsetFlips": 18,
-          "soundingFlips": 16,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 16,
-          "soundingFlips": 19,
-          "managedDensityChanges": 0
-        }
-      ],
-      "sectionNoteCounts": [
-        226,
-        396,
-        420,
-        394,
-        438,
-        12
-      ],
-      "quality": true,
-      "entryOnsets": {
-        "safe": 8,
-        "edge": 2,
-        "surprise": 4
-      }
-    },
-    {
-      "seed": 73,
-      "boundaryChanges": [
+        1,
+        3,
         2,
-        3,
-        3,
-        7,
+        8,
         5
       ],
       "layerChanges": [
         {
-          "onsetFlips": 11,
-          "soundingFlips": 11,
+          "onsetFlips": 7,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 10,
+          "soundingFlips": 8,
           "managedDensityChanges": 1
         },
         {
-          "onsetFlips": 11,
+          "onsetFlips": 6,
+          "soundingFlips": 5,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 15,
           "soundingFlips": 11,
-          "managedDensityChanges": 2
-        },
-        {
-          "onsetFlips": 13,
-          "soundingFlips": 12,
-          "managedDensityChanges": 1
-        },
-        {
-          "onsetFlips": 18,
-          "soundingFlips": 14,
           "managedDensityChanges": 2
         },
         {
@@ -186,14 +84,206 @@
         }
       ],
       "sectionNoteCounts": [
-        87,
-        184,
-        205,
-        222,
-        321,
+        81,
+        181,
+        197,
+        212,
+        315,
         12
       ],
       "quality": true,
+      "managedBoundaryFlips": [
+        1,
+        0,
+        0,
+        2,
+        1,
+        0,
+        0,
+        2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        2,
+        0,
+        2,
+        1,
+        2,
+        1,
+        2,
+        0,
+        2,
+        1,
+        1
+      ],
+      "entryOnsets": {
+        "safe": 8,
+        "edge": 2,
+        "surprise": 4
+      }
+    },
+    {
+      "seed": 41,
+      "boundaryChanges": [
+        1,
+        3,
+        2,
+        8,
+        5
+      ],
+      "layerChanges": [
+        {
+          "onsetFlips": 7,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 10,
+          "soundingFlips": 8,
+          "managedDensityChanges": 1
+        },
+        {
+          "onsetFlips": 6,
+          "soundingFlips": 5,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 15,
+          "soundingFlips": 11,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 14,
+          "soundingFlips": 17,
+          "managedDensityChanges": 0
+        }
+      ],
+      "sectionNoteCounts": [
+        81,
+        181,
+        197,
+        212,
+        315,
+        12
+      ],
+      "quality": true,
+      "managedBoundaryFlips": [
+        1,
+        0,
+        0,
+        2,
+        1,
+        0,
+        0,
+        2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        2,
+        0,
+        2,
+        1,
+        2,
+        1,
+        2,
+        0,
+        2,
+        1,
+        1
+      ],
+      "entryOnsets": {
+        "safe": 8,
+        "edge": 2,
+        "surprise": 4
+      }
+    },
+    {
+      "seed": 73,
+      "boundaryChanges": [
+        1,
+        3,
+        2,
+        8,
+        5
+      ],
+      "layerChanges": [
+        {
+          "onsetFlips": 7,
+          "soundingFlips": 7,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 10,
+          "soundingFlips": 8,
+          "managedDensityChanges": 1
+        },
+        {
+          "onsetFlips": 6,
+          "soundingFlips": 5,
+          "managedDensityChanges": 0
+        },
+        {
+          "onsetFlips": 15,
+          "soundingFlips": 11,
+          "managedDensityChanges": 2
+        },
+        {
+          "onsetFlips": 14,
+          "soundingFlips": 17,
+          "managedDensityChanges": 0
+        }
+      ],
+      "sectionNoteCounts": [
+        81,
+        181,
+        197,
+        212,
+        315,
+        12
+      ],
+      "quality": true,
+      "managedBoundaryFlips": [
+        1,
+        0,
+        0,
+        2,
+        1,
+        0,
+        0,
+        2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        2,
+        0,
+        2,
+        1,
+        2,
+        1,
+        2,
+        0,
+        2,
+        1,
+        1
+      ],
       "entryOnsets": {
         "safe": 8,
         "edge": 2,
