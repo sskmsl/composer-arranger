@@ -1,0 +1,100 @@
+import { writeFileSync } from "node:fs"
+import { describe, expect, it } from "vitest"
+import { createEmptyProject, type ComposerProject } from "@/core/project"
+import { SeededRandom } from "@/core/rng"
+import { generateFromChordsWithProfiles } from "./generateFromChords"
+import { generateIncantatoryPattern } from "./incantatory"
+import { buildHarmonicMap } from "./harmonicMap"
+import { analyzeFullSongArrangement, buildFullSongArrangementPlan, generateFullSongArrangement, regenerateFullSongArrangementTarget } from "./arrangementGenerator"
+import { exportArrangementMidi, exportArrangementTrackMidi } from "@/midi/exportArrangement"
+import { exportMelodyMidi } from "@/midi/exportMelody"
+import { parseMidi } from "@/midi/importMidi"
+
+const seeds = [19, 41, 73, 101, 137, 173]
+function fixture(): ComposerProject {
+  const p = createEmptyProject("Decision validation")
+  p.projectId = "decision-validation"
+  p.song.key = "Cm"
+  p.sections = ["verse", "pre-chorus", "chorus", "pre-chorus", "grand-chorus", "outro"].map((role, i) => ({
+    id: `s${i}`, name: `Section ${i + 1}`, role: role as ComposerProject["sections"][number]["role"], startBar: 1 + i * 8, lengthBars: 8,
+  }))
+  p.chords = p.sections.flatMap((s) => ["Cm", "Ab", "Bb", "G7"].map((symbol, i) => ({
+    id: `${s.id}:${i}`, sectionId: s.id, startBeat: i * 8, durationBeats: 8, symbol, bass: null,
+  })))
+  return p
+}
+const report: Record<string, unknown> = { seeds, scope: "generated notes and exported MIDI; no listening guarantee" }
+
+describe("dramatic minor output distributions", () => {
+  it("existing motif candidates contain semitone pedals and identifiable variations", () => {
+    const p = fixture(), chords = p.chords.filter((c) => c.sectionId === "s0")
+    let pedals = 0, variations = 0
+    const perSeed: unknown[] = []
+    for (const seed of seeds) {
+      const batch = generateFromChordsWithProfiles({ chords, sectionId: "s0", sectionRole: "verse", songProfile: "original-custom",
+        density: "balanced", range: { low: 60, high: 79 }, drama: "growing", totalBeats: 32, seed, profiles: ["incantatory"] })
+      let count = 0
+      for (const c of batch.candidates) {
+        const midi = parseMidi(exportMelodyMidi({ title: "Motif", sectionName: "s0", tempo: 110,
+          timeSignature: "4/4", chords, melodyNotes: c.notes, includeChords: false }))
+        const pitches = midi.tracks.flatMap((t) => t.notes).map((n) => n.pitch)
+        expect(pitches).toEqual(c.notes.map((n) => n.pitch))
+        if (pitches.some((p, i) => i > 1 && p === pitches[i - 2] && Math.abs(p - pitches[i - 1]) === 1)) count++
+      }
+      pedals += count
+      const raw = generateIncantatoryPattern(new SeededRandom(seed), buildHarmonicMap(chords), 32, { low: 60, high: 79 }, 1, .4)
+      const size = raw.plan.motifNoteCount
+      const cells = Array.from({ length: Math.floor(raw.notes.length / size) }, (_, i) => raw.notes.slice(i * size, (i + 1) * size))
+      const contour = (cell: typeof raw.notes) => cell.slice(1).map((n, i) => Math.sign(n.pitch - cell[i].pitch)).join(",")
+      const rhythm = (cell: typeof raw.notes) => cell.map((n) => n.durationBeats).join(",")
+      let changed = 0
+      for (let i = 1; i < cells.length; i++) {
+        if ((contour(cells[i]) === contour(cells[0])) !== (rhythm(cells[i]) === rhythm(cells[0]))) changed++
+      }
+      variations += changed
+      perSeed.push({ seed, candidates: batch.candidates.length, semitonePedalCandidates: count, identifiableVariations: changed })
+    }
+    report.motif = perSeed
+    expect(pedals).toBeGreaterThan(0)
+    expect(variations).toBeGreaterThan(0)
+  })
+
+  it("limits boundary changes and preserves reduction in actual MIDI for fixed seeds", () => {
+    const p = fixture()
+    const perSeed: unknown[] = []
+    for (const seed of seeds.slice(0, 3)) {
+      const arrangement = generateFullSongArrangement(p, { seed })
+      const midi = parseMidi(exportArrangementMidi(p, arrangement))
+      const boundaryChanges = p.sections.slice(1).map((s) => {
+        const boundary = (s.startBar - 1) * 4
+        return midi.tracks.filter((t) => {
+          const count = (a: number, b: number) => t.notes.filter((n) => n.startTick / midi.ppq >= a && n.startTick / midi.ppq < b).length
+          const a = count(boundary - 4, boundary), b = count(boundary, boundary + 4)
+          return (a === 0) !== (b === 0) || Math.abs(a - b) > Math.max(1, a * .5)
+        }).length
+      })
+      const counts = p.sections.map((s) => midi.tracks.reduce((sum, t) => sum + t.notes.filter((n) => {
+        const beat = n.startTick / midi.ppq
+        return beat >= (s.startBar - 1) * 4 && beat < (s.startBar + s.lengthBars - 1) * 4
+      }).length, 0))
+      perSeed.push({ seed, boundaryChanges, sectionNoteCounts: counts, quality: arrangement.quality?.passed })
+      expect(Math.max(...boundaryChanges)).toBeLessThanOrEqual(2)
+      expect(counts.some((n, i) => i > 0 && n < counts[i - 1])).toBe(true)
+      // 既存のdynamic-contrast解釈を使い、最終サビ前の削減を生成トラック単位で比較する。
+      const plan = buildFullSongArrangementPlan(p, analyzeFullSongArrangement(p), seed, "", undefined, "dynamic-contrast")
+      const beforeFinal = plan.sections[3]
+      expect(beforeFinal.preBoundaryDropBeats).toBe(8)
+      const role = beforeFinal.preBoundaryDropRoles![0]
+      expect(role).toBeDefined()
+      const current = { ...arrangement, plan }
+      const reduced = regenerateFullSongArrangementTarget(p, current, { trackId: role, sectionId: "s3" })
+      const noDrop = { ...current, plan: { ...plan, sections: plan.sections.map((s) => s.sectionId === "s3" ? { ...s, preBoundaryDropBeats: 0 } : s) } }
+      const baseline = regenerateFullSongArrangementTarget(p, noDrop, { trackId: role, sectionId: "s3" })
+      const midiCount = (a: typeof reduced) => parseMidi(exportArrangementTrackMidi(p, a, role)).tracks.reduce((sum, t) => sum + t.notes.length, 0)
+      expect(midiCount(reduced)).toBeLessThan(midiCount(baseline))
+      expect(plan.sections.flatMap((s) => s.transitionCandidates).every((c) => c.reason.length > 0)).toBe(true)
+    }
+    report.arrangement = perSeed
+    if (process.env.DRAMATIC_MINOR_REPORT) writeFileSync(process.env.DRAMATIC_MINOR_REPORT, JSON.stringify(report, null, 2) + "\n")
+  }, 60_000)
+})

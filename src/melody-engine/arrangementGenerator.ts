@@ -886,7 +886,8 @@ export function buildFullSongArrangementPlan(
       if (finalRebuild && !preBoundaryDropRoles.length) preBoundaryDropRoles.push(...uniqueRoles
         .filter((id) => ["syn-bass", "syn-pulse"].includes(id) && !(effectiveDirective?.preserve ?? []).includes(id)))
       if (["chorus", "final"].includes(section.semanticRole ?? "")) {
-        const colours = uniqueRoles.filter((id) => ["syn-stabs", "str-violin-1", "str-viola", "str-upper"].includes(id))
+        const colours = uniqueRoles.filter((id) => ["syn-stabs", "str-violin-1", "str-viola", "str-upper"].includes(id)
+          && !(applies && [...(effectiveDirective?.add ?? []), ...(effectiveDirective?.preserve ?? [])].includes(id)))
         colours.forEach((id, i) => {
           const delay = selectedTransitionCharacter === "edge" ? (i < 2 ? 0 : beatsPerBar)
             : selectedTransitionCharacter === "surprise" ? beatsPerBar * (1 + Math.floor(i / 2))
