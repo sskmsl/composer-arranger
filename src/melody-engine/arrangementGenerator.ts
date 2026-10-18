@@ -1824,7 +1824,17 @@ function generateTrack(
         return [{ ...note, durationBeats: Math.max(.0625, dropStart - note.startBeat), reason: `${note.reason}。次のSection直前は休ませる` }]
       })
     }
-    track.notes.push(...generated.filter((note) => note.startBeat + 0.001 >= entryBeat))
+    track.notes.push(...generated.flatMap((note) => {
+      if (note.startBeat + .001 >= entryBeat) return [note]
+      const end = note.startBeat + note.durationBeats
+      // 持続音の途中を入口にした場合、次の再発音まで待たず、その位置から鳴らす。
+      if (section.lengthBars >= 8 && ["chorus", "grand-chorus"].includes(section.role)
+        && ["str-viola", "str-violin-1", "str-upper", "syn-stabs"].includes(trackId)
+        && entryBeat > offset && end - entryBeat >= .25) return [{ ...note,
+        startBeat: entryBeat, durationBeats: end - entryBeat,
+        reason: `${note.reason}。指定した入口から持続フレーズを受け継ぐ` }]
+      return []
+    }))
   }
   return track
 }
