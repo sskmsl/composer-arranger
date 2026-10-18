@@ -298,3 +298,57 @@ export function applySectionTransition(
     },
   }
 }
+
+/** 次の開始は既存Transitionの終端側の参照。前の旋律が未採用でも使用できる。 */
+export interface SectionExitContext {
+  targetSectionId: string
+  targetRole: SectionRole
+  targetFirstChord: string
+  targetFirstPitch?: number
+}
+
+export function buildSectionExitContext(project: ComposerProject, sectionId: string): SectionExitContext | undefined {
+  const sections = normalizeSectionTimeline(project.sections)
+  const index = sections.findIndex((s) => s.id === sectionId)
+  const next = index >= 0 ? sections[index + 1] : undefined
+  if (!next) return undefined
+  const chord = project.chords.filter((c) => c.sectionId === next.id).sort((a, b) => a.startBeat - b.startBeat)[0]
+  if (!chord) return undefined
+  const variant = assignedVariantForSection(project, next.id)
+  return { targetSectionId: next.id, targetRole: next.role, targetFirstChord: chord.symbol,
+    targetFirstPitch: variant ? sortedNotes(variant)[0]?.pitch : undefined }
+}
+
+/** 最終の保持音だけを次の開始へ接続。入力コードを変えず、現在和音の構成音から選ぶ。 */
+export function applySectionExit(
+  source: readonly MelodyNote[], context: SectionExitContext | undefined,
+  totalBeats: number, range: RangeSetting, chords: readonly ChordEvent[],
+): MelodyNote[] {
+  if (!context || !source.length) return [...source]
+  const notes = source.map((n) => ({ ...n })).sort((a, b) => a.startBeat - b.startBeat)
+  const last = notes.at(-1)!
+  if (last.locks.length || last.startBeat < totalBeats - 4) return notes
+  const current = buildHarmonicMap([...chords]).find((e) => last.startBeat >= e.chord.startBeat
+    && last.startBeat < e.chord.startBeat + e.chord.durationBeats)
+  const next = buildHarmonicMap([{ id: "next", sectionId: context.targetSectionId,
+    symbol: context.targetFirstChord, bass: null, startBeat: 0, durationBeats: 4 }])[0]
+  if (!current || !next) return notes
+  const currentPcs = current.parsed.tones.map((t) => t.pitchClass)
+  const nextPcs = next.parsed.tones.map((t) => t.pitchClass)
+  const shared = currentPcs.filter((pc) => nextPcs.includes(pc))
+  const allowed = shared.length ? shared : currentPcs
+  const target = context.targetFirstPitch ?? nearestPitchClass(last.pitch, nextPcs, range)
+  const previous = notes.at(-2)?.pitch ?? last.pitch
+  const choices = Array.from({ length: range.high - range.low + 1 }, (_, i) => range.low + i)
+    .filter((p) => allowed.includes(p % 12))
+  const cost = (p: number) => Math.abs(p - target) + Math.abs(p - previous) * .35
+  const pitch = choices.sort((a, b) => cost(a) - cost(b))[0]
+  if (pitch === undefined) return notes
+  last.pitch = pitch
+  last.plannedToneRole = "chord-tone"
+  last.plannedResolution = undefined
+  // 開放へ向かう場合も、次のセクションのための短い呼吸は確保する。
+  const breath = ["chorus", "grand-chorus"].includes(context.targetRole) ? .5 : .25
+  last.durationBeats = Math.min(last.durationBeats, Math.max(.25, totalBeats - breath - last.startBeat))
+  return notes
+}

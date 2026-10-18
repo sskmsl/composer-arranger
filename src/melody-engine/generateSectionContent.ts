@@ -1,3 +1,4 @@
+import type { SectionTransitionContext } from "./sectionTransition"
 import { SeededRandom } from "@/core/rng"
 import type { ChordEvent, SongProfileId } from "@/core/project"
 import type { SectionRole } from "@/core/section"
@@ -69,6 +70,7 @@ export interface GenerateSectionContentInput {
   /** content="melody" をMelody Engineへ渡す際に使う生成設定 */
   density?: Density
   drama?: Drama
+  transitionContext?: SectionTransitionContext
   /** Issue #63: 現在セクションの終わり方を次の役割へ合わせるための参照情報。 */
   nextSectionRole?: SectionRole
   nextSectionFirstChord?: string
@@ -159,6 +161,9 @@ function buildMelodyLayers(
     if (!batch || batch.next >= batch.candidates.length) {
       const { candidates } = generateFromChordsWithProfiles({
         beatsPerBar: input.beatsPerBar,
+        transitionContext: window.startBeat === 0 ? input.transitionContext : undefined,
+        exitContext: !plan.pickupBeats && input.nextSectionRole && input.nextSectionFirstChord
+          ? { targetSectionId: "next", targetRole: input.nextSectionRole, targetFirstChord: input.nextSectionFirstChord } : undefined,
         chords: windowChords,
         sectionId: input.sectionId,
         sectionRole: input.sectionRole,

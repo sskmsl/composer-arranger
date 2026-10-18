@@ -72,6 +72,8 @@ import { shapeGrowingMelodyDynamics } from "./melodicDynamics"
 import { applyProfileExpression, planProfileExpression } from "./profileExpression"
 import { nearestAllowedPitch } from "./pitchUtils"
 import {
+  applySectionExit,
+  type SectionExitContext,
   applySectionTransition,
   type SectionTransitionContext,
 } from "./sectionTransition"
@@ -636,6 +638,7 @@ export interface GenerateProfileBatchInput {
   musicContext?: ResolvedMusicContext
   /** Issue #30: 前セクションにActive Melodyがある場合だけ与える接続コンテキスト。 */
   transitionContext?: SectionTransitionContext
+  exitContext?: SectionExitContext
   /** 固有名・Genreを含まないRule Resolver解決済みPreference。 */
   composerRules?: ResolvedComposerRules
   /** 自動比較用。未指定時はRuleがある場合だけ既定値を使用する。 */
@@ -1042,6 +1045,11 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const deferSummit = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => hookHeadPlan
       ? deferEarlySummit(notes, harmonicMap, input.totalBeats, input.sectionRole, hookHeadPlan.coreLengthBeats)
       : notes
+    const finishContext = (notes: MelodyNote[]) => enforceHarmonicIntegrity(
+      applySectionExit(simplifyAgainstHarmony(notes, input.chords, input.range, profile, input.beatsPerBar),
+        input.exitContext, input.totalBeats, input.range, input.chords),
+      input.chords, input.range, { preserveExpressiveChordRoles: true },
+    ).notes
     const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => withStageContext({ phase: "craft" }, () => {
       const crafted = applyMelodicCraft(notes, {
         harmonicMap,
@@ -1056,7 +1064,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       recordStage("deferEarlySummit", deferred)
       const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
       recordStage("ensureSummitBreath", breathed)
-      const integrated = enforceHarmonicIntegrity(simplifyAgainstHarmony(breathed, input.chords, input.range, profile, input.beatsPerBar), input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
+      const integrated = finishContext(breathed)
       recordStage("harmonicIntegrity", integrated)
       return integrated
     })
@@ -1282,7 +1290,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           return refineTowardClassical(guarded, { harmonicMap, range: input.range, totalBeats: input.totalBeats,
             sectionRole: input.sectionRole, key: input.key, models: CLASSICAL_MODELS }).notes.map((n, index) => ({ ...n, locks: registered[index].locks }))
         })() : registered
-        const notes = enforceHarmonicIntegrity(characterRefined, input.chords, input.range, { preserveExpressiveChordRoles: true }).notes
+        const notes = finishContext(characterRefined)
         recordStage("harmonicIntegrity", notes)
         recordStage("output", notes)
         return notes
