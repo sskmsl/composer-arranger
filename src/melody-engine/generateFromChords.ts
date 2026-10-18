@@ -92,7 +92,7 @@ import { applyMelodyReferenceToParams, melodyReferenceFitScore, melodyReferenceS
 import { subtleHookVariation } from "./hookDevelopment"
 import { recordStage, withStageContext } from "./stageTrace"
 import { assessEmotionalArc, deferEarlySummit, emotionalTargetFraction, ensureSummitBreath, shapeEmotionalArc } from "./emotionalArc"
-import { applyMelodyCharacter, placeCharacterRegister } from "./melodyCharacter"
+import { applyMelodyCharacter, candidateMelodyRegister, placeCharacterRegister } from "./melodyCharacter"
 
 export interface GenerateFromChordsInput {
   melodyCharacter?: MelodyCharacterPlan
@@ -808,6 +808,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const profileParams = hook(scoringBaseParams)
 
     const chorusSection = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"
+    const registerFor = (index: number) => chorusSection && input.melodyCharacter
+      ? candidateMelodyRegister(input.melodyCharacter, index) : input.melodyCharacter
     // 指定のseedとOpening Intentから、そのProfileの1パターンを生成する(生成順序: Intent→Plan→本体)
     const buildOne = (
       patternSeed: number,
@@ -815,8 +817,10 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       candidatePoolIndex: number,
       openingRegenerationAttempts = 0,
     ): BuiltPattern => {
+      const character = registerFor(candidatePoolIndex)
+      const range = character?.range ?? input.range
       const planRng = new SeededRandom(patternSeed ^ 0x5f3759df)
-      const opening = openingIntentToPlan(planRng, intent, harmonicMap, input.range)
+      const opening = openingIntentToPlan(planRng, intent, harmonicMap, range)
       const candidateMelodyDNA = planCandidateMelodyDNA(
         new SeededRandom(baseSeed ^ 0x6a09e667),
         profile,
@@ -844,7 +848,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             rng,
             harmonicMap,
             input.totalBeats,
-            input.range,
+            range,
             intensity,
             noteDensity,
             dna,
@@ -865,7 +869,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             rng,
             harmonicMap,
             input.totalBeats,
-            input.range,
+            range,
             intensity,
             repeatedNoteAmount,
             syncopationAmount,
@@ -875,13 +879,13 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
             candidateMelodyDNA,
           )
           rawNotesHash = noteHash(r.notes)
-          notes = applyCandidateNarrative(r.notes, harmonicMap, input.totalBeats, input.range, candidateMelodyDNA)
+          notes = applyCandidateNarrative(r.notes, harmonicMap, input.totalBeats, range, candidateMelodyDNA)
           plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
           advancedMetrics = computeAdvancedMelodyMetrics(notes, harmonicMap)
           prosodyPlan = r.prosodyPlan
         } else if (profile === "pulse-leap") {
           const noteDensity = nudgeTowardDNA(0.5, uiDensityTarget, 0.6)
-          const r = generatePulseLeapPattern(rng, harmonicMap, input.totalBeats, input.range, noteDensity, input.sectionRole, input.key, opening, candidateMelodyDNA)
+          const r = generatePulseLeapPattern(rng, harmonicMap, input.totalBeats, range, noteDensity, input.sectionRole, input.key, opening, candidateMelodyDNA)
           rawNotesHash = noteHash(r.notes)
           notes = r.notes
           plans = synthesizePhrasePlan(notes, input.totalBeats, opening, candidateMelodyDNA)
@@ -890,9 +894,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           // 既存の詠唱核の一部を、ブレイクダウン向けの短い半音往復として計画する。
           const neighborCell = input.sectionRole === "breakdown-chorus"
             && input.drama === "restrained" && candidatePoolIndex % 3 === 0
-            && Math.min(65, input.range.high) > Math.max(60, input.range.low)
+            && Math.min(65, range.high) > Math.max(60, range.low)
           const patternRange = neighborCell
-            ? { low: Math.max(60, input.range.low), high: Math.min(65, input.range.high) } : input.range
+            ? { low: Math.max(60, range.low), high: Math.min(65, range.high) } : range
           const noteDensity = nudgeTowardDNA(nudgeTowardDNA(0.58, uiDensityTarget, 0.6), dnaImpliedDensity, 0.35)
           const r = generateIncantatoryPattern(
             rng,
@@ -924,14 +928,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           notes,
           input.transitionContext,
           candidatePoolIndex,
-          input.range,
+          range,
           input.chords,
         )
         recordStage("pool:transition", transitioned.notes)
         notes = enforceHarmonicIntegrity(
-          simplifyAgainstHarmony(transitioned.notes, input.chords, input.range, profile, input.beatsPerBar),
+          simplifyAgainstHarmony(transitioned.notes, input.chords, range, profile, input.beatsPerBar),
           input.chords,
-          input.range,
+          range,
           { preserveExpressiveChordRoles: true },
         ).notes
         recordStage("pool:harmonicIntegrity", notes)
@@ -969,19 +973,19 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       // parametric: 既存フレーズ生成エンジンをProfile専用パラメータ + Opening Planで駆動する
       // サビでは、プールの3件に1件をリズムの素直な核で作る(3案に両方の型を入れるため)
       const coreRhythm: CoreRhythmStyle = input.coreRhythmOverride ?? (chorusSection && candidatePoolIndex % 3 === 2 ? "plain" : "varied")
-      const c = buildCandidate(patternSeed, baseInput, undefined, hook, opening, candidateMelodyDNA, profile, coreRhythm)
+      const c = buildCandidate(patternSeed, { ...baseInput, range, melodyCharacter: character }, undefined, hook, opening, candidateMelodyDNA, profile, coreRhythm)
       const transitioned = applySectionTransition(
         c.notes,
         input.transitionContext,
         candidatePoolIndex,
-        input.range,
+        range,
         input.chords,
       )
       recordStage("pool:transition", transitioned.notes)
       const finalNotes = enforceHarmonicIntegrity(
-        simplifyAgainstHarmony(transitioned.notes, input.chords, input.range, profile, input.beatsPerBar),
+        simplifyAgainstHarmony(transitioned.notes, input.chords, range, profile, input.beatsPerBar),
         input.chords,
-        input.range,
+        range,
         { preserveExpressiveChordRoles: true },
       ).notes
       recordStage("pool:harmonicIntegrity", finalNotes)
@@ -1059,21 +1063,23 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const finishDefaultExit = (notes: MelodyNote[]) => profile === "standard" && input.drama !== "open"
       ? applySectionExit(notes, input.exitContext, input.totalBeats, input.range, input.chords, input.beatsPerBar, true)
       : notes
-    const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => withStageContext({ phase: "craft" }, () => {
+    const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan, poolIndex?: number) => withStageContext({ phase: "craft" }, () => {
+      const character = poolIndex === undefined ? input.melodyCharacter : registerFor(poolIndex)
+      const range = character?.range ?? input.range
       const crafted = applyMelodicCraft(notes, {
         harmonicMap,
-        range: input.range,
+        range,
         totalBeats: input.totalBeats,
         sectionRole: input.sectionRole,
         profile,
         key: input.key,
       })
-      const restored = restoreHookHeads(crafted, hookHeadPlan, harmonicMap, input.range, scale)
+      const restored = restoreHookHeads(crafted, hookHeadPlan, harmonicMap, range, scale)
       const deferred = deferSummit(restored, hookHeadPlan)
       recordStage("deferEarlySummit", deferred)
       const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
       recordStage("ensureSummitBreath", breathed)
-      const integrated = finishContext(breathed)
+      const integrated = finishContext(character ? placeCharacterRegister(breathed, character, input.chords, input.key) : breathed)
       recordStage("harmonicIntegrity", integrated)
       return integrated
     })
@@ -1083,8 +1089,8 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         : built
       // 作りの良さで選ばない作り方は、選んだ3案だけを後で仕上げる(候補ごとに仕上げる手間を省く)。
       // ただしサビでフックをくり返す案を選びたいときは、くり返し(仕上げの中で置く)の有無を見るために先に仕上げる
-      if (!craftSelection) return preferHookRepeat ? { ...pattern, craftedNotes: craftNotes(pattern.notes, pattern.hookHeadPlan) } : pattern
-      const craftedNotes = craftNotes(pattern.notes, pattern.hookHeadPlan)
+      if (!craftSelection) return preferHookRepeat ? { ...pattern, craftedNotes: craftNotes(pattern.notes, pattern.hookHeadPlan, pattern.candidatePoolIndex) } : pattern
+      const craftedNotes = craftNotes(pattern.notes, pattern.hookHeadPlan, pattern.candidatePoolIndex)
       const craftScore = classicalLikeness(measureMelodyCraft(craftedNotes, input.chords, input.key!), CLASSICAL_MODELS).typicality * 100
       return { ...pattern, craftedNotes, craftScore }
     }
@@ -1267,13 +1273,14 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     )
     finalPatterns.forEach((selected, i) => {
       const pattern = selected.candidate
+      const character = registerFor(pattern.candidatePoolIndex)
       const generationDiagnostics = allDiagnostics.find(
         (d) => d.batchBaseSeed === baseSeed && d.candidatePoolIndex === pattern.candidatePoolIndex,
       )
       // 仕上げ(同音連打・跳躍の回収・サビの頂点・終わり方など)は候補プールの段階で済ませてある
       const outputNotes = withStageContext({ profile, poolIndex: pattern.candidatePoolIndex, phase: "final", patternIndex: i + 1 }, () => {
         if (!(craftSelection && pattern.craftedNotes)) {
-          const notes = finishDefaultExit(pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan))
+          const notes = finishDefaultExit(pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan, pattern.candidatePoolIndex))
           recordStage("output", notes)
           return notes
         }
@@ -1291,7 +1298,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         recordStage("deferEarlySummit", deferred)
         const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
         recordStage("ensureSummitBreath", breathed)
-        const registered = input.melodyCharacter ? placeCharacterRegister(breathed, input.melodyCharacter, input.chords, input.key) : breathed
+        const registered = character ? placeCharacterRegister(breathed, character, input.chords, input.key) : breathed
         // 音域の低点・頂点を保ったまま、周囲の声のつながりを同じ品質基準で推敲する。
         const characterRefined = input.melodyCharacter ? (() => {
           const low = Math.min(...registered.map((n) => n.pitch)), high = Math.max(...registered.map((n) => n.pitch))

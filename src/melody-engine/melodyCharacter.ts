@@ -57,3 +57,13 @@ export function applyMelodyCharacter(params: GenerationParams, plan?: MelodyChar
     syncopationAmount: plan.offbeatRatio, densityNoteMultiplier: plan.notesPerBeat < 1 ? .4 : 2.6,
     restRatioTarget: plan.notesPerBeat < 1 ? .22 : .10 }
 }
+
+/** 既存の候補プール内で、高さと幅を別々に計画する。基準の音域目標は変更しない。 */
+export function candidateMelodyRegister(plan: MelodyCharacterPlan, poolIndex: number): MelodyCharacterPlan {
+  const width = unit(`${plan.seed}:${poolIndex}:width`)
+  const height = unit(`${plan.seed}:${poolIndex}:height`)
+  const available = plan.range.high - plan.range.low
+  const rangeSpan = Math.min(available, width < .5 ? 8 : 14)
+  const high = height < .5 ? plan.range.high : Math.max(plan.range.low + rangeSpan, plan.range.high - 4)
+  return { ...plan, rangeSpan, range: { low: high - rangeSpan, high } }
+}
