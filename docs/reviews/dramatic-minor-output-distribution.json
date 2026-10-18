@@ -1,0 +1,108 @@
+{
+  "seeds": [
+    19,
+    41,
+    73,
+    101,
+    137,
+    173
+  ],
+  "scope": "generated notes and exported MIDI; no listening guarantee",
+  "motif": [
+    {
+      "seed": 19,
+      "candidates": 3,
+      "semitonePedalCandidates": 0,
+      "identifiableVariations": 5
+    },
+    {
+      "seed": 41,
+      "candidates": 3,
+      "semitonePedalCandidates": 0,
+      "identifiableVariations": 2
+    },
+    {
+      "seed": 73,
+      "candidates": 3,
+      "semitonePedalCandidates": 1,
+      "identifiableVariations": 5
+    },
+    {
+      "seed": 101,
+      "candidates": 3,
+      "semitonePedalCandidates": 0,
+      "identifiableVariations": 0
+    },
+    {
+      "seed": 137,
+      "candidates": 3,
+      "semitonePedalCandidates": 1,
+      "identifiableVariations": 6
+    },
+    {
+      "seed": 173,
+      "candidates": 3,
+      "semitonePedalCandidates": 1,
+      "identifiableVariations": 2
+    }
+  ],
+  "arrangement": [
+    {
+      "seed": 19,
+      "boundaryChanges": [
+        2,
+        2,
+        1,
+        2,
+        1
+      ],
+      "sectionNoteCounts": [
+        218,
+        376,
+        404,
+        380,
+        401,
+        12
+      ],
+      "quality": true
+    },
+    {
+      "seed": 41,
+      "boundaryChanges": [
+        2,
+        2,
+        1,
+        2,
+        1
+      ],
+      "sectionNoteCounts": [
+        223,
+        377,
+        404,
+        379,
+        401,
+        12
+      ],
+      "quality": true
+    },
+    {
+      "seed": 73,
+      "boundaryChanges": [
+        2,
+        2,
+        1,
+        2,
+        1
+      ],
+      "sectionNoteCounts": [
+        87,
+        181,
+        199,
+        213,
+        296,
+        12
+      ],
+      "quality": true
+    }
+  ]
+}
