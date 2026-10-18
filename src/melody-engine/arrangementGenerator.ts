@@ -2569,21 +2569,30 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
       if (flipped.length <= 2) continue
       for (const index of flipped) {
         // 背景和声の土台は保ち、先に補助層の入口・出口を選び直す。
-        if (managed[index].id === "syn-dark-pad") continue
+        if (managed[index].id === "syn-dark-pad" && !sections.some((section) =>
+          rebuilds.has(section.id) && bar >= section.startBar - 3 && bar <= section.startBar + section.lengthBars + 3)) continue
         const soundingBar = state(index, bar) ? bar : bar - 1
         const cell = cells[index].find((c) => soundingBar >= c.start && soundingBar < c.start + c.section.lengthBars)
         if (!cell || (cell.section.lengthBars < 8 && !rebuilds.has(cell.section.id)) || cell.section.role === "outro") continue
         const local = soundingBar - cell.start
         for (const field of ["entry", "exit"] as const) {
           const original = cell[field]
-          const value = field === "entry" ? local + 1 : local
-          if (field === "entry" ? value <= original || value > cell.exit : value >= original || value < cell.entry) continue
-          cell[field] = value
-          const candidateCost = cost()
-          cell[field] = original
-          const loss = Math.abs(value - original) * (isArrangementLayerTrackId(managed[index].id) ? 1 : 4)
-          if (candidateCost < current && (!best || candidateCost < best.cost || candidateCost === best.cost && loss < best.loss))
-            best = { index, cell, field, value, cost: candidateCost, loss }
+          // 単調な入口遅延・出口前倒しだけを許し、同コストの局所解からも抜ける。
+          const afterRebuild = rebuilds.has(sections[sections.indexOf(cell.section) - 1]?.id)
+          // 再構築直後は、隣の満席小節を飛び越えても既存の後4小節窓内から選ぶ。
+          const values = field === "entry" && afterRebuild
+            ? Array.from({ length: Math.max(0, 4 - local) }, (_, i) => local + i + 1)
+            : [field === "entry" ? local + 1 : local]
+          for (const value of values) {
+            if (field === "entry" ? value <= original || value > cell.exit : value >= original || value < cell.entry) continue
+            cell[field] = value
+            const candidateCost = cost()
+            cell[field] = original
+            const loss = Math.abs(value - original) * (isArrangementLayerTrackId(managed[index].id) ? 1 : 4)
+            if ((candidateCost < current || afterRebuild && candidateCost === current)
+              && (!best || candidateCost < best.cost || candidateCost === best.cost && loss < best.loss))
+              best = { index, cell, field, value, cost: candidateCost, loss }
+          }
         }
       }
     }
