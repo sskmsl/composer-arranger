@@ -1050,6 +1050,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
         profile !== "standard" || input.drama === "open" ? input.exitContext : undefined, input.totalBeats, input.range, input.chords, input.beatsPerBar),
       input.chords, input.range, { preserveExpressiveChordRoles: true },
     ).notes
+    const finishDefaultExit = (notes: MelodyNote[]) => profile === "standard" && input.drama !== "open"
+      ? applySectionExit(notes, input.exitContext, input.totalBeats, input.range, input.chords, input.beatsPerBar, true)
+      : notes
     const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan) => withStageContext({ phase: "craft" }, () => {
       const crafted = applyMelodicCraft(notes, {
         harmonicMap,
@@ -1264,7 +1267,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       // 仕上げ(同音連打・跳躍の回収・サビの頂点・終わり方など)は候補プールの段階で済ませてある
       const outputNotes = withStageContext({ profile, poolIndex: pattern.candidatePoolIndex, phase: "final", patternIndex: i + 1 }, () => {
         if (!(craftSelection && pattern.craftedNotes)) {
-          const notes = pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan)
+          const notes = finishDefaultExit(pattern.craftedNotes ?? craftNotes(pattern.notes, pattern.hookHeadPlan))
           recordStage("output", notes)
           return notes
         }
@@ -1290,7 +1293,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
           return refineTowardClassical(guarded, { harmonicMap, range: input.range, totalBeats: input.totalBeats,
             sectionRole: input.sectionRole, key: input.key, models: CLASSICAL_MODELS }).notes.map((n, index) => ({ ...n, locks: registered[index].locks }))
         })() : registered
-        const notes = finishContext(characterRefined)
+        const notes = finishDefaultExit(finishContext(characterRefined))
         recordStage("harmonicIntegrity", notes)
         recordStage("output", notes)
         return notes

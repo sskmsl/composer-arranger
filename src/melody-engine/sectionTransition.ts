@@ -322,7 +322,7 @@ export function buildSectionExitContext(project: ComposerProject, sectionId: str
 /** 最終の保持音だけを次の開始へ接続。入力コードを変えず、現在和音の構成音から選ぶ。 */
 export function applySectionExit(
   source: readonly MelodyNote[], context: SectionExitContext | undefined,
-  totalBeats: number, range: RangeSetting, chords: readonly ChordEvent[], beatsPerBar = 4,
+  totalBeats: number, range: RangeSetting, chords: readonly ChordEvent[], beatsPerBar = 4, preservePitch = false,
 ): MelodyNote[] {
   if (!context || !source.length) return [...source]
   const notes = source.map((n) => ({ ...n })).sort((a, b) => a.startBeat - b.startBeat)
@@ -335,6 +335,14 @@ export function applySectionExit(
   if (!current || !next) return notes
   const currentPcs = current.parsed.tones.map((t) => t.pitchClass)
   const nextPcs = next.parsed.tones.map((t) => t.pitchClass)
+  if (preservePitch) {
+    // 既定の経路では解決した保持音を守り、既に短い開いた終止の呼吸だけを次へ合わせる。
+    if (last.durationBeats >= 1) return notes
+    const compatible = nextPcs.includes(last.pitch % 12)
+    const breath = compatible ? .25 : .5
+    last.durationBeats = Math.min(last.durationBeats, Math.max(.25, totalBeats - breath - last.startBeat))
+    return notes
+  }
   const shared = currentPcs.filter((pc) => nextPcs.includes(pc))
   const allowed = shared.length ? shared : currentPcs
   const target = context.targetFirstPitch ?? nearestPitchClass(last.pitch, nextPcs, range)

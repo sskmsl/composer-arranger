@@ -29,11 +29,20 @@ describe("forward section context", () => {
     expect(notes[0].pitch).toBe(71)
     expect(applySectionExit([{ ...notes[0], locks: ["pitch"] }], exit, 32, { low: 60, high: 79 }, chords)[0].pitch).toBe(71)
   })
-  it.each(["minimal", "standard"] as const)("changes actual eight-bar %s output and its exported MIDI across fixed seeds", (profile) => {
+  it("keeps resolved cadences and adapts an open ending without changing pitches or note count", () => {
+    expect(applySectionExit(notes, exit, 32, { low: 60, high: 79 }, chords, 4, true)).toEqual(notes)
+    const open = [{ ...notes[0], startBeat: 31, durationBeats: .75 }]
+    const intoMinor = applySectionExit(open, exit, 32, { low: 60, high: 79 }, chords, 4, true)
+    const intoMajor = applySectionExit(open, { ...exit, targetFirstChord: "B" }, 32, { low: 60, high: 79 }, chords, 4, true)
+    expect(intoMinor[0].durationBeats).toBeLessThan(intoMajor[0].durationBeats)
+    expect(intoMinor.map((n) => n.pitch)).toEqual(open.map((n) => n.pitch))
+    expect(intoMinor).toHaveLength(open.length)
+  })
+  it.each([["minimal", "open"], ["standard", "open"], ["standard", "growing"]] as const)("changes actual eight-bar %s/%s output and its exported MIDI across fixed seeds", (profile, drama) => {
     let changed = 0, previousChanged = 0
     for (const seed of [19, 41, 73]) {
       const input = { chords, sectionId: "s", sectionRole: "verse" as const, songProfile: "original-custom" as const,
-        density: "balanced" as const, range: { low: 60, high: 79 }, drama: "open" as const,
+        density: "balanced" as const, range: { low: 60, high: 79 }, drama,
         totalBeats: 32, seed, profiles: [profile] }
       const previous: SectionTransitionContext = { sourceSectionId: "before", sourceVariantId: "adopted", targetSectionId: "s",
         targetRole: "verse", targetFirstChord: "Cm", contextFingerprint: "eight-bar-test", previousTailNotes: notes,
