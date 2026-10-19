@@ -2458,6 +2458,74 @@ function scheduleVerseBass(project: ComposerProject, plan: ArrangementPlan): voi
   }
 }
 
+/** イントロの終わりに一斉に入れる層。キック・スネア・低域だけを抜き、境界の装飾打楽器は残す。 */
+const INTRO_DROP_ROLES: ArrangementTrackId[] = [
+  "dr-kick", "dr-kick-sub", "dr-kick-click", "dr-snare", "dr-snare-body", "dr-clap",
+  "syn-bass", "syn-sub-bass", "syn-bass-mid", "str-contrabass",
+]
+/** 落ちる区間に無ければ足す、重心の最小限の層。 */
+const INTRO_DROP_CORE: ArrangementTrackId[] = ["dr-kick", "syn-bass"]
+/** イントロの間ずっと鳴らし続ける、広がりと空気の層。 */
+const INTRO_AIR_ROLES: ArrangementTrackId[] = ["syn-dark-pad", "syn-pad-air"]
+
+/**
+ * 既存の自由記述指示だけを入口にする。イントロを話題にしたうえで、ドラムレス・低域を抜く・
+ * 頭で一斉に入る、のいずれかを言うときだけ。他の指示や通常の編成の意味は変えない。
+ * 「低域を控える」系(asksLowEndHoldBack)とは言い回しを分け、ヴァース側の制御を巻き込まない。
+ */
+function asksIntroDrop(plan: ArrangementPlan): boolean {
+  return /(?:イントロ|導入|冒頭)[^。]*(?:ドラムレス|一斉に入|キックと低域)|(?:drumless|kickless)[^.]*intro|intro[^.]*(?:drop|all at once)/i
+    .test(plan.directive?.intention ?? "")
+}
+
+function introDropApplies(plan: ArrangementPlan, sectionId: string): boolean {
+  return !plan.directive?.sectionId || plan.directive.sectionId === sectionId
+}
+
+/** イントロの直後で、層が一斉に入る区間のID。ブレイクダウンとアウトロへは落とさない。 */
+function introDropSectionIds(plan: ArrangementPlan): Set<string> {
+  if (!asksIntroDrop(plan)) return new Set()
+  return new Set(plan.sections.filter((section, index) => {
+    const previous = plan.sections[index - 1]
+    return previous?.semanticRole === "intro" && introDropApplies(plan, previous.sectionId)
+      && !["intro", "outro", "breakdown"].includes(section.semanticRole ?? "")
+  }).map((section) => section.sectionId))
+}
+
+function scheduleIntroDrop(project: ComposerProject, plan: ArrangementPlan): void {
+  if (!asksIntroDrop(plan)) return
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const explicit = (id: ArrangementTrackId) => (plan.directive?.preserve ?? []).includes(id)
+    || (plan.directive?.add ?? []).includes(id)
+  const drops = introDropSectionIds(plan)
+  for (const section of plan.sections) {
+    const length = (project.sections.find((s) => s.id === section.sectionId)?.lengthBars ?? 0) * bpb
+    if (section.semanticRole === "intro" && introDropApplies(plan, section.sectionId) && length >= bpb * 4) {
+      section.roleEntryBeats ??= {}
+      for (const id of INTRO_DROP_ROLES) if (!explicit(id)) section.roleEntryBeats[id] = length
+      for (const id of INTRO_AIR_ROLES.filter((role) => section.activeRoles.includes(role))) {
+        section.roleEntryBeats[id] = 0
+        if (section.roleExitBeats) delete section.roleExitBeats[id]
+      }
+      // 高域の質感は、終わりへ向けて増やす。既にそれより早い入場があれば変えない。
+      if (section.activeRoles.includes("syn-high-glass")) {
+        section.roleEntryBeats["syn-high-glass"] = Math.min(
+          section.roleEntryBeats["syn-high-glass"] ?? length, Math.ceil(length / bpb * .75) * bpb)
+      }
+      section.intention += "。キックと低域を抜いた広い導入にして、次の区間の頭で一斉に入れる"
+    } else if (drops.has(section.sectionId)) {
+      section.roleEntryBeats ??= {}
+      for (const id of INTRO_DROP_ROLES.filter((role) => !explicit(role))) {
+        if (!section.activeRoles.includes(id) && !INTRO_DROP_CORE.includes(id)) continue
+        if (!section.activeRoles.includes(id)) section.activeRoles.push(id)
+        section.roleEntryBeats[id] = 0
+        if (section.roleExitBeats) delete section.roleExitBeats[id]
+      }
+      section.intention += "。導入で抜いたキックと低域が頭で一斉に入る"
+    }
+  }
+}
+
 function scheduleBreakdownBass(project: ComposerProject, plan: ArrangementPlan): void {
   const rebuilds = rebuildSectionIds(project, plan)
   for (const [index, section] of plan.sections.entries()) {
@@ -2541,8 +2609,10 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   scheduleVerseBass(project, plan)
   scheduleBreakdownBass(project, plan)
   scheduleLongSectionLayers(project, plan)
+  scheduleIntroDrop(project, plan)
+  const dropSections = introDropSectionIds(plan)
   const rebuilds = rebuildSectionIds(project, plan)
-  const rank = (id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
+  const rank =(id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
     : id.startsWith("str-") ? 2 : 3
   // 元の編成を固定してからスケジュールする。繰越した退出を次の比較に混ぜない。
   const original = plan.sections.map(roles)
@@ -2575,7 +2645,10 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     }
     next.intention += "。背景層の入場と退出を小節ごとに分散する"
     const character = next.selectedTransitionCharacter
-    const entries = after.filter((id) => !before.includes(id)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+    // イントロの直後は、層を小節ごとに分散せず、頭で一斉に入れる。
+    const entries = after.filter((id) => !before.includes(id)
+      && !(dropSections.has(next.sectionId) && INTRO_DROP_ROLES.includes(id)))
+      .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
     const earliest = character === "surprise" ? 1 : 0
     const gentleSlots = Array.from({ length: 5 - earliest }, (_, index) =>
       Math.max(0, 1 - (occupied.get(earliest + index) ?? 0))).reduce((sum, slots) => sum + slots, 0)
@@ -2600,6 +2673,7 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const sections = normalizeSectionTimeline(project.sections)
   const rebuilds = rebuildSectionIds(project, plan)
+  const dropSections = introDropSectionIds(plan)
   const windows = new Set<number>()
   for (let i = 1; i < sections.length; i++) {
     const left = sections[i - 1], right = sections[i]
@@ -2645,6 +2719,8 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
         if (!cell || (cell.section.lengthBars < 8 && !rebuilds.has(cell.section.id)) || cell.section.role === "outro") continue
         const local = soundingBar - cell.start
         for (const field of ["entry", "exit"] as const) {
+          // イントロの直後の一斉の入場は、交代の分散のために遅らせない。
+          if (field === "entry" && dropSections.has(cell.section.id) && INTRO_DROP_ROLES.includes(managed[index].id)) continue
           const original = cell[field]
           // 単調な入口遅延・出口前倒しだけを許し、同コストの局所解からも抜ける。
           const afterRebuild = rebuilds.has(sections[sections.indexOf(cell.section) - 1]?.id)
