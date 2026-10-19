@@ -1,3 +1,4 @@
+import type { EmotionalMechanismId, EmotionalMechanismRequest } from "./emotionalMechanism"
 import type { MelodyNote } from "./melody"
 import type { PerformanceExecutionDiagnostics, PerformanceExecutionPlan } from "./performanceExecution"
 import type { ArrangementSoundInstruction } from "./arrangementIntent"
@@ -271,6 +272,16 @@ export type ArrangementStructureChange =
 export interface ArrangementGenerationDirective {
   sectionId?: string
   intention: string
+  /**
+   * 感情を動かす仕組み(期待→到来、終止の減衰など)の指定。手段(means)を省くと、観察された本数を重みに
+   * 曲とseedから決める。intention に手段の文言を書いた自由記述も、同じ指定として読む。
+   */
+  emotionalMechanisms?: EmotionalMechanismRequest[]
+  /**
+   * false にすると、指定が無い仕組みを既定で働かせない(従来どおりの出力)。
+   * 既定では、参照5本すべてで観察された終止の減衰を、アウトロが4小節以上ある曲で働かせる。
+   */
+  emotionalAuto?: boolean
   character?: "minimal" | "cinematic" | "rhythmic" | "dark-experimental" | "balanced"
   energyDelta?: number
   add?: ArrangementTrackId[]
@@ -407,6 +418,13 @@ export interface ArrangementQualityReport {
     boundaryContrastScore?: number
     /** 核の応答・断片化・反転・拡大を実音に使ったSection数。 */
     motifDevelopmentCount?: number
+    /**
+     * 感情を動かす仕組みの代理指標(0〜100)。参照録音5本で較正した物差しで、実音から測る。
+     * 品質の点数(score)には入れない。聴感の感動を保証しない。
+     */
+    emotionalArcScore?: number
+    /** 仕組みごとの得点(0〜1)。 */
+    emotionalMechanisms?: Partial<Record<EmotionalMechanismId, number>>
   }
   recommendations: string[]
 }
@@ -417,6 +435,8 @@ export interface ArrangementCandidateSummary {
   qualityScore: number
   originalityScore: number
   intentionFitScore: number
+  /** 感情を動かす仕組みの代理指標(0〜100)。旧データでは省略される。 */
+  emotionScore?: number
   auditionScore?: number
   selectionScore: number
   selected: boolean

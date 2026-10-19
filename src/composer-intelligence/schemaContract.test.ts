@@ -69,4 +69,9 @@ describe("Composer Intelligence public schema", () => {
       toStatus: "validated",
     })
   })
+
+  it("全曲アレンジの技法を公開契約に載せる(対象 arrangement と軸 emotionalMeans)", () => {
+    expect(schema.$defs.generatorTarget.enum).toContain("arrangement")
+    expect(schema.$defs.preferenceMap.propertyNames.enum).toContain("emotionalMeans")
+  })
 })

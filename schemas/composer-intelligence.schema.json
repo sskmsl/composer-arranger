@@ -27,7 +27,7 @@
       "enum": ["draft", "validated", "canonical", "deprecated"]
     },
     "generatorTarget": {
-      "enum": ["decoration", "phrase", "counter", "melody"]
+      "enum": ["decoration", "phrase", "counter", "melody", "arrangement"]
     },
     "category": {
       "enum": [
@@ -135,7 +135,8 @@
           "climaxPlacement",
           "decorationGestureRole",
           "decorationShape",
-          "decorationRhythmStyle"
+          "decorationRhythmStyle",
+          "emotionalMeans"
         ]
       }
     },
