@@ -288,3 +288,53 @@ describe("patterns chosen together from the direction picker", () => {
     }
   }, 120_000)
 })
+
+// ---------------------------------------------------------------------------
+// レビュー指摘の再現(PR #197)
+// ---------------------------------------------------------------------------
+describe("review findings: wording collisions, derived layers in long sections, preserved tracks", () => {
+  it("keeps the verse-wide low-end hold-back out of the low-end break wording, in both spellings", () => {
+    const song = fixture([["intro", 8], ["verse", 8], ["pre-chorus", 8], ["chorus", 8], ["breakdown-chorus", 8], ["verse", 8], ["outro", 4]])
+    for (const wording of ["低域とキックを抜いた区間を作り、戻りで一斉に大きく入れる", "低域とキックを抜く区間を作り、戻りで一斉に大きく入れる"]) {
+      for (const seed of SEEDS) {
+        const base = exportedNotes(song, generate(song, seed))
+        const notes = exportedNotes(song, generate(song, seed, { intention: wording }))
+        for (const index of [1, 2]) {
+          expect(soundingBars(song, index, notes.get("syn-sub-bass")), `seed ${seed} 「${wording}」: ヴァース/Bメロの補助ベースが変わった`)
+            .toEqual(soundingBars(song, index, base.get("syn-sub-bass")))
+        }
+        for (const id of LOW_BREAK) expect(soundingBars(song, 4, notes.get(id)), `seed ${seed} ${id}: 抜く区間で鳴っている`).toEqual([])
+      }
+    }
+  }, 120_000)
+
+  it("sustains Pad Air through a long intro and brings every held layer in on the first bar of a long verse", () => {
+    const song = fixture([["intro", 20], ["verse", 16], ["chorus", 8], ["outro", 4]])
+    for (const seed of SEEDS) {
+      const notes = exportedNotes(song, generate(song, seed, { intention: INTENTION }))
+      if (notes.has("syn-pad-air")) {
+        expect(Math.min(...soundingBars(song, 0, notes.get("syn-pad-air"))), `seed ${seed}: Pad Air がイントロの途中から入る`).toBe(0)
+      }
+      for (const id of ["syn-sub-bass", "syn-bass-mid"] as const) {
+        if (!notes.has(id) || soundingBars(song, 1, notes.get(id)).length === 0) continue
+        expect(Math.min(...soundingBars(song, 1, notes.get(id))), `seed ${seed} ${id}: 長いヴァースの頭から入らない`).toBe(0)
+      }
+    }
+  }, 120_000)
+
+  it("does not rewrite a track that the director asked to preserve when fading out", () => {
+    const song = fixture([["verse", 8], ["chorus", 8], ["outro", 8]])
+    for (const seed of SEEDS) {
+      const kept = generate(song, seed, { intention: FADE_INTENTION, preserve: ["syn-bass"] })
+      // 書き換えが入ると、音は小節の境目で分かれて ":fade" の付いた id になり、velocity は上限(最終小節で4)まで下がる。
+      for (const id of ["syn-bass", "syn-sub-bass"] as const) {
+        const notes = kept.tracks.find((t) => t.id === id)?.notes ?? []
+        expect(notes.filter((n) => n.id.includes(":fade")), `seed ${seed} ${id}: 保持を指定した層(の派生層)が分割された`).toEqual([])
+        expect(Math.min(...notes.map((n) => n.velocity), 127), `seed ${seed} ${id}: 保持を指定した層(の派生層)の velocity が下がった`).toBeGreaterThanOrEqual(30)
+      }
+      // 保持を指定していない層は、同じ条件でフェードされている(対照)。
+      const faded = generate(song, seed, { intention: FADE_INTENTION })
+      expect(faded.tracks.some((t) => t.notes.some((n) => n.id.includes(":fade"))), `seed ${seed}: 対照でフェードが働いていない`).toBe(true)
+    }
+  }, 120_000)
+})

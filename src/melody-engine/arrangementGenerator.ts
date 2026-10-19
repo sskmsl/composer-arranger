@@ -2432,9 +2432,14 @@ function rebuildSectionIds(project: ComposerProject, plan: ArrangementPlan): Set
     .map((section) => section.sectionId))
 }
 
+/** 「低域とキックを抜いた(抜く)区間…」の1文。途中の抜きの型の言い回しで、他の指示から切り分けるために使う。 */
+const LOW_END_BREAK_SENTENCE = /[^。]*(?:低域|低音)と?キック[^。]*(?:抜いた区間|抜く区間)[^。]*/g
+
 /** 既存の自由記述指示だけを入口にし、通常の編成やcharacterの意味は変えない。 */
 function asksLowEndHoldBack(plan: ArrangementPlan): boolean {
-  return /(?:低域|低音|ベース).*(?:控え|抑え|保留|抜き|抜く)|(?:hold.?back|restrain).*bass/i.test(plan.directive?.intention ?? "")
+  // 「低域とキックを抜く区間」の文は1か所の型の指示なので、ヴァース全体の低域保留とは読まない。
+  const intention = (plan.directive?.intention ?? "").replace(LOW_END_BREAK_SENTENCE, "")
+  return /(?:低域|低音|ベース).*(?:控え|抑え|保留|抜き|抜く)|(?:hold.?back|restrain).*bass/i.test(intention)
 }
 
 function scheduleVerseBass(project: ComposerProject, plan: ArrangementPlan): void {
@@ -2499,8 +2504,8 @@ const LOW_BREAK_ROLES: ArrangementTrackId[] = [
 
 /** 「低域とキックを抜いた区間を作り、戻りで…」。言い回しは intro の指示や低域を控えるヴァースと分ける。 */
 function asksLowEndBreak(plan: ArrangementPlan): boolean {
-  return /(?:低域|低音)と?キック[^。]*(?:抜いた区間|抜く区間)|(?:low.?end|bass)[^.]*kick[^.]*break/i
-    .test(plan.directive?.intention ?? "")
+  const intention = plan.directive?.intention ?? ""
+  return new RegExp(LOW_END_BREAK_SENTENCE.source).test(intention) || /(?:low.?end|bass)[^.]*kick[^.]*break/i.test(intention)
 }
 
 /**
@@ -2539,8 +2544,10 @@ function enterTogether(section: ArrangementSectionPlan, roles: ArrangementTrackI
   explicit: (id: ArrangementTrackId) => boolean): void {
   section.roleEntryBeats ??= {}
   for (const id of roles.filter((role) => !explicit(role))) {
-    if (!section.activeRoles.includes(id) && !core.includes(id)) continue
-    if (!section.activeRoles.includes(id)) section.activeRoles.push(id)
+    // 派生層(Sub Bass など)は元の層が鳴る区間にだけある。activeRoles には元の層が入る。
+    const layer = isArrangementLayerTrackId(id)
+    if (!section.activeRoles.includes(layer ? ARRANGEMENT_LAYER_SOURCES[id] : id) && !core.includes(id)) continue
+    if (!layer && !section.activeRoles.includes(id)) section.activeRoles.push(id)
     section.roleEntryBeats[id] = 0
     if (section.roleExitBeats) delete section.roleExitBeats[id]
   }
@@ -2556,7 +2563,8 @@ function scheduleIntroDrop(project: ComposerProject, plan: ArrangementPlan): voi
     if (section.semanticRole === "intro" && directiveAppliesTo(plan, section.sectionId) && length >= bpb * 4) {
       section.roleEntryBeats ??= {}
       for (const id of INTRO_DROP_ROLES) if (!explicit(id)) section.roleEntryBeats[id] = length
-      for (const id of INTRO_AIR_ROLES.filter((role) => section.activeRoles.includes(role))) {
+      for (const id of INTRO_AIR_ROLES.filter((role) => section.activeRoles.includes(
+        isArrangementLayerTrackId(role) ? ARRANGEMENT_LAYER_SOURCES[role] : role))) {
         section.roleEntryBeats[id] = 0
         if (section.roleExitBeats) delete section.roleExitBeats[id]
       }
@@ -2894,8 +2902,11 @@ function applyFadeOut(
   const end = sectionOffset(last.startBar + last.lengthBars, bpb)
   const start = end - bars * bpb
   const barOf = (beat: number) => Math.min(bars - 1, Math.floor((beat - start) / bpb + 1e-9))
+  const preserved = plan.directive?.preserve ?? []
   return tracks.map((track) => {
     if (editableTrackIds && !editableTrackIds.has(track.id)) return track
+    const base = isArrangementLayerTrackId(track.id) ? ARRANGEMENT_LAYER_SOURCES[track.id] : track.id
+    if (preserved.includes(track.id) || preserved.includes(base)) return track
     return { ...track, notes: track.notes.flatMap((note) => {
       const noteEnd = note.startBeat + note.durationBeats
       if (noteEnd <= start + 1e-6 || (editableSectionIds && !editableSectionIds.has(note.sectionId))) return [note]
