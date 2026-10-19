@@ -2432,6 +2432,32 @@ function rebuildSectionIds(project: ComposerProject, plan: ArrangementPlan): Set
     .map((section) => section.sectionId))
 }
 
+/** 既存の自由記述指示だけを入口にし、通常の編成やcharacterの意味は変えない。 */
+function asksLowEndHoldBack(plan: ArrangementPlan): boolean {
+  return /(?:低域|低音|ベース).*(?:控え|抑え|保留|抜き|抜く)|(?:hold.?back|restrain).*bass/i.test(plan.directive?.intention ?? "")
+}
+
+function scheduleVerseBass(project: ComposerProject, plan: ArrangementPlan): void {
+  if (!asksLowEndHoldBack(plan)) return
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  for (const section of plan.sections) {
+    if (plan.directive?.sectionId && plan.directive.sectionId !== section.sectionId) continue
+    const length = project.sections.find((s) => s.id === section.sectionId)!.lengthBars * bpb
+    for (const id of AUXILIARY_BASS_ROLES) {
+      if ([id, "syn-bass" as ArrangementTrackId].some((role) =>
+        plan.directive?.preserve?.includes(role) || plan.directive?.add?.includes(role))) continue
+      if (["verse", "pre"].includes(section.semanticRole ?? "")) {
+        section.roleEntryBeats ??= {}
+        section.roleEntryBeats[id] = length
+      } else if (["chorus", "final"].includes(section.semanticRole ?? "")) {
+        if (section.roleExitBeats) delete section.roleExitBeats[id]
+        section.roleEntryBeats ??= {}
+        section.roleEntryBeats[id] = 0
+      }
+    }
+  }
+}
+
 function scheduleBreakdownBass(project: ComposerProject, plan: ArrangementPlan): void {
   const rebuilds = rebuildSectionIds(project, plan)
   for (const [index, section] of plan.sections.entries()) {
@@ -2460,7 +2486,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   const protectedRole = (id: ArrangementTrackId) => (plan.directive?.preserve ?? []).includes(id)
     || (isArrangementLayerTrackId(id) && (plan.directive?.preserve ?? []).includes(ARRANGEMENT_LAYER_SOURCES[id]))
   const roles = (section: ArrangementSectionPlan) => (Object.keys(TRACK_FAMILY) as ArrangementTrackId[])
-    .filter((id) => isBoundaryManagedRole(id) && !protectedRole(id) && section.roleExitBeats?.[id] !== 0 && (isArrangementLayerTrackId(id)
+    .filter((id) => isBoundaryManagedRole(id) && !protectedRole(id) && section.roleExitBeats?.[id] !== 0
+      && (section.roleEntryBeats?.[id] ?? 0) < (sections.find((s) => s.id === section.sectionId)!.lengthBars * bpb) && (isArrangementLayerTrackId(id)
       ? section.activeRoles.includes(ARRANGEMENT_LAYER_SOURCES[id]) && layerEnabledInSection(id, section)
       : section.activeRoles.includes(id)))
   // 最初の提示で補助層を使い切らず、繰り返すサビへ色彩を残す。
@@ -2472,6 +2499,7 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     first.roleExitBeats ??= {}
     reserved.filter((id) => available.includes(id)).slice(0, 3).forEach((id) => { first.roleExitBeats![id] = 0 })
   }
+  scheduleVerseBass(project, plan)
   scheduleBreakdownBass(project, plan)
   const rebuilds = rebuildSectionIds(project, plan)
   const rank = (id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
