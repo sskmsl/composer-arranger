@@ -808,7 +808,9 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     const profileParams = hook(scoringBaseParams)
 
     const chorusSection = input.sectionRole === "chorus" || input.sectionRole === "grand-chorus"
-    const registerFor = (index: number) => chorusSection && input.melodyCharacter
+    // 高さ・幅の別案は既存の開放的な指示で選べる。通常の成長経路の選抜・固定出力を守る。
+    const registerChoices = chorusSection && input.drama === "open" && Boolean(input.melodyCharacter)
+    const registerFor = (index: number) => registerChoices && input.melodyCharacter
       ? candidateMelodyRegister(input.melodyCharacter, index) : input.melodyCharacter
     // 指定のseedとOpening Intentから、そのProfileの1パターンを生成する(生成順序: Intent→Plan→本体)
     const buildOne = (
@@ -818,7 +820,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       openingRegenerationAttempts = 0,
     ): BuiltPattern => {
       const character = registerFor(candidatePoolIndex)
-      const range = chorusSection && character ? character.range : input.range
+      const range = registerChoices && character ? character.range : input.range
       const planRng = new SeededRandom(patternSeed ^ 0x5f3759df)
       const opening = openingIntentToPlan(planRng, intent, harmonicMap, range)
       const candidateMelodyDNA = planCandidateMelodyDNA(
@@ -1065,7 +1067,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       : notes
     const craftNotes = (notes: MelodyNote[], hookHeadPlan?: HookHeadPlan, poolIndex?: number) => withStageContext({ phase: "craft" }, () => {
       const character = poolIndex === undefined ? input.melodyCharacter : registerFor(poolIndex)
-      const range = chorusSection && character ? character.range : input.range
+      const range = registerChoices && character ? character.range : input.range
       const crafted = applyMelodicCraft(notes, {
         harmonicMap,
         range,
@@ -1079,7 +1081,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
       recordStage("deferEarlySummit", deferred)
       const breathed = ensureSummitBreath(deferred, input.totalBeats, input.sectionRole)
       recordStage("ensureSummitBreath", breathed)
-      const integrated = finishContext(chorusSection && character ? placeCharacterRegister(breathed, character, input.chords, input.key) : breathed, range)
+      const integrated = finishContext(registerChoices && character ? placeCharacterRegister(breathed, character, input.chords, input.key) : breathed, range)
       recordStage("harmonicIntegrity", integrated)
       return integrated
     })
@@ -1274,7 +1276,7 @@ export function generateFromChordsWithProfiles(input: GenerateProfileBatchInput)
     finalPatterns.forEach((selected, i) => {
       const pattern = selected.candidate
       const character = registerFor(pattern.candidatePoolIndex)
-      const range = chorusSection && character ? character.range : input.range
+      const range = registerChoices && character ? character.range : input.range
       const generationDiagnostics = allDiagnostics.find(
         (d) => d.batchBaseSeed === baseSeed && d.candidatePoolIndex === pattern.candidatePoolIndex,
       )

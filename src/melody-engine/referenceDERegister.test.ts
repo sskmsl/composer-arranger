@@ -16,7 +16,7 @@ describe("reference D and E chorus register choices", () => {
     for (const seed of seeds) {
       const character = planMelodyCharacter({ seed, chords, tempo: 100, style: "cinematic", role: "chorus", range: { low: 60, high: 79 } })
       const batch = generateFromChordsWithProfiles({ chords, sectionId: "s1", sectionRole: "chorus", key: "Am",
-        songProfile: "original-custom", density: "balanced", drama: "growing", range: character.range,
+        songProfile: "original-custom", density: "balanced", drama: "open", range: character.range,
         totalBeats: 32, seed, profiles: ["standard"], melodyCharacter: character })
       expect(batch.candidates).toHaveLength(3)
       const dimensions = batch.candidates.map((c) => {

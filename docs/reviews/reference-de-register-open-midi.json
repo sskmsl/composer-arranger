@@ -1,0 +1,336 @@
+{
+  "conditions": {
+    "key": "Am",
+    "tempo": 100,
+    "meter": "4/4",
+    "bars": 8,
+    "seeds": [
+      19,
+      41,
+      73,
+      101,
+      137,
+      173
+    ],
+    "profile": "standard",
+    "density": "balanced",
+    "drama": "open",
+    "requestedRange": [
+      60,
+      79
+    ],
+    "progression": [
+      "Am",
+      "F",
+      "C",
+      "G"
+    ],
+    "measurement": "exportMelodyMidi then parseMidi; narrow span <=8 midpoint >=73; middle wide span >=10 midpoint <=72; previous broad-scope experiment retained separately, not a release claim"
+  },
+  "before": {
+    "seeds": [
+      19,
+      41,
+      73,
+      101,
+      137,
+      173
+    ],
+    "register": [
+      {
+        "seed": 19,
+        "dimensions": [
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 3
+          },
+          {
+            "low": 62,
+            "high": 79,
+            "span": 17,
+            "pool": 16
+          },
+          {
+            "low": 67,
+            "high": 76,
+            "span": 9,
+            "pool": 17
+          }
+        ]
+      },
+      {
+        "seed": 41,
+        "dimensions": [
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 8
+          },
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 10
+          },
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 17
+          }
+        ]
+      },
+      {
+        "seed": 73,
+        "dimensions": [
+          {
+            "low": 67,
+            "high": 79,
+            "span": 12,
+            "pool": 7
+          },
+          {
+            "low": 65,
+            "high": 79,
+            "span": 14,
+            "pool": 14
+          },
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 16
+          }
+        ]
+      },
+      {
+        "seed": 101,
+        "dimensions": [
+          {
+            "low": 65,
+            "high": 79,
+            "span": 14,
+            "pool": 9
+          },
+          {
+            "low": 62,
+            "high": 79,
+            "span": 17,
+            "pool": 10
+          },
+          {
+            "low": 69,
+            "high": 77,
+            "span": 8,
+            "pool": 11
+          }
+        ]
+      },
+      {
+        "seed": 137,
+        "dimensions": [
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 2
+          },
+          {
+            "low": 65,
+            "high": 79,
+            "span": 14,
+            "pool": 3
+          },
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 13
+          }
+        ]
+      },
+      {
+        "seed": 173,
+        "dimensions": [
+          {
+            "low": 69,
+            "high": 79,
+            "span": 10,
+            "pool": 0
+          },
+          {
+            "low": 62,
+            "high": 79,
+            "span": 17,
+            "pool": 14
+          },
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 17
+          }
+        ]
+      }
+    ],
+    "narrow": 2,
+    "wide": 13,
+    "mixed": 2
+  },
+  "after": {
+    "seeds": [
+      19,
+      41,
+      73,
+      101,
+      137,
+      173
+    ],
+    "register": [
+      {
+        "seed": 19,
+        "dimensions": [
+          {
+            "low": 69,
+            "high": 74,
+            "span": 5,
+            "pool": 2
+          },
+          {
+            "low": 72,
+            "high": 79,
+            "span": 7,
+            "pool": 15
+          },
+          {
+            "low": 67,
+            "high": 77,
+            "span": 10,
+            "pool": 17
+          }
+        ]
+      },
+      {
+        "seed": 41,
+        "dimensions": [
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 4
+          },
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 11
+          },
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 17
+          }
+        ]
+      },
+      {
+        "seed": 73,
+        "dimensions": [
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 3
+          },
+          {
+            "low": 72,
+            "high": 79,
+            "span": 7,
+            "pool": 5
+          },
+          {
+            "low": 65,
+            "high": 79,
+            "span": 14,
+            "pool": 14
+          }
+        ]
+      },
+      {
+        "seed": 101,
+        "dimensions": [
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 1
+          },
+          {
+            "low": 69,
+            "high": 77,
+            "span": 8,
+            "pool": 11
+          },
+          {
+            "low": 72,
+            "high": 79,
+            "span": 7,
+            "pool": 12
+          }
+        ]
+      },
+      {
+        "seed": 137,
+        "dimensions": [
+          {
+            "low": 72,
+            "high": 79,
+            "span": 7,
+            "pool": 2
+          },
+          {
+            "low": 65,
+            "high": 79,
+            "span": 14,
+            "pool": 3
+          },
+          {
+            "low": 64,
+            "high": 79,
+            "span": 15,
+            "pool": 9
+          }
+        ]
+      },
+      {
+        "seed": 173,
+        "dimensions": [
+          {
+            "low": 62,
+            "high": 71,
+            "span": 9,
+            "pool": 1
+          },
+          {
+            "low": 71,
+            "high": 79,
+            "span": 8,
+            "pool": 2
+          },
+          {
+            "low": 74,
+            "high": 79,
+            "span": 5,
+            "pool": 11
+          }
+        ]
+      }
+    ],
+    "narrow": 12,
+    "wide": 4,
+    "mixed": 3
+  }
+}
