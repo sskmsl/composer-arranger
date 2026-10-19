@@ -1,0 +1,77 @@
+{
+ "about": "参照録音5本(個人の制作物。同じ制作者で、独立したGenre Sourceではない)の信号解析から数えた、一般化した本数・割合・中央値だけ。旋律・音型・コード・曲名・音源のIDは含まない。",
+ "tools": [
+  "tools/arrangement-reference/extract_bar_features.py",
+  "tools/arrangement-reference/count_mechanism_evidence.py",
+  "tools/arrangement-reference/export_emotion_curves.py"
+ ],
+ "method": "録音を44.1kHzから22.05kHzへ落とし、キック周期から小節の格子を推定して、小節ごとに5帯域(20-150/150-600/600-2500/2500-6000/6000-11000Hz)の強さ(dB)、全体のRMS(dB)、キックと高域の発音数、左右の広がりを求める。曲線は低域=土台、高域=明るさ、RMS=強さ。同じ採点関数(src/melody-engine/arrangementEmotion.ts)で生成物も採点する。",
+ "recordings": {
+  "count": 5,
+  "bpmRange": [
+   85.0,
+   120.0
+  ],
+  "barsRange": [
+   97,
+   139
+  ]
+ },
+ "thresholds": {
+  "withheldDb": 8,
+  "withheldMinBars": 2,
+  "returnStepDb": 4,
+  "presentScore": 0.5,
+  "note": "保留=基準(最大から12dB以内の小節の中央値)より8dB以上低い。戻り=その後の2小節平均が直前の2小節平均より4dB以上高い。"
+ },
+ "mechanismObservedIn": {
+  "expectation-arrival": 4,
+  "closure-decay": 5,
+  "accumulation": 2,
+  "subtraction-contrast": 1
+ },
+ "meansObservedIn": {
+  "bass-withheld": 3,
+  "drumless-intro": 1,
+  "silent-bar": 2,
+  "low-end-break": 1,
+  "level-fade": 5,
+  "layer-thinning": 2
+ },
+ "notObserved": {
+  "bass-then-kick": {
+   "observedIn": 0,
+   "note": "低域を先に出してキックを最後に入れる二段の到来は、5本のどれでも観察されなかった。観察は逆で、キックを鳴らしたまま低域を後から入れる録音が3本。採用していない。"
+  },
+  "air-withdrawal": {
+   "observedIn": 0,
+   "note": "途中で高域を引いて戻す区間は観察されなかった。採用していない。"
+  }
+ },
+ "medians": {
+  "openingWithholdDepthDb": 17.6,
+  "openingWithheldBars": 21.5,
+  "arrivalStepDb": 12.4,
+  "arrivalSimultaneousEntries": 2.0,
+  "closureBodyDropDb": 13.8,
+  "closureBodyDropDbMin": 5.3
+ },
+ "referenceArcScore": {
+  "scores": [
+   35.9,
+   71.8,
+   73.9,
+   82.6,
+   85
+  ],
+  "median": 73.9,
+  "min": 35.9,
+  "max": 85,
+  "weights": {
+   "closure-decay": 0.4,
+   "expectation-arrival": 0.35,
+   "accumulation": 0.15,
+   "subtraction-contrast": 0.1
+  }
+ }
+}

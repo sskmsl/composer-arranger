@@ -5,6 +5,7 @@ export type ComposerGeneratorTarget =
   | "phrase"
   | "counter"
   | "melody"
+  | "arrangement"
 
 export type TechniqueCategory =
   | "decoration"
@@ -128,6 +129,8 @@ export type ComposerTechniqueAxis =
   | "decorationGestureRole"
   | "decorationShape"
   | "decorationRhythmStyle"
+  /** 全曲アレンジで使う、感情を動かす仕組みの手段(src/core/emotionalMechanism.ts のID) */
+  | "emotionalMeans"
 
 export interface WeightedTechniqueValue {
   value: string

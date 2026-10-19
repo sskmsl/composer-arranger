@@ -28,4 +28,20 @@ describe("DirectionPicker", () => {
       expect.objectContaining({ character: "dark-experimental" }),
     )
   })
+
+  it("展開の型を選べて、選んだ型の文言だけが意図に続く", () => {
+    const source = readFileSync(resolve(__dirname, "DirectionPicker.tsx"), "utf8")
+    expect(source).toContain("EMOTIONAL_MECHANISMS")
+    expect(source).toContain("aria-pressed")
+    const generate = vi.fn()
+    const chosen = { id: "balanced-architecture" as const, title: "Balanced", summary: "主旋律を守る", character: "balanced" as const }
+    generateSelectedDirection(chosen, vi.fn(), generate, 0, ["level-fade"])
+    const [, brief, directive] = generate.mock.calls[0]
+    expect(directive.intention).toBe("主旋律を守る。終わりはフェードアウトで終える")
+    expect(directive.emotionalMechanisms).toEqual([{ mechanism: "closure-decay", means: "level-fade" }])
+    expect(brief).not.toContain("フェードアウト")
+    generate.mockClear()
+    generateSelectedDirection(chosen, vi.fn(), generate, 0)
+    expect(generate.mock.calls[0][2].intention).toBe("主旋律を守る")
+  })
 })

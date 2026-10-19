@@ -8,6 +8,7 @@ import {
   type WholeSongArrangementDirection,
   type WholeSongDirectionId,
 } from "@/ai-arranger/wholeSongDirectionPlan"
+import { EMOTIONAL_MECHANISMS, meansOfMechanism, recommendMeans, type EmotionalMeansId } from "@/core/emotionalMechanism"
 import { useProjectStore } from "@/store/useProjectStore"
 import { DIRECTION_DESCRIPTIONS, DIRECTION_DETAILS, DIRECTION_NAMES } from "./directionNames"
 import { Button } from "@/ui/primitives"
@@ -40,6 +41,7 @@ export function DirectionPicker({
   const generate = useProjectStore((state) => state.generateDirectionArrangement)
   const setArrangementDirectorWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
   const [selectedId, setSelectedId] = useState<WholeSongDirectionId | null>(null)
+  const [meansIds, setMeansIds] = useState<EmotionalMeansId[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,6 +49,14 @@ export function DirectionPicker({
     const plan = buildAiPartnerOrchestrationPlan(project, selectedSectionId)
     return buildWholeSongDirectionProgram(project, plan.constraints.join("。"))
   }, [project, selectedSectionId])
+  // いまの全曲アレンジで起きていない仕組みを、測った結果から勧める(アレンジが無い曲では勧めない)
+  const recommendations = useMemo(() => recommendMeans(
+    project.fullSongArrangement?.quality?.metrics.emotionalMechanisms,
+    {
+      hasIntro: project.sections.some((section) => section.role === "intro" && section.lengthBars >= 4),
+      endsInOutro: project.sections.at(-1)?.role === "outro",
+    },
+  ), [project])
   const chosen = program.directions.find((direction) => direction.id === (selectedId ?? program.recommendedDirectionId))
     ?? program.directions[0]
 
@@ -62,6 +72,7 @@ export function DirectionPicker({
         (selectedDirectionId) => setArrangementDirectorWorkspace({ selectedDirectionId }),
         generate,
         ENERGY_DELTA[chosen.character],
+        meansIds,
       )
       onDone?.()
     } catch (reason) {
@@ -121,6 +132,56 @@ export function DirectionPicker({
                 <span className="self-start rounded-pill sm:mt-auto bg-emerald-400/12 px-2 py-0.5 text-[12px] text-emerald-200">この曲におすすめ</span>
               )}
             </button>
+          )
+        })}
+      </div>
+
+      <div role="group" aria-label="感情を動かす仕組み" className="flex flex-col gap-3">
+        <p className="text-[13px] leading-5 text-body-muted">
+          曲の流れの一場面を、感情への働きから選べます（任意・複数選べます）。選ばなければ、方向だけで作ります。
+          同じ働きでも手段が違えば、聴こえ方が変わります。
+        </p>
+        {EMOTIONAL_MECHANISMS.map((mechanism) => {
+          const options = meansOfMechanism(mechanism.id)
+          if (options.length === 0) return null
+          return (
+            <div key={mechanism.id} className="flex flex-col gap-1.5">
+              <p className="text-[13px] leading-5 text-body-on-dark">
+                <span className="font-semibold">{mechanism.label}</span>
+                <span className="text-body-muted">：{mechanism.effect}</span>
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {options.map((means) => {
+                  const on = meansIds.includes(means.id)
+                  return (
+                    <button
+                      key={means.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setMeansIds((current) => on ? current.filter((id) => id !== means.id) : [...current, means.id])}
+                      className={clsx(
+                        "flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition",
+                        on ? "border-primary bg-primary/15" : "border-hairline bg-white/[0.03] hover:bg-white/[0.07]",
+                      )}
+                    >
+                      <span className="flex items-start gap-2">
+                        <span className="mr-auto text-[14px] font-semibold text-body-on-dark">{means.label}</span>
+                        {on && <Check size={15} className="shrink-0 text-primary-on-dark" aria-hidden="true" />}
+                      </span>
+                      <span className="text-[13px] leading-5 text-body-muted">{means.description}</span>
+                      <span className="text-[12px] text-ink-soft">
+                        {means.observedIn >= 3 ? `参照5本中${means.observedIn}本で観察` : `参照5本中${means.observedIn}本（実験的）`}
+                      </span>
+                      {recommendations.some((item) => item.means === means.id) && (
+                        <span className="self-start rounded-pill bg-emerald-400/12 px-2 py-0.5 text-[12px] text-emerald-200">
+                          {recommendations.find((item) => item.means === means.id)!.reason}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           )
         })}
       </div>
