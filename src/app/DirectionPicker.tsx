@@ -8,6 +8,7 @@ import {
   type WholeSongArrangementDirection,
   type WholeSongDirectionId,
 } from "@/ai-arranger/wholeSongDirectionPlan"
+import { ARRANGEMENT_PATTERNS, type ArrangementPatternId } from "@/core/arrangementPatterns"
 import { useProjectStore } from "@/store/useProjectStore"
 import { DIRECTION_DESCRIPTIONS, DIRECTION_DETAILS, DIRECTION_NAMES } from "./directionNames"
 import { Button } from "@/ui/primitives"
@@ -40,6 +41,7 @@ export function DirectionPicker({
   const generate = useProjectStore((state) => state.generateDirectionArrangement)
   const setArrangementDirectorWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
   const [selectedId, setSelectedId] = useState<WholeSongDirectionId | null>(null)
+  const [patternIds, setPatternIds] = useState<ArrangementPatternId[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -62,6 +64,7 @@ export function DirectionPicker({
         (selectedDirectionId) => setArrangementDirectorWorkspace({ selectedDirectionId }),
         generate,
         ENERGY_DELTA[chosen.character],
+        patternIds,
       )
       onDone?.()
     } catch (reason) {
@@ -123,6 +126,35 @@ export function DirectionPicker({
             </button>
           )
         })}
+      </div>
+
+      <div role="group" aria-label="展開の型" className="flex flex-col gap-2">
+        <p className="text-[13px] leading-5 text-body-muted">
+          曲の流れの一場面を決める型です（任意・複数選べます）。選ばなければ、方向だけで作ります。
+        </p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {ARRANGEMENT_PATTERNS.map((pattern) => {
+            const on = patternIds.includes(pattern.id)
+            return (
+              <button
+                key={pattern.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setPatternIds((current) => on ? current.filter((id) => id !== pattern.id) : [...current, pattern.id])}
+                className={clsx(
+                  "flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition",
+                  on ? "border-primary bg-primary/15" : "border-hairline bg-white/[0.03] hover:bg-white/[0.07]",
+                )}
+              >
+                <span className="flex items-start gap-2">
+                  <span className="mr-auto text-[14px] font-semibold text-body-on-dark">{pattern.label}</span>
+                  {on && <Check size={15} className="shrink-0 text-primary-on-dark" aria-hidden="true" />}
+                </span>
+                <span className="text-[13px] leading-5 text-body-muted">{pattern.description}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

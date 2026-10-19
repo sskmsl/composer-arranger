@@ -2478,7 +2478,7 @@ function asksIntroDrop(plan: ArrangementPlan): boolean {
     .test(plan.directive?.intention ?? "")
 }
 
-function introDropApplies(plan: ArrangementPlan, sectionId: string): boolean {
+function directiveAppliesTo(plan: ArrangementPlan, sectionId: string): boolean {
   return !plan.directive?.sectionId || plan.directive.sectionId === sectionId
 }
 
@@ -2487,20 +2487,73 @@ function introDropSectionIds(plan: ArrangementPlan): Set<string> {
   if (!asksIntroDrop(plan)) return new Set()
   return new Set(plan.sections.filter((section, index) => {
     const previous = plan.sections[index - 1]
-    return previous?.semanticRole === "intro" && introDropApplies(plan, previous.sectionId)
+    return previous?.semanticRole === "intro" && directiveAppliesTo(plan, previous.sectionId)
       && !["intro", "outro", "breakdown"].includes(section.semanticRole ?? "")
   }).map((section) => section.sectionId))
 }
 
+/** 途中で抜く層。低域の土台とキックだけで、スネア・高域・空気の層は残す。 */
+const LOW_BREAK_ROLES: ArrangementTrackId[] = [
+  "dr-kick", "dr-kick-sub", "dr-kick-click", "syn-bass", "syn-sub-bass", "syn-bass-mid", "str-contrabass",
+]
+
+/** 「低域とキックを抜いた区間を作り、戻りで…」。言い回しは intro の指示や低域を控えるヴァースと分ける。 */
+function asksLowEndBreak(plan: ArrangementPlan): boolean {
+  return /(?:低域|低音)と?キック[^。]*(?:抜いた区間|抜く区間)|(?:low.?end|bass)[^.]*kick[^.]*break/i
+    .test(plan.directive?.intention ?? "")
+}
+
+/**
+ * 低域とキックを抜く区間(最初のブレイクダウン、無ければ最初のブリッジ)と、戻る区間。
+ * 4小節以上で、直後がアウトロでないときだけ。曲に1か所にとどめ、他の区間は変えない。
+ */
+function lowEndBreakPair(project: ComposerProject, plan: ArrangementPlan): { breakId: string, returnId: string } | null {
+  if (!asksLowEndBreak(plan)) return null
+  for (const role of ["breakdown", "bridge"]) {
+    const index = plan.sections.findIndex((section, i) => section.semanticRole === role
+      && (project.sections.find((s) => s.id === section.sectionId)?.lengthBars ?? 0) >= 4
+      && !!plan.sections[i + 1] && plan.sections[i + 1].semanticRole !== "outro")
+    if (index < 0) continue
+    const found = plan.sections[index], back = plan.sections[index + 1]
+    if (directiveAppliesTo(plan, found.sectionId) || directiveAppliesTo(plan, back.sectionId)) {
+      return { breakId: found.sectionId, returnId: back.sectionId }
+    }
+  }
+  return null
+}
+
+/**
+ * 小節ごとに散らさず、区間の頭で一斉に入れる層(区間ID → 層)。
+ * 境界の分散(scheduleBoundaryRoles)と見直し(refineBoundaryRoleSchedule)が、この入場を遅らせないために使う。
+ */
+function simultaneousEntrances(project: ComposerProject, plan: ArrangementPlan): Map<string, ArrangementTrackId[]> {
+  const entrances = new Map<string, ArrangementTrackId[]>()
+  for (const id of introDropSectionIds(plan)) entrances.set(id, INTRO_DROP_ROLES)
+  const pair = lowEndBreakPair(project, plan)
+  if (pair) entrances.set(pair.returnId, [...new Set([...(entrances.get(pair.returnId) ?? []), ...LOW_BREAK_ROLES])])
+  return entrances
+}
+
+/** 保留した層を区間の頭から一斉に入れる。無ければ、重心の最小限の層だけ足す。 */
+function enterTogether(section: ArrangementSectionPlan, roles: ArrangementTrackId[], core: ArrangementTrackId[],
+  explicit: (id: ArrangementTrackId) => boolean): void {
+  section.roleEntryBeats ??= {}
+  for (const id of roles.filter((role) => !explicit(role))) {
+    if (!section.activeRoles.includes(id) && !core.includes(id)) continue
+    if (!section.activeRoles.includes(id)) section.activeRoles.push(id)
+    section.roleEntryBeats[id] = 0
+    if (section.roleExitBeats) delete section.roleExitBeats[id]
+  }
+}
+
 function scheduleIntroDrop(project: ComposerProject, plan: ArrangementPlan): void {
-  if (!asksIntroDrop(plan)) return
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const explicit = (id: ArrangementTrackId) => (plan.directive?.preserve ?? []).includes(id)
     || (plan.directive?.add ?? []).includes(id)
   const drops = introDropSectionIds(plan)
-  for (const section of plan.sections) {
+  if (asksIntroDrop(plan)) for (const section of plan.sections) {
     const length = (project.sections.find((s) => s.id === section.sectionId)?.lengthBars ?? 0) * bpb
-    if (section.semanticRole === "intro" && introDropApplies(plan, section.sectionId) && length >= bpb * 4) {
+    if (section.semanticRole === "intro" && directiveAppliesTo(plan, section.sectionId) && length >= bpb * 4) {
       section.roleEntryBeats ??= {}
       for (const id of INTRO_DROP_ROLES) if (!explicit(id)) section.roleEntryBeats[id] = length
       for (const id of INTRO_AIR_ROLES.filter((role) => section.activeRoles.includes(role))) {
@@ -2514,14 +2567,25 @@ function scheduleIntroDrop(project: ComposerProject, plan: ArrangementPlan): voi
       }
       section.intention += "。キックと低域を抜いた広い導入にして、次の区間の頭で一斉に入れる"
     } else if (drops.has(section.sectionId)) {
-      section.roleEntryBeats ??= {}
-      for (const id of INTRO_DROP_ROLES.filter((role) => !explicit(role))) {
-        if (!section.activeRoles.includes(id) && !INTRO_DROP_CORE.includes(id)) continue
-        if (!section.activeRoles.includes(id)) section.activeRoles.push(id)
-        section.roleEntryBeats[id] = 0
-        if (section.roleExitBeats) delete section.roleExitBeats[id]
-      }
+      enterTogether(section, INTRO_DROP_ROLES, INTRO_DROP_CORE, explicit)
       section.intention += "。導入で抜いたキックと低域が頭で一斉に入る"
+    }
+  }
+  const last = plan.sections.at(-1)
+  if (asksFadeOut(plan) && last && directiveAppliesTo(plan, last.sectionId)) {
+    last.intention += "。最後の数小節で音量を下げ切って終える"
+  }
+  const pair = lowEndBreakPair(project, plan)
+  if (!pair) return
+  for (const section of plan.sections) {
+    if (section.sectionId === pair.breakId) {
+      const length = (project.sections.find((s) => s.id === section.sectionId)?.lengthBars ?? 0) * bpb
+      section.roleEntryBeats ??= {}
+      for (const id of LOW_BREAK_ROLES) if (!explicit(id)) section.roleEntryBeats[id] = length
+      section.intention += "。低域とキックを抜いて、戻る区間の頭まで空ける"
+    } else if (section.sectionId === pair.returnId) {
+      enterTogether(section, LOW_BREAK_ROLES, INTRO_DROP_CORE, explicit)
+      section.intention += "。抜いていた低域とキックが頭で一斉に戻り、大きく開く"
     }
   }
 }
@@ -2610,7 +2674,7 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   scheduleBreakdownBass(project, plan)
   scheduleLongSectionLayers(project, plan)
   scheduleIntroDrop(project, plan)
-  const dropSections = introDropSectionIds(plan)
+  const dropEntrances = simultaneousEntrances(project, plan)
   const rebuilds = rebuildSectionIds(project, plan)
   const rank =(id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
     : id.startsWith("str-") ? 2 : 3
@@ -2647,7 +2711,7 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     const character = next.selectedTransitionCharacter
     // イントロの直後は、層を小節ごとに分散せず、頭で一斉に入れる。
     const entries = after.filter((id) => !before.includes(id)
-      && !(dropSections.has(next.sectionId) && INTRO_DROP_ROLES.includes(id)))
+      && !dropEntrances.get(next.sectionId)?.includes(id))
       .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
     const earliest = character === "surprise" ? 1 : 0
     const gentleSlots = Array.from({ length: 5 - earliest }, (_, index) =>
@@ -2673,7 +2737,7 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const sections = normalizeSectionTimeline(project.sections)
   const rebuilds = rebuildSectionIds(project, plan)
-  const dropSections = introDropSectionIds(plan)
+  const dropEntrances = simultaneousEntrances(project, plan)
   const windows = new Set<number>()
   for (let i = 1; i < sections.length; i++) {
     const left = sections[i - 1], right = sections[i]
@@ -2720,7 +2784,7 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
         const local = soundingBar - cell.start
         for (const field of ["entry", "exit"] as const) {
           // イントロの直後の一斉の入場は、交代の分散のために遅らせない。
-          if (field === "entry" && dropSections.has(cell.section.id) && INTRO_DROP_ROLES.includes(managed[index].id)) continue
+          if (field === "entry" && dropEntrances.get(cell.section.id)?.includes(managed[index].id)) continue
           const original = cell[field]
           // 単調な入口遅延・出口前倒しだけを許し、同コストの局所解からも抜ける。
           const afterRebuild = rebuilds.has(sections[sections.indexOf(cell.section) - 1]?.id)
@@ -2795,6 +2859,68 @@ function stageBoundaryLayers(
     }
   }
   return tracks
+}
+
+/** 終わりをフェードアウトにする指示。「フェードアウト」と言うときだけ。 */
+function asksFadeOut(plan: ArrangementPlan): boolean {
+  return /フェード.?アウト|fade.?out/i.test(plan.directive?.intention ?? "")
+}
+
+const FADE_BARS = 4
+const FADE_DEPTH_DB = 24
+const FADE_REFERENCE_VELOCITY = 100
+
+/** フェードの k 小節目(0始まり)の上限 velocity。終わりへ向けて下がり幅が大きくなる。 */
+function fadeCeiling(bar: number, bars: number): number {
+  const decibels = -FADE_DEPTH_DB * ((bar + 1) / bars) ** 1.5
+  return Math.max(4, Math.round(FADE_REFERENCE_VELOCITY * 10 ** (decibels / 20)))
+}
+
+/**
+ * 最後の区間の終わり数小節で、音量を下げ切る。MIDIにはミックスが無いので、小節ごとに velocity の
+ * 上限を下げる。フェードに入ってもなお鳴り続ける長い音は、小節の境目で切って同じ音高を弱く
+ * 鳴らし直す(そうしないと、長い和音の層は下がらない)。
+ * 上限と小節の境目の分割だけなので、何度仕上げ処理を通しても結果が変わらない。
+ */
+function applyFadeOut(
+  project: ComposerProject, plan: ArrangementPlan, tracks: GeneratedArrangementTrack[],
+  editableTrackIds?: ReadonlySet<string>, editableSectionIds?: ReadonlySet<string>,
+): GeneratedArrangementTrack[] {
+  if (!asksFadeOut(plan)) return tracks
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const last = normalizeSectionTimeline(project.sections).at(-1)
+  if (!last || last.lengthBars < 2 || !directiveAppliesTo(plan, last.id)) return tracks
+  const bars = Math.min(FADE_BARS, last.lengthBars)
+  const end = sectionOffset(last.startBar + last.lengthBars, bpb)
+  const start = end - bars * bpb
+  const barOf = (beat: number) => Math.min(bars - 1, Math.floor((beat - start) / bpb + 1e-9))
+  return tracks.map((track) => {
+    if (editableTrackIds && !editableTrackIds.has(track.id)) return track
+    return { ...track, notes: track.notes.flatMap((note) => {
+      const noteEnd = note.startBeat + note.durationBeats
+      if (noteEnd <= start + 1e-6 || (editableSectionIds && !editableSectionIds.has(note.sectionId))) return [note]
+      // フェードの前に始まった音は、境目までを元のまま残し、以降を小節ごとに分ける。
+      const pieces: GeneratedArrangementNote[] = []
+      if (note.startBeat < start - 1e-6) {
+        pieces.push({ ...note, durationBeats: start - note.startBeat })
+      }
+      let from = Math.max(note.startBeat, start)
+      while (from < noteEnd - 1e-6) {
+        const bar = barOf(from)
+        const to = bar < bars - 1 ? Math.min(noteEnd, start + (bar + 1) * bpb) : noteEnd
+        const ceiling = fadeCeiling(bar, bars)
+        pieces.push({
+          ...note,
+          id: pieces.length === 0 && from === note.startBeat ? note.id : `${note.id}:fade${bar}`,
+          startBeat: from,
+          durationBeats: to - from,
+          velocity: Math.min(note.velocity, ceiling),
+        })
+        from = to
+      }
+      return pieces
+    }) }
+  })
 }
 
 /**
@@ -2878,6 +3004,7 @@ export function finalizeFullSongArrangement(
       return [{ ...note, durationBeats: Math.min(note.durationBeats, stop - note.startBeat) }]
     }) }
   })
+  finalTracks = applyFadeOut(project, arrangement.plan, finalTracks, options.editableTrackIds, options.editableSectionIds)
   const finalPlan = reconcilePlanWithSoundingRoles(arrangement.plan, finalTracks)
   const finalReport = evaluateArrangementAudition(project, finalPlan, finalTracks)
   const finalized = {
@@ -2985,6 +3112,8 @@ function addSectionBoundaryPerformances(
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const lead = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints).lead
   const hasDrums = tracks.some((t) => t.family === "drums" && !t.muted && t.notes.length > 0)
+  // 抜いた層が一斉に戻る区間は、サビと同じ強さで入口を強調する。
+  const entrances = simultaneousEntrances(project, plan)
   const append = (id: ArrangementTrackId, sectionId: string, beat: number, duration: number, pitch: number, velocity: number) => {
     if (["dr-low-tom", "dr-high-tom"].includes(id) && lead.some((n) => Math.abs(n.startBeat - beat) <= 0.12)) beat += 0.25
     if (["dr-low-tom", "dr-high-tom"].includes(id) && lead.some((n) => Math.abs(n.startBeat - beat) <= 0.12)) return
@@ -2997,7 +3126,7 @@ function addSectionBoundaryPerformances(
     if (index === 0) return
     const previous = sections[index - 1]
     const start = (section.startBar - 1) * bpb
-    const chorus = section.role === "chorus" || section.role === "grand-chorus"
+    const chorus = section.role === "chorus" || section.role === "grand-chorus" || entrances.has(section.id)
     if (chorus) {
       append("dr-crash", section.id, start, 1, 49, section.role === "grand-chorus" ? 96 : 86)
       append("dr-cymbal-swell", previous.id, start - bpb * (section.role === "grand-chorus" ? 2 : 1), bpb * (section.role === "grand-chorus" ? 2 : 1), 49, section.role === "grand-chorus" ? 74 : 58)
