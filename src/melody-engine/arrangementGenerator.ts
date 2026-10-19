@@ -2478,6 +2478,43 @@ function scheduleBreakdownBass(project: ComposerProject, plan: ArrangementPlan):
   }
 }
 
+/** 長区間の内部展開。境界の分散と区別し、既存候補内で別の読み方も用意する。 */
+function longSectionBuild(section: ArrangementSectionPlan, plan: ArrangementPlan): boolean {
+  const risingRole = ["intro", "pre", "build"].includes(section.semanticRole ?? "")
+  return plan.candidateApproach === "space-led" ? false
+    : plan.candidateApproach === "dynamic-contrast" ? true : risingRole
+}
+
+function scheduleLongSectionLayers(project: ComposerProject, plan: ArrangementPlan): void {
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  for (const section of plan.sections) {
+    const source = project.sections.find((s) => s.id === section.sectionId)!
+    if (source.lengthBars < 12 || source.role === "outro") continue
+    section.backHalfLiftBeat = undefined
+    const protectedRoles = [...(plan.directive?.preserve ?? []), ...(plan.directive?.add ?? [])]
+    const roles = (Object.keys(TRACK_FAMILY) as ArrangementTrackId[]).filter((id) => {
+      const base = isArrangementLayerTrackId(id) ? ARRANGEMENT_LAYER_SOURCES[id] : id
+      return isBoundaryManagedRole(id) && section.activeRoles.includes(base)
+        && !protectedRoles.includes(id) && !protectedRoles.includes(base)
+        && section.roleExitBeats?.[id] !== 0
+        && (section.roleEntryBeats?.[id] ?? 0) < source.lengthBars * bpb
+        && (!isArrangementLayerTrackId(id) || layerEnabledInSection(id, section))
+    })
+    section.roleEntryBeats ??= {}
+    for (const id of roles) section.roleEntryBeats[id] = 0
+    if (!longSectionBuild(section, plan)) {
+      section.intention += "。長い区間の内部では背景層を一定に保つ"
+      continue
+    }
+    // 骨格を残し、存在する補助層だけを4小節ごとに最大1層追加する。
+    const additions = roles.filter(isArrangementLayerTrackId).sort((a, b) => a.localeCompare(b))
+    additions.slice(0, Math.floor((source.lengthBars - 4) / 4)).forEach((id, index) => {
+      section.roleEntryBeats![id] = (index + 1) * 4 * bpb
+    })
+    section.intention += "。長い区間の内部では4小節ごとに補助層を1つずつ積み上げる"
+  }
+}
+
 /** 役割の出入りを音符生成より先に配分し、密度による事後の間引きを行わない。 */
 function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan): ArrangementPlan {
   if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return plan
@@ -2501,6 +2538,7 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   }
   scheduleVerseBass(project, plan)
   scheduleBreakdownBass(project, plan)
+  scheduleLongSectionLayers(project, plan)
   const rebuilds = rebuildSectionIds(project, plan)
   const rank = (id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
     : id.startsWith("str-") ? 2 : 3
@@ -2542,7 +2580,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     // 緩い入口でも上声を終盤まで待たせず、待ちが長い場合だけ2層の枠を使う。
     const capacity = character === "edge" || entries.length > gentleSlots ? 2 : 1
     for (const id of entries) {
-      const bar = reserve(earliest, capacity)
+      const internalEntry = right.lengthBars >= 12 ? Math.ceil((next.roleEntryBeats[id] ?? 0) / bpb) : 0
+      const bar = reserve(Math.max(earliest, internalEntry), capacity)
       next.roleEntryBeats[id] = Math.min(right.lengthBars - 1, bar) * bpb
     }
   }
