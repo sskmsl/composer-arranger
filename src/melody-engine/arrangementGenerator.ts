@@ -2507,7 +2507,9 @@ function scheduleLongSectionLayers(project: ComposerProject, plan: ArrangementPl
       continue
     }
     // 骨格を残し、存在する補助層だけを4小節ごとに最大1層追加する。
-    const additions = roles.filter(isArrangementLayerTrackId).sort((a, b) => a.localeCompare(b))
+    const additions = roles.filter(isArrangementLayerTrackId)
+      .filter((id) => !(asksLowEndHoldBack(plan) && ["chorus", "final"].includes(section.semanticRole ?? "")
+        && AUXILIARY_BASS_ROLES.includes(id))).sort((a, b) => a.localeCompare(b))
     additions.slice(0, Math.floor((source.lengthBars - 4) / 4)).forEach((id, index) => {
       section.roleEntryBeats![id] = (index + 1) * 4 * bpb
     })

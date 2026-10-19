@@ -125,3 +125,21 @@ describe("reference D and E long section structure", () => {
     if (process.env.REFERENCE_DE_LONG_REPORT) writeFileSync(process.env.REFERENCE_DE_LONG_REPORT, JSON.stringify({ seeds, longSections: rows }, null, 2) + "\n")
   }, 60_000)
 })
+
+it("keeps explicit chorus bass entry ahead of the optional long-section additions", () => {
+  const p = fixture([["verse", 16], ["pre-chorus", 16], ["chorus", 16], ["grand-chorus", 16], ["outro", 4]])
+  const directive = { intention: "低域を控えたヴァースから、サビで広げる" }
+  for (const seed of seeds) {
+    const plan = buildFullSongArrangementPlan(p, analyzeFullSongArrangement(p), seed, "", directive, "dynamic-contrast")
+    for (const index of [2, 3]) for (const id of ["syn-sub-bass", "syn-bass-mid"] as const) {
+      expect(plan.sections[index].roleEntryBeats?.[id] ?? 0).toBeLessThanOrEqual(16)
+    }
+    const notes = exportedNotes(p, generateFullSongArrangement(p, { seed, directive }))
+    for (const index of [0, 1]) for (const id of ["syn-sub-bass", "syn-bass-mid"] as const) expect(soundingBarsIn(p, index, notes.get(id))).toEqual([])
+    for (const index of [2, 3]) {
+      const entries = ["syn-sub-bass", "syn-bass-mid"].flatMap((id) => soundingBarsIn(p, index, notes.get(id as ArrangementTrackId)))
+      expect(entries.length).toBeGreaterThan(0)
+      expect(Math.min(...entries)).toBeLessThanOrEqual(4)
+    }
+  }
+}, 60_000)
