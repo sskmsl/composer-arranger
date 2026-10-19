@@ -1,0 +1,482 @@
+{
+  "seeds": [
+    19,
+    41,
+    73,
+    101,
+    137,
+    173
+  ],
+  "conditions": "MIDI reimport; 4/4 Cm; section-relative harmony; bridge rests <=1 bar; no listening claim",
+  "bassAndCompatibility": [
+    {
+      "seed": 19,
+      "approach": "motif-led",
+      "counts": [
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            8
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            3
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            4,
+            4
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            4
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            0,
+            0
+          ]
+        }
+      ],
+      "maximumChanges": 8,
+      "quality": true,
+      "savedMidiIdentical": true
+    },
+    {
+      "seed": 41,
+      "approach": "motif-led",
+      "counts": [
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            8
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            3
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            4,
+            4
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            4
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            0,
+            0
+          ]
+        }
+      ],
+      "maximumChanges": 8,
+      "quality": true,
+      "savedMidiIdentical": true
+    },
+    {
+      "seed": 73,
+      "approach": "motif-led",
+      "counts": [
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            8
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            3
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            4,
+            4
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            4
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            0,
+            0
+          ]
+        }
+      ],
+      "maximumChanges": 8,
+      "quality": true,
+      "savedMidiIdentical": true
+    },
+    {
+      "seed": 101,
+      "approach": "motif-led",
+      "counts": [
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            8
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            3
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            4,
+            4
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            4
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            0,
+            0
+          ]
+        }
+      ],
+      "maximumChanges": 8,
+      "quality": true,
+      "savedMidiIdentical": true
+    },
+    {
+      "seed": 137,
+      "approach": "motif-led",
+      "counts": [
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            8
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            3
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            4,
+            4
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            4
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            0,
+            0
+          ]
+        }
+      ],
+      "maximumChanges": 8,
+      "quality": true,
+      "savedMidiIdentical": true
+    },
+    {
+      "seed": 173,
+      "approach": "motif-led",
+      "counts": [
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            8
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            3
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            0
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            4,
+            4
+          ]
+        },
+        {
+          "main": 8,
+          "auxiliary": [
+            8,
+            4
+          ]
+        },
+        {
+          "main": 4,
+          "auxiliary": [
+            0,
+            0
+          ]
+        }
+      ],
+      "maximumChanges": 8,
+      "quality": true,
+      "savedMidiIdentical": true
+    }
+  ],
+  "drone": {
+    "rows": [
+      {
+        "seed": 19,
+        "bars": 8,
+        "longestDurations": [
+          14,
+          24,
+          32
+        ]
+      },
+      {
+        "seed": 41,
+        "bars": 8,
+        "longestDurations": [
+          24,
+          32,
+          14
+        ]
+      },
+      {
+        "seed": 73,
+        "bars": 8,
+        "longestDurations": [
+          24,
+          32,
+          14
+        ]
+      },
+      {
+        "seed": 101,
+        "bars": 8,
+        "longestDurations": [
+          28,
+          24,
+          16
+        ]
+      },
+      {
+        "seed": 137,
+        "bars": 8,
+        "longestDurations": [
+          24,
+          32,
+          14
+        ]
+      },
+      {
+        "seed": 173,
+        "bars": 8,
+        "longestDurations": [
+          14,
+          24,
+          32
+        ]
+      },
+      {
+        "seed": 19,
+        "bars": 12,
+        "longestDurations": [
+          22,
+          40,
+          48
+        ]
+      },
+      {
+        "seed": 41,
+        "bars": 12,
+        "longestDurations": [
+          40,
+          48,
+          22
+        ]
+      },
+      {
+        "seed": 73,
+        "bars": 12,
+        "longestDurations": [
+          40,
+          48,
+          22
+        ]
+      },
+      {
+        "seed": 101,
+        "bars": 12,
+        "longestDurations": [
+          44,
+          40,
+          24
+        ]
+      },
+      {
+        "seed": 137,
+        "bars": 12,
+        "longestDurations": [
+          40,
+          48,
+          22
+        ]
+      },
+      {
+        "seed": 173,
+        "bars": 12,
+        "longestDurations": [
+          22,
+          40,
+          48
+        ]
+      }
+    ],
+    "longHolds": 17,
+    "intervals": [
+      0,
+      2,
+      4,
+      7,
+      9,
+      11
+    ]
+  }
+}

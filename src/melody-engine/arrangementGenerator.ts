@@ -2421,6 +2421,102 @@ function isBoundaryManagedRole(id: ArrangementTrackId): boolean {
     "syn-sub-bass", "syn-bass-mid"].includes(id)
 }
 
+const AUXILIARY_BASS_ROLES: ArrangementTrackId[] = ["syn-sub-bass", "syn-bass-mid"]
+
+/** 短い再構築区間は、従来の境界窓に収まる構成だけを対象とする。 */
+function rebuildSectionIds(project: ComposerProject, plan: ArrangementPlan): Set<string> {
+  return new Set(plan.sections.filter((section, index) => index > 0
+    && plan.sections[index - 1].semanticRole === "breakdown"
+    && project.sections.find((s) => s.id === section.sectionId)?.lengthBars === 4
+    && ["chorus", "final"].includes(plan.sections[index + 1]?.semanticRole ?? ""))
+    .map((section) => section.sectionId))
+}
+
+/** 既存の自由記述指示だけを入口にし、通常の編成やcharacterの意味は変えない。 */
+function asksLowEndHoldBack(plan: ArrangementPlan): boolean {
+  return /(?:低域|低音|ベース).*(?:控え|抑え|保留|抜き|抜く)|(?:hold.?back|restrain).*bass/i.test(plan.directive?.intention ?? "")
+}
+
+function scheduleVerseBass(project: ComposerProject, plan: ArrangementPlan): void {
+  if (!asksLowEndHoldBack(plan)) return
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  for (const section of plan.sections) {
+    if (plan.directive?.sectionId && plan.directive.sectionId !== section.sectionId) continue
+    const length = project.sections.find((s) => s.id === section.sectionId)!.lengthBars * bpb
+    for (const id of AUXILIARY_BASS_ROLES) {
+      if ([id, "syn-bass" as ArrangementTrackId].some((role) =>
+        plan.directive?.preserve?.includes(role) || plan.directive?.add?.includes(role))) continue
+      if (["verse", "pre"].includes(section.semanticRole ?? "")) {
+        section.roleEntryBeats ??= {}
+        section.roleEntryBeats[id] = length
+      } else if (["chorus", "final"].includes(section.semanticRole ?? "")) {
+        if (section.roleExitBeats) delete section.roleExitBeats[id]
+        section.roleEntryBeats ??= {}
+        section.roleEntryBeats[id] = 0
+      }
+    }
+  }
+}
+
+function scheduleBreakdownBass(project: ComposerProject, plan: ArrangementPlan): void {
+  const rebuilds = rebuildSectionIds(project, plan)
+  for (const [index, section] of plan.sections.entries()) {
+    const returning = rebuilds.has(section.sectionId) || rebuilds.has(plan.sections[index - 1]?.sectionId)
+    if (section.semanticRole !== "breakdown" && !returning) continue
+    for (const id of AUXILIARY_BASS_ROLES) {
+      if ([id, "syn-bass" as ArrangementTrackId].some((role) =>
+        plan.directive?.preserve?.includes(role) || plan.directive?.add?.includes(role))) continue
+      if (section.semanticRole === "breakdown") {
+        section.roleExitBeats ??= {}
+        section.roleExitBeats[id] = 0
+      } else {
+        if (section.roleExitBeats) delete section.roleExitBeats[id]
+        section.roleEntryBeats ??= {}
+        section.roleEntryBeats[id] = 0
+      }
+    }
+  }
+}
+
+/** 長区間の内部展開。境界の分散と区別し、既存候補内で別の読み方も用意する。 */
+function longSectionBuild(section: ArrangementSectionPlan, plan: ArrangementPlan): boolean {
+  const risingRole = ["intro", "pre", "build"].includes(section.semanticRole ?? "")
+  return plan.candidateApproach === "space-led" ? false
+    : plan.candidateApproach === "dynamic-contrast" ? true : risingRole
+}
+
+function scheduleLongSectionLayers(project: ComposerProject, plan: ArrangementPlan): void {
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  for (const section of plan.sections) {
+    const source = project.sections.find((s) => s.id === section.sectionId)!
+    if (source.lengthBars < 12 || source.role === "outro") continue
+    section.backHalfLiftBeat = undefined
+    const protectedRoles = [...(plan.directive?.preserve ?? []), ...(plan.directive?.add ?? [])]
+    const roles = (Object.keys(TRACK_FAMILY) as ArrangementTrackId[]).filter((id) => {
+      const base = isArrangementLayerTrackId(id) ? ARRANGEMENT_LAYER_SOURCES[id] : id
+      return isBoundaryManagedRole(id) && section.activeRoles.includes(base)
+        && !protectedRoles.includes(id) && !protectedRoles.includes(base)
+        && section.roleExitBeats?.[id] !== 0
+        && (section.roleEntryBeats?.[id] ?? 0) < source.lengthBars * bpb
+        && (!isArrangementLayerTrackId(id) || layerEnabledInSection(id, section))
+    })
+    section.roleEntryBeats ??= {}
+    for (const id of roles) section.roleEntryBeats[id] = 0
+    if (!longSectionBuild(section, plan)) {
+      section.intention += "。長い区間の内部では背景層を一定に保つ"
+      continue
+    }
+    // 骨格を残し、存在する補助層だけを4小節ごとに最大1層追加する。
+    const additions = roles.filter(isArrangementLayerTrackId)
+      .filter((id) => !(asksLowEndHoldBack(plan) && ["chorus", "final"].includes(section.semanticRole ?? "")
+        && AUXILIARY_BASS_ROLES.includes(id))).sort((a, b) => a.localeCompare(b))
+    additions.slice(0, Math.floor((source.lengthBars - 4) / 4)).forEach((id, index) => {
+      section.roleEntryBeats![id] = (index + 1) * 4 * bpb
+    })
+    section.intention += "。長い区間の内部では4小節ごとに補助層を1つずつ積み上げる"
+  }
+}
+
 /** 役割の出入りを音符生成より先に配分し、密度による事後の間引きを行わない。 */
 function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan): ArrangementPlan {
   if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return plan
@@ -2429,7 +2525,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   const protectedRole = (id: ArrangementTrackId) => (plan.directive?.preserve ?? []).includes(id)
     || (isArrangementLayerTrackId(id) && (plan.directive?.preserve ?? []).includes(ARRANGEMENT_LAYER_SOURCES[id]))
   const roles = (section: ArrangementSectionPlan) => (Object.keys(TRACK_FAMILY) as ArrangementTrackId[])
-    .filter((id) => isBoundaryManagedRole(id) && !protectedRole(id) && section.roleExitBeats?.[id] !== 0 && (isArrangementLayerTrackId(id)
+    .filter((id) => isBoundaryManagedRole(id) && !protectedRole(id) && section.roleExitBeats?.[id] !== 0
+      && (section.roleEntryBeats?.[id] ?? 0) < (sections.find((s) => s.id === section.sectionId)!.lengthBars * bpb) && (isArrangementLayerTrackId(id)
       ? section.activeRoles.includes(ARRANGEMENT_LAYER_SOURCES[id]) && layerEnabledInSection(id, section)
       : section.activeRoles.includes(id)))
   // 最初の提示で補助層を使い切らず、繰り返すサビへ色彩を残す。
@@ -2441,6 +2538,10 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     first.roleExitBeats ??= {}
     reserved.filter((id) => available.includes(id)).slice(0, 3).forEach((id) => { first.roleExitBeats![id] = 0 })
   }
+  scheduleVerseBass(project, plan)
+  scheduleBreakdownBass(project, plan)
+  scheduleLongSectionLayers(project, plan)
+  const rebuilds = rebuildSectionIds(project, plan)
   const rank = (id: ArrangementTrackId) => id.includes("bass") ? 0 : id.includes("pad") ? 1
     : id.startsWith("str-") ? 2 : 3
   // 元の編成を固定してからスケジュールする。繰越した退出を次の比較に混ぜない。
@@ -2448,7 +2549,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
   for (let i = 1; i < plan.sections.length; i++) {
     const previous = plan.sections[i - 1], next = plan.sections[i]
     const left = sections.find((s) => s.id === previous.sectionId), right = sections.find((s) => s.id === next.sectionId)
-    if (!left || !right || left.lengthBars < 8 || right.lengthBars < 8 || right.role === "outro") continue
+    if (!left || !right || right.role === "outro"
+      || ((left.lengthBars < 8 || right.lengthBars < 8) && !rebuilds.has(left.id) && !rebuilds.has(right.id))) continue
     const before = original[i - 1], after = original[i]
     previous.roleExitBeats ??= {}
     next.roleEntryBeats ??= {}
@@ -2480,7 +2582,8 @@ function scheduleBoundaryRoles(project: ComposerProject, plan: ArrangementPlan):
     // 緩い入口でも上声を終盤まで待たせず、待ちが長い場合だけ2層の枠を使う。
     const capacity = character === "edge" || entries.length > gentleSlots ? 2 : 1
     for (const id of entries) {
-      const bar = reserve(earliest, capacity)
+      const internalEntry = right.lengthBars >= 12 ? Math.ceil((next.roleEntryBeats[id] ?? 0) / bpb) : 0
+      const bar = reserve(Math.max(earliest, internalEntry), capacity)
       next.roleEntryBeats[id] = Math.min(right.lengthBars - 1, bar) * bpb
     }
   }
@@ -2496,10 +2599,12 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
   if (plan.directive?.soundInstruction?.enabled || plan.directive?.timelineConstraints) return
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const sections = normalizeSectionTimeline(project.sections)
+  const rebuilds = rebuildSectionIds(project, plan)
   const windows = new Set<number>()
   for (let i = 1; i < sections.length; i++) {
     const left = sections[i - 1], right = sections[i]
-    if (left.lengthBars < 8 || right.lengthBars < 8 || right.role === "outro") continue
+    if (right.role === "outro" || ((left.lengthBars < 8 || right.lengthBars < 8)
+      && !rebuilds.has(left.id) && !rebuilds.has(right.id))) continue
     for (let bar = right.startBar - 3; bar <= right.startBar + 3; bar++) windows.add(bar)
   }
   const managed = tracks.filter((track) => {
@@ -2533,21 +2638,30 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
       if (flipped.length <= 2) continue
       for (const index of flipped) {
         // 背景和声の土台は保ち、先に補助層の入口・出口を選び直す。
-        if (managed[index].id === "syn-dark-pad") continue
+        if (managed[index].id === "syn-dark-pad" && !sections.some((section) =>
+          rebuilds.has(section.id) && bar >= section.startBar - 3 && bar <= section.startBar + section.lengthBars + 3)) continue
         const soundingBar = state(index, bar) ? bar : bar - 1
         const cell = cells[index].find((c) => soundingBar >= c.start && soundingBar < c.start + c.section.lengthBars)
-        if (!cell || cell.section.lengthBars < 8 || cell.section.role === "outro") continue
+        if (!cell || (cell.section.lengthBars < 8 && !rebuilds.has(cell.section.id)) || cell.section.role === "outro") continue
         const local = soundingBar - cell.start
         for (const field of ["entry", "exit"] as const) {
           const original = cell[field]
-          const value = field === "entry" ? local + 1 : local
-          if (field === "entry" ? value <= original || value > cell.exit : value >= original || value < cell.entry) continue
-          cell[field] = value
-          const candidateCost = cost()
-          cell[field] = original
-          const loss = Math.abs(value - original) * (isArrangementLayerTrackId(managed[index].id) ? 1 : 4)
-          if (candidateCost < current && (!best || candidateCost < best.cost || candidateCost === best.cost && loss < best.loss))
-            best = { index, cell, field, value, cost: candidateCost, loss }
+          // 単調な入口遅延・出口前倒しだけを許し、同コストの局所解からも抜ける。
+          const afterRebuild = rebuilds.has(sections[sections.indexOf(cell.section) - 1]?.id)
+          // 再構築直後は、隣の満席小節を飛び越えても既存の後4小節窓内から選ぶ。
+          const values = field === "entry" && afterRebuild
+            ? Array.from({ length: Math.max(0, 4 - local) }, (_, i) => local + i + 1)
+            : [field === "entry" ? local + 1 : local]
+          for (const value of values) {
+            if (field === "entry" ? value <= original || value > cell.exit : value >= original || value < cell.entry) continue
+            cell[field] = value
+            const candidateCost = cost()
+            cell[field] = original
+            const loss = Math.abs(value - original) * (isArrangementLayerTrackId(managed[index].id) ? 1 : 4)
+            if ((candidateCost < current || afterRebuild && candidateCost === current)
+              && (!best || candidateCost < best.cost || candidateCost === best.cost && loss < best.loss))
+              best = { index, cell, field, value, cost: candidateCost, loss }
+          }
         }
       }
     }

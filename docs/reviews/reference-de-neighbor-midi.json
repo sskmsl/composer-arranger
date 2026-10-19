@@ -1,0 +1,53 @@
+{
+  "conditions": {
+    "seeds": [
+      19,
+      41,
+      73,
+      101,
+      137,
+      173
+    ],
+    "profile": "incantatory",
+    "role": "breakdown-chorus",
+    "density": "sparse",
+    "drama": "restrained",
+    "range": [
+      60,
+      65
+    ],
+    "bars": 8,
+    "keyChords": [
+      "Am",
+      "F",
+      "C",
+      "G"
+    ],
+    "meter": "4/4",
+    "measurement": "exportMelodyMidi then parseMidi; more than one semitone A-B-A return, and over half of nonzero adjacent steps are semitones"
+  },
+  "before": {
+    "seeds": [
+      19,
+      41,
+      73,
+      101,
+      137,
+      173
+    ],
+    "candidates": 18,
+    "strictNeighborCandidates": 0
+  },
+  "after": {
+    "seeds": [
+      19,
+      41,
+      73,
+      101,
+      137,
+      173
+    ],
+    "candidates": 18,
+    "strictNeighborCandidates": 2
+  }
+}
