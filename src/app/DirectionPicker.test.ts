@@ -44,4 +44,9 @@ describe("DirectionPicker", () => {
     generateSelectedDirection(chosen, vi.fn(), generate, 0)
     expect(generate.mock.calls[0][2].intention).toBe("主旋律を守る")
   })
+
+  it("画面に参照録音の本数などの根拠を出さない", () => {
+    const source = readFileSync(resolve(__dirname, "DirectionPicker.tsx"), "utf8")
+    expect(source).not.toMatch(/参照|観察|observedIn/)
+  })
 })

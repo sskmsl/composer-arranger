@@ -46,7 +46,7 @@ export const EMOTIONAL_MECHANISMS: readonly EmotionalMechanism[] = [
   {
     id: "expectation-arrival",
     label: "期待→到来",
-    effect: "土台を保留して期待を溜め、一点で一斉に到来させて解放する",
+    effect: "低域などの土台を溜めておき、一点でまとめて入れて、期待を解放する",
     signature: "低域が基準より8dB以上低い状態が2小節以上続き、その直後に+4dB以上の上がり幅で戻る（複数の層が同時に入るほど強い）",
   },
   {
@@ -57,7 +57,7 @@ export const EMOTIONAL_MECHANISMS: readonly EmotionalMechanism[] = [
   },
   {
     id: "closure-decay",
-    label: "終止の減衰",
+    label: "終わりの余韻",
     effect: "終わりを突然切らず、強さが落ちていく余韻で閉じる",
     signature: "最後の数小節で全体の強さが小節ごとに下がり、6dB以上落ちる",
   },
@@ -199,10 +199,10 @@ export function recommendMeans(
   if (!scores) return []
   const recommended: MeansRecommendation[] = []
   if ((scores["expectation-arrival"] ?? 0) < 0.5 && song.hasIntro) {
-    recommended.push({ means: "bass-withheld", reason: "序盤に土台を保留して一点で到来させる動きが、いまのアレンジには無い" })
+    recommended.push({ means: "bass-withheld", reason: "序盤で低域を溜めて、本編の頭で一気に入れる動きがありません" })
   }
   if ((scores["closure-decay"] ?? 0) < 0.5 && song.endsInOutro) {
-    recommended.push({ means: "level-fade", reason: "終わりが減衰で閉じていない" })
+    recommended.push({ means: "level-fade", reason: "終わりがフェードで閉じていません" })
   }
   return recommended.filter((item) => emotionalMeansById(item.means).observedIn >= 3)
 }
