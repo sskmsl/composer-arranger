@@ -72,3 +72,15 @@ describe("recommending the means a measured arrangement lacks", () => {
     expect(recommendMeans(undefined, { hasIntro: true, endsInOutro: true })).toEqual([])
   })
 })
+
+describe("wording shown to the person using the app", () => {
+  it("keeps development vocabulary (references, counts, dB, drafts, proxies) out of everything the screen shows", () => {
+    const internal = /参照|観察|本中|dB|Draft|代理|seed|Technique|署名|artifact/i
+    const shown = [
+      ...EMOTIONAL_MECHANISMS.flatMap((mechanism) => [mechanism.label, mechanism.effect]),
+      ...EMOTIONAL_MEANS.flatMap((means) => [means.label, means.description]),
+      ...recommendMeans({ "expectation-arrival": 0, "closure-decay": 0 }, { hasIntro: true, endsInOutro: true }).map((item) => item.reason),
+    ]
+    for (const text of shown) expect(text, text).not.toMatch(internal)
+  })
+})

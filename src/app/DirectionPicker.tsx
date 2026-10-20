@@ -169,9 +169,6 @@ export function DirectionPicker({
                         {on && <Check size={15} className="shrink-0 text-primary-on-dark" aria-hidden="true" />}
                       </span>
                       <span className="text-[13px] leading-5 text-body-muted">{means.description}</span>
-                      <span className="text-[12px] text-ink-soft">
-                        {means.observedIn >= 3 ? `参照5本中${means.observedIn}本で観察` : `参照5本中${means.observedIn}本（実験的）`}
-                      </span>
                       {recommendations.some((item) => item.means === means.id) && (
                         <span className="self-start rounded-pill bg-emerald-400/12 px-2 py-0.5 text-[12px] text-emerald-200">
                           {recommendations.find((item) => item.means === means.id)!.reason}
