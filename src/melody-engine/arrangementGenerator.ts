@@ -3593,7 +3593,7 @@ export function regenerateFullSongArrangementTarget(
   const tracks = current.tracks.some((track) => track.id === target.trackId)
     ? current.tracks.map((track) => {
         if (track.id !== target.trackId) return track
-        if (!target.sectionId) return regenerated
+        if (!target.sectionId) return { ...regenerated, ...(track.instrument ? { instrument: track.instrument } : {}) }
         return {
           ...track,
           generationRevision: revision,
