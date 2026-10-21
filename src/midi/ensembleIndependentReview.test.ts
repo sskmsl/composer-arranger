@@ -3,7 +3,7 @@ import { createEmptyProject, normalizeProject } from "@/core/project"
 import type { FullSongArrangement, GeneratedArrangementTrack } from "@/core/arrangementGeneration"
 import { DEFAULT_PART_PROGRAMS, GM_INSTRUMENT_CHOICES, arrangementInstrument, gmFileForProgram } from "@/core/gmInstruments"
 import { gmPreviewRequests } from "@/audio/previewPlayer"
-import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
+import { generateFullSongArrangement, regenerateFullSongArrangementTarget } from "@/melody-engine/arrangementGenerator"
 import { arrangementReviewSong } from "@/store/arrangementReviewFixtures"
 import { arrangementSoundedTracks } from "./exportArrangement"
 import { withGmSounds } from "./gmExport"
@@ -93,6 +93,20 @@ describe("演奏生成の前に分かっている、土台の外側の不足(it.
       const shared = [...byChannel.entries()].filter(([, programs]) => programs.size > 1)
       expect(shared, `別の楽器が同居したチャンネル: ${JSON.stringify(shared.map(([c, p]) => [c, [...p]]))}`).toEqual([])
     }
+  })
+
+  // 保存した楽器の判断は、再生成でも残る必要がある。区間を指定した再生成は既存トラックを土台にするので残るが、
+  // トラック全体の再生成(sectionId なし)は、作り直したトラックをそのまま返す(arrangementGenerator.ts の regenerateFullSongArrangementTarget)。
+  it.fails("トラック全体を再生成しても、保存した楽器が消えない", () => {
+    const { project, arrangement } = arranged()
+    const withInstrument: FullSongArrangement = {
+      ...arrangement,
+      tracks: arrangement.tracks.map((t) => t.id === "syn-pulse" ? { ...t, instrument: { program: 24, reason: "独立レビュー" } } : t),
+    }
+    const section = regenerateFullSongArrangementTarget(project, withInstrument, { trackId: "syn-pulse", sectionId: project.sections[1].id })
+    expect(section.tracks.find((t) => t.id === "syn-pulse")?.instrument?.program, "区間の再生成で消えた").toBe(24)
+    const whole = regenerateFullSongArrangementTarget(project, withInstrument, { trackId: "syn-pulse" })
+    expect(whole.tracks.find((t) => t.id === "syn-pulse")?.instrument?.program, "トラック全体の再生成で消えた").toBe(24)
   })
 
   // 制作ガイドは「所有音源だけ」を提案する方針(exportSongFull.test.ts の「提案する音源は所有一覧だけに限定する」)。
