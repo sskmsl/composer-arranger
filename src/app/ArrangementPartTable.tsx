@@ -12,9 +12,9 @@ function markKey(sectionId: string, rowId: string): string {
 }
 
 const PENDING_TEXT: Record<ArrangementCellChange["kind"], string> = {
-  added: "足す?",
-  removed: "外す?",
-  changed: "変える?",
+  added: "追加案",
+  removed: "休止案",
+  changed: "変更案",
 }
 
 /**
@@ -38,10 +38,6 @@ export function ArrangementPartTable({
 }) {
   if (matrix.length === 0) return null
   const columns = `9rem ${matrix.map((section) => `minmax(2.75rem, ${Math.max(1, section.lengthBars)}fr)`).join(" ")}`
-  const maxDensity = Math.max(
-    1,
-    ...matrix.flatMap((section) => ARRANGEMENT_PART_ROWS.map((row) => section.cells[row.id].notesPerBar)),
-  )
   const pendingByKey = new Map(pendingChanges.map((change) => [markKey(change.sectionId, change.rowId), change]))
   const minWidth = `${9 * 16 + matrix.length * 52}px`
 
@@ -113,11 +109,11 @@ export function ArrangementPartTable({
               const mark = marks.get(key)
               const pending = pendingByKey.get(key)
               const playing = cell.noteCount > 0
-              const strength = playing ? 0.3 + 0.55 * Math.min(1, cell.notesPerBar / maxDensity) : 0
+              const strength = playing ? 0.45 : 0
               const label = mark === "pending" && pending
                 ? PENDING_TEXT[pending.kind]
                 : mark === "removed"
-                  ? "外した"
+                  ? "休止"
                   : mark === "added"
                     ? "追加"
                     : mark === "changed"
@@ -153,17 +149,17 @@ export function ArrangementPartTable({
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-2 text-[12px] text-ink-soft">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-3.5 rounded-[3px] bg-white/40 outline outline-2 outline-primary-on-dark" aria-hidden="true" />
-            この版で追加・変更
+            今回変更した箇所
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-3.5 rounded-[3px] border-[1.5px] border-dashed border-primary-on-dark" aria-hidden="true" />
-            この版で外した
+            今回は休止
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-3.5 rounded-[3px] outline outline-[1.5px] outline-dashed outline-amber-300" aria-hidden="true" />
             提案中（まだ適用していない）
           </span>
-          <span>色が濃いほど音数が多い</span>
+          <span>色のあるマスは、現在音が鳴るパートです</span>
           {onPlaySection && <span>セクション名を押すか、表を右クリックすると、その箇所だけ再生</span>}
         </div>
       </div>

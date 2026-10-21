@@ -13,6 +13,8 @@ import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
 import { FullSongArrangementPanel } from "./FullSongArrangementPanel"
 import { CandidateStatusBadge } from "./CandidateStatusBadge"
 import { ArrangementChatPanel } from "./ArrangementChatPanel"
+import type { ArrangementChatProposal } from "@/core/arrangementChat"
+import { ArrangementChangeSummary } from "./ArrangementChangeSummary"
 import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 import { DirectionPicker } from "./DirectionPicker"
@@ -45,6 +47,7 @@ export function ArrangementWorkspace({
   const assignVariant = useProjectStore((state) => state.assignVariantToSection)
   const duplicateSection = useProjectStore((state) => state.duplicateSection)
   const removeSection = useProjectStore((state) => state.removeSection)
+  const applyProposal = useProjectStore((state) => state.applyArrangementChatProposal)
   const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
   const chatModel = useArrangementChat()
   const [draft, setDraft] = useState("")
@@ -62,6 +65,7 @@ export function ArrangementWorkspace({
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [playingSectionId, setPlayingSectionId] = useState<string | null>(null)
+  const [playingProposalId, setPlayingProposalId] = useState<string | null>(null)
   const [playbackBeat, setPlaybackBeat] = useState(0)
   const playbackRunRef = useRef(0)
   const seekingRef = useRef(false)
@@ -180,34 +184,38 @@ export function ArrangementWorkspace({
     })
   }
 
-  /** パート構成表から、そのセクションだけを鳴らす(同じセクションでもう一度押すと止める) */
-  const playSection = (sectionId: string) => {
-    if (playingSectionId === sectionId) {
+  /** 表示中の版と未適用案を区別し、指定したセクションだけを試聴する。 */
+  const playSection = (sectionId: string, proposal?: ArrangementChatProposal) => {
+    if (playingSectionId === sectionId && playingProposalId === (proposal?.id ?? null)) {
       stop()
       return
     }
     const section = chatModel.matrix.find((candidate) => candidate.sectionId === sectionId)
     if (!section) return
-    const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const target = proposal ? chatModel.projectFor(proposal) : project
+    const arrangement = proposal ? chatModel.arrangementFor(proposal) : project.fullSongArrangement
+    const playbackMaterial = proposal ? buildSongPlaybackMaterial(target, arrangement?.plan.directive?.timelineConstraints) : material
+    const beatsPerBar = parseTimeSignature(target.song.timeSignature).beatsPerBar
     const range = {
       startBeat: (section.startBar - 1) * beatsPerBar,
-      endBeat: Math.min(material.totalBeats, section.endBar * beatsPerBar),
+      endBeat: Math.min(playbackMaterial.totalBeats, section.endBar * beatsPerBar),
     }
     const runId = playbackRunRef.current + 1
     playbackRunRef.current = runId
     setPlaybackBeat(range.startBeat)
     setPlaying(true)
     setPlayingSectionId(sectionId)
-    const importedSource = project.sourceImport?.type === "midi"
+    setPlayingProposalId(proposal?.id ?? null)
+    const importedSource = target.sourceImport?.type === "midi"
     previewPlayer.play({
-      bpm: project.song.tempo,
-      tempoChanges: songTempo,
-      chords: importedSource ? [] : material.chords,
-      melody: material.melody,
-      accompaniment: importedSource ? material.importedBacking : material.accompanimentPattern,
-      arrangementTracks: project.fullSongArrangement?.tracks.filter((track) => !track.muted) ?? [],
+      bpm: target.song.tempo,
+      tempoChanges: songTempoChanges(target),
+      chords: importedSource ? [] : playbackMaterial.chords,
+      melody: playbackMaterial.melody,
+      accompaniment: importedSource ? playbackMaterial.importedBacking : playbackMaterial.accompanimentPattern,
+      arrangementTracks: arrangement?.tracks.filter((track) => !track.muted) ?? [],
       // 相談で付けた対旋律・合いの手も一緒に鳴らす
-      reactive: material.reactiveLayers,
+      reactive: playbackMaterial.reactiveLayers,
       mode: "active-context-reactive",
       range,
       onEnded: () => {
@@ -310,12 +318,7 @@ export function ArrangementWorkspace({
       {project.sections.length > 0 && (hasArrangement || versions.length > 0) && (
         <section aria-labelledby="part-table-heading" className="flex min-w-0 flex-col gap-3 rounded-lg border border-hairline bg-surface-tile-1 p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 id="part-table-heading" className="mr-auto text-[13px] font-semibold text-body-on-dark">パート構成</h3>
-            {hasArrangement && (
-              <span className="rounded-pill bg-white/6 px-2.5 py-1 text-[12px] text-body-muted">
-                生成 {generatedTrackCount}トラック · 発音 {soundingTrackCount}トラック
-              </span>
-            )}
+            <h3 id="part-table-heading" className="mr-auto text-[13px] font-semibold text-body-on-dark">アレンジの変更内容</h3>
             {hasArrangement && !pickerOpen && (
               <Button variant="secondary" onClick={() => setPickerOpen(true)}>
                 <Compass size={14} /> 方向を選び直す
@@ -330,13 +333,32 @@ export function ArrangementWorkspace({
           {hasArrangement && pickerOpen && (
             <DirectionPicker firstTime={false} onDone={() => setPickerOpen(false)} onCancel={() => setPickerOpen(false)} />
           )}
-          <ArrangementPartTable
+          <ArrangementChangeSummary
             matrix={chatModel.matrix}
-            marks={partCellMarks(chatModel.versionChanges, chatModel.pendingChanges)}
-            pendingChanges={chatModel.pendingChanges}
-            playingSectionId={playingSectionId}
-            onPlaySection={playSection}
+            changes={chatModel.selectedProposal ? chatModel.pendingChanges : chatModel.versionChanges}
+            proposal={chatModel.selectedProposal}
+            playingSectionId={playingProposalId && playingProposalId !== chatModel.selectedProposal?.id ? null : playingSectionId}
+            playingProposal={Boolean(playingProposalId)}
+            onPlayCurrent={(id) => playSection(id)}
+            onPlayProposal={chatModel.selectedProposal ? (id) => playSection(id, chatModel.selectedProposal!) : undefined}
+            onApply={chatModel.selectedProposal && chatModel.openMessage ? () => {
+              stop()
+              applyProposal(chatModel.openMessage!.id, chatModel.selectedProposal!.id, chatModel.arrangementFor(chatModel.selectedProposal!))
+            } : undefined}
           />
+          <details className="rounded-md border border-hairline p-3">
+            <summary className="cursor-pointer text-[13px] font-medium text-body-muted">詳しく見る：パートの入る場所・休む場所</summary>
+            <div className="mt-3">
+              <p className="mb-3 text-[12px] text-ink-soft">生成 {generatedTrackCount}トラック · 発音 {soundingTrackCount}トラック</p>
+              <ArrangementPartTable
+                matrix={chatModel.matrix}
+                marks={partCellMarks(chatModel.versionChanges, chatModel.pendingChanges)}
+                pendingChanges={chatModel.pendingChanges}
+                playingSectionId={playingProposalId ? null : playingSectionId}
+                onPlaySection={(id) => playSection(id)}
+              />
+            </div>
+          </details>
           {!hasArrangement && (
             <p className="text-[13px] text-body-muted">
               いまは追加パートなし（原曲のみ）です。上で方向を選ぶか、版の履歴から戻せます。
