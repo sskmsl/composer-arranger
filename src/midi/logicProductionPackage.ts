@@ -1274,11 +1274,17 @@ function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld
   })
   for (const track of project.fullSongArrangement?.tracks ?? []) {
     if (track.muted || track.notes.length === 0) continue
-    if (track.instrument && typeof arrangementInstrument(track) === "number") {
+    if (track.instrument && typeof arrangementInstrument(track) === "number"
+      && !scoreBrief({ ...DIRECTION_FAMILY_SCORES[world.directionId] }, briefForSoundWorld(project)).lead) {
       const program = arrangementInstrument(track)
       const label = GM_INSTRUMENT_CHOICES.find((choice) => choice.program === program)?.label ?? `GM ${program}`
-      rows.push({ trackName: track.name, role: arrangementTrackLabel(track.id), product: "General MIDI",
-        preset: label, volumeDb: arrangementVolumeDb(track.id, world), setting: track.instrument.reason })
+      const preset = typeof program === "number" && program >= 24 && program <= 31
+        ? program === 24 ? "Session Guitarist - Picked Nylon" : "Session Guitarist - Electric Mint"
+        : program === 32 ? "Session Bassist - Upright Bass" : program === 33 ? "Session Bassist - Prime Bass"
+        : program === 4 ? "Piano Colors" : "Noire"
+      rows.push({ trackName: track.name, role: arrangementTrackLabel(track.id), product: "Kontakt 8",
+        preset: finalPresetName(preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world),
+        setting: `${track.instrument.reason}。試聴・GM MIDI: ${label}。制作音源では同じ役割の演奏を読み込む` })
       continue
     }
     const sound = directionBasedSound(track.id, world)

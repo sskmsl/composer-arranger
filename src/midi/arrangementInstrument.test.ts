@@ -24,7 +24,7 @@ describe("saved arrangement instrument", () => {
     expect([...requests.keys()]).toEqual(["acoustic_guitar_nylon"])
     const midi = parseMidi(exportArrangementTrackMidi(loaded, arrangement, "syn-pulse", DEFAULT_PART_PROGRAMS))
     expect(midi.tracks.flatMap((t) => t.notes).map((n) => n.pitch)).toEqual([60])
-    expect(logicSoundRows(loaded).find((r) => r.trackName === "Comping")).toMatchObject({ product: "General MIDI", preset: "ナイロンギター", setting: "分散伴奏" })
+    expect(logicSoundRows(loaded).find((r) => r.trackName === "Comping")).toMatchObject({ product: "Kontakt 8", preset: "Session Guitarist - Picked Nylon / Melody / Calm Sea (Melody)" })
   })
 
   it("keeps legacy defaults, ignores invalid programs and keeps drums on the drum kit", () => {
