@@ -147,6 +147,7 @@ function sources(project: ComposerProject): TrackSource[] {
         { library: "u-he Repro", product: "Repro-5", searchTerms: ["soft poly pad", "dark sustained chord", "slow attack pad"], reason: "幅を持つ和声と緩やかなFilter変化に向く。" },
         { library: "Native Instruments Komplete 15 Ultimate", product: "Noire", searchTerms: ["felt", "pure", "soft cinematic piano"], reason: "和声を説明しすぎない減衰と余白を作れる。" },
         { library: "Arturia", product: "Analog Lab Play", searchTerms: ["warm keys", "soft pluck", "spacious pad"], reason: "鍵盤・プラック・パッドを同じ音色ブラウザで比較し、曲の色を決めやすい。" },
+        { library: "Native Instruments Komplete 15 Ultimate", product: "Session Guitarist - Picked Nylon", searchTerms: ["picked nylon arpeggio", "soft fingerstyle chord", "open voicing"], reason: "和声を分散和音で薄く示せる。鍵盤やパッドより輪郭がやわらかく、余白を残しやすい。" },
       ],
     },
     {
@@ -167,6 +168,7 @@ function sources(project: ComposerProject): TrackSource[] {
       recommendations: [
         { library: "u-he Repro", product: "Repro-1", searchTerms: ["muted sequence", "soft pluck", "dark pulse"], reason: "短いMotifと局所的なFilter motionに向く。" },
         { library: "Arturia", product: "Pigments Play", searchTerms: ["modern sequence", "moving pad", "textured pluck"], reason: "現代的な動きのある音で、伴奏の周期と質感をまとめやすい。" },
+        { library: "Native Instruments Komplete 15 Ultimate", product: "Session Guitarist - Electric Mint", searchTerms: ["clean electric pluck", "muted chord pulse", "short picked figure"], reason: "短い刻みや反復を、生楽器の揺れを残して置ける。主旋律の後ろで周期を支える。" },
       ],
     },
     {
@@ -177,6 +179,7 @@ function sources(project: ComposerProject): TrackSource[] {
       recommendations: [
         { library: "Native Instruments Komplete 15 Ultimate", product: "Battery 4", searchTerms: ["dry electronic kick", "short dark click", "muted percussion"], reason: "Kick・Click・Percを役割別に分けやすい。" },
         { library: "u-he Repro", product: "Repro-1", searchTerms: ["analog pulse", "muted sequence", "short bass pluck"], reason: "ドラム以外の周期として使える。" },
+        { library: "Native Instruments Komplete 15 Ultimate", product: "Session Guitarist - Electric Vintage", searchTerms: ["palm-muted pulse", "tight rhythm figure", "dry electric"], reason: "ドラム以外の周期を、ミュートした刻みで作れる。キックと音が重なる所を避けやすい。" },
       ],
     },
     {
@@ -187,6 +190,7 @@ function sources(project: ComposerProject): TrackSource[] {
       recommendations: [
         { library: "Native Instruments Komplete 15 Ultimate", product: "Session Strings Pro 2", searchTerms: ["soft legato ensemble", "sul tasto", "dynamic long"], reason: "内声・上昇線・応答線を奏法で分けられる。" },
         { library: "u-he Repro", product: "Repro-5", searchTerms: ["soft poly lead", "dark string pad", "slow ensemble"], reason: "生Stringsと異なる遠景のCounterに向く。" },
+        { library: "Native Instruments Komplete 15 Ultimate", product: "Session Guitarist - Electric Sunburst Deluxe", searchTerms: ["warm electric single line", "clean answering phrase", "soft sustain"], reason: "主旋律の休みに、生楽器の表情で応答する単音の線に向く。弦とは違う質感で対旋律を分けられる。" },
       ],
     },
     {
