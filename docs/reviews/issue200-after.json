@@ -1,0 +1,3632 @@
+[
+  {
+    "style": "neoclassical",
+    "withLead": false,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 92.5,
+    "audition": 95.4,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1246888528138532
+      },
+      {
+        "id": "syn-bass",
+        "notes": 207,
+        "pitchRange": [
+          31,
+          65
+        ],
+        "meanDurationBeats": 0.6353764090177129
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15592857142857164
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21,
+        "pitchRange": [
+          63,
+          77
+        ],
+        "meanDurationBeats": 0.30694444444444446
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.15598958333333335
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16208333333333333
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          53,
+          65
+        ],
+        "meanDurationBeats": 6.41875
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96,
+        "pitchRange": [
+          57,
+          81
+        ],
+        "meanDurationBeats": 0.14192708333333326
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          57,
+          64
+        ],
+        "meanDurationBeats": 6.87037037037037
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23124999999999998
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "syn-pulse",
+        "program": 0,
+        "notes": 17,
+        "pitchRange": [
+          59,
+          76
+        ],
+        "meanDurationBeats": 0.31862745098039214
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3,
+        "pitchRange": [
+          74,
+          76
+        ],
+        "meanDurationBeats": 4.6937500000000005
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 11.125
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          83,
+          85
+        ],
+        "meanDurationBeats": 1.7682291666666667
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 141,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2730053191489363
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 18,
+        "pitchRange": [
+          45,
+          93
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20,
+        "pitchRange": [
+          74,
+          79
+        ],
+        "meanDurationBeats": 3.7666666666666666
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          64
+        ],
+        "meanDurationBeats": 2.478409090909091
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          50,
+          65
+        ],
+        "meanDurationBeats": 4.523958333333334
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          64
+        ],
+        "meanDurationBeats": 0.19583333333333333
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          86,
+          88
+        ],
+        "meanDurationBeats": 4.667708333333334
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": false,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 91.5,
+    "audition": 94.9,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1247700216450225
+      },
+      {
+        "id": "syn-bass",
+        "notes": 207,
+        "pitchRange": [
+          31,
+          65
+        ],
+        "meanDurationBeats": 0.6337459742351041
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15592857142857164
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21,
+        "pitchRange": [
+          63,
+          77
+        ],
+        "meanDurationBeats": 0.30694444444444446
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.15600585937500003
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16208333333333333
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          53,
+          65
+        ],
+        "meanDurationBeats": 6.418504901960784
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96,
+        "pitchRange": [
+          57,
+          81
+        ],
+        "meanDurationBeats": 0.1410590277777777
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          57,
+          64
+        ],
+        "meanDurationBeats": 6.869907407407408
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23392857142857143
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23809523809523808
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "syn-pulse",
+        "program": 0,
+        "notes": 17,
+        "pitchRange": [
+          59,
+          76
+        ],
+        "meanDurationBeats": 0.31862745098039214
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3,
+        "pitchRange": [
+          74,
+          76
+        ],
+        "meanDurationBeats": 4.698611111111111
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 11.125
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          83,
+          85
+        ],
+        "meanDurationBeats": 1.7682291666666667
+      },
+      {
+        "id": "dr-ride",
+        "notes": 8,
+        "pitchRange": [
+          51,
+          51
+        ],
+        "meanDurationBeats": 0.15
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 141,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.269932033096927
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 18,
+        "pitchRange": [
+          45,
+          93
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20,
+        "pitchRange": [
+          74,
+          79
+        ],
+        "meanDurationBeats": 3.7666666666666666
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          64
+        ],
+        "meanDurationBeats": 2.4827651515151516
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          50,
+          65
+        ],
+        "meanDurationBeats": 4.523958333333334
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          64
+        ],
+        "meanDurationBeats": 0.19583333333333333
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          86,
+          88
+        ],
+        "meanDurationBeats": 4.667708333333334
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": false,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 91.5,
+    "audition": 94.2,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1246888528138532
+      },
+      {
+        "id": "syn-bass",
+        "notes": 208,
+        "pitchRange": [
+          31,
+          65
+        ],
+        "meanDurationBeats": 0.6317007211538457
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15592857142857164
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21,
+        "pitchRange": [
+          63,
+          77
+        ],
+        "meanDurationBeats": 0.30694444444444446
+      },
+      {
+        "id": "dr-snare",
+        "notes": 127,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.1560203412073491
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16208333333333333
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          53,
+          65
+        ],
+        "meanDurationBeats": 6.420465686274509
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96,
+        "pitchRange": [
+          57,
+          81
+        ],
+        "meanDurationBeats": 0.1414930555555555
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          57,
+          64
+        ],
+        "meanDurationBeats": 6.869907407407408
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23124999999999998
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "syn-pulse",
+        "program": 0,
+        "notes": 17,
+        "pitchRange": [
+          59,
+          76
+        ],
+        "meanDurationBeats": 0.31862745098039214
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3,
+        "pitchRange": [
+          74,
+          76
+        ],
+        "meanDurationBeats": 4.698611111111111
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 11.125
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          83,
+          85
+        ],
+        "meanDurationBeats": 1.7682291666666667
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 142,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2653169014084509
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 18,
+        "pitchRange": [
+          45,
+          93
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20,
+        "pitchRange": [
+          74,
+          79
+        ],
+        "meanDurationBeats": 3.7666666666666666
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          64
+        ],
+        "meanDurationBeats": 2.478409090909091
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          50,
+          65
+        ],
+        "meanDurationBeats": 4.533541666666666
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          64
+        ],
+        "meanDurationBeats": 0.19583333333333333
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          86,
+          88
+        ],
+        "meanDurationBeats": 4.667708333333334
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": true,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 92.5,
+    "audition": 95.2,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.10363906926407
+      },
+      {
+        "id": "syn-bass",
+        "notes": 209,
+        "pitchRange": [
+          31,
+          65
+        ],
+        "meanDurationBeats": 0.6200757575757572
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15592857142857164
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14,
+        "pitchRange": [
+          65,
+          77
+        ],
+        "meanDurationBeats": 0.34270833333333334
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.15598958333333335
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16208333333333333
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          53,
+          65
+        ],
+        "meanDurationBeats": 6.306740196078431
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 69,
+        "pitchRange": [
+          57,
+          81
+        ],
+        "meanDurationBeats": 0.14492753623188404
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          57,
+          64
+        ],
+        "meanDurationBeats": 6.699537037037037
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23124999999999998
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "syn-pulse",
+        "program": 0,
+        "notes": 12,
+        "pitchRange": [
+          59,
+          69
+        ],
+        "meanDurationBeats": 0.3194444444444445
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 2,
+        "pitchRange": [
+          79,
+          79
+        ],
+        "meanDurationBeats": 1.25
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          83,
+          85
+        ],
+        "meanDurationBeats": 1.7682291666666667
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 143,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.243079836829837
+      },
+      {
+        "id": "syn-arp-high",
+        "program": 4,
+        "notes": 5,
+        "pitchRange": [
+          67,
+          76
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          93
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 7,
+        "pitchRange": [
+          74,
+          79
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          64
+        ],
+        "meanDurationBeats": 2.478409090909091
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          50,
+          65
+        ],
+        "meanDurationBeats": 4.345208333333333
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          64
+        ],
+        "meanDurationBeats": 0.19583333333333333
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          91,
+          95
+        ],
+        "meanDurationBeats": 4.667708333333334
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": true,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 91.5,
+    "audition": 95,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.105208333333334
+      },
+      {
+        "id": "syn-bass",
+        "notes": 209,
+        "pitchRange": [
+          31,
+          65
+        ],
+        "meanDurationBeats": 0.6207236842105258
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15592857142857164
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14,
+        "pitchRange": [
+          65,
+          77
+        ],
+        "meanDurationBeats": 0.34270833333333334
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.15600585937500003
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16208333333333333
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          53,
+          65
+        ],
+        "meanDurationBeats": 6.306985294117647
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 69,
+        "pitchRange": [
+          57,
+          81
+        ],
+        "meanDurationBeats": 0.14492753623188404
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          57,
+          64
+        ],
+        "meanDurationBeats": 6.699999999999999
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23392857142857143
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23809523809523808
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "syn-pulse",
+        "program": 0,
+        "notes": 12,
+        "pitchRange": [
+          59,
+          69
+        ],
+        "meanDurationBeats": 0.3194444444444445
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 2,
+        "pitchRange": [
+          79,
+          79
+        ],
+        "meanDurationBeats": 1.25
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          83,
+          85
+        ],
+        "meanDurationBeats": 1.7682291666666667
+      },
+      {
+        "id": "dr-ride",
+        "notes": 8,
+        "pitchRange": [
+          51,
+          51
+        ],
+        "meanDurationBeats": 0.15
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 143,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.243079836829837
+      },
+      {
+        "id": "syn-arp-high",
+        "program": 4,
+        "notes": 5,
+        "pitchRange": [
+          67,
+          76
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          93
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 7,
+        "pitchRange": [
+          74,
+          79
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          64
+        ],
+        "meanDurationBeats": 2.478409090909091
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          50,
+          65
+        ],
+        "meanDurationBeats": 4.345208333333333
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          64
+        ],
+        "meanDurationBeats": 0.19583333333333333
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          91,
+          95
+        ],
+        "meanDurationBeats": 4.667708333333334
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": true,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 91.5,
+    "audition": 94.3,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1028273809523816
+      },
+      {
+        "id": "syn-bass",
+        "notes": 209,
+        "pitchRange": [
+          31,
+          65
+        ],
+        "meanDurationBeats": 0.6207735247208926
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15592857142857164
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14,
+        "pitchRange": [
+          65,
+          77
+        ],
+        "meanDurationBeats": 0.34270833333333334
+      },
+      {
+        "id": "dr-snare",
+        "notes": 127,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.1560203412073491
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16208333333333333
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          53,
+          65
+        ],
+        "meanDurationBeats": 6.448161764705882
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 75,
+        "pitchRange": [
+          57,
+          81
+        ],
+        "meanDurationBeats": 0.1455555555555555
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          57,
+          64
+        ],
+        "meanDurationBeats": 6.9037037037037035
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23124999999999998
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "syn-pulse",
+        "program": 0,
+        "notes": 12,
+        "pitchRange": [
+          59,
+          69
+        ],
+        "meanDurationBeats": 0.3194444444444445
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 2,
+        "pitchRange": [
+          79,
+          79
+        ],
+        "meanDurationBeats": 1.25
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          83,
+          85
+        ],
+        "meanDurationBeats": 1.7682291666666667
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 143,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2418706293706296
+      },
+      {
+        "id": "syn-arp-high",
+        "program": 4,
+        "notes": 6,
+        "pitchRange": [
+          67,
+          76
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 15,
+        "pitchRange": [
+          48,
+          93
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 8,
+        "pitchRange": [
+          74,
+          79
+        ],
+        "meanDurationBeats": 0.75859375
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          64
+        ],
+        "meanDurationBeats": 2.4814393939393935
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          50,
+          65
+        ],
+        "meanDurationBeats": 4.545208333333333
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14,
+        "pitchRange": [
+          61,
+          64
+        ],
+        "meanDurationBeats": 0.19910714285714284
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": false,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 90.986328125,
+    "audition": 96.4,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1247700216450225
+      },
+      {
+        "id": "syn-bass",
+        "notes": 241,
+        "pitchRange": [
+          31,
+          60
+        ],
+        "meanDurationBeats": 0.6069847856154904
+      },
+      {
+        "id": "dr-kick",
+        "notes": 185,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.1541103603603606
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21,
+        "pitchRange": [
+          63,
+          77
+        ],
+        "meanDurationBeats": 0.30694444444444446
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.1617439516129032
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 357,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16541666666666668
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          52,
+          65
+        ],
+        "meanDurationBeats": 6.306862745098039
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96,
+        "pitchRange": [
+          57,
+          79
+        ],
+        "meanDurationBeats": 0.14539930555555544
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          55,
+          66
+        ],
+        "meanDurationBeats": 6.6997685185185185
+      },
+      {
+        "id": "syn-pulse",
+        "program": 81,
+        "notes": 23,
+        "pitchRange": [
+          64,
+          74
+        ],
+        "meanDurationBeats": 0.1659420289855072
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23177083333333334
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3,
+        "pitchRange": [
+          73,
+          78
+        ],
+        "meanDurationBeats": 4.699305555555555
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 11.125
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 1.7671875
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 92,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.25
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 172,
+        "pitchRange": [
+          37,
+          37
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 66,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.17616792929292935
+      },
+      {
+        "id": "dr-clap",
+        "notes": 26,
+        "pitchRange": [
+          39,
+          39
+        ],
+        "meanDurationBeats": 0.1250801282051282
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 295,
+        "pitchRange": [
+          82,
+          82
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3,
+        "pitchRange": [
+          63,
+          63
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 144,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2349392361111111
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 44,
+        "pitchRange": [
+          36,
+          59
+        ],
+        "meanDurationBeats": 0.35104166666666675
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 7,
+        "pitchRange": [
+          52,
+          62
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9,
+        "pitchRange": [
+          76,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6,
+        "pitchRange": [
+          55,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20,
+        "pitchRange": [
+          72,
+          79
+        ],
+        "meanDurationBeats": 3.7759375
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          62
+        ],
+        "meanDurationBeats": 2.4981060606060606
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          55,
+          64
+        ],
+        "meanDurationBeats": 4.355625
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          66
+        ],
+        "meanDurationBeats": 0.19531249999999997
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          85,
+          90
+        ],
+        "meanDurationBeats": 4.666666666666666
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": false,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 90.96875,
+    "audition": 96.3,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.121252705627706
+      },
+      {
+        "id": "syn-bass",
+        "notes": 242,
+        "pitchRange": [
+          31,
+          60
+        ],
+        "meanDurationBeats": 0.6040891873278231
+      },
+      {
+        "id": "dr-kick",
+        "notes": 185,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.1541103603603606
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21,
+        "pitchRange": [
+          63,
+          77
+        ],
+        "meanDurationBeats": 0.30694444444444446
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.16174395161290323
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 357,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16541666666666668
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          52,
+          65
+        ],
+        "meanDurationBeats": 6.4186274509803924
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96,
+        "pitchRange": [
+          57,
+          79
+        ],
+        "meanDurationBeats": 0.14453124999999992
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          55,
+          66
+        ],
+        "meanDurationBeats": 6.8701388888888895
+      },
+      {
+        "id": "syn-pulse",
+        "program": 81,
+        "notes": 23,
+        "pitchRange": [
+          64,
+          74
+        ],
+        "meanDurationBeats": 0.16548913043478256
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.234375
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23809523809523808
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3,
+        "pitchRange": [
+          73,
+          78
+        ],
+        "meanDurationBeats": 4.694444444444444
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 11.125
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 1.7671875
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 92,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.25
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 172,
+        "pitchRange": [
+          37,
+          37
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 66,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.17601010101010106
+      },
+      {
+        "id": "dr-clap",
+        "notes": 26,
+        "pitchRange": [
+          39,
+          39
+        ],
+        "meanDurationBeats": 0.1250801282051282
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 295,
+        "pitchRange": [
+          82,
+          82
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3,
+        "pitchRange": [
+          63,
+          63
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 145,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2282614942528736
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 43,
+        "pitchRange": [
+          36,
+          57
+        ],
+        "meanDurationBeats": 0.353343023255814
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 7,
+        "pitchRange": [
+          52,
+          62
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9,
+        "pitchRange": [
+          78,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6,
+        "pitchRange": [
+          55,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20,
+        "pitchRange": [
+          72,
+          79
+        ],
+        "meanDurationBeats": 3.767604166666667
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          62
+        ],
+        "meanDurationBeats": 2.4990530303030307
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          55,
+          64
+        ],
+        "meanDurationBeats": 4.523958333333334
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          66
+        ],
+        "meanDurationBeats": 0.19531249999999997
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": false,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 91.103515625,
+    "audition": 95.7,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.123200757575758
+      },
+      {
+        "id": "syn-bass",
+        "notes": 241,
+        "pitchRange": [
+          31,
+          60
+        ],
+        "meanDurationBeats": 0.6073046334716453
+      },
+      {
+        "id": "dr-kick",
+        "notes": 185,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.1541103603603606
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21,
+        "pitchRange": [
+          63,
+          77
+        ],
+        "meanDurationBeats": 0.30694444444444446
+      },
+      {
+        "id": "dr-snare",
+        "notes": 123,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.16173780487804876
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 357,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16541666666666668
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          52,
+          65
+        ],
+        "meanDurationBeats": 6.450122549019608
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96,
+        "pitchRange": [
+          57,
+          79
+        ],
+        "meanDurationBeats": 0.1432291666666666
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          55,
+          66
+        ],
+        "meanDurationBeats": 6.904166666666666
+      },
+      {
+        "id": "syn-pulse",
+        "program": 81,
+        "notes": 15,
+        "pitchRange": [
+          64,
+          74
+        ],
+        "meanDurationBeats": 0.16486111111111112
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23177083333333334
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3,
+        "pitchRange": [
+          73,
+          78
+        ],
+        "meanDurationBeats": 4.297222222222222
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 12.188541666666666
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 1.7671875
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 92,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.25
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 172,
+        "pitchRange": [
+          37,
+          37
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 66,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.17585227272727277
+      },
+      {
+        "id": "dr-clap",
+        "notes": 26,
+        "pitchRange": [
+          39,
+          39
+        ],
+        "meanDurationBeats": 0.1250801282051282
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 295,
+        "pitchRange": [
+          82,
+          82
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3,
+        "pitchRange": [
+          63,
+          63
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 144,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2349971064814815
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 44,
+        "pitchRange": [
+          36,
+          59
+        ],
+        "meanDurationBeats": 0.3418560606060606
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 4,
+        "pitchRange": [
+          55,
+          62
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 5,
+        "pitchRange": [
+          76,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6,
+        "pitchRange": [
+          55,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20,
+        "pitchRange": [
+          72,
+          79
+        ],
+        "meanDurationBeats": 3.7759375
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          62
+        ],
+        "meanDurationBeats": 2.4918560606060605
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          55,
+          64
+        ],
+        "meanDurationBeats": 4.573541666666666
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14,
+        "pitchRange": [
+          61,
+          66
+        ],
+        "meanDurationBeats": 0.19866071428571427
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": true,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 94.154296875,
+    "audition": 95.7,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.112486471861472
+      },
+      {
+        "id": "syn-bass",
+        "notes": 238,
+        "pitchRange": [
+          31,
+          60
+        ],
+        "meanDurationBeats": 0.6008928571428563
+      },
+      {
+        "id": "dr-kick",
+        "notes": 177,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15441384180790985
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14,
+        "pitchRange": [
+          65,
+          77
+        ],
+        "meanDurationBeats": 0.34270833333333334
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.1617439516129032
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 202,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16541666666666668
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          52,
+          65
+        ],
+        "meanDurationBeats": 6.450122549019608
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 69,
+        "pitchRange": [
+          57,
+          79
+        ],
+        "meanDurationBeats": 0.14975845410628014
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          55,
+          66
+        ],
+        "meanDurationBeats": 6.904166666666666
+      },
+      {
+        "id": "syn-pulse",
+        "program": 81,
+        "notes": 14,
+        "pitchRange": [
+          64,
+          86
+        ],
+        "meanDurationBeats": 0.16473214285714288
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23177083333333334
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 1.3921875
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 84,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.25
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 164,
+        "pitchRange": [
+          37,
+          37
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 66,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.17616792929292935
+      },
+      {
+        "id": "dr-clap",
+        "notes": 26,
+        "pitchRange": [
+          39,
+          39
+        ],
+        "meanDurationBeats": 0.1250801282051282
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 172,
+        "pitchRange": [
+          82,
+          82
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3,
+        "pitchRange": [
+          63,
+          63
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 146,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.208533105022831
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 47,
+        "pitchRange": [
+          36,
+          57
+        ],
+        "meanDurationBeats": 0.35079787234042553
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 2,
+        "pitchRange": [
+          55,
+          57
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 5,
+        "pitchRange": [
+          76,
+          90
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6,
+        "pitchRange": [
+          55,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 8,
+        "pitchRange": [
+          84,
+          91
+        ],
+        "meanDurationBeats": 1.459375
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          62
+        ],
+        "meanDurationBeats": 2.4918560606060605
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          55,
+          64
+        ],
+        "meanDurationBeats": 4.574375
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14,
+        "pitchRange": [
+          61,
+          66
+        ],
+        "meanDurationBeats": 0.19866071428571427
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          93,
+          93
+        ],
+        "meanDurationBeats": 3.458333333333333
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": true,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 94.072265625,
+    "audition": 95.4,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1115124458874464
+      },
+      {
+        "id": "syn-bass",
+        "notes": 238,
+        "pitchRange": [
+          31,
+          60
+        ],
+        "meanDurationBeats": 0.6003151260504195
+      },
+      {
+        "id": "dr-kick",
+        "notes": 177,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15441384180790985
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14,
+        "pitchRange": [
+          65,
+          77
+        ],
+        "meanDurationBeats": 0.34270833333333334
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.16174395161290323
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 202,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16541666666666668
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          52,
+          65
+        ],
+        "meanDurationBeats": 6.420710784313726
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 69,
+        "pitchRange": [
+          57,
+          79
+        ],
+        "meanDurationBeats": 0.14975845410628014
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          55,
+          66
+        ],
+        "meanDurationBeats": 6.87037037037037
+      },
+      {
+        "id": "syn-pulse",
+        "program": 81,
+        "notes": 20,
+        "pitchRange": [
+          64,
+          74
+        ],
+        "meanDurationBeats": 0.16531249999999997
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.234375
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23809523809523808
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "str-upper",
+        "notes": 1,
+        "pitchRange": [
+          86,
+          86
+        ],
+        "meanDurationBeats": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 1.3921875
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 84,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.25
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 164,
+        "pitchRange": [
+          37,
+          37
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 66,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.17601010101010106
+      },
+      {
+        "id": "dr-clap",
+        "notes": 26,
+        "pitchRange": [
+          39,
+          39
+        ],
+        "meanDurationBeats": 0.1250801282051282
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 172,
+        "pitchRange": [
+          82,
+          82
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3,
+        "pitchRange": [
+          63,
+          63
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 146,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.208533105022831
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 47,
+        "pitchRange": [
+          36,
+          57
+        ],
+        "meanDurationBeats": 0.34773936170212766
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9,
+        "pitchRange": [
+          76,
+          90
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6,
+        "pitchRange": [
+          55,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 7,
+        "pitchRange": [
+          84,
+          91
+        ],
+        "meanDurationBeats": 1.2738095238095237
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          62
+        ],
+        "meanDurationBeats": 2.4990530303030307
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          55,
+          64
+        ],
+        "meanDurationBeats": 4.539791666666667
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16,
+        "pitchRange": [
+          61,
+          66
+        ],
+        "meanDurationBeats": 0.19531249999999997
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2,
+        "pitchRange": [
+          93,
+          93
+        ],
+        "meanDurationBeats": 4.666666666666666
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": true,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 94.154296875,
+    "audition": 95.6,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154,
+        "pitchRange": [
+          55,
+          67
+        ],
+        "meanDurationBeats": 3.1125676406926415
+      },
+      {
+        "id": "syn-bass",
+        "notes": 238,
+        "pitchRange": [
+          31,
+          60
+        ],
+        "meanDurationBeats": 0.6003501400560216
+      },
+      {
+        "id": "dr-kick",
+        "notes": 177,
+        "pitchRange": [
+          36,
+          36
+        ],
+        "meanDurationBeats": 0.15441384180790985
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14,
+        "pitchRange": [
+          65,
+          77
+        ],
+        "meanDurationBeats": 0.34270833333333334
+      },
+      {
+        "id": "dr-snare",
+        "notes": 123,
+        "pitchRange": [
+          38,
+          38
+        ],
+        "meanDurationBeats": 0.16173780487804876
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 202,
+        "pitchRange": [
+          42,
+          42
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.16541666666666668
+      },
+      {
+        "id": "str-cello",
+        "notes": 17,
+        "pitchRange": [
+          52,
+          65
+        ],
+        "meanDurationBeats": 6.334313725490197
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 75,
+        "pitchRange": [
+          57,
+          79
+        ],
+        "meanDurationBeats": 0.1538888888888888
+      },
+      {
+        "id": "str-viola",
+        "notes": 9,
+        "pitchRange": [
+          55,
+          66
+        ],
+        "meanDurationBeats": 6.733564814814814
+      },
+      {
+        "id": "syn-pulse",
+        "program": 81,
+        "notes": 12,
+        "pitchRange": [
+          57,
+          86
+        ],
+        "meanDurationBeats": 0.1652777777777778
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6,
+        "pitchRange": [
+          46,
+          46
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12,
+        "pitchRange": [
+          45,
+          45
+        ],
+        "meanDurationBeats": 0.23177083333333334
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12,
+        "pitchRange": [
+          50,
+          50
+        ],
+        "meanDurationBeats": 0.23611111111111108
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.15000000000000002
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 0.5750000000000001
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 2
+      },
+      {
+        "id": "str-upper",
+        "notes": 2,
+        "pitchRange": [
+          83,
+          86
+        ],
+        "meanDurationBeats": 0.5
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4,
+        "pitchRange": [
+          81,
+          81
+        ],
+        "meanDurationBeats": 1.3921875
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 84,
+        "pitchRange": [
+          35,
+          35
+        ],
+        "meanDurationBeats": 0.25
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 164,
+        "pitchRange": [
+          37,
+          37
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 66,
+        "pitchRange": [
+          40,
+          40
+        ],
+        "meanDurationBeats": 0.17585227272727277
+      },
+      {
+        "id": "dr-clap",
+        "notes": 26,
+        "pitchRange": [
+          39,
+          39
+        ],
+        "meanDurationBeats": 0.1250801282051282
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 172,
+        "pitchRange": [
+          82,
+          82
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3,
+        "pitchRange": [
+          63,
+          63
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 3,
+        "pitchRange": [
+          49,
+          49
+        ],
+        "meanDurationBeats": 5.333333333333333
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2,
+        "pitchRange": [
+          41,
+          41
+        ],
+        "meanDurationBeats": 0.41145833333333337
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 146,
+        "pitchRange": [
+          24,
+          35
+        ],
+        "meanDurationBeats": 1.2072916666666669
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 46,
+        "pitchRange": [
+          36,
+          57
+        ],
+        "meanDurationBeats": 0.34551630434782615
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 3,
+        "pitchRange": [
+          52,
+          62
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 5,
+        "pitchRange": [
+          79,
+          85
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 3,
+        "pitchRange": [
+          55,
+          86
+        ],
+        "meanDurationBeats": 0.125
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 8,
+        "pitchRange": [
+          84,
+          91
+        ],
+        "meanDurationBeats": 1.4249999999999998
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22,
+        "pitchRange": [
+          59,
+          62
+        ],
+        "meanDurationBeats": 2.4916666666666667
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10,
+        "pitchRange": [
+          55,
+          64
+        ],
+        "meanDurationBeats": 4.374375000000001
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14,
+        "pitchRange": [
+          61,
+          66
+        ],
+        "meanDurationBeats": 0.19866071428571427
+      }
+    ]
+  }
+]

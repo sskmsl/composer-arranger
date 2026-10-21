@@ -1,0 +1,1870 @@
+[
+  {
+    "style": "neoclassical",
+    "withLead": false,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 94.5,
+    "audition": 96.4,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 207
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 13
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 110
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 162
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 109
+      },
+      {
+        "id": "dr-clap",
+        "notes": 70
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 60
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 141
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 42
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 6
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 6
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 18
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 6
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": false,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 93.16666666666667,
+    "audition": 96.5,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 208
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 13
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 110
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 162
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 109
+      },
+      {
+        "id": "dr-clap",
+        "notes": 70
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 60
+      },
+      {
+        "id": "dr-ride",
+        "notes": 8
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 142
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 41
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 6
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 6
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 18
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 14
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 6
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": false,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 91.16666666666667,
+    "audition": 96.5,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 207
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21
+      },
+      {
+        "id": "dr-snare",
+        "notes": 127
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 13
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 110
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 162
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 109
+      },
+      {
+        "id": "dr-clap",
+        "notes": 70
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 60
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 141
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 42
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 6
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 6
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 18
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 12
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 14
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 6
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": true,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 94.5,
+    "audition": 96.2,
+    "responseOverlap": 2,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 209
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 69
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 8
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 110
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 162
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 109
+      },
+      {
+        "id": "dr-clap",
+        "notes": 70
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 60
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 143
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 44
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 4
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 2
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 12
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 8
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 6
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": true,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 91.16666666666667,
+    "audition": 96.3,
+    "responseOverlap": 2,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 209
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14
+      },
+      {
+        "id": "dr-snare",
+        "notes": 128
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 72
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 8
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 110
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 162
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 109
+      },
+      {
+        "id": "dr-clap",
+        "notes": 70
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 60
+      },
+      {
+        "id": "dr-ride",
+        "notes": 8
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 143
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 45
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 4
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 2
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 12
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 8
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 14
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 6
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14
+      }
+    ]
+  },
+  {
+    "style": "neoclassical",
+    "withLead": true,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 93.16666666666667,
+    "audition": 96.1,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 209
+      },
+      {
+        "id": "dr-kick",
+        "notes": 175
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14
+      },
+      {
+        "id": "dr-snare",
+        "notes": 127
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 72
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 60
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 13
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 110
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 162
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 109
+      },
+      {
+        "id": "dr-clap",
+        "notes": 70
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 60
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 143
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 44
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 5
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 5
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 12
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 14
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 6
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": false,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 90.341796875,
+    "audition": 95.9,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 242
+      },
+      {
+        "id": "dr-kick",
+        "notes": 185
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 357
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 23
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 120
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 172
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 105
+      },
+      {
+        "id": "dr-clap",
+        "notes": 66
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 295
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 145
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 43
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 7
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": false,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 90.330078125,
+    "audition": 95.9,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 242
+      },
+      {
+        "id": "dr-kick",
+        "notes": 185
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 357
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 23
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 120
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 172
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 105
+      },
+      {
+        "id": "dr-clap",
+        "notes": 66
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 295
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 145
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 43
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 7
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": false,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 90.365234375,
+    "audition": 96.4,
+    "responseOverlap": 0,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 241
+      },
+      {
+        "id": "dr-kick",
+        "notes": 185
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 21
+      },
+      {
+        "id": "dr-snare",
+        "notes": 123
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 357
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 96
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 23
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 3
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 120
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 172
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 105
+      },
+      {
+        "id": "dr-clap",
+        "notes": 66
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 295
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 144
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 44
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 7
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 6
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 20
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": true,
+    "seed": 19,
+    "approach": "motif-led",
+    "quality": 93.43359375,
+    "audition": 95.9,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 238
+      },
+      {
+        "id": "dr-kick",
+        "notes": 177
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 202
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 75
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 22
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1
+      },
+      {
+        "id": "str-upper",
+        "notes": 1
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 112
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 164
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 105
+      },
+      {
+        "id": "dr-clap",
+        "notes": 66
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 172
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 146
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 46
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 3
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 7
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": true,
+    "seed": 41,
+    "approach": "motif-led",
+    "quality": 93.404296875,
+    "audition": 95.9,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 238
+      },
+      {
+        "id": "dr-kick",
+        "notes": 177
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14
+      },
+      {
+        "id": "dr-snare",
+        "notes": 124
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 202
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 72
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 22
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 14
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 112
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 164
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 105
+      },
+      {
+        "id": "dr-clap",
+        "notes": 66
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 172
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 146
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 47
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 9
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 3
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 9
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 16
+      },
+      {
+        "id": "str-high-octave",
+        "notes": 2
+      }
+    ]
+  },
+  {
+    "style": "electronica",
+    "withLead": true,
+    "seed": 73,
+    "approach": "motif-led",
+    "quality": 92.50390625,
+    "audition": 96.4,
+    "responseOverlap": 1,
+    "tracks": [
+      {
+        "id": "syn-dark-pad",
+        "notes": 154
+      },
+      {
+        "id": "syn-bass",
+        "notes": 238
+      },
+      {
+        "id": "dr-kick",
+        "notes": 177
+      },
+      {
+        "id": "syn-transition-phrase",
+        "notes": 14
+      },
+      {
+        "id": "dr-snare",
+        "notes": 123
+      },
+      {
+        "id": "dr-closed-hat",
+        "notes": 202
+      },
+      {
+        "id": "dr-field-drum",
+        "notes": 10
+      },
+      {
+        "id": "str-cello",
+        "notes": 17
+      },
+      {
+        "id": "syn-stabs",
+        "notes": 75
+      },
+      {
+        "id": "str-viola",
+        "notes": 9
+      },
+      {
+        "id": "syn-pulse",
+        "notes": 13
+      },
+      {
+        "id": "dr-open-hat",
+        "notes": 6
+      },
+      {
+        "id": "dr-low-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-high-tom",
+        "notes": 12
+      },
+      {
+        "id": "dr-gran-cassa",
+        "notes": 2
+      },
+      {
+        "id": "dr-crash",
+        "notes": 4
+      },
+      {
+        "id": "str-violin-1",
+        "notes": 1
+      },
+      {
+        "id": "str-upper",
+        "notes": 2
+      },
+      {
+        "id": "syn-final-lift",
+        "notes": 4
+      },
+      {
+        "id": "dr-kick-sub",
+        "notes": 112
+      },
+      {
+        "id": "dr-kick-click",
+        "notes": 164
+      },
+      {
+        "id": "dr-snare-body",
+        "notes": 105
+      },
+      {
+        "id": "dr-clap",
+        "notes": 66
+      },
+      {
+        "id": "dr-shaker",
+        "notes": 172
+      },
+      {
+        "id": "dr-percussion-high",
+        "notes": 3
+      },
+      {
+        "id": "dr-cymbal-swell",
+        "notes": 5
+      },
+      {
+        "id": "dr-impact",
+        "notes": 2
+      },
+      {
+        "id": "syn-sub-bass",
+        "notes": 146
+      },
+      {
+        "id": "syn-bass-mid",
+        "notes": 47
+      },
+      {
+        "id": "syn-arp-low",
+        "notes": 3
+      },
+      {
+        "id": "syn-arp-high",
+        "notes": 5
+      },
+      {
+        "id": "syn-chord-wide",
+        "notes": 3
+      },
+      {
+        "id": "syn-pad-air",
+        "notes": 8
+      },
+      {
+        "id": "syn-pad-motion",
+        "notes": 22
+      },
+      {
+        "id": "str-contrabass",
+        "notes": 10
+      },
+      {
+        "id": "str-spiccato",
+        "notes": 14
+      }
+    ]
+  }
+]
