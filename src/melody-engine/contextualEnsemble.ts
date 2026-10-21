@@ -43,7 +43,7 @@ export function arrangeContextualEnsemble(
   const harmonic = genre.harmonicDensity >= .6
   const chordLengths = project.chords.map((c) => c.durationBeats)
   const slowHarmony = chordLengths.length > 0 && chordLengths.reduce((a, b) => a + b, 0) / chordLengths.length >= bpb
-  const accompanimentProgram = rhythmic ? 4 : harmonic ? 0 : slowHarmony && project.song.tempo < 105 ? 24 : 27
+  const accompanimentProgram = rhythmic ? genre.repetition >= .75 ? 81 : 4 : harmonic ? 0 : slowHarmony && project.song.tempo < 105 ? 24 : 27
   const instruction = plan.directive?.soundInstruction?.enabled
   const preserve = new Set(plan.directive?.preserve ?? [])
   const explicit = new Set(plan.directive?.add ?? [])
@@ -62,8 +62,10 @@ export function arrangeContextualEnsemble(
       if (track.family === "drums") {
         // Keep the groove's primary instruments. Support layers need a distinct job.
         const allow = track.id === "dr-kick-sub" ? rhythmic && section.energy >= 70
+          || section.energy >= 74 && genre.dynamicContrast >= .6 && ["chorus", "final"].includes(section.semanticRole ?? "")
           : track.id === "dr-kick-click" ? rhythmic && project.song.tempo >= 120
           : track.id === "dr-snare-body" ? rhythmic && section.energy >= 58
+            || section.energy >= 70 && genre.dynamicContrast >= .6 && ["chorus", "final"].includes(section.semanticRole ?? "")
           : track.id === "dr-clap" ? rhythmic && section.semanticRole === "final"
           : track.id === "dr-shaker" ? rhythmic && occupancy < .65
           : track.id === "dr-ride" ? rhythmic && section.semanticRole === "final"
@@ -86,7 +88,7 @@ export function arrangeContextualEnsemble(
       const template = existing[0]
       const entry = start + (section.roleEntryBeats?.[track.id] ?? 0)
       const exit = Math.min(end, start + (section.roleExitBeats?.[track.id] ?? end - start))
-      for (let beat = start; beat < exit - .1; beat += response ? bpb / 2 : occupancy >= .65 ? bpb / 2 : bpb / 4) {
+      for (let beat = start; beat < exit - .1; beat += response || section.energy < 50 || occupancy >= .65 ? bpb / 2 : bpb / 4) {
         if (beat < entry) continue
         const local = beat - start
         const chord = chords.find((c) => c.startBeat <= local && local < c.startBeat + c.durationBeats)
@@ -101,15 +103,15 @@ export function arrangeContextualEnsemble(
         const tones = parsed.tones.map((t) => t.pitchClass)
         const step = Math.floor(local / (bpb / 4)) + (section.developmentStage ?? 0)
         const pc = tones[response ? (step + 1) % tones.length : [0, 2, 1, 2][step % 4] % tones.length]
-        const around = response ? Math.max(67, Math.min(79, previous)) : 55 + (step % 4 === 2 ? 7 : 0)
+        const around = response ? Math.max(67, Math.min(79, previous)) : (accompanimentProgram === 24 ? 55 : section.energy >= 68 ? 64 : 60) + (step % 4 === 2 ? 7 : 0)
         let pitch = nearest(pc, around)
         while (pitch < (response ? 67 : 48)) pitch += 12
-        while (pitch > (response ? 81 : 67)) pitch -= 12
+        while (pitch > (response ? 81 : accompanimentProgram === 24 ? 76 : 79)) pitch -= 12
         // Active lead owns its register, even when the harmony permits the same note.
         if (!response && lead.some((n) => n.startBeat < beat + duration && n.startBeat + n.durationBeats > beat && Math.abs(n.pitch - pitch) < 7)) continue
         previous = pitch
         result.push({ ...template, id: `${track.id}:ensemble:${section.sectionId}:${track.generationRevision}:${result.length}`,
-          startBeat: beat, durationBeats: duration, pitch, velocity: Math.round((response ? 40 : 34) + section.energy * .25),
+          startBeat: beat, durationBeats: duration, pitch, velocity: Math.round((response ? 40 : 26) + section.energy * (response ? .25 : .25 + genre.dynamicContrast * .15)),
           voiceId: `${track.id}:ensemble`, character: "safe",
           reason: response ? "主旋律の休符へ和音構成音で答え、句末を空ける" : "和音の根音・第5音・内声を別の拍へ配り、主旋律の音域を空ける" })
       }
