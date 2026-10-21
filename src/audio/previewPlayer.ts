@@ -6,7 +6,7 @@ import { midiToFreq } from "@/core/note"
 import { voiceChord } from "./chordVoicing"
 import type { ArrangementTrackId, GeneratedArrangementNote } from "@/core/arrangementGeneration"
 import { fullSongPreviewRanges } from "./fullSongPreview"
-import { arrangementTrackProgram, gmFileForProgram, type SoundPart, type SoundSettings } from "@/core/gmInstruments"
+import { arrangementInstrument, gmFileForProgram, type SoundPart, type SoundSettings } from "@/core/gmInstruments"
 import { gmBufferKey, gmSampleFor, loadGmBuffers, scheduleGmSample, type GmBufferKey } from "./gmSampler"
 import { getSoundSettings, setGmLoadState } from "./soundSettings"
 
@@ -77,7 +77,7 @@ export interface PlayOptions {
   /** Issue #42: Counter / Decoration共通の独立試聴レイヤー。 */
   reactive?: MelodyNote[]
   /** Arrangement Generatorの役割別トラック。ドラムは簡易打楽器、その他は役割別の確認音で鳴らす。 */
-  arrangementTracks?: Array<{ id: ArrangementTrackId; notes: GeneratedArrangementNote[] }>
+  arrangementTracks?: Array<{ id: ArrangementTrackId; notes: GeneratedArrangementNote[]; instrument?: { program: number; reason: string } }>
   mode: PreviewMode
   /** GM音源で鳴らすとき、melody に渡した音がどのパートか(短いフレーズ・イントロの試聴など)。既定は主旋律 */
   melodyPart?: SoundPart
@@ -254,7 +254,7 @@ export function gmPreviewRequests(opts: PlayOptions, programs: SoundSettings["pr
   if (layers.accompaniment) for (const note of opts.accompaniment ?? []) add(programs.accompaniment, note.pitch)
   if (layers.reactive) for (const note of opts.reactive ?? []) add(programs[opts.reactivePart ?? "counter"], note.pitch)
   for (const track of opts.arrangementTracks ?? []) {
-    const program = arrangementTrackProgram(track.id)
+    const program = arrangementInstrument(track)
     if (program === "drums") continue
     for (const note of track.notes) add(program, note.pitch)
   }
@@ -432,7 +432,7 @@ class PreviewPlayer {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleVoice(this.trackProgram(track.id), ctx, destination, note.pitch, Math.max(25, note.velocity), t0, dur, style, note.soundImage)
+          this.scheduleVoice(this.trackProgram(track), ctx, destination, note.pitch, Math.max(25, note.velocity), t0, dur, style, note.soundImage)
         }
         totalBeats = Math.max(totalBeats, clippedEnd - playbackStart)
       }
@@ -662,7 +662,7 @@ class PreviewPlayer {
           const style: LeadPreviewStyle = track.id.includes("pad") || track.id.startsWith("str-")
             ? "atmospheric"
             : track.id.includes("pulse") ? "obsessive" : "neutral"
-          this.scheduleVoice(this.trackProgram(track.id), ctx, destination, note.pitch, Math.max(25, note.velocity), t0, duration, style, note.soundImage)
+          this.scheduleVoice(this.trackProgram(track), ctx, destination, note.pitch, Math.max(25, note.velocity), t0, duration, style, note.soundImage)
         }
       }
     }
@@ -712,8 +712,8 @@ class PreviewPlayer {
     return this.gm ? this.gm.programs[part] : null
   }
 
-  private trackProgram(trackId: ArrangementTrackId): number | null {
-    const program = arrangementTrackProgram(trackId)
+  private trackProgram(track: { id: ArrangementTrackId; instrument?: { program: number; reason: string } }): number | null {
+    const program = arrangementInstrument(track)
     return this.gm && program !== "drums" ? program : null
   }
 

@@ -1,4 +1,4 @@
-import type { ArrangementTrackId } from "./arrangementGeneration"
+import type { ArrangementTrackId, GeneratedArrangementTrack } from "./arrangementGeneration"
 
 /**
  * GM(General MIDI)の楽器。試聴(GM音源)と、MIDI書き出し(GM向け)の楽器番号に共通で使う。
@@ -158,6 +158,14 @@ export function arrangementTrackProgram(trackId: ArrangementTrackId): number | "
     case "str-high-octave": return 49
     default: return 0
   }
+}
+
+/** 保存済みの編成判断を、試聴と書き出しの両方で解決する。 */
+export function arrangementInstrument(track: Pick<GeneratedArrangementTrack, "id" | "instrument">): number | "drums" {
+  const fallback = arrangementTrackProgram(track.id)
+  const program = track.instrument?.program
+  return fallback !== "drums" && typeof program === "number" && Number.isInteger(program) && program >= 0 && program <= 127
+    ? program : fallback
 }
 
 /** GM のドラムチャンネル(0始まりで9 = 10ch) */

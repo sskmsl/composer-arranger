@@ -1,3 +1,4 @@
+import { arrangementInstrument, GM_INSTRUMENT_CHOICES } from "@/core/gmInstruments"
 import { songTempoChanges } from "@/core/tempoMap"
 import { voiceChord } from "@/audio/chordVoicing"
 import { parseChordSymbol } from "@/core/chord"
@@ -546,7 +547,11 @@ function scoreArrangementTracks(project: ComposerProject, scores: Record<LogicSo
     }])
   }
   for (const track of tracks) {
-    if (track.id.startsWith("str-")) collect("strings", track)
+    const program = arrangementInstrument(track)
+    if (track.instrument && typeof program === "number") {
+      collect(program < 8 ? "piano" : program >= 24 && program <= 35 ? "band"
+        : program >= 40 && program <= 51 ? "strings" : "synth", track)
+    } else if (track.id.startsWith("str-")) collect("strings", track)
     else if (track.id.startsWith("dr-")) collect("percussion", track)
     else if (["syn-bass", "syn-bass-mid"].includes(track.id)) {
       collect("band", track, 0.9)
@@ -1269,6 +1274,13 @@ function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld
   })
   for (const track of project.fullSongArrangement?.tracks ?? []) {
     if (track.muted || track.notes.length === 0) continue
+    if (track.instrument && typeof arrangementInstrument(track) === "number") {
+      const program = arrangementInstrument(track)
+      const label = GM_INSTRUMENT_CHOICES.find((choice) => choice.program === program)?.label ?? `GM ${program}`
+      rows.push({ trackName: track.name, role: arrangementTrackLabel(track.id), product: "General MIDI",
+        preset: label, volumeDb: arrangementVolumeDb(track.id, world), setting: track.instrument.reason })
+      continue
+    }
     const sound = directionBasedSound(track.id, world)
       ?? ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue

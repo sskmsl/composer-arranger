@@ -318,6 +318,8 @@ export interface GeneratedArrangementTrack {
   generationRevision: number
   purpose: string
   performance?: ArrangementTrackPerformance
+  /** 曲全体で共通の音色。省略した旧データは従来のトラック既定値を使う。 */
+  instrument?: { program: number; reason: string }
 }
 
 export type ArrangementPerformanceArc =

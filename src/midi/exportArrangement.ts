@@ -4,7 +4,7 @@ import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { buildSmf, gridAlignedTicks, preservedNoteTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
-import { arrangementTrackProgram, type SoundSettings } from "@/core/gmInstruments"
+import { arrangementInstrument, type SoundSettings } from "@/core/gmInstruments"
 import { withGmSounds, type SoundedTrack } from "./gmExport"
 
 const SOFTWARE_INSTRUMENT_MIDI_CHANNEL = 0
@@ -54,7 +54,7 @@ function toSmfTrack(track: GeneratedArrangementTrack): SmfTrack {
 export function arrangementSoundedTracks(arrangement: FullSongArrangement | null | undefined): SoundedTrack[] {
   return (arrangement?.tracks ?? [])
     .filter((track) => !track.muted && track.notes.length > 0)
-    .map((track) => ({ track: toSmfTrack(track), sound: arrangementTrackProgram(track.id) }))
+    .map((track) => ({ track: toSmfTrack(track), sound: arrangementInstrument(track) }))
 }
 
 /** 全曲アレンジのうち、鳴らしている(ミュートしていない)トラックをSMFトラックにする */
