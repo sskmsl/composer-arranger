@@ -91,6 +91,7 @@ export function ArrangementWorkspace({
     setPlaybackBeat(startBeat)
     setPlaying(true)
     setPlayingSectionId(null)
+    setPlayingProposalId(null)
     const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.playContinuous({
       bpm: project.song.tempo,
@@ -138,8 +139,18 @@ export function ArrangementWorkspace({
     previewPlayer.stop()
     setPlaying(false)
     setPlayingSectionId(null)
+    setPlayingProposalId(null)
     setPlaybackBeat(reset ? 0 : Math.max(0, Math.min(material.totalBeats, currentBeat)))
   }
+
+  // 候補や版の切替後に、切替前の音だけが流れ続けないようにする。
+  useEffect(() => {
+    playbackRunRef.current += 1
+    previewPlayer.stop()
+    setPlaying(false)
+    setPlayingSectionId(null)
+    setPlayingProposalId(null)
+  }, [project, chatModel.selectedProposal?.id])
 
   useEffect(() => {
     if (!playing) return
@@ -165,6 +176,8 @@ export function ArrangementWorkspace({
     playbackRunRef.current += 1
     setPlaybackBeat(range.startBeat)
     setPlaying(true)
+    setPlayingSectionId(null)
+    setPlayingProposalId(null)
     const importedSource = project.sourceImport?.type === "midi"
     previewPlayer.play({
       bpm: project.song.tempo,
@@ -223,6 +236,7 @@ export function ArrangementWorkspace({
         setPlaybackBeat(range.endBeat)
         setPlaying(false)
         setPlayingSectionId(null)
+        setPlayingProposalId(null)
       },
     })
   }
