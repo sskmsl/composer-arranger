@@ -47,6 +47,7 @@ import { evaluateArrangementAudition, refineArrangementByAudition } from "./arra
 import { separateLowRegister } from "./lowRegisterSeparation"
 import { supportVoiceLeaps } from "./supportVoiceLeaps"
 import { minimizeBackgroundVoiceMovement } from "./backgroundVoiceLeading"
+import { arrangeContextualEnsemble } from "./contextualEnsemble"
 import { shapeChorusBass } from "./chorusBassActivity"
 import { repairBackgroundOctaveConflicts } from "./backgroundConflictRepair"
 
@@ -3206,7 +3207,7 @@ function generateArrangementCandidate(
   const performedTracks = applyArrangementPerformanceDirector(
     project,
     plan,
-    [...generatedCoreTracks, ...generatedLayerTracks],
+    arrangeContextualEnsemble(project, plan, [...generatedCoreTracks, ...generatedLayerTracks]),
   )
   return finalizeFullSongArrangement(project, {
     version: "1.0.0",
@@ -3574,7 +3575,7 @@ export function regenerateFullSongArrangementTarget(
   const regenerated = applyArrangementPerformanceDirector(
     project,
     plan,
-    [generateTrack(project, plan, target.trackId, revision, target.sectionId)],
+    arrangeContextualEnsemble(project, plan, [generateTrack(project, plan, target.trackId, revision, target.sectionId)]),
   )[0]
   const tracks = current.tracks.some((track) => track.id === target.trackId)
     ? current.tracks.map((track) => {
