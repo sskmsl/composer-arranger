@@ -106,6 +106,41 @@ describe("Logic Pro Production Package", () => {
     expect(result.tracks.find((track) => track.id === "bass-guide")?.recommendations[0].product).toBe("Repro-1")
   })
 
+  it("ギターも音源候補に含める。所有している Session Guitarist だけで、役割に合うトラックへ置く", () => {
+    const owned = new Set([
+      "Session Guitarist - Picked Nylon",
+      "Session Guitarist - Electric Mint",
+      "Session Guitarist - Electric Vintage",
+      "Session Guitarist - Electric Sunburst Deluxe",
+    ])
+    for (const direction of ["preserve-space", "controlled-escalation", "rhythmic-propulsion", "motif-relay", "balanced-architecture"] as const) {
+      const result = buildLogicProductionPackage(project(), direction)
+      const guitarBy = (id: string) => result.tracks.find((track) => track.id === id)?.recommendations
+        .filter((recommendation) => /guitar/i.test(recommendation.product)) ?? []
+      for (const id of ["chord-guide", "melody-accompaniment", "pulse", "counter"]) {
+        const found = guitarBy(id)
+        expect(found.length, `${direction} ${id}: ギターの候補が無い`).toBeGreaterThan(0)
+        for (const recommendation of found) {
+          expect(owned.has(recommendation.product), `${recommendation.product}: 所有していない製品`).toBe(true)
+          expect(recommendation.library).toBe("Native Instruments Komplete 15 Ultimate")
+          expect(recommendation.searchTerms.length).toBeGreaterThan(0)
+          expect(recommendation.reason.length).toBeGreaterThan(10)
+        }
+      }
+      // 低域と打楽器のトラックにはギターを入れない
+      expect(guitarBy("bass-guide")).toEqual([])
+      expect(result.guideMarkdown).toContain("Session Guitarist - Electric Mint")
+    }
+  })
+
+  it("AIの音源提案(Edge Function)も、ギターを選べる一覧とプロンプトに持つ", () => {
+    const source = readFileSync(resolve(__dirname, "../../supabase/functions/composer-arranger-ai/index.ts"), "utf8")
+    for (const product of ["Picked Nylon", "Electric Mint", "Electric Vintage", "Electric Sunburst Deluxe"]) {
+      expect(source, `${product}: 製品の一覧に無い`).toContain(`"Session Guitarist - ${product}"`)
+      expect(source, `${product}: プロンプトに無い`).toMatch(new RegExp(`Session Guitarist - [^（]*${product}`))
+    }
+  })
+
   it("未生成Roleを空トラックとしてMIDIへ混入せず、Guide上は可視化する", () => {
     const result = buildLogicProductionPackage(project(), "controlled-escalation")
     const decoration = result.tracks.find((track) => track.id === "decoration")

@@ -84,6 +84,10 @@ const intentProperties = {
             "Repro-5",
             "Analog Lab Play",
             "Pigments Play",
+            "Session Guitarist - Picked Nylon",
+            "Session Guitarist - Electric Mint",
+            "Session Guitarist - Electric Vintage",
+            "Session Guitarist - Electric Sunburst Deluxe",
           ],
         },
         family: { type: "string", minLength: 1, maxLength: 80 },
@@ -420,7 +424,7 @@ generatorの意味:
 
 soundSourceSuggestionsはユーザー所有音源だけから選ぶ。libraryとproductは必ず次の実在候補を使い、用途に合う検索語と理由を返す。
 - Native Instruments Komplete 15 Ultimate: Battery 4（電子・加工ドラム）、Session Percussionist（有機的パーカッション）、Studio Drummer / Abbey Road Drummer（生ドラム）、Butch Vig Drums / Drumlab（加工・ハイブリッドドラム）、Damage（シネマティック打撃）、Noire / Una Corda（ピアノ）、Playbox（レイヤー音色）、Massive X（デジタル／モダンシンセ）
-- Native Instrumentsの追加所有音源: Session Strings Pro 2 / Action Strings 2 / Emotive Strings / LUX Orchestral Strings Elements（弦）、Session Bassist - Prime Bass / Icon Bass / Upright Bass / Scarbee Rickenbacker Bass（ベース）、Session Horns Pro（管楽器）、Session Guitarist各種（ギター）、Piano Colors（ピアノ）、Analog Dreams / Ethereal Earth / Straylight / Schema - Dark / Schema - Light / Cloud Supply（パッド・質感・空間音）
+- Native Instrumentsの追加所有音源: Session Strings Pro 2 / Action Strings 2 / Emotive Strings / LUX Orchestral Strings Elements（弦）、Session Bassist - Prime Bass / Icon Bass / Upright Bass / Scarbee Rickenbacker Bass（ベース）、Session Horns Pro（管楽器）、Session Guitarist - Picked Nylon / Electric Mint / Electric Vintage / Electric Sunburst Deluxe（ギター。やわらかい分散和音、ミュートした刻み、単音の対旋律に使える）、Piano Colors（ピアノ）、Analog Dreams / Ethereal Earth / Straylight / Schema - Dark / Schema - Light / Cloud Supply（パッド・質感・空間音）
 - u-he Repro: Repro-1（モノフォニックのベース、シーケンス、リード）、Repro-5（ポリフォニックのコード、パッド、プラック）
 - Arturia: Analog Lab Play（鍵盤、プラック、クラシック寄りのシンセ、パッド）、Pigments Play（現代的なパッド、ベース、シーケンス、リード）
 - 3案すべてをRepro、Arturia、または同じKontaktライブラリへ寄せない。低音、ドラム、弦、鍵盤、質感音の役割に応じて所有音源を分ける。ただし、曲に不要な音源を種類数のためだけに増やさない。
