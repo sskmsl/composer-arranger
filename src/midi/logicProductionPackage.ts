@@ -548,9 +548,9 @@ function scoreArrangementTracks(project: ComposerProject, scores: Record<LogicSo
   }
   for (const track of tracks) {
     const program = arrangementInstrument(track)
-    if (track.instrument && typeof program === "number") {
-      collect(program < 8 ? "piano" : program >= 24 && program <= 35 ? "band"
-        : program >= 40 && program <= 51 ? "strings" : "synth", track)
+    if (track.instrument && program === track.instrument.program && typeof program === "number") {
+      collect(program < 24 ? "piano" : program >= 24 && program <= 37 ? "band"
+        : program >= 40 && program <= 51 ? "strings" : program >= 52 && program <= 79 ? "hybrid" : "synth", track)
     } else if (track.id.startsWith("str-")) collect("strings", track)
     else if (track.id.startsWith("dr-")) collect("percussion", track)
     else if (["syn-bass", "syn-bass-mid"].includes(track.id)) {
@@ -1275,6 +1275,7 @@ function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld
   for (const track of project.fullSongArrangement?.tracks ?? []) {
     if (track.muted || track.notes.length === 0) continue
     if (track.instrument && typeof arrangementInstrument(track) === "number"
+      && arrangementInstrument(track) === track.instrument.program
       && !scoreBrief({ ...DIRECTION_FAMILY_SCORES[world.directionId] }, briefForSoundWorld(project)).lead) {
       const program = arrangementInstrument(track)
       const label = GM_INSTRUMENT_CHOICES.find((choice) => choice.program === program)?.label ?? `GM ${program}`
@@ -1282,8 +1283,12 @@ function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld
         ? program === 24 ? "Session Guitarist - Picked Nylon" : "Session Guitarist - Electric Mint"
         : program === 32 ? "Session Bassist - Upright Bass" : program === 33 ? "Session Bassist - Prime Bass"
         : program === 4 ? "Piano Colors" : "Noire"
-      rows.push({ trackName: track.name, role: arrangementTrackLabel(track.id), product: "Kontakt 8",
-        preset: finalPresetName(preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world),
+      const strings = typeof program === "number" && program >= 40 && program <= 51
+        ? kontaktStringSound(track.id.startsWith("str-") ? track.id : "str-violin-2", world) : null
+      const synth = typeof program === "number" && program >= 80
+        ? ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id)) : null
+      rows.push({ trackName: track.name, role: arrangementTrackLabel(track.id), product: strings?.product ?? synth?.product ?? "Kontakt 8",
+        preset: finalPresetName(strings?.preset ?? synth?.preset ?? preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world),
         setting: `${track.instrument.reason}。試聴・GM MIDI: ${label}。制作音源では同じ役割の演奏を読み込む` })
       continue
     }
@@ -1291,7 +1296,10 @@ function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld
       ?? ARRANGEMENT_SOUNDS.find((candidate) => candidate.match(track.id))
     if (!sound) continue
     const label = arrangementTrackLabel(track.id)
-    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: finalPresetName(sound.preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world), setting: sound.setting })
+    const program = arrangementInstrument(track)
+    const actual = track.instrument && program === track.instrument.program
+      ? `。試聴・GM MIDI: ${GM_INSTRUMENT_CHOICES.find((choice) => choice.program === program)?.label ?? `GM ${program}`}` : ""
+    rows.push({ trackName: track.name, role: label === sound.role ? label : `${sound.role}・${label}`, product: sound.product, preset: finalPresetName(sound.preset, track.id, world), volumeDb: arrangementVolumeDb(track.id, world), setting: sound.setting + actual })
   }
   return rows
 }
