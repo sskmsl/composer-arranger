@@ -21,7 +21,7 @@ The first trial changed the context-free path and removed too many layers in the
 
 ## Measurement conditions
 
-Synthetic existing review fixtures A/B. For this controlled comparison: A at 84 BPM with Genre neoclassical; B at 132 BPM with Genre electronica. Four conditions: each style with/without an assigned synthetic lead (three short notes per bar followed by a rest). Seeds 19, 41, 73. Both base and changed code generate the same input; exportArrangementMidi is reread by parseMidi. Saved JSON is normalized and re-exported byte for byte. Inputs remain unchanged. These are not measurements of the user's song or a listening assessment.
+Synthetic existing review fixtures A/B. For this controlled comparison: A at 84 BPM with Genre neoclassical; B at 132 BPM with Genre electronica. Four conditions: each style with/without an assigned synthetic lead (three short notes per bar followed by a rest). Seeds 19, 41, 73. Section and chord IDs are assigned deterministically; each condition's input SHA-256 is identical across base and changed code. Both heads receive the same project JSON, and generation leaves it unchanged. `exportArrangementMidi` is reread by `parseMidi`; saved JSON is normalized and re-exported byte for byte. These are not measurements of the user's song or a listening assessment.
 
 Raw measurements: `issue200-before.json` and `issue200-after.json`. Event totals are note events, not loudness, mix balance or perceived importance.
 
@@ -29,10 +29,10 @@ Raw measurements: `issue200-before.json` and `issue200-after.json`. Event totals
 | --- | ---: | ---: | ---: |
 | Non-percussion context, no lead | 929–942 | 413–426 | 0 |
 | Non-percussion context, lead | 929–942 | 413–426 | 0 |
-| Rhythm context, no lead | 1479–1484 | 1370–1375 | not a new answer role |
+| Rhythm context, no lead | 1410–1418 | 1370–1375 | not a new answer role |
 | Rhythm context, lead | 1177–1182 | 1068–1073 | not a new answer role |
 
-All 12 outputs pass the unchanged quality and audition gates. Quality after: 90.97–94.15; audition after: 94.2–96.4. Non-percussion lead cases contain six answer notes per selected output, with zero actual lead overlap after finalization. Without a lead no answer is invented. The rhythm context retains the existing rhythmic performance rather than converting every song to an acoustic accompaniment.
+All 12 outputs pass the unchanged quality and audition gates. Quality after: 91.07–94.14; audition after: 94.2–96.4. Non-percussion lead cases contain six answer notes per selected output, with zero actual lead overlap after finalization. Without a lead no answer is invented. The rhythm context retains the existing rhythmic performance rather than converting every song to an acoustic accompaniment.
 
 ## Compatibility and validation
 
@@ -42,16 +42,18 @@ Boundary classification, previous-two/next-four-bar window, one-bar rest allowan
 
 Existing warnings: importMidi.ts:174 no-control-regex; large build chunk; npm proxy environment warning.
 
-## Independent review and unresolved GM policy
+## Independent review and GM channel compatibility
 
 Claude Code review: Issue #200 comment 6327300863; independent test branch `claude/independent-review-200`, commit `6ec66d7`. That review ran against the instrument foundation e61ea35, before the performance changes. It reproduced loss of a saved instrument on whole-track regeneration (fixed, with a regression test), an ownership conflict in the first production-guide trial (fixed without changing main expectations), and a pre-existing GM channel collision. Latest-head independent revalidation has been requested; it has not yet been received.
 
-GM has fifteen non-percussion channels. The legacy allocator wraps channels after fifteen tracks, allowing different programs to overwrite one another. Sharing channels for identical programs reduces the problem, but outputs and arbitrary saved assignments can still contain more than fifteen distinct instruments. A single-port GM file cannot preserve more than fifteen simultaneous non-percussion programs. Changing to multiple MIDI ports affects player compatibility; consolidating instruments changes the saved/preview instrument decision. Neither policy has been silently implemented. This compatibility decision requires the user's judgment under Issue #200's instruction to report before changing existing specifications. Logic export's existing separate-track behavior is unchanged.
+GM has fifteen non-percussion channels. The legacy allocator wrapped channels after fifteen sounding tracks, so a later Program Change could overwrite a different sustained sound. The final full-song measurement now fixes all generated IDs and includes chords, lead and selected layers as well as the arrangement. The 12 outputs contain 14–17 distinct programs over the whole song, but need only 11–13 simultaneous channels (10–12 simultaneous programs; the extra channel protects overlapping notes with the same program and pitch). Every NoteOn is reread from the final SMF and checked against the saved/preview program. No Program Change occurs while a different program is active on that channel, and no shared channel contains overlapping equal-pitch notes.
+
+GM export now keeps the existing assignment byte ordering for up to fifteen sounding melodic tracks. Only when the legacy assignment would share a sounding channel does it use the same channel for compatible notes of the same program and reuse a completely silent channel before a later Program Change. A different track ending at the same tick is treated as still active because cross-track event order is not assumed. If a saved song truly requires more than fifteen channels at once, export raises `GmChannelCapacityError`; it does not consolidate instruments, discard notes or introduce multiple MIDI ports. The saved arrangement, preview decision, Composer Song Exchange data and Logic export are unchanged. Raw full-song results, input/MIDI hashes and note counts are in `issue200-gm-capacity.json`.
 
 The initial full run found one failing existing measurement (eligible candidates: 5/6). Reduced support exposed a delayed entrance restarting an old chord tone on a new chord. The repair keeps the same timing schedule and revoices only a delayed Safe entrance to its actual chord. A final-MIDI regression covers this. A subsequent average-audition regression was corrected by shaping quiet accompaniment and retaining musically justified peak kick/snare support; the existing measurement then passed, without changing its average >=95 requirement.
 
 ## Pending
 
-Integrated code head e8f7e412: 1446 passed / 7 skipped, TypeScript/build/lint passed. Existing warnings only. The UI diff against main235abec is empty. Added diff reviewed for prohibited real artist/song/era names: none added.
+Integrated code head e8f7e412 before the GM fix: 1446 passed / 7 skipped, TypeScript/build/lint passed. Targeted GM allocation, final-SMF measurement and type/lint checks pass on the current worktree. Existing warnings only. The UI diff against main235abec is empty. Added diff reviewed for prohibited real artist/song/era names: none added.
 
-Pending: latest-head CI confirmation, latest-head independent Claude Code revalidation, and the GM overflow policy. No merge or deployment has been performed for this issue. Listening and authenticated browser operation have not been verified. No new audio search was performed, and no real artist/song/era names are added in the change or report.
+Pending: current-head full-suite/build confirmation, CI, and independent Claude Code revalidation. No merge or deployment has been performed for this issue. Listening and authenticated browser operation have not been verified. No new audio search was performed, and no real artist/song/era names are added in the change or report.
