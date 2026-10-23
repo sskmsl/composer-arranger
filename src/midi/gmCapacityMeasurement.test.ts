@@ -165,5 +165,5 @@ it("reproduces full-song GM capacity with fixed IDs and validates the sounding p
   }
   expect(measurements).toHaveLength(12)
   expect(measurements.every((result) => result.peakChannels <= 15)).toBe(true)
-  writeFileSync(outputPath, JSON.stringify(measurements, null, 2))
+  writeFileSync(outputPath, `${JSON.stringify(measurements, null, 2)}\n`)
 }, 120_000)
