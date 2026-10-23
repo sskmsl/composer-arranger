@@ -18,6 +18,7 @@ interface ActiveNote {
 interface ChannelState {
   channel: number
   program?: number
+  programChangeTick?: number
   active: ActiveNote[]
 }
 
@@ -49,18 +50,21 @@ function dynamicallyAssignedTracks(entries: readonly SoundedTrack[], sounds: Rea
 
   for (const scheduled of notes) {
     const { note, trackIndex, program } = scheduled
-    // 同じトラックでは NoteOff → ProgramChange → NoteOn の順を保証できる。
-    // 別トラックの同tick順は保証されないため、終了tickが同じ音は発音中として扱う。
+    // 同tickの別トラック順は保証されないため、終了tickが同じ音はここで捨てない。
+    // 同一トラックだけは SMF 内で NoteOff → ProgramChange → NoteOn の順を保証できるので、
+    // 候補ごとの判定時に限って end === start を終了済みとして扱う。
     for (const state of states) {
-      state.active = state.active.filter((active) =>
-        active.end > note.start || (active.end === note.start && active.trackIndex !== trackIndex))
+      state.active = state.active.filter((active) => active.end >= note.start)
     }
+    const soundingForNote = (state: ChannelState) => state.active.filter((active) =>
+      active.end > note.start || active.trackIndex !== trackIndex)
 
     const sameProgram = states
-      .filter((state) => state.program === program && !state.active.some((active) => active.pitch === note.pitch))
-      .sort((a, b) => b.active.length - a.active.length || a.channel - b.channel)[0]
+      .filter((state) => state.program === program
+        && !soundingForNote(state).some((active) => active.pitch === note.pitch))
+      .sort((a, b) => soundingForNote(b).length - soundingForNote(a).length || a.channel - b.channel)[0]
     const idle = states
-      .filter((state) => state.active.length === 0)
+      .filter((state) => soundingForNote(state).length === 0)
       .sort((a, b) => Number(b.program === program) - Number(a.program === program)
         || Number(a.program != null) - Number(b.program != null)
         || a.channel - b.channel)[0]
@@ -69,11 +73,13 @@ function dynamicallyAssignedTracks(entries: readonly SoundedTrack[], sounds: Rea
 
     const needsProgramChange = state.program !== program
     state.program = program
+    if (needsProgramChange) state.programChangeTick = note.start
     state.active.push({ end: note.start + note.duration, pitch: note.pitch, trackIndex })
     assignedNotes[trackIndex].push({ ...note, channel: state.channel })
-    // 同じprogramの再指定は持続音へ影響し得るため、初回と実際の時間再利用時だけ書く。
+    // 同tickに同じチャンネルを使う各トラックへ同値の通知を置き、トラック処理順に依存させない。
+    // それより後の同program発音では再送せず、持続音へ余計なProgramChangeを入れない。
     const key = `${note.start}:${state.channel}:${program}`
-    if (needsProgramChange && !changeKeys[trackIndex].has(key)) {
+    if (state.programChangeTick === note.start && !changeKeys[trackIndex].has(key)) {
       changeKeys[trackIndex].add(key)
       programChanges[trackIndex].push({ tick: note.start, channel: state.channel, program })
     }

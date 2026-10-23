@@ -104,6 +104,19 @@ describe("GMチャンネルの安全な共有と時間再利用", () => {
     expect(changesDuringSustain).toEqual([])
   })
 
+  it("同programの別トラックが後から加わっても持続中に同値ProgramChangeを再送しない", () => {
+    const entries = [
+      entry(0, 48, [note(60, 0, 100)]),
+      entry(1, 48, [note(64, 20, 20)]),
+      ...Array.from({ length: 14 }, (_, index) => entry(index + 2, index, [note(70 + index, 200, 20)])),
+    ]
+    const assigned = withGmSounds(entries, DEFAULT_PART_PROGRAMS)
+    const sharedChannel = assigned[0].notes[0].channel
+    expect(assigned[1].notes[0].channel).toBe(sharedChannel)
+    expect(assigned.flatMap((track) => track.programChanges ?? [])
+      .filter((change) => change.channel === sharedChannel && change.tick > 0 && change.tick < 100)).toEqual([])
+  })
+
   it("別トラックの同tick終了と開始は順序未定として同じチャンネルへ詰めない", () => {
     const entries = [
       entry(0, 0, [note(60, 0, 10)]),
