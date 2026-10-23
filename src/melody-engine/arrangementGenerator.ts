@@ -3596,6 +3596,74 @@ export function arrangementQualityWarning(project: ComposerProject, arrangement:
   return `品質基準を満たす案を作れませんでした。${reasons.join("、")}ため、伴奏の調整が必要です。`
 }
 
+/** 小節ごとに音が鳴っているか。1小節以内の休符は、鳴り続けている扱いにする(境界の測定と同じ)。 */
+function barPresence(notes: GeneratedArrangementNote[], totalBars: number, bpb: number): boolean[] {
+  const on = Array.from({ length: totalBars }, (_, bar) => notes.some((note) =>
+    note.startBeat < (bar + 1) * bpb && note.startBeat + note.durationBeats > bar * bpb + .01))
+  for (let i = 0; i < on.length;) {
+    if (on[i]) { i += 1; continue }
+    let j = i
+    while (j < on.length && !on[j]) j += 1
+    if (i > 0 && j < on.length && j - i <= 1) for (let k = i; k < j; k++) on[k] = true
+    i = j
+  }
+  return on
+}
+
+/** その小節の音を取り除く。前から続く音は小節の頭で切る。 */
+function blankBar(notes: GeneratedArrangementNote[], bar: number, bpb: number): GeneratedArrangementNote[] {
+  const start = bar * bpb, end = (bar + 1) * bpb
+  return notes.flatMap((note) => {
+    const noteEnd = note.startBeat + note.durationBeats
+    if (noteEnd <= start + .01 || note.startBeat >= end) return [note]
+    if (note.startBeat >= start) return []
+    return noteEnd - start >= .0625 && start - note.startBeat >= .0625 ? [{ ...note, durationBeats: start - note.startBeat }] : []
+  })
+}
+
+/**
+ * 足したギターの入退場を、境界の「1小節に交代する管理対象の層は最大2つ」(前2小節〜後4小節)に収める。
+ * 既存の層の交代は変えず、ギターの入口・出口だけを1小節ずつ動かす。収められなければ null。
+ */
+function fitGuitarToBoundaryBudget(
+  project: ComposerProject,
+  base: GeneratedArrangementTrack[],
+  layers: GeneratedArrangementTrack[],
+): GeneratedArrangementTrack[] | null {
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const sections = normalizeSectionTimeline(project.sections)
+  const totalBars = Math.max(0, ...sections.map((section) => section.startBar + section.lengthBars - 1))
+  const boundaries = sections.flatMap((section, index) => {
+    const previous = sections[index - 1]
+    return previous && previous.lengthBars >= 8 && section.lengthBars >= 8 && section.role !== "outro" ? [section.startBar - 1] : []
+  })
+  const managed = base.filter((track) => !track.muted && track.notes.length > 0 && isBoundaryManagedRole(track.id))
+    .map((track) => barPresence(track.notes, totalBars, bpb))
+  let work = layers
+  for (let pass = 0; pass < 60; pass++) {
+    const presence = work.map((track) => barPresence(track.notes, totalBars, bpb))
+    let fixed = false
+    search: for (const boundary of boundaries) {
+      for (let d = -2; d <= 4; d++) {
+        const bar = boundary + d
+        if (bar < 1 || bar >= totalBars) continue
+        const existing = managed.filter((on) => on[bar - 1] !== on[bar]).length
+        const changing = presence.flatMap((on, index) => on[bar - 1] !== on[bar] ? [index] : [])
+        const room = Math.max(0, 2 - existing)
+        if (changing.length <= room) continue
+        const index = changing[room]
+        // 入る側は1小節遅らせ、抜ける側は1小節早める。
+        const target = presence[index][bar] ? bar : bar - 1
+        work = work.map((track, i) => i === index ? { ...track, notes: blankBar(track.notes, target, bpb) } : track)
+        fixed = true
+        break search
+      }
+    }
+    if (!fixed) return work.filter((track) => track.notes.length > 0)
+  }
+  return null
+}
+
 const GUITAR_LAYER_IDS: ArrangementLayerTrackId[] = ["gtr-arpeggio", "gtr-strum"]
 
 /**
@@ -3637,10 +3705,17 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
   )
-  const added = finalizeFullSongArrangement(project, {
+  const fitted = fitGuitarToBoundaryBudget(project, arrangement.tracks, performed)
+  if (!fitted || fitted.length === 0) return arrangement
+  const finalized = finalizeFullSongArrangement(project, {
     ...arrangement,
-    tracks: [...arrangement.tracks, ...performed],
-  }, { editableTrackIds: new Set(performed.map((track) => track.id)) })
+    tracks: [...arrangement.tracks, ...fitted],
+  }, { editableTrackIds: new Set(fitted.map((track) => track.id)) })
+  // 聴感調整で音が消えても、境界の上限を超えない(音を消すだけなので、もう一度収める)。
+  const refit = fitGuitarToBoundaryBudget(project, finalized.tracks.filter((track) => !track.id.startsWith("gtr-")),
+    finalized.tracks.filter((track) => track.id.startsWith("gtr-")))
+  if (!refit) return arrangement
+  const added = { ...finalized, tracks: [...finalized.tracks.filter((track) => !track.id.startsWith("gtr-")), ...refit] }
   const kept = added.tracks.filter((track) => track.id.startsWith("gtr-") && track.notes.length > 0)
   const before = arrangement.quality
   const worse = !added.quality?.passed

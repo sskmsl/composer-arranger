@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { parseChordSymbol } from "@/core/chord"
 import { arrangementInstrument } from "@/core/gmInstruments"
 import { normalizeProject, type ComposerProject } from "@/core/project"
+import { createEmptyProject } from "@/core/project"
 import { arrangementReviewSong } from "@/store/arrangementReviewFixtures"
 import { arrangementSoundedTracks } from "@/midi/exportArrangement"
 import { logicSoundRows } from "@/midi/logicProductionPackage"
@@ -99,6 +100,61 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
       const padNotes = gapped.tracks.find((track) => track.id === "syn-dark-pad")!.notes
       expect(added.notes.filter((note) => !padNotes.some((p) =>
         p.sectionId === note.sectionId && note.startBeat >= p.startBeat - .5 && note.startBeat < p.startBeat + p.durationBeats + .5))).toEqual([])
+    }
+  })
+
+  /** 境界の測定と同じ形。ギターも管理対象に含めて、最終の音から数える。 */
+  const MANAGED = new Set(["syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-chord-wide", "syn-stabs", "syn-pulse", "syn-arp-low", "syn-arp-high", "syn-sub-bass", "syn-bass-mid", "gtr-arpeggio", "gtr-strum"])
+  function boundaryFixture() {
+    const p = createEmptyProject("Guitar boundary")
+    p.projectId = "guitar-boundary"
+    p.song.key = "Cm"
+    p.song.genreBlend = [{ id: "neoclassical", weight: 1 }]
+    p.sections = ["verse", "pre-chorus", "chorus", "pre-chorus", "grand-chorus", "outro"].map((role, i) => ({
+      id: `s${i}`, name: `Section ${i + 1}`, role: role as ComposerProject["sections"][number]["role"], startBar: 1 + i * 8, lengthBars: 8,
+    }))
+    p.chords = p.sections.flatMap((s) => ["Cm", "Ab", "Bb", "G7"].map((symbol, i) => ({ id: `${s.id}:${i}`, sectionId: s.id, startBeat: i * 8, durationBeats: 8, symbol, bass: null })))
+    return p
+  }
+  function boundaryChanges(project: ComposerProject, tracks: ReturnType<typeof generateFullSongArrangement>["tracks"]) {
+    const totalBars = Math.max(...project.sections.map((s) => s.startBar + s.lengthBars - 1))
+    const presence = tracks.filter((t) => !t.muted && t.notes.length > 0 && (t.id.startsWith("str-") || MANAGED.has(t.id))).map((t) => {
+      const on = Array.from({ length: totalBars }, (_, bar) => t.notes.some((n) => n.startBeat < (bar + 1) * 4 && n.startBeat + n.durationBeats > bar * 4 + .01))
+      for (let i = 0; i < on.length;) { if (on[i]) { i++; continue } let j = i; while (j < on.length && !on[j]) j++; if (i > 0 && j < on.length && j - i <= 1) for (let k = i; k < j; k++) on[k] = true; i = j }
+      return { id: t.id, on }
+    })
+    return project.sections.flatMap((section, index) => {
+      const previous = project.sections[index - 1]
+      if (!previous || previous.lengthBars < 8 || section.lengthBars < 8 || section.role === "outro") return []
+      return Array.from({ length: 7 }, (_, k) => ({ section: section.id, offset: k - 2, changed: presence.filter((t) => t.on[section.startBar - 1 + k - 2 - 1] !== t.on[section.startBar - 1 + k - 2]).map((t) => t.id) }))
+    })
+  }
+
+  it("ギターを含めても、境界の前2小節〜後4小節で1小節に交代する管理対象の層は2つまで", () => {
+    for (const seed of [19, 41, 73]) {
+      const project = boundaryFixture()
+      const full = generateFullSongArrangement(project, { seed })
+      expect(full.tracks.some((track) => GUITAR.includes(track.id)), `seed ${seed}: ギターが足されていない`).toBe(true)
+      for (const bar of boundaryChanges(project, full.tracks)) {
+        expect(bar.changed.length, `seed ${seed} ${bar.section} +${bar.offset}: ${bar.changed.join(", ")}`).toBeLessThanOrEqual(2)
+      }
+    }
+  })
+
+  it("最終の音でも、分散の開始と音長はPadが実際に鳴っている範囲に収まる(±0.05拍)", () => {
+    for (const [name, project] of [["A", song("neoclassical")], ["B", song(null)], ["boundary", boundaryFixture()]] as const) {
+      for (const seed of [19, 41]) {
+        const full = generateFullSongArrangement(project, { seed })
+        const pad = full.tracks.find((track) => track.id === "syn-dark-pad")!.notes
+        const runs: Array<[number, number]> = []
+        for (const [a, b] of pad.map((n): [number, number] => [n.startBeat, n.startBeat + n.durationBeats]).sort((x, y) => x[0] - y[0])) {
+          const last = runs.at(-1)
+          if (last && a <= last[1] + .01) last[1] = Math.max(last[1], b); else runs.push([a, b])
+        }
+        const outside = (full.tracks.find((track) => track.id === "gtr-arpeggio")?.notes ?? []).filter((n) =>
+          !runs.some(([a, b]) => n.startBeat >= a - .05 && n.startBeat + n.durationBeats <= b + .05))
+        expect(outside, `${name} seed ${seed}`).toEqual([])
+      }
     }
   })
 })
