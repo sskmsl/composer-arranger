@@ -6,7 +6,8 @@ import { createEmptyProject } from "@/core/project"
 import { arrangementReviewSong } from "@/store/arrangementReviewFixtures"
 import { arrangementSoundedTracks } from "@/midi/exportArrangement"
 import { logicSoundRows } from "@/midi/logicProductionPackage"
-import { addGuitarLayers, generateFullSongArrangement } from "./arrangementGenerator"
+import { addGuitarLayers, generateFullSongArrangement, regenerateFullSongArrangementTarget } from "./arrangementGenerator"
+import { applyArrangementPerformanceDirector } from "./arrangementPerformanceDirector"
 
 function song(genre: "neoclassical" | "electronica" | null) {
   const project = arrangementReviewSong("A")
@@ -156,5 +157,43 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
         expect(outside, `${name} seed ${seed}`).toEqual([])
       }
     }
+  })
+
+  it("ストラムの演奏の整形で、同じ和音の別の弦によって音長を切り詰めない", () => {
+    const project = song("neoclassical")
+    const full = generateFullSongArrangement(project, { seed: 19 })
+    const section = full.plan.sections.find((candidate) => candidate.energy >= 60)!
+    const start = (project.sections.find((candidate) => candidate.id === section.sectionId)!.startBar - 1) * 4 + 8
+    const note = (pitch: number, beat: number) => ({ id: `n${pitch}:${beat}`, sectionId: section.sectionId, startBeat: beat, durationBeats: .6, pitch, velocity: 60, locks: [], character: "safe" as const, reason: "test" })
+    const strum = { ...full.tracks.find((track) => track.id === "gtr-strum")!, notes: [60, 64, 67, 72].flatMap((pitch) => [note(pitch, start), note(pitch, start + 2)]) }
+    const performed = applyArrangementPerformanceDirector(project, full.plan, [strum])[0]
+    // 同じ和音の弦は、同時に発音し、互いの発音で音長を切り詰めない(弦の時間差はあとで付ける)
+    expect(new Set(performed.notes.map((n) => n.startBeat.toFixed(3))).size).toBe(2)
+    expect(Math.min(...performed.notes.map((n) => n.durationBeats))).toBeGreaterThanOrEqual(.3)
+    // 弦をずらしたあとも、終端はそろう
+    const staggered = generateFullSongArrangement(project, { seed: 19 }).tracks.find((track) => track.id === "gtr-strum")!
+    const first = staggered.notes.filter((n) => n.startBeat >= staggered.notes[0].startBeat - .01 && n.startBeat < staggered.notes[0].startBeat + .15)
+    expect(first.length).toBeGreaterThan(1)
+    expect(Math.max(...first.map((n) => n.startBeat + n.durationBeats)) - Math.min(...first.map((n) => n.startBeat + n.durationBeats))).toBeLessThanOrEqual(.15)
+  })
+
+  it("部分再生成・全体の再生成でも、保存済みのPadの発音区間に収まる", () => {
+    const project = song("neoclassical")
+    const full = generateFullSongArrangement(project, { seed: 19 })
+    const gapped = { ...full, tracks: full.tracks.filter((track) => !GUITAR.includes(track.id)).map((track) => track.id !== "syn-dark-pad" ? track
+      : { ...track, notes: track.notes.filter((note) => Math.floor(note.startBeat / 8) % 3 !== 1) }) }
+    const withGuitar = addGuitarLayers(project, gapped)
+    const padNotes = withGuitar.tracks.find((track) => track.id === "syn-dark-pad")!.notes
+    const outside = (tracks: typeof withGuitar.tracks) => (tracks.find((track) => track.id === "gtr-arpeggio")?.notes ?? []).filter((n) =>
+      !padNotes.some((p) => p.sectionId === n.sectionId && n.startBeat >= p.startBeat - .05 && n.startBeat + n.durationBeats <= p.startBeat + p.durationBeats + .05)
+      && !padNotes.some((p) => p.sectionId === n.sectionId && n.startBeat >= p.startBeat - .05 && n.startBeat < p.startBeat + p.durationBeats + .05)).length
+    expect(withGuitar.tracks.some((track) => track.id === "gtr-arpeggio")).toBe(true)
+    const sectionId = project.sections[2].id
+    const partial = regenerateFullSongArrangementTarget(project, withGuitar, { trackId: "gtr-arpeggio", sectionId })
+    expect(partial.tracks.find((track) => track.id === "syn-dark-pad")!.notes).toEqual(padNotes)
+    expect(outside(partial.tracks), "区間の再生成").toBe(0)
+    const whole = regenerateFullSongArrangementTarget(project, withGuitar, { trackId: "gtr-arpeggio" })
+    expect(outside(whole.tracks), "トラック全体の再生成").toBe(0)
+    expect(regenerateFullSongArrangementTarget(project, withGuitar, { trackId: "gtr-strum", sectionId }).tracks.some((t) => t.id === "gtr-strum")).toBe(true)
   })
 })

@@ -31,7 +31,7 @@ function articulationFor(
   trackId: ArrangementTrackId,
   section: ArrangementSectionPlan,
 ): PerformanceExecutionPlan["articulation"] {
-  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId === "str-spiccato" || trackId === "gtr-strum") return "detached"
+  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId === "str-spiccato") return "detached"
   if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "gtr-arpeggio") return "pulsed"
   if (trackId === "syn-high-glass") return "decaying"
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return "swelling"
@@ -42,7 +42,7 @@ function articulationFor(
 }
 
 function timingFor(trackId: ArrangementTrackId): PerformanceExecutionPlan["timing"] {
-  if (trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-kick-click" || trackId === "syn-pulse" || trackId.startsWith("syn-arp-")) return "strict"
+  if (trackId === "dr-kick" || trackId === "dr-kick-sub" || trackId === "dr-kick-click" || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId.startsWith("gtr-")) return "strict"
   if (trackId === "dr-snare" || trackId === "dr-snare-body" || trackId === "dr-clap" || trackId === "dr-field-drum" || trackId.includes("hat") || trackId === "dr-shaker") return "slightly-behind"
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return "slightly-ahead"
   if (trackId.includes("bass") || trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return "slightly-behind"

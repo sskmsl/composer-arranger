@@ -1748,11 +1748,12 @@ function deriveArrangementLayerTrack(
         // 和音を低い弦から高い弦へ少しずらして弾く。弦は6本までなので、上から4音までに絞る。
         const voices = [...eligible.filter((other) => Math.abs(other.startBeat - note.startBeat) < .001)].sort((a, b) => a.pitch - b.pitch)
         const position = Math.max(0, voices.findIndex((other) => other.id === note.id))
+        // 弦ごとの時間差は、演奏の整形(次の発音までの音長の制限)のあとで付ける。
         if (voices.length > 4 && position < voices.length - 4) return []
         let pitch = note.pitch
         while (pitch > 79) pitch -= 12
         while (pitch < 45) pitch += 12
-        return [makeLayerNote(note, index, { pitch, startBeat: note.startBeat + .03 * position, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 6 })]
+        return [makeLayerNote(note, index, { pitch, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 6 })]
       }
       if (trackId === "syn-pad-air") {
         if ((ranks.get(note.id) ?? 0) <= 0) return []
@@ -3637,7 +3638,7 @@ function fitGuitarToBoundaryBudget(
     const previous = sections[index - 1]
     return previous && previous.lengthBars >= 8 && section.lengthBars >= 8 && section.role !== "outro" ? [section.startBar - 1] : []
   })
-  const managed = base.filter((track) => !track.muted && track.notes.length > 0 && isBoundaryManagedRole(track.id))
+  const managed = base.filter((track) => !track.muted && track.notes.length > 0 && (isBoundaryManagedRole(track.id) || track.id.startsWith("gtr-")))
     .map((track) => barPresence(track.notes, totalBars, bpb))
   let work = layers
   for (let pass = 0; pass < 60; pass++) {
@@ -3666,22 +3667,45 @@ function fitGuitarToBoundaryBudget(
 
 const GUITAR_LAYER_IDS: ArrangementLayerTrackId[] = ["gtr-arpeggio", "gtr-strum"]
 
+/** 和音を低い弦から高い弦へ少しずらして弾く。同じ発音の和音の音長は、弦をずらしても終端をそろえる。 */
+function strumStagger(track: GeneratedArrangementTrack): GeneratedArrangementTrack {
+  if (track.id !== "gtr-strum") return track
+  const sorted = [...track.notes].sort((a, b) => a.sectionId.localeCompare(b.sectionId) || a.startBeat - b.startBeat || a.pitch - b.pitch)
+  const result: GeneratedArrangementNote[] = []
+  for (let i = 0; i < sorted.length;) {
+    let j = i + 1
+    while (j < sorted.length && sorted[j].sectionId === sorted[i].sectionId && sorted[j].startBeat - sorted[i].startBeat < .1) j += 1
+    const chord = sorted.slice(i, j).sort((a, b) => a.pitch - b.pitch)
+    const begin = Math.min(...chord.map((note) => note.startBeat))
+    chord.forEach((note, position) => {
+      const start = begin + .03 * position
+      const end = note.startBeat + note.durationBeats
+      result.push({ ...note, startBeat: start, durationBeats: Math.max(.0625, end - start) })
+    })
+    i = j
+  }
+  return { ...track, notes: result.sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) }
+}
+
 /**
- * 選ばれた全曲案へ、ギターの層を足す。既存のトラックは置き換えず、作り直さない(足した層だけを編集対象にする)。
- * 足した結果が品質・聴感の基準や主旋律との衝突を悪くするなら、足さずに元の案を返す。
+ * ギターの層を、保存済み(または選ばれた)アレンジの既存の層から作る。
+ * 部分再生成でも、作り直した層ではなく、いまのアレンジのPad・短い和音を基準にする。
  */
-export function addGuitarLayers(project: ComposerProject, arrangement: FullSongArrangement): FullSongArrangement {
-  if (arrangement.plan.directive?.soundInstruction?.enabled || !guitarLayersAllowed(project, arrangement.plan)) return arrangement
-  if (arrangement.tracks.some((track) => track.id.startsWith("gtr-"))) return arrangement
-  const byId = new Map(arrangement.tracks.map((track) => [track.id, track]))
+function buildGuitarLayers(
+  project: ComposerProject,
+  arrangement: FullSongArrangement,
+  ids: readonly ArrangementLayerTrackId[],
+): GeneratedArrangementTrack[] {
+  const base = arrangement.tracks.filter((track) => !track.id.startsWith("gtr-"))
+  const byId = new Map(base.map((track) => [track.id, track]))
   const revision = Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))
   const sectionVelocity = new Map<string, number>()
   for (const section of arrangement.plan.sections) {
-    const sounding = arrangement.tracks.filter((track) => track.family !== "drums" && !track.muted)
+    const sounding = base.filter((track) => track.family !== "drums" && !track.muted)
       .flatMap((track) => track.notes.filter((note) => note.sectionId === section.sectionId))
     if (sounding.length > 0) sectionVelocity.set(section.sectionId, sounding.reduce((sum, note) => sum + note.velocity, 0) / sounding.length)
   }
-  const layers = GUITAR_LAYER_IDS.flatMap((trackId) => {
+  const layers = ids.flatMap((trackId) => {
     const source = byId.get(ARRANGEMENT_LAYER_SOURCES[trackId])
     if (!source || source.muted || source.notes.length === 0) return []
     const layer = trackId === "gtr-arpeggio"
@@ -3689,22 +3713,33 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
       : deriveArrangementLayerTrack(source, trackId, arrangement.plan, revision)
     return layer.notes.length > 0 ? [layer] : []
   })
-  if (layers.length === 0) return arrangement
-  const performed = applyArrangementTimelineToTracks(
+  if (layers.length === 0) return []
+  return applyArrangementTimelineToTracks(
     applyArrangementPerformanceDirector(project, arrangement.plan, layers).map((track) => {
       // 演奏の整形で平均が下がっても、区間ごとの強さは既存の層に沿わせる(曲全体の強弱の流れを変えない)。
       const offset = track.id === "gtr-arpeggio" ? 3 : 6
-      return { ...track, notes: track.notes.map((note) => {
+      return strumStagger({ ...track, notes: track.notes.map((note) => {
         const target = sectionVelocity.get(note.sectionId)
         if (target === undefined) return note
         const sectionNotes = track.notes.filter((other) => other.sectionId === note.sectionId)
         const mean = sectionNotes.reduce((sum, other) => sum + other.velocity, 0) / sectionNotes.length
         return { ...note, velocity: Math.max(20, Math.min(120, Math.round(note.velocity + (target - offset) - mean))) }
-      }) }
+      }) })
     }),
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
   )
+}
+
+/**
+ * 選ばれた全曲案へ、ギターの層を足す。既存のトラックは置き換えず、作り直さない(足した層だけを編集対象にする)。
+ * 足した結果が品質・聴感の基準や主旋律との衝突を悪くするなら、足さずに元の案を返す。
+ */
+export function addGuitarLayers(project: ComposerProject, arrangement: FullSongArrangement): FullSongArrangement {
+  if (arrangement.plan.directive?.soundInstruction?.enabled || !guitarLayersAllowed(project, arrangement.plan)) return arrangement
+  if (arrangement.tracks.some((track) => track.id.startsWith("gtr-"))) return arrangement
+  const performed = buildGuitarLayers(project, arrangement, GUITAR_LAYER_IDS)
+  if (performed.length === 0) return arrangement
   const fitted = fitGuitarToBoundaryBudget(project, arrangement.tracks, performed)
   if (!fitted || fitted.length === 0) return arrangement
   const finalized = finalizeFullSongArrangement(project, {
@@ -3760,6 +3795,38 @@ export function upgradeFullSongArrangementOrchestration(
   }, { editableTrackIds: new Set(refreshedLayers.map((track) => track.id)) })
 }
 
+/**
+ * ギターの層の再生成。作り直したPadや短い和音ではなく、いまのアレンジの層を基準にする
+ * (Padの休符や、境界の予算に収めた入退場を、再生成で壊さない)。収められなければ、いまの案のまま返す。
+ */
+function regenerateGuitarLayer(
+  project: ComposerProject,
+  current: FullSongArrangement,
+  target: ArrangementRegenerationTarget,
+): FullSongArrangement {
+  const id = target.trackId as "gtr-arpeggio" | "gtr-strum"
+  const existing = current.tracks.find((track) => track.id === id)
+  const others = current.tracks.filter((track) => track.id !== id)
+  const [layer] = buildGuitarLayers(project, { ...current, tracks: others }, [id])
+  if (!layer) return current
+  const revision = (existing?.generationRevision ?? 0) + 1
+  const merged: GeneratedArrangementTrack = target.sectionId && existing
+    ? { ...existing, generationRevision: revision, notes: [
+        ...existing.notes.filter((note) => note.sectionId !== target.sectionId),
+        ...layer.notes.filter((note) => note.sectionId === target.sectionId),
+      ].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) }
+    : { ...layer, generationRevision: revision, muted: existing?.muted ?? false }
+  const fitted = fitGuitarToBoundaryBudget(project, others, [merged])
+  if (!fitted) return current
+  const tracks = existing
+    ? current.tracks.map((track) => track.id === id ? (fitted[0] ?? { ...merged, notes: [] }) : track)
+    : [...current.tracks, ...(fitted.length ? fitted : [])]
+  return finalizeFullSongArrangement(project, { ...current, tracks, selection: undefined }, {
+    editableTrackIds: new Set([id]),
+    ...(target.sectionId ? { editableSectionIds: new Set([target.sectionId]) } : {}),
+  })
+}
+
 export function regenerateFullSongArrangementTarget(
   project: ComposerProject,
   current: FullSongArrangement,
@@ -3798,6 +3865,9 @@ export function regenerateFullSongArrangementTarget(
           }
         : section),
     }
+  }
+  if (target.trackId === "gtr-arpeggio" || target.trackId === "gtr-strum") {
+    return regenerateGuitarLayer(project, { ...current, plan }, target)
   }
   const currentTrack = current.tracks.find((track) => track.id === target.trackId) ?? emptyTrack(target.trackId)
   const revision = currentTrack.generationRevision + 1
