@@ -1745,15 +1745,18 @@ function deriveArrangementLayerTrack(
         return [makeLayerNote(note, index, { pitch: note.pitch + shift, startBeat: note.startBeat + .25, durationBeats: note.durationBeats * 0.82, velocity: note.velocity - 13 })]
       }
       if (trackId === "gtr-strum") {
-        // 和音を低い弦から高い弦へ少しずらして弾く。弦は6本までなので、上から4音までに絞る。
-        const voices = [...eligible.filter((other) => Math.abs(other.startBeat - note.startBeat) < .001)].sort((a, b) => a.pitch - b.pitch)
+        // 和音を低い弦から高い弦へ弾く。弦は6本までなので、上から4音までに絞る。
+        // 元の和音は音ごとに発音が数msずれることがあるので、同じ和音の発音は最初の音にそろえる
+        // (ずれたままだと、演奏の整形が「次の発音」と取り、先の弦の音長を切り詰める)。
+        const voices = eligible.filter((other) => other.sectionId === note.sectionId && Math.abs(other.startBeat - note.startBeat) < .1)
+          .sort((a, b) => a.pitch - b.pitch)
         const position = Math.max(0, voices.findIndex((other) => other.id === note.id))
-        // 弦ごとの時間差は、演奏の整形(次の発音までの音長の制限)のあとで付ける。
         if (voices.length > 4 && position < voices.length - 4) return []
         let pitch = note.pitch
         while (pitch > 79) pitch -= 12
         while (pitch < 45) pitch += 12
-        return [makeLayerNote(note, index, { pitch, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 6 })]
+        const begin = Math.min(...voices.map((other) => other.startBeat))
+        return [makeLayerNote(note, index, { pitch, startBeat: begin, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 6 })]
       }
       if (trackId === "syn-pad-air") {
         if ((ranks.get(note.id) ?? 0) <= 0) return []
@@ -3815,7 +3818,7 @@ function regenerateGuitarLayer(
         ...existing.notes.filter((note) => note.sectionId !== target.sectionId),
         ...layer.notes.filter((note) => note.sectionId === target.sectionId),
       ].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) }
-    : { ...layer, generationRevision: revision, muted: existing?.muted ?? false }
+    : { ...layer, generationRevision: revision, muted: existing?.muted ?? false, ...(existing?.instrument ? { instrument: existing.instrument } : {}) }
   const fitted = fitGuitarToBoundaryBudget(project, others, [merged])
   if (!fitted) return current
   const tracks = existing

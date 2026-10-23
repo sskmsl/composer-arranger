@@ -16,6 +16,13 @@ function song(genre: "neoclassical" | "electronica" | null) {
 }
 const GUITAR = ["gtr-arpeggio", "gtr-strum"]
 
+/** 区間IDは乱数で、発音の揺れの種になる。固定したIDでも確かめる(IDの違いで結果が変わらないこと)。 */
+function withSectionIds(project: ComposerProject, prefix: string): ComposerProject {
+  let json = JSON.stringify(project)
+  project.sections.forEach((section, index) => { json = json.split(section.id).join(`${prefix}${index}`) })
+  return normalizeProject(JSON.parse(json))
+}
+
 describe("ギターの層は既存のトラックを置き換えず、足す", () => {
   it("非打楽器のギター2層が増え、既存のトラックと打楽器の音は変わらない", () => {
     const project = song("neoclassical")
@@ -170,11 +177,21 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
     // 同じ和音の弦は、同時に発音し、互いの発音で音長を切り詰めない(弦の時間差はあとで付ける)
     expect(new Set(performed.notes.map((n) => n.startBeat.toFixed(3))).size).toBe(2)
     expect(Math.min(...performed.notes.map((n) => n.durationBeats))).toBeGreaterThanOrEqual(.3)
-    // 弦をずらしたあとも、終端はそろう
-    const staggered = generateFullSongArrangement(project, { seed: 19 }).tracks.find((track) => track.id === "gtr-strum")!
-    const first = staggered.notes.filter((n) => n.startBeat >= staggered.notes[0].startBeat - .01 && n.startBeat < staggered.notes[0].startBeat + .15)
-    expect(first.length).toBeGreaterThan(1)
-    expect(Math.max(...first.map((n) => n.startBeat + n.durationBeats)) - Math.min(...first.map((n) => n.startBeat + n.durationBeats))).toBeLessThanOrEqual(.15)
+    // 弦をずらしたあとも、同じ和音の弦の終端がそろう(区間IDが違っても)
+    for (const prefix of ["pr204-case-1-section-", "pr204-section-", "x-"]) {
+      const fixed = withSectionIds(project, prefix)
+      const strumTrack = generateFullSongArrangement(fixed, { seed: 19 }).tracks.find((track) => track.id === "gtr-strum")!
+      const sorted = [...strumTrack.notes].sort((a, b) => a.sectionId.localeCompare(b.sectionId) || a.startBeat - b.startBeat)
+      let spread = 0
+      for (let i = 0; i < sorted.length;) {
+        let j = i + 1
+        while (j < sorted.length && sorted[j].sectionId === sorted[i].sectionId && sorted[j].startBeat - sorted[i].startBeat < .15) j += 1
+        const ends = sorted.slice(i, j).map((note) => note.startBeat + note.durationBeats)
+        spread = Math.max(spread, Math.max(...ends) - Math.min(...ends))
+        i = j
+      }
+      expect(spread, prefix).toBeLessThanOrEqual(.15)
+    }
   })
 
   it("部分再生成・全体の再生成でも、保存済みのPadの発音区間に収まる", () => {
@@ -195,5 +212,17 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
     const whole = regenerateFullSongArrangementTarget(project, withGuitar, { trackId: "gtr-arpeggio" })
     expect(outside(whole.tracks), "トラック全体の再生成").toBe(0)
     expect(regenerateFullSongArrangementTarget(project, withGuitar, { trackId: "gtr-strum", sectionId }).tracks.some((t) => t.id === "gtr-strum")).toBe(true)
+  })
+
+  it("ギターの層を再生成しても、保存した楽器を保つ(区間・トラック全体)", () => {
+    const project = song("neoclassical")
+    const full = generateFullSongArrangement(project, { seed: 19 })
+    const saved = { program: 40, reason: "Saved instrument" }
+    const withInstrument = { ...full, tracks: full.tracks.map((track) => track.id === "gtr-arpeggio" ? { ...track, instrument: saved } : track) }
+    const sectionId = project.sections[2].id
+    for (const target of [{ trackId: "gtr-arpeggio" as const, sectionId }, { trackId: "gtr-arpeggio" as const }]) {
+      const regenerated = regenerateFullSongArrangementTarget(project, withInstrument, target)
+      expect(regenerated.tracks.find((track) => track.id === "gtr-arpeggio")!.instrument, JSON.stringify(target)).toEqual(saved)
+    }
   })
 })
