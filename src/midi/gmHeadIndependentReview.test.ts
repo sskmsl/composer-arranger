@@ -154,7 +154,7 @@ describe("GM書き出し: チャンネル共有の独立検証(合成ケース)"
   // 実在の形(最終exportSongMidiの Chords → SYN_DarkPad で 99件)。先行トラックに「同じtickで始まる次の和音」があると、
   // その音を処理する際に、終了が同tickの別トラックの音(Chordsの旧和音)が active から消える(filter が破壊的)。
   // 後から処理される Pad は、同じチャンネル・同じ音高を取り、トラック降順で解釈するプレーヤーでは NoteOff が新しい音を即座に切る。
-  it.fails("同tickに先行トラック自身の次の音がある場合も、別トラックの同音高の終了→開始を同じチャンネルにしない", () => {
+  it("同tickに先行トラック自身の次の音がある場合も、別トラックの同音高の終了→開始を同じチャンネルにしない", () => {
     const entries = [
       entry("Chords", 89, [note(64, 0, 480), note(60, 480, 480)]),
       entry("Pad", 89, [note(64, 480, 960)]),
@@ -214,7 +214,7 @@ describe("GM書き出し: チャンネル共有の独立検証(合成ケース)"
 
   // 新しいチャンネルの最初の使用(曲頭など)で、プログラムチェンジは最初の音を処理したトラックにだけ書かれる。
   // 同じtickに同じチャンネルを共有する別トラックの NoteOn が、トラック降順のプレーヤーではプログラムチェンジより先に来る。
-  it.fails("同じtickで同じチャンネルを共有する別トラックの NoteOn の前にも、プログラムチェンジが届く(トラック順に依らない)", () => {
+  it("同じtickで同じチャンネルを共有する別トラックの NoteOn の前にも、プログラムチェンジが届く(トラック順に依らない)", () => {
     const entries = Array.from({ length: 20 }, (_, i) => entry(`S${i}`, 48, [note(40 + i, 0, 960)]))
     expect(desc(render(entries))).toEqual([])
   })
@@ -276,6 +276,7 @@ describe("最終 exportSongMidi: 実際の全曲アレンジで、発音時の�
         const result = simulate(bytes, expectedByTrack(arrangement, programs))
         rows.push({ which, withLead, seed, label, noteOns: result.noteOns, peakChannels: result.peakChannels, peakPrograms: result.peakPrograms, ascViolations: asc(result).length, descViolations: desc(result).length })
         expect(asc(result).slice(0, 5)).toEqual([])
+        expect(desc(result).slice(0, 5)).toEqual([])
         expect(result.peakChannels).toBeLessThanOrEqual(15)
         if (process.env.GM_REVIEW_PATH) writeFileSync(process.env.GM_REVIEW_PATH, JSON.stringify(rows, null, 2))
       }, 120_000)

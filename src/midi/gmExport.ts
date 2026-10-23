@@ -19,6 +19,8 @@ interface ChannelState {
   channel: number
   program?: number
   active: ActiveNote[]
+  /** 直近にプログラムチェンジを書いたtick。同tickに同じチャンネルを使う別トラックにも同じ指定を届ける。 */
+  changeTick?: number
 }
 
 /** 1つのGMポートで保存音色とノートを保てない場合。音色を黙って統合しない。 */
@@ -51,16 +53,16 @@ function dynamicallyAssignedTracks(entries: readonly SoundedTrack[], sounds: Rea
     const { note, trackIndex, program } = scheduled
     // 同じトラックでは NoteOff → ProgramChange → NoteOn の順を保証できる。
     // 別トラックの同tick順は保証されないため、終了tickが同じ音は発音中として扱う。
-    for (const state of states) {
-      state.active = state.active.filter((active) =>
-        active.end > note.start || (active.end === note.start && active.trackIndex !== trackIndex))
-    }
+    // 終了が同tickの別トラックの音は、後から処理する音のためにも残す(同tickの先行トラックの音で消さない)。
+    const sounding = (active: ActiveNote) =>
+      active.end > note.start || (active.end === note.start && active.trackIndex !== trackIndex)
+    for (const state of states) state.active = state.active.filter((active) => active.end >= note.start)
 
     const sameProgram = states
-      .filter((state) => state.program === program && !state.active.some((active) => active.pitch === note.pitch))
-      .sort((a, b) => b.active.length - a.active.length || a.channel - b.channel)[0]
+      .filter((state) => state.program === program && !state.active.some((active) => sounding(active) && active.pitch === note.pitch))
+      .sort((a, b) => b.active.filter(sounding).length - a.active.filter(sounding).length || a.channel - b.channel)[0]
     const idle = states
-      .filter((state) => state.active.length === 0)
+      .filter((state) => !state.active.some(sounding))
       .sort((a, b) => Number(b.program === program) - Number(a.program === program)
         || Number(a.program != null) - Number(b.program != null)
         || a.channel - b.channel)[0]
@@ -72,10 +74,12 @@ function dynamicallyAssignedTracks(entries: readonly SoundedTrack[], sounds: Rea
     state.active.push({ end: note.start + note.duration, pitch: note.pitch, trackIndex })
     assignedNotes[trackIndex].push({ ...note, channel: state.channel })
     // 同じprogramの再指定は持続音へ影響し得るため、初回と実際の時間再利用時だけ書く。
+    // 同じtickに同じチャンネルを使う別トラックの NoteOn は、並びが逆でも指定を受けられるよう、同じ指定を各トラックに書く。
     const key = `${note.start}:${state.channel}:${program}`
-    if (needsProgramChange && !changeKeys[trackIndex].has(key)) {
+    if ((needsProgramChange || state.changeTick === note.start) && !changeKeys[trackIndex].has(key)) {
       changeKeys[trackIndex].add(key)
       programChanges[trackIndex].push({ tick: note.start, channel: state.channel, program })
+      state.changeTick = note.start
     }
   }
 
