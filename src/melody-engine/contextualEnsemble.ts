@@ -33,24 +33,40 @@ export function arrangeContextualEnsemble(
   input: GeneratedArrangementTrack[],
 ): GeneratedArrangementTrack[] {
   const { genre, styleActive } = resolveMusicContext(project)
-  // As with the existing context generators, absent style context retains the legacy path.
-  if (!styleActive) return input
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
-  const lead = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints).lead
   // Rhythm demand is a musical choice, not a target proportion of drum events.
   const rhythmic = genre.rhythmDensity >= .62 || plan.directive?.character === "rhythmic"
-  const sustained = genre.sustain >= .72 && genre.space >= .65
   const harmonic = genre.harmonicDensity >= .6
   const chordLengths = project.chords.map((c) => c.durationBeats)
   const slowHarmony = chordLengths.length > 0 && chordLengths.reduce((a, b) => a + b, 0) / chordLengths.length >= bpb
-  const accompanimentProgram = rhythmic ? genre.repetition >= .75 ? 81 : 4 : harmonic ? 0 : slowHarmony && project.song.tempo < 105 ? 24 : 27
+  // Chord-playing parts are not always synthesizers. Only a rhythmic, repetitive (electronic) song keeps the synth sounds.
+  const electronic = rhythmic && genre.repetition >= .75
+  const accompanimentProgram = electronic ? 81
+    : harmonic && !slowHarmony ? 0 // dense, quickly changing harmony stays on keys
+      : project.song.tempo < 105 && !rhythmic ? 24 : 27 // arpeggio on guitar: nylon when calm, clean otherwise
   const instruction = plan.directive?.soundInstruction?.enabled
   const preserve = new Set(plan.directive?.preserve ?? [])
   const explicit = new Set(plan.directive?.add ?? [])
+  const instrumentFor = (track: GeneratedArrangementTrack): GeneratedArrangementTrack["instrument"] => {
+    if (track.id === "syn-pulse") {
+      return { program: accompanimentProgram, reason: accompanimentProgram === 24 || accompanimentProgram === 27
+        ? "和声の変化に合わせたギターのアルペジオ" : "和声の変化と曲の推進に合わせた分散伴奏" }
+    }
+    if (electronic) return track.instrument
+    if (track.id === "syn-stabs") return { program: 27, reason: "和音を短く刻むギターのストラム" }
+    if (track.id === "syn-chord-wide") return { program: 24, reason: "広い和音をギターで鳴らす" }
+    return track.instrument
+  }
+  // As with the existing context generators, absent style context retains the legacy notes; only the sound is decided.
+  if (!styleActive) {
+    return input.map((track) => preserve.has(track.id) || explicit.has(track.id) || instruction ? track
+      : { ...track, instrument: instrumentFor(track) })
+  }
+  const sustained = genre.sustain >= .72 && genre.space >= .65
+  const lead = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints).lead
   return input.map((track) => {
     if (preserve.has(track.id) || explicit.has(track.id) || instruction) return track
-    let instrument = track.instrument
-    if (track.id === "syn-pulse") instrument = { program: accompanimentProgram, reason: "和声の変化と曲の推進に合わせた分散伴奏" }
+    let instrument = instrumentFor(track)
     if (track.id === "syn-arp-high" && !rhythmic) instrument = { program: 4, reason: "主旋律の休符にだけ応答する単声句" }
     const notes = plan.sections.flatMap((section) => {
       const existing = track.notes.filter((n) => n.sectionId === section.sectionId)

@@ -25,7 +25,7 @@ describe("contextual ensemble performances", () => {
     const { p, plan, tracks } = fixture()
     const output = arrangeContextualEnsemble(p, plan, tracks)
     const comp = output.find((t) => t.id === "syn-pulse")!
-    expect(comp.instrument?.program).toBe(0)
+    expect(comp.instrument?.program).toBe(24) // calm, slowly changing harmony: arpeggio on nylon guitar
     expect(comp.notes.length).toBeGreaterThan(tracks[0].notes.length)
     expect(new Set(comp.notes.map((n) => n.pitch % 12)).size).toBeGreaterThan(3)
     expect(comp.notes.every((n) => n.startBeat >= 2 && n.startBeat + n.durationBeats <= 16)).toBe(true)
@@ -54,5 +54,32 @@ describe("contextual ensemble performances", () => {
     const output = arrangeContextualEnsemble(p, plan, tracks)
     expect(output[0]).toBe(tracks[0])
     expect(output[3]).toBe(tracks[3])
+  })
+  it("plays arpeggios and chord strums on guitar unless the song is electronic", () => {
+    const { p, plan, tracks } = fixture()
+    const withChords = [...tracks, ...(["syn-stabs", "syn-chord-wide"] as const).map((id) => ({ ...tracks[0], id, name: id }))]
+    const program = (list: GeneratedArrangementTrack[], id: string) => list.find((t) => t.id === id)?.instrument?.program
+    const calm = arrangeContextualEnsemble(p, plan, withChords)
+    expect([program(calm, "syn-pulse"), program(calm, "syn-stabs"), program(calm, "syn-chord-wide")]).toEqual([24, 27, 24])
+    p.song.tempo = 120
+    expect(program(arrangeContextualEnsemble(p, plan, withChords), "syn-pulse")).toBe(27)
+    const electronic = fixture(true)
+    const kept = arrangeContextualEnsemble(electronic.p, electronic.plan, withChords)
+    expect([program(kept, "syn-pulse"), program(kept, "syn-stabs"), program(kept, "syn-chord-wide")]).toEqual([81, undefined, undefined])
+  })
+  it("keeps keys for dense harmony that changes faster than a bar", () => {
+    const { p, plan, tracks } = fixture()
+    p.chords = p.chords.map((c, i) => ({ ...c, startBeat: i * 2, durationBeats: 2 }))
+    expect(arrangeContextualEnsemble(p, plan, tracks).find((t) => t.id === "syn-pulse")!.instrument?.program).toBe(0)
+  })
+  it("decides the sound, not the notes, when no genre or reference is set", () => {
+    const { p, plan, tracks } = fixture()
+    p.song.genreBlend = []
+    const output = arrangeContextualEnsemble(p, plan, tracks)
+    expect(output.map((t) => t.notes)).toEqual(tracks.map((t) => t.notes))
+    expect(output.find((t) => t.id === "syn-pulse")!.instrument?.program).toBe(24)
+    expect(output.find((t) => t.id === "dr-kick")!.instrument).toBeUndefined()
+    plan.directive = { intention: "", preserve: ["syn-pulse"] }
+    expect(arrangeContextualEnsemble(p, plan, tracks)[0]).toBe(tracks[0])
   })
 })
