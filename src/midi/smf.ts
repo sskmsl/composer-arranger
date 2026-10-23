@@ -46,6 +46,12 @@ export interface MidiMarker {
   text: string
 }
 
+export interface MidiProgramChange {
+  tick: number
+  channel: number
+  program: number
+}
+
 function vlq(value: number): number[] {
   let v = Math.max(0, Math.floor(value))
   const bytes = [v & 0x7f]
@@ -96,6 +102,8 @@ export interface SmfTrack {
   channel?: number
   /** 指定すると、曲頭にこの楽器番号(GM、0始まり)のプログラムチェンジを書く */
   program?: number
+  /** チャンネルを時間で再利用するとき、次の発音より前に書くプログラムチェンジ */
+  programChanges?: MidiProgramChange[]
 }
 
 export interface SmfSong {
@@ -159,11 +167,18 @@ export function buildSmf(song: SmfSong): Uint8Array {
     ]
     if (track.program != null) {
       const channel = (track.channel ?? track.notes[0]?.channel ?? 0) & 0x0f
-      events.push({ tick: 0, order: 1, data: [0xc0 | channel, track.program & 0x7f] })
+      events.push({ tick: 0, order: 2, data: [0xc0 | channel, track.program & 0x7f] })
+    }
+    for (const change of track.programChanges ?? []) {
+      events.push({
+        tick: Math.max(0, Math.floor(change.tick)),
+        order: 2,
+        data: [0xc0 | (change.channel & 0x0f), change.program & 0x7f],
+      })
     }
     for (const n of track.notes) {
       const channel = (track.channel ?? n.channel) & 0x0f
-      events.push({ tick: n.start, order: 2, data: [0x90 | channel, n.pitch & 0x7f, n.velocity & 0x7f] })
+      events.push({ tick: n.start, order: 3, data: [0x90 | channel, n.pitch & 0x7f, n.velocity & 0x7f] })
       events.push({ tick: n.start + n.duration, order: 1, data: [0x80 | channel, n.pitch & 0x7f, 0x40] })
     }
     return buildTrack(events)

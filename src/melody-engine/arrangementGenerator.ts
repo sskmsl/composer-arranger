@@ -47,6 +47,7 @@ import { evaluateArrangementAudition, refineArrangementByAudition } from "./arra
 import { separateLowRegister } from "./lowRegisterSeparation"
 import { supportVoiceLeaps } from "./supportVoiceLeaps"
 import { minimizeBackgroundVoiceMovement } from "./backgroundVoiceLeading"
+import { arrangeContextualEnsemble } from "./contextualEnsemble"
 import { shapeChorusBass } from "./chorusBassActivity"
 import { repairBackgroundOctaveConflicts } from "./backgroundConflictRepair"
 
@@ -2944,9 +2945,22 @@ function stageBoundaryLayers(
       const entry = offset + (control.roleEntryBeats?.[track.id] ?? 0)
       const exit = offset + (control.roleExitBeats?.[track.id] ?? section.lengthBars * bpb)
       const start = Math.max(note.startBeat, entry), end = Math.min(note.startBeat + note.durationBeats, exit)
-      return end - start < .0625 ? [] : [{ ...note, startBeat: start, durationBeats: end - start,
+      if (end - start < .0625) return []
+      let staged = { ...note, startBeat: start, durationBeats: end - start,
         reason: start !== note.startBeat || end !== note.startBeat + note.durationBeats
-          ? `${note.reason}。背景層の計画した入口・出口を守り、同時の交代を分散する` : note.reason }]
+          ? `${note.reason}。背景層の計画した入口・出口を守り、同時の交代を分散する` : note.reason }
+      // 入口を和音境界の先へ切り詰めた場合、元の和音の音を新しく発音し直さない。
+      if (start !== note.startBeat && staged.character === "safe" && HARMONIC_REVIEW_TRACKS.has(track.id)) {
+        const allowed = allowedPitchClassesAtNote(project, staged, track.id)
+        if (allowed?.size && !allowed.has(pc(staged.pitch))) {
+          const melody = buildSongPlaybackMaterial(project, plan.directive?.timelineConstraints).lead
+          const choices = [...allowed].map((tone) => midiForPc(tone, staged.pitch))
+            .map((pitch) => avoidMelodyCollision({ ...staged, pitch }, melody))
+            .sort((a, b) => Math.abs(a.pitch - staged.pitch) - Math.abs(b.pitch - staged.pitch))
+          staged = { ...choices[0], reason: `${staged.reason}。遅らせた入口の和音へ最短でつなぐ` }
+        }
+      }
+      return [staged]
     }) }
   })
   if (editableTrackIds || editableSectionIds) return tracks
@@ -3206,7 +3220,7 @@ function generateArrangementCandidate(
   const performedTracks = applyArrangementPerformanceDirector(
     project,
     plan,
-    [...generatedCoreTracks, ...generatedLayerTracks],
+    arrangeContextualEnsemble(project, plan, [...generatedCoreTracks, ...generatedLayerTracks]),
   )
   return finalizeFullSongArrangement(project, {
     version: "1.0.0",
@@ -3574,12 +3588,12 @@ export function regenerateFullSongArrangementTarget(
   const regenerated = applyArrangementPerformanceDirector(
     project,
     plan,
-    [generateTrack(project, plan, target.trackId, revision, target.sectionId)],
+    arrangeContextualEnsemble(project, plan, [generateTrack(project, plan, target.trackId, revision, target.sectionId)]),
   )[0]
   const tracks = current.tracks.some((track) => track.id === target.trackId)
     ? current.tracks.map((track) => {
         if (track.id !== target.trackId) return track
-        if (!target.sectionId) return regenerated
+        if (!target.sectionId) return { ...regenerated, ...(track.instrument ? { instrument: track.instrument } : {}) }
         return {
           ...track,
           generationRevision: revision,
