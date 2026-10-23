@@ -21,7 +21,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function performanceRole(trackId: ArrangementTrackId): PerformanceExecutionPlan["role"] {
-  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide") return "pulse-foundation"
+  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId.startsWith("gtr-")) return "pulse-foundation"
   if (trackId === "syn-transition-phrase" || trackId === "syn-high-glass" || trackId === "syn-final-lift") return "transition-color"
   if (trackId === "str-violin-1" || trackId === "str-upper") return "counter-voice"
   return "harmonic-space"
@@ -31,8 +31,8 @@ function articulationFor(
   trackId: ArrangementTrackId,
   section: ArrangementSectionPlan,
 ): PerformanceExecutionPlan["articulation"] {
-  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId === "str-spiccato") return "detached"
-  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-")) return "pulsed"
+  if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId === "str-spiccato" || trackId === "gtr-strum") return "detached"
+  if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "gtr-arpeggio") return "pulsed"
   if (trackId === "syn-high-glass") return "decaying"
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return "swelling"
   if (trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return section.semanticRole === "outro" ? "decaying" : "sustained"
@@ -56,7 +56,7 @@ function velocityRangeFor(trackId: ArrangementTrackId, energy: number): readonly
   if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "dr-ride") return [Math.round(36 + normalized * 12), Math.round(54 + normalized * 24)]
   if (trackId === "dr-crash") return [72, Math.round(88 + normalized * 24)]
   if (trackId.includes("bass")) return [Math.round(44 + normalized * 12), Math.round(64 + normalized * 25)]
-  if (trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide") return [Math.round(36 + normalized * 10), Math.round(55 + normalized * 22)]
+  if (trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId.startsWith("gtr-")) return [Math.round(36 + normalized * 10), Math.round(55 + normalized * 22)]
   if (trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return [Math.round(27 + normalized * 7), Math.round(42 + normalized * 16)]
   if (trackId === "syn-high-glass") return [38, Math.round(52 + normalized * 18)]
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return [Math.round(42 + normalized * 9), Math.round(66 + normalized * 27)]
@@ -151,6 +151,7 @@ function orchestrationPresence(trackId: ArrangementTrackId): number {
   if (trackId === "syn-pad-air" || trackId === "syn-pad-motion") return 6
   if (trackId === "str-spiccato" || trackId === "str-high-octave") return 7
   if (trackId === "syn-arp-low" || trackId === "syn-arp-high") return 6
+  if (trackId.startsWith("gtr-")) return 5
   if (["dr-kick-sub", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride", "dr-percussion-high", "dr-cymbal-swell", "dr-impact"].includes(trackId)) return 5
   return 0
 }

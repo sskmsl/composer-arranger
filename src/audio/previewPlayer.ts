@@ -145,6 +145,8 @@ export function arrangementPreviewMix(trackId: ArrangementTrackId): ArrangementP
   if (trackId === "syn-arp-low") return { gain: 0.66, pan: -0.24 }
   if (trackId === "syn-arp-high") return { gain: 0.64, pan: 0.28, filter: { type: "highpass", frequency: 650 } }
   if (trackId === "syn-chord-wide") return { gain: 0.64, pan: 0.32 }
+  if (trackId === "gtr-arpeggio") return { gain: 0.66, pan: -0.28, filter: { type: "highpass", frequency: 160 } }
+  if (trackId === "gtr-strum") return { gain: 0.64, pan: 0.3, filter: { type: "highpass", frequency: 140 } }
   if (trackId === "syn-pad-air") return { gain: 0.66, pan: -0.4, filter: { type: "highpass", frequency: 700 } }
   if (trackId === "syn-pad-motion") return { gain: 0.68, pan: 0.38, filter: { type: "highpass", frequency: 280 } }
   if (trackId === "str-contrabass") return { gain: 0.68, pan: -0.12, filter: { type: "lowpass", frequency: 320 } }

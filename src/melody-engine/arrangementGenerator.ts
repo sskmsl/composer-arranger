@@ -78,6 +78,7 @@ const TRACK_FAMILY: Record<ArrangementTrackId, GeneratedArrangementTrack["family
   "syn-final-lift": "synth", "str-cello": "strings", "str-viola": "strings",
   "str-violin-2": "strings", "str-violin-1": "strings", "str-upper": "strings",
   "str-contrabass": "strings", "str-spiccato": "strings", "str-high-octave": "strings",
+  "gtr-arpeggio": "guitar", "gtr-strum": "guitar",
 }
 
 const TRACK_PURPOSE: Record<ArrangementTrackId, string> = {
@@ -104,6 +105,8 @@ const TRACK_PURPOSE: Record<ArrangementTrackId, string> = {
   "str-upper": "クライマックスでのみ現れる希少な上声",
   "str-contrabass": "弦の最下層を長く支える重心", "str-spiccato": "持続弦とは別に拍を刻む短音層",
   "str-high-octave": "最終ピークで上声を一段だけ持ち上げる層",
+  "gtr-arpeggio": "Padが鳴る間、コードに沿ってギターの分散で和声を示す層",
+  "gtr-strum": "短い和音の拍に合わせ、ギターのストラムで厚みを足す層",
 }
 
 /**
@@ -130,6 +133,8 @@ const ARRANGEMENT_LAYER_SOURCES = {
   "str-contrabass": "str-cello",
   "str-spiccato": "str-viola",
   "str-high-octave": "str-violin-1",
+  "gtr-arpeggio": "syn-dark-pad",
+  "gtr-strum": "syn-stabs",
 } as const satisfies Partial<Record<ArrangementTrackId, ArrangementTrackId>>
 
 const PHASE_LOCKED_LAYER_SOURCES = new Map<ArrangementTrackId, ArrangementTrackId>([
@@ -1638,6 +1643,8 @@ function layerEnabledInSection(trackId: ArrangementLayerTrackId, section: Arrang
   if (trackId === "syn-arp-low") return energy >= 48
   if (trackId === "syn-arp-high") return energy >= 72 && (role === "final" || section.developmentStage !== 0)
   if (trackId === "syn-chord-wide") return energy >= 68
+  if (trackId === "gtr-arpeggio") return energy >= 30 && role !== "outro"
+  if (trackId === "gtr-strum") return energy >= 52
   if (trackId === "syn-pad-air") return ["intro", "breakdown", "bridge", "reprise", "final"].includes(role)
   if (trackId === "syn-pad-motion") return energy >= 48 && role !== "outro"
   if (trackId === "str-contrabass") return energy >= 52 && ["pre", "chorus", "bridge", "build", "final"].includes(role)
@@ -1737,6 +1744,16 @@ function deriveArrangementLayerTrack(
         const shift = rank < 0 ? -12 : rank > 0 ? 12 : 0
         return [makeLayerNote(note, index, { pitch: note.pitch + shift, startBeat: note.startBeat + .25, durationBeats: note.durationBeats * 0.82, velocity: note.velocity - 13 })]
       }
+      if (trackId === "gtr-strum") {
+        // 和音を低い弦から高い弦へ少しずらして弾く。弦は6本までなので、上から4音までに絞る。
+        const voices = [...eligible.filter((other) => Math.abs(other.startBeat - note.startBeat) < .001)].sort((a, b) => a.pitch - b.pitch)
+        const position = Math.max(0, voices.findIndex((other) => other.id === note.id))
+        if (voices.length > 4 && position < voices.length - 4) return []
+        let pitch = note.pitch
+        while (pitch > 79) pitch -= 12
+        while (pitch < 45) pitch += 12
+        return [makeLayerNote(note, index, { pitch, startBeat: note.startBeat + .03 * position, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 12 })]
+      }
       if (trackId === "syn-pad-air") {
         if ((ranks.get(note.id) ?? 0) <= 0) return []
         return [makeLayerNote(note, index, { pitch: note.pitch + 12, startBeat: note.startBeat + .25, durationBeats: note.durationBeats * 1.02, velocity: note.velocity - 18 })]
@@ -1759,10 +1776,70 @@ function deriveArrangementLayerTrack(
   }
 }
 
-function layerTrackIdsFor(baseTrackIds: ArrangementTrackId[]): ArrangementLayerTrackId[] {
+/** コードの構成音を、ギターで弾ける低い音から順に並べる(根音から上へ)。 */
+function guitarVoicing(parsed: NonNullable<ReturnType<typeof parseChordSymbol>>): number[] {
+  const rootPc = parsed.tones[0].pitchClass
+  const pcs = [...new Set(parsed.tones.map((tone) => tone.pitchClass))].sort((a, b) => pc(a - rootPc) - pc(b - rootPc))
+  const voicing: number[] = [50 + pc(rootPc - 50)]
+  for (const pitchClass of pcs.slice(1)) voicing.push(voicing.at(-1)! + (pc(pitchClass - voicing.at(-1)!) || 12))
+  if (voicing.length < 3) voicing.push(voicing[0] + 12)
+  return voicing
+}
+
+/**
+ * Padが鳴る区間で、コードに沿ってギターが分散して弾く。Padの出入りに従うので、新しい入退場は作らない。
+ * 元の音を複製せず、コードの構成音から作る。主旋律との重なりは、後段の聴感調整が扱う。
+ */
+function deriveGuitarArpeggioTrack(
+  project: ComposerProject,
+  plan: ArrangementPlan,
+  source: GeneratedArrangementTrack,
+  revision: number,
+): GeneratedArrangementTrack {
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const notes: GeneratedArrangementNote[] = []
+  for (const sectionPlan of plan.sections) {
+    if (!layerEnabledInSection("gtr-arpeggio", sectionPlan)) continue
+    const section = project.sections.find((candidate) => candidate.id === sectionPlan.sectionId)
+    const active = source.notes.filter((note) => note.sectionId === sectionPlan.sectionId)
+    if (!section || active.length === 0) continue
+    const offset = sectionOffset(section.startBar, bpb)
+    const from = Math.min(...active.map((note) => note.startBeat))
+    const to = Math.max(...active.map((note) => note.startBeat + note.durationBeats))
+    const step = sectionPlan.energy < 50 ? 1 : .5
+    const chords = project.chords.filter((chord) => chord.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat)
+    for (const chord of chords) {
+      const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+      if (!parsed || parsed.tones.length === 0) continue
+      const voicing = guitarVoicing(parsed)
+      const order = voicing.length >= 4 ? [0, 1, 2, 3, 2, 1] : [0, 1, 2, 1]
+      const chordEnd = chord.startBeat + chord.durationBeats
+      for (let local = chord.startBeat, index = 0; local < chordEnd - .01; local += step, index += 1) {
+        const start = offset + local
+        if (start < from - .01 || start >= to - .01) continue
+        const pitch = voicing[order[index % order.length] % voicing.length]
+        notes.push(makeNote("gtr-arpeggio", section.id, notes.length, start, Math.min(step * 2.2, offset + chordEnd - start), pitch,
+          34 + sectionPlan.energy * .22 + (index % order.length === 0 ? 4 : 0), TRACK_PURPOSE["gtr-arpeggio"]))
+      }
+    }
+  }
+  return { ...emptyTrack("gtr-arpeggio", revision), notes: notes.sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) }
+}
+
+/**
+ * ギターの層は、既存のシンセ・弦・打楽器を置き換えずに足す。
+ * リズムが強く反復の多い電子寄りの曲では、シンセの質感を保つために足さない。
+ */
+function guitarLayersAllowed(project: ComposerProject, plan: ArrangementPlan): boolean {
+  const { genre } = resolveMusicContext(project)
+  const rhythmic = genre.rhythmDensity >= .62 || plan.directive?.character === "rhythmic"
+  return !(rhythmic && genre.repetition >= .75)
+}
+
+function layerTrackIdsFor(baseTrackIds: ArrangementTrackId[], allowGuitar = false): ArrangementLayerTrackId[] {
   const active = new Set(baseTrackIds)
   return (Object.entries(ARRANGEMENT_LAYER_SOURCES) as Array<[ArrangementLayerTrackId, ArrangementTrackId]>)
-    .filter(([, source]) => active.has(source))
+    .filter(([trackId, source]) => active.has(source) && (allowGuitar || !trackId.startsWith("gtr-")))
     .map(([trackId]) => trackId)
 }
 
@@ -1776,12 +1853,10 @@ function generateTrack(
 ): GeneratedArrangementTrack {
   if (isArrangementLayerTrackId(trackId)) {
     const sourceId = ARRANGEMENT_LAYER_SOURCES[trackId]
-    return deriveArrangementLayerTrack(
-      generateTrack(project, plan, sourceId, revision, onlySectionId, variationSeed),
-      trackId,
-      plan,
-      revision,
-    )
+    const source = generateTrack(project, plan, sourceId, revision, onlySectionId, variationSeed)
+    return trackId === "gtr-arpeggio"
+      ? deriveGuitarArpeggioTrack(project, plan, source, revision)
+      : deriveArrangementLayerTrack(source, trackId, plan, revision)
   }
   const beatsPerBar = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const material = buildSongPlaybackMaterial(project)
@@ -1913,7 +1988,7 @@ const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([
   "syn-bass", "syn-sub-bass", "syn-bass-mid", "syn-pulse", "syn-arp-low", "syn-arp-high",
   "syn-stabs", "syn-chord-wide", "syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-high-glass",
   "str-cello", "str-viola", "str-violin-2", "str-violin-1", "str-upper",
-  "str-contrabass", "str-spiccato", "str-high-octave",
+  "str-contrabass", "str-spiccato", "str-high-octave", "gtr-arpeggio", "gtr-strum",
 ])
 
 function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArrangementNote, trackId: ArrangementTrackId): Set<number> | null {
@@ -3046,7 +3121,7 @@ function applyFadeOut(
 /** 層が抜ける順。リズム → 動きのある層 → 弦 → 低域 → パッド(最後まで残る)。 */
 const THINNING_GROUPS: ReadonlyArray<ReadonlySet<string>> = [
   new Set(["dr-", "syn-transition-phrase"]),
-  new Set(["syn-pulse", "syn-arp-low", "syn-arp-high", "syn-stabs", "syn-chord-wide", "syn-high-glass", "syn-final-lift"]),
+  new Set(["syn-pulse", "syn-arp-low", "syn-arp-high", "syn-stabs", "syn-chord-wide", "syn-high-glass", "syn-final-lift", "gtr-arpeggio", "gtr-strum"]),
   new Set(["str-"]),
   new Set(["syn-bass", "syn-sub-bass", "syn-bass-mid"]),
 ]
@@ -3476,7 +3551,7 @@ export function generateFullSongArrangement(
   const summaries = scored.map(({ summary }) => summary.seed === selectedSeed
     ? { ...summary, selected: true, reason: "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用" }
     : summary)
-  return {
+  return addGuitarLayers(project, {
     ...winner.candidate,
     id: `arrangement:${baseSeed}:${selectedSeed}`,
     plan: { ...winner.candidate.plan, seed: baseSeed, candidateSeed: selectedSeed },
@@ -3491,7 +3566,7 @@ export function generateFullSongArrangement(
         : {}),
       candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
     },
-  }
+  })
 }
 
 export function arrangementQualityWarning(project: ComposerProject, arrangement: FullSongArrangement): string {
@@ -3508,6 +3583,45 @@ export function arrangementQualityWarning(project: ComposerProject, arrangement:
     .slice(0, 2).map((key) => messages[key])
   if (reasons.length === 0) reasons.push("曲の部分ごとの音の変化を十分に作れていない")
   return `品質基準を満たす案を作れませんでした。${reasons.join("、")}ため、伴奏の調整が必要です。`
+}
+
+const GUITAR_LAYER_IDS: ArrangementLayerTrackId[] = ["gtr-arpeggio", "gtr-strum"]
+
+/**
+ * 選ばれた全曲案へ、ギターの層を足す。既存のトラックは置き換えず、作り直さない(足した層だけを編集対象にする)。
+ * 足した結果が品質・聴感の基準や主旋律との衝突を悪くするなら、足さずに元の案を返す。
+ */
+export function addGuitarLayers(project: ComposerProject, arrangement: FullSongArrangement): FullSongArrangement {
+  if (arrangement.plan.directive?.soundInstruction?.enabled || !guitarLayersAllowed(project, arrangement.plan)) return arrangement
+  if (arrangement.tracks.some((track) => track.id.startsWith("gtr-"))) return arrangement
+  const byId = new Map(arrangement.tracks.map((track) => [track.id, track]))
+  const revision = Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))
+  const layers = GUITAR_LAYER_IDS.flatMap((trackId) => {
+    const source = byId.get(ARRANGEMENT_LAYER_SOURCES[trackId])
+    if (!source || source.muted || source.notes.length === 0) return []
+    const layer = trackId === "gtr-arpeggio"
+      ? deriveGuitarArpeggioTrack(project, arrangement.plan, source, revision)
+      : deriveArrangementLayerTrack(source, trackId, arrangement.plan, revision)
+    return layer.notes.length > 0 ? [layer] : []
+  })
+  if (layers.length === 0) return arrangement
+  const performed = applyArrangementTimelineToTracks(
+    applyArrangementPerformanceDirector(project, arrangement.plan, layers),
+    arrangement.plan.directive?.timelineConstraints,
+    parseTimeSignature(project.song.timeSignature).beatsPerBar,
+  )
+  const added = finalizeFullSongArrangement(project, {
+    ...arrangement,
+    tracks: [...arrangement.tracks, ...performed],
+  }, { editableTrackIds: new Set(performed.map((track) => track.id)) })
+  const kept = added.tracks.filter((track) => track.id.startsWith("gtr-") && track.notes.length > 0)
+  const before = arrangement.quality
+  const worse = !added.quality?.passed
+    || (added.audition?.score ?? 0) < 72
+    || (added.audition?.score ?? 0) < (arrangement.audition?.score ?? 0) - 3
+    || (added.quality?.metrics.melodyCollisionCount ?? 0) > (before?.metrics.melodyCollisionCount ?? 0)
+    || (added.quality?.metrics.harmonicViolationCount ?? 0) > (before?.metrics.harmonicViolationCount ?? 0)
+  return kept.length === 0 || worse ? arrangement : added
 }
 
 /**

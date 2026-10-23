@@ -10,7 +10,7 @@ const LAYER_TRACKS = new Set([
   "dr-kick-sub", "dr-kick-click", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride",
   "dr-percussion-high", "dr-cymbal-swell", "dr-impact", "syn-sub-bass", "syn-bass-mid",
   "syn-arp-low", "syn-arp-high", "syn-chord-wide", "syn-pad-air", "syn-pad-motion",
-  "str-contrabass", "str-spiccato", "str-high-octave",
+  "str-contrabass", "str-spiccato", "str-high-octave", "gtr-arpeggio", "gtr-strum",
 ])
 
 const FOREGROUND_SUPPORT = new Set([
@@ -32,7 +32,7 @@ const PHASE_ALIGNED_DRUM_LAYERS = new Map<string, string>([
 const GROUPED_BACKGROUND_TRACKS = new Set([
   "syn-dark-pad", "syn-chord-wide", "syn-pad-air", "syn-pad-motion",
   "str-cello", "str-contrabass", "str-viola", "str-spiccato", "str-violin-2",
-  "str-violin-1", "str-upper", "str-high-octave",
+  "str-violin-1", "str-upper", "str-high-octave", "gtr-strum",
 ])
 
 function attackIdentity(trackId: string): string {
@@ -61,6 +61,8 @@ const TRACK_RANGES: Record<string, readonly [number, number]> = {
   "str-violin-1": [55, 100],
   "str-upper": [67, 104],
   "str-high-octave": [67, 104],
+  "gtr-arpeggio": [50, 76],
+  "gtr-strum": [45, 79],
 }
 
 function canMaskMelody(note: GeneratedArrangementNote): boolean {

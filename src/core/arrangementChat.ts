@@ -140,6 +140,7 @@ export type ArrangementPartRowId =
   | "pad"
   | "glass"
   | "transition"
+  | "guitar"
   | "strings-low"
   | "strings-high"
 
@@ -151,7 +152,7 @@ export interface ArrangementPartRow {
 }
 
 /**
- * 40の生成トラックを、耳で区別しやすい8つのパートにまとめる。
+ * 42の生成トラックを、耳で区別しやすい9つのパートにまとめる。
  * 先頭の対旋律・合いの手は全曲アレンジのトラックではなく、セクションに付けた対旋律・装飾の候補
  */
 export const ARRANGEMENT_PART_ROWS: ArrangementPartRow[] = [
@@ -184,6 +185,7 @@ export const ARRANGEMENT_PART_ROWS: ArrangementPartRow[] = [
   },
   { id: "bass", label: "ベース", color: "#4fd1b5", trackIds: ["syn-bass", "syn-sub-bass", "syn-bass-mid"] },
   { id: "pulse", label: "シンセの刻み", color: "#f472b6", trackIds: ["syn-pulse", "syn-arp-low", "syn-arp-high", "syn-stabs", "syn-chord-wide"] },
+  { id: "guitar", label: "ギター", color: "#86efac", trackIds: ["gtr-arpeggio", "gtr-strum"] },
   { id: "pad", label: "パッド", color: "#c084fc", trackIds: ["syn-dark-pad", "syn-pad-air", "syn-pad-motion"] },
   { id: "glass", label: "高音のきらめき", color: "#7dd3fc", trackIds: ["syn-high-glass"] },
   { id: "transition", label: "つなぎのフレーズ", color: "#a3e635", trackIds: ["syn-transition-phrase", "syn-final-lift"] },
@@ -237,6 +239,8 @@ const TRACK_LABELS: Record<ArrangementTrackId, string> = {
   "str-contrabass": "コントラバス",
   "str-spiccato": "短く刻む弦",
   "str-high-octave": "弦の高音オクターブ",
+  "gtr-arpeggio": "ギターの分散",
+  "gtr-strum": "ギターのストラム",
 }
 
 export function arrangementTrackLabel(trackId: ArrangementTrackId): string {

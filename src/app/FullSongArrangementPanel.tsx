@@ -15,6 +15,7 @@ const TRACK_FAMILY_LABEL: Record<GeneratedArrangementTrack["family"], string> = 
   bass: "ベース",
   synth: "シンセ・空間",
   strings: "ストリングス",
+  guitar: "ギター",
   transition: "つなぎのフレーズ",
 }
 
