@@ -1752,7 +1752,7 @@ function deriveArrangementLayerTrack(
         let pitch = note.pitch
         while (pitch > 79) pitch -= 12
         while (pitch < 45) pitch += 12
-        return [makeLayerNote(note, index, { pitch, startBeat: note.startBeat + .03 * position, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 12 })]
+        return [makeLayerNote(note, index, { pitch, startBeat: note.startBeat + .03 * position, durationBeats: Math.min(1.25, Math.max(.4, note.durationBeats * 1.2)), velocity: note.velocity - 6 })]
       }
       if (trackId === "syn-pad-air") {
         if ((ranks.get(note.id) ?? 0) <= 0) return []
@@ -1795,6 +1795,8 @@ function deriveGuitarArpeggioTrack(
   plan: ArrangementPlan,
   source: GeneratedArrangementTrack,
   revision: number,
+  /** 区間ごとの、既存の非打楽器の平均の強さ。無ければPadの平均に沿わせる。 */
+  sectionVelocity?: ReadonlyMap<string, number>,
 ): GeneratedArrangementTrack {
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const notes: GeneratedArrangementNote[] = []
@@ -1804,9 +1806,17 @@ function deriveGuitarArpeggioTrack(
     const active = source.notes.filter((note) => note.sectionId === sectionPlan.sectionId)
     if (!section || active.length === 0) continue
     const offset = sectionOffset(section.startBar, bpb)
-    const from = Math.min(...active.map((note) => note.startBeat))
-    const to = Math.max(...active.map((note) => note.startBeat + note.durationBeats))
-    const step = sectionPlan.energy < 50 ? 1 : .5
+    // Padが実際に鳴っている区間(重なりは結合)。休符の間は鳴らさず、音長もPadの終端までにする。
+    const sounding: Array<[number, number]> = []
+    for (const [begin, end] of active.map((note): [number, number] => [note.startBeat, note.startBeat + note.durationBeats]).sort((a, b) => a[0] - b[0])) {
+      const last = sounding.at(-1)
+      if (last && begin <= last[1] + .01) last[1] = Math.max(last[1], end)
+      else sounding.push([begin, end])
+    }
+    // 層を透かす音像(layerTransparency が高い)では、分散を粗くして音数を増やさない。
+    const step = sectionPlan.energy < 50 || resolveMusicContext(project, section.id).aesthetic.layerTransparency > .6 ? 1 : .5
+    // 強さはPadの区間の平均に沿わせ、曲全体の強弱の流れ(サビ→大サビの差など)を変えない。
+    const padVelocity = sectionVelocity?.get(sectionPlan.sectionId) ?? active.reduce((sum, note) => sum + note.velocity, 0) / active.length
     const chords = project.chords.filter((chord) => chord.sectionId === section.id).sort((a, b) => a.startBeat - b.startBeat)
     for (const chord of chords) {
       const parsed = parseChordSymbol(chord.symbol, chord.bass ?? undefined)
@@ -1816,10 +1826,11 @@ function deriveGuitarArpeggioTrack(
       const chordEnd = chord.startBeat + chord.durationBeats
       for (let local = chord.startBeat, index = 0; local < chordEnd - .01; local += step, index += 1) {
         const start = offset + local
-        if (start < from - .01 || start >= to - .01) continue
+        const run = sounding.find(([begin, end]) => start >= begin - .01 && start < end - .01)
+        if (!run) continue
         const pitch = voicing[order[index % order.length] % voicing.length]
-        notes.push(makeNote("gtr-arpeggio", section.id, notes.length, start, Math.min(step * 2.2, offset + chordEnd - start), pitch,
-          34 + sectionPlan.energy * .22 + (index % order.length === 0 ? 4 : 0), TRACK_PURPOSE["gtr-arpeggio"]))
+        notes.push(makeNote("gtr-arpeggio", section.id, notes.length, start, Math.min(step * 2.2, offset + chordEnd - start, run[1] - start), pitch,
+          padVelocity - 3 + (index % order.length === 0 ? 3 : 0), TRACK_PURPOSE["gtr-arpeggio"]))
       }
     }
   }
@@ -3596,17 +3607,33 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
   if (arrangement.tracks.some((track) => track.id.startsWith("gtr-"))) return arrangement
   const byId = new Map(arrangement.tracks.map((track) => [track.id, track]))
   const revision = Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))
+  const sectionVelocity = new Map<string, number>()
+  for (const section of arrangement.plan.sections) {
+    const sounding = arrangement.tracks.filter((track) => track.family !== "drums" && !track.muted)
+      .flatMap((track) => track.notes.filter((note) => note.sectionId === section.sectionId))
+    if (sounding.length > 0) sectionVelocity.set(section.sectionId, sounding.reduce((sum, note) => sum + note.velocity, 0) / sounding.length)
+  }
   const layers = GUITAR_LAYER_IDS.flatMap((trackId) => {
     const source = byId.get(ARRANGEMENT_LAYER_SOURCES[trackId])
     if (!source || source.muted || source.notes.length === 0) return []
     const layer = trackId === "gtr-arpeggio"
-      ? deriveGuitarArpeggioTrack(project, arrangement.plan, source, revision)
+      ? deriveGuitarArpeggioTrack(project, arrangement.plan, source, revision, sectionVelocity)
       : deriveArrangementLayerTrack(source, trackId, arrangement.plan, revision)
     return layer.notes.length > 0 ? [layer] : []
   })
   if (layers.length === 0) return arrangement
   const performed = applyArrangementTimelineToTracks(
-    applyArrangementPerformanceDirector(project, arrangement.plan, layers),
+    applyArrangementPerformanceDirector(project, arrangement.plan, layers).map((track) => {
+      // 演奏の整形で平均が下がっても、区間ごとの強さは既存の層に沿わせる(曲全体の強弱の流れを変えない)。
+      const offset = track.id === "gtr-arpeggio" ? 3 : 6
+      return { ...track, notes: track.notes.map((note) => {
+        const target = sectionVelocity.get(note.sectionId)
+        if (target === undefined) return note
+        const sectionNotes = track.notes.filter((other) => other.sectionId === note.sectionId)
+        const mean = sectionNotes.reduce((sum, other) => sum + other.velocity, 0) / sectionNotes.length
+        return { ...note, velocity: Math.max(20, Math.min(120, Math.round(note.velocity + (target - offset) - mean))) }
+      }) }
+    }),
     arrangement.plan.directive?.timelineConstraints,
     parseTimeSignature(project.song.timeSignature).beatsPerBar,
   )

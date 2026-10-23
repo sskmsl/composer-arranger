@@ -56,7 +56,9 @@ function velocityRangeFor(trackId: ArrangementTrackId, energy: number): readonly
   if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "dr-ride") return [Math.round(36 + normalized * 12), Math.round(54 + normalized * 24)]
   if (trackId === "dr-crash") return [72, Math.round(88 + normalized * 24)]
   if (trackId.includes("bass")) return [Math.round(44 + normalized * 12), Math.round(64 + normalized * 25)]
-  if (trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId.startsWith("gtr-")) return [Math.round(36 + normalized * 10), Math.round(55 + normalized * 22)]
+  if (trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "syn-stabs" || trackId === "syn-chord-wide") return [Math.round(36 + normalized * 10), Math.round(55 + normalized * 22)]
+  // ギターは既存の層の強さに沿って上がる。上限を低く抑えると、盛り上がる区間の平均を下げてしまう。
+  if (trackId.startsWith("gtr-")) return [Math.round(36 + normalized * 16), Math.round(58 + normalized * 34)]
   if (trackId === "syn-dark-pad" || trackId.startsWith("syn-pad-")) return [Math.round(27 + normalized * 7), Math.round(42 + normalized * 16)]
   if (trackId === "syn-high-glass") return [38, Math.round(52 + normalized * 18)]
   if (trackId === "syn-transition-phrase" || trackId === "syn-final-lift") return [Math.round(42 + normalized * 9), Math.round(66 + normalized * 27)]

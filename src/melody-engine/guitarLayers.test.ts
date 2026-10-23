@@ -82,4 +82,23 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
     const full = generateFullSongArrangement(song(null), { seed: 19 })
     expect(full.tracks.filter((track) => GUITAR.includes(track.id)).length).toBe(2)
   })
+
+  it("Padが休んでいる間は鳴らさず、音長もPadの終端までにする", () => {
+    const project = song("neoclassical")
+    const full = generateFullSongArrangement(project, { seed: 19 })
+    const pad = full.tracks.find((track) => track.id === "syn-dark-pad")!
+    const arpeggio = full.tracks.find((track) => track.id === "gtr-arpeggio")!
+    const outside = arpeggio.notes.filter((note) => !pad.notes.some((p) =>
+      p.sectionId === note.sectionId && note.startBeat >= p.startBeat - .5 && note.startBeat < p.startBeat + p.durationBeats + .5))
+    expect(outside).toEqual([])
+    // 休符を作ったPadでも、休符の中へ音を足さない
+    const gapped = { ...full, tracks: full.tracks.filter((track) => !GUITAR.includes(track.id)).map((track) => track.id !== "syn-dark-pad" ? track
+      : { ...track, notes: track.notes.filter((note) => note.startBeat % 16 < 8) }) }
+    const added = addGuitarLayers(project, gapped).tracks.find((track) => track.id === "gtr-arpeggio")
+    if (added) {
+      const padNotes = gapped.tracks.find((track) => track.id === "syn-dark-pad")!.notes
+      expect(added.notes.filter((note) => !padNotes.some((p) =>
+        p.sectionId === note.sectionId && note.startBeat >= p.startBeat - .5 && note.startBeat < p.startBeat + p.durationBeats + .5))).toEqual([])
+    }
+  })
 })
