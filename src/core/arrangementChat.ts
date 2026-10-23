@@ -632,6 +632,7 @@ const REMOVAL_WORDS: Array<{ pattern: string; rows: ArrangementPartRowId[] }> = 
   { pattern: "パッド", rows: ["pad"] },
   { pattern: "ストリングス|弦楽器|弦", rows: ["strings-low", "strings-high"] },
   { pattern: "シンセ", rows: ["pulse"] },
+  { pattern: "ギター", rows: ["guitar"] },
   { pattern: "きらめき|ベル", rows: ["glass"] },
 ]
 

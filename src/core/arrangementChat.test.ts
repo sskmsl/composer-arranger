@@ -7,12 +7,14 @@ import {
   describeArrangementChanges,
   diffArrangementMatrices,
   emptyArrangementChat,
+  partRowsToKeep,
   partRowsToRemove,
   pushArrangementVersion,
   spliceArrangement,
   withoutPartRows,
   type ArrangementChatMessage,
 } from "./arrangementChat"
+import { createEmptyProject } from "./project"
 import type { FullSongArrangement } from "./arrangementGeneration"
 import { generateFullSongArrangement, reviewGeneratedArrangement } from "@/melody-engine/arrangementGenerator"
 import { evaluateArrangementAudition } from "@/melody-engine/arrangementAuditionCritic"
@@ -292,6 +294,22 @@ describe("アレンジ相談チャット: パートを外す指示", () => {
     expect(partRowsToRemove(["Bメロはドラムを抜いて静かに"])).toEqual(["drums"])
     expect(partRowsToRemove(["ドラムは抜かないで", "パッドを外さずに"])).toEqual([])
     expect(partRowsToRemove(["ストリングスをなくしたい"]).sort()).toEqual(["strings-high", "strings-low"])
+  })
+
+  it("ギターも外す・残す指示として読み取り、ギターの音だけを外す", () => {
+    expect(partRowsToRemove(["ギターを抜いて"])).toEqual(["guitar"])
+    expect(partRowsToRemove(["ギターは外してほしい"])).toEqual(["guitar"])
+    expect(partRowsToRemove(["ギターは抜かないで"])).toEqual([])
+    expect(partRowsToKeep(["やっぱりギターは残して"])).toEqual(["guitar"])
+    const project = createEmptyProject("guitar removal")
+    project.song.genreBlend = [{ id: "neoclassical", weight: 1 }]
+    project.sections = [{ id: "s", name: "Verse", role: "verse", startBar: 1, lengthBars: 8 }]
+    project.chords = ["Cm", "Ab", "Bb", "G7"].map((symbol, i) => ({ id: `c${i}`, sectionId: "s", symbol, startBeat: i * 8, durationBeats: 8, bass: null }))
+    const arrangement = generateFullSongArrangement(project, { seed: 19 })
+    expect(arrangement.tracks.filter((track) => track.id.startsWith("gtr-")).every((track) => track.notes.length > 0)).toBe(true)
+    const removed = withoutPartRows(arrangement, ["guitar"], undefined)
+    expect(removed.tracks.filter((track) => track.id.startsWith("gtr-")).every((track) => track.notes.length === 0)).toBe(true)
+    expect(removed.tracks.filter((track) => !track.id.startsWith("gtr-"))).toEqual(arrangement.tracks.filter((track) => !track.id.startsWith("gtr-")))
   })
 
   it("範囲の中だけ、そのパートの音を外す", () => {
