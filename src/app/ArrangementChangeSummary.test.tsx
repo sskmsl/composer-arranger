@@ -52,4 +52,15 @@ describe("arrangement changes in plain language", () => {
     expect(html).not.toContain("適用済み")
     expect(html).not.toContain("を加える")
   })
+
+  it("keeps a long list compact: shows the first six sections and offers the rest", () => {
+    const long = createEmptyProject("Long")
+    long.sections = Array.from({ length: 9 }, (_, i) => ({ id: `s${i}`, name: `区間${i + 1}`, role: "verse" as const, startBar: 1 + i * 8, lengthBars: 8 }))
+    const many: ArrangementCellChange[] = long.sections.map((section) => ({ sectionId: section.id, rowId: "pad", kind: "added" }))
+    const html = renderToStaticMarkup(<ArrangementChangeSummary matrix={arrangementPartMatrix(long, undefined)} changes={many}
+      playingSectionId={null} playingProposal={false} onPlayCurrent={play} />)
+    expect(html).toContain("区間6の変更内容")
+    expect(html).not.toContain("区間7の変更内容")
+    expect(html).toContain("残り3区間を表示")
+  })
 })
