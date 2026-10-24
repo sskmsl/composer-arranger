@@ -424,7 +424,7 @@ describe("Arrangement Generator", () => {
       candidate.notes.some((note) => note.sectionId === "final"),
     ).length
 
-    expect(Object.keys(ARRANGEMENT_TRACK_NAMES)).toHaveLength(40)
+    expect(Object.keys(ARRANGEMENT_TRACK_NAMES)).toHaveLength(42) // 40 + ギターの2層(既存トラックは置き換えず追加)
     expect(result.tracks.length).toBeGreaterThanOrEqual(36)
     expect(finalTrackCount).toBeGreaterThanOrEqual(28)
     expect(track("dr-kick-sub").notes.length).toBeGreaterThan(0)
@@ -865,7 +865,7 @@ describe("Arrangement Generator", () => {
       "dr-kick-sub", "dr-kick-click", "dr-snare-body", "dr-clap", "dr-shaker", "dr-ride",
       "dr-percussion-high", "dr-cymbal-swell", "dr-impact", "syn-sub-bass", "syn-bass-mid",
       "syn-arp-low", "syn-arp-high", "syn-chord-wide", "syn-pad-air", "syn-pad-motion",
-      "str-contrabass", "str-spiccato", "str-high-octave",
+      "str-contrabass", "str-spiccato", "str-high-octave", "gtr-arpeggio", "gtr-strum",
     ])
     const oldCore = current.tracks
       .filter((track) => !layerIds.has(track.id))

@@ -156,6 +156,8 @@ export function arrangementTrackProgram(trackId: ArrangementTrackId): number | "
     case "str-violin-1": return 40
     case "str-upper":
     case "str-high-octave": return 49
+    case "gtr-arpeggio": return 24
+    case "gtr-strum": return 27
     default: return 0
   }
 }

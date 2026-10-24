@@ -427,6 +427,7 @@ soundSourceSuggestionsはユーザー所有音源だけから選ぶ。libraryと
 - Native Instrumentsの追加所有音源: Session Strings Pro 2 / Action Strings 2 / Emotive Strings / LUX Orchestral Strings Elements（弦）、Session Bassist - Prime Bass / Icon Bass / Upright Bass / Scarbee Rickenbacker Bass（ベース）、Session Horns Pro（管楽器）、Session Guitarist - Picked Nylon / Electric Mint / Electric Vintage / Electric Sunburst Deluxe（ギター。やわらかい分散和音、ミュートした刻み、単音の対旋律に使える）、Piano Colors（ピアノ）、Analog Dreams / Ethereal Earth / Straylight / Schema - Dark / Schema - Light / Cloud Supply（パッド・質感・空間音）
 - u-he Repro: Repro-1（モノフォニックのベース、シーケンス、リード）、Repro-5（ポリフォニックのコード、パッド、プラック）
 - Arturia: Analog Lab Play（鍵盤、プラック、クラシック寄りのシンセ、パッド）、Pigments Play（現代的なパッド、ベース、シーケンス、リード）
+- 全曲アレンジには、シンセ・弦・ドラムを置き換えずに足す「ギターの分散」「ギターのストラム」の2層がある。リズムが強い電子寄りの方向を除き、3案のうち少なくとも1案にSession Guitaristを含める（分散和音はPicked Nylon、短い刻み・ストラムはElectric MintまたはElectric Vintage、単音の応答はElectric Sunburst Deluxe）。ほかの音源の代わりではなく、鍵盤・シンセ・弦に足す役として理由に書く。
 - 3案すべてをRepro、Arturia、または同じKontaktライブラリへ寄せない。低音、ドラム、弦、鍵盤、質感音の役割に応じて所有音源を分ける。ただし、曲に不要な音源を種類数のためだけに増やさない。
 候補名だけでなく、どの音の役割に使うかをreasonへ明記する。所有リスト外の製品は提案しない。`
 

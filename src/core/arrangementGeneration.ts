@@ -44,6 +44,8 @@ export type ArrangementTrackId =
   | "str-contrabass"
   | "str-spiccato"
   | "str-high-octave"
+  | "gtr-arpeggio"
+  | "gtr-strum"
 
 export type ArrangementCandidateCharacter = "safe" | "edge" | "surprise"
 
@@ -312,7 +314,7 @@ export interface GeneratedArrangementNote extends MelodyNote {
 export interface GeneratedArrangementTrack {
   id: ArrangementTrackId
   name: string
-  family: "drums" | "bass" | "synth" | "strings" | "transition"
+  family: "drums" | "bass" | "synth" | "strings" | "guitar" | "transition"
   muted: boolean
   notes: GeneratedArrangementNote[]
   generationRevision: number
@@ -503,4 +505,6 @@ export const ARRANGEMENT_TRACK_NAMES: Record<ArrangementTrackId, string> = {
   "str-contrabass": "STR_Contrabass",
   "str-spiccato": "STR_Spiccato",
   "str-high-octave": "STR_HighOctave",
+  "gtr-arpeggio": "GTR_Arpeggio",
+  "gtr-strum": "GTR_Strum",
 }
