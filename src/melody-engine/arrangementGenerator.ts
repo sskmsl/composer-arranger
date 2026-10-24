@@ -3577,7 +3577,7 @@ export function generateFullSongArrangement(
       eligibleCount: eligible.length,
       selectedSeed,
       ...(eligible.length === 0
-        ? { qualityWarning: arrangementQualityWarning(project, winner.candidate) }
+        ? { qualityWarning: arrangementQualityWarning(project, winner.candidate), qualityReasons: arrangementQualityReasons(project, winner.candidate) }
         : {}),
       candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
     },
@@ -3585,6 +3585,11 @@ export function generateFullSongArrangement(
 }
 
 export function arrangementQualityWarning(project: ComposerProject, arrangement: FullSongArrangement): string {
+  return `品質基準を満たす案を作れませんでした。${arrangementQualityReasons(project, arrangement).join("、")}ため、伴奏の調整が必要です。`
+}
+
+/** 品質が足りない主な原因(最大2つ)。画面にも出す。 */
+export function arrangementQualityReasons(project: ComposerProject, arrangement: FullSongArrangement): string[] {
   const { contributions } = arrangementQualityDiagnostics(project, arrangement)
   const messages: Partial<Record<keyof typeof contributions, string>> = {
     harmony: "和音に合わない音が多い", supportLeaps: "伴奏の音が大きく跳んでいる",
@@ -3597,7 +3602,7 @@ export function arrangementQualityWarning(project: ComposerProject, arrangement:
     .filter((key) => contributions[key] < 0).sort((a, b) => contributions[a] - contributions[b])
     .slice(0, 2).map((key) => messages[key])
   if (reasons.length === 0) reasons.push("曲の部分ごとの音の変化を十分に作れていない")
-  return `品質基準を満たす案を作れませんでした。${reasons.join("、")}ため、伴奏の調整が必要です。`
+  return reasons.filter((reason): reason is string => Boolean(reason))
 }
 
 /** 小節ごとに音が鳴っているか。1小節以内の休符は、鳴り続けている扱いにする(境界の測定と同じ)。 */
