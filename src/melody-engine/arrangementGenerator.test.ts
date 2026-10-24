@@ -825,6 +825,8 @@ describe("Arrangement Generator", () => {
     expect(result.selection?.poolSize).toBe(16)
     expect(result.selection?.eligibleCount).toBe(0)
     expect(result.selection?.qualityWarning).toContain("品質基準")
+    expect(result.selection?.qualityReasons?.length).toBeGreaterThan(0)
+    expect(result.selection?.qualityWarning).toContain(result.selection!.qualityReasons![0])
   })
 
   it("通常構成の曲では5回中4回以上、不要な品質不足警告を出さない", () => {
