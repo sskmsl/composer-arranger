@@ -15,6 +15,7 @@ import { CandidateStatusBadge } from "./CandidateStatusBadge"
 import { ArrangementChatPanel } from "./ArrangementChatPanel"
 import type { ArrangementChatProposal } from "@/core/arrangementChat"
 import { ArrangementChangeSummary } from "./ArrangementChangeSummary"
+import { qualityWarningText } from "./qualityWarningText"
 import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 import { DirectionPicker } from "./DirectionPicker"
@@ -341,7 +342,7 @@ export function ArrangementWorkspace({
           </div>
           {project.fullSongArrangement?.selection?.qualityWarning && (
             <div role="status" className="rounded-md border border-amber-300/35 bg-amber-300/8 px-3 py-2 text-[13px] leading-5 text-amber-100">
-              十分な品質の案を作れませんでした。セクションの区切り、コード、主旋律を確認してから作り直してください。
+              {qualityWarningText(project.fullSongArrangement.selection.qualityReasons)}
             </div>
           )}
           {hasArrangement && pickerOpen && (

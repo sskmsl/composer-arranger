@@ -454,6 +454,8 @@ export interface ArrangementSelectionDiagnostics {
   selectedSeed: number
   /** 合格案がなく追加生成しても下限へ届かなかった場合だけ設定する。 */
   qualityWarning?: string
+  /** 画面に出す、品質が足りない主な原因(やさしい言葉)。qualityWarning と同時に設定する。古い保存データには無い。 */
+  qualityReasons?: string[]
   candidates: ArrangementCandidateSummary[]
 }
 
