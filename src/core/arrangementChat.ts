@@ -185,7 +185,7 @@ export const ARRANGEMENT_PART_ROWS: ArrangementPartRow[] = [
   },
   { id: "bass", label: "ベース", color: "#4fd1b5", trackIds: ["syn-bass", "syn-sub-bass", "syn-bass-mid"] },
   { id: "pulse", label: "シンセの刻み", color: "#f472b6", trackIds: ["syn-pulse", "syn-arp-low", "syn-arp-high", "syn-stabs", "syn-chord-wide"] },
-  { id: "guitar", label: "ギター", color: "#86efac", trackIds: ["gtr-arpeggio", "gtr-strum"] },
+  { id: "guitar", label: "ギター", color: "#86efac", trackIds: ["gtr-arpeggio", "gtr-strum", "gtr-riff"] },
   { id: "pad", label: "パッド", color: "#c084fc", trackIds: ["syn-dark-pad", "syn-pad-air", "syn-pad-motion"] },
   { id: "glass", label: "高音のきらめき", color: "#7dd3fc", trackIds: ["syn-high-glass"] },
   { id: "transition", label: "つなぎのフレーズ", color: "#a3e635", trackIds: ["syn-transition-phrase", "syn-final-lift"] },
@@ -241,6 +241,7 @@ const TRACK_LABELS: Record<ArrangementTrackId, string> = {
   "str-high-octave": "弦の高音オクターブ",
   "gtr-arpeggio": "ギターの分散",
   "gtr-strum": "ギターのストラム",
+  "gtr-riff": "ギターのリフ",
 }
 
 export function arrangementTrackLabel(trackId: ArrangementTrackId): string {

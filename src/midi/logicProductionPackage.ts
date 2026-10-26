@@ -431,6 +431,7 @@ const ARRANGEMENT_SOUNDS: OwnedSound[] = [
   { match: (id) => id === "syn-stabs", role: "短い和音", product: "Repro-5", preset: "03 Keys - Synths / JH Midrange Synthstab (MW)", setting: "一音ごとの輪郭を残し、主旋律と同時に強く鳴らさない／残響 短め" },
   { match: (id) => id === "syn-chord-wide", role: "広い和音", product: "Repro-5", preset: "07 Chords / HS Seventh Soft", setting: "左右へ広げるが低音は中央から外す／残響 中程度" },
   { match: (id) => id === "gtr-arpeggio", role: "ギターの分散", product: "Kontakt 8", preset: "Session Guitarist - Picked Nylon", setting: "Melody Instrumentを選び、Pulseの拍に合わせて分散で弾く。主旋律が動く所では音数を減らし、シンセの刻みと同時に強く鳴らさない" },
+  { match: (id) => id === "gtr-riff", role: "ギターのリフ", product: "GM", preset: "歪み系ギター（GM Distortion Guitar / program 30）", setting: "短い刻みと休符を残し、音量は主旋律より控えめにする。歪み系の音色を選ぶ" },
   { match: (id) => id === "gtr-strum", role: "ギターのストラム", product: "Kontakt 8", preset: "Session Guitarist - Electric Mint", setting: "Melody Instrumentを選び、短い和音の拍に合わせて低い弦から高い弦へずらして弾く。音量は控えめにし、シンセの和音より奥に置く" },
   { match: (id) => id === "syn-dark-pad", role: "暗い背景の和音", product: "Repro-5", preset: "09 Pads - Orchestral / EH Dark Emotion Pad", setting: "ゆっくり立ち上げ、主旋律の音域を避ける／定位 広め" },
   { match: (id) => id === "syn-pad-air", role: "薄い高域パッド", product: "Repro-5", preset: "08 Pads - Synths / HS Glass Glider", setting: "高域を小さく足し、主旋律が高い所では休ませる／残響 長め" },
