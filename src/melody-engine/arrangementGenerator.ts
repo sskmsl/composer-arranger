@@ -3783,7 +3783,7 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
 const pcDistance = (a: number, b: number) => Math.min((a - b + 120) % 12, (b - a + 120) % 12)
 
 /** 選抜済み案だけから反復句を作り、既存の音符は編集しない。 */
-function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangement, spacing = 4, sparse = false, monoOnly = false): GeneratedArrangementTrack {
+function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangement, spacing = 4, sparse = false, monoOnly = false, variation = 0): GeneratedArrangementTrack {
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const bass = arrangement.tracks.find((track) => track.id === "syn-bass" && !track.muted)?.notes ?? []
   const midiBass = bass.map((note) => {
@@ -3791,7 +3791,7 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
     return { ...note, startBeat: ticks.start / TICKS_PER_QUARTER, durationBeats: ticks.duration / TICKS_PER_QUARTER }
   })
   const lead = buildSongPlaybackMaterial(project, arrangement.plan.directive?.timelineConstraints).lead
-  const figure = guitarRiffFigure(arrangement.plan.seed)
+  const figure = guitarRiffFigure(arrangement.plan.seed + variation)
   const priority = (section: ArrangementSectionPlan) => {
     const role = project.sections.find((source) => source.id === section.sectionId)?.role
     if (role === "outro" || role === "verse") return 0
@@ -3813,7 +3813,8 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
     // 区間の入口・出口は空け、旋律の応答に使う2小節の核を繰り返す。
     for (let bar = 2; bar < section.lengthBars - 1; bar += spacing) {
       const onsets = power ? (sparse ? [.25, .75] : [0, .5, 1.5, 2, 3]) : figure.onsets
-      onsets.forEach((onset, i) => {
+      onsets.forEach((baseOnset, i) => {
+        const onset = baseOnset + (variation % 2 ? .25 : 0)
         if (onset >= bpb) return
         const local = bar * bpb + onset
         const start = offset + local
@@ -4055,7 +4056,9 @@ export function regenerateFullSongArrangementTarget(
   if (target.trackId === "gtr-riff") {
     const existing = current.tracks.find((track) => track.id === "gtr-riff")
     if (!existing) return current
-    const generated = buildGuitarRiff(project, { ...current, plan })
+    const generated = buildGuitarRiff(project, { ...current, plan }, 4, false, false, existing.generationRevision + 1)
+    const occupied = new Set(existing.notes.map((note) => Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar)))
+    generated.notes = generated.notes.filter((note) => occupied.has(Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar)))
     const notes = target.sectionId ? [...existing.notes.filter((note) => note.sectionId !== target.sectionId),
       ...generated.notes.filter((note) => note.sectionId === target.sectionId)].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) : generated.notes
     const merged = { ...existing, notes, generationRevision: existing.generationRevision + 1 }
