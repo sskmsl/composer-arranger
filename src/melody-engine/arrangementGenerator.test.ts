@@ -424,7 +424,7 @@ describe("Arrangement Generator", () => {
       candidate.notes.some((note) => note.sectionId === "final"),
     ).length
 
-    expect(Object.keys(ARRANGEMENT_TRACK_NAMES)).toHaveLength(42) // 40 + ギターの2層(既存トラックは置き換えず追加)
+    expect(Object.keys(ARRANGEMENT_TRACK_NAMES)).toHaveLength(43) // 40 + ギターの3層(既存トラックは置き換えず追加)
     expect(result.tracks.length).toBeGreaterThanOrEqual(36)
     expect(finalTrackCount).toBeGreaterThanOrEqual(28)
     expect(track("dr-kick-sub").notes.length).toBeGreaterThan(0)

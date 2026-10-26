@@ -78,7 +78,7 @@ const TRACK_FAMILY: Record<ArrangementTrackId, GeneratedArrangementTrack["family
   "syn-final-lift": "synth", "str-cello": "strings", "str-viola": "strings",
   "str-violin-2": "strings", "str-violin-1": "strings", "str-upper": "strings",
   "str-contrabass": "strings", "str-spiccato": "strings", "str-high-octave": "strings",
-  "gtr-arpeggio": "guitar", "gtr-strum": "guitar",
+  "gtr-arpeggio": "guitar", "gtr-strum": "guitar", "gtr-riff": "guitar",
 }
 
 const TRACK_PURPOSE: Record<ArrangementTrackId, string> = {
@@ -107,6 +107,7 @@ const TRACK_PURPOSE: Record<ArrangementTrackId, string> = {
   "str-high-octave": "最終ピークで上声を一段だけ持ち上げる層",
   "gtr-arpeggio": "Padが鳴る間、コードに沿ってギターの分散で和声を示す層",
   "gtr-strum": "短い和音の拍に合わせ、ギターのストラムで厚みを足す層",
+  "gtr-riff": "休符を残した短いギターの反復句",
 }
 
 /**
@@ -135,6 +136,7 @@ const ARRANGEMENT_LAYER_SOURCES = {
   "str-high-octave": "str-violin-1",
   "gtr-arpeggio": "syn-dark-pad",
   "gtr-strum": "syn-stabs",
+  "gtr-riff": "syn-pulse",
 } as const satisfies Partial<Record<ArrangementTrackId, ArrangementTrackId>>
 
 const PHASE_LOCKED_LAYER_SOURCES = new Map<ArrangementTrackId, ArrangementTrackId>([
@@ -1854,7 +1856,7 @@ function guitarLayersAllowed(project: ComposerProject, plan: ArrangementPlan): b
 function layerTrackIdsFor(baseTrackIds: ArrangementTrackId[], allowGuitar = false): ArrangementLayerTrackId[] {
   const active = new Set(baseTrackIds)
   return (Object.entries(ARRANGEMENT_LAYER_SOURCES) as Array<[ArrangementLayerTrackId, ArrangementTrackId]>)
-    .filter(([trackId, source]) => active.has(source) && (allowGuitar || !trackId.startsWith("gtr-")))
+    .filter(([trackId, source]) => trackId !== "gtr-riff" && active.has(source) && (allowGuitar || !trackId.startsWith("gtr-")))
     .map(([trackId]) => trackId)
 }
 
