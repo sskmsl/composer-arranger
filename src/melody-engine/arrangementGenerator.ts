@@ -3803,7 +3803,7 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
     .sort((a, b) => priority(b) - priority(a) || b.energy - a.energy)
     .slice(0, Math.floor(project.sections.length / 2)).map((section) => section.sectionId))
   const notes: GeneratedArrangementNote[] = []
-  for (const section of project.sections) {
+  for (const section of normalizeSectionTimeline(project.sections)) {
     if (!chosen.has(section.id)) continue
     const plan = arrangement.plan.sections.find((candidate) => candidate.sectionId === section.id)!
     const power = section.role === "chorus" || section.role === "grand-chorus"
@@ -3834,7 +3834,11 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
           pitches = tones.includes((root + 7) % 12) && !chordClash(root + 7) && !clash(root + 7) ? [root, root + 7] : [root, root + 12]
         } else {
           const step = figure.steps[i % figure.steps.length]
-          const wanted = 60 + (scale[(step % scale.length + scale.length) % scale.length] ?? rootPc)
+          const vocabulary = figure.unit === "chord-tone" || !scale.length
+            ? [...tones].sort((a, b) => (a - parsed.rootPc + 12) % 12 - (b - parsed.rootPc + 12) % 12) : scale
+          const tonic = vocabulary[0] ?? rootPc
+          const degree = vocabulary[(step % vocabulary.length + vocabulary.length) % vocabulary.length] ?? tonic
+          const wanted = 60 + tonic + (degree - tonic + 12) % 12 + 12 * Math.floor(step / vocabulary.length)
           const allowed = Array.from({ length: section.role === "breakdown-chorus" ? 20 : 35 }, (_, k) => k + (section.role === "breakdown-chorus" ? 60 : 45))
             .filter((pitch) => tones.includes(pitch % 12) && !clash(pitch))
             .sort((a, b) => Math.abs(a - wanted) - Math.abs(b - wanted) || a - b)
