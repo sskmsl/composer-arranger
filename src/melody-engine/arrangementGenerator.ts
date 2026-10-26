@@ -3976,15 +3976,37 @@ function regenerateGuitarLayer(
         ...layer.notes.filter((note) => note.sectionId === target.sectionId),
       ].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) }
     : { ...layer, generationRevision: revision, muted: existing?.muted ?? false, ...(existing?.instrument ? { instrument: existing.instrument } : {}) }
+  const riff = others.find((track) => track.id === "gtr-riff" && !track.muted)
+  if (riff) {
+    const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const bars = new Set(riff.notes.map((note) => Math.floor(note.startBeat / bpb)))
+    for (const bar of bars) {
+      if (!target.sectionId || riff.notes.some((note) => note.sectionId === target.sectionId && Math.floor(note.startBeat / bpb) === bar)) {
+        merged.notes = blankBar(merged.notes, bar, bpb)
+      }
+    }
+  }
   const fitted = fitGuitarToBoundaryBudget(project, others, [merged])
   if (!fitted) return current
   const tracks = existing
     ? current.tracks.map((track) => track.id === id ? (fitted[0] ?? { ...merged, notes: [] }) : track)
     : [...current.tracks, ...(fitted.length ? fitted : [])]
-  return finalizeFullSongArrangement(project, { ...current, tracks, selection: undefined }, {
+  const finalized = finalizeFullSongArrangement(project, { ...current, tracks, selection: undefined }, {
     editableTrackIds: new Set([id]),
     ...(target.sectionId ? { editableSectionIds: new Set([target.sectionId]) } : {}),
   })
+  if (!riff) return finalized
+  const protectedTracks = tracks.map((track) => track.id === id ? finalized.tracks.find((candidate) => candidate.id === id)! : track)
+  const result = { ...finalized, tracks: protectedTracks, audition: evaluateArrangementAudition(project, finalized.plan, protectedTracks) }
+  const quality = reviewGeneratedArrangement(result, project)
+  const refit = fitGuitarToBoundaryBudget(project, others, protectedTracks.filter((track) => track.id === id))
+  if (!refit || JSON.stringify(refit[0]?.notes) !== JSON.stringify(protectedTracks.find((track) => track.id === id)?.notes)
+    || !quality.passed || result.audition.score < 72
+    || result.audition.score < (current.audition?.score ?? 0)
+    || quality.score < (current.quality?.score ?? 0)
+    || quality.metrics.melodyCollisionCount > (current.quality?.metrics.melodyCollisionCount ?? 0)
+    || quality.metrics.harmonicViolationCount > (current.quality?.metrics.harmonicViolationCount ?? 0)) return current
+  return { ...result, quality }
 }
 
 export function regenerateFullSongArrangementTarget(
@@ -4025,6 +4047,26 @@ export function regenerateFullSongArrangementTarget(
           }
         : section),
     }
+  }
+  if (target.trackId === "gtr-riff") {
+    const existing = current.tracks.find((track) => track.id === "gtr-riff")
+    if (!existing) return current
+    const generated = buildGuitarRiff(project, { ...current, plan })
+    const notes = target.sectionId ? [...existing.notes.filter((note) => note.sectionId !== target.sectionId),
+      ...generated.notes.filter((note) => note.sectionId === target.sectionId)].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) : generated.notes
+    const merged = { ...existing, notes, generationRevision: existing.generationRevision + 1 }
+    const others = current.tracks.filter((track) => track.id !== "gtr-riff")
+    const fitted = fitGuitarToBoundaryBudget(project, others, [merged])
+    if (!fitted || JSON.stringify(fitted[0]?.notes) !== JSON.stringify(notes)) return current
+    const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const strum = others.find((track) => track.id === "gtr-strum" && !track.muted)
+    if (notes.some((note) => strum?.notes.some((other) => Math.floor(other.startBeat / bpb) === Math.floor(note.startBeat / bpb)))) return current
+    const tracks = current.tracks.map((track) => track.id === "gtr-riff" ? merged : track)
+    const candidate = { ...current, plan, tracks, selection: undefined, audition: evaluateArrangementAudition(project, plan, tracks) }
+    const quality = reviewGeneratedArrangement(candidate, project)
+    return quality.passed && candidate.audition.score >= 72 && candidate.audition.score >= (current.audition?.score ?? 0)
+      && quality.score >= (current.quality?.score ?? 0) && quality.metrics.melodyCollisionCount <= (current.quality?.metrics.melodyCollisionCount ?? 0)
+      && quality.metrics.harmonicViolationCount <= (current.quality?.metrics.harmonicViolationCount ?? 0) ? { ...candidate, quality } : current
   }
   if (target.trackId === "gtr-arpeggio" || target.trackId === "gtr-strum") {
     return regenerateGuitarLayer(project, { ...current, plan }, target)
