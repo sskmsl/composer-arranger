@@ -524,3 +524,10 @@ export function snapToVocabulary(
   }
   return target
 }
+
+/** ギターも既存の反復核を共有する。元の音型は編集しない。 */
+export function guitarRiffFigure(seed: number) {
+  const figures = OSTINATO_FIGURES.filter((figure) => ["scale-riff", "octave-leap", "tresillo-pulse", "falling-line"].includes(figure.id))
+  const figure = figures[(seed >>> 0) % figures.length]
+  return { ...figure, steps: [...figure.steps], onsets: [...figure.onsets], durations: [...figure.durations] }
+}

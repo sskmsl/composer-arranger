@@ -61,11 +61,12 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
     const project = song("neoclassical")
     project.fullSongArrangement = generateFullSongArrangement(project, { seed: 19 })
     expect(project.fullSongArrangement.tracks.filter((t) => GUITAR.includes(t.id)).map((t) => arrangementInstrument(t))).toEqual([24, 27])
-    expect(arrangementSoundedTracks(project.fullSongArrangement).filter((t) => t.track.name?.startsWith("GTR")).map((t) => t.sound)).toEqual([24, 27])
+    expect(arrangementSoundedTracks(project.fullSongArrangement).filter((t) => t.track.name?.startsWith("GTR")).map((t) => t.sound)).toEqual([24, 27, 30])
     const rows = logicSoundRows(project).filter((row) => row.trackName.startsWith("GTR"))
     expect(rows.map((row) => row.preset)).toEqual([
       expect.stringContaining("Session Guitarist - Picked Nylon"),
       expect.stringContaining("Session Guitarist - Electric Mint"),
+      expect.stringContaining("歪み系ギター"),
     ])
   })
 
@@ -112,7 +113,7 @@ describe("ギターの層は既存のトラックを置き換えず、足す", (
   })
 
   /** 境界の測定と同じ形。ギターも管理対象に含めて、最終の音から数える。 */
-  const MANAGED = new Set(["syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-chord-wide", "syn-stabs", "syn-pulse", "syn-arp-low", "syn-arp-high", "syn-sub-bass", "syn-bass-mid", "gtr-arpeggio", "gtr-strum"])
+  const MANAGED = new Set(["syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-chord-wide", "syn-stabs", "syn-pulse", "syn-arp-low", "syn-arp-high", "syn-sub-bass", "syn-bass-mid", "gtr-arpeggio", "gtr-strum", "gtr-riff"])
   function boundaryFixture() {
     const p = createEmptyProject("Guitar boundary")
     p.projectId = "guitar-boundary"

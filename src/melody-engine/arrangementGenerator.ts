@@ -1,4 +1,7 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
+import { guitarRiffFigure } from "./sectionContentPlan"
+import { gridAlignedTicks, TICKS_PER_QUARTER } from "@/midi/smf"
+import { keyScalePitchClasses } from "@/core/scale"
 import { parseChordSymbol } from "@/core/chord"
 import { resolveMusicContext, type GenreTraits, type SoundImageTraits } from "@/core/musicContext"
 import { applyReferenceArc } from "@/core/referenceProfile"
@@ -9,7 +12,7 @@ import {
   arrangementSoundInstructionLabel,
   type ArrangementSoundInstruction,
 } from "@/core/arrangementIntent"
-import type { ChordEvent, ComposerProject } from "@/core/project"
+import { effectiveSectionKey, type ChordEvent, type ComposerProject } from "@/core/project"
 import {
   ARRANGEMENT_TRACK_NAMES,
   type ArrangementAnalysis,
@@ -2005,7 +2008,7 @@ const HARMONIC_REVIEW_TRACKS = new Set<ArrangementTrackId>([
   "syn-bass", "syn-sub-bass", "syn-bass-mid", "syn-pulse", "syn-arp-low", "syn-arp-high",
   "syn-stabs", "syn-chord-wide", "syn-dark-pad", "syn-pad-air", "syn-pad-motion", "syn-high-glass",
   "str-cello", "str-viola", "str-violin-2", "str-violin-1", "str-upper",
-  "str-contrabass", "str-spiccato", "str-high-octave", "gtr-arpeggio", "gtr-strum",
+  "str-contrabass", "str-spiccato", "str-high-octave", "gtr-arpeggio", "gtr-strum", "gtr-riff",
 ])
 
 function allowedPitchClassesAtNote(project: ComposerProject, note: GeneratedArrangementNote, trackId: ArrangementTrackId): Set<number> | null {
@@ -3568,7 +3571,7 @@ export function generateFullSongArrangement(
   const summaries = scored.map(({ summary }) => summary.seed === selectedSeed
     ? { ...summary, selected: true, reason: "実音品質・聴感上の明瞭さ・制作意図への適合を総合して採用" }
     : summary)
-  return addGuitarLayers(project, {
+  return addGuitarRiffLayer(project, addGuitarLayers(project, {
     ...winner.candidate,
     id: `arrangement:${baseSeed}:${selectedSeed}`,
     plan: { ...winner.candidate.plan, seed: baseSeed, candidateSeed: selectedSeed },
@@ -3583,7 +3586,7 @@ export function generateFullSongArrangement(
         : {}),
       candidates: summaries.sort((left, right) => right.selectionScore - left.selectionScore),
     },
-  })
+  }))
 }
 
 export function arrangementQualityWarning(project: ComposerProject, arrangement: FullSongArrangement): string {
@@ -3747,7 +3750,7 @@ function buildGuitarLayers(
  */
 export function addGuitarLayers(project: ComposerProject, arrangement: FullSongArrangement): FullSongArrangement {
   if (arrangement.plan.directive?.soundInstruction?.enabled || !guitarLayersAllowed(project, arrangement.plan)) return arrangement
-  if (arrangement.tracks.some((track) => track.id.startsWith("gtr-"))) return arrangement
+  if (arrangement.tracks.some((track) => GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId))) return arrangement
   const performed = buildGuitarLayers(project, arrangement, GUITAR_LAYER_IDS)
   if (performed.length === 0) return arrangement
   const fitted = fitGuitarToBoundaryBudget(project, arrangement.tracks, performed)
@@ -3757,11 +3760,16 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
     tracks: [...arrangement.tracks, ...fitted],
   }, { editableTrackIds: new Set(fitted.map((track) => track.id)) })
   // 聴感調整で音が消えても、境界の上限を超えない(音を消すだけなので、もう一度収める)。
-  const refit = fitGuitarToBoundaryBudget(project, finalized.tracks.filter((track) => !track.id.startsWith("gtr-")),
-    finalized.tracks.filter((track) => track.id.startsWith("gtr-")))
+  const refit = fitGuitarToBoundaryBudget(project, arrangement.tracks.some((track) => track.id === "gtr-riff") ? arrangement.tracks : finalized.tracks.filter((track) => !GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId)),
+    finalized.tracks.filter((track) => GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId)))
   if (!refit) return arrangement
-  const added = { ...finalized, tracks: [...finalized.tracks.filter((track) => !track.id.startsWith("gtr-")), ...refit] }
-  const kept = added.tracks.filter((track) => track.id.startsWith("gtr-") && track.notes.length > 0)
+  let added = { ...finalized, tracks: [...finalized.tracks.filter((track) => !GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId)), ...refit] }
+  if (arrangement.tracks.some((track) => track.id === "gtr-riff")) {
+    const tracks = [...arrangement.tracks, ...refit]
+    const protectedResult = { ...added, tracks }
+    added = { ...protectedResult, audition: evaluateArrangementAudition(project, added.plan, tracks), quality: reviewGeneratedArrangement(protectedResult, project) }
+  }
+  const kept = added.tracks.filter((track) => GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId) && track.notes.length > 0)
   const before = arrangement.quality
   const worse = !added.quality?.passed
     || (added.audition?.score ?? 0) < 72
@@ -3769,6 +3777,148 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
     || (added.quality?.metrics.melodyCollisionCount ?? 0) > (before?.metrics.melodyCollisionCount ?? 0)
     || (added.quality?.metrics.harmonicViolationCount ?? 0) > (before?.metrics.harmonicViolationCount ?? 0)
   return kept.length === 0 || worse ? arrangement : added
+}
+
+
+const pcDistance = (a: number, b: number) => Math.min((a - b + 120) % 12, (b - a + 120) % 12)
+
+/** 選抜済み案だけから反復句を作り、既存の音符は編集しない。 */
+function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangement, spacing = 4, sparse = false, monoOnly = false): GeneratedArrangementTrack {
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const bass = arrangement.tracks.find((track) => track.id === "syn-bass" && !track.muted)?.notes ?? []
+  const midiBass = bass.map((note) => {
+    const ticks = gridAlignedTicks(note.startBeat, note.durationBeats)
+    return { ...note, startBeat: ticks.start / TICKS_PER_QUARTER, durationBeats: ticks.duration / TICKS_PER_QUARTER }
+  })
+  const lead = buildSongPlaybackMaterial(project, arrangement.plan.directive?.timelineConstraints).lead
+  const figure = guitarRiffFigure(arrangement.plan.seed)
+  const priority = (section: ArrangementSectionPlan) => {
+    const role = project.sections.find((source) => source.id === section.sectionId)?.role
+    if (role === "outro" || role === "verse") return 0
+    if (role === "breakdown-chorus") return section.energy >= 40 ? .5 : 0
+    if (role === "chorus" || role === "grand-chorus") return !monoOnly && section.energy >= 52 ? 3 : 0
+    return section.energy >= 40 && ["pre-chorus", "bridge", "intro"].includes(role ?? "") ? 1 : 0
+  }
+  const chosen = new Set([...arrangement.plan.sections].filter((section) => priority(section) > 0)
+    .sort((a, b) => priority(b) - priority(a) || b.energy - a.energy)
+    .slice(0, Math.floor(project.sections.length / 2)).map((section) => section.sectionId))
+  const notes: GeneratedArrangementNote[] = []
+  for (const section of project.sections) {
+    if (!chosen.has(section.id)) continue
+    const plan = arrangement.plan.sections.find((candidate) => candidate.sectionId === section.id)!
+    const power = section.role === "chorus" || section.role === "grand-chorus"
+    const scale = keyScalePitchClasses(effectiveSectionKey(project, section.id))
+    const offset = sectionOffset(section.startBar, bpb)
+    const chords = project.chords.filter((chord) => chord.sectionId === section.id)
+    // 区間の入口・出口は空け、旋律の応答に使う2小節の核を繰り返す。
+    for (let bar = 2; bar < section.lengthBars - 1; bar += spacing) {
+      const onsets = power ? (sparse ? [.25, .75] : [0, .5, 1.5, 2, 3]) : figure.onsets
+      onsets.forEach((onset, i) => {
+        if (onset >= bpb) return
+        const local = bar * bpb + onset
+        const start = offset + local
+        const chord = chordAtBeat(chords, local)
+        const parsed = chord && parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+        if (!parsed) return
+        const duration = Math.min(power ? .22 : .35, bpb - onset, chord.startBeat + chord.durationBeats - local)
+        if (duration < .0625) return
+        const soundingBass = midiBass.filter((note) => note.startBeat <= start + .05 && note.startBeat + note.durationBeats > start + .1)
+        const overlappingBass = [...bass, ...midiBass].filter((note) => note.startBeat < start + duration && note.startBeat + note.durationBeats > start)
+        const tones = parsed.tones.map((tone) => tone.pitchClass)
+        const rootPc = soundingBass.length ? soundingBass[0].pitch % 12 : parsed.rootPc
+        const root = 40 + (rootPc - 40 % 12 + 12) % 12
+        const clash = (pitch: number) => overlappingBass.some((note) => pcDistance(pitch, note.pitch) === 1)
+        const chordClash = (pitch: number) => tones.some((pc) => pcDistance(pitch, pc) === 1)
+        let pitches: number[]
+        if (power && tones.includes(rootPc) && !clash(root)) {
+          pitches = tones.includes((root + 7) % 12) && !chordClash(root + 7) && !clash(root + 7) ? [root, root + 7] : [root, root + 12]
+        } else {
+          const step = figure.steps[i % figure.steps.length]
+          const wanted = 60 + (scale[(step % scale.length + scale.length) % scale.length] ?? rootPc)
+          const allowed = Array.from({ length: section.role === "breakdown-chorus" ? 20 : 35 }, (_, k) => k + (section.role === "breakdown-chorus" ? 60 : 45))
+            .filter((pitch) => tones.includes(pitch % 12) && !clash(pitch))
+            .sort((a, b) => Math.abs(a - wanted) - Math.abs(b - wanted) || a - b)
+          if (!allowed.length) return
+          pitches = [allowed[0]]
+        }
+        // 動く主旋律に接するまとまりは休ませ、和音の一部だけを移動しない。
+        if (pitches.some((pitch) => lead.some((note) => note.startBeat < start + duration
+          && note.startBeat + note.durationBeats > start && Math.abs(note.pitch - pitch) <= 5))) return
+        pitches.forEach((pitch) => notes.push(makeNote("gtr-riff", section.id, notes.length, start, duration, pitch,
+          46 + plan.energy * .18 + (i % 2 === 0 ? 3 : -2), TRACK_PURPOSE["gtr-riff"])))
+      })
+    }
+  }
+  const track = { ...emptyTrack("gtr-riff", Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))), notes }
+  // 短いゲートと和音の同時発音を保つ。汎用の演奏変形で根音や5度を動かさない。
+  const performed = applyArrangementPerformanceDirector(project, arrangement.plan, [track])[0]
+  return applyArrangementTimelineToTracks(applyArrangementSoundImage(project, [{ ...track,
+    performance: performed.performance ? { ...performed.performance, changedVelocityCount: 0, changedDurationCount: 0, changedOnsetCount: 0 } : undefined,
+  }]), arrangement.plan.directive?.timelineConstraints, bpb)[0]
+}
+
+function riffGuitarCandidate(project: ComposerProject, legacy: FullSongArrangement, riff: GeneratedArrangementTrack): FullSongArrangement {
+  const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+  const bars = new Set(riff.notes.map((note) => Math.floor(note.startBeat / bpb)))
+  const tracks = legacy.tracks.map((track) => {
+    if (!GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId)) return track
+    let notes = track.notes
+    for (const bar of bars) notes = blankBar(notes, bar, bpb)
+    return { ...track, notes }
+  })
+  const all = [...tracks, riff]
+  const candidate = { ...legacy, tracks: all, audition: evaluateArrangementAudition(project, legacy.plan, all) }
+  return { ...candidate, quality: reviewGeneratedArrangement(candidate, project) }
+}
+
+/** リフの追加と旧ギターの間引きを一つの候補として採否判断する。棄却時は入力をそのまま返す。 */
+function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement, spacing: number, sparse: boolean, monoOnly: boolean): FullSongArrangement {
+  if (legacy.plan.directive?.soundInstruction?.enabled || legacy.tracks.some((track) => track.id === "gtr-riff")) return legacy
+  let riff = buildGuitarRiff(project, legacy, spacing, sparse, monoOnly)
+  if (!riff.notes.length) return legacy
+  // 境界の調整で消えたリフ小節の旧ギターを、毎回legacyから復元して再評価する。
+  for (let pass = 0; pass < 8; pass++) {
+    const candidate = riffGuitarCandidate(project, legacy, riff)
+    const fitted = fitGuitarToBoundaryBudget(project, candidate.tracks.filter((track) => !track.id.startsWith("gtr-")),
+      candidate.tracks.filter((track) => track.id.startsWith("gtr-")))
+    if (!fitted) return legacy
+    const next = fitted.find((track) => track.id === "gtr-riff")
+    if (!next?.notes.length) return legacy
+    // 旧2層をさらに削らないと収まらない場合は、そのリフ小節を候補から外す。
+    const conflictBars = new Set<number>()
+    for (const old of candidate.tracks.filter((track) => GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId))) {
+      const after = fitted.find((track) => track.id === old.id)
+      const keys = new Set(after?.notes.map((note) => `${note.id}:${note.durationBeats}`))
+      for (const note of old.notes) if (!keys.has(`${note.id}:${note.durationBeats}`)) conflictBars.add(Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar))
+    }
+    const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
+    const notes = next.notes.filter((note) => !conflictBars.has(Math.floor(note.startBeat / bpb)))
+    if (conflictBars.size > 0 && JSON.stringify(notes) === JSON.stringify(riff.notes)) return legacy
+    if (JSON.stringify(notes) !== JSON.stringify(riff.notes)) {
+      riff = { ...riff, notes }
+      if (!notes.length) return legacy
+      continue
+    }
+    const quality = candidate.quality!
+    const before = legacy.quality ?? reviewGeneratedArrangement(legacy, project)
+    if (!quality.passed || (candidate.audition?.score ?? 0) < 72
+      || (candidate.audition?.score ?? 0) < (legacy.audition?.score ?? evaluateArrangementAudition(project, legacy.plan, legacy.tracks).score)
+      || quality.score < before.score
+      || quality.metrics.melodyCollisionCount > before.metrics.melodyCollisionCount
+      || quality.metrics.harmonicViolationCount > before.metrics.harmonicViolationCount) return legacy
+    return candidate
+  }
+  return legacy
+}
+
+
+/** 同じ採用基準で密度と役割の候補を比較する。元の候補選抜や閾値は変えない。 */
+export function addGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement): FullSongArrangement {
+  for (const [spacing, sparse, monoOnly] of [[4, false, false], [4, true, false], [2, false, false], [4, false, true]] as const) {
+    const result = tryGuitarRiffLayer(project, legacy, spacing, sparse, monoOnly)
+    if (result !== legacy) return result
+  }
+  return legacy
 }
 
 /**
@@ -3785,7 +3935,7 @@ export function upgradeFullSongArrangementOrchestration(
   if (!arrangement || arrangement.orchestrationVersion === 3) return arrangement ?? undefined
 
   const existingById = new Map(arrangement.tracks.map((track) => [track.id, track]))
-  const coreTracks = arrangement.tracks.filter((track) => !isArrangementLayerTrackId(track.id))
+  const coreTracks = arrangement.tracks.filter((track) => track.id === "gtr-riff" || !isArrangementLayerTrackId(track.id))
   const revision = Math.max(0, ...arrangement.tracks.map((track) => track.generationRevision))
   const refreshedLayers = layerTrackIdsFor(coreTracks.map((track) => track.id))
     .flatMap((trackId) => {
