@@ -1,0 +1,138 @@
+{
+  "extra": [
+    {
+      "seed": 1,
+      "riffNotes": 25,
+      "hash": "7a953ae723da58251f1811f973548eb3694f5eaac7dfa1c3a22483eb67e538f2"
+    },
+    {
+      "seed": 19,
+      "riffNotes": 23,
+      "hash": "c671d93f29d9cfa880b0d7ecfb6dd8b4f93212fe8d1135cd8798c551d37202b1"
+    },
+    {
+      "seed": 41,
+      "riffNotes": 25,
+      "hash": "42526f0116fb48caea8fcd3d234f2546816f39e6ac6282ec55acc4feceb049d8"
+    },
+    {
+      "seed": 73,
+      "riffNotes": 25,
+      "hash": "7a953ae723da58251f1811f973548eb3694f5eaac7dfa1c3a22483eb67e538f2"
+    },
+    {
+      "seed": 101,
+      "riffNotes": 25,
+      "hash": "6103b823c94db62f5592682f3696e07625437518b68486261414c240d7ec33e4"
+    }
+  ],
+  "times": [
+    550.889584,
+    497.5042910000002,
+    537.864208,
+    519.67425,
+    478.1747909999999
+  ],
+  "median": 519.67425,
+  "gm": [
+    {
+      "genre": "neoclassical",
+      "seed": 19,
+      "riffNotes": 23,
+      "channels": 15,
+      "peakChannels": 12,
+      "programs": 17,
+      "exportedNotes": 1514,
+      "quality": 94.5,
+      "audition": 96.3
+    },
+    {
+      "genre": "neoclassical",
+      "seed": 41,
+      "riffNotes": 25,
+      "channels": 15,
+      "peakChannels": 12,
+      "programs": 17,
+      "exportedNotes": 1528,
+      "quality": 94.22727272727272,
+      "audition": 96.2
+    },
+    {
+      "genre": "neoclassical",
+      "seed": 73,
+      "riffNotes": 25,
+      "channels": 15,
+      "peakChannels": 12,
+      "programs": 17,
+      "exportedNotes": 1515,
+      "quality": 94.22727272727272,
+      "audition": 95.2
+    },
+    {
+      "genre": "electronica",
+      "seed": 19,
+      "riffNotes": 33,
+      "channels": 15,
+      "peakChannels": 13,
+      "programs": 18,
+      "exportedNotes": 1769,
+      "quality": 91,
+      "audition": 96.6
+    },
+    {
+      "genre": "electronica",
+      "seed": 41,
+      "riffNotes": 35,
+      "channels": 15,
+      "peakChannels": 13,
+      "programs": 18,
+      "exportedNotes": 1779,
+      "quality": 91,
+      "audition": 96.5
+    },
+    {
+      "genre": "electronica",
+      "seed": 73,
+      "riffNotes": 35,
+      "channels": 15,
+      "peakChannels": 13,
+      "programs": 18,
+      "exportedNotes": 1775,
+      "quality": 91,
+      "audition": 96.5
+    },
+    {
+      "genre": null,
+      "seed": 19,
+      "riffNotes": 6,
+      "channels": 15,
+      "peakChannels": 14,
+      "programs": 20,
+      "exportedNotes": 2038,
+      "quality": 91.05859375,
+      "audition": 95.2
+    },
+    {
+      "genre": null,
+      "seed": 41,
+      "riffNotes": 10,
+      "channels": 15,
+      "peakChannels": 13,
+      "programs": 20,
+      "exportedNotes": 2032,
+      "quality": 91.09375,
+      "audition": 95.2
+    },
+    {
+      "genre": null,
+      "seed": 73,
+      "riffNotes": 10,
+      "channels": 15,
+      "peakChannels": 13,
+      "programs": 20,
+      "exportedNotes": 2030,
+      "quality": 91.10546875,
+      "audition": 95.2
+    }
+  ]
+}
