@@ -3872,8 +3872,7 @@ function riffGuitarCandidate(project: ComposerProject, legacy: FullSongArrangeme
     return { ...track, notes }
   })
   const all = [...tracks, riff]
-  const candidate = { ...legacy, tracks: all, audition: evaluateArrangementAudition(project, legacy.plan, all) }
-  return { ...candidate, quality: reviewGeneratedArrangement(candidate, project) }
+  return { ...legacy, tracks: all }
 }
 
 /** リフの追加と旧ギターの間引きを一つの候補として採否判断する。棄却時は入力をそのまま返す。 */
@@ -3883,7 +3882,7 @@ function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangemen
   if (!riff.notes.length) return legacy
   // 境界の調整で消えたリフ小節の旧ギターを、毎回legacyから復元して再評価する。
   for (let pass = 0; pass < 8; pass++) {
-    const candidate = riffGuitarCandidate(project, legacy, riff)
+    let candidate = riffGuitarCandidate(project, legacy, riff)
     const fitted = fitGuitarToBoundaryBudget(project, candidate.tracks.filter((track) => !track.id.startsWith("gtr-")),
       candidate.tracks.filter((track) => track.id.startsWith("gtr-")))
     if (!fitted) return legacy
@@ -3904,6 +3903,8 @@ function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangemen
       if (!notes.length) return legacy
       continue
     }
+    candidate = { ...candidate, audition: evaluateArrangementAudition(project, candidate.plan, candidate.tracks) }
+    candidate = { ...candidate, quality: reviewGeneratedArrangement(candidate, project) }
     const quality = candidate.quality!
     const before = legacy.quality ?? reviewGeneratedArrangement(legacy, project)
     if (!quality.passed || (candidate.audition?.score ?? 0) < 72
