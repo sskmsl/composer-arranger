@@ -1,0 +1,23 @@
+[
+  {
+    "count": 1,
+    "hash": "d9055a142f496329cd76b51781b30bd164e2066d9d210eddc255ed943f53e2f5",
+    "quality": 42.5,
+    "passed": false,
+    "riffNotes": 0
+  },
+  {
+    "count": 8,
+    "hash": "b8777877bef521981e8e78b789cb311bef1d4a223e111ff77b63a321cdbe153f",
+    "quality": 72.5,
+    "passed": false,
+    "riffNotes": 0
+  },
+  {
+    "count": 13,
+    "hash": "17d5f2216d10b64560c7e7688054f219e68512d6cf349fa11c165ad74c3661c7",
+    "quality": 58,
+    "passed": false,
+    "riffNotes": 0
+  }
+]

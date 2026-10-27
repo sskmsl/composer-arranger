@@ -46,6 +46,7 @@ export type ArrangementTrackId =
   | "str-high-octave"
   | "gtr-arpeggio"
   | "gtr-strum"
+  | "gtr-riff"
 
 export type ArrangementCandidateCharacter = "safe" | "edge" | "surprise"
 
@@ -509,4 +510,5 @@ export const ARRANGEMENT_TRACK_NAMES: Record<ArrangementTrackId, string> = {
   "str-high-octave": "STR_HighOctave",
   "gtr-arpeggio": "GTR_Arpeggio",
   "gtr-strum": "GTR_Strum",
+  "gtr-riff": "GTR_Riff",
 }

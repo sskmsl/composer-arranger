@@ -31,6 +31,7 @@ function articulationFor(
   trackId: ArrangementTrackId,
   section: ArrangementSectionPlan,
 ): PerformanceExecutionPlan["articulation"] {
+  if (trackId === "gtr-riff") return "detached"
   if (trackId.includes("hat") || trackId === "dr-shaker" || trackId === "syn-stabs" || trackId === "syn-chord-wide" || trackId === "str-spiccato") return "detached"
   if (trackId.startsWith("dr-") || trackId === "syn-pulse" || trackId.startsWith("syn-arp-") || trackId === "gtr-arpeggio") return "pulsed"
   if (trackId === "syn-high-glass") return "decaying"
