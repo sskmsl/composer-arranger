@@ -13,8 +13,7 @@ import * as generator from "./arrangementGenerator"
 // Issue #207：ギターのリフ層(gtr-riff)の独立検証。
 // 計画の値は使わず、exportArrangementMidi で書き出した MIDI を読み直して、音が実際に重なって鳴っているかで数える。
 // 管理対象・休符許容(1小節)・1小節あたり2層までの数え方は、#193 の dramaticMinorBoundary.test.ts と同じ。
-// main には gtr-riff も addGuitarRiffLayer も無いので、型は緩めて書く(実装後に締める)。
-const RIFF = "gtr-riff" as unknown as ArrangementTrackId
+const RIFF: ArrangementTrackId = "gtr-riff"
 const STRUM: ArrangementTrackId = "gtr-strum"
 const ARPEGGIO: ArrangementTrackId = "gtr-arpeggio"
 const LEGACY_GUITAR: readonly ArrangementTrackId[] = [ARPEGGIO, STRUM]
@@ -22,9 +21,7 @@ const BEATS_PER_BAR = 4
 const REST_TOLERANCE_BARS = 1
 const MAX_CHANGES_PER_BAR = 2
 
-type AddGuitarRiffLayer = (project: ComposerProject, arrangement: FullSongArrangement) => FullSongArrangement
-const addGuitarRiffLayer = (generator as Record<string, unknown>).addGuitarRiffLayer as AddGuitarRiffLayer | undefined
-const { addGuitarLayers, generateFullSongArrangement, regenerateFullSongArrangementTarget } = generator
+const { addGuitarLayers, addGuitarRiffLayer, generateFullSongArrangement, regenerateFullSongArrangementTarget } = generator
 
 // ---------------------------------------------------------------------------
 // fixture と測定の道具
@@ -51,7 +48,7 @@ const digest = (tracks: TrackLike[]) => createHash("sha256")
   .update(JSON.stringify(tracks.map((t) => [t.id, t.notes.map((n) => [n.pitch, n.startBeat, n.durationBeats, n.velocity, n.sectionId])])))
   .digest("hex").slice(0, 16)
 const isGuitar = (track: { id: string }) => track.id.startsWith("gtr-")
-const riffTrack = (arrangement: FullSongArrangement) => arrangement.tracks.find((track) => (track.id as string) === "gtr-riff")
+const riffTrack = (arrangement: FullSongArrangement) => arrangement.tracks.find((track) => track.id === RIFF)
 const hasRiff = (arrangement: FullSongArrangement) => (riffTrack(arrangement)?.notes.length ?? 0) > 0
 
 /** 変更前の main(e8f63e6)で、同じ fixture・seed の出力から取った値。リフ以外のトラックは、これと一致し続ける。 */
@@ -115,7 +112,7 @@ function adopted(project: ComposerProject, seeds: number[]) {
 // ---------------------------------------------------------------------------
 describe("gtr-riff: track, tone and display", () => {
   it("defines the GTR_Riff track and plays it with a distortion guitar program", () => {
-    expect((ARRANGEMENT_TRACK_NAMES as Record<string, string>)["gtr-riff"]).toBe("GTR_Riff")
+    expect(ARRANGEMENT_TRACK_NAMES["gtr-riff"]).toBe("GTR_Riff")
     const project = song("neoclassical")
     const found = adopted(project, SEEDS)
     expect(found.length, "リフが採用された全曲案が無い").toBeGreaterThan(0)
@@ -173,9 +170,9 @@ describe("gtr-riff: automatic, whatever the genre", () => {
     const project = song("neoclassical")
     const full = generateFullSongArrangement(project, { seed: 19 })
     // リフを持たない旧データ。開いただけ(読み込みと正規化)では、リフは足されない。
-    const old = { ...full, tracks: full.tracks.filter((track) => (track.id as string) !== "gtr-riff") }
+    const old = { ...full, tracks: full.tracks.filter((track) => track.id !== RIFF) }
     const opened = normalizeProject(JSON.parse(JSON.stringify({ ...project, fullSongArrangement: old }))) as ComposerProject
-    expect(opened.fullSongArrangement?.tracks.some((track) => (track.id as string) === "gtr-riff")).toBe(false)
+    expect(opened.fullSongArrangement?.tracks.some((track) => track.id === RIFF)).toBe(false)
     // 旧データの保存形式と音は、そのまま残る。
     expect(digest(opened.fullSongArrangement!.tracks)).toBe(digest(old.tracks))
   }, 120_000)
@@ -186,8 +183,8 @@ describe("gtr-riff: automatic, whatever the genre", () => {
     expect(found.length, "リフが採用された全曲案が無い").toBeGreaterThan(0)
     for (const { seed, arrangement } of found) {
       const reloaded = normalizeProject(JSON.parse(JSON.stringify({ ...project, fullSongArrangement: arrangement }))) as ComposerProject
-      expect(digest(reloaded.fullSongArrangement!.tracks.filter((t) => (t.id as string) === "gtr-riff")), `seed ${seed}`)
-        .toBe(digest(arrangement.tracks.filter((t) => (t.id as string) === "gtr-riff")))
+      expect(digest(reloaded.fullSongArrangement!.tracks.filter((t) => t.id === RIFF)), `seed ${seed}`)
+        .toBe(digest(arrangement.tracks.filter((t) => t.id === RIFF)))
     }
   }, 120_000)
 })
@@ -390,7 +387,7 @@ describe("gtr-riff: two-stage pipeline, kept riff and regeneration", () => {
     for (const { seed, arrangement } of found) {
       const legacy = addGuitarLayers(project, withoutGuitar(arrangement))
       const before = JSON.stringify(legacy)
-      const result = addGuitarRiffLayer!(project, legacy)
+      const result = addGuitarRiffLayer(project, legacy)
       expect(JSON.stringify(legacy), `seed ${seed}: 入力を書き換えた`).toBe(before)
       expect(hasRiff(result), `seed ${seed}`).toBe(true)
       expect(digest(result.tracks.filter((t) => !isGuitar(t))), `seed ${seed}`).toBe(digest(legacy.tracks.filter((t) => !isGuitar(t))))
@@ -405,7 +402,7 @@ describe("gtr-riff: two-stage pipeline, kept riff and regeneration", () => {
     const full = generateFullSongArrangement(project, { seed: 19 })
     const base = addGuitarLayers(project, withoutGuitar(full))
     const instructed = { ...base, plan: { ...base.plan, directive: { intention: "", soundInstruction: { enabled: true } } } } as typeof base
-    expect(addGuitarRiffLayer!(project, instructed)).toBe(instructed)
+    expect(addGuitarRiffLayer(project, instructed)).toBe(instructed)
   }, 120_000)
 
   it("restores the two legacy layers without touching a riff that is already there", () => {
@@ -424,22 +421,22 @@ describe("gtr-riff: two-stage pipeline, kept riff and regeneration", () => {
     const { seed, arrangement } = found[0]
     const sounding = project.sections.findIndex((_, i) => soundingBarsIn(project, i, exportedNotes(project, arrangement).get(RIFF)).length > 0)
     const sectionId = project.sections[sounding].id
-    const saved = { ...arrangement, tracks: arrangement.tracks.map((t) => (t.id as string) === "gtr-riff"
+    const saved = { ...arrangement, tracks: arrangement.tracks.map((t) => t.id === RIFF
       ? { ...t, muted: true, instrument: { ...(t.instrument ?? {}), program: 29 } } as typeof t : t) }
-    const result = regenerateFullSongArrangementTarget(project, saved, { trackId: RIFF, sectionId } as never)
+    const result = regenerateFullSongArrangementTarget(project, saved, { trackId: RIFF, sectionId })
     const before = riffTrack(saved)!
     const after = riffTrack(result)!
     const outside = (track: typeof before) => track.notes.filter((n) => n.sectionId !== sectionId).map((n) => [n.pitch, n.startBeat, n.durationBeats, n.velocity])
     expect(outside(after), `seed ${seed}: 指定区間の外が変わった`).toEqual(outside(before))
     expect(after.muted, "ミュートが変わった").toBe(true)
     expect(after.instrument?.program, "保存した音色が変わった").toBe(29)
-    expect(digest(result.tracks.filter((t) => (t.id as string) !== "gtr-riff")), "リフ以外が変わった").toBe(digest(saved.tracks.filter((t) => (t.id as string) !== "gtr-riff")))
+    expect(digest(result.tracks.filter((t) => t.id !== RIFF)), "リフ以外が変わった").toBe(digest(saved.tracks.filter((t) => t.id !== RIFF)))
   }, 240_000)
 
   it("regenerates the whole riff track without touching the other tracks", () => {
     expect(found.length, "リフが採用された全曲案が無い").toBeGreaterThan(0)
     const { seed, arrangement } = found[0]
-    const result = regenerateFullSongArrangementTarget(project, arrangement, { trackId: RIFF } as never)
-    expect(digest(result.tracks.filter((t) => (t.id as string) !== "gtr-riff")), `seed ${seed}`).toBe(digest(arrangement.tracks.filter((t) => (t.id as string) !== "gtr-riff")))
+    const result = regenerateFullSongArrangementTarget(project, arrangement, { trackId: RIFF })
+    expect(digest(result.tracks.filter((t) => t.id !== RIFF)), `seed ${seed}`).toBe(digest(arrangement.tracks.filter((t) => t.id !== RIFF)))
   }, 240_000)
 })
