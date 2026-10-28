@@ -245,4 +245,37 @@ describe("section timeline", () => {
     expect(lead.find((note) => note.id === "a:body")!.durationBeats).toBeCloseTo(1.25)
     expect(lead.find((note) => note.id.startsWith("b:transition-pickup"))!.startBeat).toBe(7.5)
   })
+
+  it("以前に作った候補の同時に始まる音・次の音を越える音は、主旋律の書き出しで1本の線になる", () => {
+    const note = (id: string, startBeat: number, durationBeats: number, pitch: number, velocity = 80) => (
+      { id, startBeat, durationBeats, pitch, velocity, locks: [] }
+    )
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: normalizeSectionTimeline(sections),
+      chords: [{ id: "c", sectionId: "a", startBeat: 0, durationBeats: 8, symbol: "C", bass: null }],
+      melodyVariants: [{
+        id: "va",
+        sectionId: "a",
+        notes: [
+          note("hold", 0, 2, 64),
+          note("walk", 0.5, 1, 62),
+          note("dyad-low", 2, 1, 61, 99),
+          note("dyad-chord-tone", 2, 0.5, 67, 70),
+          note("same-pitch", 3, 1, 67),
+          note("same-pitch-again", 3.5, 1, 67),
+        ],
+      }],
+      sectionMelodyAssignments: { a: "va" },
+    } as unknown as ComposerProject
+
+    const lead = buildSongPlaybackMaterial(project).lead
+    const sorted = [...lead].sort((a, b) => a.startBeat - b.startBeat)
+    for (let index = 1; index < sorted.length; index++) {
+      expect(sorted[index].startBeat).toBeGreaterThanOrEqual(sorted[index - 1].startBeat + sorted[index - 1].durationBeats - 1e-9)
+    }
+    expect(lead.map((n) => n.id.replace("a:", "")).sort()).toEqual(["dyad-chord-tone", "hold", "same-pitch", "same-pitch-again", "walk"])
+    expect(lead.find((n) => n.id === "a:hold")!.durationBeats).toBe(0.5)
+    expect(lead.find((n) => n.id === "a:same-pitch")!.durationBeats).toBe(0.5)
+  })
 })

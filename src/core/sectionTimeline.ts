@@ -3,6 +3,7 @@ import type { MelodyNote, MelodyVariant } from "./melody"
 import type { Section } from "./section"
 import { parseTimeSignature } from "./section"
 import { layersOf } from "./sectionLayers"
+import { parseChordSymbol } from "./chord"
 import { accompanimentEnabled } from "./sectionContent"
 import { applyAccompanimentPattern } from "./accompanimentPattern"
 import { decorationStructureFingerprint } from "./reactiveLayer"
@@ -31,6 +32,33 @@ export function moveSectionInTimeline(sections: Section[], sectionId: string, ta
   const [moved] = reordered.splice(sourceIndex, 1)
   reordered.splice(boundedTarget, 0, moved)
   return normalizeSectionTimeline(reordered)
+}
+
+/**
+ * 生成した主旋律を1本の線にする。以前に作った候補には、同じ瞬間に始まる音や、
+ * 次の音を越えて伸びる音が残っていることがあり、書き出すと音が重なって見える。
+ * 同時に始まる音は和声音→固定した音→強さの順で1つ残し、次の音を越える音はその頭で切る。
+ */
+export function toSingleMelodyLine(source: readonly MelodyNote[], chords: readonly ChordEvent[]): MelodyNote[] {
+  const sorted = [...source].sort((a, b) => a.startBeat - b.startBeat)
+  const chosen: MelodyNote[] = []
+  for (const note of sorted) {
+    const previous = chosen.at(-1)
+    if (!previous || Math.abs(previous.startBeat - note.startBeat) > 1e-9) {
+      chosen.push({ ...note })
+      continue
+    }
+    const chord = chords.find((c) => note.startBeat >= c.startBeat && note.startBeat < c.startBeat + c.durationBeats)
+    const parsed = chord && parseChordSymbol(chord.symbol, chord.bass ?? undefined)
+    const priority = (n: MelodyNote) => (parsed && (parsed.bassPc === n.pitch % 12 || parsed.tones.some((t) => t.pitchClass === n.pitch % 12)) ? 1000 : 0)
+      + (n.locks.includes("pitch") ? 200 : 0) + n.velocity
+    if (priority(note) > priority(previous)) chosen[chosen.length - 1] = { ...note }
+  }
+  for (let index = 0; index + 1 < chosen.length; index++) {
+    const gap = chosen[index + 1].startBeat - chosen[index].startBeat
+    if (chosen[index].durationBeats > gap) chosen[index].durationBeats = gap
+  }
+  return chosen
 }
 
 export interface SongPlaybackMaterial {
@@ -316,6 +344,10 @@ export function buildSongPlaybackMaterial(
   }
 
   const byBeat = (a: MelodyNote, b: MelodyNote) => a.startBeat - b.startBeat
+  // 取り込んだ原曲の主旋律は保護して触らない。生成した主旋律だけを1本の線に整える。
+  const singleLine = toSingleMelodyLine(lead, chords)
+  lead.length = 0
+  lead.push(...singleLine)
   if (protectedImportedLead.length > 0) lead.push(...protectedImportedLead)
   const totalBars = project.sections.reduce((sum, section) => sum + Math.max(1, section.lengthBars), 0)
   const constrainedLead = applyArrangementTimelineToMelody(lead, timelineConstraints, beatsPerBar).sort(byBeat)
