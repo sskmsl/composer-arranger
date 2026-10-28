@@ -1,0 +1,24 @@
+{
+  "base": "a856fd20ffb3abb09d27875b1daa83554fe56baf",
+  "implementation_commits": [
+    "928c41a",
+    "42bfcf0"
+  ],
+  "independent_test_source": "a6f71d21bc4c846b7da2a5482c49a4963dbbe829",
+  "independent_test_cherry_pick": "98617a8",
+  "independent_test_blob": "969d2ae1d81d725def90223b14eab6f150c5fa2a",
+  "existing_test_diff": false,
+  "release": {
+    "passed_files": 197,
+    "skipped_files": 6,
+    "passed_tests": 1545,
+    "skipped_tests": 7,
+    "duration_seconds": 191.08,
+    "tsc_exit": 0,
+    "lint_exit": 0,
+    "lint_existing_warnings": 1,
+    "build_exit": 0
+  },
+  "ci_at_report_time": "pending PR creation",
+  "independent_final_review": "pending"
+}

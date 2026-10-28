@@ -3783,7 +3783,9 @@ export function addGuitarLayers(project: ComposerProject, arrangement: FullSongA
 const pcDistance = (a: number, b: number) => Math.min((a - b + 120) % 12, (b - a + 120) % 12)
 
 /** 選抜済み案だけから反復句を作り、既存の音符は編集しない。 */
-function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangement, spacing = 4, sparse = false, monoOnly = false, variation = 0): GeneratedArrangementTrack {
+function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangement, spacing = 4, sparse = false, monoOnly = false, variation = 0,
+  placement: { repeat?: boolean, occupiedBars?: ReadonlySet<number> } = {}): GeneratedArrangementTrack {
+  const { repeat = false, occupiedBars } = placement
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const bass = arrangement.tracks.find((track) => track.id === "syn-bass" && !track.muted)?.notes ?? []
   const midiBass = bass.map((note) => {
@@ -3797,6 +3799,10 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
     if (role === "outro" || role === "verse") return 0
     if (role === "breakdown-chorus") return section.energy >= 40 ? .5 : 0
     if (role === "chorus" || role === "grand-chorus") return !monoOnly && section.energy >= 52 ? 3 : 0
+    // 単音の応答はストラムが担当していない区間へ置き、伴奏の役割を残す。
+    const strumOwnsSection = repeat && arrangement.tracks.some((track) => track.id === "gtr-strum"
+      && !track.muted && track.notes.some((note) => note.sectionId === section.sectionId))
+    if (strumOwnsSection) return 0
     return section.energy >= 40 && ["pre-chorus", "bridge", "intro"].includes(role ?? "") ? 1 : 0
   }
   const chosen = new Set([...arrangement.plan.sections].filter((section) => priority(section) > 0)
@@ -3811,7 +3817,9 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
     const offset = sectionOffset(section.startBar, bpb)
     const chords = project.chords.filter((chord) => chord.sectionId === section.id)
     // 区間の入口・出口は空け、旋律の応答に使う2小節の核を繰り返す。
-    for (let bar = 2; bar < section.lengthBars - 1; bar += spacing) {
+    const stepBars = repeat && section.role !== "breakdown-chorus" ? (power ? 1 : 2) : spacing
+    for (let bar = 2; bar < section.lengthBars - 1; bar += occupiedBars ? 1 : stepBars) {
+      if (occupiedBars && !occupiedBars.has(Math.floor((offset + bar * bpb) / bpb))) continue
       const onsets = power ? (sparse ? [.25, .75] : [0, .5, 1.5, 2, 3]) : figure.onsets
       onsets.forEach((baseOnset, i) => {
         const onset = baseOnset + (variation % 2 ? .25 : 0)
@@ -3862,13 +3870,23 @@ function buildGuitarRiff(project: ComposerProject, arrangement: FullSongArrangem
   }]), arrangement.plan.directive?.timelineConstraints, bpb)[0]
 }
 
-function riffGuitarCandidate(project: ComposerProject, legacy: FullSongArrangement, riff: GeneratedArrangementTrack): FullSongArrangement {
+function riffGuitarCandidate(project: ComposerProject, legacy: FullSongArrangement, riff: GeneratedArrangementTrack, repeat = false): FullSongArrangement {
   const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
   const bars = new Set(riff.notes.map((note) => Math.floor(note.startBeat / bpb)))
   const tracks = legacy.tracks.map((track) => {
     if (!GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId)) return track
     let notes = track.notes
-    for (const bar of bars) notes = blankBar(notes, bar, bpb)
+    if (repeat && track.id === "gtr-arpeggio") {
+      // 全休符にすると境界の入退場が増えるため、元の発音から各小節の先頭音だけ残す。
+      const firstInBar = new Map<number, GeneratedArrangementNote>()
+      for (const note of notes) {
+        const bar = Math.floor(note.startBeat / bpb)
+        if (bars.has(bar) && (!firstInBar.has(bar) || firstInBar.get(bar)!.startBeat > note.startBeat)) firstInBar.set(bar, note)
+      }
+      notes = notes.filter((note) => !bars.has(Math.floor(note.startBeat / bpb)) || firstInBar.get(Math.floor(note.startBeat / bpb)) === note)
+    } else {
+      for (const bar of bars) notes = blankBar(notes, bar, bpb)
+    }
     return { ...track, notes }
   })
   const all = [...tracks, riff]
@@ -3876,13 +3894,13 @@ function riffGuitarCandidate(project: ComposerProject, legacy: FullSongArrangeme
 }
 
 /** リフの追加と旧ギターの間引きを一つの候補として採否判断する。棄却時は入力をそのまま返す。 */
-function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement, spacing: number, sparse: boolean, monoOnly: boolean): FullSongArrangement {
+function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement, spacing: number, sparse: boolean, monoOnly: boolean, repeat = false): FullSongArrangement {
   if (legacy.plan.directive?.soundInstruction?.enabled || legacy.tracks.some((track) => track.id === "gtr-riff")) return legacy
-  let riff = buildGuitarRiff(project, legacy, spacing, sparse, monoOnly)
+  let riff = buildGuitarRiff(project, legacy, spacing, sparse, monoOnly, 0, { repeat })
   if (!riff.notes.length) return legacy
   // 境界の調整で消えたリフ小節の旧ギターを、毎回legacyから復元して再評価する。
   for (let pass = 0; pass < 8; pass++) {
-    let candidate = riffGuitarCandidate(project, legacy, riff)
+    let candidate = riffGuitarCandidate(project, legacy, riff, repeat)
     const fitted = fitGuitarToBoundaryBudget(project, candidate.tracks.filter((track) => !track.id.startsWith("gtr-")),
       candidate.tracks.filter((track) => track.id.startsWith("gtr-")))
     if (!fitted) return legacy
@@ -3896,7 +3914,16 @@ function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangemen
       for (const note of old.notes) if (!keys.has(`${note.id}:${note.durationBeats}`)) conflictBars.add(Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar))
     }
     const bpb = parseTimeSignature(project.song.timeSignature).beatsPerBar
-    const notes = next.notes.filter((note) => !conflictBars.has(Math.floor(note.startBeat / bpb)))
+    let notes = next.notes.filter((note) => !conflictBars.has(Math.floor(note.startBeat / bpb)))
+    if (repeat) {
+      // 境界調整後に反復として成立しない区間は、次の周回で伴奏ごと元案へ戻す。
+      const insufficient = new Set(project.sections.filter((section) => {
+        const ratio = section.role === "chorus" || section.role === "grand-chorus" ? .5
+          : ["pre-chorus", "bridge", "intro"].includes(section.role) ? .25 : 0
+        return ratio > 0 && new Set(notes.filter((note) => note.sectionId === section.id).map((note) => Math.floor(note.startBeat / bpb))).size < Math.ceil(section.lengthBars * ratio)
+      }).map((section) => section.id))
+      notes = notes.filter((note) => !insufficient.has(note.sectionId))
+    }
     if (conflictBars.size > 0 && JSON.stringify(notes) === JSON.stringify(riff.notes)) return legacy
     if (JSON.stringify(notes) !== JSON.stringify(riff.notes)) {
       riff = { ...riff, notes }
@@ -3920,6 +3947,10 @@ function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangemen
 
 /** 同じ採用基準で密度と役割の候補を比較する。元の候補選抜や閾値は変えない。 */
 export function addGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement): FullSongArrangement {
+  for (const sparse of [false, true]) {
+    const result = tryGuitarRiffLayer(project, legacy, 4, sparse, false, true)
+    if (result !== legacy) return result
+  }
   for (const [spacing, sparse, monoOnly] of [[4, false, false], [4, true, false], [2, false, false], [4, false, true]] as const) {
     const result = tryGuitarRiffLayer(project, legacy, spacing, sparse, monoOnly)
     if (result !== legacy) return result
@@ -4057,12 +4088,13 @@ export function regenerateFullSongArrangementTarget(
   if (target.trackId === "gtr-riff") {
     const existing = current.tracks.find((track) => track.id === "gtr-riff")
     if (!existing) return current
-    const generated = buildGuitarRiff(project, { ...current, plan }, 4, false, false, existing.generationRevision + 1)
     const occupied = new Set(existing.notes.map((note) => Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar)))
+    const generated = buildGuitarRiff(project, { ...current, plan }, 4, false, false, existing.generationRevision + 1, { occupiedBars: occupied })
     generated.notes = generated.notes.filter((note) => occupied.has(Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar)))
     const notes = target.sectionId ? [...existing.notes.filter((note) => note.sectionId !== target.sectionId),
       ...generated.notes.filter((note) => note.sectionId === target.sectionId)].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) : generated.notes
     const merged = { ...existing, notes, generationRevision: existing.generationRevision + 1 }
+    if ([...occupied].some((bar) => !notes.some((note) => Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar) === bar))) return current
     const others = current.tracks.filter((track) => track.id !== "gtr-riff")
     const fitted = fitGuitarToBoundaryBudget(project, others, [merged])
     if (!fitted || JSON.stringify(fitted[0]?.notes) !== JSON.stringify(notes)) return current

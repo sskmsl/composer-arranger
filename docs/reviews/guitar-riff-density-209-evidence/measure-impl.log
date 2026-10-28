@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/pr209-implementation
+
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  06:50:31
+   Duration  15.82s (transform 385ms, setup 0ms, import 512ms, tests 15.09s, environment 0ms)
+

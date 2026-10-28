@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/pr209-investigation
+
+
+ Test Files  196 passed | 6 skipped (202)
+      Tests  1528 passed | 7 skipped (1535)
+   Start at  06:14:23
+   Duration  158.85s (transform 2.49s, setup 0ms, import 30.90s, tests 271.35s, environment 10ms)
+
