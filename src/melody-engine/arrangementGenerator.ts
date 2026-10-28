@@ -4088,12 +4088,13 @@ export function regenerateFullSongArrangementTarget(
   if (target.trackId === "gtr-riff") {
     const existing = current.tracks.find((track) => track.id === "gtr-riff")
     if (!existing) return current
-    const generated = buildGuitarRiff(project, { ...current, plan }, 4, false, false, existing.generationRevision + 1)
     const occupied = new Set(existing.notes.map((note) => Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar)))
+    const generated = buildGuitarRiff(project, { ...current, plan }, 4, false, false, existing.generationRevision + 1, { occupiedBars: occupied })
     generated.notes = generated.notes.filter((note) => occupied.has(Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar)))
     const notes = target.sectionId ? [...existing.notes.filter((note) => note.sectionId !== target.sectionId),
       ...generated.notes.filter((note) => note.sectionId === target.sectionId)].sort((a, b) => a.startBeat - b.startBeat || a.pitch - b.pitch) : generated.notes
     const merged = { ...existing, notes, generationRevision: existing.generationRevision + 1 }
+    if ([...occupied].some((bar) => !notes.some((note) => Math.floor(note.startBeat / parseTimeSignature(project.song.timeSignature).beatsPerBar) === bar))) return current
     const others = current.tracks.filter((track) => track.id !== "gtr-riff")
     const fitted = fitGuitarToBoundaryBudget(project, others, [merged])
     if (!fitted || JSON.stringify(fitted[0]?.notes) !== JSON.stringify(notes)) return current
