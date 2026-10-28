@@ -1,0 +1,8 @@
+
+ RUN  v4.1.10 /private/tmp/pr213-baseline
+
+
+ Test Files  197 passed | 6 skipped (203)
+      Tests  1545 passed | 7 skipped (1552)
+   Start at  07:52:23
+   Duration  166.45s (transform 1.92s, setup 0ms, import 29.18s, tests 289.76s, environment 9ms)

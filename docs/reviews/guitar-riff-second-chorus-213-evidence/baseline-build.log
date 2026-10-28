@@ -1,0 +1,28 @@
+vite v8.1.5 building client environment for production...
+[2K
+transforming...✓ 1930 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                       0.82 kB │ gzip:   0.49 kB
+dist/assets/index-CK_8y9Pk.css                       56.10 kB │ gzip:  10.11 kB
+dist/assets/arrow-left-DMz-v6sV.js                    0.15 kB │ gzip:   0.15 kB
+dist/assets/star-DCbvWNrM.js                          0.46 kB │ gzip:   0.28 kB
+dist/assets/PerformanceReviewBadge-CH3JgCmc.js        0.88 kB │ gzip:   0.51 kB
+dist/assets/reactiveContextAudition-lI3G5pDE.js       1.29 kB │ gzip:   0.62 kB
+dist/assets/CandidatePicker-C8g20cTq.js               1.93 kB │ gzip:   1.09 kB
+dist/assets/EmptySectionState-C6omcYFH.js             3.69 kB │ gzip:   1.74 kB
+dist/assets/SignaturePhraseWorkspace-D5a4C51s.js      7.87 kB │ gzip:   3.10 kB
+dist/assets/PhraseWorkspace-y47DKD-n.js               7.96 kB │ gzip:   3.17 kB
+dist/assets/CounterWorkspace-i27Ywsas.js              8.70 kB │ gzip:   3.37 kB
+dist/assets/AuditionWorkspace-CLx5VLET.js             9.48 kB │ gzip:   3.60 kB
+dist/assets/DecorationWorkspace-DgamCys7.js          10.67 kB │ gzip:   3.77 kB
+dist/assets/MelodyWorkspace-CNlGoWHm.js              18.79 kB │ gzip:   6.78 kB
+dist/assets/ArrangementWorkspace-DE2Guimv.js        191.52 kB │ gzip:  59.95 kB
+dist/assets/index-DdJyblgF.js                     1,065.40 kB │ gzip: 332.75 kB
+
+✓ built in 339ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
