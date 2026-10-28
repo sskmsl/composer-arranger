@@ -63,4 +63,13 @@ describe("arrangement changes in plain language", () => {
     expect(html).not.toContain("区間7の変更内容")
     expect(html).toContain("残り3区間を表示")
   })
+
+  it("labels each change by kind and counts them so the result reads at a glance", () => {
+    const html = renderToStaticMarkup(<ArrangementChangeSummary matrix={matrix} changes={changes}
+      playingSectionId={null} playingProposal={false} onPlayCurrent={play} />)
+    expect(html).toContain("1区間で")
+    for (const label of ["追加 1", "変更 1", "休み 1"]) expect(html).toContain(label)
+    expect(html.indexOf("パッドを追加")).toBeLessThan(html.indexOf("ベース：音域を下げる"))
+    expect(html.indexOf("ベース：音域を下げる")).toBeLessThan(html.indexOf("ドラムは休止"))
+  })
 })

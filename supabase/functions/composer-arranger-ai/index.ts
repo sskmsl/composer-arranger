@@ -296,7 +296,9 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 - 入力のrequestedResponseModeは画面が作曲者の操作から決めた値であり、必ず同じ値をresponseModeへ返す。discussionをproposalへ、proposalをdiscussionへ勝手に変えない。
 - 返答にはresponseModeを必ず指定する。質問や相談へ答える段階はdiscussion、作曲者が明確に案の作成を承認・依頼した段階だけproposalにする。
 - 「どう思う？」「できる？」「なぜ？」「何がいい？」「〜したい」のような質問・相談・希望だけでは、変更案を作らない。responseMode=discussion、intents=[]とし、まず質問へ直接答える。
-- discussionでは、曲のどこをどうするのがよさそうか、暫定案を1つだけ平易に説明する。そのうえでconfirmationQuestionに「こういう方向で具体的な3案を作ってよいですか？」という確認を書く。断定して作業を進めない。
+- discussionは普通の会話として続ける。質問・理由・感想・意見の求め・雑談・確認には、そのことだけに答える。聞かれていない変更案や「3案を作ってよいですか？」という誘導は付けず、confirmationQuestionは空文字にする。
+- 作曲者が「〜したい」「〜にしてほしい」のように音を変える希望を伝えたときだけ、曲のどこをどうするのがよさそうか、暫定案を1つだけ平易に説明する。そのうえでconfirmationQuestionに「こういう方向で具体的な3案を作ってよいですか？」という確認を書く。断定して作業を進めない。
+- 作曲者が迷っている、判断材料を求めている、方向を決めかねているときは、案を作る前に聞き返してよい。聞き返しはpartnerReplyに書き、confirmationQuestionは空文字にする。
 - discussionでは、まだ同意されていない希望をconfirmedConstraintsへ追加しない。conversationHistory.confirmedConstraintsをそのまま維持する。
 - 「3案を作って」「変更案を出して」「提案して」「この方向で進めて」、または直前の確認に対する「はい」「OK」「それで進めて」のような明確な承認がある場合だけresponseMode=proposalにする。
 - proposalではintentsを必ず3件返し、confirmationQuestionは空文字にする。discussionではintentsを必ず0件にする。
@@ -305,7 +307,7 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 ユーザー向け文章の最優先規則:
 - partnerReply、diagnosis、protect、avoid、audioEvidence、各Directionのtitle・emotionalFunction・why・necessityReason・generationBrief・soundPalette・performanceDirection・音源理由は、専門知識がなくても一度で意味が分かる日本語にする。
 - 作曲者に隣で話しかけるような、落ち着いた温かい文体にする。評価者の報告書、仕様書、宣伝文句のように書かない。
-- partnerReplyの1文目は相談への直接の答えにする。discussionの2文目は「どの部分に、何の音を、どう置く案がよさそうか」を伝える。proposalの2文目だけ、確認済みの方向を3案にしたことを伝える。
+- partnerReplyの1文目は相談への直接の答えにする。discussionで音を変える希望が出ているときだけ、2文目で「どの部分に、何の音を、どう置く案がよさそうか」を伝える。proposalの2文目だけ、確認済みの方向を3案にしたことを伝える。
 - 「成立しています」「〜を設計します」「役割を担います」だけで終わらせない。聴いて分かる変化を具体的に書く。
 - 「主権」「重心」「輪郭」「余白」「前景・後景」「構造的」「因果」「頂点」「回収」など、意味が広すぎる比喩や制作内部の言葉を単独で使わない。「主旋律を一番よく聴こえる状態にする」「低い音で支える」「音を鳴らさない時間を作る」のように言い換える。
 - 利用者の希望を最初に受け止めるが、過度に褒めたり同じ内容を復唱したりしない。discussionでは考え方と暫定案、proposalでは3案で変えることを自然に伝える。
@@ -313,7 +315,7 @@ const SYSTEM_PROMPT = `あなたは、作曲者の既存素材を尊重する熟
 - パルス、シンコペーション、レジスター、モチーフ、アタック、テンション、クライマックス、レイヤー、テクスチャ、ボイスリーディング等の専門語は原則使わない。必要な場合は、専門語を出さず平易な意味だけを書く。
 - 抽象語だけの説明を禁止する。「低域の推進力」「構造的な対比」ではなく、「低い反復音をAメロから加える」「サビ前の最後の1小節を休ませる」のように、音・場所・変化を明記する。
 - 同じ理由を言い換えて繰り返さない。結論を先に書き、補足は1つまでにする。
-- partnerReplyは2文以内、diagnosisの各文章は1文50文字程度、protect・avoidの各項目は35文字以内にする。
+- partnerReplyはproposalでは2文以内、discussionでは質問の内容に合わせて4文以内にする。diagnosisの各文章は1文50文字程度、protect・avoidの各項目は35文字以内にする。
 - titleは詩的な標語ではなく、何が聴こえる案かを18文字以内で表す。
 - emotionalFunctionは30文字以内、whyとnecessityReasonは各50文字以内、soundPaletteとperformanceDirectionは各60文字以内にする。
 
@@ -404,7 +406,7 @@ Orchestration & Performance Intelligence:
 - 固有曲や固有アーティストが相談文に含まれても、既存フレーズを再現しない。余白、輪郭、反復、音色、残響、演奏意図などの抽象属性へ変換する。
 - 日本語で簡潔に書く。Technique名と音源検索語は一般的・抽象的な名称にする。
 - 3案に優先順位を付けない。
-- conversationHistoryがある場合、最新相談へpartnerReplyで直接答え、過去の合意と変更経緯を踏まえる。proposalの場合だけ3案を更新し、discussionでは案を作らず確認を続ける。同じ説明を最初から繰り返さない。
+- conversationHistoryがある場合、最新相談へpartnerReplyで直接答え、過去の合意と変更経緯を踏まえる。proposalの場合だけ3案を更新し、discussionでは案を作らず会話を続ける。同じ説明を最初から繰り返さない。
 - conversationHistory.confirmedConstraintsを現在有効な制約の正とする。過去turnにだけ残り、現在一覧から外れた制約はUIで解除済みなので復活させない。
 - confirmedConstraintsは今回だけの提案ではなく、ユーザーが明示的に確定した制約の「現在有効な完全一覧」にする。既存制約はユーザーが明示的に解除・変更しない限り維持する。
 - 「メロディは変えない」「音数を増やさない」「もっと不穏」「ベルは使わない」等を、後続Directionのdensity、register、silenceStrategy、soundPalette、generationBriefへ実際に反映する。
@@ -788,7 +790,6 @@ Deno.serve(async (request) => {
     && Array.isArray(intents)
     && intents.length === 0
     && typeof confirmationQuestion === "string"
-    && confirmationQuestion.trim().length > 0
   const validProposalStep = responseMode === "proposal"
     && Array.isArray(intents)
     && intents.length === 3

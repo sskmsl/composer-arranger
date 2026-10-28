@@ -22,12 +22,15 @@ function isShortAffirmativeReply(text: string): boolean {
  * 普通の質問・希望は必ず相談で止める。案の作成を明言したとき、または直前の確認へ
  * 明確に同意したときだけ、3案の作成へ進める。
  */
+const QUESTION_ENDING = /[？?]|(?:か|かな|でしょうか|ですか|ますか)[。！!\s]*$/
+
 export function requestedResponseModeForConsultation(
   text: string,
   awaitingConfirmation = false,
 ): AiArrangementResponseMode {
   const normalized = text.trim()
-  if (EXPLICIT_PROPOSAL_REQUEST.test(normalized)) return "proposal"
+  // 「この案はどうして必要？」のような質問は、「案」「して」を含んでいても相談として答える
+  if (EXPLICIT_PROPOSAL_REQUEST.test(normalized) && !QUESTION_ENDING.test(normalized)) return "proposal"
   if (awaitingConfirmation && isShortAffirmativeReply(normalized)) return "proposal"
   return "discussion"
 }

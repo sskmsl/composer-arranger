@@ -45,7 +45,8 @@ const FIRST_SUGGESTIONS = [
 ]
 
 const ANOTHER_PROPOSAL = "別の案もほしい"
-const FOLLOW_UP_SUGGESTIONS = ["理由をもっと詳しく", ANOTHER_PROPOSAL, "ほかに気になる所は？"]
+const MAKE_PROPOSALS = "ここまでの相談で、変更案を3つ作って"
+const FOLLOW_UP_SUGGESTIONS = ["理由をもっと詳しく", "ほかに気になる所は？", MAKE_PROPOSALS, ANOTHER_PROPOSAL]
 
 type ListenKey = `${string}:${"before" | "after"}`
 
@@ -321,7 +322,7 @@ export function ArrangementChatPanel({
         {messages.length === 0 && !sendingText && (
           <div className="rounded-lg border border-hairline bg-white/[0.03] p-3 text-[13px] leading-6 text-body-muted">
             {model.project.fullSongArrangement
-              ? "いまの全曲アレンジを見ながら、直したい所を言葉で相談できます。AIはまず質問に答え、「こういう方向でどうですか？」と確認します。内容に納得してから3つの変更案を作り、変更前と変更後を聴き比べて適用できます。"
+              ? "いまの全曲アレンジを見ながら、気になること・迷っていること・直したい所を自由に相談できます。質問や感想にはそのまま答えます。変更案がほしくなったら「変更案を3つ作って」と伝えてください。変更前と変更後を聴き比べて適用できます。"
               : "まず全曲の方向を選んで全曲アレンジを作ると、それを土台に相談できます。いきなり「こんな感じにしたい」と伝えて始めることもできます。"}
           </div>
         )}

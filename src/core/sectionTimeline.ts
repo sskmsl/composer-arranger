@@ -157,8 +157,13 @@ export function buildSongPlaybackMaterial(
       }
       if (plan.pickup) {
         const pickupStart = offset - plan.pickup.durationBeats
-        if (sourceLast && sourceLast.startBeat + sourceLast.durationBeats > pickupStart) {
-          sourceLast.durationBeats = Math.max(0.0625, pickupStart - sourceLast.startBeat)
+        // 弱起が鳴る区間は前セクションの音と重ねない。弱起より前に始まる音は弱起の頭で切り、
+        // 弱起の区間に始まる音(前セクション自身の終音や弱起)は弱起へ置き換える。
+        for (let index = lead.length - 1; index >= 0; index--) {
+          const note = lead[index]
+          if (!note.id.startsWith(`${plan.sourceSectionId}:`)) continue
+          if (note.startBeat >= pickupStart) lead.splice(index, 1)
+          else if (note.startBeat + note.durationBeats > pickupStart) note.durationBeats = pickupStart - note.startBeat
         }
         lead.push({
           id: `${section.id}:transition-pickup:${variant.id}`,

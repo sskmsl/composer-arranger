@@ -6,6 +6,21 @@ import { Button } from "@/ui/primitives"
 /** 最初に見せる区間の数。残りは「残りを表示」で開く(画面を広く取らない)。 */
 const VISIBLE_SECTIONS = 6
 
+/** 変更の種類ごとの見分け(色だけに頼らず、ラベルの文字と記号も付ける) */
+const KIND_STYLE: Record<ArrangementCellChange["kind"], { label: string; mark: string; badge: string; text: string }> = {
+  added: { label: "追加", mark: "＋", badge: "bg-emerald-400/20 text-emerald-200", text: "text-body-on-dark" },
+  changed: { label: "変更", mark: "↻", badge: "bg-amber-300/20 text-amber-200", text: "text-body-on-dark" },
+  removed: { label: "休み", mark: "－", badge: "bg-rose-400/20 text-rose-200", text: "text-body-muted" },
+}
+const KIND_ORDER: ArrangementCellChange["kind"][] = ["added", "changed", "removed"]
+
+function changeText(change: ArrangementCellChange, proposed: boolean): string {
+  const part = partRowLabel(change.rowId)
+  if (change.kind === "added") return `${part}${proposed ? "を加える" : "を追加"}`
+  if (change.kind === "removed") return `${part}${proposed ? "を休ませる" : "は休止"}`
+  return `${part}：${change.detail ?? "フレーズを変更"}`
+}
+
 const LISTEN_BUTTON = "inline-flex items-center gap-1 whitespace-nowrap rounded-sm bg-white/10 px-2 py-1 text-[12px] leading-4 text-body-on-dark transition hover:bg-white/15 active:scale-95"
 
 export function ArrangementChangeSummary({
@@ -23,6 +38,7 @@ export function ArrangementChangeSummary({
   const [expanded, setExpanded] = useState(false)
   const sections = matrix.filter((section) => changes.some((change) => change.sectionId === section.sectionId))
   const shown = expanded ? sections : sections.slice(0, VISIBLE_SECTIONS)
+  const tally = KIND_ORDER.map((kind) => ({ kind, count: changes.filter((change) => change.kind === kind).length })).filter((item) => item.count > 0)
   const playLabel = (sectionId: string, proposed: boolean) => playingSectionId === sectionId && playingProposal === proposed
     ? <><Square size={12} aria-hidden="true" /> 停止</>
     : <><Play size={12} aria-hidden="true" /> {proposed ? "変更案を聴く" : proposal ? "変更前を聴く" : "この箇所を聴く"}</>
@@ -35,6 +51,16 @@ export function ArrangementChangeSummary({
           {proposal ? "未適用" : changes.length ? "適用済み" : "いまのアレンジ"}
         </span>
       </div>
+      {tally.length > 0 && (
+        <p className="flex flex-wrap items-center gap-1.5 text-[13px] text-body-muted" aria-label="変更の件数">
+          <span>{sections.length}区間で</span>
+          {tally.map(({ kind, count }) => (
+            <span key={kind} className={`rounded-pill px-2 py-0.5 font-medium ${KIND_STYLE[kind].badge}`}>
+              {KIND_STYLE[kind].mark} {KIND_STYLE[kind].label} {count}
+            </span>
+          ))}
+        </p>
+      )}
       {proposal && (
         <div className="text-[13px] leading-5">
           <p className="font-medium text-body-on-dark">{proposal.title}</p>
@@ -47,11 +73,11 @@ export function ArrangementChangeSummary({
         </p>
       ) : (
         <>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-2">
             {shown.map((section) => (
-              <section key={section.sectionId} aria-label={`${section.name}の変更内容`} className="min-w-0 rounded-md bg-surface-tile-2 px-2.5 py-2">
+              <section key={section.sectionId} aria-label={`${section.name}の変更内容`} className="min-w-0 rounded-md border border-hairline bg-surface-tile-2 px-3 py-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                  <h5 className="min-w-0 truncate text-[13px] font-semibold text-body-on-dark">
+                  <h5 className="min-w-0 truncate text-[14px] font-semibold text-body-on-dark">
                     {section.name} <span className="font-normal text-ink-soft">{section.startBar}〜{section.endBar}小節</span>
                   </h5>
                   <div className="flex shrink-0 flex-wrap gap-1">
@@ -65,12 +91,18 @@ export function ArrangementChangeSummary({
                     )}
                   </div>
                 </div>
-                <ul className="mt-1.5 flex flex-wrap gap-1 text-[12px] leading-5 text-body-muted">
-                  {changes.filter((change) => change.sectionId === section.sectionId).map((change) => (
-                    <li key={`${change.rowId}:${change.kind}`} className="rounded-pill bg-white/6 px-2 py-0.5">
-                      {partRowLabel(change.rowId)}{change.kind === "added" ? (proposal ? "を加える" : "を追加") : change.kind === "removed" ? (proposal ? "を休ませる" : "は休止") : `：${change.detail ?? "フレーズを変更"}`}
-                    </li>
-                  ))}
+                <ul className="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2 text-[13px] leading-5">
+                  {changes
+                    .filter((change) => change.sectionId === section.sectionId)
+                    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind))
+                    .map((change) => (
+                      <li key={`${change.rowId}:${change.kind}`} className="flex items-baseline gap-2">
+                        <span className={`w-14 shrink-0 rounded-sm px-1.5 py-0.5 text-center text-[12px] font-medium ${KIND_STYLE[change.kind].badge}`}>
+                          {KIND_STYLE[change.kind].mark} {KIND_STYLE[change.kind].label}
+                        </span>
+                        <span className={`min-w-0 break-words ${KIND_STYLE[change.kind].text}`}>{changeText(change, Boolean(proposal))}</span>
+                      </li>
+                    ))}
                 </ul>
               </section>
             ))}

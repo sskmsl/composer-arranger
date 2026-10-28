@@ -198,4 +198,51 @@ describe("section timeline", () => {
     expect(sixEightPickup.startBeat).toBe(5.5)
     expect(sixEightPickup.startBeat + sixEightPickup.durationBeats).toBe(6)
   })
+
+  it("pickup-to-nextの区間に前セクションの音が始まっていても、弱起と重ならない", () => {
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: normalizeSectionTimeline(sections),
+      chords: [],
+      melodyVariants: [
+        {
+          id: "va",
+          sectionId: "a",
+          notes: [
+            { id: "body", startBeat: 6, durationBeats: 1.25, pitch: 67, velocity: 80, locks: [] },
+            { id: "tail", startBeat: 7.5122, durationBeats: 0.4, pitch: 74, velocity: 80, locks: [] },
+          ],
+        },
+        {
+          id: "vb",
+          sectionId: "b",
+          notes: [{ id: "entry", startBeat: 0, durationBeats: 1, pitch: 72, velocity: 80, locks: [] }],
+          transitionPlan: {
+            strategy: "pickup-to-next",
+            sourceSectionId: "a",
+            sourceVariantId: "va",
+            contextFingerprint: "context",
+            transitionFitScore: 90,
+            pitchContinuityScore: 90,
+            rhythmContinuityScore: 90,
+            tensionResolutionScore: 90,
+            motifRelationScore: 90,
+            registerTrajectoryScore: 90,
+            sustainAcrossBoundaryBeats: 0,
+            pickup: { pitch: 71, durationBeats: 0.5, velocity: 72 },
+          },
+        },
+      ],
+      sectionMelodyAssignments: { a: "va", b: "vb" },
+    } as unknown as ComposerProject
+
+    const lead = buildSongPlaybackMaterial(project).lead
+    const sorted = [...lead].sort((a, b) => a.startBeat - b.startBeat)
+    for (let index = 1; index < sorted.length; index++) {
+      expect(sorted[index].startBeat).toBeGreaterThanOrEqual(sorted[index - 1].startBeat + sorted[index - 1].durationBeats - 1e-9)
+    }
+    expect(lead.some((note) => note.id === "a:tail")).toBe(false)
+    expect(lead.find((note) => note.id === "a:body")!.durationBeats).toBeCloseTo(1.25)
+    expect(lead.find((note) => note.id.startsWith("b:transition-pickup"))!.startBeat).toBe(7.5)
+  })
 })

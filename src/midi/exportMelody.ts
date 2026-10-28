@@ -11,6 +11,7 @@ import { parseChordSymbol } from "@/core/chord"
 import { voiceChord } from "@/audio/chordVoicing"
 import { buildSmf, gridAlignedTicks, preservedNoteTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import { logicSoundTrackOrder } from "./logicProductionPackage"
 
 /**
  * Logic ProがSMFを読み込む際、トラックごとに異なるチャンネルを持つと
@@ -233,8 +234,24 @@ export function exportSongMidi(
       tick: beatsToTicks((section.startBar - 1) * ts.beatsPerBar),
       text: section.name,
     })),
-    tracks: withGmSounds(tracks, gmPrograms),
+    tracks: withGmSounds(inLogicSoundOrder(project, tracks), gmPrograms),
   })
+}
+
+/**
+ * Logic Pro画面「音源と設定」の表と同じ順(同じ音源のトラックが続く並び)にする。
+ * 表にないトラックは、元の順のまま最後へ置く。
+ */
+function inLogicSoundOrder(project: ComposerProject, tracks: SoundedTrack[]): SoundedTrack[] {
+  const order = logicSoundTrackOrder(project)
+  const rank = (entry: SoundedTrack) => {
+    const index = order.indexOf(entry.track.name ?? "")
+    return index < 0 ? order.length : index
+  }
+  return tracks
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => rank(a.entry) - rank(b.entry) || a.index - b.index)
+    .map(({ entry }) => entry)
 }
 
 interface MidiSaveFileHandle {
