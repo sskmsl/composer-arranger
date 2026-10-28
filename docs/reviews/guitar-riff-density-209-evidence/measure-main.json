@@ -1,0 +1,4351 @@
+[
+  {
+    "which": "A",
+    "genre": "neoclassical",
+    "seed": 1,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.22727272727272,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 26.916666666666668,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.908007277607235,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 5.91796875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.36363636363636365,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.2,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 95,
+      "sectionContrast": 90,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "92debaf9907f8ed598309e9b494586d0c24a44496ebaa39d50fb464dbb69da9e",
+    "otherHash": "1807536d8c0344e7841d56b0e8f820c6535ff3c0d5c958912ad5c1c4114efa75"
+  },
+  {
+    "which": "A",
+    "genre": "neoclassical",
+    "seed": 19,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 23,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.5,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 26.916666666666668,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9223678311740066,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 5.9140625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 43.5,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.24
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.3,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 78,
+      "dynamicArc": 97,
+      "sectionContrast": 99,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      76
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "6a65b9091abe4318d6ea438f67919e37daf8b68f38bee5fd0f35fa34ec285593",
+    "otherHash": "1e35d6e5b64ab51da3552fb4cf696dedd384c369a861c3f7856c712075c025c1"
+  },
+  {
+    "which": "A",
+    "genre": "neoclassical",
+    "seed": 41,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.22727272727272,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 26.916666666666668,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9145760796485529,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 5.96875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.36363636363636365,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.2,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 99,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "b26c770368a0850328998318f2600f5fdf8cec429c4eed6738f2e6f287d9b306",
+    "otherHash": "4efe3989f50b869be9d5e86d431c64e752393962223eee0fee0ad0baf615e8d8"
+  },
+  {
+    "which": "A",
+    "genre": "neoclassical",
+    "seed": 73,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.22727272727272,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 26.916666666666668,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.908007277607235,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 5.91796875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.36363636363636365,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.2,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 95,
+      "sectionContrast": 90,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "92debaf9907f8ed598309e9b494586d0c24a44496ebaa39d50fb464dbb69da9e",
+    "otherHash": "1807536d8c0344e7841d56b0e8f820c6535ff3c0d5c958912ad5c1c4114efa75"
+  },
+  {
+    "which": "A",
+    "genre": "neoclassical",
+    "seed": 101,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.22727272727272,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 26.916666666666668,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.906995982762232,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 5.92578125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.36363636363636365,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.1,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 78,
+      "dynamicArc": 95,
+      "sectionContrast": 90,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "2b3af5b10d1d9017214d2f0547c4c7f18403c59ad58a37a6245bf9ee09fb48bb",
+    "otherHash": "becce3d257fe60422ef51a188249f28d93a653f2acc634d29ef0335768309f59"
+  },
+  {
+    "which": "A",
+    "genre": "electronica",
+    "seed": 1,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 35,
+    "legacy": [],
+    "quality": {
+      "score": 91,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 25,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 38,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9467776644221981,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.93359375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.3,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 57.5,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.5
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.5,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 4,
+      "barsAfter": 4,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "b6147630bc518e3be6651b096450cf6d51e4138552ec6cd59d6ccbac69d0f6a6",
+    "otherHash": "525191ddefc9e0ea2da5ab14f69dff87d90fd7c2dd0930d1a7f1cacb1812f2b4"
+  },
+  {
+    "which": "A",
+    "genre": "electronica",
+    "seed": 19,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 33,
+    "legacy": [],
+    "quality": {
+      "score": 91,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 25,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 38,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.947746227313769,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.91015625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.22727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 57.8,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.52
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.6,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 78,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      76
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 4,
+      "barsAfter": 4,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "60c386c3e974198a13a5abae15c23087fda97df5b639aa5a388ee76d1a60e95f",
+    "otherHash": "c0866909e56070382e13722bc49a7c78888564c3bd3214710d3b082872b8de20"
+  },
+  {
+    "which": "A",
+    "genre": "electronica",
+    "seed": 41,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 35,
+    "legacy": [],
+    "quality": {
+      "score": 91,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 25,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 38,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.946164215608171,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.94921875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.3,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 57.5,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.5
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.5,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 4,
+      "barsAfter": 4,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "f0bc5ea645edc615b9aef63141c1ea90285cb04b6f894baeb160651382669040",
+    "otherHash": "322e787075c9d2046d6d99e98ec79988713f3aff2aee31a01d1ba54948d2a2fe"
+  },
+  {
+    "which": "A",
+    "genre": "electronica",
+    "seed": 73,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 35,
+    "legacy": [],
+    "quality": {
+      "score": 91,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 25,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 38,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9467776644221981,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.93359375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.3,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 57.5,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.5
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.5,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 4,
+      "barsAfter": 4,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "b6147630bc518e3be6651b096450cf6d51e4138552ec6cd59d6ccbac69d0f6a6",
+    "otherHash": "525191ddefc9e0ea2da5ab14f69dff87d90fd7c2dd0930d1a7f1cacb1812f2b4"
+  },
+  {
+    "which": "A",
+    "genre": "electronica",
+    "seed": 101,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 35,
+    "legacy": [],
+    "quality": {
+      "score": 91,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 25,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 38,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.946164215608171,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.94921875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.3,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 57.5,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.5
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.5,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      45,
+      71
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 4,
+      "barsAfter": 4,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "bd31c82aa4358d404c9837fef845e5b9a9b21752859a0536e42874abba201094",
+    "otherHash": "dab3a871e11a458af625f299a489248be32d1df63d3f0f5ce66cd76f33a0ca29"
+  },
+  {
+    "which": "A",
+    "genre": null,
+    "seed": 1,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 10,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 246
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 9
+      }
+    ],
+    "quality": {
+      "score": 91.0703125,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 45.416666666666664,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9561122800257006,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.953125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.23076923076923078,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 54.1,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.27
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.3,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 95,
+      "registerBalance": 76,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      67,
+      72
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "0b78e14d26a9cbc4f69579fc0e564e3a38b7290928ffe9393dbb6cac37450e55",
+    "otherHash": "0ea1cecc7fffc910d1614cb94f0bda9bf2a4ac57dd7bb3fc00763f526ec47943"
+  },
+  {
+    "which": "A",
+    "genre": null,
+    "seed": 19,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 6,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 246
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 12
+      }
+    ],
+    "quality": {
+      "score": 91.05859375,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 45.5,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9560215638116769,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.9609375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.15384615384615385,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 54,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.26
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.2,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 95,
+      "registerBalance": 76,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 14,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      72,
+      76
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "f8f7701d0a3cd7fcfe6c4ca9eacb8ff4b50d7e787b0c72b0f09243c0d564c0ac",
+    "otherHash": "dd832c6b6be962e61796d465f38f11d733b034392e0d1a5dfee1c796c0c8ffcf"
+  },
+  {
+    "which": "A",
+    "genre": null,
+    "seed": 41,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 10,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 246
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 9
+      }
+    ],
+    "quality": {
+      "score": 91.09375,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 45.416666666666664,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9553148075398024,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.9375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.15384615384615385,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 54.1,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.27
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.2,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 95,
+      "registerBalance": 76,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      67,
+      72
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "222ec4eda15f5b5f721bf36241bd4e99b960a28c94e924a949646f771962cc49",
+    "otherHash": "6c36099b292463d1f636145afaf3bb4d2f23870854ac5e824c6ffb0dccd3cc32"
+  },
+  {
+    "which": "A",
+    "genre": null,
+    "seed": 73,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 10,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 246
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 9
+      }
+    ],
+    "quality": {
+      "score": 91.10546875,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 45.25,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9538752505591865,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.9296875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.26666666666666666,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 54.1,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.27
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.2,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 95,
+      "registerBalance": 76,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      67,
+      72
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "eedb58ecd7b2f61cdb4916497b7277059d568a8ad226074f3f0e80425af3f5af",
+    "otherHash": "49d40bec4ae5b03ba90c48342c31278121b47e727092d94c8817c08dd139b2f9"
+  },
+  {
+    "which": "A",
+    "genre": null,
+    "seed": 101,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 10,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 246
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 9
+      }
+    ],
+    "quality": {
+      "score": 91.046875,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 45.416666666666664,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9554488208302897,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.96875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.26666666666666666,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 54.1,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.27
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.3,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 95,
+      "registerBalance": 76,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      67,
+      72
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "ea5fed55a33762178ec9fd32722ceef51e93117dd8be9ca4acc2f5cb6b04bcf8",
+    "otherHash": "011860d314adc2ae69717d210350343af646f9cf30865846d92adb708abc82c2"
+  },
+  {
+    "which": "B",
+    "genre": "neoclassical",
+    "seed": 1,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.5,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 27.75,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9205681381515204,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 6.03515625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.6,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 94,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "8918c74ee1147c26697b8a65b370970fc58ac1bb463ac1c566571f2f5ba165cf",
+    "otherHash": "50003911b9b3ab94a19cef2e3ca8302253a6332ed5d0e17425b6aefcb6c73390"
+  },
+  {
+    "which": "B",
+    "genre": "neoclassical",
+    "seed": 19,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 23,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.5,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 27.75,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9329469685198106,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 6.03125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.21052631578947367,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 43.5,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.24
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.5,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 97,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "b499aaee1a6ae9d1c82f7d3e54ab3efb55f44ac343c1dcfc513b94d09735ae8a",
+    "otherHash": "ff029a322279f78f24a5bf196e9de92e78c3ad25fc4864c58268e87ee6fff5a8"
+  },
+  {
+    "which": "B",
+    "genre": "neoclassical",
+    "seed": 41,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.5,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 27.75,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9257623067779128,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 6.0859375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.4,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 97,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "ba17e2d45c5e8b2f0431b54146aaf225da79e8c798780b313c2e18280d64c019",
+    "otherHash": "7391540bc0e13b42ee5ca66553f8034c763a879a1d92f36b7d791cb7111ee2ce"
+  },
+  {
+    "which": "B",
+    "genre": "neoclassical",
+    "seed": 73,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.5,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 27.75,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9205681381515204,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 6.03515625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.6,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 94,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "8918c74ee1147c26697b8a65b370970fc58ac1bb463ac1c566571f2f5ba165cf",
+    "otherHash": "50003911b9b3ab94a19cef2e3ca8302253a6332ed5d0e17425b6aefcb6c73390"
+  },
+  {
+    "which": "B",
+    "genre": "neoclassical",
+    "seed": 101,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 66
+      }
+    ],
+    "quality": {
+      "score": 94.5,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 19,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 27.75,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.919735332204723,
+        "averageActiveRoleCount": 6.555555555555555,
+        "generatedNotesPerBeat": 6.04296875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 42.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 0,
+          "closure-decay": 1,
+          "accumulation": 0.19
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 95.5,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 98,
+      "registerBalance": 79,
+      "dynamicArc": 96,
+      "sectionContrast": 93,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "34e14a71af78c97414a3b6e983f96c2d0ff63396369e1c45b74cbf9f5af1256e",
+    "otherHash": "564a06755ad41d0983ac107338aa60ee52257a3a04b4d9a491e649fd98a7eb0f"
+  },
+  {
+    "which": "B",
+    "genre": "electronica",
+    "seed": 1,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 75,
+    "legacy": [],
+    "quality": {
+      "score": 92.671875,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 39.333333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8753703000988785,
+        "averageActiveRoleCount": 7.222222222222222,
+        "generatedNotesPerBeat": 8.21875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.25,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 57.3,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.49
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.1,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 82,
+      "dynamicArc": 95,
+      "sectionContrast": 93,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 11,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 9,
+      "barsAfter": 9,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "40c3c2dfd2ce29b873e4ba8a83fecd8b8e6ac37b5ba0033b9dcfc8e91af58947",
+    "otherHash": "2e7853d9c8744689e97086801b1bc360a6c0a6c6518879ff422f44f0e30a7b9d"
+  },
+  {
+    "which": "B",
+    "genre": "electronica",
+    "seed": 19,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 0,
+    "legacy": [],
+    "quality": {
+      "score": 93.09375,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 37,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8730841977754906,
+        "averageActiveRoleCount": 7.222222222222222,
+        "generatedNotesPerBeat": 7.9375,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.22727272727272727,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 57.9,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.53
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.6,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 82,
+      "dynamicArc": 96,
+      "sectionContrast": 96,
+      "issues": [],
+      "repairPasses": 1,
+      "removedNotes": 0,
+      "shiftedNotes": 12,
+      "velocityAdjustments": 10
+    },
+    "peakChannels": 11,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": null,
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 0,
+      "barsAfter": 0,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "6bbc3887a09477837f8feccb6b80480ac825f6c4ee518f984d772a83d9dba073",
+    "otherHash": "6bbc3887a09477837f8feccb6b80480ac825f6c4ee518f984d772a83d9dba073"
+  },
+  {
+    "which": "B",
+    "genre": "electronica",
+    "seed": 41,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 75,
+    "legacy": [],
+    "quality": {
+      "score": 92.642578125,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 39.333333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8752744655677719,
+        "averageActiveRoleCount": 7.222222222222222,
+        "generatedNotesPerBeat": 8.23828125,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.25,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 57.3,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.49
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.8,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 82,
+      "dynamicArc": 95,
+      "sectionContrast": 99,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 11,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 9,
+      "barsAfter": 9,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "b90fd35ba232baf07b78df096d936cd51409bdcd04710931c17f72f80c82e838",
+    "otherHash": "57563be9d02145af200fe4a675c3f7510f50cf7e5e0cab85013d3f8b1a25a86f"
+  },
+  {
+    "which": "B",
+    "genre": "electronica",
+    "seed": 73,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 75,
+    "legacy": [],
+    "quality": {
+      "score": 92.671875,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 39.333333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8753703000988785,
+        "averageActiveRoleCount": 7.222222222222222,
+        "generatedNotesPerBeat": 8.21875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.25,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 57.3,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.49
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.1,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 82,
+      "dynamicArc": 95,
+      "sectionContrast": 93,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 11,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 9,
+      "barsAfter": 9,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "40c3c2dfd2ce29b873e4ba8a83fecd8b8e6ac37b5ba0033b9dcfc8e91af58947",
+    "otherHash": "2e7853d9c8744689e97086801b1bc360a6c0a6c6518879ff422f44f0e30a7b9d"
+  },
+  {
+    "which": "B",
+    "genre": "electronica",
+    "seed": 101,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 75,
+    "legacy": [],
+    "quality": {
+      "score": 92.666015625,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 39.333333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8750146581132874,
+        "averageActiveRoleCount": 7.222222222222222,
+        "generatedNotesPerBeat": 8.22265625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.25,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 57.3,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.49
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.1,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 82,
+      "dynamicArc": 95,
+      "sectionContrast": 92,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 11,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 9,
+      "barsAfter": 9,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "6783e1898a2bd9c144df4acccf884451f55244dcf2cfe5ff0a373e30daf39d67",
+    "otherHash": "c111849e0383fd9042cb6210ff0f55b380e74f630f0d115ee60870924ff4e2de"
+  },
+  {
+    "which": "B",
+    "genre": null,
+    "seed": 1,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 8,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 248
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 6
+      }
+    ],
+    "quality": {
+      "score": 91.01171875,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 45.083333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9568396069591654,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.9921875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.15384615384615385,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 53.2,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.21
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.3,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 77,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      57
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "de77b8b0f5918ff2362f50bb6d9b59e00ae2854de7a407a797fbc233a42f05f2",
+    "otherHash": "5d977d672132ac76ebfb29405a6e43533d7375566021d017722ed2c789e8141e"
+  },
+  {
+    "which": "B",
+    "genre": null,
+    "seed": 19,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 23,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 60
+      }
+    ],
+    "quality": {
+      "score": 89.619140625,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 43.416666666666664,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.8735130000461496,
+        "averageActiveRoleCount": 7.222222222222222,
+        "generatedNotesPerBeat": 10.25390625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2222222222222222,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 8,
+        "emotionalArcScore": 60,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 0.88,
+          "accumulation": 1
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.3,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 80,
+      "dynamicArc": 97,
+      "sectionContrast": 96,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 12,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "d8d7d873ab8b73ce6c44145f05347c4ad64cdffc2484c6138f439d67623ba11e",
+    "otherHash": "14b2fe54061b303f7a18d692384b410ae94fdbf785264376eb8328ebd312dec6"
+  },
+  {
+    "which": "B",
+    "genre": null,
+    "seed": 41,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 8,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 248
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 6
+      }
+    ],
+    "quality": {
+      "score": 90.9765625,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 44.916666666666664,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9573155128703543,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 8.015625,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.26666666666666666,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 53.6,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.24
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.4,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 77,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      57
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "d30e18a27832efc91f5e08572233bb2a59cfda98fa154afcf1d86684ddca2700",
+    "otherHash": "f1c925153de5aedbf8bfad1fe999555d6480d652f3e1edfb58c49107199d5ecf"
+  },
+  {
+    "which": "B",
+    "genre": null,
+    "seed": 73,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 25,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 254
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 9
+      }
+    ],
+    "quality": {
+      "score": 91,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 8,
+        "stagedEntryCount": 25,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 34.583333333333336,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9945626971839404,
+        "averageActiveRoleCount": 6.444444444444445,
+        "generatedNotesPerBeat": 6.2421875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.2692307692307692,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 54.6,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.3
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.7,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 100,
+      "transientClarity": 100,
+      "registerBalance": 77,
+      "dynamicArc": 97,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 13,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      65
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 3,
+      "barsAfter": 3,
+      "changed": true,
+      "othersEqual": true
+    },
+    "allHash": "206f538dd244b4a99555064a6163dac48a95699c6ae9cf13d1740fa33781cbed",
+    "otherHash": "b519b5fb5569c23b2c2678b91601cbc239a202309550edb133fa02e3f8abb228"
+  },
+  {
+    "which": "B",
+    "genre": null,
+    "seed": 101,
+    "bars": [
+      {
+        "id": "r0",
+        "role": "intro",
+        "length": 4,
+        "bars": []
+      },
+      {
+        "id": "r1",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r2",
+        "role": "pre-chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r3",
+        "role": "chorus",
+        "length": 8,
+        "bars": [
+          2
+        ]
+      },
+      {
+        "id": "r4",
+        "role": "verse",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r5",
+        "role": "chorus",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r6",
+        "role": "bridge",
+        "length": 8,
+        "bars": []
+      },
+      {
+        "id": "r7",
+        "role": "grand-chorus",
+        "length": 8,
+        "bars": [
+          6
+        ]
+      },
+      {
+        "id": "r8",
+        "role": "outro",
+        "length": 4,
+        "bars": []
+      }
+    ],
+    "riffNotes": 8,
+    "legacy": [
+      {
+        "id": "gtr-arpeggio",
+        "notes": 248
+      },
+      {
+        "id": "gtr-strum",
+        "notes": 6
+      }
+    ],
+    "quality": {
+      "score": 91.076171875,
+      "passed": true,
+      "summary": "Sectionごとの役割差と後半の解放が成立しています",
+      "metrics": {
+        "distinctSectionTextures": 9,
+        "stagedEntryCount": 23,
+        "peakSectionId": "r7",
+        "peakIsLate": true,
+        "overfilledSectionCount": 0,
+        "silentRoleCount": 0,
+        "mechanicalLoopCount": 0,
+        "largeSupportLeapCount": 0,
+        "densityContrastRatio": 44.5,
+        "harmonicViolationCount": 0,
+        "melodyCollisionCount": 0,
+        "rhythmLeadAttackConflictCount": 0,
+        "energyDensityCorrelation": 0.9550576118586759,
+        "averageActiveRoleCount": 7,
+        "generatedNotesPerBeat": 7.94921875,
+        "repeatedSectionCopyCount": 0,
+        "repeatedTrackCopyRatio": 0.26666666666666666,
+        "boundaryContrastScore": 1,
+        "motifDevelopmentCount": 4,
+        "emotionalArcScore": 53.6,
+        "emotionalMechanisms": {
+          "expectation-arrival": 0,
+          "subtraction-contrast": 1,
+          "closure-decay": 1,
+          "accumulation": 0.24
+        }
+      },
+      "recommendations": []
+    },
+    "audition": {
+      "version": "1.0.0",
+      "score": 96.4,
+      "passed": true,
+      "melodicClarity": 100,
+      "lowEndClarity": 99,
+      "transientClarity": 100,
+      "registerBalance": 77,
+      "dynamicArc": 96,
+      "sectionContrast": 100,
+      "issues": [],
+      "repairPasses": 0,
+      "removedNotes": 0,
+      "shiftedNotes": 0,
+      "velocityAdjustments": 0
+    },
+    "peakChannels": 11,
+    "bassClashes": 0,
+    "leadClashes": 0,
+    "rootOff": 0,
+    "fifthClashes": 0,
+    "powerRangeOff": 0,
+    "range": [
+      40,
+      57
+    ],
+    "boundaryMax": 2,
+    "savedMidiEqual": true,
+    "regenerated": {
+      "barsBefore": 2,
+      "barsAfter": 2,
+      "changed": false,
+      "othersEqual": true
+    },
+    "allHash": "9ffbe920afaab8d4df25ef67bbce5bd3db573d75a898954dc009a7eeaa17152c",
+    "otherHash": "1e952f99c90742d674d6c93611b60d04ddb27b15f286712a434f92bffe95ec56"
+  }
+]

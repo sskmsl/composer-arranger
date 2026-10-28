@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /private/tmp/pr209-investigation
+
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  06:50:14
+   Duration  16.00s (transform 338ms, setup 0ms, import 449ms, tests 15.30s, environment 0ms)
+

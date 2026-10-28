@@ -1,0 +1,193 @@
+
+ RUN  v4.1.10 /private/tmp/pr209-investigation
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts (17 tests | 9 failed) 23376ms
+     × reaches half of the chorus and final chorus bars for review song A, genre neoclassical, in at least one fixed seed 770ms
+     × reaches half of the chorus and final chorus bars for review song A, genre electronica, in at least one fixed seed 963ms
+     × reaches half of the chorus and final chorus bars for review song B, genre neoclassical, in at least one fixed seed 631ms
+     × reaches half of the chorus and final chorus bars for review song B, genre null, in at least one fixed seed 1018ms
+     × reaches a quarter of the single-note section bars for review song A, genre neoclassical, in at least one fixed seed 654ms
+     × reaches a quarter of the single-note section bars for review song A, genre electronica, in at least one fixed seed 987ms
+     × reaches a quarter of the single-note section bars for review song B, genre neoclassical, in at least one fixed seed 656ms
+     × reaches a quarter of the single-note section bars for review song B, genre null, in at least one fixed seed 1031ms
+     × keeps half of the bars in 20-bar choruses too, not just one bar per section 1960ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches half of the chorus and final chorus bars for review song A, genre neoclassical, in at least one fixed seed
+AssertionError: 曲A/neoclassical: seed 19 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 41 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 73 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:142:135
+    140|       return { seed, ok: reachesTarget(project, arrangement, "power"),…
+    141|     })
+    142|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                       ^
+    143|   }, 240_000)
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches half of the chorus and final chorus bars for review song A, genre electronica, in at least one fixed seed
+AssertionError: 曲A/electronica: seed 19 [chorus 2/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 41 [chorus 2/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 73 [chorus 2/8小節(必要 4), grand-chorus 1/8小節(必要 4)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:142:135
+    140|       return { seed, ok: reachesTarget(project, arrangement, "power"),…
+    141|     })
+    142|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                       ^
+    143|   }, 240_000)
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches half of the chorus and final chorus bars for review song B, genre neoclassical, in at least one fixed seed
+AssertionError: 曲B/neoclassical: seed 19 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 41 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 73 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:142:135
+    140|       return { seed, ok: reachesTarget(project, arrangement, "power"),…
+    141|     })
+    142|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                       ^
+    143|   }, 240_000)
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches half of the chorus and final chorus bars for review song B, genre null, in at least one fixed seed
+AssertionError: 曲B/null: seed 19 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 41 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)] / seed 73 [chorus 1/8小節(必要 4), grand-chorus 1/8小節(必要 4)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:142:135
+    140|       return { seed, ok: reachesTarget(project, arrangement, "power"),…
+    141|     })
+    142|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                       ^
+    143|   }, 240_000)
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches a quarter of the single-note section bars for review song A, genre neoclassical, in at least one fixed seed
+AssertionError: 曲A/neoclassical: seed 19 [pre-chorus 1/8小節(必要 2)] / seed 41 [pre-chorus 1/8小節(必要 2)] / seed 73 [pre-chorus 1/8小節(必要 2)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:151:138
+    149|       return { seed, ok: reachesTarget(project, arrangement, "line"), …
+    150|     })
+    151|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                          ^
+    152|   }, 240_000)
+    153|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches a quarter of the single-note section bars for review song A, genre electronica, in at least one fixed seed
+AssertionError: 曲A/electronica: seed 19 [pre-chorus 1/8小節(必要 2)] / seed 41 [pre-chorus 1/8小節(必要 2)] / seed 73 [pre-chorus 1/8小節(必要 2)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:151:138
+    149|       return { seed, ok: reachesTarget(project, arrangement, "line"), …
+    150|     })
+    151|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                          ^
+    152|   }, 240_000)
+    153|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches a quarter of the single-note section bars for review song B, genre neoclassical, in at least one fixed seed
+AssertionError: 曲B/neoclassical: seed 19 [pre-chorus 1/8小節(必要 2)] / seed 41 [pre-chorus 1/8小節(必要 2)] / seed 73 [pre-chorus 1/8小節(必要 2)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:151:138
+    149|       return { seed, ok: reachesTarget(project, arrangement, "line"), …
+    150|     })
+    151|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                          ^
+    152|   }, 240_000)
+    153|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > reaches a quarter of the single-note section bars for review song B, genre null, in at least one fixed seed
+AssertionError: 曲B/null: seed 19 [pre-chorus 1/8小節(必要 2)] / seed 41 [単音の区間にリフなし] / seed 73 [pre-chorus 1/8小節(必要 2)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:151:138
+    149|       return { seed, ok: reachesTarget(project, arrangement, "line"), …
+    150|     })
+    151|     expect(rows.some((r) => r.ok), `曲${which}/${genre}: ${rows.map((r)…
+       |                                                                                                                                          ^
+    152|   }, 240_000)
+    153|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  src/melody-engine/guitarRiffDensity.test.ts > gtr-riff density: reachable targets > keeps half of the bars in 20-bar choruses too, not just one bar per section
+AssertionError: seed 1 [chorus 4/20小節(必要 10), grand-chorus 4/20小節(必要 10)] / seed 2 [chorus 4/20小節(必要 10), grand-chorus 4/20小節(必要 10)] / seed 3 [chorus 4/20小節(必要 10), grand-chorus 4/20小節(必要 10)] / seed 4 [chorus 4/20小節(必要 10), grand-chorus 4/20小節(必要 10)] / seed 5 [chorus 4/20小節(必要 10), grand-chorus 4/20小節(必要 10)] / seed 6 [chorus 4/20小節(必要 10), grand-chorus 4/20小節(必要 10)]: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/melody-engine/guitarRiffDensity.test.ts:160:107
+    158|       return { seed, ok: reachesTarget(project, arrangement, "power"),…
+    159|     })
+    160|     expect(rows.some((r) => r.ok), rows.map((r) => `seed ${r.seed} [${…
+       |                                                                                                           ^
+    161|   }, 360_000)
+    162| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 8 passed (17)
+   Start at  06:24:25
+   Duration  23.75s (transform 248ms, setup 0ms, import 290ms, tests 23.38s, environment 0ms)
+
