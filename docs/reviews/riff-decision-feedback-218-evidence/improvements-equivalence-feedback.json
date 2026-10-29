@@ -1,0 +1,98 @@
+[
+  {
+    "case": "A/neoclassical/19",
+    "hash": "563f90077e4f52f15fe9b00df47666c166cb7dc3968a9102a9d6f3a6c6f0a73e"
+  },
+  {
+    "case": "A/neoclassical/41",
+    "hash": "2fae1f5082f19aaba4fa5bff47877075b91ca1ecb8b7f47ed5d553446931f5f2"
+  },
+  {
+    "case": "A/neoclassical/73",
+    "hash": "59920b2898eecbd9b0caef3e55590c4a05983eaec8029b57e78e8281f2c82e70"
+  },
+  {
+    "case": "A/electronica/19",
+    "hash": "ef752abd9ff076be75f70c5c090bb1e097d74c015035b5f6ecf0e210d8e018b3"
+  },
+  {
+    "case": "A/electronica/41",
+    "hash": "3b6d3a5106ec4db327dc98b4db41662d5a0140e1d42a18e17a99ac9a1ba336d3"
+  },
+  {
+    "case": "A/electronica/73",
+    "hash": "bfb673fc377cccb102c3353ebe197ff6e9d1a8b5750e2bcd44d98ac3cca11661"
+  },
+  {
+    "case": "A/null/19",
+    "hash": "04549cf85b23c02e103a17928bfb3b8fd26e2992b41cd30e3da8bcaad11c3e8b"
+  },
+  {
+    "case": "A/null/41",
+    "hash": "367dc85c0b671735b03be3f42d92c7676c383c1513f24588fdf3f98a5c5d39ae"
+  },
+  {
+    "case": "A/null/73",
+    "hash": "22a7c99e80fb162b05ac70d84eb481161e00c21a12e2df8a49638fad501549db"
+  },
+  {
+    "case": "B/neoclassical/19",
+    "hash": "2d503d7eec475fc891f1f8522844c8bc42442547683056b565545cd21c33c892"
+  },
+  {
+    "case": "B/neoclassical/41",
+    "hash": "9a3a8dff8879fb56047fb635837b1f924074ea9201b0e0731a1bd146a5f9b1d9"
+  },
+  {
+    "case": "B/neoclassical/73",
+    "hash": "b366ea4c4954c31be068d89cccd3c315ad903d772f2ffb69acc5ed509d1f5b2e"
+  },
+  {
+    "case": "B/electronica/19",
+    "hash": "e7e0f254e403e4fc0754110aaae0200d771426c76b9de4cb887a5828092ebada"
+  },
+  {
+    "case": "B/electronica/41",
+    "hash": "03df3d5dc4e909c4d9922d4b1dd5038fbbf10b468cd57e387d406e264dd89038"
+  },
+  {
+    "case": "B/electronica/73",
+    "hash": "37e275fa4d9863b1c177bddf719d68779dfd3c3b564edc986d4920e397f76559"
+  },
+  {
+    "case": "B/null/19",
+    "hash": "96fe3a5961a9e39d076e508882cda597d6ceef599bd71a04bc53ff2e7f6a14b7"
+  },
+  {
+    "case": "B/null/41",
+    "hash": "484e6f68bb919873e2b4969f6a117eb0c6d9ca0cb3ab9e293a36ee6ed1fed1bf"
+  },
+  {
+    "case": "B/null/73",
+    "hash": "6d63eae5ed733852e74770918054bbbb7fe4d0d248c25983fe5e0a95d76f7a13"
+  },
+  {
+    "case": "long/4/4/19",
+    "hash": "d3f4ebb3f59b1fe87aeb58995eacfc8aa3e3fff23c4072e7ed690116bacdf0af"
+  },
+  {
+    "case": "long/4/4/41",
+    "hash": "7c32a44e91514435e1f6c71eb8342e513c5aef694a6c5326cc3d85a35f66711b"
+  },
+  {
+    "case": "long/3/4/19",
+    "hash": "b290468b86ad14ffdf4cd126390ee51c6f76e81e6fe83617a83e1b581f95e8a1"
+  },
+  {
+    "case": "long/3/4/41",
+    "hash": "da753a5bbb49dfde023dda9c852a5d0bdaa3cf368f7484d67a9b0abc32137a8b"
+  },
+  {
+    "case": "long/6/8/19",
+    "hash": "037910987a0cffc7154428ade3e17af95be0e63d955ac39d86eaac35e3b933e4"
+  },
+  {
+    "case": "long/6/8/41",
+    "hash": "b68fec3709a35ce31827dfb6ea479bf12d1150c06c3921f91c84d805a131ddf7"
+  }
+]
