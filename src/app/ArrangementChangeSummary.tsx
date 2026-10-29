@@ -73,9 +73,9 @@ export function ArrangementChangeSummary({
         </p>
       ) : (
         <>
-          <div className="flex min-w-0 flex-col gap-2">
+          <div className="grid min-w-0 items-start gap-2 sm:grid-cols-2">
             {shown.map((section) => (
-              <section key={section.sectionId} aria-label={`${section.name}の変更内容`} className="min-w-0 rounded-md border border-hairline bg-surface-tile-2 px-3 py-2.5">
+              <section key={section.sectionId} aria-label={`${section.name}の変更内容`} className="min-w-0 rounded-md border border-hairline bg-surface-tile-2 px-2.5 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <h5 className="min-w-0 truncate text-[14px] font-semibold text-body-on-dark">
                     {section.name} <span className="font-normal text-ink-soft">{section.startBar}〜{section.endBar}小節</span>
@@ -91,7 +91,7 @@ export function ArrangementChangeSummary({
                     )}
                   </div>
                 </div>
-                <ul className="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2 text-[13px] leading-5">
+                <ul className="mt-1.5 flex flex-col gap-1 border-t border-hairline pt-1.5 text-[13px] leading-5">
                   {changes
                     .filter((change) => change.sectionId === section.sectionId)
                     .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind))

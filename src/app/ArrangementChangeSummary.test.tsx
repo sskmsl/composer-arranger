@@ -72,4 +72,10 @@ describe("arrangement changes in plain language", () => {
     expect(html.indexOf("パッドを追加")).toBeLessThan(html.indexOf("ベース：音域を下げる"))
     expect(html.indexOf("ベース：音域を下げる")).toBeLessThan(html.indexOf("ドラムは休止"))
   })
+
+  it("lays the sections out in two columns so the list needs less scrolling", () => {
+    const html = renderToStaticMarkup(<ArrangementChangeSummary matrix={matrix} changes={changes}
+      playingSectionId={null} playingProposal={false} onPlayCurrent={play} />)
+    expect(html).toContain("sm:grid-cols-2")
+  })
 })
