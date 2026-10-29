@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ComposerProject } from "./project"
-import { buildSongPlaybackMaterial, moveSectionInTimeline, normalizeSectionTimeline } from "./sectionTimeline"
+import { buildSongPlaybackMaterial, exportableLead, moveSectionInTimeline, normalizeSectionTimeline } from "./sectionTimeline"
 
 const sections = [
   { id: "a", name: "A", role: "verse" as const, startBar: 9, lengthBars: 2 },
@@ -74,6 +74,29 @@ describe("section timeline", () => {
       [8, 1.25, 67, 76],
     ])
     expect(material.lead.some((note) => note.pitch === 90)).toBe(false)
+  })
+
+  it("取り込んだ原メロディが2声で重なっていても、再生素材は無加工のまま、書き出し用だけ1本の線にする", () => {
+    const project = {
+      song: { timeSignature: "4/4" },
+      sections: [{ id: "intro", name: "Intro", role: "intro", startBar: 1, lengthBars: 4 }],
+      chords: [{ id: "c", sectionId: "intro", startBeat: 0, durationBeats: 8, symbol: "Am", bass: null }],
+      melodyVariants: [],
+      sectionMelodyAssignments: {},
+      sourceImport: { type: "midi", melodyTrackName: "Lead" },
+      importedArrangement: {
+        totalBeats: 16,
+        tracks: [
+          { name: "Lead", role: "melody", notes: [[0, 4, 69, 80, 1], [0, 2, 62, 80, 1], [1, 2, 72, 80, 1]] },
+        ],
+      },
+    } as unknown as ComposerProject
+    const material = buildSongPlaybackMaterial(project)
+    expect(material.lead).toHaveLength(3)
+    expect(exportableLead(material).map((note) => [note.startBeat, note.durationBeats, note.pitch])).toEqual([
+      [0, 1, 69],
+      [1, 2, 72],
+    ])
   })
 
   it("Imported MIDIの比較試聴には推定コードではなく原伴奏トラックを保持する", () => {

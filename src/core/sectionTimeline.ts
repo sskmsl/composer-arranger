@@ -51,7 +51,7 @@ export function toSingleMelodyLine(source: readonly MelodyNote[], chords: readon
     const chord = chords.find((c) => note.startBeat >= c.startBeat && note.startBeat < c.startBeat + c.durationBeats)
     const parsed = chord && parseChordSymbol(chord.symbol, chord.bass ?? undefined)
     const priority = (n: MelodyNote) => (parsed && (parsed.bassPc === n.pitch % 12 || parsed.tones.some((t) => t.pitchClass === n.pitch % 12)) ? 1000 : 0)
-      + (n.locks.includes("pitch") ? 200 : 0) + n.velocity
+      + (n.locks.includes("pitch") ? 200 : 0) + n.velocity + n.pitch / 1000
     if (priority(note) > priority(previous)) chosen[chosen.length - 1] = { ...note }
   }
   for (let index = 0; index + 1 < chosen.length; index++) {
@@ -59,6 +59,14 @@ export function toSingleMelodyLine(source: readonly MelodyNote[], chords: readon
     if (chosen[index].durationBeats > gap) chosen[index].durationBeats = gap
   }
   return chosen
+}
+
+/**
+ * MIDI書き出し用の主旋律。取り込んだ原曲のメロディは再生・生成では触らないが、
+ * 2声が重なったまま書き出すとDAW上で音が重なるため、書き出しだけ1本の線にする。
+ */
+export function exportableLead(material: Pick<SongPlaybackMaterial, "lead" | "chords">): MelodyNote[] {
+  return toSingleMelodyLine(material.lead, material.chords)
 }
 
 export interface SongPlaybackMaterial {
