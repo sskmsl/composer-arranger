@@ -1,0 +1,8 @@
+
+ RUN  v4.1.10 /private/tmp/arranger-improvements-195
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  06:18:57
+   Duration  9.31s (transform 224ms, setup 0ms, import 264ms, tests 8.95s, environment 0ms)

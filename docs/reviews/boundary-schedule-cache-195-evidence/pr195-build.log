@@ -1,0 +1,33 @@
+vite v8.1.5 building client environment for production...
+[2K
+transforming...✓ 1930 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                     1.23 kB │ gzip:   0.60 kB
+dist/assets/index-D0T2WEDZ.css                     56.88 kB │ gzip:  10.23 kB
+dist/assets/arrow-left-CxuqTktn.js                  0.16 kB │ gzip:   0.16 kB
+dist/assets/star-CgooF6yk.js                        0.46 kB │ gzip:   0.29 kB
+dist/assets/sparkles-CTv1eYzV.js                    0.49 kB │ gzip:   0.28 kB
+dist/assets/PerformanceReviewBadge-BlLIQAhX.js      0.89 kB │ gzip:   0.52 kB
+dist/assets/reactiveContextAudition-Ck_GbkP0.js     1.30 kB │ gzip:   0.62 kB
+dist/assets/undo-2-DISrIKXg.js                      1.56 kB │ gzip:   0.67 kB
+dist/assets/CandidatePicker-D4zPeZ5O.js             1.94 kB │ gzip:   1.09 kB
+dist/assets/EmptySectionState-aZpuO1zu.js           3.72 kB │ gzip:   1.75 kB
+dist/assets/SignaturePhraseWorkspace-AU5F9tfh.js    8.00 kB │ gzip:   3.15 kB
+dist/assets/PhraseWorkspace-Dlxx8DW0.js             8.09 kB │ gzip:   3.22 kB
+dist/assets/CounterWorkspace-BDqVlEJV.js            8.86 kB │ gzip:   3.44 kB
+dist/assets/AuditionWorkspace-BZueThUz.js           9.56 kB │ gzip:   3.64 kB
+dist/assets/DecorationWorkspace-DAKFwGVU.js        10.83 kB │ gzip:   3.83 kB
+dist/assets/MelodyWorkspace-C1KmkyZp.js            18.86 kB │ gzip:   6.81 kB
+dist/assets/previewPlayer-wchN26X9.js              24.91 kB │ gzip:   8.70 kB
+dist/assets/exportMelody-DZsuMAoj.js               86.56 kB │ gzip:  26.88 kB
+dist/assets/ArrangementWorkspace-CHr1JNov.js      115.96 kB │ gzip:  37.93 kB
+dist/assets/index-CKl1JSe_.js                     310.57 kB │ gzip:  95.73 kB
+dist/assets/chordVoicing-BEAmHDmD.js              722.79 kB │ gzip: 227.06 kB
+
+✓ built in 519ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

@@ -2954,23 +2954,52 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
     return isBoundaryManagedRole(track.id) && !(plan.directive?.preserve ?? []).includes(track.id)
       && !(plan.directive?.preserve ?? []).includes(base)
   })
-  const cells = managed.map((track) => sections.map((section) => {
-    const control = plan.sections.find((s) => s.sectionId === section.id)!
-    const start = section.startBar - 1
-    return { section, control, start,
-      entry: (control.roleEntryBeats?.[track.id] ?? 0) / bpb,
-      exit: (control.roleExitBeats?.[track.id] ?? section.lengthBars * bpb) / bpb,
-      sounding: Array.from({ length: section.lengthBars }, (_, bar) => track.notes.some((n) =>
-        n.sectionId === section.id && n.startBeat < (start + bar + 1) * bpb - .01
-        && n.startBeat + n.durationBeats > (start + bar) * bpb + .01)),
+  const cells = managed.map((track) => {
+    const notesBySection = new Map<string, GeneratedArrangementNote[]>()
+    for (const note of track.notes) {
+      const notes = notesBySection.get(note.sectionId)
+      if (notes) notes.push(note)
+      else notesBySection.set(note.sectionId, [note])
     }
-  }))
-  const state = (index: number, bar: number) => cells[index].some((cell) => {
+    return sections.map((section) => {
+      const control = plan.sections.find((s) => s.sectionId === section.id)!
+      const start = section.startBar - 1
+      const sounding = Array.from({ length: section.lengthBars }, () => false)
+      for (const note of notesBySection.get(section.id) ?? []) {
+        // 探索範囲だけ絞り、発音の判定式は従来どおりにして端点の丸め差を避ける。
+        const first = Math.max(0, Math.floor(note.startBeat / bpb - start) - 1)
+        const last = Math.min(sounding.length - 1, Math.ceil((note.startBeat + note.durationBeats) / bpb - start))
+        for (let bar = first; bar <= last; bar++) {
+          if (note.startBeat < (start + bar + 1) * bpb - .01
+            && note.startBeat + note.durationBeats > (start + bar) * bpb + .01) sounding[bar] = true
+        }
+      }
+      return { section, control, start,
+        entry: (control.roleEntryBeats?.[track.id] ?? 0) / bpb,
+        exit: (control.roleExitBeats?.[track.id] ?? section.lengthBars * bpb) / bpb,
+        sounding,
+      }
+    })
+  })
+  const computeState = (index: number, bar: number) => cells[index].some((cell) => {
     const local = bar - cell.start
     return local >= cell.entry && local < cell.exit && cell.sounding[local]
   })
+  const windowBars = [...windows]
+  const queriedBars = [...new Set(windowBars.flatMap((bar) => [bar - 1, bar]))]
+  const states = managed.map((_, index) => new Map(queriedBars.map((bar) => [bar, computeState(index, bar)])))
+  const state = (index: number, bar: number) => states[index].get(bar) ?? false
   const changes = (bar: number) => managed.map((_, index) => index).filter((index) => state(index, bar - 1) !== state(index, bar))
-  const cost = () => [...windows].reduce((sum, bar) => sum + Math.max(0, changes(bar).length - 2), 0)
+  const changeCounts = new Map(windowBars.map((bar) => [bar, changes(bar).length]))
+  const excess = (count: number) => Math.max(0, count - 2)
+  const cost = () => windowBars.reduce((sum, bar) => sum + excess(changeCounts.get(bar)!), 0)
+  // 候補が動かすのは1トラックの入口/出口だけ。他トラックの状態を数え直さない。
+  const candidateCost = (index: number, current: number) => windowBars.reduce((sum, bar) => {
+    const before = state(index, bar - 1) !== state(index, bar)
+    const after = computeState(index, bar - 1) !== computeState(index, bar)
+    const count = changeCounts.get(bar)!
+    return sum + excess(count + Number(after) - Number(before)) - excess(count)
+  }, current)
   for (let pass = 0; pass < managed.length * sections.length; pass++) {
     const current = cost()
     if (current === 0) break
@@ -2999,12 +3028,12 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
           for (const value of values) {
             if (field === "entry" ? value <= original || value > cell.exit : value >= original || value < cell.entry) continue
             cell[field] = value
-            const candidateCost = cost()
+            const nextCost = candidateCost(index, current)
             cell[field] = original
             const loss = Math.abs(value - original) * (isArrangementLayerTrackId(managed[index].id) ? 1 : 4)
-            if ((candidateCost < current || afterRebuild && candidateCost === current)
-              && (!best || candidateCost < best.cost || candidateCost === best.cost && loss < best.loss))
-              best = { index, cell, field, value, cost: candidateCost, loss }
+            if ((nextCost < current || afterRebuild && nextCost === current)
+              && (!best || nextCost < best.cost || nextCost === best.cost && loss < best.loss))
+              best = { index, cell, field, value, cost: nextCost, loss }
           }
         }
       }
@@ -3012,6 +3041,12 @@ function refineBoundaryRoleSchedule(project: ComposerProject, plan: ArrangementP
     if (!best) break
     const { index, cell, field, value } = best
     cell[field] = value
+    for (const bar of windowBars) {
+      const before = state(index, bar - 1) !== state(index, bar)
+      const after = computeState(index, bar - 1) !== computeState(index, bar)
+      changeCounts.set(bar, changeCounts.get(bar)! + Number(after) - Number(before))
+    }
+    for (const bar of queriedBars) states[index].set(bar, computeState(index, bar))
     const key = field === "entry" ? "roleEntryBeats" : "roleExitBeats"
     cell.control[key] ??= {}
     cell.control[key]![managed[index].id] = value * bpb
