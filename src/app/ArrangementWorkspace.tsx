@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
-import { GripVertical, Play, Square, SkipBack, Download, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass, AudioLines, TrendingUp, ListOrdered, SlidersHorizontal, type LucideIcon } from "lucide-react"
+import { GripVertical, Play, Square, SkipBack, ChevronUp, ChevronDown, Copy, Trash2, MessageCircle, Compass, AudioLines, TrendingUp, ListOrdered, SlidersHorizontal, type LucideIcon } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { parseTimeSignature, SECTION_ROLE_LABELS } from "@/core/section"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { previewPlayer } from "@/audio/previewPlayer"
 import { formatPlaybackTime } from "@/audio/fullSongPreview"
-import { downloadMidi, exportSongMidi } from "@/midi/exportMelody"
 import { Button, IconButton, Select } from "@/ui/primitives"
 import type { MainTab } from "./App"
 import { LogicProductionPackagePanel } from "./LogicProductionPackagePanel"
@@ -20,7 +19,7 @@ import { ArrangementPartTable } from "./ArrangementPartTable"
 import { partCellMarks, useArrangementChat } from "./useArrangementChat"
 import { DirectionPicker } from "./DirectionPicker"
 import { ArrangementIntensityPanel } from "./ArrangementIntensityPanel"
-import { gmExportPrograms } from "@/audio/soundSettings"
+import { SongMidiExportButton } from "./SongMidiExportButton"
 
 type DetailTabId = "parts" | "flow" | "sections" | "logic"
 
@@ -277,16 +276,7 @@ export function ArrangementWorkspace({
         >
           <SkipBack size={14} /> 最初に戻る
         </Button>
-        <Button
-          variant="dark"
-          disabled={project.sections.length === 0}
-          onClick={() => {
-            const bytes = exportSongMidi(project, true, true, gmExportPrograms())
-            downloadMidi(bytes, `${project.title}-full-song`)
-          }}
-        >
-          <Download size={14} /> 曲全体MIDI
-        </Button>
+        <SongMidiExportButton project={project} />
       </div>
 
       {project.sections.length > 0 && !hasArrangement && <DirectionPicker firstTime />}

@@ -1,0 +1,8 @@
+
+ RUN  v4.1.10 /private/tmp/arranger-improvements-203
+
+
+ Test Files  198 passed | 6 skipped (204)
+      Tests  1560 passed | 7 skipped (1567)
+   Start at  06:11:58
+   Duration  175.76s (transform 2.18s, setup 0ms, import 31.17s, tests 305.85s, environment 10ms)
