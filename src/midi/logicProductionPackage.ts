@@ -1164,6 +1164,32 @@ function displayedSoundName(row: LogicSoundRow): string {
   return row.preset.split(" / ")[0] || row.product
 }
 
+/** Logic Proで立ち上げる1つの音源(同じ音源は同じ楽器)と、それを使うトラック */
+export interface LogicSoundGroup {
+  source: string
+  rows: Array<{ row: LogicSoundRow; index: number }>
+}
+
+/** 曲全体MIDIのトラックを並べる順(音源ごとにまとめた表の順)。表にないトラックは含まない。 */
+export function logicSoundTrackOrder(project: ComposerProject): string[] {
+  return groupLogicSoundRowsBySource(logicSoundRows(project)).flatMap((group) => group.rows.map(({ row }) => row.trackName))
+}
+
+/**
+ * 同じ音源を使うトラックを続けて並べる。音源は表に最初に出てきた順、
+ * 音源の中のトラックは曲全体MIDIと同じ順のまま(index が元の行番号)。
+ */
+export function groupLogicSoundRowsBySource(rows: readonly LogicSoundRow[]): LogicSoundGroup[] {
+  const groups = new Map<string, LogicSoundGroup>()
+  rows.forEach((row, index) => {
+    const source = displayedSoundName(row)
+    const group = groups.get(source) ?? { source, rows: [] }
+    group.rows.push({ row, index })
+    groups.set(source, group)
+  })
+  return [...groups.values()]
+}
+
 export function logicSoundFamilyForRow(row: LogicSoundRow): LogicSoundWorldFamily {
   const source = `${row.product} ${row.preset}`
   if (/Strings?|Orchestral Strings|Violin|Viola|Cell[oi]|Basses Essential|Emotive/i.test(source)) return "strings"
@@ -1248,7 +1274,8 @@ function sourceSetting(source: TrackSource): string {
 
 /**
  * 曲全体MIDIに入るトラックごとの、おすすめ音源と一言の設定。
- * トラックの並びと名前は曲全体MIDIと同じにする(Logicで開いたときに対応が分かるように)。
+ * トラックの名前は曲全体MIDIと同じにする。並びは曲全体MIDIが表の音源ごとのまとまり
+ * (groupLogicSoundRowsBySource)に合わせて並べ替える。
  */
 function logicSoundRowsForWorld(project: ComposerProject, world: LogicSoundWorld): LogicSoundRow[] {
   const byId = new Map(sources(project).map((source) => [source.id, source]))

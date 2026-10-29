@@ -6,7 +6,7 @@ import { createEmptyProject } from "@/core/project"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
 import type { MelodyVariant } from "@/core/melody"
 import type { ReactiveLayerCandidate } from "@/core/reactiveLayer"
-import { buildLogicProductionPackage, logicSoundFamilyForRow, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
+import { buildLogicProductionPackage, groupLogicSoundRowsBySource, logicSoundFamilyForRow, logicSoundPalette, logicSoundRows, type LogicSoundRow } from "./logicProductionPackage"
 
 const arrangementFixture = JSON.parse(
   readFileSync(resolve(__dirname, "../../contracts/composer-song-exchange.v2.example.json"), "utf8"),
@@ -190,5 +190,33 @@ describe("Logic Pro Production Package", () => {
     }
     expect(combinations).toBe(30)
     expect(changedCombinations).toBe(30)
+  })
+})
+
+describe("Logic Proの音源表のまとまり", () => {
+  const row = (trackName: string, product: string, preset: string): LogicSoundRow => (
+    { trackName, role: "", product, preset, volumeDb: -10, setting: "" }
+  )
+
+  it("同じ音源のトラックは離れていても続けて並べ、音源の順とトラックの順は最初に出た順を守る", () => {
+    const groups = groupLogicSoundRowsBySource([
+      row("Chords", "Kontakt 8", "Noire / Felt / Soft"),
+      row("Pad", "Repro-1", "Warm Pad"),
+      row("Active Melodies", "Kontakt 8", "Noire / Grand / Close"),
+      row("Strings", "Kontakt 8", "Emotive Strings / Violins / Legato"),
+      row("Lead", "Repro-1", "Bright Lead"),
+    ])
+    expect(groups.map((group) => group.source)).toEqual(["Noire", "Repro-1", "Emotive Strings"])
+    expect(groups.map((group) => group.rows.map(({ row: item }) => item.trackName))).toEqual([
+      ["Chords", "Active Melodies"],
+      ["Pad", "Lead"],
+      ["Strings"],
+    ])
+    expect(groups[0].rows.map(({ index }) => index)).toEqual([0, 2])
+  })
+
+  it("実際の曲でも、同じ音源が2か所に分かれて出ない", () => {
+    const sources = groupLogicSoundRowsBySource(logicSoundRows(arrangedProject)).map((group) => group.source)
+    expect(new Set(sources).size).toBe(sources.length)
   })
 })

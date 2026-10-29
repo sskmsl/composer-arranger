@@ -5,7 +5,7 @@ import { resolve } from "node:path"
 import { composerSongExchangeToProject } from "@/core/composerSongExchange"
 import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
 import { generateFullSongArrangement } from "@/melody-engine/arrangementGenerator"
-import { logicSoundFamilyForRow, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
+import { groupLogicSoundRowsBySource, logicSoundFamilyForRow, logicSoundPalette, logicSoundRows } from "./logicProductionPackage"
 import { exportSongMidi } from "./exportMelody"
 import { exportArrangementLeadMidi, exportArrangementMidi, exportArrangementTrackMidi } from "./exportArrangement"
 import { parseMidi } from "./importMidi"
@@ -13,6 +13,11 @@ import { parseMidi } from "./importMidi"
 const fixture = JSON.parse(
   readFileSync(resolve(__dirname, "../../contracts/composer-song-exchange.v2.example.json"), "utf8"),
 )
+
+/** 曲全体MIDIの中身(トラック名と音)。音源表の並びに合わせてトラック順だけが変わっても同じになる。 */
+function songContent(bytes: Uint8Array): string[] {
+  return parseMidi(bytes).tracks.map((track) => JSON.stringify([track.name, track.notes])).sort()
+}
 
 function text(bytes: Uint8Array): string {
   return new TextDecoder("latin1").decode(bytes)
@@ -114,6 +119,15 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     for (const track of playing) expect(noteTracks[0].name).not.toBe(track.name)
   })
 
+  it("曲全体MIDIのトラックは、Logic Proの音源表と同じ順(同じ音源が続く並び)になる", () => {
+    const names = parseMidi(exportSongMidi(project, true, true)).tracks.filter((track) => track.notes.length > 0).map((track) => track.name)
+    const expected = groupLogicSoundRowsBySource(logicSoundRows(project)).flatMap((group) => group.rows.map(({ row }) => row.trackName))
+    expect(expected.length).toBeGreaterThan(1)
+    expect(names.filter((name) => expected.includes(name))).toEqual(expected.filter((name) => names.includes(name)))
+    // 表にないトラックを後ろへ回すだけで、トラックの数は変わらない
+    expect(names).toHaveLength(new Set(names).size)
+  })
+
   it("Logic Proの音源表は、曲全体MIDIのトラック名と同じ名前で並ぶ", () => {
     const midi = text(exportSongMidi(project, true, true))
     const rows = logicSoundRows(project)
@@ -184,10 +198,10 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(spacious.some((row) => row.preset.startsWith("Emotive Strings /"))).toBe(true)
     expect(rhythmic.map((row) => row.preset)).toContain("Session Guitarist - Electric Mint / Melody / Clean and Wide (Melody)")
     expect(new Set(rhythmic.map((row) => row.preset))).not.toEqual(new Set(cinematic.map((row) => row.preset)))
-    expect(Array.from(exportSongMidi({
+    expect(songContent(exportSongMidi({
       ...project,
       arrangementDirectorWorkspace: { brief: "", selectedDirectionId: "rhythmic-propulsion" },
-    }, true, true))).toEqual(Array.from(exportSongMidi({
+    }, true, true))).toEqual(songContent(exportSongMidi({
       ...project,
       arrangementDirectorWorkspace: { brief: "", selectedDirectionId: "controlled-escalation" },
     }, true, true)))
@@ -312,7 +326,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(bandPalette.dominantFamily).toBe("band")
     expect(stringPalette.reason).toContain("指示内容")
     expect(bandPalette.coreSounds.some((sound) => sound.includes("Guitarist"))).toBe(true)
-    expect(Array.from(exportSongMidi(stringRequested, true, true))).toEqual(Array.from(exportSongMidi(bandRequested, true, true)))
+    expect(songContent(exportSongMidi(stringRequested, true, true))).toEqual(songContent(exportSongMidi(bandRequested, true, true)))
   })
 
   it.each([
@@ -344,7 +358,7 @@ describe("曲全体MIDI(アレンジ画面)", () => {
     expect(["piano", "strings"]).toContain(pianoAndStrings.dominantFamily)
   })
 
-  it("音源希望と方向だけを変えても3種類のMIDI書き出しを1バイトも変えない", () => {
+  it("音源希望と方向だけを変えても3種類のMIDI書き出しの音は変えない(曲全体はトラック順だけが音源表に合わせて変わる)", () => {
     const trackId = playing[0].id
     const exported = directions.map((selectedDirectionId, index) => {
       const target = {
@@ -358,7 +372,8 @@ describe("曲全体MIDI(アレンジ画面)", () => {
       }
     })
     const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex")
-    for (const key of ["arrangement", "song", "track"] as const) expect(new Set(exported.map((value) => digest(value[key]))).size).toBe(1)
+    for (const key of ["arrangement", "track"] as const) expect(new Set(exported.map((value) => digest(value[key]))).size).toBe(1)
+    expect(new Set(exported.map((value) => JSON.stringify(songContent(value.song)))).size).toBe(1)
   })
 
   it("100通りでも弦を一つのライブラリへ集中させない", () => {

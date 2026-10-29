@@ -21,6 +21,15 @@ describe("AI相談の対話プロトコル", () => {
     })).toBe(true)
   })
 
+  it("質問や雑談への返答は、確認の問いが空でもよい", () => {
+    expect(isArrangementResponse({
+      ...base,
+      responseMode: "discussion",
+      confirmationQuestion: "",
+      intents: [],
+    })).toBe(true)
+  })
+
   it("確認後の返答だけが3案を持てる", () => {
     expect(isArrangementResponse({
       ...base,

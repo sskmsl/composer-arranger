@@ -154,7 +154,7 @@ export interface AiArrangementResponse {
   responseMode?: AiArrangementResponseMode
   /** 最新の相談へ直接答える、会話表示用の短い返答。 */
   partnerReply: string
-  /** discussion のとき、変更案を作る前に作曲者へ確認する質問。 */
+  /** discussion のとき、音を変える希望へ暫定案を返した場合だけ入る、変更案を作る前の確認。質問や雑談への返答では空。 */
   confirmationQuestion?: string
   /** 後続ターンでも維持する、現在有効な制約の完全な一覧。 */
   confirmedConstraints: string[]

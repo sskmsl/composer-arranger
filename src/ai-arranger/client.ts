@@ -60,7 +60,7 @@ export function isArrangementResponse(value: unknown): value is AiArrangementRes
   const validModeAndIntents = mode === undefined
     ? Array.isArray(intents) && intents.length === 3
     : mode === "discussion"
-      ? Array.isArray(intents) && intents.length === 0 && typeof candidate.confirmationQuestion === "string" && candidate.confirmationQuestion.trim().length > 0
+      ? Array.isArray(intents) && intents.length === 0 && typeof candidate.confirmationQuestion === "string"
       : mode === "proposal" && Array.isArray(intents) && intents.length === 3
   return (
     typeof candidate.requestId === "string" &&

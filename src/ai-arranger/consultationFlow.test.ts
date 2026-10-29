@@ -8,6 +8,8 @@ describe("アレンジ相談の確認フロー", () => {
     "なぜドラムが多いの？",
     "こういうイントロにできる？",
     "別の案はある？",
+    "この案はどうして必要なの？",
+    "提案の理由を教えてもらえますか",
   ])("質問や希望だけでは変更案を作らない: %s", (text) => {
     expect(requestedResponseModeForConsultation(text)).toBe("discussion")
   })
