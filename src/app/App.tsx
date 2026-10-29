@@ -5,6 +5,7 @@ import { LeftPanel } from "./LeftPanel"
 import { RightPanel } from "./RightPanel"
 import { BottomBar } from "./BottomBar"
 import { TimingMigrationBanner } from "./TimingMigrationBanner"
+import { NewVersionBanner } from "./NewVersionBanner"
 
 // 作業画面は開いたときに読み込む(最初の画面=ホームで使わないコードを初回の読み込みから外す)
 const MelodyWorkspace = lazy(() => import("./MelodyWorkspace").then((m) => ({ default: m.MelodyWorkspace })))
@@ -92,6 +93,7 @@ export function App() {
         onToggleRight={() => setRightOpen((v) => !v)}
         onOpenImportGuide={() => setImportGuideOpen(true)}
       />
+      <NewVersionBanner />
       <TimingMigrationBanner />
       <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>
         <Suspense fallback={<WorkspaceLoading />}>

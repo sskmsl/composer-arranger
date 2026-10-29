@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
 import { Download, Play, Square, Volume2, VolumeX } from "lucide-react"
-import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import { buildSongPlaybackMaterial, exportableLead } from "@/core/sectionTimeline"
 import type { ArrangementTrackId, GeneratedArrangementTrack } from "@/core/arrangementGeneration"
 import { arrangementTrackColor, arrangementTrackLabel, arrangementTrackOrder } from "@/core/arrangementChat"
 import { previewPlayer } from "@/audio/previewPlayer"
@@ -33,6 +33,8 @@ export function FullSongArrangementPanel() {
     () => buildSongPlaybackMaterial(project, arrangement?.plan.directive?.timelineConstraints),
     [arrangement?.plan.directive?.timelineConstraints, project],
   )
+  // 書き出しでは主旋律を1本の線に整える。重なりを省いた音数を、書き出す前に伝える
+  const trimmedLeadNotes = useMemo(() => material.lead.length - exportableLead(material).length, [material])
   const tracks = useMemo(
     () => [...(arrangement?.tracks ?? [])].sort((a, b) => arrangementTrackOrder(a.id) - arrangementTrackOrder(b.id)),
     [arrangement?.tracks],
@@ -123,6 +125,11 @@ export function FullSongArrangementPanel() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] text-body-on-dark">主旋律</p>
                   <p className="truncate text-[11px] text-body-muted">{material.lead.length}音 · 現在採用しているメロディー</p>
+                  {trimmedLeadNotes > 0 && (
+                    <p className="text-[11px] text-amber-300">
+                      書き出しでは、重なっている{trimmedLeadNotes}音を省いて1本の線にします(画面の再生は変わりません)
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
