@@ -1,0 +1,8 @@
+
+ RUN  v4.1.10 /private/tmp/pr213-implementation
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  07:58:50
+   Duration  10.85s (transform 311ms, setup 0ms, import 361ms, tests 10.41s, environment 0ms)

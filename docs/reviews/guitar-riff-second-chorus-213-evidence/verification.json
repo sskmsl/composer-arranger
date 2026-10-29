@@ -1,0 +1,24 @@
+{
+  "base": "b17386866ea2a02b305597a06571e45fd4bc1cf9",
+  "generator_blob": "4675a70d650265be804c9493de89454612caac21",
+  "runtime_and_existing_tests_diff": false,
+  "observed_conditions": 18,
+  "observed_vs_original_note_hash_equal": 18,
+  "midi_boundary_max": 2,
+  "baseline_full_suite": {
+    "passed_files": 197,
+    "skipped_files": 6,
+    "passed_tests": 1545,
+    "skipped_tests": 7,
+    "duration_seconds": 166.45
+  },
+  "post_document_tsc_exit": 0,
+  "post_document_lint_exit": 0,
+  "post_document_lint_existing_warnings": 1,
+  "post_document_build_exit": 0,
+  "observer_test_exit": 0,
+  "observer_test_seconds": 10.85,
+  "performance_comparison": "not applicable: no runtime source change",
+  "independent_review": "pending",
+  "pr_ci": "pending PR creation"
+}
