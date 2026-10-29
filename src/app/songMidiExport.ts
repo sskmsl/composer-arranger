@@ -13,4 +13,3 @@ export function prepareSongMidiExport(project: ComposerProject, programs?: Sound
     return { ok: false, message: "同時に鳴る楽器が多すぎてMIDIを書き出せませんでした。パートの楽器を揃えるか、同時に使うレイヤーを減らして、もう一度お試しください。" }
   }
 }
-
