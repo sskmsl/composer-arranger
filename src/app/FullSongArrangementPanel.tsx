@@ -1,3 +1,4 @@
+import { GuitarRiffDecisionNotice } from "./GuitarRiffDecisionNotice"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { songTempoChanges } from "@/core/tempoMap"
 import { Download, Play, Square, Volume2, VolumeX } from "lucide-react"
@@ -109,6 +110,7 @@ export function FullSongArrangementPanel() {
         <p className="mt-1 text-[13px] leading-5 text-body-muted">
           {hasLead ? "主旋律と" : ""}生成済み {tracks.length}トラック（生成パートのうち発音 {soundingTrackCount}トラック）。全パートをまとめた書き出しは、画面上部の「曲全体MIDI」です。1パートだけのMIDIは、Logic Proの1小節目に置いてください。
         </p>
+        <GuitarRiffDecisionNotice project={project} arrangement={arrangement} />
       </div>
 
       <div className="space-y-4">

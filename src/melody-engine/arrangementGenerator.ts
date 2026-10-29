@@ -1,5 +1,6 @@
 import { buildArrangementDirectorBlueprint } from "@/ai-arranger/arrangementDirector"
 import { guitarRiffFigure } from "./sectionContentPlan"
+import { rememberGuitarRiffDecision, type GuitarRiffAttempt, type GuitarRiffOmissionReason } from "./guitarRiffDecision"
 import { gridAlignedTicks, TICKS_PER_QUARTER } from "@/midi/smf"
 import { keyScalePitchClasses } from "@/core/scale"
 import { parseChordSymbol } from "@/core/chord"
@@ -3929,18 +3930,22 @@ function riffGuitarCandidate(project: ComposerProject, legacy: FullSongArrangeme
 }
 
 /** リフの追加と旧ギターの間引きを一つの候補として採否判断する。棄却時は入力をそのまま返す。 */
-function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement, spacing: number, sparse: boolean, monoOnly: boolean, repeat = false): FullSongArrangement {
+function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement, spacing: number, sparse: boolean, monoOnly: boolean, repeat = false, attempt?: GuitarRiffAttempt): FullSongArrangement {
   if (legacy.plan.directive?.soundInstruction?.enabled || legacy.tracks.some((track) => track.id === "gtr-riff")) return legacy
   let riff = buildGuitarRiff(project, legacy, spacing, sparse, monoOnly, 0, { repeat })
+  for (const note of riff.notes) attempt?.considered.add(note.sectionId)
+  const omitRemaining = (reason: GuitarRiffOmissionReason) => {
+    for (const note of riff.notes) if (!attempt?.omissions.has(note.sectionId)) attempt?.omissions.set(note.sectionId, reason)
+  }
   if (!riff.notes.length) return legacy
   // 境界の調整で消えたリフ小節の旧ギターを、毎回legacyから復元して再評価する。
   for (let pass = 0; pass < 8; pass++) {
     let candidate = riffGuitarCandidate(project, legacy, riff, repeat)
     const fitted = fitGuitarToBoundaryBudget(project, candidate.tracks.filter((track) => !track.id.startsWith("gtr-")),
       candidate.tracks.filter((track) => track.id.startsWith("gtr-")))
-    if (!fitted) return legacy
+    if (!fitted) { omitRemaining("boundary"); return legacy }
     const next = fitted.find((track) => track.id === "gtr-riff")
-    if (!next?.notes.length) return legacy
+    if (!next?.notes.length) { omitRemaining("boundary"); return legacy }
     // 旧2層をさらに削らないと収まらない場合は、そのリフ小節を候補から外す。
     const conflictBars = new Set<number>()
     for (const old of candidate.tracks.filter((track) => GUITAR_LAYER_IDS.includes(track.id as ArrangementLayerTrackId))) {
@@ -3957,9 +3962,12 @@ function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangemen
           : ["pre-chorus", "bridge", "intro"].includes(section.role) ? .25 : 0
         return ratio > 0 && new Set(notes.filter((note) => note.sectionId === section.id).map((note) => Math.floor(note.startBeat / bpb))).size < Math.ceil(section.lengthBars * ratio)
       }).map((section) => section.id))
+      for (const sectionId of insufficient) if (attempt?.considered.has(sectionId)) attempt.omissions.set(sectionId, "short-phrase")
       notes = notes.filter((note) => !insufficient.has(note.sectionId))
     }
-    if (conflictBars.size > 0 && JSON.stringify(notes) === JSON.stringify(riff.notes)) return legacy
+    const remainingSections = new Set(notes.map((note) => note.sectionId))
+    for (const sectionId of attempt?.considered ?? []) if (!remainingSections.has(sectionId) && !attempt?.omissions.has(sectionId)) attempt?.omissions.set(sectionId, "boundary")
+    if (conflictBars.size > 0 && JSON.stringify(notes) === JSON.stringify(riff.notes)) { omitRemaining("boundary"); return legacy }
     if (JSON.stringify(notes) !== JSON.stringify(riff.notes)) {
       riff = { ...riff, notes }
       if (!notes.length) return legacy
@@ -3973,23 +3981,36 @@ function tryGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangemen
       || (candidate.audition?.score ?? 0) < (legacy.audition?.score ?? evaluateArrangementAudition(project, legacy.plan, legacy.tracks).score)
       || quality.score < before.score
       || quality.metrics.melodyCollisionCount > before.metrics.melodyCollisionCount
-      || quality.metrics.harmonicViolationCount > before.metrics.harmonicViolationCount) return legacy
+      || quality.metrics.harmonicViolationCount > before.metrics.harmonicViolationCount) { omitRemaining("balance"); return legacy }
     return candidate
   }
+  omitRemaining("boundary")
   return legacy
 }
 
 
 /** 同じ採用基準で密度と役割の候補を比較する。元の候補選抜や閾値は変えない。 */
 export function addGuitarRiffLayer(project: ComposerProject, legacy: FullSongArrangement): FullSongArrangement {
+  if (legacy.tracks.some((track) => track.id === "gtr-riff")) return legacy
+  if (legacy.plan.directive?.soundInstruction?.enabled) {
+    rememberGuitarRiffDecision(legacy, [], true)
+    return legacy
+  }
+  const attempts: GuitarRiffAttempt[] = []
+  const attempt = () => {
+    const record: GuitarRiffAttempt = { considered: new Set(), omissions: new Map() }
+    attempts.push(record)
+    return record
+  }
   for (const sparse of [false, true]) {
-    const result = tryGuitarRiffLayer(project, legacy, 4, sparse, false, true)
-    if (result !== legacy) return result
+    const result = tryGuitarRiffLayer(project, legacy, 4, sparse, false, true, attempt())
+    if (result !== legacy) { rememberGuitarRiffDecision(result, attempts); return result }
   }
   for (const [spacing, sparse, monoOnly] of [[4, false, false], [4, true, false], [2, false, false], [4, false, true]] as const) {
-    const result = tryGuitarRiffLayer(project, legacy, spacing, sparse, monoOnly)
-    if (result !== legacy) return result
+    const result = tryGuitarRiffLayer(project, legacy, spacing, sparse, monoOnly, false, attempt())
+    if (result !== legacy) { rememberGuitarRiffDecision(result, attempts); return result }
   }
+  rememberGuitarRiffDecision(legacy, attempts)
   return legacy
 }
 

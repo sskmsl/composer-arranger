@@ -1,0 +1,286 @@
+{
+  "listeningPerformed": false,
+  "dawVerified": false,
+  "cases": [
+    {
+      "id": "review-a",
+      "seed": 19,
+      "meter": "4/4",
+      "sections": [
+        {
+          "name": "イントロ",
+          "role": "intro",
+          "startBar": 1,
+          "lengthBars": 4,
+          "riffBars": 0
+        },
+        {
+          "name": "Aメロ",
+          "role": "verse",
+          "startBar": 5,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "Bメロ",
+          "role": "pre-chorus",
+          "startBar": 13,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "サビ",
+          "role": "chorus",
+          "startBar": 21,
+          "lengthBars": 8,
+          "riffBars": 5
+        },
+        {
+          "name": "Aメロ2",
+          "role": "verse",
+          "startBar": 29,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "サビ2",
+          "role": "chorus",
+          "startBar": 37,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "間奏",
+          "role": "bridge",
+          "startBar": 45,
+          "lengthBars": 8,
+          "riffBars": 3
+        },
+        {
+          "name": "大サビ",
+          "role": "grand-chorus",
+          "startBar": 53,
+          "lengthBars": 8,
+          "riffBars": 4
+        },
+        {
+          "name": "アウトロ",
+          "role": "outro",
+          "startBar": 61,
+          "lengthBars": 4,
+          "riffBars": 0
+        }
+      ],
+      "files": [
+        {
+          "name": "review-a-gm.mid",
+          "bytes": 25093
+        },
+        {
+          "name": "review-a-logic.mid",
+          "bytes": 25003
+        },
+        {
+          "name": "review-a-riff.mid",
+          "bytes": 1196
+        }
+      ]
+    },
+    {
+      "id": "review-b",
+      "seed": 41,
+      "meter": "4/4",
+      "sections": [
+        {
+          "name": "Intro",
+          "role": "intro",
+          "startBar": 1,
+          "lengthBars": 4,
+          "riffBars": 0
+        },
+        {
+          "name": "Verse",
+          "role": "verse",
+          "startBar": 5,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "Pre-Chorus",
+          "role": "pre-chorus",
+          "startBar": 13,
+          "lengthBars": 8,
+          "riffBars": 3
+        },
+        {
+          "name": "Chorus",
+          "role": "chorus",
+          "startBar": 21,
+          "lengthBars": 8,
+          "riffBars": 5
+        },
+        {
+          "name": "Verse 2",
+          "role": "verse",
+          "startBar": 29,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "Chorus 2",
+          "role": "chorus",
+          "startBar": 37,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "Bridge",
+          "role": "bridge",
+          "startBar": 45,
+          "lengthBars": 8,
+          "riffBars": 0
+        },
+        {
+          "name": "Final Chorus",
+          "role": "grand-chorus",
+          "startBar": 53,
+          "lengthBars": 8,
+          "riffBars": 5
+        },
+        {
+          "name": "Outro",
+          "role": "outro",
+          "startBar": 61,
+          "lengthBars": 4,
+          "riffBars": 0
+        }
+      ],
+      "files": [
+        {
+          "name": "review-b-gm.mid",
+          "bytes": 31273
+        },
+        {
+          "name": "review-b-logic.mid",
+          "bytes": 31168
+        },
+        {
+          "name": "review-b-riff.mid",
+          "bytes": 1326
+        }
+      ]
+    },
+    {
+      "id": "meter-3-4",
+      "seed": 19,
+      "meter": "3/4",
+      "sections": [
+        {
+          "name": "区間1",
+          "role": "intro",
+          "startBar": 1,
+          "lengthBars": 16,
+          "riffBars": 0
+        },
+        {
+          "name": "区間2",
+          "role": "verse",
+          "startBar": 17,
+          "lengthBars": 16,
+          "riffBars": 0
+        },
+        {
+          "name": "区間3",
+          "role": "pre-chorus",
+          "startBar": 33,
+          "lengthBars": 16,
+          "riffBars": 3
+        },
+        {
+          "name": "区間4",
+          "role": "chorus",
+          "startBar": 49,
+          "lengthBars": 16,
+          "riffBars": 3
+        },
+        {
+          "name": "区間5",
+          "role": "verse",
+          "startBar": 65,
+          "lengthBars": 16,
+          "riffBars": 0
+        },
+        {
+          "name": "区間6",
+          "role": "pre-chorus",
+          "startBar": 81,
+          "lengthBars": 16,
+          "riffBars": 4
+        },
+        {
+          "name": "区間7",
+          "role": "chorus",
+          "startBar": 97,
+          "lengthBars": 16,
+          "riffBars": 3
+        },
+        {
+          "name": "区間8",
+          "role": "breakdown-chorus",
+          "startBar": 113,
+          "lengthBars": 16,
+          "riffBars": 0
+        },
+        {
+          "name": "区間9",
+          "role": "bridge",
+          "startBar": 129,
+          "lengthBars": 16,
+          "riffBars": 0
+        },
+        {
+          "name": "区間10",
+          "role": "pre-chorus",
+          "startBar": 145,
+          "lengthBars": 16,
+          "riffBars": 3
+        },
+        {
+          "name": "区間11",
+          "role": "grand-chorus",
+          "startBar": 161,
+          "lengthBars": 16,
+          "riffBars": 4
+        },
+        {
+          "name": "区間12",
+          "role": "outro",
+          "startBar": 177,
+          "lengthBars": 16,
+          "riffBars": 0
+        },
+        {
+          "name": "区間13",
+          "role": "outro",
+          "startBar": 193,
+          "lengthBars": 16,
+          "riffBars": 0
+        }
+      ],
+      "files": [
+        {
+          "name": "meter-3-4-gm.mid",
+          "bytes": 50979
+        },
+        {
+          "name": "meter-3-4-logic.mid",
+          "bytes": 50850
+        },
+        {
+          "name": "meter-3-4-riff.mid",
+          "bytes": 1381
+        }
+      ]
+    }
+  ]
+}
