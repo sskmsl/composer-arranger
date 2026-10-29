@@ -1,0 +1,14 @@
+{
+  "capacityMessage": "同時に鳴る楽器が多すぎてMIDIを書き出せませんでした。パートの楽器を揃えるか、同時に使うレイヤーを減らして、もう一度お試しください。",
+  "browserFallbackDownload": true,
+  "capacityDownloadSuppressed": true,
+  "retryClearsAlert": true,
+  "newProjectHidesAlert": true,
+  "logicExportWorks": true,
+  "unexpectedErrorPropagates": "Cannot read properties of undefined (reading 'timeSignature')",
+  "noOverflow": true,
+  "downloads": [
+    "Export notification-full-song.mid",
+    "Export notification-full-song.mid"
+  ]
+}
