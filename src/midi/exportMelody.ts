@@ -10,7 +10,7 @@ import { parseTimeSignature } from "@/core/section"
 import { parseChordSymbol } from "@/core/chord"
 import { voiceChord } from "@/audio/chordVoicing"
 import { buildSmf, gridAlignedTicks, preservedNoteTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
-import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import { buildSongPlaybackMaterial, exportableLead } from "@/core/sectionTimeline"
 import { logicSoundTrackOrder } from "./logicProductionPackage"
 
 /**
@@ -160,7 +160,7 @@ export function exportSongMidi(
   })
 
   // Issue #41: lead と accompaniment(Ostinato/Drone)を別トラックへ分ける
-  const tracks: SoundedTrack[] = [{ sound: "melody", track: { name: "Active Melodies", notes: material.lead.map((note) => ({
+  const tracks: SoundedTrack[] = [{ sound: "melody", track: { name: "Active Melodies", notes: exportableLead(material).map((note) => ({
     pitch: note.pitch,
     ...preservedNoteTicks(note.startBeat, note.durationBeats),
     velocity: note.velocity,

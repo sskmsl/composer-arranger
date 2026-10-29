@@ -2,7 +2,7 @@ import { songTempoChanges } from "@/core/tempoMap"
 import type { FullSongArrangement, GeneratedArrangementTrack } from "@/core/arrangementGeneration"
 import type { ComposerProject } from "@/core/project"
 import { parseTimeSignature } from "@/core/section"
-import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import { buildSongPlaybackMaterial, exportableLead } from "@/core/sectionTimeline"
 import { buildSmf, gridAlignedTicks, preservedNoteTicks, TICKS_PER_QUARTER, type SmfTrack } from "./smf"
 import { arrangementInstrument, type SoundSettings } from "@/core/gmInstruments"
 import { withGmSounds, type SoundedTrack } from "./gmExport"
@@ -173,7 +173,7 @@ export function exportArrangementLeadMidi(
     sound: "melody",
     track: {
       name: "Active Melody",
-      notes: material.lead.map((note) => ({
+      notes: exportableLead(material).map((note) => ({
         pitch: note.pitch,
         ...preservedNoteTicks(note.startBeat, note.durationBeats),
         velocity: note.velocity,

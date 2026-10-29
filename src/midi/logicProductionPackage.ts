@@ -6,7 +6,7 @@ import type { MelodyNote } from "@/core/melody"
 import type { ComposerProject } from "@/core/project"
 import type { ArrangementTrackId } from "@/core/arrangementGeneration"
 import { parseTimeSignature } from "@/core/section"
-import { buildSongPlaybackMaterial } from "@/core/sectionTimeline"
+import { buildSongPlaybackMaterial, exportableLead } from "@/core/sectionTimeline"
 import {
   buildMultiPartArrangementPackage,
   type MultiPartArrangementPackage,
@@ -152,7 +152,7 @@ function sources(project: ComposerProject): TrackSource[] {
       ],
     },
     {
-      id: "active-melody", name: "03 Active Melody", notes: material.lead, statusWithoutNotes: "empty",
+      id: "active-melody", name: "03 Active Melody", notes: exportableLead(material), statusWithoutNotes: "empty",
       role: "Lead", purpose: "曲の主権を持つ旋律。ほかの全パートはこのトラックの感情点を避ける。",
       performance: "最高音・長音・跳躍着地を単独で到達させ、補助アタックを重ねない。",
       panorama: "Center", reverb: "Dryな前景＋別Busの長いTail。原音を遠ざけすぎない。",
