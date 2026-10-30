@@ -1,0 +1,5 @@
+
+> composer-arranger@0.1.0 lint
+> oxlint
+
+src/midi/importMidi.ts:174:68: warning eslint(no-control-regex): Unexpected control character help: Avoid matching control characters in regular expressions. If intentional, consider using a Unicode escape instead.
