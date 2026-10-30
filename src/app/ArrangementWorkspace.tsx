@@ -344,6 +344,7 @@ export function ArrangementWorkspace({
           {chatModel.preparationError && <div role="alert" className="flex flex-wrap items-center gap-2 text-[13px] text-red-200">
             {chatModel.preparationError}<Button variant="dark" onClick={chatModel.retryPreparation}>変更案の準備を再試行</Button>
           </div>}
+          {(!chatModel.selectedProposal || chatModel.selectedProposal.layer || chatModel.arrangementFor(chatModel.selectedProposal)) && (
           <ArrangementChangeSummary
             matrix={chatModel.matrix}
             changes={chatModel.selectedProposal ? chatModel.pendingChanges : chatModel.versionChanges}
@@ -357,6 +358,7 @@ export function ArrangementWorkspace({
               applyProposal(chatModel.openMessage!.id, chatModel.selectedProposal!.id, chatModel.arrangementFor(chatModel.selectedProposal!))
             } : undefined}
           />
+          )}
           <details className="rounded-md border border-hairline p-3">
             <summary className="cursor-pointer text-[13px] font-medium text-body-muted">詳しく見る：パートの入る場所・休む場所</summary>
             <div className="mt-3">
