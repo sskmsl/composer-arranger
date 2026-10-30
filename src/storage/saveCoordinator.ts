@@ -7,9 +7,17 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
   let running: Promise<void> | null = null
   function start(): Promise<void> {
     if (running) return running
-    running = (async () => {
+    const attempted = new Set<number>()
+    let finish!: () => void
+    const completion = new Promise<void>((resolve) => { finish = resolve })
+    running = completion
+    const complete = () => {
+      running = null
+      if ([...pending.values()].some((item) => !attempted.has(item.revision))) void start()
+      finish()
+    }
+    void (async () => {
       notify("saving")
-      const attempted = new Set<number>()
       while (true) {
         const next = [...pending.entries()].find(([, item]) => !attempted.has(item.revision))
         if (!next) break
@@ -23,8 +31,8 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
         }
       }
       notify(pending.size ? "error" : "saved")
-    })().finally(() => { running = null })
-    return running
+    })().then(complete, () => { running = null; finish() })
+    return completion
   }
   return {
     enqueue(value: T) {
@@ -38,12 +46,13 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
     async discard(id: string): Promise<void> {
       pending.delete(id)
       // 既に開始した書込が終わってから削除処理へ進み、削除後の復活を防ぐ。
-      await running
+      while (running) await running
       pending.delete(id)
       notify(pending.size ? "error" : "saved")
     },
     async flush(): Promise<boolean> {
       await start()
+      while (running) await running
       return pending.size === 0
     },
   }
