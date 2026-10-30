@@ -1,3 +1,4 @@
+import { rememberPreparedProposals } from "@/features/arrangement/proposalCache"
 import type { ComposerProject } from "@/core/project"
 import { generateArrangementOffThread, restoreArrangementOffThread, isGenerationCancelled } from "@/features/arrangement/generationClient"
 import {
@@ -25,7 +26,7 @@ type GetState = () => ProjectState
 
 export interface ArrangementChatActions {
   /** 会話を足す(利用者の発言・AIの返事)。confirmedConstraints はAIが返した最新の一覧 */
-  appendArrangementChatMessages: (messages: ArrangementChatMessage[], confirmedConstraints?: string[]) => void
+  appendArrangementChatMessages: (messages: ArrangementChatMessage[], confirmedConstraints?: string[], prepared?: ReadonlyArray<{ proposalId: string; arrangement: FullSongArrangement }>) => void
   /** 変更案を適用する。試聴した全曲アレンジそのものを受け取り、版として積む */
   applyArrangementChatProposal: (messageId: string, proposalId: string, arrangement: FullSongArrangement | undefined) => void
   dismissArrangementChatProposals: (messageId: string) => void
@@ -136,20 +137,18 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
     commit(generated)
   }
   return {
-    appendArrangementChatMessages: (messages, confirmedConstraints) => {
+    appendArrangementChatMessages: (messages, confirmedConstraints, prepared) => {
       const prev = get().project
       const chat = chatOf(get())
-      set({
-        project: {
-          ...prev,
-          arrangementChat: {
-            ...chat,
-            updatedAt: new Date().toISOString(),
-            messages: [...chat.messages, ...messages].slice(-MAX_ARRANGEMENT_CHAT_MESSAGES),
-            confirmedConstraints: confirmedConstraints ?? chat.confirmedConstraints,
-          },
-        },
-      })
+      const next = { ...prev, arrangementChat: {
+        ...chat,
+        updatedAt: new Date().toISOString(),
+        messages: [...chat.messages, ...messages].slice(-MAX_ARRANGEMENT_CHAT_MESSAGES),
+        confirmedConstraints: confirmedConstraints ?? chat.confirmedConstraints,
+      } }
+      // Reactへ新しいprojectを渡す前に、同じWorkerで得た音を結び付けて二重生成を防ぐ。
+      if (prepared) rememberPreparedProposals(next, prepared)
+      set({ project: next })
       get().persist()
     },
 

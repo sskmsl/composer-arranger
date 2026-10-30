@@ -1,3 +1,4 @@
+import { prepareProposalsOffThread, isGenerationCancelled } from "@/features/arrangement/generationClient"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { clsx } from "clsx"
 import { ArrowLeft, ArrowUp, Check, LoaderCircle, Play, Square, Undo2 } from "lucide-react"
@@ -8,7 +9,6 @@ import {
   arrangementChatConversation,
   pendingConsultationRequestText,
   pendingConsultationUserMessages,
-  proposalsFromResponse,
 } from "@/ai-arranger/arrangementChatAdvice"
 import { plainDirectionText } from "@/ai-arranger/directionPresentation"
 import { requestedResponseModeForConsultation } from "@/ai-arranger/consultationFlow"
@@ -79,6 +79,9 @@ export function ArrangementChatPanel({
     if (initialInput) setInput(initialInput)
   }, [initialInput])
   const [sendingText, setSendingText] = useState<string | null>(null)
+  const [preparingResponse, setPreparingResponse] = useState(false)
+  const preparationController = useRef<AbortController | null>(null)
+  useEffect(() => () => preparationController.current?.abort(), [])
   const [error, setError] = useState<string | null>(null)
   const [listening, setListening] = useState<ListenKey | null>(null)
   const listenRunRef = useRef(0)
@@ -131,6 +134,10 @@ export function ArrangementChatPanel({
           ? { conversation: arrangementChatConversation(latest.arrangementChat) }
           : {}),
       })
+      const usage = { costUsd: response.cached ? 0 : response.usage.estimatedCostUsd,
+        inputTokens: response.usage.inputTokens, outputTokens: response.usage.outputTokens, cached: Boolean(response.cached) }
+      recordAiUsage({ at: new Date().toISOString(), ...usage })
+      setUsageEntries(readAiUsage())
       const current = useProjectStore.getState().project
       const now = new Date().toISOString()
       const replyId = `reply:${response.requestId}:${now}`
@@ -141,9 +148,14 @@ export function ArrangementChatPanel({
       const consultationStatements = isDiscussion
         ? [text]
         : pendingConsultationUserMessages(current.arrangementChat, text)
-      const proposals = isDiscussion
-        ? []
-        : proposalsFromResponse(current, response, consultationRequest, response.confirmedConstraints, replyId, consultationStatements)
+      const controller = new AbortController()
+      preparationController.current = controller
+      setPreparingResponse(!isDiscussion)
+      const prepared = isDiscussion ? undefined : await prepareProposalsOffThread({ operation: "proposals",
+        project: current, response, userMessage: consultationRequest, confirmedConstraints: response.confirmedConstraints,
+        idPrefix: replyId, consultationStatements }, controller.signal)
+      if (useProjectStore.getState().project !== current) throw new Error("計算中に曲が変更されたため、変更案は適用していません。もう一度相談してください。")
+      const proposals = prepared?.proposals ?? []
       const unsupportedNotice = unsupportedArrangementInstructionNotice(consultationRequest)
       const reply: ArrangementChatMessage = {
         id: replyId,
@@ -159,25 +171,21 @@ export function ArrangementChatPanel({
               },
             }
           : {}),
-        usage: {
-          costUsd: response.cached ? 0 : response.usage.estimatedCostUsd,
-          inputTokens: response.usage.inputTokens,
-          outputTokens: response.usage.outputTokens,
-          cached: Boolean(response.cached),
-        },
+        usage,
       }
-      recordAiUsage({ at: now, ...reply.usage! })
-      setUsageEntries(readAiUsage())
       appendMessages(
         [{ id: `user:${now}`, role: "user", createdAt: now, text }, reply],
         // 相談中の希望はまだ確定扱いにしない。確認後の変更案で初めて保存する。
         isDiscussion ? undefined : response.confirmedConstraints,
+        prepared?.prepared,
       )
       if (proposals[0]) model.selectProposal(proposals[0].id)
     } catch (reason) {
-      setInput(text)
-      setError(reason instanceof Error ? reason.message : "AI相談に失敗しました。")
+      setInput((draft) => draft || text)
+      if (!isGenerationCancelled(reason)) setError(reason instanceof Error ? reason.message : "AI相談に失敗しました。")
     } finally {
+      preparationController.current = null
+      setPreparingResponse(false)
       setSendingText(null)
     }
   }
@@ -363,13 +371,14 @@ export function ArrangementChatPanel({
               {sendingText}
             </p>
             <p className="flex items-center gap-2 text-[13px] text-body-muted">
-              <LoaderCircle size={14} className="animate-spin" /> いまの全曲アレンジを見て考えています…
+              <LoaderCircle size={14} className="animate-spin" /> {preparingResponse ? "変更案の音を作っています…" : "いまの全曲アレンジを見て考えています…"}
             </p>
           </>
         )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-hairline px-4 pb-4 pt-3">
+        {preparingResponse && <Button variant="dark" onClick={() => preparationController.current?.abort()}>変更案の計算を中止</Button>}
         {error && (
           <p role="alert" className="rounded-sm border border-red-400/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-200">
             {error}
@@ -429,7 +438,7 @@ export function ArrangementChatPanel({
   )
 }
 
-function AssistantMessage({
+export function AssistantMessage({
   message,
   model,
   isOpen,
@@ -464,7 +473,7 @@ function AssistantMessage({
   const shownIndex = shown ? Math.max(0, proposals.findIndex((proposal) => proposal.id === shown.id)) : 0
   // 開いている案は、いまの版と実際に作った全曲アレンジを比べた変化を表示する
   const changes = isOpen && shown ? model.pendingChanges : []
-  const points = isOpen && shown
+  const points = !applied && isOpen && shown
     ? [
         ...describeArrangementChanges(changes, model.matrix.map((section) => ({ sectionId: section.sectionId, name: section.name }))),
         // 対旋律を作れなかったセクション(主旋律がない等)の理由も添える
@@ -540,7 +549,7 @@ function AssistantMessage({
                 </>}
           </p>
           <ul className="flex flex-col gap-1 text-[13px] leading-5 text-body-on-dark">
-            {(!shown.layer && !model.arrangementFor(shown) ? ["変更案の音の準備が完了するまで、聴き比べ・適用はできません。"] : points.length > 0 ? points : ["いまの版とほとんど変わりません"]).map((point) => (
+            {(!applied && !shown.layer && !model.arrangementFor(shown) ? ["変更案の音の準備が完了するまで、聴き比べ・適用はできません。"] : points.length > 0 ? points : ["いまの版とほとんど変わりません"]).map((point) => (
               <li key={point}>{point}</li>
             ))}
           </ul>
