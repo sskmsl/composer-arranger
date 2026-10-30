@@ -1,0 +1,40 @@
+
+> composer-arranger@0.1.0 test
+> vitest run --run src/storage/saveCoordinator.test.ts
+
+
+ RUN  v4.1.10 /private/tmp/arranger-reliability-20261031
+
+ ❯ src/storage/saveCoordinator.test.ts (4 tests | 1 failed) 6ms
+     × keeps the most recently edited project last when switching away and back 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/storage/saveCoordinator.test.ts > ordered recoverable project saves > keeps the most recently edited project last when switching away and back
+AssertionError: expected [ 'old-a', 'new-a', 'b' ] to deeply equal [ 'old-a', 'b', 'new-a' ]
+
+- Expected
++ Received
+
+  [
+    "old-a",
+-   "b",
+    "new-a",
++   "b",
+  ]
+
+ ❯ src/storage/saveCoordinator.test.ts:67:21
+     65|     release()
+     66|     expect(await queue.flush()).toBe(true)
+     67|     expect(written).toEqual(["old-a", "b", "new-a"])
+       |                     ^
+     68|   })
+     69|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  06:06:00
+   Duration  115ms (transform 20ms, setup 0ms, import 29ms, tests 6ms, environment 0ms)
