@@ -70,7 +70,7 @@ export function useArrangementChat(): ArrangementChatModel {
   const project = useProjectStore((state) => state.project)
   const chat = project.arrangementChat
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null)
-  const [preparedRevision, setPreparedRevision] = useState(0)
+  const [, setPreparedRevision] = useState(0)
   const [retryKey, setRetryKey] = useState(0)
   const [preparing, setPreparing] = useState(false)
   const [preparationError, setPreparationError] = useState<string | null>(null)
@@ -124,17 +124,18 @@ export function useArrangementChat(): ArrangementChatModel {
   }
 
   // 表に出す「提案中」の印は、選んでいる案についてだけ求める
+  const selectedArrangement = selectedProposal ? proposalArrangement(project, selectedProposal) : undefined
   const pendingChanges = useMemo(
-    () => selectedProposal && (selectedProposal.layer || proposalArrangement(project, selectedProposal))
+    () => selectedProposal && (selectedProposal.layer || selectedArrangement)
       ? diffArrangementMatrices(
           matrix,
           arrangementPartMatrix(
             selectedProposal.layer ? projectWithLayerProposal(project, selectedProposal.layer) : project,
-            proposalArrangement(project, selectedProposal),
+            selectedArrangement,
           ),
         )
       : [],
-    [matrix, project, selectedProposal, preparedRevision],
+    [matrix, project, selectedProposal, selectedArrangement],
   )
 
   return {
