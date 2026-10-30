@@ -1,3 +1,6 @@
+import { loadProject as loadStoredProject } from "../src/storage/projectRepository"
+import { arrangementResponseFixture } from "../tools/qa/arrangementResponse"
+import { preparedProposal } from "../src/features/arrangement/proposalCache"
 // CI専用入口。実Appを使い、認証・外部サービスへは接続しない。
 import { createRoot } from "react-dom/client"
 import { App } from "../src/app/App"
@@ -9,7 +12,7 @@ import { generateFullSongArrangement, finalizeFullSongArrangement } from "../src
 import { guitarRiffDecision } from "../src/melody-engine/guitarRiffDecision"
 import { arrangementFromRecipe } from "../src/ai-arranger/arrangementChatAdvice"
 import { arrangementForVersion, emptyArrangementChat, recipeFromArrangement } from "../src/core/arrangementChat"
-import { generateArrangementOffThread, generateRecipeOffThread, restoreArrangementOffThread } from "../src/features/arrangement/generationClient"
+import { generateArrangementOffThread, generateRecipeOffThread, restoreArrangementOffThread, prepareProposalsOffThread } from "../src/features/arrangement/generationClient"
 
 const plain = (value: unknown) => JSON.stringify(value && { ...value as object, createdAt: undefined })
 Object.assign(window, { reliability: {
@@ -17,6 +20,13 @@ Object.assign(window, { reliability: {
     useProjectStore.getState().loadProject(arrangementReviewSong("A"))
     return useProjectStore.getState().flushSave()
   },
+  async seedArrangedSong() {
+    const project = arrangementReviewSong("A")
+    project.fullSongArrangement = generateFullSongArrangement(project, { seed: 19 })
+    useProjectStore.getState().loadProject(project)
+    return useProjectStore.getState().flushSave()
+  },
+  stored: () => loadStoredProject(useProjectStore.getState().project.projectId),
   async seedProposal() {
     const project = arrangementReviewSong("A")
     project.fullSongArrangement = generateFullSongArrangement(project, { seed: 19 })
@@ -27,6 +37,21 @@ Object.assign(window, { reliability: {
     }] }
     useProjectStore.getState().loadProject(project)
     return useProjectStore.getState().flushSave()
+  },
+  async prepareAdvice() {
+    const project = useProjectStore.getState().project
+    const response = arrangementResponseFixture()
+    const result = await prepareProposalsOffThread({ operation: "proposals", project, response,
+      userMessage: "全曲の流れを整えて", confirmedConstraints: [], idPrefix: "worker-reply", consultationStatements: ["全曲の流れを整えて"] }, new AbortController().signal)
+    useProjectStore.getState().appendArrangementChatMessages([{ id: "worker-reply", role: "assistant", createdAt: new Date().toISOString(), text: "変更案です。", proposals: result.proposals }], [], result.prepared)
+    const published = useProjectStore.getState().project
+    return { count: result.prepared.length,
+      cached: result.prepared.every((item) => preparedProposal(published, item.proposalId) === item.arrangement),
+      sameAfterReply: result.prepared.every((item) => {
+        const proposal = result.proposals.find((p) => p.id === item.proposalId)!
+        return plain(item.arrangement) === plain(arrangementFromRecipe(published, proposal.recipe))
+      }),
+    }
   },
   state: () => useProjectStore.getState(),
   async responsiveWorker() {

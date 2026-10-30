@@ -4,10 +4,12 @@ Playwright1.62.1を固定し、実Appを使うブラウザテストを追加。�
 
 ## 実ブラウザ検証
 
-1280pxと390pxの各11ケース、計22ケースすべて成功（46.3秒、再試行0）。
+1280pxと390pxの各13ケース、計26ケースすべて成功（50.5秒、再試行0）。
 
 - 編集→端末保存→再読み込み、実MIDIダウンロードのMThdヘッダ。
-- 保存のQuotaExceededErrorを注入→警告/編集保持→別曲に切り替えて戻っても未保存の最新版を保持→JSON実ファイル退避→復旧/再試行→再読込で最後の編集保持。
+- 保存のQuotaExceededErrorを注入→警告/編集保持→別曲へ切替→元の曲を改名→開いている曲を削除しても未保存の最新版と改名を保持→JSON実ファイル退避→復旧/再試行→再読込で最後の編集保持。
+- 実IndexedDB transactionをabort→既存DB内容を維持、未処理Promise拒否なし→再試行して最新編集を保存。
+- 初回AI応答は実Worker1回で3案を準備し、返信公開前のキャッシュ登録で再生成を防ぐ。公開後のrecipe生成JSONも一致。
 - 起動時のDB open失敗→読み込み中で停止せず→既存DBを消さず再試行。
 - 更新reloadは保存失敗で中止、成功後に最後の編集を保持。不必要なbeforeunload確認も出さない（handlerはeffect解除前にも現在の保存状態を参照）。
 - 遅延JSを遮断→ErrorBoundary→保存後reloadで復旧。
@@ -16,7 +18,7 @@ Playwright1.62.1を固定し、実Appを使うブラウザテストを追加。�
 - 前面のまま60秒後に更新を検知。実Worker成功で版が適用され、待機中にUIスレッドのタイマーが動く。
 - 相談案は準備中に「変更なし」と表示せず、未準備で適用できない。完了後は適用できる。
 
-保存順序の追加テスト前の統合Vitestは207ファイル成功/6skip、1585テスト成功/7skip（177.22秒）。その後、曲を切り替えて戻る保存順序のテストで修正前の失敗を確認し、キューの最新編集を末尾へ置く修正、および未保存の曲の再読込/削除の保護で保存関連9件成功。最新headの全体結果はPR本文に記録する。build成功、lintは既存importMidi.tsの警告1件のみ、actionlint成功。
+レビュー指摘の保存復元/改名、flush完了境界、初回提案のWorker移動と適用済み説明の保持を修正。保存関連12件・Worker関連9件成功。統合Vitestと最新CIの実結果はPR本文に記録する。build成功、lintは既存importMidi.tsの警告1件のみ、actionlint成功。更新reloadの検証はloadイベントを待ち、遷移中の実行コンテキスト破棄との競合を避ける。
 
 証拠は同-evidenceのケース別結果・Worker一致結果・ログ。障害注入はAPIを制御しており、実ディスクを満杯にした試験ではない。認証入口を使わないローカルfixtureのため、認証/クラウド保存・外部AI呼出しは検証していない。OS保存ダイアログ、Safari、実機スマートフォン、聴感/DAWは未確認。390pxはChromiumのviewport検証である。
 
@@ -24,4 +26,4 @@ Playwright1.62.1を固定し、実Appを使うブラウザテストを追加。�
 
 `npm ci`、`npx playwright install --with-deps chromium`、`npm run test:e2e`。Chromeを手元で使う場合はPLAYWRIGHT_CHROMIUM_EXECUTABLE_PATHを指定可能。CIは固定版が要求するChromiumを使う。外部サービスのキーをブラウザテストへ渡さない。
 
-[Playwright公式CI手順](https://playwright.dev/docs/ci-intro)のブラウザ導入/実行/失敗証拠保存に沿う。全アプリテスト・build・lint/actionlintと各PRの最新結果はPR本文へ記録する。新規マージ/公開は所有者判断。
+[Playwright公式CI手順](https://playwright.dev/docs/ci-intro)のブラウザ導入/実行/失敗証拠保存に沿う。全アプリテスト・build・lint/actionlintと各PRの最新結果はPR本文へ記録する。所有者のマージ許可を受領済み。最新CI/レビュー確認後に統合する。

@@ -1,144 +1,1011 @@
 {
+  "config": {
+    "argv": [
+      "/Users/masaru/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/private/tmp/arranger-reliability-e2e/node_modules/playwright/cli.js",
+      "test"
+    ],
+    "configFile": "/private/tmp/arranger-reliability-e2e/playwright.config.ts",
+    "rootDir": "/private/tmp/arranger-reliability-e2e/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 300000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/private/tmp/arranger-reliability-e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "/private/tmp/arranger-reliability-e2e/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/private/tmp/arranger-reliability-e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/private/tmp/arranger-reliability-e2e/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": {
+      "command": "\"/Users/masaru/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node\" node_modules/vite/bin/vite.js build --config vite.e2e.config.ts && \"/Users/masaru/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node\" node_modules/vite/bin/vite.js preview --outDir dist-e2e --host 127.0.0.1 --port 5185 --strictPort",
+      "url": "http://127.0.0.1:5185/e2e/harness.html",
+      "reuseExistingServer": false,
+      "env": {
+        "GITHUB_SHA": "e2e0000"
+      },
+      "timeout": 90000
+    }
+  },
+  "suites": [
+    {
+      "title": "reliability.spec.ts",
+      "file": "reliability.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "edit, durable save, reload and actual MIDI download",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1558,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:07.472Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-6da909e0fbf25a70bc46",
+          "file": "reliability.spec.ts",
+          "line": 51,
+          "column": 1
+        },
+        {
+          "title": "quota failure keeps edits, exports JSON and retries the latest version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 785,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:09.406Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-e1e6473e4b9688f8aa6e",
+          "file": "reliability.spec.ts",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "startup read failure exits loading and retries without deleting the stored song",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 450,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:10.199Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-cd7760a3edd952982ca9",
+          "file": "reliability.spec.ts",
+          "line": 99,
+          "column": 1
+        },
+        {
+          "title": "update reload is blocked on save failure and preserves the last edit after retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 593,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:10.655Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-9e3e82882ee8d5672b35",
+          "file": "reliability.spec.ts",
+          "line": 112,
+          "column": 1
+        },
+        {
+          "title": "failed lazy JS shows recovery and saved reload restores the workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:11.256Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-49b33541e33be8cef52e",
+          "file": "reliability.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "worker cancellation keeps the existing song",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1316,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:13.474Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-21aeb1271e23e206bbdc",
+          "file": "reliability.spec.ts",
+          "line": 151,
+          "column": 1
+        },
+        {
+          "title": "editing while a worker runs discards its obsolete result",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1669,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:14.801Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-7a77c3eaf5e699a959f8",
+          "file": "reliability.spec.ts",
+          "line": 166,
+          "column": 1
+        },
+        {
+          "title": "real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8257,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:16.477Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "worker-equivalence",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJuYW1lIjogIjQvNC8xOSIsCiAgICAic2FtZSI6IHRydWUsCiAgICAiZGlhZ25vc3RpY1NhbWUiOiB0cnVlCiAgfSwKICB7CiAgICAibmFtZSI6ICI0LzQvNDEiLAogICAgInNhbWUiOiB0cnVlLAogICAgImRpYWdub3N0aWNTYW1lIjogdHJ1ZQogIH0sCiAgewogICAgIm5hbWUiOiAiMy80LzE5IiwKICAgICJzYW1lIjogdHJ1ZSwKICAgICJkaWFnbm9zdGljU2FtZSI6IHRydWUKICB9LAogIHsKICAgICJuYW1lIjogIjMvNC80MSIsCiAgICAic2FtZSI6IHRydWUsCiAgICAiZGlhZ25vc3RpY1NhbWUiOiB0cnVlCiAgfSwKICB7CiAgICAibmFtZSI6ICI2LzgvMTkiLAogICAgInNhbWUiOiB0cnVlLAogICAgImRpYWdub3N0aWNTYW1lIjogdHJ1ZQogIH0sCiAgewogICAgIm5hbWUiOiAiNi84LzQxIiwKICAgICJzYW1lIjogdHJ1ZSwKICAgICJkaWFnbm9zdGljU2FtZSI6IHRydWUKICB9LAogIHsKICAgICJuYW1lIjogInNjb3BlZCByZWNpcGUiLAogICAgInNhbWUiOiB0cnVlCiAgfSwKICB7CiAgICAibmFtZSI6ICJyZXN0b3JlIHZlcnNpb24iLAogICAgInNhbWUiOiB0cnVlCiAgfQpd"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-87cf796ee4a6d2a1ec45",
+          "file": "reliability.spec.ts",
+          "line": 181,
+          "column": 1
+        },
+        {
+          "title": "a visible page detects a published update without switching tabs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 440,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:24.742Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-1b9f27e16153f64109d3",
+          "file": "reliability.spec.ts",
+          "line": 189,
+          "column": 1
+        },
+        {
+          "title": "real worker generation applies a new version and leaves the UI thread responsive",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2309,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:25.188Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-b5bd67cd8bd65636a16d",
+          "file": "reliability.spec.ts",
+          "line": 199,
+          "column": 1
+        },
+        {
+          "title": "an AI proposal cannot be applied before its worker result is ready",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2435,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:27.502Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-fda85e95935541ba773e",
+          "file": "reliability.spec.ts",
+          "line": 210,
+          "column": 1
+        },
+        {
+          "title": "initial AI proposals are prepared once in a Worker and reused after publishing the reply",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1670,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:29.944Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-a5e13c11eeadbc70da8d",
+          "file": "reliability.spec.ts",
+          "line": 227,
+          "column": 1
+        },
+        {
+          "title": "an aborted IndexedDB transaction preserves stored data and retries without unhandled errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 701,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:31.620Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-d1676d1b618282aa9087",
+          "file": "reliability.spec.ts",
+          "line": 239,
+          "column": 1
+        },
+        {
+          "title": "edit, durable save, reload and actual MIDI download",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1409,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:32.642Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-aada375b7196fbc841b7",
+          "file": "reliability.spec.ts",
+          "line": 51,
+          "column": 1
+        },
+        {
+          "title": "quota failure keeps edits, exports JSON and retries the latest version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 773,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:34.390Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-52919205819cd24decab",
+          "file": "reliability.spec.ts",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "startup read failure exits loading and retries without deleting the stored song",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 550,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:35.171Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-fcfb2e8b0ed90388fe44",
+          "file": "reliability.spec.ts",
+          "line": 99,
+          "column": 1
+        },
+        {
+          "title": "update reload is blocked on save failure and preserves the last edit after retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 708,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:35.727Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-35d20bdb0b96441ed064",
+          "file": "reliability.spec.ts",
+          "line": 112,
+          "column": 1
+        },
+        {
+          "title": "failed lazy JS shows recovery and saved reload restores the workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1675,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:36.442Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-f24e7ae7f68aa55ad4fc",
+          "file": "reliability.spec.ts",
+          "line": 137,
+          "column": 1
+        },
+        {
+          "title": "worker cancellation keeps the existing song",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:38.124Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-65bd6f9c00b7ed99e6f6",
+          "file": "reliability.spec.ts",
+          "line": 151,
+          "column": 1
+        },
+        {
+          "title": "editing while a worker runs discards its obsolete result",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2074,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:38.949Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-753d986c5822baae7271",
+          "file": "reliability.spec.ts",
+          "line": 166,
+          "column": 1
+        },
+        {
+          "title": "real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8198,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:41.030Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "worker-equivalence",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJuYW1lIjogIjQvNC8xOSIsCiAgICAic2FtZSI6IHRydWUsCiAgICAiZGlhZ25vc3RpY1NhbWUiOiB0cnVlCiAgfSwKICB7CiAgICAibmFtZSI6ICI0LzQvNDEiLAogICAgInNhbWUiOiB0cnVlLAogICAgImRpYWdub3N0aWNTYW1lIjogdHJ1ZQogIH0sCiAgewogICAgIm5hbWUiOiAiMy80LzE5IiwKICAgICJzYW1lIjogdHJ1ZSwKICAgICJkaWFnbm9zdGljU2FtZSI6IHRydWUKICB9LAogIHsKICAgICJuYW1lIjogIjMvNC80MSIsCiAgICAic2FtZSI6IHRydWUsCiAgICAiZGlhZ25vc3RpY1NhbWUiOiB0cnVlCiAgfSwKICB7CiAgICAibmFtZSI6ICI2LzgvMTkiLAogICAgInNhbWUiOiB0cnVlLAogICAgImRpYWdub3N0aWNTYW1lIjogdHJ1ZQogIH0sCiAgewogICAgIm5hbWUiOiAiNi84LzQxIiwKICAgICJzYW1lIjogdHJ1ZSwKICAgICJkaWFnbm9zdGljU2FtZSI6IHRydWUKICB9LAogIHsKICAgICJuYW1lIjogInNjb3BlZCByZWNpcGUiLAogICAgInNhbWUiOiB0cnVlCiAgfSwKICB7CiAgICAibmFtZSI6ICJyZXN0b3JlIHZlcnNpb24iLAogICAgInNhbWUiOiB0cnVlCiAgfQpd"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-a32ee5482362c6c54a4a",
+          "file": "reliability.spec.ts",
+          "line": 181,
+          "column": 1
+        },
+        {
+          "title": "a visible page detects a published update without switching tabs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 432,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:49.234Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-4f22d37bc388011accaa",
+          "file": "reliability.spec.ts",
+          "line": 189,
+          "column": 1
+        },
+        {
+          "title": "real worker generation applies a new version and leaves the UI thread responsive",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2310,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:49.674Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-1bc60dcaf4b1d5ee510a",
+          "file": "reliability.spec.ts",
+          "line": 199,
+          "column": 1
+        },
+        {
+          "title": "an AI proposal cannot be applied before its worker result is ready",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2463,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:51.990Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-4ae09b33db2cf7a1c758",
+          "file": "reliability.spec.ts",
+          "line": 210,
+          "column": 1
+        },
+        {
+          "title": "initial AI proposals are prepared once in a Worker and reused after publishing the reply",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1625,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:54.459Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-c4f657068335ab117618",
+          "file": "reliability.spec.ts",
+          "line": 227,
+          "column": 1
+        },
+        {
+          "title": "an aborted IndexedDB transaction preserves stored data and retries without unhandled errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 590,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:53:56.094Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-bd95a3bcc2f2c32610c1",
+          "file": "reliability.spec.ts",
+          "line": 239,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
   "stats": {
-    "startTime": "2026-10-30T21:16:30.860Z",
-    "duration": 46347.057,
-    "expected": 22,
+    "startTime": "2026-10-30T21:53:06.303Z",
+    "duration": 50510.587,
+    "expected": 26,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
-  },
-  "tests": [
-    {
-      "name": "edit, durable save, reload and actual MIDI download",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 1527
-    },
-    {
-      "name": "quota failure keeps edits, exports JSON and retries the latest version",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 775
-    },
-    {
-      "name": "startup read failure exits loading and retries without deleting the stored song",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 555
-    },
-    {
-      "name": "update reload is blocked on save failure and preserves the last edit after retry",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 694
-    },
-    {
-      "name": "failed lazy JS shows recovery and saved reload restores the workspace",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 2183
-    },
-    {
-      "name": "worker cancellation keeps the existing song",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 1370
-    },
-    {
-      "name": "editing while a worker runs discards its obsolete result",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 1657
-    },
-    {
-      "name": "real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 7960
-    },
-    {
-      "name": "a visible page detects a published update without switching tabs",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 352
-    },
-    {
-      "name": "real worker generation applies a new version and leaves the UI thread responsive",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 2329
-    },
-    {
-      "name": "an AI proposal cannot be applied before its worker result is ready",
-      "project": "desktop",
-      "status": "passed",
-      "durationMs": 2541
-    },
-    {
-      "name": "edit, durable save, reload and actual MIDI download",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 1454
-    },
-    {
-      "name": "quota failure keeps edits, exports JSON and retries the latest version",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 802
-    },
-    {
-      "name": "startup read failure exits loading and retries without deleting the stored song",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 571
-    },
-    {
-      "name": "update reload is blocked on save failure and preserves the last edit after retry",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 701
-    },
-    {
-      "name": "failed lazy JS shows recovery and saved reload restores the workspace",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 1713
-    },
-    {
-      "name": "worker cancellation keeps the existing song",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 1316
-    },
-    {
-      "name": "editing while a worker runs discards its obsolete result",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 2079
-    },
-    {
-      "name": "real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 8003
-    },
-    {
-      "name": "a visible page detects a published update without switching tabs",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 428
-    },
-    {
-      "name": "real worker generation applies a new version and leaves the UI thread responsive",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 2273
-    },
-    {
-      "name": "an AI proposal cannot be applied before its worker result is ready",
-      "project": "mobile",
-      "status": "passed",
-      "durationMs": 2487
-    }
-  ]
+  }
 }

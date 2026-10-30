@@ -20,6 +20,11 @@ test.beforeEach(async ({ page }) => {
   await page.route(/\/version\.json\?/, (route) => route.fulfill({ json: { id: "e2e0000" } }))
   await page.addInitScript(() => {
     const w = window as any
+    w.__workerStarts = 0
+    const OriginalWorker = window.Worker
+    window.Worker = class extends OriginalWorker {
+      constructor(...args: ConstructorParameters<typeof Worker>) { super(...args); w.__workerStarts++ }
+    }
     w.__failSaves = false
     w.__failOpen = sessionStorage.getItem("failOpen") === "1"
     const open = indexedDB.open.bind(indexedDB)
@@ -29,6 +34,11 @@ test.beforeEach(async ({ page }) => {
     }) as IDBFactory["open"]
     const put = IDBObjectStore.prototype.put
     IDBObjectStore.prototype.put = function(value: unknown, key?: IDBValidKey) {
+      if (w.__abortSaves && this.name === "projects") {
+        const request = put.call(this, value, key)
+        this.transaction.abort()
+        return request
+      }
       if (w.__failSaves && this.name === "projects") throw new DOMException("Injected quota", "QuotaExceededError")
       return put.call(this, value, key)
     }
@@ -67,20 +77,22 @@ test("quota failure keeps edits, exports JSON and retries the latest version", a
     const store = (window as any).reliability.state()
     const id = store.project.projectId
     store.newProject()
-    await (window as any).reliability.state().loadProjectById(id)
+    const other = (window as any).reliability.state().project.projectId
+    await (window as any).reliability.state().renameStoredProject(id, "Recovered renamed song")
+    await (window as any).reliability.state().deleteStoredProject(other)
   })
-  expect(await page.evaluate(() => (window as any).reliability.state().project.title)).toBe("Unsaved but recoverable")
+  expect(await page.evaluate(() => (window as any).reliability.state().project.title)).toBe("Recovered renamed song")
   const downloading = page.waitForEvent("download")
   await warning.getByRole("button", { name: "ファイルに保存", exact: true }).click()
   const download = await downloading
   const backup = JSON.parse(await readFile((await download.path())!, "utf8"))
-  expect(backup.title).toBe("Unsaved but recoverable")
+  expect(backup.title).toBe("Recovered renamed song")
   await page.evaluate(() => { (window as any).__failSaves = false })
   await warning.getByRole("button", { name: "保存を再試行", exact: true }).click()
   await saved(page)
   await expect(warning).toHaveCount(0)
   await page.reload()
-  await expect.poll(() => page.evaluate(() => (window as any).reliability?.state().project.title)).toBe("Unsaved but recoverable")
+  await expect.poll(() => page.evaluate(() => (window as any).reliability?.state().project.title)).toBe("Recovered renamed song")
   expect(errors).toEqual([])
 })
 
@@ -113,8 +125,11 @@ test("update reload is blocked on save failure and preserves the last edit after
   await page.evaluate(() => { (window as any).__failSaves = false })
   const dialogs: string[] = []
   page.on("dialog", async (dialog) => { dialogs.push(dialog.type()); await dialog.dismiss() })
-  await update.getByRole("button", { name: "再読み込み", exact: true }).click()
-  await expect.poll(() => page.evaluate(() => (window as any).__samePage ?? "reloaded")).toBe("reloaded")
+  await Promise.all([
+    page.waitForEvent("load"),
+    update.getByRole("button", { name: "再読み込み", exact: true }).click(),
+  ])
+  expect(await page.evaluate(() => (window as any).__samePage ?? "reloaded")).toBe("reloaded")
   await expect.poll(() => page.evaluate(() => (window as any).reliability?.state().project.title)).toBe("Last edit before update")
   expect(dialogs).toEqual([])
 })
@@ -206,4 +221,35 @@ test("an AI proposal cannot be applied before its worker result is ready", async
   await expect(apply).toBeVisible()
   await apply.click()
   expect(await page.evaluate(() => (window as any).reliability.state().project.arrangementChat.messages.find((m: any) => m.id === "browser-proposal").appliedProposalId)).toBe("browser-candidate")
+})
+
+
+test("initial AI proposals are prepared once in a Worker and reused after publishing the reply", async ({ page }) => {
+  expect(await page.evaluate(() => (window as any).reliability.seedArrangedSong())).toBe(true)
+  await arrangementPage(page)
+  expect(await page.evaluate(() => (window as any).__workerStarts)).toBe(0)
+  const prepared = await page.evaluate(() => (window as any).reliability.prepareAdvice())
+  expect(prepared).toEqual({ count: 3, cached: true, sameAfterReply: true })
+  await expect(page.getByRole("button", { name: "この案を使う", exact: true })).toBeVisible()
+  await saved(page)
+  expect(await page.evaluate(() => (window as any).__workerStarts)).toBe(1)
+})
+
+
+test("an aborted IndexedDB transaction preserves stored data and retries without unhandled errors", async ({ page }) => {
+  const errors: string[] = []
+  page.on("pageerror", (error) => errors.push(error.message))
+  await seed(page)
+  await arrangementPage(page)
+  const original = await page.evaluate(async () => ((await (window as any).reliability.stored()).title))
+  await page.evaluate(() => { (window as any).__abortSaves = true })
+  await editTitle(page, "After transaction recovery")
+  const warning = page.getByRole("alert").filter({ hasText: "この端末に曲を保存できませんでした" })
+  await expect(warning).toBeVisible()
+  expect(await page.evaluate(async () => (await (window as any).reliability.stored()).title)).toBe(original)
+  await page.evaluate(() => { (window as any).__abortSaves = false })
+  await warning.getByRole("button", { name: "保存を再試行" }).click()
+  await saved(page)
+  expect(await page.evaluate(async () => (await (window as any).reliability.stored()).title)).toBe("After transaction recovery")
+  expect(errors).toEqual([])
 })
