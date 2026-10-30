@@ -75,9 +75,19 @@ export async function saveProject(project: ComposerProject): Promise<void> {
   const db = await getDb()
   const record = { ...project, savedAt: new Date().toISOString() }
   const transaction = db.transaction([PROJECT_STORE, META_STORE], "readwrite")
-  await transaction.objectStore(PROJECT_STORE).put(record)
-  await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
-  await transaction.done
+  try {
+    await Promise.all([
+      (async () => {
+        await transaction.objectStore(PROJECT_STORE).put(record)
+        await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
+      })(),
+      transaction.done,
+    ])
+  } catch (error) {
+    try { transaction.abort() } catch { /* 既に中断・終了したtransactionもある */ }
+    await transaction.done.catch(() => undefined)
+    throw error
+  }
   scheduleProjectPush(record)
 }
 
