@@ -26,6 +26,10 @@ export function getDb(): Promise<IDBPDatabase<ArrangerDB>> {
       db.createObjectStore(PROJECT_STORE, { keyPath: "projectId" })
       db.createObjectStore(META_STORE)
     },
+  }).catch((error: unknown) => {
+    // 一時的な起動失敗を永久にキャッシュしない。既存DBは削除しない。
+    dbPromise = null
+    throw error
   })
   return dbPromise
 }

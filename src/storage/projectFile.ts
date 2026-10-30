@@ -9,8 +9,10 @@ export function downloadProjectFile(project: ComposerProject): void {
   a.download = `${project.title || "composer-project"}.json`
   document.body.appendChild(a)
   a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => {
+    a.remove()
+    URL.revokeObjectURL(url)
+  }, 1_000)
 }
 
 /**

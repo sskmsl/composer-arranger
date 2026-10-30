@@ -1,3 +1,4 @@
+import { createSaveCoordinator, type SaveStatus } from "@/storage/saveCoordinator"
 import { create } from "zustand"
 import { scaleSectionTempoChanges } from "@/core/tempoMap"
 import {
@@ -162,6 +163,9 @@ export interface ProjectState extends ArrangementChatActions {
   history: ComposerProject[]
   future: ComposerProject[]
   hydrated: boolean
+  storageLoadError: boolean
+  saveStatus: SaveStatus
+  flushSave: () => Promise<boolean>
   workflowNotice: string | null
   /** Issue #16: 時間単位の自動変換通知/確認待ち(判定できなかった場合) */
   timingNotice: TimingNotice | null
@@ -388,28 +392,35 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   history: [],
   future: [],
   hydrated: false,
+  storageLoadError: false,
+  saveStatus: "idle",
   workflowNotice: null,
   timingNotice: null,
 
   hydrate: async () => {
-    const last = await loadLastOpenedProject()
-    if (last) {
-      // JSON Import/loadProjectByIdと同じ唯一の移行経路(resolveProjectTiming)を通す。
-      // normalizeProjectも内部で必ず通るため、旧schemaVersion(1.0)のデータが
-      // songProfile等を欠いたままUIへ渡ってクラッシュすることもない(16章/Issue #16)
-      const result = resolveProjectTiming(last)
-      const sectionInference = inferMarkerlessImportedSections(result.project)
-      const arrangementUpgrade = upgradeSavedArrangement(sectionInference.project)
-      if (result.status !== "no-op") void backupProjectTimingSnapshot(last)
-      set({
-        project: arrangementUpgrade.project,
-        selectedSectionId: arrangementUpgrade.project.sections[0]?.id ?? null,
-        hydrated: true,
-        timingNotice: timingNoticeFrom(result),
-      })
-      if (result.status === "auto-converted" || sectionInference.changed || arrangementUpgrade.changed) get().persist()
-    } else {
-      set({ hydrated: true })
+    try {
+      const last = await loadLastOpenedProject()
+      if (last) {
+        // JSON Import/loadProjectByIdと同じ唯一の移行経路(resolveProjectTiming)を通す。
+        // normalizeProjectも内部で必ず通るため、旧schemaVersion(1.0)のデータが
+        // songProfile等を欠いたままUIへ渡ってクラッシュすることもない(16章/Issue #16)
+        const result = resolveProjectTiming(last)
+        const sectionInference = inferMarkerlessImportedSections(result.project)
+        const arrangementUpgrade = upgradeSavedArrangement(sectionInference.project)
+        if (result.status !== "no-op") await backupProjectTimingSnapshot(last)
+        set({
+          project: arrangementUpgrade.project,
+          selectedSectionId: arrangementUpgrade.project.sections[0]?.id ?? null,
+          hydrated: true,
+          storageLoadError: false,
+          timingNotice: timingNoticeFrom(result),
+        })
+        if (result.status === "auto-converted" || sectionInference.changed || arrangementUpgrade.changed) get().persist()
+      } else {
+        set({ hydrated: true, storageLoadError: false })
+      }
+    } catch {
+      set({ hydrated: true, storageLoadError: true })
     }
   },
 
@@ -496,7 +507,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   persist: () => {
-    void saveProject(get().project)
+    if (get().storageLoadError) return
+    saveCoordinator.enqueue(structuredClone(get().project))
+  },
+
+  flushSave: async () => {
+    if (get().storageLoadError) return false
+    get().persist()
+    return saveCoordinator.flush()
   },
 
   updateSongField: (key, value) => {
@@ -1855,3 +1873,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().persist()
   },
 }))
+
+const saveCoordinator = createSaveCoordinator(saveProject, (project) => project.projectId,
+  (saveStatus) => useProjectStore.setState({ saveStatus }))

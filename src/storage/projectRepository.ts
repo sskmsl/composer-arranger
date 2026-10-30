@@ -74,8 +74,10 @@ async function flushCloudDeletion(
 export async function saveProject(project: ComposerProject): Promise<void> {
   const db = await getDb()
   const record = { ...project, savedAt: new Date().toISOString() }
-  await db.put(PROJECT_STORE, record)
-  await db.put(META_STORE, project.projectId, LAST_OPENED_KEY)
+  const transaction = db.transaction([PROJECT_STORE, META_STORE], "readwrite")
+  await transaction.objectStore(PROJECT_STORE).put(record)
+  await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
+  await transaction.done
   scheduleProjectPush(record)
 }
 
