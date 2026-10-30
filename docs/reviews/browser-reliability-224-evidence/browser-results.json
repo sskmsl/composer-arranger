@@ -1,7 +1,7 @@
 {
   "stats": {
-    "startTime": "2026-10-30T20:59:48.149Z",
-    "duration": 45402.386000000006,
+    "startTime": "2026-10-30T21:16:30.860Z",
+    "duration": 46347.057,
     "expected": 22,
     "skipped": 0,
     "unexpected": 0,
@@ -12,133 +12,133 @@
       "name": "edit, durable save, reload and actual MIDI download",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 1767
+      "durationMs": 1527
     },
     {
       "name": "quota failure keeps edits, exports JSON and retries the latest version",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 833
+      "durationMs": 775
     },
     {
       "name": "startup read failure exits loading and retries without deleting the stored song",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 607
+      "durationMs": 555
     },
     {
       "name": "update reload is blocked on save failure and preserves the last edit after retry",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 763
+      "durationMs": 694
     },
     {
       "name": "failed lazy JS shows recovery and saved reload restores the workspace",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 2213
+      "durationMs": 2183
     },
     {
       "name": "worker cancellation keeps the existing song",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 797
+      "durationMs": 1370
     },
     {
       "name": "editing while a worker runs discards its obsolete result",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 1672
+      "durationMs": 1657
     },
     {
       "name": "real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 8397
+      "durationMs": 7960
     },
     {
       "name": "a visible page detects a published update without switching tabs",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 400
+      "durationMs": 352
     },
     {
       "name": "real worker generation applies a new version and leaves the UI thread responsive",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 1865
+      "durationMs": 2329
     },
     {
       "name": "an AI proposal cannot be applied before its worker result is ready",
       "project": "desktop",
       "status": "passed",
-      "durationMs": 2127
+      "durationMs": 2541
     },
     {
       "name": "edit, durable save, reload and actual MIDI download",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 1614
+      "durationMs": 1454
     },
     {
       "name": "quota failure keeps edits, exports JSON and retries the latest version",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 674
+      "durationMs": 802
     },
     {
       "name": "startup read failure exits loading and retries without deleting the stored song",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 564
+      "durationMs": 571
     },
     {
       "name": "update reload is blocked on save failure and preserves the last edit after retry",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 605
+      "durationMs": 701
     },
     {
       "name": "failed lazy JS shows recovery and saved reload restores the workspace",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 1678
+      "durationMs": 1713
     },
     {
       "name": "worker cancellation keeps the existing song",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 1203
+      "durationMs": 1316
     },
     {
       "name": "editing while a worker runs discards its obsolete result",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 1618
+      "durationMs": 2079
     },
     {
       "name": "real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 8399
+      "durationMs": 8003
     },
     {
       "name": "a visible page detects a published update without switching tabs",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 484
+      "durationMs": 428
     },
     {
       "name": "real worker generation applies a new version and leaves the UI thread responsive",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 1980
+      "durationMs": 2273
     },
     {
       "name": "an AI proposal cannot be applied before its worker result is ready",
       "project": "mobile",
       "status": "passed",
-      "durationMs": 2407
+      "durationMs": 2487
     }
   ]
 }

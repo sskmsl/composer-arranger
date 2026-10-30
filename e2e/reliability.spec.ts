@@ -63,6 +63,13 @@ test("quota failure keeps edits, exports JSON and retries the latest version", a
   await editTitle(page, "Unsaved but recoverable")
   const warning = page.getByRole("alert").filter({ hasText: "この端末に曲を保存できませんでした" })
   await expect(warning).toBeVisible()
+  await page.evaluate(async () => {
+    const store = (window as any).reliability.state()
+    const id = store.project.projectId
+    store.newProject()
+    await (window as any).reliability.state().loadProjectById(id)
+  })
+  expect(await page.evaluate(() => (window as any).reliability.state().project.title)).toBe("Unsaved but recoverable")
   const downloading = page.waitForEvent("download")
   await warning.getByRole("button", { name: "ファイルに保存", exact: true }).click()
   const download = await downloading
