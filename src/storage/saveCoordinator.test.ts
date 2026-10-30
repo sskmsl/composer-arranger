@@ -67,4 +67,24 @@ describe("ordered recoverable project saves", () => {
     expect(written).toEqual(["old-a", "b", "new-a"])
   })
 
+
+  it("discards a queued project before deletion and waits for already started writes", async () => {
+    let release!: () => void
+    const written: string[] = []
+    const queue = createSaveCoordinator(async (value: string) => {
+      if (value === "active") await new Promise<void>((resolve) => { release = resolve })
+      written.push(value)
+    }, (value) => value, vi.fn())
+    queue.enqueue("active")
+    queue.enqueue("deleted")
+    expect(queue.pendingValue("deleted")).toBe("deleted")
+    let removed = false
+    const deletion = queue.discard("deleted").then(() => { removed = true })
+    expect(removed).toBe(false)
+    release()
+    await deletion
+    expect(written).toEqual(["active"])
+    expect(queue.pendingValue("deleted")).toBeUndefined()
+  })
+
 })
