@@ -478,8 +478,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   dismissTimingNotice: () => set({ timingNotice: null }),
 
   loadProjectById: async (id) => {
-    const p = await loadProjectById(id)
-    if (p) get().loadProject(p)
+    const queued = saveCoordinator.pendingValue(id)
+    const stored = queued ?? await loadProjectById(id)
+    // 読み込み中に編集された場合も、古いDBの版で未保存の編集を置き換えない。
+    const latest = saveCoordinator.pendingValue(id) ?? stored
+    if (latest) get().loadProject(structuredClone(latest))
   },
 
   duplicateStoredProject: async (projectId) => {
@@ -497,6 +500,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   deleteStoredProject: async (projectId) => {
+    await saveCoordinator.discard(projectId)
     await deleteStoredProjectRepo(projectId)
     // 開いているプロジェクトを削除した場合は、直前状態(lastOpened)を復元、無ければ新規へ
     if (get().project.projectId === projectId) {
