@@ -87,4 +87,18 @@ describe("ordered recoverable project saves", () => {
     expect(queue.pendingValue("deleted")).toBeUndefined()
   })
 
+
+  it("includes a new edit queued as the previous save finishes in the same barrier", async () => {
+    const written: number[] = []
+    let next = false
+    let enqueueNext = () => {}
+    const queue = createSaveCoordinator(async (value: number) => { written.push(value) }, () => "same", (status) => {
+      if (status === "saved" && !next) { next = true; enqueueNext() }
+    })
+    enqueueNext = () => queue.enqueue(2)
+    queue.enqueue(1)
+    expect(await queue.flush()).toBe(true)
+    expect(written).toEqual([1, 2])
+  })
+
 })

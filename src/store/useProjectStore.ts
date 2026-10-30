@@ -60,7 +60,7 @@ import {
   loadProject as loadProjectById,
   backupProjectTimingSnapshot,
   duplicateProject as duplicateStoredProjectRepo,
-  renameProject as renameStoredProjectRepo,
+  putProjectRecord,
   deleteProject as deleteStoredProjectRepo,
 } from "@/storage/projectRepository"
 import { resolveProjectTiming, resolveAmbiguousTiming } from "@/core/timingMigration"
@@ -478,10 +478,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   dismissTimingNotice: () => set({ timingNotice: null }),
 
   loadProjectById: async (id) => {
-    const queued = saveCoordinator.pendingValue(id)
+    const queued = saveCoordinator.pendingValue(id)?.project
     const stored = queued ?? await loadProjectById(id)
     // 読み込み中に編集された場合も、古いDBの版で未保存の編集を置き換えない。
-    const latest = saveCoordinator.pendingValue(id) ?? stored
+    const latest = saveCoordinator.pendingValue(id)?.project ?? stored
     if (latest) get().loadProject(structuredClone(latest))
   },
 
@@ -491,12 +491,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   renameStoredProject: async (projectId, title) => {
-    await renameStoredProjectRepo(projectId, title)
-    // 開いているプロジェクトを改名した場合は現在の表示も更新する(自動保存で永続化)
-    if (get().project.projectId === projectId) {
-      set({ project: { ...get().project, title } })
-      get().persist()
-    }
+    const initial = get().project
+    const queued = saveCoordinator.pendingValue(projectId)?.project
+    const stored = initial.projectId === projectId ? initial : queued ?? await loadProjectById(projectId)
+    const current = get().project
+    const latest = current.projectId === projectId ? current
+      : saveCoordinator.pendingValue(projectId)?.project ?? stored
+    if (!latest) return
+    const renamed = { ...latest, title }
+    const active = current.projectId === projectId
+    if (active) set({ project: renamed })
+    // 非編集中の曲の改名はlastOpenedを変えず、未保存の音符も維持して直列保存する。
+    saveCoordinator.enqueue({ project: structuredClone(renamed), recordOnly: !active })
+    await saveCoordinator.flush()
   },
 
   deleteStoredProject: async (projectId) => {
@@ -505,14 +512,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // 開いているプロジェクトを削除した場合は、直前状態(lastOpened)を復元、無ければ新規へ
     if (get().project.projectId === projectId) {
       const last = await loadLastOpenedProject()
-      if (last) get().loadProject(last)
+      if (last) await get().loadProjectById(last.projectId)
       else get().newProject()
     }
   },
 
   persist: () => {
     if (get().storageLoadError) return
-    saveCoordinator.enqueue(structuredClone(get().project))
+    saveCoordinator.enqueue({ project: structuredClone(get().project) })
   },
 
   flushSave: async () => {
@@ -1878,5 +1885,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 }))
 
-const saveCoordinator = createSaveCoordinator(saveProject, (project) => project.projectId,
+const saveCoordinator = createSaveCoordinator<{ project: ComposerProject; recordOnly?: boolean }>(
+  (entry) => entry.recordOnly ? putProjectRecord(entry.project) : saveProject(entry.project),
+  (entry) => entry.project.projectId,
   (saveStatus) => useProjectStore.setState({ saveStatus }))
