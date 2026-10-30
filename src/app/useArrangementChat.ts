@@ -1,3 +1,4 @@
+import { preparedProposal, rememberPreparedProposals } from "@/features/arrangement/proposalCache"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   arrangementPartMatrix,
@@ -37,19 +38,8 @@ export interface ArrangementChatModel {
   retryPreparation?: () => void
 }
 
-// 曲の状態(project)ごとに、変更案の全曲アレンジを覚えておく。曲が変われば自然に作り直す
-const proposalArrangementCache = new WeakMap<ComposerProject, Map<string, FullSongArrangement>>()
-
 function proposalArrangement(project: ComposerProject, proposal: ArrangementChatProposal): FullSongArrangement | undefined {
-  if (proposal.layer) return project.fullSongArrangement
-  let byProposal = proposalArrangementCache.get(project)
-  if (!byProposal) {
-    byProposal = new Map()
-    proposalArrangementCache.set(project, byProposal)
-  }
-  const cached = byProposal.get(proposal.id)
-  if (cached) return cached
-  return undefined
+  return proposal.layer ? project.fullSongArrangement : preparedProposal(project, proposal.id)
 }
 
 export type PartCellMark = "changed" | "added" | "removed" | "pending"
@@ -103,9 +93,7 @@ export function useArrangementChat(): ArrangementChatModel {
         for (const proposal of proposals) {
           const arrangement = await generateRecipeOffThread({ operation: "recipe", project, recipe: proposal.recipe }, controller.signal)
           if (controller.signal.aborted) return
-          let cache = proposalArrangementCache.get(project)
-          if (!cache) { cache = new Map(); proposalArrangementCache.set(project, cache) }
-          cache.set(proposal.id, arrangement)
+          rememberPreparedProposals(project, [{ proposalId: proposal.id, arrangement }])
           setPreparedRevision((value) => value + 1)
         }
       } catch (error) {
