@@ -48,7 +48,7 @@ export function ArrangementWorkspace({
   const duplicateSection = useProjectStore((state) => state.duplicateSection)
   const removeSection = useProjectStore((state) => state.removeSection)
   const applyProposal = useProjectStore((state) => state.applyArrangementChatProposal)
-  const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
+  const restoreVersion = useProjectStore((state) => state.restoreArrangementVersionAsync)
   const chatModel = useArrangementChat()
   const [draft, setDraft] = useState("")
   const [chatOpen, setChatOpen] = useState(false)
@@ -338,6 +338,12 @@ export function ArrangementWorkspace({
           {hasArrangement && pickerOpen && (
             <DirectionPicker firstTime={false} onDone={() => setPickerOpen(false)} onCancel={() => setPickerOpen(false)} />
           )}
+          {chatModel.preparing && <div role="status" className="flex flex-wrap items-center gap-2 text-[13px] text-body-muted">
+            変更案の音を準備しています。<Button variant="dark" onClick={chatModel.cancelPreparation}>変更案の準備を中止</Button>
+          </div>}
+          {chatModel.preparationError && <div role="alert" className="flex flex-wrap items-center gap-2 text-[13px] text-red-200">
+            {chatModel.preparationError}<Button variant="dark" onClick={chatModel.retryPreparation}>変更案の準備を再試行</Button>
+          </div>}
           <ArrangementChangeSummary
             matrix={chatModel.matrix}
             changes={chatModel.selectedProposal ? chatModel.pendingChanges : chatModel.versionChanges}
@@ -345,8 +351,8 @@ export function ArrangementWorkspace({
             playingSectionId={playingProposalId && playingProposalId !== chatModel.selectedProposal?.id ? null : playingSectionId}
             playingProposal={Boolean(playingProposalId)}
             onPlayCurrent={(id) => playSection(id)}
-            onPlayProposal={chatModel.selectedProposal ? (id) => playSection(id, chatModel.selectedProposal!) : undefined}
-            onApply={chatModel.selectedProposal && chatModel.openMessage ? () => {
+            onPlayProposal={chatModel.selectedProposal && (chatModel.selectedProposal.layer || chatModel.arrangementFor(chatModel.selectedProposal)) ? (id) => playSection(id, chatModel.selectedProposal!) : undefined}
+            onApply={chatModel.selectedProposal && chatModel.openMessage && (chatModel.selectedProposal.layer || chatModel.arrangementFor(chatModel.selectedProposal)) ? () => {
               stop()
               applyProposal(chatModel.openMessage!.id, chatModel.selectedProposal!.id, chatModel.arrangementFor(chatModel.selectedProposal!))
             } : undefined}
@@ -381,7 +387,7 @@ export function ArrangementWorkspace({
                       type="button"
                       aria-pressed={current}
                       disabled={current}
-                      onClick={() => restoreVersion(version.id)}
+                      onClick={() => { void restoreVersion(version.id).catch(() => {}) }}
                       title={current ? "いまの版" : "この版に戻す"}
                       className={`flex w-48 shrink-0 flex-col gap-0.5 rounded-md px-3 py-2 text-left ${
                         current

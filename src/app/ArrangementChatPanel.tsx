@@ -72,7 +72,7 @@ export function ArrangementChatPanel({
   const appendMessages = useProjectStore((state) => state.appendArrangementChatMessages)
   const applyProposal = useProjectStore((state) => state.applyArrangementChatProposal)
   const dismissProposals = useProjectStore((state) => state.dismissArrangementChatProposals)
-  const restoreVersion = useProjectStore((state) => state.restoreArrangementVersion)
+  const restoreVersion = useProjectStore((state) => state.restoreArrangementVersionAsync)
   const resetConversation = useProjectStore((state) => state.resetArrangementChatConversation)
   const [input, setInput] = useState(initialInput)
   useEffect(() => {
@@ -230,6 +230,7 @@ export function ArrangementChatPanel({
   }
 
   const apply = (message: ArrangementChatMessage, proposal: ArrangementChatProposal) => {
+    if (!proposal.layer && !model.arrangementFor(proposal)) return
     stopListening()
     applyProposal(message.id, proposal.id, model.arrangementFor(proposal))
   }
@@ -238,7 +239,7 @@ export function ArrangementChatPanel({
   const undoApplied = (versionId: string) => {
     const versions = chat?.versions ?? []
     const index = versions.findIndex((version) => version.id === versionId)
-    if (index > 0) restoreVersion(versions[index - 1].id)
+    if (index > 0) void restoreVersion(versions[index - 1].id).catch(() => {})
   }
 
   /**
@@ -539,13 +540,13 @@ function AssistantMessage({
                 </>}
           </p>
           <ul className="flex flex-col gap-1 text-[13px] leading-5 text-body-on-dark">
-            {(points.length > 0 ? points : ["いまの版とほとんど変わりません"]).map((point) => (
+            {(!shown.layer && !model.arrangementFor(shown) ? ["変更案の音の準備が完了するまで、聴き比べ・適用はできません。"] : points.length > 0 ? points : ["いまの版とほとんど変わりません"]).map((point) => (
               <li key={point}>{point}</li>
             ))}
           </ul>
           {!applied && (
             <div className="flex flex-wrap gap-1.5">
-              <Button onClick={() => onApply(shown)}>
+              <Button disabled={!shown.layer && !model.arrangementFor(shown)} onClick={() => onApply(shown)}>
                 <Check size={13} /> 適用する
               </Button>
               <Button
@@ -556,6 +557,7 @@ function AssistantMessage({
               </Button>
               <Button
                 variant="dark"
+                disabled={!shown.layer && !model.arrangementFor(shown)}
                 onClick={() => onListen(`${shown.id}:after`, model.arrangementFor(shown), changes, model.projectFor(shown))}
               >
                 {listening === `${shown.id}:after` ? <><Square size={12} /> 停止</> : <><Play size={12} /> 変更後を聴く</>}

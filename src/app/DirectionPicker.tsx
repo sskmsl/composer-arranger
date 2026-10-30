@@ -1,3 +1,4 @@
+import { isGenerationCancelled } from "@/features/arrangement/generationClient"
 import { useMemo, useState } from "react"
 import { clsx } from "clsx"
 import { Check, LoaderCircle, Sparkles } from "lucide-react"
@@ -38,7 +39,7 @@ export function DirectionPicker({
 }) {
   const project = useProjectStore((state) => state.project)
   const selectedSectionId = useProjectStore((state) => state.selectedSectionId)
-  const generate = useProjectStore((state) => state.generateDirectionArrangement)
+  const generate = useProjectStore((state) => state.generateDirectionArrangementAsync)
   const setArrangementDirectorWorkspace = useProjectStore((state) => state.setArrangementDirectorWorkspace)
   const [selectedId, setSelectedId] = useState<WholeSongDirectionId | null>(null)
   const [meansIds, setMeansIds] = useState<EmotionalMeansId[]>([])
@@ -67,7 +68,7 @@ export function DirectionPicker({
     // 押した直後に「作っています」を描画してから、重い生成を始める
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     try {
-      generateSelectedDirection(
+      await generateSelectedDirection(
         chosen,
         (selectedDirectionId) => setArrangementDirectorWorkspace({ selectedDirectionId }),
         generate,
@@ -76,6 +77,7 @@ export function DirectionPicker({
       )
       onDone?.()
     } catch (reason) {
+      if (isGenerationCancelled(reason)) return
       setError(reason instanceof Error ? reason.message : "全曲アレンジを作れませんでした。")
     } finally {
       setBusy(false)
