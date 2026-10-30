@@ -51,4 +51,20 @@ describe("ordered recoverable project saves", () => {
     expect(await barrier).toBe(true)
     expect(written).toEqual([1, 2])
   })
+
+  it("keeps the most recently edited project last when switching away and back", async () => {
+    let release!: () => void
+    const written: string[] = []
+    const queue = createSaveCoordinator(async (v: { id: string; text: string }) => {
+      if (v.text === "old-a") await new Promise<void>((resolve) => { release = resolve })
+      written.push(v.text)
+    }, (v) => v.id, vi.fn())
+    queue.enqueue({ id: "a", text: "old-a" })
+    queue.enqueue({ id: "b", text: "b" })
+    queue.enqueue({ id: "a", text: "new-a" })
+    release()
+    expect(await queue.flush()).toBe(true)
+    expect(written).toEqual(["old-a", "b", "new-a"])
+  })
+
 })
