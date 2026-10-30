@@ -28,7 +28,10 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
   }
   return {
     enqueue(value: T) {
-      pending.set(key(value), { value, revision: ++revision })
+      const id = key(value)
+      // 曲を切り替えて戻った編集も、lastOpenedを決める最新の保存として最後へ置く。
+      pending.delete(id)
+      pending.set(id, { value, revision: ++revision })
       void start()
     },
     async flush(): Promise<boolean> {
