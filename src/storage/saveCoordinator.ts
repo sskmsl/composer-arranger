@@ -43,12 +43,15 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
       void start()
     },
     pendingValue(id: string): T | undefined { return pending.get(id)?.value },
-    async discard(id: string): Promise<void> {
+    async discard(id: string): Promise<T | undefined> {
+      const retained = pending.get(id)
       pending.delete(id)
       // 既に開始した書込が終わってから削除処理へ進み、削除後の復活を防ぐ。
       while (running) await running
+      const latest = pending.get(id) ?? retained
       pending.delete(id)
       notify(pending.size ? "error" : "saved")
+      return latest?.value
     },
     async flush(): Promise<boolean> {
       await start()
