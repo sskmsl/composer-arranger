@@ -507,8 +507,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   deleteStoredProject: async (projectId) => {
-    await saveCoordinator.discard(projectId)
-    await deleteStoredProjectRepo(projectId)
+    const retained = await saveCoordinator.discard(projectId)
+    try {
+      await deleteStoredProjectRepo(projectId)
+    } catch (error) {
+      // 削除が確定しなかった曲の未保存編集は、再試行・再読込のために戻す。
+      if (retained && !saveCoordinator.pendingValue(projectId)) saveCoordinator.enqueue(retained)
+      throw error
+    }
     // 開いているプロジェクトを削除した場合は、直前状態(lastOpened)を復元、無ければ新規へ
     if (get().project.projectId === projectId) {
       const last = await loadLastOpenedProject()
