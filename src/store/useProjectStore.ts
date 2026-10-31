@@ -1947,6 +1947,6 @@ onStorageAccountChange((previous, next) => {
   if (storageAccountReady()) {
     const retained = retainedProjects.get(next)
     const pending = retained && saveCoordinator.pendingValue(retained.projectId)?.project
-    if (pending) useProjectStore.setState({ project: pending, saveStatus: "error" })
+    useProjectStore.setState({ ...(pending ? { project: pending } : {}), saveStatus: saveCoordinator.hasPending() ? "error" : "idle" })
   }
 })
