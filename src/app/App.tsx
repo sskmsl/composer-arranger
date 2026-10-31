@@ -1,3 +1,4 @@
+import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary"
 import { StorageRecoveryBanner } from "./StorageRecoveryBanner"
 import { lazy, Suspense, useEffect, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
@@ -109,6 +110,7 @@ export function App() {
       <NewVersionBanner />
       <TimingMigrationBanner />
       <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>
+        <WorkspaceErrorBoundary>
         <Suspense fallback={<WorkspaceLoading />}>
         {tab === "home" && <HomeWorkspace onNavigate={changeTopTab} />}
         {tab === "melody" && (
@@ -222,6 +224,7 @@ export function App() {
           </MelodyColumn>
         )}
         </Suspense>
+        </WorkspaceErrorBoundary>
       </div>
       {tab !== "home" &&
         tab !== "arrangement" &&

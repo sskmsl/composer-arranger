@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { Info } from "lucide-react"
 import { Button } from "@/ui/primitives"
+import { useProjectStore } from "@/store/useProjectStore"
+import { reloadAfterSave } from "./reloadAfterSave"
 import { BUILD_ID, fetchLatestBuildId, isNewVersionAvailable } from "@/features/version/newVersion"
 
 /**
@@ -9,6 +11,8 @@ import { BUILD_ID, fetchLatestBuildId, isNewVersionAvailable } from "@/features/
  */
 export function NewVersionBanner() {
   const [available, setAvailable] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [blocked, setBlocked] = useState(false)
 
   useEffect(() => {
     if (BUILD_ID === "dev") return
@@ -20,9 +24,13 @@ export function NewVersionBanner() {
       })
     }
     check()
+    const timer = window.setInterval(check, 60_000)
+    window.addEventListener("focus", check)
     document.addEventListener("visibilitychange", check)
     return () => {
       cancelled = true
+      window.clearInterval(timer)
+      window.removeEventListener("focus", check)
       document.removeEventListener("visibilitychange", check)
     }
   }, [])
@@ -31,14 +39,20 @@ export function NewVersionBanner() {
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-2 border-b border-hairline bg-primary/10 px-4 py-2 text-[13px] text-body-on-dark"
+      className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-primary/10 px-4 py-2 text-[13px] text-body-on-dark"
     >
       <div className="flex items-center gap-2">
         <Info size={15} className="shrink-0 text-primary-on-dark" />
         <span>新しい版が公開されています。再読み込みすると反映されます。</span>
       </div>
-      <Button variant="primary" onClick={() => window.location.reload()}>
-        再読み込み
+      {blocked && <span role="alert">保存を確認できないため、再読み込みを止めました。保存の再試行か、ファイルへの保存をお願いします。</span>}
+      <Button variant="primary" disabled={busy} onClick={async () => {
+        setBusy(true)
+        const ok = await reloadAfterSave(() => useProjectStore.getState().flushSave(), () => window.location.reload())
+        setBlocked(!ok)
+        setBusy(false)
+      }}>
+        {busy ? "保存を確認中…" : "再読み込み"}
       </Button>
     </div>
   )
