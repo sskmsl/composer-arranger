@@ -398,16 +398,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   timingNotice: null,
 
   hydrate: async () => {
+    const beforeRead = get().project
+    const keepLocalEdits = () => {
+      const current = get().project
+      if (current === beforeRead && !saveCoordinator.pendingValue(current.projectId)) return false
+      set({ hydrated: true, storageLoadError: false })
+      return true
+    }
+    // 同期完了の再hydrateでも、未保存の編集中スナップショットをDBで置き換えない。
+    if (keepLocalEdits()) return
     try {
       const last = await loadLastOpenedProject()
+      if (keepLocalEdits()) return
       if (last) {
         // JSON Import/loadProjectByIdと同じ唯一の移行経路(resolveProjectTiming)を通す。
         // normalizeProjectも内部で必ず通るため、旧schemaVersion(1.0)のデータが
         // songProfile等を欠いたままUIへ渡ってクラッシュすることもない(16章/Issue #16)
-        const result = resolveProjectTiming(last)
+        const latest = saveCoordinator.pendingValue(last.projectId)?.project ?? last
+        const result = resolveProjectTiming(latest)
         const sectionInference = inferMarkerlessImportedSections(result.project)
         const arrangementUpgrade = upgradeSavedArrangement(sectionInference.project)
-        if (result.status !== "no-op") await backupProjectTimingSnapshot(last)
+        if (result.status !== "no-op") await backupProjectTimingSnapshot(latest)
+        if (keepLocalEdits()) return
         set({
           project: arrangementUpgrade.project,
           selectedSectionId: arrangementUpgrade.project.sections[0]?.id ?? null,
@@ -420,7 +432,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         set({ hydrated: true, storageLoadError: false })
       }
     } catch {
-      set({ hydrated: true, storageLoadError: true })
+      if (!keepLocalEdits()) set({ hydrated: true, storageLoadError: true })
     }
   },
 
