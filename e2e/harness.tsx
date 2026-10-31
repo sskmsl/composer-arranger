@@ -1,4 +1,5 @@
 import { loadProject as loadStoredProject } from "../src/storage/projectRepository"
+import { CLOUD_SYNC_COMPLETED_EVENT } from "../src/features/sync/projectSync"
 import { arrangementResponseFixture } from "../tools/qa/arrangementResponse"
 import { preparedProposal } from "../src/features/arrangement/proposalCache"
 // CI専用入口。実Appを使い、認証・外部サービスへは接続しない。
@@ -27,6 +28,7 @@ Object.assign(window, { reliability: {
     return useProjectStore.getState().flushSave()
   },
   stored: () => loadStoredProject(useProjectStore.getState().project.projectId),
+  refreshAfterSync: () => window.dispatchEvent(new Event(CLOUD_SYNC_COMPLETED_EVENT)),
   async seedProposal() {
     const project = arrangementReviewSong("A")
     project.fullSongArrangement = generateFullSongArrangement(project, { seed: 19 })

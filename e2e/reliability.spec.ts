@@ -77,6 +77,10 @@ test("quota failure keeps edits, exports JSON and retries the latest version", a
   await arrangementPage(page)
   await page.evaluate(() => { (window as any).__failSaves = true })
   await editTitle(page, "Unsaved but recoverable")
+  await page.evaluate(() => (window as any).reliability.refreshAfterSync())
+  // Let hydrate's DB reads settle before continuing; this is a real App event handler.
+  await page.evaluate(async () => { await (window as any).reliability.state().hydrate() })
+  expect(await page.evaluate(() => (window as any).reliability.state().project.title)).toBe("Unsaved but recoverable")
   const warning = page.getByRole("alert").filter({ hasText: "この端末に曲を保存できませんでした" })
   await expect(warning).toBeVisible()
   await page.evaluate(async () => {
