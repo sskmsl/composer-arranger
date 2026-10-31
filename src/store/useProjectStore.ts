@@ -1,4 +1,5 @@
 import { createSaveCoordinator, type SaveStatus } from "@/storage/saveCoordinator"
+import { assertStorageAccount, onStorageAccountChange, storageAccount, storageAccountReady, type StorageAccount } from "@/storage/accountScope"
 import { create } from "zustand"
 import { scaleSectionTempoChanges } from "@/core/tempoMap"
 import {
@@ -398,8 +399,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   timingNotice: null,
 
   hydrate: async () => {
+    if (!storageAccountReady()) return
+    const account = storageAccount()
     const beforeRead = get().project
     const keepLocalEdits = () => {
+      if (storageAccount() !== account) return true
       const current = get().project
       if (current === beforeRead && !saveCoordinator.pendingValue(current.projectId)) return false
       set({ hydrated: true, storageLoadError: false })
@@ -490,8 +494,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   dismissTimingNotice: () => set({ timingNotice: null }),
 
   loadProjectById: async (id) => {
+    if (!storageAccountReady()) return
+    const account = storageAccount()
     const queued = saveCoordinator.pendingValue(id)?.project
     const stored = queued ?? await loadProjectById(id)
+    if (storageAccount() !== account) return
     // 読み込み中に編集された場合も、古いDBの版で未保存の編集を置き換えない。
     const latest = saveCoordinator.pendingValue(id)?.project ?? stored
     if (latest) get().loadProject(structuredClone(latest))
@@ -503,9 +510,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   renameStoredProject: async (projectId, title) => {
+    if (!storageAccountReady()) return
+    const account = storageAccount()
     const initial = get().project
     const queued = saveCoordinator.pendingValue(projectId)?.project
     const stored = initial.projectId === projectId ? initial : queued ?? await loadProjectById(projectId)
+    if (storageAccount() !== account) return
     const current = get().project
     const latest = current.projectId === projectId ? current
       : saveCoordinator.pendingValue(projectId)?.project ?? stored
@@ -519,29 +529,35 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   deleteStoredProject: async (projectId) => {
-    const retained = await saveCoordinator.discard(projectId)
+    if (!storageAccountReady()) return
+    const account = storageAccount()
+    const queue = saveCoordinator
+    const retained = await queue.discard(projectId)
     try {
+      assertStorageAccount(account)
       await deleteStoredProjectRepo(projectId)
     } catch (error) {
       // 削除が確定しなかった曲の未保存編集は、再試行・再読込のために戻す。
-      if (retained && !saveCoordinator.pendingValue(projectId)) saveCoordinator.enqueue(retained)
+      if (retained && !queue.pendingValue(projectId)) queue.enqueue(retained)
       throw error
     }
+    if (storageAccount() !== account) return
     // 開いているプロジェクトを削除した場合は、直前状態(lastOpened)を復元、無ければ新規へ
     if (get().project.projectId === projectId) {
       const last = await loadLastOpenedProject()
+      if (storageAccount() !== account) return
       if (last) await get().loadProjectById(last.projectId)
       else get().newProject()
     }
   },
 
   persist: () => {
-    if (get().storageLoadError) return
+    if (get().storageLoadError || !storageAccountReady()) return
     saveCoordinator.enqueue({ project: structuredClone(get().project) })
   },
 
   flushSave: async () => {
-    if (get().storageLoadError) return false
+    if (get().storageLoadError || !storageAccountReady()) return false
     get().persist()
     return saveCoordinator.flush()
   },
@@ -1903,7 +1919,34 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 }))
 
-const saveCoordinator = createSaveCoordinator<{ project: ComposerProject; recordOnly?: boolean }>(
-  (entry) => entry.recordOnly ? putProjectRecord(entry.project) : saveProject(entry.project),
-  (entry) => entry.project.projectId,
-  (saveStatus) => useProjectStore.setState({ saveStatus }))
+type SaveEntry = { project: ComposerProject; recordOnly?: boolean }
+const accountQueues = new Map<StorageAccount, ReturnType<typeof createSaveCoordinator<SaveEntry>>>()
+const retainedProjects = new Map<StorageAccount, ComposerProject>()
+function accountQueue(account: StorageAccount) {
+  let queue = accountQueues.get(account)
+  if (!queue) {
+    queue = createSaveCoordinator<SaveEntry>(async (entry) => {
+      assertStorageAccount(account)
+      await (entry.recordOnly ? putProjectRecord(entry.project) : saveProject(entry.project))
+    }, (entry) => entry.project.projectId, (saveStatus) => {
+      if (storageAccount() === account && storageAccountReady()) useProjectStore.setState({ saveStatus })
+    })
+    accountQueues.set(account, queue)
+  }
+  return queue
+}
+let saveCoordinator = accountQueue(storageAccount())
+onStorageAccountChange((previous, next) => {
+  if (previous !== next) {
+    const current = useProjectStore.getState().project
+    if (saveCoordinator.pendingValue(current.projectId)) retainedProjects.set(previous, current)
+    saveCoordinator = accountQueue(next)
+    useProjectStore.setState({ project: createEmptyProject(), selectedSectionId: null, history: [], future: [],
+      hydrated: false, storageLoadError: false, saveStatus: "idle", timingNotice: null, workflowNotice: null })
+  }
+  if (storageAccountReady()) {
+    const retained = retainedProjects.get(next)
+    const pending = retained && saveCoordinator.pendingValue(retained.projectId)?.project
+    if (pending) useProjectStore.setState({ project: pending, saveStatus: "error" })
+  }
+})
