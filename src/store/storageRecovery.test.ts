@@ -43,6 +43,35 @@ it("reopens the latest unsaved edit instead of replacing it with an older DB rec
   expect(storage.loadProject).not.toHaveBeenCalled()
 })
 
+it("preserves unsaved edits when hydration refreshes after synchronization", async () => {
+  storage.saveProject.mockRejectedValue(new Error("quota"))
+  const { useProjectStore } = await import("./useProjectStore")
+  const latest = createEmptyProject("unsaved before sync refresh")
+  storage.loadLastOpenedProject.mockResolvedValue({ ...latest, title: "old DB version" })
+  useProjectStore.setState({ project: latest, hydrated: true })
+  expect(await useProjectStore.getState().flushSave()).toBe(false)
+  await useProjectStore.getState().hydrate()
+  expect(useProjectStore.getState().project).toBe(latest)
+  storage.saveProject.mockResolvedValue(undefined)
+  expect(await useProjectStore.getState().flushSave()).toBe(true)
+  expect(storage.saveProject.mock.lastCall?.[0].title).toBe(latest.title)
+})
+
+it("does not replace edits made while hydration is reading the database", async () => {
+  const { useProjectStore } = await import("./useProjectStore")
+  const initial = createEmptyProject("before read"), edited = { ...initial, title: "edited during read" }
+  let finishRead!: (value: typeof initial) => void
+  storage.loadLastOpenedProject.mockReturnValue(new Promise((resolve) => { finishRead = resolve }))
+  useProjectStore.setState({ project: initial, hydrated: true })
+  const reading = useProjectStore.getState().hydrate()
+  useProjectStore.setState({ project: edited })
+  // Even a successful save during the read must not permit the old read to replace the UI.
+  expect(await useProjectStore.getState().flushSave()).toBe(true)
+  finishRead(initial)
+  await reading
+  expect(useProjectStore.getState().project).toBe(edited)
+})
+
 it("keeps the failed latest edit when deleting the active project falls back to it", async () => {
   storage.saveProject.mockRejectedValue(new Error("quota"))
   const { useProjectStore } = await import("./useProjectStore")
