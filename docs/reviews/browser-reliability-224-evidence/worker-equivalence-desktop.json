@@ -1,0 +1,40 @@
+[
+  {
+    "name": "4/4/19",
+    "same": true,
+    "diagnosticSame": true
+  },
+  {
+    "name": "4/4/41",
+    "same": true,
+    "diagnosticSame": true
+  },
+  {
+    "name": "3/4/19",
+    "same": true,
+    "diagnosticSame": true
+  },
+  {
+    "name": "3/4/41",
+    "same": true,
+    "diagnosticSame": true
+  },
+  {
+    "name": "6/8/19",
+    "same": true,
+    "diagnosticSame": true
+  },
+  {
+    "name": "6/8/41",
+    "same": true,
+    "diagnosticSame": true
+  },
+  {
+    "name": "scoped recipe",
+    "same": true
+  },
+  {
+    "name": "restore version",
+    "same": true
+  }
+]

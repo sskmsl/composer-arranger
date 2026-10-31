@@ -1,0 +1,12 @@
+
+> composer-arranger@0.1.0 test
+> vitest run --run src/storage/saveCoordinator.test.ts src/storage/dbRecovery.test.ts src/store/storageRecovery.test.ts --maxWorkers=2
+
+
+ RUN  v4.1.10 /private/tmp/arranger-reliability-20261031
+
+
+ Test Files  3 passed (3)
+      Tests  7 passed (7)
+   Start at  06:06:06
+   Duration  833ms (transform 643ms, setup 0ms, import 117ms, tests 675ms, environment 0ms)

@@ -62,7 +62,10 @@ export function App() {
 
   useEffect(() => {
     if (saveStatus !== "saving" && saveStatus !== "error") return
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = "" }
+    const warn = (event: BeforeUnloadEvent) => {
+      const current = useProjectStore.getState().saveStatus
+      if (current === "saving" || current === "error") { event.preventDefault(); event.returnValue = "" }
+    }
     window.addEventListener("beforeunload", warn)
     return () => window.removeEventListener("beforeunload", warn)
   }, [saveStatus])

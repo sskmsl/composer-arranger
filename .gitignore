@@ -26,3 +26,8 @@ reference-data/
 
 # Python の一時ファイル
 __pycache__/
+
+# CI用ブラウザ検証の生成物
+dist-e2e/
+playwright-report/
+test-results/

@@ -1,0 +1,40 @@
+[WebServer] (node:61641) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] (node:61642) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 22 tests using 1 worker
+
+(node:61643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › e2e/reliability.spec.ts:41:1 › edit, durable save, reload and actual MIDI download (1.5s)
+  ✓   2 [desktop] › e2e/reliability.spec.ts:57:1 › quota failure keeps edits, exports JSON and retries the latest version (775ms)
+  ✓   3 [desktop] › e2e/reliability.spec.ts:87:1 › startup read failure exits loading and retries without deleting the stored song (555ms)
+  ✓   4 [desktop] › e2e/reliability.spec.ts:100:1 › update reload is blocked on save failure and preserves the last edit after retry (694ms)
+  ✓   5 [desktop] › e2e/reliability.spec.ts:122:1 › failed lazy JS shows recovery and saved reload restores the workspace (2.2s)
+  ✓   6 [desktop] › e2e/reliability.spec.ts:136:1 › worker cancellation keeps the existing song (1.4s)
+  ✓   7 [desktop] › e2e/reliability.spec.ts:151:1 › editing while a worker runs discards its obsolete result (1.7s)
+  ✓   8 [desktop] › e2e/reliability.spec.ts:166:1 › real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions (8.0s)
+  ✓   9 [desktop] › e2e/reliability.spec.ts:174:1 › a visible page detects a published update without switching tabs (352ms)
+  ✓  10 [desktop] › e2e/reliability.spec.ts:184:1 › real worker generation applies a new version and leaves the UI thread responsive (2.3s)
+  ✓  11 [desktop] › e2e/reliability.spec.ts:195:1 › an AI proposal cannot be applied before its worker result is ready (2.5s)
+(node:61707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  12 [mobile] › e2e/reliability.spec.ts:41:1 › edit, durable save, reload and actual MIDI download (1.5s)
+  ✓  13 [mobile] › e2e/reliability.spec.ts:57:1 › quota failure keeps edits, exports JSON and retries the latest version (802ms)
+  ✓  14 [mobile] › e2e/reliability.spec.ts:87:1 › startup read failure exits loading and retries without deleting the stored song (571ms)
+  ✓  15 [mobile] › e2e/reliability.spec.ts:100:1 › update reload is blocked on save failure and preserves the last edit after retry (701ms)
+  ✓  16 [mobile] › e2e/reliability.spec.ts:122:1 › failed lazy JS shows recovery and saved reload restores the workspace (1.7s)
+  ✓  17 [mobile] › e2e/reliability.spec.ts:136:1 › worker cancellation keeps the existing song (1.3s)
+  ✓  18 [mobile] › e2e/reliability.spec.ts:151:1 › editing while a worker runs discards its obsolete result (2.1s)
+  ✓  19 [mobile] › e2e/reliability.spec.ts:166:1 › real module Worker preserves full arrangements, diagnostic, scoped recipes and restored versions (8.0s)
+  ✓  20 [mobile] › e2e/reliability.spec.ts:174:1 › a visible page detects a published update without switching tabs (428ms)
+  ✓  21 [mobile] › e2e/reliability.spec.ts:184:1 › real worker generation applies a new version and leaves the UI thread responsive (2.3s)
+  ✓  22 [mobile] › e2e/reliability.spec.ts:195:1 › an AI proposal cannot be applied before its worker result is ready (2.5s)
+
+  22 passed (46.3s)

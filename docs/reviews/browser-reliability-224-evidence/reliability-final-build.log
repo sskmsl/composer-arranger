@@ -1,0 +1,39 @@
+
+> composer-arranger@0.1.0 build
+> tsc -b && vite build
+
+vite v8.1.5 building client environment for production...
+[2K
+transforming...✓ 1942 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/version.json                                   0.01 kB │ gzip:   0.03 kB
+dist/index.html                                     1.23 kB │ gzip:   0.60 kB
+dist/assets/arrangement.worker-CIldri4C.js        204.90 kB
+dist/assets/index-D0T2WEDZ.css                     56.88 kB │ gzip:  10.23 kB
+dist/assets/arrow-left-BLer883k.js                  0.16 kB │ gzip:   0.16 kB
+dist/assets/star-CuZauZ12.js                        0.46 kB │ gzip:   0.29 kB
+dist/assets/sparkles-B2dIiGoY.js                    0.49 kB │ gzip:   0.27 kB
+dist/assets/PerformanceReviewBadge-Dha6D8mM.js      0.89 kB │ gzip:   0.52 kB
+dist/assets/reactiveContextAudition-DqhLWXgS.js     1.30 kB │ gzip:   0.62 kB
+dist/assets/undo-2-_PTxZsar.js                      1.56 kB │ gzip:   0.67 kB
+dist/assets/CandidatePicker-DzHhhseo.js             1.94 kB │ gzip:   1.08 kB
+dist/assets/EmptySectionState-zgh5sT2C.js           3.73 kB │ gzip:   1.76 kB
+dist/assets/SignaturePhraseWorkspace-DmUmgYAD.js    8.00 kB │ gzip:   3.15 kB
+dist/assets/PhraseWorkspace-C8ASyJ7b.js             8.09 kB │ gzip:   3.22 kB
+dist/assets/CounterWorkspace-0o0lnam5.js            8.86 kB │ gzip:   3.44 kB
+dist/assets/AuditionWorkspace-KvOW7eOm.js           9.56 kB │ gzip:   3.64 kB
+dist/assets/DecorationWorkspace-DshAn1rn.js        10.83 kB │ gzip:   3.83 kB
+dist/assets/MelodyWorkspace-lulR5Uon.js            18.86 kB │ gzip:   6.81 kB
+dist/assets/previewPlayer-DVo7nPKl.js              24.91 kB │ gzip:   8.70 kB
+dist/assets/exportMelody-CedfLbeO.js               86.57 kB │ gzip:  26.87 kB
+dist/assets/ArrangementWorkspace-mGWzA9v9.js      120.36 kB │ gzip:  39.25 kB
+dist/assets/index-Cb5Q5ivQ.js                     315.00 kB │ gzip:  96.92 kB
+dist/assets/chordVoicing-B1enkXgY.js              727.70 kB │ gzip: 228.83 kB
+
+✓ built in 326ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
