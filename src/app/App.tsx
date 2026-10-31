@@ -1,3 +1,4 @@
+import { StorageRecoveryBanner } from "./StorageRecoveryBanner"
 import { lazy, Suspense, useEffect, useState } from "react"
 import { useProjectStore } from "@/store/useProjectStore"
 import { TopBar } from "./TopBar"
@@ -39,6 +40,8 @@ export type MainTab =
 export function App() {
   const project = useProjectStore((s) => s.project)
   const hydrate = useProjectStore((s) => s.hydrate)
+  const storageLoadError = useProjectStore((s) => s.storageLoadError)
+  const saveStatus = useProjectStore((s) => s.saveStatus)
   const hydrated = useProjectStore((s) => s.hydrated)
   const [tab, setTab] = useState<MainTab>("home")
   const [leftOpen, setLeftOpen] = useState(false)
@@ -54,6 +57,13 @@ export function App() {
     const hasSections = useProjectStore.getState().project.sections.length > 0
     setTab(nextTab === "home" || hasSections ? nextTab : "home")
   }
+
+  useEffect(() => {
+    if (saveStatus !== "saving" && saveStatus !== "error") return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = "" }
+    window.addEventListener("beforeunload", warn)
+    return () => window.removeEventListener("beforeunload", warn)
+  }, [saveStatus])
 
   useEffect(() => {
     void hydrate()
@@ -82,6 +92,8 @@ export function App() {
     )
   }
 
+  if (storageLoadError) return <div className="min-h-dvh bg-surface-black"><StorageRecoveryBanner /></div>
+
   const useBrowserScroll = tab === "arrangement"
 
   return (
@@ -93,6 +105,7 @@ export function App() {
         onToggleRight={() => setRightOpen((v) => !v)}
         onOpenImportGuide={() => setImportGuideOpen(true)}
       />
+      <StorageRecoveryBanner />
       <NewVersionBanner />
       <TimingMigrationBanner />
       <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>

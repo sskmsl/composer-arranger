@@ -1,6 +1,7 @@
 import type { ComposerProject } from "@/core/project"
 import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectBrowser"
 import { getDb, PROJECT_STORE, META_STORE } from "./db"
+import { allowStorageAccount, assertStorageAccount, storageAccount } from "./accountScope"
 import {
   deleteProjectRemote,
   mergeProjectCollections,
@@ -62,7 +63,7 @@ async function flushCloudDeletion(
   ownerId: string,
   deletion: PendingCloudDeletion,
 ): Promise<void> {
-  await deleteProjectRemote(deletion.projectId, deletion.deletedAt)
+  await deleteProjectRemote(deletion.projectId, deletion.deletedAt, ownerId)
   const pending = await readPendingDeletions(ownerId)
   await writePendingDeletions(
     ownerId,
@@ -72,10 +73,25 @@ async function flushCloudDeletion(
 
 /** 17章「保存中のアプリ終了でも直前状態を復元できる」を満たすための自動保存 */
 export async function saveProject(project: ComposerProject): Promise<void> {
+  const account = storageAccount()
   const db = await getDb()
+  assertStorageAccount(account)
   const record = { ...project, savedAt: new Date().toISOString() }
-  await db.put(PROJECT_STORE, record)
-  await db.put(META_STORE, project.projectId, LAST_OPENED_KEY)
+  const transaction = db.transaction([PROJECT_STORE, META_STORE], "readwrite")
+  try {
+    await Promise.all([
+      (async () => {
+        await transaction.objectStore(PROJECT_STORE).put(record)
+        await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
+      })(),
+      transaction.done,
+    ])
+  } catch (error) {
+    try { transaction.abort() } catch { /* 既に中断・終了したtransactionもある */ }
+    await transaction.done.catch(() => undefined)
+    throw error
+  }
+  assertStorageAccount(account)
   scheduleProjectPush(record)
 }
 
@@ -102,9 +118,12 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
  * 現在編集中のセッション(store.project/selectedSectionId/history等)には一切触れない。
  */
 export async function putProjectRecord(project: ComposerProject): Promise<void> {
+  const account = storageAccount()
   const db = await getDb()
+  assertStorageAccount(account)
   const record = { ...project, savedAt: new Date().toISOString() }
   await db.put(PROJECT_STORE, record)
+  assertStorageAccount(account)
   scheduleProjectPush(record)
 }
 
@@ -113,11 +132,16 @@ export async function putProjectRecord(project: ComposerProject): Promise<void> 
  * meta の lastOpened も安全に更新する(残りの先頭、無ければクリア)。
  */
 export async function deleteProject(projectId: string): Promise<void> {
+  const account = storageAccount()
   const db = await getDb()
+  assertStorageAccount(account)
   const lastOpened = (await db.get(META_STORE, LAST_OPENED_KEY)) ?? null
   const allIds = (await db.getAllKeys(PROJECT_STORE)) as string[]
+  assertStorageAccount(account)
   await db.delete(PROJECT_STORE, projectId)
+  assertStorageAccount(account)
   const cloudOwnerId = await db.get(META_STORE, CLOUD_OWNER_KEY)
+  assertStorageAccount(account)
   if (cloudOwnerId) {
     const deletion = await queueCloudDeletion(cloudOwnerId, projectId)
     void flushCloudDeletion(cloudOwnerId, deletion).catch(() => undefined)
@@ -129,8 +153,10 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 /** Issue #14: 保存済みプロジェクトを複製する(新しいprojectId・全データ保持)。複製したプロジェクトを返す */
 export async function duplicateProject(projectId: string): Promise<ComposerProject | undefined> {
+  const account = storageAccount()
   const db = await getDb()
   const record = await db.get(PROJECT_STORE, projectId)
+  assertStorageAccount(account)
   if (!record) return undefined
   const { savedAt: _savedAt, ...project } = record as ComposerProject & { savedAt?: string }
   const copy = duplicateProjectData(project)
@@ -169,13 +195,20 @@ async function replaceAllLocalProjects(
   projects: StoredComposerProject[],
   deletedProjectIds: ReadonlySet<string>,
 ): Promise<void> {
+  const account = storageAccount()
   const db = await getDb()
+  assertStorageAccount(account)
   const transaction = db.transaction(PROJECT_STORE, "readwrite")
   // 同期中にも編集を続けられるよう、同期開始後に保存されたローカル版を
   // savedAtで再統合する。Cloud tombstoneだけは復活させない。
   const liveLocalProjects = (await transaction.store.getAll()).filter(
     (project) => !deletedProjectIds.has(project.projectId),
   )
+  if (storageAccount() !== account) {
+    try { transaction.abort() } catch { /* read-only stage may already have completed */ }
+    await transaction.done.catch(() => undefined)
+    throw new Error("同期中にアカウントが変更されました")
+  }
   const latestProjects = mergeProjectCollections(projects, liveLocalProjects)
   await transaction.store.clear()
   await Promise.all(
@@ -184,11 +217,20 @@ async function replaceAllLocalProjects(
   await transaction.done
 }
 
-/** AuthGateから呼ばれる、全保存projectの端末間同期。 */
-export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
+function assertAccountOwner(ownerId: string) {
+  const current = storageAccount()
+  if (current !== undefined && current !== ownerId) throw new Error("同期中にアカウントが変更されました")
+}
+
+/** 通信前に、そのアカウントの端末データだけを利用可能にする。 */
+export async function prepareLocalAccount(ownerId: string): Promise<void> {
+  const assertOwner = () => assertAccountOwner(ownerId)
+  assertOwner()
   const db = await getDb()
+  assertOwner()
   const previousOwnerId =
     (await db.get(META_STORE, CLOUD_OWNER_KEY)) ?? null
+  assertOwner()
   if (shouldResetLocalForOwner(previousOwnerId, ownerId)) {
     const transaction = db.transaction(
       [PROJECT_STORE, META_STORE],
@@ -198,9 +240,19 @@ export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
     await transaction.objectStore(META_STORE).delete(LAST_OPENED_KEY)
     await transaction.done
   }
+  assertOwner()
   await db.put(META_STORE, ownerId, CLOUD_OWNER_KEY)
+  assertOwner()
+  allowStorageAccount(ownerId)
+}
 
+/** AuthGateから呼ばれる、全保存projectの端末間同期。 */
+export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
+  await prepareLocalAccount(ownerId)
+  const assertOwner = () => assertAccountOwner(ownerId)
+  assertOwner()
   const pending = await readPendingDeletions(ownerId)
+  assertOwner()
   for (const deletion of pending) {
     try {
       await flushCloudDeletion(ownerId, deletion)
@@ -211,8 +263,9 @@ export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
   const remainingDeletedIds = (await readPendingDeletions(ownerId)).map(
     (item) => item.projectId,
   )
+  assertOwner()
   await syncPullAndReconcile({
-    listLocal: listProjects,
-    replaceLocal: replaceAllLocalProjects,
+    listLocal: () => { assertOwner(); return listProjects() },
+    replaceLocal: (projects, deleted) => { assertOwner(); return replaceAllLocalProjects(projects, deleted) },
   }, remainingDeletedIds)
 }
