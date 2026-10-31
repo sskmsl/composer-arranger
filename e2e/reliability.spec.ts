@@ -42,6 +42,12 @@ test.beforeEach(async ({ page }) => {
       if (w.__failSaves && this.name === "projects") throw new DOMException("Injected quota", "QuotaExceededError")
       return put.call(this, value, key)
     }
+    const remove = IDBObjectStore.prototype.delete
+    IDBObjectStore.prototype.delete = function(key: IDBValidKey | IDBKeyRange) {
+      const request = remove.call(this, key)
+      if (w.__abortDeletes && this.name === "projects") this.transaction.abort()
+      return request
+    }
     Object.defineProperty(window, "showSaveFilePicker", { value: undefined, configurable: true })
   })
   await page.goto("/e2e/harness.html")
@@ -251,5 +257,30 @@ test("an aborted IndexedDB transaction preserves stored data and retries without
   await warning.getByRole("button", { name: "保存を再試行" }).click()
   await saved(page)
   expect(await page.evaluate(async () => (await (window as any).reliability.stored()).title)).toBe("After transaction recovery")
+  expect(errors).toEqual([])
+})
+
+test("failed deletion of an inactive song retains its unsaved edits for retry", async ({ page }) => {
+  const errors: string[] = []
+  page.on("pageerror", (error) => errors.push(error.message))
+  await seed(page)
+  await arrangementPage(page)
+  await page.evaluate(() => { (window as any).__failSaves = true })
+  await editTitle(page, "Retained after failed deletion")
+  await expect(page.getByRole("alert").filter({ hasText: "この端末に曲を保存できませんでした" })).toBeVisible()
+  expect(await page.evaluate(async () => {
+    const w = window as any
+    const id = w.reliability.state().project.projectId
+    w.reliability.state().newProject()
+    w.__abortDeletes = true
+    let rejected = false
+    try { await w.reliability.state().deleteStoredProject(id) } catch { rejected = true }
+    w.__abortDeletes = false
+    await w.reliability.state().loadProjectById(id)
+    return { rejected, title: w.reliability.state().project.title }
+  })).toEqual({ rejected: true, title: "Retained after failed deletion" })
+  await page.evaluate(async () => { const w = window as any; w.__failSaves = false; await w.reliability.state().flushSave() })
+  await saved(page)
+  expect(await page.evaluate(async () => (await (window as any).reliability.stored()).title)).toBe("Retained after failed deletion")
   expect(errors).toEqual([])
 })

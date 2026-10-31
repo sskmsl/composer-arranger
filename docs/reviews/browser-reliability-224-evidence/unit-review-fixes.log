@@ -1,0 +1,12 @@
+
+> composer-arranger@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v4.1.10 /private/tmp/arranger-reliability-e2e
+
+
+ Test Files  209 passed | 6 skipped (215)
+      Tests  1594 passed | 7 skipped (1601)
+   Start at  06:54:00
+   Duration  169.15s (transform 2.07s, setup 0ms, import 30.19s, tests 292.78s, environment 10ms)

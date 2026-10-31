@@ -116,12 +116,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1558,
+                  "duration": 2181,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:07.472Z",
+                  "startTime": "2026-10-31T03:08:31.675Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -131,7 +131,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-6da909e0fbf25a70bc46",
           "file": "reliability.spec.ts",
-          "line": 51,
+          "line": 57,
           "column": 1
         },
         {
@@ -150,12 +150,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 785,
+                  "duration": 727,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:09.406Z",
+                  "startTime": "2026-10-31T03:08:34.696Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -165,7 +165,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-e1e6473e4b9688f8aa6e",
           "file": "reliability.spec.ts",
-          "line": 67,
+          "line": 73,
           "column": 1
         },
         {
@@ -184,12 +184,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 450,
+                  "duration": 590,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:10.199Z",
+                  "startTime": "2026-10-31T03:08:35.431Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -199,7 +199,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-cd7760a3edd952982ca9",
           "file": "reliability.spec.ts",
-          "line": 99,
+          "line": 105,
           "column": 1
         },
         {
@@ -218,12 +218,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 593,
+                  "duration": 718,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:10.655Z",
+                  "startTime": "2026-10-31T03:08:36.028Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -233,7 +233,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-9e3e82882ee8d5672b35",
           "file": "reliability.spec.ts",
-          "line": 112,
+          "line": 118,
           "column": 1
         },
         {
@@ -252,12 +252,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2210,
+                  "duration": 1729,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:11.256Z",
+                  "startTime": "2026-10-31T03:08:36.754Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -267,7 +267,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-49b33541e33be8cef52e",
           "file": "reliability.spec.ts",
-          "line": 137,
+          "line": 143,
           "column": 1
         },
         {
@@ -286,12 +286,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1316,
+                  "duration": 878,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:13.474Z",
+                  "startTime": "2026-10-31T03:08:38.491Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -301,7 +301,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-21aeb1271e23e206bbdc",
           "file": "reliability.spec.ts",
-          "line": 151,
+          "line": 157,
           "column": 1
         },
         {
@@ -320,12 +320,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1669,
+                  "duration": 1641,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:14.801Z",
+                  "startTime": "2026-10-31T03:08:39.382Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -335,7 +335,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-7a77c3eaf5e699a959f8",
           "file": "reliability.spec.ts",
-          "line": 166,
+          "line": 172,
           "column": 1
         },
         {
@@ -359,7 +359,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:16.477Z",
+                  "startTime": "2026-10-31T03:08:41.031Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -375,7 +375,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-87cf796ee4a6d2a1ec45",
           "file": "reliability.spec.ts",
-          "line": 181,
+          "line": 187,
           "column": 1
         },
         {
@@ -394,12 +394,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 440,
+                  "duration": 453,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:24.742Z",
+                  "startTime": "2026-10-31T03:08:49.299Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -409,7 +409,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-1b9f27e16153f64109d3",
           "file": "reliability.spec.ts",
-          "line": 189,
+          "line": 195,
           "column": 1
         },
         {
@@ -428,12 +428,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2309,
+                  "duration": 2319,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:25.188Z",
+                  "startTime": "2026-10-31T03:08:49.768Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -443,7 +443,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-b5bd67cd8bd65636a16d",
           "file": "reliability.spec.ts",
-          "line": 199,
+          "line": 205,
           "column": 1
         },
         {
@@ -462,12 +462,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2435,
+                  "duration": 2438,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:27.502Z",
+                  "startTime": "2026-10-31T03:08:52.095Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -477,7 +477,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-fda85e95935541ba773e",
           "file": "reliability.spec.ts",
-          "line": 210,
+          "line": 216,
           "column": 1
         },
         {
@@ -496,12 +496,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1670,
+                  "duration": 1684,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:29.944Z",
+                  "startTime": "2026-10-31T03:08:54.539Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -511,7 +511,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-a5e13c11eeadbc70da8d",
           "file": "reliability.spec.ts",
-          "line": 227,
+          "line": 233,
           "column": 1
         },
         {
@@ -530,12 +530,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 701,
+                  "duration": 595,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:31.620Z",
+                  "startTime": "2026-10-31T03:08:56.231Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -545,7 +545,41 @@
           ],
           "id": "44c5b85f3c6d687177b0-d1676d1b618282aa9087",
           "file": "reliability.spec.ts",
-          "line": 239,
+          "line": 245,
+          "column": 1
+        },
+        {
+          "title": "failed deletion of an inactive song retains its unsaved edits for retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 576,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T03:08:56.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-867b03b5d277ed0cff3f",
+          "file": "reliability.spec.ts",
+          "line": 263,
           "column": 1
         },
         {
@@ -564,12 +598,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1409,
+                  "duration": 1529,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:32.642Z",
+                  "startTime": "2026-10-31T03:08:57.749Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -579,7 +613,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-aada375b7196fbc841b7",
           "file": "reliability.spec.ts",
-          "line": 51,
+          "line": 57,
           "column": 1
         },
         {
@@ -598,12 +632,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 773,
+                  "duration": 791,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:34.390Z",
+                  "startTime": "2026-10-31T03:08:59.640Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -613,7 +647,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-52919205819cd24decab",
           "file": "reliability.spec.ts",
-          "line": 67,
+          "line": 73,
           "column": 1
         },
         {
@@ -632,12 +666,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 550,
+                  "duration": 564,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:35.171Z",
+                  "startTime": "2026-10-31T03:09:00.438Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -647,7 +681,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-fcfb2e8b0ed90388fe44",
           "file": "reliability.spec.ts",
-          "line": 99,
+          "line": 105,
           "column": 1
         },
         {
@@ -666,12 +700,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 708,
+                  "duration": 728,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:35.727Z",
+                  "startTime": "2026-10-31T03:09:01.010Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -681,7 +715,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-35d20bdb0b96441ed064",
           "file": "reliability.spec.ts",
-          "line": 112,
+          "line": 118,
           "column": 1
         },
         {
@@ -700,12 +734,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1675,
+                  "duration": 2155,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:36.442Z",
+                  "startTime": "2026-10-31T03:09:01.748Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -715,7 +749,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-f24e7ae7f68aa55ad4fc",
           "file": "reliability.spec.ts",
-          "line": 137,
+          "line": 143,
           "column": 1
         },
         {
@@ -734,12 +768,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 819,
+                  "duration": 1277,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:38.124Z",
+                  "startTime": "2026-10-31T03:09:03.910Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -749,7 +783,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-65bd6f9c00b7ed99e6f6",
           "file": "reliability.spec.ts",
-          "line": 151,
+          "line": 157,
           "column": 1
         },
         {
@@ -768,12 +802,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2074,
+                  "duration": 1630,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:38.949Z",
+                  "startTime": "2026-10-31T03:09:05.195Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -783,7 +817,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-753d986c5822baae7271",
           "file": "reliability.spec.ts",
-          "line": 166,
+          "line": 172,
           "column": 1
         },
         {
@@ -802,12 +836,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 8198,
+                  "duration": 8171,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:41.030Z",
+                  "startTime": "2026-10-31T03:09:06.837Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -823,7 +857,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-a32ee5482362c6c54a4a",
           "file": "reliability.spec.ts",
-          "line": 181,
+          "line": 187,
           "column": 1
         },
         {
@@ -842,12 +876,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 432,
+                  "duration": 441,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:49.234Z",
+                  "startTime": "2026-10-31T03:09:15.020Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -857,7 +891,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-4f22d37bc388011accaa",
           "file": "reliability.spec.ts",
-          "line": 189,
+          "line": 195,
           "column": 1
         },
         {
@@ -876,12 +910,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2310,
+                  "duration": 2290,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:49.674Z",
+                  "startTime": "2026-10-31T03:09:15.468Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -891,7 +925,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-1bc60dcaf4b1d5ee510a",
           "file": "reliability.spec.ts",
-          "line": 199,
+          "line": 205,
           "column": 1
         },
         {
@@ -910,12 +944,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2463,
+                  "duration": 2495,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:51.990Z",
+                  "startTime": "2026-10-31T03:09:17.766Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -925,7 +959,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-4ae09b33db2cf7a1c758",
           "file": "reliability.spec.ts",
-          "line": 210,
+          "line": 216,
           "column": 1
         },
         {
@@ -944,12 +978,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1625,
+                  "duration": 1717,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:54.459Z",
+                  "startTime": "2026-10-31T03:09:20.268Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -959,7 +993,7 @@
           ],
           "id": "44c5b85f3c6d687177b0-c4f657068335ab117618",
           "file": "reliability.spec.ts",
-          "line": 227,
+          "line": 233,
           "column": 1
         },
         {
@@ -978,12 +1012,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 590,
+                  "duration": 678,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-30T21:53:56.094Z",
+                  "startTime": "2026-10-31T03:09:21.993Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -993,7 +1027,41 @@
           ],
           "id": "44c5b85f3c6d687177b0-bd95a3bcc2f2c32610c1",
           "file": "reliability.spec.ts",
-          "line": 239,
+          "line": 245,
+          "column": 1
+        },
+        {
+          "title": "failed deletion of an inactive song retains its unsaved edits for retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 574,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T03:09:22.676Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "44c5b85f3c6d687177b0-4b6251049e313ab014ae",
+          "file": "reliability.spec.ts",
+          "line": 263,
           "column": 1
         }
       ]
@@ -1001,9 +1069,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-30T21:53:06.303Z",
-    "duration": 50510.587,
-    "expected": 26,
+    "startTime": "2026-10-31T03:08:30.506Z",
+    "duration": 52859.913,
+    "expected": 28,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
