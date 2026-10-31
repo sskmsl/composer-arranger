@@ -1,0 +1,8 @@
+
+ RUN  v4.1.10 /private/tmp/arranger-reliability-20261031
+
+
+ Test Files  6 passed (6)
+      Tests  36 passed (36)
+   Start at  12:25:17
+   Duration  1.11s (transform 1.17s, setup 0ms, import 679ms, tests 955ms, environment 1ms)

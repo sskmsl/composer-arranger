@@ -288,3 +288,27 @@ test("failed deletion of an inactive song retains its unsaved edits for retry", 
   expect(await page.evaluate(async () => (await (window as any).reliability.stored()).title)).toBe("Retained after failed deletion")
   expect(errors).toEqual([])
 })
+
+test("retained edits cannot cross accounts and recover only after returning to their owner", async ({ page }) => {
+  await page.evaluate(() => (window as any).reliability.account("owner-A"))
+  await seed(page)
+  await arrangementPage(page)
+  await page.evaluate(() => { (window as any).__failSaves = true })
+  await editTitle(page, "Private unsaved A")
+  await expect(page.getByRole("alert").filter({ hasText: "この端末に曲を保存できませんでした" })).toBeVisible()
+  await page.evaluate(() => (window as any).reliability.account("owner-B"))
+  expect(await page.evaluate(() => (window as any).reliability.state().project.title)).not.toBe("Private unsaved A")
+  await page.evaluate(async () => {
+    const w = window as any
+    w.__failSaves = false
+    w.reliability.state().newProject()
+  })
+  await arrangementPage(page)
+  await editTitle(page, "Private saved B")
+  expect(await page.evaluate(() => (window as any).reliability.state().flushSave())).toBe(true)
+  expect(await page.evaluate(() => (window as any).reliability.storedTitles())).toEqual(["Private saved B"])
+  await page.evaluate(() => (window as any).reliability.account("owner-A"))
+  expect(await page.evaluate(() => (window as any).reliability.state().project.title)).toBe("Private unsaved A")
+  expect(await page.evaluate(() => (window as any).reliability.state().flushSave())).toBe(true)
+  expect(await page.evaluate(() => (window as any).reliability.storedTitles())).toEqual(["Private unsaved A"])
+})

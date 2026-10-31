@@ -4,36 +4,36 @@
 
 vite v8.1.5 building client environment for production...
 [2K
-transforming...✓ 1943 modules transformed.
+transforming...✓ 1944 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/version.json                                   0.01 kB │ gzip:   0.03 kB
 dist/index.html                                     1.23 kB │ gzip:   0.60 kB
 dist/assets/arrangement.worker-B9f8VUnl.js        308.82 kB
 dist/assets/index-D0T2WEDZ.css                     56.88 kB │ gzip:  10.23 kB
-dist/assets/arrow-left-BxvP4SPm.js                  0.16 kB │ gzip:   0.16 kB
-dist/assets/star-97crByxV.js                        0.46 kB │ gzip:   0.29 kB
-dist/assets/sparkles-CnmPKyOb.js                    0.49 kB │ gzip:   0.28 kB
-dist/assets/PerformanceReviewBadge-YQZXot3L.js      0.89 kB │ gzip:   0.52 kB
-dist/assets/reactiveContextAudition-DjoXfLf0.js     1.30 kB │ gzip:   0.63 kB
-dist/assets/undo-2-B1E7Sf71.js                      1.56 kB │ gzip:   0.67 kB
-dist/assets/CandidatePicker-OllZHP8q.js             1.94 kB │ gzip:   1.08 kB
-dist/assets/EmptySectionState-DGVow6_X.js           3.73 kB │ gzip:   1.75 kB
-dist/assets/SignaturePhraseWorkspace-BUyWlZFN.js    8.00 kB │ gzip:   3.16 kB
-dist/assets/PhraseWorkspace-B8tMi_EQ.js             8.09 kB │ gzip:   3.22 kB
-dist/assets/CounterWorkspace-8UcyTcDM.js            8.86 kB │ gzip:   3.45 kB
-dist/assets/AuditionWorkspace-B5EqPY2z.js           9.56 kB │ gzip:   3.64 kB
-dist/assets/DecorationWorkspace-DErSutRD.js        10.83 kB │ gzip:   3.83 kB
-dist/assets/MelodyWorkspace-Du_LpHJ5.js            18.86 kB │ gzip:   6.82 kB
-dist/assets/previewPlayer-CLp4Sol6.js              24.91 kB │ gzip:   8.72 kB
-dist/assets/exportMelody-BklXFKfr.js               86.56 kB │ gzip:  26.88 kB
-dist/assets/ArrangementWorkspace-tsISYARK.js       99.89 kB │ gzip:  31.92 kB
-dist/assets/index-CF2qf7Q1.js                     315.03 kB │ gzip:  96.97 kB
-dist/assets/chordVoicing-Ds8S6RO-.js              727.54 kB │ gzip: 228.60 kB
+dist/assets/arrow-left-CZ0_hivJ.js                  0.16 kB │ gzip:   0.16 kB
+dist/assets/star-GMVHDb5Z.js                        0.46 kB │ gzip:   0.29 kB
+dist/assets/sparkles-CYoPPX4o.js                    0.49 kB │ gzip:   0.28 kB
+dist/assets/PerformanceReviewBadge-fzZsO93c.js      0.89 kB │ gzip:   0.52 kB
+dist/assets/reactiveContextAudition-BMeWONLx.js     1.30 kB │ gzip:   0.63 kB
+dist/assets/undo-2-BVO-VX9W.js                      1.56 kB │ gzip:   0.67 kB
+dist/assets/CandidatePicker-Bk6KV22Y.js             1.94 kB │ gzip:   1.09 kB
+dist/assets/EmptySectionState-BbGN7qAi.js           3.73 kB │ gzip:   1.75 kB
+dist/assets/SignaturePhraseWorkspace-BWycpkku.js    8.00 kB │ gzip:   3.16 kB
+dist/assets/PhraseWorkspace-DiQFoUmn.js             8.09 kB │ gzip:   3.22 kB
+dist/assets/CounterWorkspace-B52xdHW2.js            8.86 kB │ gzip:   3.45 kB
+dist/assets/AuditionWorkspace-CxnprE8s.js           9.56 kB │ gzip:   3.64 kB
+dist/assets/DecorationWorkspace-BH9utFdz.js        10.83 kB │ gzip:   3.83 kB
+dist/assets/MelodyWorkspace-51EGH1lN.js            18.86 kB │ gzip:   6.82 kB
+dist/assets/previewPlayer-BUyUST9z.js              24.90 kB │ gzip:   8.72 kB
+dist/assets/exportMelody-DLvcoAEM.js               86.56 kB │ gzip:  26.89 kB
+dist/assets/ArrangementWorkspace-CDJOlM1x.js       99.90 kB │ gzip:  31.93 kB
+dist/assets/index-CRIvymJk.js                     315.03 kB │ gzip:  96.97 kB
+dist/assets/chordVoicing-DGART3C8.js              729.53 kB │ gzip: 229.24 kB
 
+✓ built in 408ms
 [plugin builtin:vite-reporter]
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 776ms

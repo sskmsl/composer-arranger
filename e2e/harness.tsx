@@ -1,4 +1,5 @@
-import { loadProject as loadStoredProject } from "../src/storage/projectRepository"
+import { loadProject as loadStoredProject, prepareLocalAccount, listProjects } from "../src/storage/projectRepository"
+import { selectStorageAccount } from "../src/storage/accountScope"
 import { CLOUD_SYNC_COMPLETED_EVENT } from "../src/features/sync/projectSync"
 import { arrangementResponseFixture } from "../tools/qa/arrangementResponse"
 import { preparedProposal } from "../src/features/arrangement/proposalCache"
@@ -29,6 +30,13 @@ Object.assign(window, { reliability: {
   },
   stored: () => loadStoredProject(useProjectStore.getState().project.projectId),
   refreshAfterSync: () => window.dispatchEvent(new Event(CLOUD_SYNC_COMPLETED_EVENT)),
+  async account(owner: string) {
+    selectStorageAccount(owner)
+    await prepareLocalAccount(owner)
+    window.dispatchEvent(new Event(CLOUD_SYNC_COMPLETED_EVENT))
+    await useProjectStore.getState().hydrate()
+  },
+  storedTitles: async () => (await listProjects()).map((project) => project.title),
   async seedProposal() {
     const project = arrangementReviewSong("A")
     project.fullSongArrangement = generateFullSongArrangement(project, { seed: 19 })
