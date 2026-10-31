@@ -43,6 +43,7 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
       void start()
     },
     pendingValue(id: string): T | undefined { return pending.get(id)?.value },
+    hasPending(): boolean { return pending.size > 0 },
     async discard(id: string): Promise<T | undefined> {
       const retained = pending.get(id)
       pending.delete(id)
