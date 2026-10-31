@@ -1,5 +1,6 @@
 import type { ComposerProject } from "@/core/project"
 import { supabase } from "@/lib/supabase"
+import { onStorageAccountChange, storageAccount, storageAccountReady, type StorageAccount } from "@/storage/accountScope"
 import {
   decodeCloudProjectPayload,
   encodeCloudProjectPayload,
@@ -37,6 +38,11 @@ interface RemoteProjectMetadata {
 }
 
 const pendingPushes = new Map<string, ReturnType<typeof setTimeout>>()
+onStorageAccountChange((previous, next) => {
+  if (previous === next) return
+  for (const timer of pendingPushes.values()) clearTimeout(timer)
+  pendingPushes.clear()
+})
 
 function errorMessage(reason: unknown): string {
   if (reason instanceof Error && reason.message) return reason.message
@@ -113,35 +119,40 @@ async function ownerId(): Promise<string | null> {
 /** 頻繁なノート編集でも通信を連打しないよう、project単位で最後の状態だけ送る。 */
 export function scheduleProjectPush(project: StoredComposerProject): void {
   if (!supabase) return
+  const account = storageAccount()
   const pending = pendingPushes.get(project.projectId)
   if (pending) clearTimeout(pending)
   pendingPushes.set(
     project.projectId,
     setTimeout(() => {
       pendingPushes.delete(project.projectId)
-      void pushProject(project).catch(() => undefined)
+      if (storageAccount() === account && storageAccountReady()) void pushProject(project, account).catch(() => undefined)
     }, PUSH_DELAY_MS),
   )
 }
 
-export async function pushProject(project: StoredComposerProject): Promise<void> {
+export async function pushProject(project: StoredComposerProject, account: StorageAccount = storageAccount()): Promise<void> {
   const client = supabase
   if (!client) return
-  if (!(await ownerId())) return
+  const owner = await ownerId()
+  if (!owner || account === null || (account !== undefined && account !== owner)
+    || storageAccount() !== account || !storageAccountReady()) return
   const cloudPayload = await encodeCloudProjectPayload(project)
-  await runCloudRpc("アップロード", () =>
-    client.rpc(UPSERT_PROJECT_RPC, {
+  await runCloudRpc("アップロード", () => {
+    if (storageAccount() !== account || !storageAccountReady()) throw new Error("アップロード中にアカウントが変更されました")
+    return client.rpc(UPSERT_PROJECT_RPC, {
       p_id: project.projectId,
       p_data: cloudPayload,
       p_updated_at: project.savedAt,
       p_deleted_at: null,
-    }),
-  )
+    })
+  })
 }
 
 export async function deleteProjectRemote(
   projectId: string,
   deletedAt = new Date().toISOString(),
+  account: StorageAccount = storageAccount(),
 ): Promise<void> {
   const client = supabase
   if (!client) return
@@ -150,16 +161,22 @@ export async function deleteProjectRemote(
     clearTimeout(pending)
     pendingPushes.delete(projectId)
   }
-  if (!(await ownerId())) return
+  const owner = await ownerId()
+  if (account !== undefined && (account !== owner || storageAccount() !== account || !storageAccountReady())) {
+    throw new Error("削除反映中にアカウントが変更されました")
+  }
+  if (!owner || account === null || (account !== undefined && account !== owner)
+    || storageAccount() !== account || !storageAccountReady()) return
   // 物理削除せずtombstoneを残し、別端末の古いIndexedDBから復活するのを防ぐ。
-  await runCloudRpc("削除反映", () =>
-    client.rpc(UPSERT_PROJECT_RPC, {
+  await runCloudRpc("削除反映", () => {
+    if (storageAccount() !== account || !storageAccountReady()) throw new Error("削除反映中にアカウントが変更されました")
+    return client.rpc(UPSERT_PROJECT_RPC, {
       p_id: projectId,
       p_data: null,
       p_updated_at: deletedAt,
       p_deleted_at: deletedAt,
-    }),
-  )
+    })
+  })
 }
 
 function newerProject(
@@ -265,6 +282,7 @@ export async function syncPullAndReconcile(
   adapter: ProjectSyncAdapter,
   locallyDeletedIds: Iterable<string> = [],
 ): Promise<StoredComposerProject[]> {
+  const account = storageAccount()
   const client = supabase
   if (!client) return adapter.listLocal()
   const [remoteMetadata, localProjects] = await Promise.all([
@@ -310,7 +328,7 @@ export async function syncPullAndReconcile(
   }
   await adapter.replaceLocal(projects, deletedProjectIds)
   // 大きいprojectを並列送信するとブラウザ/Supabase側で一時失敗しやすいため順次送る。
-  for (const project of uploadProjects) await pushProject(project)
+  for (const project of uploadProjects) await pushProject(project, account)
   return projects
 }
 
