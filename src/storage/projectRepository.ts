@@ -195,13 +195,20 @@ async function replaceAllLocalProjects(
   projects: StoredComposerProject[],
   deletedProjectIds: ReadonlySet<string>,
 ): Promise<void> {
+  const account = storageAccount()
   const db = await getDb()
+  assertStorageAccount(account)
   const transaction = db.transaction(PROJECT_STORE, "readwrite")
   // 同期中にも編集を続けられるよう、同期開始後に保存されたローカル版を
   // savedAtで再統合する。Cloud tombstoneだけは復活させない。
   const liveLocalProjects = (await transaction.store.getAll()).filter(
     (project) => !deletedProjectIds.has(project.projectId),
   )
+  if (storageAccount() !== account) {
+    try { transaction.abort() } catch { /* read-only stage may already have completed */ }
+    await transaction.done.catch(() => undefined)
+    throw new Error("同期中にアカウントが変更されました")
+  }
   const latestProjects = mergeProjectCollections(projects, liveLocalProjects)
   await transaction.store.clear()
   await Promise.all(
@@ -210,12 +217,14 @@ async function replaceAllLocalProjects(
   await transaction.done
 }
 
-/** AuthGateから呼ばれる、全保存projectの端末間同期。 */
-export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
-  const assertOwner = () => {
-    const current = storageAccount()
-    if (current !== undefined && current !== ownerId) throw new Error("同期中にアカウントが変更されました")
-  }
+function assertAccountOwner(ownerId: string) {
+  const current = storageAccount()
+  if (current !== undefined && current !== ownerId) throw new Error("同期中にアカウントが変更されました")
+}
+
+/** 通信前に、そのアカウントの端末データだけを利用可能にする。 */
+export async function prepareLocalAccount(ownerId: string): Promise<void> {
+  const assertOwner = () => assertAccountOwner(ownerId)
   assertOwner()
   const db = await getDb()
   assertOwner()
@@ -235,7 +244,13 @@ export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
   await db.put(META_STORE, ownerId, CLOUD_OWNER_KEY)
   assertOwner()
   allowStorageAccount(ownerId)
+}
 
+/** AuthGateから呼ばれる、全保存projectの端末間同期。 */
+export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
+  await prepareLocalAccount(ownerId)
+  const assertOwner = () => assertAccountOwner(ownerId)
+  assertOwner()
   const pending = await readPendingDeletions(ownerId)
   assertOwner()
   for (const deletion of pending) {
