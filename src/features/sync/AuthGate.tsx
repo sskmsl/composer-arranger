@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { syncProjectsFromCloud } from "@/storage/projectRepository"
 import { CLOUD_SYNC_COMPLETED_EVENT } from "./projectSync"
 import { Button, TextInput } from "@/ui/primitives"
+import { selectStorageAccount, storageAccount, storageAccountReady } from "@/storage/accountScope"
 
 /** Supabase設定時だけログインを要求し、ローカル表示を妨げずCloud同期する。 */
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -18,8 +19,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) return
-    void supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    void supabase.auth.getSession().then(({ data }) => {
+      selectStorageAccount(data.session?.user.id ?? null)
+      setSession(data.session)
+    })
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+      selectStorageAccount(next?.user.id ?? null)
       setSession(next)
     })
     return () => data.subscription.unsubscribe()
@@ -37,14 +42,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSyncing(true)
     setError(null)
     void syncProjectsFromCloud(userId)
-      .then(() => {
-        window.dispatchEvent(new CustomEvent(CLOUD_SYNC_COMPLETED_EVENT))
-      })
       .catch((reason: unknown) => {
         lastSyncedUserId.current = null
         setError(syncErrorMessage(reason))
       })
-      .finally(() => setSyncing(false))
+      .finally(() => {
+        if (storageAccount() === userId && storageAccountReady()) window.dispatchEvent(new CustomEvent(CLOUD_SYNC_COMPLETED_EVENT))
+        setSyncing(false)
+      })
   }, [syncAttempt, userId])
 
   if (!supabase) return <>{children}</>
@@ -74,7 +79,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">クラウド同期を一時停止しました</p>
                 <p className="mt-0.5 leading-5">
-                  ローカルデータで続行できます。{error}
+                  {storageAccountReady() ? "ローカルデータで続行できます。" : "アカウントの端末データを確認できませんでした。再試行してください。"}{error}
                 </p>
               </div>
               <button
