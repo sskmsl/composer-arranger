@@ -288,6 +288,7 @@ export function proposalsFromResponse(
   idPrefix: string = response.requestId,
   /** 決定論的な解析に使う利用者発言。結合せず発言ごとの範囲・取り消しを保つ。 */
   consultationStatements: readonly string[] = [userMessage],
+  onPrepared?: (proposalId: string, arrangement: FullSongArrangement) => void,
 ): ArrangementChatProposal[] {
   const current = project.fullSongArrangement
   const before = arrangementPartMatrix(project, current)
@@ -397,7 +398,9 @@ export function proposalsFromResponse(
       ...(legacyRemovals.length > 0 ? { removeRowIds: legacyRemovals.map((removal) => removal.rowId) } : {}),
       ...(scopedRemovals.length > 0 ? { removeRowScopes: scopedRemovals } : {}),
     }
-    const after = arrangementPartMatrix(project, arrangementFromRecipe(project, recipe))
+    const prepared = arrangementFromRecipe(project, recipe)
+    onPrepared?.(`${idPrefix}:${intent.id}`, prepared)
+    const after = arrangementPartMatrix(project, prepared)
     const points = describeArrangementChanges(diffArrangementMatrices(before, after), sections)
     return {
       id: `${idPrefix}:${intent.id}`,

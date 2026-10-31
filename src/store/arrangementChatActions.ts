@@ -1,3 +1,6 @@
+import { rememberPreparedProposals } from "@/features/arrangement/proposalCache"
+import type { ComposerProject } from "@/core/project"
+import { generateArrangementOffThread, restoreArrangementOffThread, isGenerationCancelled } from "@/features/arrangement/generationClient"
 import {
   arrangementForVersion,
   arrangementPartMatrix,
@@ -23,7 +26,7 @@ type GetState = () => ProjectState
 
 export interface ArrangementChatActions {
   /** 会話を足す(利用者の発言・AIの返事)。confirmedConstraints はAIが返した最新の一覧 */
-  appendArrangementChatMessages: (messages: ArrangementChatMessage[], confirmedConstraints?: string[]) => void
+  appendArrangementChatMessages: (messages: ArrangementChatMessage[], confirmedConstraints?: string[], prepared?: ReadonlyArray<{ proposalId: string; arrangement: FullSongArrangement }>) => void
   /** 変更案を適用する。試聴した全曲アレンジそのものを受け取り、版として積む */
   applyArrangementChatProposal: (messageId: string, proposalId: string, arrangement: FullSongArrangement | undefined) => void
   dismissArrangementChatProposals: (messageId: string) => void
@@ -33,6 +36,11 @@ export interface ArrangementChatActions {
   resetArrangementChatConversation: () => void
   /** 選んだ全曲の方向で全曲アレンジを作り、版として積む */
   generateDirectionArrangement: (label: string, brief: string, directive: ArrangementGenerationDirective) => void
+  generateDirectionArrangementAsync: (label: string, brief: string, directive: ArrangementGenerationDirective) => Promise<void>
+  cancelArrangementGeneration: () => void
+  arrangementGenerationRunning: boolean
+  arrangementGenerationError: string | null
+  restoreArrangementVersionAsync: (versionId: string) => Promise<void>
 }
 
 function chatOf(state: ProjectState): ArrangementChatState {
@@ -44,21 +52,103 @@ function chatOf(state: ProjectState): ArrangementChatState {
  * 会話の追加は取り消しの対象にせず、全曲アレンジを変える適用・版戻しだけを取り消せるようにする。
  */
 export function createArrangementChatActions(set: SetState, get: GetState): ArrangementChatActions {
+  let active: AbortController | null = null
+  const background = async <T,>(task: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+    active?.abort()
+    const controller = new AbortController()
+    active = controller
+    set({ arrangementGenerationRunning: true, arrangementGenerationError: null })
+    try { return await task(controller.signal) }
+    catch (error) {
+      if (active === controller && !isGenerationCancelled(error)) set({ arrangementGenerationError:
+        error instanceof Error ? error.message : "全曲アレンジを作れませんでした。" })
+      throw error
+    } finally {
+      if (active === controller) { active = null; set({ arrangementGenerationRunning: false }) }
+    }
+  }
+  const commitRestore = (prev: ComposerProject, version: ArrangementChatState["versions"][number], fullSongArrangement: FullSongArrangement | undefined) => {
+    if (get().project !== prev) throw new Error("計算中に曲が変更されたため、結果は適用していません。もう一度作成してください。")
+    const chat = chatOf(get())
+    // 対旋律・合いの手も、その版のときの付け方に戻す(記録のない古い版では触らない)
+    const withLayers = version.layers ? withLayerAssignments(prev, version.layers) : prev
+    set({
+      history: [...get().history, snapshot(prev)],
+      future: [],
+      project: {
+        ...withLayers,
+        fullSongArrangement,
+        arrangementChat: {
+          ...chat,
+          updatedAt: new Date().toISOString(),
+          currentVersionId: version.id,
+          // 曲を編集した後に戻すと作り直した結果が変わりうるので、実際にできたものを記録し直す
+          versions: chat.versions.map((candidate) =>
+            candidate.id === version.id
+              ? { ...candidate, arrangementId: fullSongArrangement?.id ?? null }
+              : candidate,
+          ),
+        },
+      },
+    })
+    get().persist()
+  }
+
+  const generateDirection = (label: string, brief: string, directive: ArrangementGenerationDirective,
+    produce: (request: import("@/features/arrangement/generationProtocol").GenerationRequest) => FullSongArrangement | Promise<FullSongArrangement>) => {
+    const prev = get().project
+    if (prev.sections.length === 0) return
+    const current = prev.fullSongArrangement
+    const chat = chatOf(get())
+    const revision = current ? Math.max(0, ...current.tracks.map((track) => track.generationRevision)) + 1 : 0
+    // 相談で決めた小節指定(無音区間など)は、方向を選び直しても引き継ぐ
+    const generated = produce({ project: prev, options: {
+      seed: current ? current.plan.seed + 1 : undefined,
+      brief,
+      revision,
+      directive: {
+        ...directive,
+        timelineConstraints: directive.timelineConstraints ?? current?.plan.directive?.timelineConstraints,
+        structureChanges: directive.structureChanges ?? current?.plan.directive?.structureChanges,
+      },
+    } })
+    const commit = (arrangement: FullSongArrangement) => {
+      if (get().project !== prev) throw new Error("計算中に曲が変更されたため、結果は適用していません。もう一度作成してください。")
+      const next = { ...prev, fullSongArrangement: arrangement }
+      const createdAt = new Date().toISOString()
+      const withVersion = pushArrangementVersion(chat, current, {
+        id: `version:direction:${createdAt}`,
+        label,
+        createdAt,
+        recipe: recipeFromArrangement(arrangement),
+        arrangementId: arrangement.id,
+        changes: diffArrangementMatrices(arrangementPartMatrix(prev, current), arrangementPartMatrix(next, arrangement)),
+        source: "direction",
+        layers: layerAssignmentsOf(prev),
+      }, layerAssignmentsOf(prev))
+      set({
+        history: [...get().history, snapshot(prev)],
+        future: [],
+        project: { ...next, arrangementChat: withVersion },
+      })
+      get().persist()
+    }
+    if (generated instanceof Promise) return generated.then(commit)
+    commit(generated)
+  }
   return {
-    appendArrangementChatMessages: (messages, confirmedConstraints) => {
+    appendArrangementChatMessages: (messages, confirmedConstraints, prepared) => {
       const prev = get().project
       const chat = chatOf(get())
-      set({
-        project: {
-          ...prev,
-          arrangementChat: {
-            ...chat,
-            updatedAt: new Date().toISOString(),
-            messages: [...chat.messages, ...messages].slice(-MAX_ARRANGEMENT_CHAT_MESSAGES),
-            confirmedConstraints: confirmedConstraints ?? chat.confirmedConstraints,
-          },
-        },
-      })
+      const next = { ...prev, arrangementChat: {
+        ...chat,
+        updatedAt: new Date().toISOString(),
+        messages: [...chat.messages, ...messages].slice(-MAX_ARRANGEMENT_CHAT_MESSAGES),
+        confirmedConstraints: confirmedConstraints ?? chat.confirmedConstraints,
+      } }
+      // Reactへ新しいprojectを渡す前に、同じWorkerで得た音を結び付けて二重生成を防ぐ。
+      if (prepared) rememberPreparedProposals(next, prepared)
+      set({ project: next })
       get().persist()
     },
 
@@ -139,66 +229,29 @@ export function createArrangementChatActions(set: SetState, get: GetState): Arra
       const fullSongArrangement = restoredArrangement
         ? finalizeFullSongArrangement(prev, restoredArrangement, { refine: false })
         : undefined
-      // 対旋律・合いの手も、その版のときの付け方に戻す(記録のない古い版では触らない)
-      const withLayers = version.layers ? withLayerAssignments(prev, version.layers) : prev
-      set({
-        history: [...get().history, snapshot(prev)],
-        future: [],
-        project: {
-          ...withLayers,
-          fullSongArrangement,
-          arrangementChat: {
-            ...chat,
-            updatedAt: new Date().toISOString(),
-            currentVersionId: version.id,
-            // 曲を編集した後に戻すと作り直した結果が変わりうるので、実際にできたものを記録し直す
-            versions: chat.versions.map((candidate) =>
-              candidate.id === version.id
-                ? { ...candidate, arrangementId: fullSongArrangement?.id ?? null }
-                : candidate,
-            ),
-          },
-        },
-      })
-      get().persist()
+      commitRestore(prev, version, fullSongArrangement)
     },
 
+    arrangementGenerationRunning: false,
+    arrangementGenerationError: null,
     generateDirectionArrangement: (label, brief, directive) => {
-      const prev = get().project
-      if (prev.sections.length === 0) return
-      const current = prev.fullSongArrangement
-      const chat = chatOf(get())
-      const revision = current ? Math.max(0, ...current.tracks.map((track) => track.generationRevision)) + 1 : 0
-      // 相談で決めた小節指定(無音区間など)は、方向を選び直しても引き継ぐ
-      const arrangement = generateFullSongArrangement(prev, {
-        seed: current ? current.plan.seed + 1 : undefined,
-        brief,
-        revision,
-        directive: {
-          ...directive,
-          timelineConstraints: directive.timelineConstraints ?? current?.plan.directive?.timelineConstraints,
-          structureChanges: directive.structureChanges ?? current?.plan.directive?.structureChanges,
-        },
-      })
-      const next = { ...prev, fullSongArrangement: arrangement }
-      const createdAt = new Date().toISOString()
-      const withVersion = pushArrangementVersion(chat, current, {
-        id: `version:direction:${createdAt}`,
-        label,
-        createdAt,
-        recipe: recipeFromArrangement(arrangement),
-        arrangementId: arrangement.id,
-        changes: diffArrangementMatrices(arrangementPartMatrix(prev, current), arrangementPartMatrix(next, arrangement)),
-        source: "direction",
-        layers: layerAssignmentsOf(prev),
-      }, layerAssignmentsOf(prev))
-      set({
-        history: [...get().history, snapshot(prev)],
-        future: [],
-        project: { ...next, arrangementChat: withVersion },
-      })
-      get().persist()
+      generateDirection(label, brief, directive, ({ project, options }) => generateFullSongArrangement(project, options))
     },
+    generateDirectionArrangementAsync: async (label, brief, directive) => {
+      await background(async (signal) => {
+        await generateDirection(label, brief, directive, (request) => generateArrangementOffThread(request, signal))
+      })
+    },
+    restoreArrangementVersionAsync: async (versionId) => {
+      const prev = get().project
+      const version = chatOf(get()).versions.find((item) => item.id === versionId)
+      if (!version) return
+      await background(async (signal) => {
+        const arrangement = await restoreArrangementOffThread({ operation: "restore", project: prev, versionId }, signal)
+        commitRestore(prev, version, arrangement)
+      })
+    },
+    cancelArrangementGeneration: () => { active?.abort() },
 
     resetArrangementChatConversation: () => {
       const prev = get().project

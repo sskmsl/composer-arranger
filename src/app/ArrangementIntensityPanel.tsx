@@ -1,3 +1,4 @@
+import { isGenerationCancelled } from "@/features/arrangement/generationClient"
 import { useMemo, useState } from "react"
 import { RefreshCw } from "lucide-react"
 import { analyzeFullSongArrangement } from "@/melody-engine/arrangementGenerator"
@@ -23,8 +24,9 @@ export function ArrangementIntensityPanel() {
   const project = useProjectStore((state) => state.project)
   const setClimax = useProjectStore((state) => state.setArrangementDirectorClimax)
   const setSectionOverride = useProjectStore((state) => state.setArrangementDirectorSectionOverride)
-  const regenerate = useProjectStore((state) => state.generateDirectionArrangement)
+  const regenerate = useProjectStore((state) => state.generateDirectionArrangementAsync)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const arrangement = project.fullSongArrangement
   const overrides = project.arrangementDirectorOverrides
 
@@ -44,9 +46,12 @@ export function ArrangementIntensityPanel() {
   const rebuild = async () => {
     if (!arrangement || busy) return
     setBusy(true)
+    setError(null)
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     try {
-      regenerate("盛り上げ方を変更", arrangement.plan.brief, arrangement.plan.directive ?? { intention: arrangement.plan.brief })
+      await regenerate("盛り上げ方を変更", arrangement.plan.brief, arrangement.plan.directive ?? { intention: arrangement.plan.brief })
+    } catch (reason) {
+      if (!isGenerationCancelled(reason)) setError(reason instanceof Error ? reason.message : "全曲アレンジを作れませんでした。")
     } finally {
       setBusy(false)
     }
@@ -107,6 +112,7 @@ export function ArrangementIntensityPanel() {
         })}
       </div>
 
+      {error && <p role="alert" className="text-[13px] text-red-200">{error}</p>}
       {changed && (
         <div className="flex flex-col gap-3 rounded-md border border-primary/35 bg-primary/10 px-3 py-2.5 sm:flex-row sm:items-center">
           <p className="min-w-0 flex-1 text-[13px] leading-5 text-body-on-dark">

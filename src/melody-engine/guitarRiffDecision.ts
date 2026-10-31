@@ -17,6 +17,11 @@ export function guitarRiffDecision(arrangement: FullSongArrangement): GuitarRiff
   return decisions.get(arrangement)
 }
 
+/** Workerから別便で受け取った診断を、この生成結果だけへ戻す。JSONには入れない。 */
+export function attachGuitarRiffDecision(arrangement: FullSongArrangement, decision: GuitarRiffDecision): void {
+  decisions.set(arrangement, decision)
+}
+
 export function rememberGuitarRiffDecision(arrangement: FullSongArrangement, attempts: GuitarRiffAttempt[], instruction = false): void {
   const playing = new Set(arrangement.tracks.find((track) => track.id === "gtr-riff")?.notes.map((note) => note.sectionId))
   const omissions = new Map<string, GuitarRiffOmissionReason>()

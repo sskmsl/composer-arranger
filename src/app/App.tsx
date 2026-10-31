@@ -1,3 +1,4 @@
+import { ArrangementGenerationNotice } from "./ArrangementGenerationNotice"
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary"
 import { StorageRecoveryBanner } from "./StorageRecoveryBanner"
 import { lazy, Suspense, useEffect, useState } from "react"
@@ -107,6 +108,7 @@ export function App() {
         onOpenImportGuide={() => setImportGuideOpen(true)}
       />
       <StorageRecoveryBanner />
+      <ArrangementGenerationNotice />
       <NewVersionBanner />
       <TimingMigrationBanner />
       <div className={`relative flex min-h-0 flex-1 ${useBrowserScroll ? "overflow-visible" : "overflow-hidden"}`}>
