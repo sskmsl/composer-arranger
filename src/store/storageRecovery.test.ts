@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest"
 import { createEmptyProject } from "@/core/project"
-const storage = vi.hoisted(() => ({ saveProject: vi.fn(), loadLastOpenedProject: vi.fn(), loadProject: vi.fn(), putProjectRecord: vi.fn() }))
+const storage = vi.hoisted(() => ({ saveProject: vi.fn(), loadLastOpenedProject: vi.fn(), loadProject: vi.fn(), putProjectRecord: vi.fn(), deleteProject: vi.fn() }))
 vi.mock("@/storage/projectRepository", () => ({ ...storage,
-  backupProjectTimingSnapshot: vi.fn(), duplicateProject: vi.fn(), renameProject: vi.fn(), deleteProject: vi.fn(),
+  backupProjectTimingSnapshot: vi.fn(), duplicateProject: vi.fn(), renameProject: vi.fn(),
 }))
-beforeEach(() => { vi.resetModules(); storage.saveProject.mockReset().mockResolvedValue(undefined); storage.loadLastOpenedProject.mockReset(); storage.loadProject.mockReset(); storage.putProjectRecord.mockReset().mockResolvedValue(undefined) })
+beforeEach(() => { vi.resetModules(); storage.saveProject.mockReset().mockResolvedValue(undefined); storage.loadLastOpenedProject.mockReset(); storage.loadProject.mockReset(); storage.putProjectRecord.mockReset().mockResolvedValue(undefined); storage.deleteProject.mockReset().mockResolvedValue(undefined) })
 it("exits startup loading on failure and recovers without writing empty data", async () => {
   storage.loadLastOpenedProject.mockRejectedValueOnce(new Error("blocked")).mockResolvedValueOnce(createEmptyProject("restored"))
   const { useProjectStore } = await import("./useProjectStore")
@@ -54,6 +54,26 @@ it("keeps the failed latest edit when deleting the active project falls back to 
   useProjectStore.setState({ project: b })
   await useProjectStore.getState().deleteStoredProject(b.projectId)
   expect(useProjectStore.getState().project.title).toBe("latest A")
+})
+it("restores retained inactive edits if their deletion fails", async () => {
+  storage.saveProject.mockRejectedValue(new Error("quota"))
+  storage.deleteProject.mockRejectedValueOnce(new Error("delete aborted"))
+  const { useProjectStore } = await import("./useProjectStore")
+  const a = createEmptyProject("retained latest A"), b = createEmptyProject("active B")
+  storage.loadProject.mockResolvedValue({ ...a, title: "old DB A" })
+  useProjectStore.setState({ project: a })
+  expect(await useProjectStore.getState().flushSave()).toBe(false)
+  useProjectStore.setState({ project: b })
+  await expect(useProjectStore.getState().deleteStoredProject(a.projectId)).rejects.toThrow("delete aborted")
+  expect(useProjectStore.getState().project).toBe(b)
+  expect(await useProjectStore.getState().flushSave()).toBe(false)
+  expect(useProjectStore.getState().saveStatus).toBe("error")
+  await useProjectStore.getState().loadProjectById(a.projectId)
+  expect(useProjectStore.getState().project.title).toBe("retained latest A")
+  expect(await useProjectStore.getState().flushSave()).toBe(false)
+  storage.saveProject.mockResolvedValue(undefined)
+  expect(await useProjectStore.getState().flushSave()).toBe(true)
+  expect(storage.saveProject.mock.lastCall?.[0].title).toBe("retained latest A")
 })
 it("renames a retained inactive project without losing edits or changing lastOpened", async () => {
   storage.saveProject.mockRejectedValue(new Error("quota"))
