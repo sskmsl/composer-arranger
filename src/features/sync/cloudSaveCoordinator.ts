@@ -55,6 +55,8 @@ export function createCloudSaveCoordinator<T extends { ownerId: string; revision
           if (!sameOwner(owner)) return
           options.notify({ state: remaining.length ? failed ? "error" : "sending" : sent ? "saved" : "idle", pendingCount: remaining.length })
           if (!remaining.length) failures = 0
+          // 通信中の追編集も、失敗後の待機を飛び越えて即再送しない。
+          if (failed) break
           // 送信待機中に新しい編集が来た場合は、次の版もこのバリア内で送る。
           if (!failed && remaining.length) requested.add(owner)
         } while (requested.has(owner) && sameOwner(owner))

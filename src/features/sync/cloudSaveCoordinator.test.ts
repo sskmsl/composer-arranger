@@ -93,3 +93,22 @@ it("acknowledges a remotely deleted entry without claiming it was uploaded", asy
   expect(s.entries.size).toBe(0)
   expect(s.notify).toHaveBeenLastCalledWith({ state: "idle", pendingCount: 0 })
 })
+it("keeps backoff when a newer edit arrives while the failed request is still in flight", async () => {
+  vi.useFakeTimers()
+  const s = setup(); s.add("A", "song", "v1")
+  let reject!: (error: Error) => void
+  s.send.mockImplementationOnce(() => new Promise<void>((_resolve, rejectSend) => { reject = rejectSend }))
+  const queue = createCloudSaveCoordinator(s.options)
+  const active = queue.flush()
+  await vi.advanceTimersByTimeAsync(0)
+  s.add("A", "song", "v2"); queue.schedule()
+  reject(new TypeError("Failed to fetch")); await active
+  expect(s.send).toHaveBeenCalledTimes(1)
+  expect(s.entries.size).toBe(1)
+  await vi.advanceTimersByTimeAsync(4999)
+  expect(s.send).toHaveBeenCalledTimes(1)
+  await vi.advanceTimersByTimeAsync(1)
+  expect(s.send.mock.calls.map(([entry]) => entry.revision)).toEqual(["v1", "v2"])
+  expect(s.entries.size).toBe(0)
+  queue.dispose()
+})
