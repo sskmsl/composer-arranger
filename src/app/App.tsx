@@ -24,7 +24,8 @@ const SignaturePhraseWorkspace = lazy(() =>
 function WorkspaceLoading() {
   return <div className="flex flex-1 items-center justify-center text-[13px] text-body-muted">読み込み中…</div>
 }
-import { CLOUD_SYNC_COMPLETED_EVENT } from "@/features/sync/projectSync"
+import { CLOUD_SYNC_COMPLETED_EVENT, connectCloudSaveRecovery } from "@/features/sync/projectSync"
+import { CloudSaveBanner } from "./CloudSaveBanner"
 import { ImportStartGuide } from "./ImportStartGuide"
 import { HomeWorkspace } from "./HomeWorkspace"
 import { MelodyColumn } from "./MelodySubTabs"
@@ -73,6 +74,7 @@ export function App() {
   useEffect(() => {
     void hydrate()
   }, [hydrate])
+  useEffect(() => connectCloudSaveRecovery(), [])
 
   useEffect(() => {
     const refreshAfterCloudSync = () => void hydrate()
@@ -111,6 +113,7 @@ export function App() {
         onOpenImportGuide={() => setImportGuideOpen(true)}
       />
       <StorageRecoveryBanner />
+      <CloudSaveBanner />
       <ArrangementGenerationNotice />
       <NewVersionBanner />
       <TimingMigrationBanner />

@@ -165,6 +165,7 @@ export interface ProjectState extends ArrangementChatActions {
   future: ComposerProject[]
   hydrated: boolean
   storageLoadError: boolean
+  storageLoadErrorReason: string | null
   saveStatus: SaveStatus
   flushSave: () => Promise<boolean>
   workflowNotice: string | null
@@ -394,6 +395,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   future: [],
   hydrated: false,
   storageLoadError: false,
+  storageLoadErrorReason: null,
   saveStatus: "idle",
   workflowNotice: null,
   timingNotice: null,
@@ -406,7 +408,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (storageAccount() !== account) return true
       const current = get().project
       if (current === beforeRead && !saveCoordinator.pendingValue(current.projectId)) return false
-      set({ hydrated: true, storageLoadError: false })
+      set({ hydrated: true, storageLoadError: false, storageLoadErrorReason: null })
       return true
     }
     // 同期完了の再hydrateでも、未保存の編集中スナップショットをDBで置き換えない。
@@ -429,14 +431,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           selectedSectionId: arrangementUpgrade.project.sections[0]?.id ?? null,
           hydrated: true,
           storageLoadError: false,
+          storageLoadErrorReason: null,
           timingNotice: timingNoticeFrom(result),
         })
         if (result.status === "auto-converted" || sectionInference.changed || arrangementUpgrade.changed) get().persist()
       } else {
-        set({ hydrated: true, storageLoadError: false })
+        set({ hydrated: true, storageLoadError: false, storageLoadErrorReason: null })
       }
-    } catch {
-      if (!keepLocalEdits()) set({ hydrated: true, storageLoadError: true })
+    } catch (error) {
+      if (!keepLocalEdits()) set({ hydrated: true, storageLoadError: true,
+        storageLoadErrorReason: error instanceof Error && error.name === "StorageDatabaseBlockedError" ? error.message : null })
     }
   },
 
@@ -1942,7 +1946,7 @@ onStorageAccountChange((previous, next) => {
     if (saveCoordinator.pendingValue(current.projectId)) retainedProjects.set(previous, current)
     saveCoordinator = accountQueue(next)
     useProjectStore.setState({ project: createEmptyProject(), selectedSectionId: null, history: [], future: [],
-      hydrated: false, storageLoadError: false, saveStatus: "idle", timingNotice: null, workflowNotice: null })
+      hydrated: false, storageLoadError: false, storageLoadErrorReason: null, saveStatus: "idle", timingNotice: null, workflowNotice: null })
   }
   if (storageAccountReady()) {
     const retained = retainedProjects.get(next)
