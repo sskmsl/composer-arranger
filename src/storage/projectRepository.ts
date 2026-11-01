@@ -69,19 +69,31 @@ async function flushCloudDeletion(
 }
 
 /** 17章「保存中のアプリ終了でも直前状態を復元できる」を満たすための自動保存 */
-async function commitProject(project: ComposerProject, updateLastOpened: boolean): Promise<void> {
+async function commitProject(project: ComposerProject, updateLastOpened: boolean, restoring = false): Promise<void> {
   const account = storageAccount()
   const db = await getDb()
   assertStorageAccount(account)
   const record = { ...project, savedAt: new Date().toISOString() }
-  const pending = typeof account === "string" && isCloudSyncConfigured() ? pendingCloudSave(account, record) : undefined
-  const transaction = db.transaction(pending ? [PROJECT_STORE, META_STORE, CLOUD_OUTBOX_STORE] : [PROJECT_STORE, META_STORE], "readwrite")
+  const queueOwner = typeof account === "string" && isCloudSyncConfigured() ? account : undefined
+  const transaction = db.transaction(queueOwner ? [PROJECT_STORE, META_STORE, CLOUD_OUTBOX_STORE] : [PROJECT_STORE, META_STORE], "readwrite")
   try {
     await Promise.all([
       (async () => {
         await transaction.objectStore(PROJECT_STORE).put(record)
         if (updateLastOpened) await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
-        if (pending) await transaction.objectStore(CLOUD_OUTBOX_STORE).put(pending, cloudSaveKey(pending.ownerId, project.projectId))
+        if (queueOwner) {
+          const key = cloudSaveKey(queueOwner, project.projectId)
+          const previous = await transaction.objectStore(CLOUD_OUTBOX_STORE).get(key)
+          const restoredAt = restoring ? record.savedAt : previous?.kind === "save" ? previous.restoredAt : undefined
+          await transaction.objectStore(CLOUD_OUTBOX_STORE).put(pendingCloudSave(queueOwner, record, restoredAt), key)
+        }
+        if (restoring && typeof account === "string") {
+          const key = pendingDeletionKey(account)
+          const raw = await transaction.objectStore(META_STORE).get(key)
+          const remaining = (raw ? JSON.parse(raw) as PendingCloudDeletion[] : []).filter(item => item.projectId !== project.projectId)
+          if (remaining.length) await transaction.objectStore(META_STORE).put(JSON.stringify(remaining), key)
+          else await transaction.objectStore(META_STORE).delete(key)
+        }
       })(),
       transaction.done,
     ])
@@ -115,11 +127,16 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
 }
 
 /**
- * メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate/削除の復元用)。
+ * メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate用)。
  * 現在編集中のセッション(store.project/selectedSectionId/history等)には一切触れない。
  */
 export async function putProjectRecord(project: ComposerProject): Promise<void> {
   await commitProject(project, false)
+}
+
+/** 削除の「元に戻す」だけを明示し、送信前の追編集にも復元の意図を保持する。 */
+export async function restoreProjectRecord(project: ComposerProject): Promise<void> {
+  await commitProject(project, false, true)
 }
 
 /**

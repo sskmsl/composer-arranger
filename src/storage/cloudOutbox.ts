@@ -5,6 +5,8 @@ export interface PendingCloudSave {
   kind: "save"
   ownerId: string
   revision: string
+  /** ユーザーが明示的に削除を元に戻した時刻。曲JSONには含めない。 */
+  restoredAt?: string
   project: ComposerProject & { savedAt: string }
 }
 export interface PendingCloudDelete {
@@ -18,7 +20,7 @@ export type PendingCloudOperation = PendingCloudSave | PendingCloudDelete
 export const cloudOperationProjectId = (entry: PendingCloudOperation) => entry.kind === "save" ? entry.project.projectId : entry.projectId
 const prefix = (ownerId: string) => `cloudPendingSave:${encodeURIComponent(ownerId)}:`
 export const cloudSaveKey = (ownerId: string, projectId: string) => prefix(ownerId) + encodeURIComponent(projectId)
-export const pendingCloudSave = (ownerId: string, project: PendingCloudSave["project"]): PendingCloudSave => ({ kind: "save", ownerId, project, revision: crypto.randomUUID() })
+export const pendingCloudSave = (ownerId: string, project: PendingCloudSave["project"], restoredAt?: string): PendingCloudSave => ({ kind: "save", ownerId, project, revision: crypto.randomUUID(), ...(restoredAt ? { restoredAt } : {}) })
 export const pendingCloudDelete = (ownerId: string, projectId: string, deletedAt: string): PendingCloudDelete => ({ kind: "delete", ownerId, projectId, deletedAt, revision: crypto.randomUUID() })
 export async function readPendingCloudSave(ownerId: string, projectId: string) {
   return (await getDb()).get(CLOUD_OUTBOX_STORE, cloudSaveKey(ownerId, projectId))

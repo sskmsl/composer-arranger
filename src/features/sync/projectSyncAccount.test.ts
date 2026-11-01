@@ -63,3 +63,16 @@ it("does not upload queued edits if remote deletion status cannot be checked", a
   await expect(replayQueuedProject({ ...createEmptyProject(), savedAt: new Date().toISOString() }, "A")).rejects.toThrow("server unavailable")
   expect(mocks.rpc.mock.calls.map(([name]) => name)).toEqual(["list_arranger_project_metadata"])
 })
+it.each([
+  ["2000-01-01T00:00:00.000Z", true],
+  ["2026-11-02T00:00:00.000Z", false],
+])("allows explicit undo only over an older tombstone (%s)", async (deletedAt, allowed) => {
+  const scope = await import("@/storage/accountScope")
+  scope.selectStorageAccount("A"); scope.allowStorageAccount("A")
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "A" } }, error: null })
+  const project = { ...createEmptyProject("explicit undo"), savedAt: "2026-11-01T01:00:00.000Z" }
+  mocks.rpc.mockImplementation(async (name) => ({ data: name === "list_arranger_project_metadata" ? [{ id: project.projectId, updated_at: deletedAt, deleted_at: deletedAt }] : null, error: null }))
+  const { replayQueuedProject } = await import("./projectSync")
+  expect(await replayQueuedProject(project, "A", "2026-11-01T00:00:00.000Z")).toBe(allowed)
+  expect(mocks.rpc.mock.calls.filter(([name]) => name === "upsert_arranger_project")).toHaveLength(allowed ? 1 : 0)
+})

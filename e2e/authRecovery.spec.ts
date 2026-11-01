@@ -100,6 +100,39 @@ for (const recovery of ["reload", "online"] as const) test(`a remote deletion wi
   await expect.poll(() => page.evaluate(() => (window as any).reliability.storedTitles())).not.toContain("Newer offline edit of a deleted song")
 })
 
+for (const mode of ["active", "inactive", "offline"] as const) test(`explicit undo-delete restores the ${mode} song to cloud and survives reload`, async ({ page }) => {
+  await page.goto("/e2e/harness.html?auth=1"); await ready(page); await seed(page)
+  await title(page, "Undo delete target")
+  const id = await page.evaluate(() => (window as any).reliability.state().project.projectId)
+  await expect.poll(() => page.evaluate(() => (window as any).reliability.remoteTitles("A"))).toContain("Undo delete target")
+  if (mode === "inactive") await page.evaluate(async () => { const state = (window as any).reliability.state(); state.newProject(); await state.flushSave() })
+  const activeId = await page.evaluate(() => (window as any).reliability.state().project.projectId)
+  if (mode === "offline") await page.evaluate(() => (window as any).authFixture.offline(true))
+  await page.getByRole("button", { name: "曲", exact: true }).click()
+  await page.getByRole("menu").getByRole("button", { name: "開く", exact: true }).click()
+  const row = page.getByRole("listitem").filter({ hasText: "Undo delete target" })
+  await row.getByRole("button", { name: "削除", exact: true }).click()
+  await row.getByRole("button", { name: "削除", exact: true }).click()
+  if (mode !== "offline") await expect.poll(() => page.evaluate((id) => (window as any).authFixture.remote("A").find((row: any) => row.id === id)?.deleted_at, id)).toBeTruthy()
+  await page.getByRole("button", { name: "元に戻す", exact: true }).click()
+  await expect(row).toBeVisible()
+  expect(await page.evaluate(() => (window as any).reliability.state().project.projectId)).toBe(mode === "inactive" ? activeId : id)
+  let restoredTitle = "Undo delete target"
+  if (mode === "offline") {
+    await page.getByRole("button", { name: "閉じる", exact: true }).click()
+    restoredTitle = "Edited after offline undo"
+    await title(page, restoredTitle)
+    await expect.poll(() => page.evaluate(async (id) => (await (window as any).reliability.pendingCloud("A")).find((entry: any) => entry.project.projectId === id)?.restoredAt, id)).toBeTruthy()
+    await page.reload(); await ready(page)
+    expect(await page.evaluate(async (id) => (await (window as any).reliability.pendingCloud("A")).find((entry: any) => entry.project.projectId === id)?.restoredAt, id)).toBeTruthy()
+    await page.evaluate(() => { (window as any).authFixture.offline(false); window.dispatchEvent(new Event("online")) })
+  }
+  await expect.poll(() => page.evaluate(() => (window as any).reliability.remoteTitles("A"))).toContain(restoredTitle)
+  await page.reload(); await ready(page)
+  await expect.poll(() => page.evaluate(() => (window as any).reliability.storedTitles())).toContain(restoredTitle)
+  if (mode === "inactive") expect(await page.evaluate(() => (window as any).reliability.state().project.projectId)).toBe(activeId)
+})
+
 test("an inactive unsaved song can be downloaded without replacing the active song", async ({ page }) => {
   await page.addInitScript(() => {
     const original = IDBObjectStore.prototype.put

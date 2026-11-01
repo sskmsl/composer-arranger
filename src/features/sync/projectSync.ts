@@ -326,7 +326,7 @@ export function isCloudSyncConfigured(): boolean {
 }
 
 /** 別端末の削除は、より新しいオフライン編集より優先する既存の同期規則を保つ。 */
-export async function replayQueuedProject(project: StoredComposerProject, account: string): Promise<boolean> {
+export async function replayQueuedProject(project: StoredComposerProject, account: string, restoredAt?: string): Promise<boolean> {
   const client = supabase
   const assertOwner = () => {
     if (!client || storageAccount() !== account || !storageAccountReady()) throw new Error("元のアカウントでクラウド保存を再試行してください")
@@ -339,7 +339,8 @@ export async function replayQueuedProject(project: StoredComposerProject, accoun
     return client!.rpc(LIST_PROJECT_METADATA_RPC)
   }) as RemoteProjectMetadata[] | null
   assertOwner()
-  if (metadata?.some(row => row.id === project.projectId && row.deleted_at !== null)) return false
+  const deletedAt = metadata?.find(row => row.id === project.projectId)?.deleted_at
+  if (deletedAt && (!restoredAt || restoredAt < deletedAt)) return false
   if (!await pushProject(project, account)) throw new Error("元のアカウントでクラウド保存を再試行してください")
   return true
 }
@@ -355,7 +356,7 @@ const cloudSaves = createCloudSaveCoordinator({
     const current = await readPendingCloudSave(entry.ownerId, cloudOperationProjectId(entry))
     if (current?.revision !== entry.revision) return false
     if (entry.kind === "delete") { await deleteProjectRemote(entry.projectId, entry.deletedAt, entry.ownerId); return }
-    return replayQueuedProject(entry.project, entry.ownerId)
+    return replayQueuedProject(entry.project, entry.ownerId, entry.restoredAt)
   },
   acknowledge: acknowledgeCloudSave,
   retryable: (error) => isTransientCloudSyncError(error) || (error instanceof Error && isTransientCloudSyncError(error.cause)),
