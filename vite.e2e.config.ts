@@ -3,6 +3,7 @@ import { mergeConfig } from "vite"
 import base from "./vite.config"
 // 通常の公開distにはテスト入口・fixtureを含めない。
 export default mergeConfig(base, {
+  resolve: { alias: [{ find: "@/lib/supabase", replacement: resolve("e2e/authFixture.ts") }] },
   build: { outDir: "dist-e2e", rolldownOptions: { input: {
     app: resolve("index.html"), harness: resolve("e2e/harness.html"),
   } } },

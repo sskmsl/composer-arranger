@@ -129,6 +129,8 @@ test("update reload is blocked on save failure and preserves the last edit after
   await expect(update).toBeVisible()
   await page.evaluate(() => { (window as any).__failSaves = true; (window as any).__samePage = "kept" })
   await editTitle(page, "Last edit before update")
+  // 実際の保存失敗を確認してから、画面上の更新ボタンを押す。
+  await expect(page.getByRole("alert").filter({ hasText: "この端末に曲を保存できませんでした" })).toBeVisible()
   await update.getByRole("button", { name: "再読み込み", exact: true }).click()
   await expect(update.getByRole("alert")).toContainText("再読み込みを止めました")
   expect(await page.evaluate(() => (window as any).__samePage)).toBe("kept")
@@ -151,7 +153,10 @@ test("failed lazy JS shows recovery and saved reload restores the workspace", as
   const recovery = page.getByRole("alert").filter({ hasText: "画面を読み込めませんでした" })
   await expect(recovery).toBeVisible()
   await page.unroute(/\/assets\/ArrangementWorkspace-[^/]+\.js/)
-  await recovery.getByRole("button", { name: "保存して再読み込み" }).click()
+  await Promise.all([
+    page.waitForEvent("load"),
+    recovery.getByRole("button", { name: "保存して再読み込み" }).click(),
+  ])
   await expect.poll(() => page.evaluate(() => (window as any).reliability?.state().hydrated)).toBe(true)
   await arrangementPage(page)
   await expect(page.getByRole("button", { name: "曲全体MIDI", exact: true })).toBeVisible()

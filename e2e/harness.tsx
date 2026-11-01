@@ -1,5 +1,10 @@
 import { loadProject as loadStoredProject, prepareLocalAccount, listProjects } from "../src/storage/projectRepository"
 import { selectStorageAccount } from "../src/storage/accountScope"
+import { storageAccount, storageAccountReady } from "../src/storage/accountScope"
+import { listPendingCloudSaves } from "../src/storage/cloudOutbox"
+import { decodeCloudProjectPayload } from "../src/features/sync/cloudProjectPayload"
+import { enableAuthFixture } from "./authFixture"
+import { AuthGate } from "../src/features/sync/AuthGate"
 import { CLOUD_SYNC_COMPLETED_EVENT } from "../src/features/sync/projectSync"
 import { arrangementResponseFixture } from "../tools/qa/arrangementResponse"
 import { preparedProposal } from "../src/features/arrangement/proposalCache"
@@ -18,6 +23,12 @@ import { generateArrangementOffThread, generateRecipeOffThread, restoreArrangeme
 
 const plain = (value: unknown) => JSON.stringify(value && { ...value as object, createdAt: undefined })
 Object.assign(window, { reliability: {
+  accountState: () => ({ owner: storageAccount(), ready: storageAccountReady() }),
+  pendingCloud: (owner: string) => listPendingCloudSaves(owner),
+  async remoteTitles(owner: string) {
+    const rows = (window as any).authFixture.remote(owner)
+    return Promise.all(rows.filter((row: any) => !row.deleted_at).map(async (row: any) => (await decodeCloudProjectPayload<any>(row.data)).title))
+  },
   async seed() {
     useProjectStore.getState().loadProject(arrangementReviewSong("A"))
     return useProjectStore.getState().flushSave()
@@ -99,4 +110,5 @@ Object.assign(window, { reliability: {
     return results
   },
 } })
-createRoot(document.getElementById("root")!).render(<App />)
+enableAuthFixture()
+createRoot(document.getElementById("root")!).render(new URLSearchParams(location.search).has("auth") ? <AuthGate><App /></AuthGate> : <App />)

@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "build:e2e": "vite build --config vite.e2e.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "node tools/qa/run-browser-checks.mjs",
+    "qa:listening": "node tools/qa/export-listening-set.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

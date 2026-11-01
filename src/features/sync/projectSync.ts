@@ -1,7 +1,7 @@
 import type { ComposerProject } from "@/core/project"
 import { supabase } from "@/lib/supabase"
 import { onStorageAccountChange, storageAccount, storageAccountReady, type StorageAccount } from "@/storage/accountScope"
-import { acknowledgeCloudSave, listPendingCloudSaves, readPendingCloudSave } from "@/storage/cloudOutbox"
+import { acknowledgeCloudSave, listCloudOutboxEntries, readPendingCloudSave, cloudOperationProjectId } from "@/storage/cloudOutbox"
 import { createCloudSaveCoordinator } from "./cloudSaveCoordinator"
 import { useCloudSaveState } from "./cloudSaveState"
 import {
@@ -108,14 +108,18 @@ async function runCloudRpc<T>(
 
 async function ownerId(): Promise<string | null> {
   if (!supabase) return null
-  const { data } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getUser()
+  if (error) throw error
   return data.user?.id ?? null
 }
 
 /** 頻繁なノート編集でも通信を連打しないよう、project単位で最後の状態だけ送る。 */
 export function scheduleProjectPush(_project: StoredComposerProject): void {
+  scheduleCloudSync()
+}
+export function scheduleCloudSync(): void {
   if (cloudSaveOwner()) {
-    useCloudSaveState.setState({ state: "sending" })
+    if (useCloudSaveState.getState().state !== "error") useCloudSaveState.setState({ state: "sending" })
     cloudSaves.schedule()
   }
 }
@@ -327,10 +331,11 @@ function cloudSaveOwner(): string | null {
 }
 const cloudSaves = createCloudSaveCoordinator({
   owner: cloudSaveOwner,
-  list: listPendingCloudSaves,
+  list: listCloudOutboxEntries,
   send: async (entry) => {
-    const current = await readPendingCloudSave(entry.ownerId, entry.project.projectId)
+    const current = await readPendingCloudSave(entry.ownerId, cloudOperationProjectId(entry))
     if (current?.revision !== entry.revision) return
+    if (entry.kind === "delete") { await deleteProjectRemote(entry.projectId, entry.deletedAt, entry.ownerId); return }
     if (!await pushProject(entry.project, entry.ownerId)) throw new Error("元のアカウントでクラウド保存を再試行してください")
   },
   acknowledge: acknowledgeCloudSave,

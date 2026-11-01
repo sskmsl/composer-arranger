@@ -1,4 +1,3 @@
-import type { PendingCloudSave } from "@/storage/cloudOutbox"
 
 export interface CloudSaveStatus {
   state: "idle" | "sending" | "saved" | "error"
@@ -6,11 +5,11 @@ export interface CloudSaveStatus {
 }
 
 /** 永続化済みの未送信分だけを再送する。成功した古い版の応答で新しい編集を消さない。 */
-export function createCloudSaveCoordinator(options: {
+export function createCloudSaveCoordinator<T extends { ownerId: string; revision: string }>(options: {
   owner: () => string | null
-  list: (owner: string) => Promise<PendingCloudSave[]>
-  send: (entry: PendingCloudSave) => Promise<void>
-  acknowledge: (entry: PendingCloudSave) => Promise<void>
+  list: (owner: string) => Promise<T[]>
+  send: (entry: T) => Promise<void>
+  acknowledge: (entry: T) => Promise<void>
   retryable: (error: unknown) => boolean
   notify: (status: CloudSaveStatus) => void
 }) {
@@ -73,7 +72,14 @@ export function createCloudSaveCoordinator(options: {
   }
   return {
     flush,
-    schedule: () => later(800),
+    schedule() {
+      const owner = options.owner()
+      if (!owner) return
+      if (running.has(owner)) { requested.add(owner); return }
+      // 障害中は編集のたびに待機を800msへ短縮せず、再送の連打を避ける。
+      if (timer && failures > 0) return
+      later(800)
+    },
     accountChanged() {
       cancelTimer(); failures = 0
       options.notify({ state: "idle", pendingCount: 0 })

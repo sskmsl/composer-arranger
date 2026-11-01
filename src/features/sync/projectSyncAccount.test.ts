@@ -36,3 +36,11 @@ it("uploads a project normally while its authenticated owner remains unchanged",
   await pushProject(project)
   expect(mocks.rpc).toHaveBeenCalledWith("upsert_arranger_project", expect.objectContaining({ p_id: project.projectId, p_deleted_at: null }))
 })
+it("preserves a transient identity-check failure so the cloud queue can retry it", async () => {
+  const scope = await import("@/storage/accountScope")
+  scope.selectStorageAccount("A"); scope.allowStorageAccount("A")
+  mocks.getUser.mockResolvedValue({ data: { user: null }, error: new TypeError("Failed to fetch") })
+  const { pushProject } = await import("./projectSync")
+  await expect(pushProject({ ...createEmptyProject("private A"), savedAt: new Date().toISOString() })).rejects.toThrow("Failed to fetch")
+  expect(mocks.rpc).not.toHaveBeenCalled()
+})

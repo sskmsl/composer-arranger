@@ -11,7 +11,7 @@ function setup() {
   const send = vi.fn<(entry: PendingCloudSave) => Promise<void>>().mockResolvedValue(undefined)
   const key = (entry: PendingCloudSave) => entry.ownerId + ":" + entry.project.projectId
   const add = (ownerId: string, id: string, revision: string) => {
-    const entry = { ownerId, revision, project: { ...createEmptyProject(revision), projectId: id, savedAt: "2026-11-01T00:00:00Z" } }
+    const entry: PendingCloudSave = { kind: "save", ownerId, revision, project: { ...createEmptyProject(revision), projectId: id, savedAt: "2026-11-01T00:00:00Z" } }
     entries.set(key(entry), entry)
     return entry
   }
@@ -71,4 +71,18 @@ it("backs off network failures and cancels retry timers on sign out", async () =
   await vi.advanceTimersByTimeAsync(120_000)
   expect(s.send).toHaveBeenCalledTimes(2)
   expect(s.entries.size).toBe(1)
+})
+it("does not shorten network backoff when more edits arrive", async () => {
+  vi.useFakeTimers()
+  const s = setup(); s.add("A", "song", "v1")
+  s.send.mockRejectedValueOnce(new TypeError("Failed to fetch"))
+  const queue = createCloudSaveCoordinator(s.options)
+  await queue.flush()
+  s.add("A", "song", "v2"); queue.schedule()
+  await vi.advanceTimersByTimeAsync(800)
+  expect(s.send).toHaveBeenCalledTimes(1)
+  await vi.advanceTimersByTimeAsync(4200)
+  expect(s.send.mock.calls.map(([entry]) => entry.revision)).toEqual(["v1", "v2"])
+  expect(s.entries.size).toBe(0)
+  queue.dispose()
 })

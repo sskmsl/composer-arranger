@@ -1,7 +1,7 @@
 import type { ComposerProject } from "@/core/project"
 import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectBrowser"
 import { getDb, PROJECT_STORE, META_STORE, CLOUD_OUTBOX_STORE } from "./db"
-import { cloudSaveKey, pendingCloudSave, listPendingCloudSaves } from "./cloudOutbox"
+import { cloudSaveKey, pendingCloudSave, pendingCloudDelete, listPendingCloudSaves, readPendingCloudSave, acknowledgeCloudSave } from "./cloudOutbox"
 import { allowStorageAccount, assertStorageAccount, storageAccount } from "./accountScope"
 import {
   deleteProjectRemote,
@@ -9,6 +9,7 @@ import {
   scheduleProjectPush,
   isCloudSyncConfigured,
   retryCloudSaves,
+  scheduleCloudSync,
   shouldResetLocalForOwner,
   syncPullAndReconcile,
   type StoredComposerProject,
@@ -45,6 +46,8 @@ async function flushCloudDeletion(
   deletion: PendingCloudDeletion,
 ): Promise<void> {
   await deleteProjectRemote(deletion.projectId, deletion.deletedAt, ownerId)
+  const queued = await readPendingCloudSave(ownerId, deletion.projectId)
+  if (queued?.kind === "delete" && queued.deletedAt === deletion.deletedAt) await acknowledgeCloudSave(queued)
   const db = await getDb()
   assertStorageAccount(ownerId)
   const tx = db.transaction(META_STORE, "readwrite")
@@ -139,10 +142,11 @@ export async function deleteProject(projectId: string): Promise<void> {
       (async () => {
         await transaction.objectStore(PROJECT_STORE).delete(projectId)
         if (cloudOwnerId) {
-          await transaction.objectStore(CLOUD_OUTBOX_STORE).delete(cloudSaveKey(cloudOwnerId, projectId))
           const raw = await transaction.objectStore(META_STORE).get(pendingDeletionKey(cloudOwnerId))
           const previousDeletions = raw ? JSON.parse(raw) as PendingCloudDeletion[] : []
           deletion = { projectId, deletedAt: new Date().toISOString() }
+          if (isCloudSyncConfigured()) await transaction.objectStore(CLOUD_OUTBOX_STORE).put(pendingCloudDelete(cloudOwnerId, projectId, deletion.deletedAt), cloudSaveKey(cloudOwnerId, projectId))
+          else await transaction.objectStore(CLOUD_OUTBOX_STORE).delete(cloudSaveKey(cloudOwnerId, projectId))
           await transaction.objectStore(META_STORE).put(JSON.stringify([...previousDeletions.filter((item) => item.projectId !== projectId), deletion]), pendingDeletionKey(cloudOwnerId))
         }
         const nextLast = nextLastOpenedAfterDelete(projectId, lastOpened, allIds)
@@ -157,7 +161,7 @@ export async function deleteProject(projectId: string): Promise<void> {
     throw error
   }
   assertStorageAccount(account)
-  if (cloudOwnerId && deletion && isCloudSyncConfigured()) void flushCloudDeletion(cloudOwnerId, deletion).catch(() => undefined)
+  if (cloudOwnerId && deletion && isCloudSyncConfigured()) scheduleCloudSync()
 }
 
 /** Issue #14: 保存済みプロジェクトを複製する(新しいprojectId・全データ保持)。複製したプロジェクトを返す */

@@ -9,6 +9,14 @@ const buildId = process.env.GITHUB_SHA?.slice(0, 7) ?? "dev"
 export default defineConfig({
   base: "./", // GitHub Pagesのサブパス配信でもそのまま動くよう相対パスにする
   define: { __BUILD_ID__: JSON.stringify(buildId) },
+  build: {
+    modulePreload: {
+      // WebKitの失敗済みmodulepreloadがreload後も残る問題を避ける。
+      // HTML入口の先読みとCSSは維持し、遅延JSは通常のimport()で読む。
+      resolveDependencies: (_file, dependencies, context) => context.hostType === "js"
+        ? dependencies.filter((dependency) => !dependency.endsWith(".js")) : dependencies,
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
