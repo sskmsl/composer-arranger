@@ -75,5 +75,9 @@ export function enableAuthFixture() {
     releasePush(id: string) { pushing.delete(id); for (const resolve of heldPushes.get(id) || []) resolve(); heldPushes.delete(id) },
     calls: () => calls,
     remote: (id: string) => remote.get(id) || [],
+    deleteRemote(id: string, projectId: string, deletedAt: string) {
+      remote.set(id, [...(remote.get(id) || []).filter(row => row.id !== projectId), { id: projectId, data: null, updated_at: deletedAt, deleted_at: deletedAt }])
+      sessionStorage.setItem("fixtureRemote", JSON.stringify([...remote.entries()]))
+    },
   } })
 }

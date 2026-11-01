@@ -86,3 +86,10 @@ it("does not shorten network backoff when more edits arrive", async () => {
   expect(s.entries.size).toBe(0)
   queue.dispose()
 })
+it("acknowledges a remotely deleted entry without claiming it was uploaded", async () => {
+  const s = setup(); s.add("A", "deleted", "v1")
+  const queue = createCloudSaveCoordinator({ ...s.options, send: async () => false })
+  await queue.flush()
+  expect(s.entries.size).toBe(0)
+  expect(s.notify).toHaveBeenLastCalledWith({ state: "idle", pendingCount: 0 })
+})

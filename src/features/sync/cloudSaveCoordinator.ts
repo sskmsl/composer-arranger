@@ -8,7 +8,7 @@ export interface CloudSaveStatus {
 export function createCloudSaveCoordinator<T extends { ownerId: string; revision: string }>(options: {
   owner: () => string | null
   list: (owner: string) => Promise<T[]>
-  send: (entry: T) => Promise<void>
+  send: (entry: T) => Promise<void | boolean>
   acknowledge: (entry: T) => Promise<void>
   retryable: (error: unknown) => boolean
   notify: (status: CloudSaveStatus) => void
@@ -42,10 +42,10 @@ export function createCloudSaveCoordinator<T extends { ownerId: string; revision
             if (!sameOwner(owner)) return
             options.notify({ state: "sending", pendingCount: pending.length })
             try {
-              await options.send(entry)
+              const uploaded = await options.send(entry)
               if (!sameOwner(owner)) return
               await options.acknowledge(entry)
-              sent = true
+              sent ||= uploaded !== false
             } catch (error) {
               failed = true
               retry ||= options.retryable(error)

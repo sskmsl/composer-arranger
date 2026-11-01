@@ -81,6 +81,25 @@ test("deleting an offline cloud save leaves a deletion to resend instead of resu
   expect(await page.evaluate((id) => (window as any).authFixture.remote("A").find((row: any) => row.id === id)?.data, id)).toBeNull()
 })
 
+for (const recovery of ["reload", "online"] as const) test(`a remote deletion wins over a newer offline edit during ${recovery} recovery`, async ({ page }) => {
+  await page.goto("/e2e/harness.html?auth=1&offline=1"); await ready(page); await seed(page)
+  await title(page, "Newer offline edit of a deleted song")
+  await expect(page.getByRole("alert").filter({ hasText: "クラウドに未送信" })).toBeVisible()
+  const id = await page.evaluate(() => (window as any).reliability.state().project.projectId)
+  await page.evaluate((id) => {
+    (window as any).authFixture.deleteRemote("A", id, "2000-01-01T00:00:00.000Z")
+    ;(window as any).authFixture.offline(false)
+  }, id)
+  if (recovery === "reload") { await page.reload(); await ready(page) }
+  else await page.evaluate(() => window.dispatchEvent(new Event("online")))
+  await expect.poll(() => page.evaluate(async () => (await (window as any).reliability.pendingCloud("A")).length)).toBe(0)
+  expect(await page.evaluate((id) => (window as any).authFixture.remote("A").find((row: any) => row.id === id), id)).toEqual({
+    id, data: null, updated_at: "2000-01-01T00:00:00.000Z", deleted_at: "2000-01-01T00:00:00.000Z",
+  })
+  if (recovery === "online") { await page.reload(); await ready(page) }
+  await expect.poll(() => page.evaluate(() => (window as any).reliability.storedTitles())).not.toContain("Newer offline edit of a deleted song")
+})
+
 test("an inactive unsaved song can be downloaded without replacing the active song", async ({ page }) => {
   await page.addInitScript(() => {
     const original = IDBObjectStore.prototype.put
