@@ -167,6 +167,7 @@ export interface ProjectState extends ArrangementChatActions {
   storageLoadError: boolean
   storageLoadErrorReason: string | null
   saveStatus: SaveStatus
+  unsavedProjects: ComposerProject[]
   flushSave: () => Promise<boolean>
   workflowNotice: string | null
   /** Issue #16: 時間単位の自動変換通知/確認待ち(判定できなかった場合) */
@@ -397,6 +398,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   storageLoadError: false,
   storageLoadErrorReason: null,
   saveStatus: "idle",
+  unsavedProjects: [],
   workflowNotice: null,
   timingNotice: null,
 
@@ -1933,7 +1935,7 @@ function accountQueue(account: StorageAccount) {
       assertStorageAccount(account)
       await (entry.recordOnly ? putProjectRecord(entry.project) : saveProject(entry.project))
     }, (entry) => entry.project.projectId, (saveStatus) => {
-      if (storageAccount() === account && storageAccountReady()) useProjectStore.setState({ saveStatus })
+      if (storageAccount() === account && storageAccountReady()) useProjectStore.setState({ saveStatus, unsavedProjects: queue?.pendingValues().map((entry) => entry.project) ?? [] })
     })
     accountQueues.set(account, queue)
   }
@@ -1946,11 +1948,11 @@ onStorageAccountChange((previous, next) => {
     if (saveCoordinator.pendingValue(current.projectId)) retainedProjects.set(previous, current)
     saveCoordinator = accountQueue(next)
     useProjectStore.setState({ project: createEmptyProject(), selectedSectionId: null, history: [], future: [],
-      hydrated: false, storageLoadError: false, storageLoadErrorReason: null, saveStatus: "idle", timingNotice: null, workflowNotice: null })
+      hydrated: false, storageLoadError: false, storageLoadErrorReason: null, saveStatus: "idle", unsavedProjects: [], timingNotice: null, workflowNotice: null })
   }
   if (storageAccountReady()) {
     const retained = retainedProjects.get(next)
     const pending = retained && saveCoordinator.pendingValue(retained.projectId)?.project
-    useProjectStore.setState({ ...(pending ? { project: pending } : {}), saveStatus: saveCoordinator.hasPending() ? "error" : "idle" })
+    useProjectStore.setState({ ...(pending ? { project: pending } : {}), saveStatus: saveCoordinator.hasPending() ? "error" : "idle", unsavedProjects: saveCoordinator.pendingValues().map((entry) => entry.project) })
   }
 })
