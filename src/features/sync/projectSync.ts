@@ -1,6 +1,9 @@
 import type { ComposerProject } from "@/core/project"
 import { supabase } from "@/lib/supabase"
 import { onStorageAccountChange, storageAccount, storageAccountReady, type StorageAccount } from "@/storage/accountScope"
+import { acknowledgeCloudSave, listCloudOutboxEntries, readPendingCloudSave, cloudOperationProjectId } from "@/storage/cloudOutbox"
+import { createCloudSaveCoordinator } from "./cloudSaveCoordinator"
+import { useCloudSaveState } from "./cloudSaveState"
 import {
   decodeCloudProjectPayload,
   encodeCloudProjectPayload,
@@ -9,7 +12,6 @@ import {
 const UPSERT_PROJECT_RPC = "upsert_arranger_project"
 const LIST_PROJECT_METADATA_RPC = "list_arranger_project_metadata"
 const GET_PROJECT_RPC = "get_arranger_project"
-const PUSH_DELAY_MS = 800
 const TRANSIENT_RETRY_DELAYS_MS = [250, 750] as const
 export const CLOUD_SYNC_COMPLETED_EVENT = "composer-arranger:cloud-sync-completed"
 
@@ -37,12 +39,6 @@ interface RemoteProjectMetadata {
   deleted_at: string | null
 }
 
-const pendingPushes = new Map<string, ReturnType<typeof setTimeout>>()
-onStorageAccountChange((previous, next) => {
-  if (previous === next) return
-  for (const timer of pendingPushes.values()) clearTimeout(timer)
-  pendingPushes.clear()
-})
 
 function errorMessage(reason: unknown): string {
   if (reason instanceof Error && reason.message) return reason.message
@@ -92,7 +88,7 @@ function syncStageError(stage: string, reason: unknown): Error {
   const detail = isTransientCloudSyncError(reason)
     ? "Cloudへの通信が途中で切断されました。大きいProjectは圧縮して再送します。少し待ってから再試行してください。"
     : errorMessage(reason)
-  return new Error(`クラウド同期(${stage}): ${detail}`)
+  return new Error(`クラウド同期(${stage}): ${detail}`, { cause: reason })
 }
 
 async function runCloudRpc<T>(
@@ -112,31 +108,28 @@ async function runCloudRpc<T>(
 
 async function ownerId(): Promise<string | null> {
   if (!supabase) return null
-  const { data } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getUser()
+  if (error) throw error
   return data.user?.id ?? null
 }
 
 /** 頻繁なノート編集でも通信を連打しないよう、project単位で最後の状態だけ送る。 */
-export function scheduleProjectPush(project: StoredComposerProject): void {
-  if (!supabase) return
-  const account = storageAccount()
-  const pending = pendingPushes.get(project.projectId)
-  if (pending) clearTimeout(pending)
-  pendingPushes.set(
-    project.projectId,
-    setTimeout(() => {
-      pendingPushes.delete(project.projectId)
-      if (storageAccount() === account && storageAccountReady()) void pushProject(project, account).catch(() => undefined)
-    }, PUSH_DELAY_MS),
-  )
+export function scheduleProjectPush(_project: StoredComposerProject): void {
+  scheduleCloudSync()
+}
+export function scheduleCloudSync(): void {
+  if (cloudSaveOwner()) {
+    if (useCloudSaveState.getState().state !== "error") useCloudSaveState.setState({ state: "sending" })
+    cloudSaves.schedule()
+  }
 }
 
-export async function pushProject(project: StoredComposerProject, account: StorageAccount = storageAccount()): Promise<void> {
+export async function pushProject(project: StoredComposerProject, account: StorageAccount = storageAccount()): Promise<boolean> {
   const client = supabase
-  if (!client) return
+  if (!client) return false
   const owner = await ownerId()
   if (!owner || account === null || (account !== undefined && account !== owner)
-    || storageAccount() !== account || !storageAccountReady()) return
+    || storageAccount() !== account || !storageAccountReady()) return false
   const cloudPayload = await encodeCloudProjectPayload(project)
   await runCloudRpc("アップロード", () => {
     if (storageAccount() !== account || !storageAccountReady()) throw new Error("アップロード中にアカウントが変更されました")
@@ -147,6 +140,7 @@ export async function pushProject(project: StoredComposerProject, account: Stora
       p_deleted_at: null,
     })
   })
+  return true
 }
 
 export async function deleteProjectRemote(
@@ -156,11 +150,6 @@ export async function deleteProjectRemote(
 ): Promise<void> {
   const client = supabase
   if (!client) return
-  const pending = pendingPushes.get(projectId)
-  if (pending) {
-    clearTimeout(pending)
-    pendingPushes.delete(projectId)
-  }
   const owner = await ownerId()
   if (account !== undefined && (account !== owner || storageAccount() !== account || !storageAccountReady())) {
     throw new Error("削除反映中にアカウントが変更されました")
@@ -334,4 +323,57 @@ export async function syncPullAndReconcile(
 
 export function isCloudSyncConfigured(): boolean {
   return supabase !== null
+}
+
+/** 別端末の削除は、より新しいオフライン編集より優先する既存の同期規則を保つ。 */
+export async function replayQueuedProject(project: StoredComposerProject, account: string, restoredAt?: string): Promise<boolean> {
+  const client = supabase
+  const assertOwner = () => {
+    if (!client || storageAccount() !== account || !storageAccountReady()) throw new Error("元のアカウントでクラウド保存を再試行してください")
+  }
+  assertOwner()
+  if (await ownerId() !== account) throw new Error("元のアカウントでクラウド保存を再試行してください")
+  assertOwner()
+  const metadata = await runCloudRpc("削除状態確認", () => {
+    assertOwner()
+    return client!.rpc(LIST_PROJECT_METADATA_RPC)
+  }) as RemoteProjectMetadata[] | null
+  assertOwner()
+  const deletedAt = metadata?.find(row => row.id === project.projectId)?.deleted_at
+  if (deletedAt && (!restoredAt || restoredAt < deletedAt)) return false
+  if (!await pushProject(project, account)) throw new Error("元のアカウントでクラウド保存を再試行してください")
+  return true
+}
+
+function cloudSaveOwner(): string | null {
+  const owner = storageAccount()
+  return supabase && typeof owner === "string" && storageAccountReady() ? owner : null
+}
+const cloudSaves = createCloudSaveCoordinator({
+  owner: cloudSaveOwner,
+  list: listCloudOutboxEntries,
+  send: async (entry) => {
+    const current = await readPendingCloudSave(entry.ownerId, cloudOperationProjectId(entry))
+    if (current?.revision !== entry.revision) return false
+    if (entry.kind === "delete") { await deleteProjectRemote(entry.projectId, entry.deletedAt, entry.ownerId); return }
+    return replayQueuedProject(entry.project, entry.ownerId, entry.restoredAt)
+  },
+  acknowledge: acknowledgeCloudSave,
+  retryable: (error) => isTransientCloudSyncError(error) || (error instanceof Error && isTransientCloudSyncError(error.cause)),
+  notify: (status) => useCloudSaveState.setState(status),
+})
+onStorageAccountChange(() => cloudSaves.accountChanged())
+export const retryCloudSaves = () => cloudSaves.flush()
+export function connectCloudSaveRecovery(): () => void {
+  const resume = () => { if (document.visibilityState !== "hidden") void retryCloudSaves() }
+  window.addEventListener("online", resume)
+  window.addEventListener("focus", resume)
+  document.addEventListener("visibilitychange", resume)
+  resume()
+  return () => {
+    window.removeEventListener("online", resume)
+    window.removeEventListener("focus", resume)
+    document.removeEventListener("visibilitychange", resume)
+    cloudSaves.dispose()
+  }
 }

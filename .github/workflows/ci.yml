@@ -28,8 +28,10 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - run: npm test -- --maxWorkers=2
+      - name: Verify fixed listening MIDI exports
+        run: npm run qa:listening -- --out test-results/listening --compare docs/testing/listening-baseline.json
       - name: Install browser for interaction tests
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Test browser recovery and generation
         run: npm run test:e2e
       - name: Keep browser failure evidence

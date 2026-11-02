@@ -36,3 +36,43 @@ it("uploads a project normally while its authenticated owner remains unchanged",
   await pushProject(project)
   expect(mocks.rpc).toHaveBeenCalledWith("upsert_arranger_project", expect.objectContaining({ p_id: project.projectId, p_deleted_at: null }))
 })
+it("preserves a transient identity-check failure so the cloud queue can retry it", async () => {
+  const scope = await import("@/storage/accountScope")
+  scope.selectStorageAccount("A"); scope.allowStorageAccount("A")
+  mocks.getUser.mockResolvedValue({ data: { user: null }, error: new TypeError("Failed to fetch") })
+  const { pushProject } = await import("./projectSync")
+  await expect(pushProject({ ...createEmptyProject("private A"), savedAt: new Date().toISOString() })).rejects.toThrow("Failed to fetch")
+  expect(mocks.rpc).not.toHaveBeenCalled()
+})
+it("discards a queued edit when another device deleted the song, even if the edit is newer", async () => {
+  const scope = await import("@/storage/accountScope")
+  scope.selectStorageAccount("A"); scope.allowStorageAccount("A")
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "A" } }, error: null })
+  const project = { ...createEmptyProject("newer offline edit"), savedAt: "2026-11-01T00:00:00.000Z" }
+  mocks.rpc.mockResolvedValue({ data: [{ id: project.projectId, updated_at: "2000-01-01T00:00:00.000Z", deleted_at: "2000-01-01T00:00:00.000Z" }], error: null })
+  const { replayQueuedProject } = await import("./projectSync")
+  expect(await replayQueuedProject(project, "A")).toBe(false)
+  expect(mocks.rpc.mock.calls.map(([name]) => name)).toEqual(["list_arranger_project_metadata"])
+})
+it("does not upload queued edits if remote deletion status cannot be checked", async () => {
+  const scope = await import("@/storage/accountScope")
+  scope.selectStorageAccount("A"); scope.allowStorageAccount("A")
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "A" } }, error: null })
+  mocks.rpc.mockResolvedValue({ data: null, error: { message: "server unavailable" } })
+  const { replayQueuedProject } = await import("./projectSync")
+  await expect(replayQueuedProject({ ...createEmptyProject(), savedAt: new Date().toISOString() }, "A")).rejects.toThrow("server unavailable")
+  expect(mocks.rpc.mock.calls.map(([name]) => name)).toEqual(["list_arranger_project_metadata"])
+})
+it.each([
+  ["2000-01-01T00:00:00.000Z", true],
+  ["2026-11-02T00:00:00.000Z", false],
+])("allows explicit undo only over an older tombstone (%s)", async (deletedAt, allowed) => {
+  const scope = await import("@/storage/accountScope")
+  scope.selectStorageAccount("A"); scope.allowStorageAccount("A")
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "A" } }, error: null })
+  const project = { ...createEmptyProject("explicit undo"), savedAt: "2026-11-01T01:00:00.000Z" }
+  mocks.rpc.mockImplementation(async (name) => ({ data: name === "list_arranger_project_metadata" ? [{ id: project.projectId, updated_at: deletedAt, deleted_at: deletedAt }] : null, error: null }))
+  const { replayQueuedProject } = await import("./projectSync")
+  expect(await replayQueuedProject(project, "A", "2026-11-01T00:00:00.000Z")).toBe(allowed)
+  expect(mocks.rpc.mock.calls.filter(([name]) => name === "upsert_arranger_project")).toHaveLength(allowed ? 1 : 0)
+})

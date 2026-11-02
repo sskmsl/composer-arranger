@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { useProjectStore } from "@/store/useProjectStore"
-import { listProjects, getLastOpenedId, putProjectRecord } from "@/storage/projectRepository"
+import { listProjects, getLastOpenedId, restoreProjectRecord } from "@/storage/projectRepository"
+import { assertStorageAccount, storageAccount, type StorageAccount } from "@/storage/accountScope"
 import type { ComposerProject } from "@/core/project"
 import { summarizeProject, sortSummariesByRecency, filterSummaries, type ProjectSummary } from "@/core/projectBrowser"
 import { Button, TextInput } from "@/ui/primitives"
@@ -33,7 +34,7 @@ export function ProjectBrowser({
   const [renameValue, setRenameValue] = useState("")
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   /** 直近削除の復元用(セッション内)。wasActiveは削除時点で現在編集中のプロジェクトだったか */
-  const [recentlyDeleted, setRecentlyDeleted] = useState<{ summary: ProjectSummary; record: ComposerProject; wasActive: boolean } | null>(null)
+  const [recentlyDeleted, setRecentlyDeleted] = useState<{ summary: ProjectSummary; record: ComposerProject; wasActive: boolean; owner: StorageAccount } | null>(null)
   const [loading, setLoading] = useState(true)
 
   const refresh = async () => {
@@ -74,26 +75,28 @@ export function ProjectBrowser({
   }
 
   const doDelete = async (summary: ProjectSummary) => {
+    const owner = storageAccount()
     // 復元用に削除前レコードを控えてから削除する(セッション内で元に戻せる)。
     // 削除時点で「現在編集中のプロジェクトだったか」も記録し、復元方法を分岐させる。
     const all = await listProjects()
     const record = all.find((r) => r.projectId === summary.projectId) ?? null
     const wasActive = summary.projectId === currentId
+    assertStorageAccount(owner)
     await deleteStoredProject(summary.projectId)
+    if (storageAccount() !== owner) return
     setConfirmDeleteId(null)
-    if (record) setRecentlyDeleted({ summary, record, wasActive })
+    if (record) setRecentlyDeleted({ summary, record, wasActive, owner })
     await refresh()
   }
 
   const restoreDeleted = async () => {
     if (!recentlyDeleted) return
+    assertStorageAccount(recentlyDeleted.owner)
+    await restoreProjectRecord(recentlyDeleted.record)
+    assertStorageAccount(recentlyDeleted.owner)
     if (recentlyDeleted.wasActive) {
       // 削除時点で編集中だったプロジェクトの復元は、編集セッションへ戻すのが自然
       useProjectStore.getState().loadProject(recentlyDeleted.record)
-    } else {
-      // 編集中でない(無関係な)プロジェクトの復元は、IndexedDBへ書き戻すだけに留め、
-      // 現在の編集セッション(project/selectedSectionId/history/lastOpened)には触れない
-      await putProjectRecord(recentlyDeleted.record)
     }
     setRecentlyDeleted(null)
     await refresh()

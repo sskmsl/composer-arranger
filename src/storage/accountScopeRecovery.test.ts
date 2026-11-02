@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest"
 import { createEmptyProject } from "@/core/project"
 const mocks = vi.hoisted(() => ({ getDb: vi.fn(), scheduleProjectPush: vi.fn() }))
 vi.mock("./db", () => ({ getDb: mocks.getDb, PROJECT_STORE: "projects", META_STORE: "meta" }))
-vi.mock("@/features/sync/projectSync", () => ({ scheduleProjectPush: mocks.scheduleProjectPush }))
+vi.mock("@/features/sync/projectSync", () => ({ scheduleProjectPush: mocks.scheduleProjectPush, isCloudSyncConfigured: () => false }))
 beforeEach(() => { vi.resetModules(); vi.clearAllMocks() })
 it("does not start an old account write after its DB open completes under another account", async () => {
   const scope = await import("./accountScope")

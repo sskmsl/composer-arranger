@@ -16,19 +16,41 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [syncAttempt, setSyncAttempt] = useState(0)
   const lastSyncedUserId = useRef<string | null>(null)
+  const syncGeneration = useRef(0)
+  const [sessionAttempt, setSessionAttempt] = useState(0)
+  const [sessionError, setSessionError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!supabase) return
-    void supabase.auth.getSession().then(({ data }) => {
-      selectStorageAccount(data.session?.user.id ?? null)
-      setSession(data.session)
-    })
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
-      selectStorageAccount(next?.user.id ?? null)
+    let active = true
+    let receivedEvent = false
+    const receive = (next: Session | null) => {
+      if (!active) return
+      const owner = next?.user.id ?? null
+      if (storageAccount() !== owner) {
+        syncGeneration.current += 1
+        lastSyncedUserId.current = null
+        setSyncAttempt((attempt) => attempt + 1)
+      }
+      selectStorageAccount(owner)
       setSession(next)
+      setSessionError(null)
+    }
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+      receivedEvent = true
+      receive(next)
     })
-    return () => data.subscription.unsubscribe()
-  }, [])
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!active || receivedEvent) return
+      if (error) throw error
+      receive(data.session)
+    }).catch(() => {
+      if (!active || receivedEvent) return
+      receive(null)
+      setSessionError("ログイン状態を確認できませんでした。再確認するか、ログインしてください。")
+    })
+    return () => { active = false; data.subscription.unsubscribe() }
+  }, [sessionAttempt])
 
   const userId = session?.user.id ?? null
 
@@ -39,17 +61,27 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
     if (lastSyncedUserId.current === userId) return
     lastSyncedUserId.current = userId
+    const generation = ++syncGeneration.current
+    const current = () => syncGeneration.current === generation && storageAccount() === userId
     setSyncing(true)
     setError(null)
     void syncProjectsFromCloud(userId)
       .catch((reason: unknown) => {
+        if (!current()) return
         lastSyncedUserId.current = null
         setError(syncErrorMessage(reason))
       })
       .finally(() => {
+        if (!current()) return
         if (storageAccount() === userId && storageAccountReady()) window.dispatchEvent(new CustomEvent(CLOUD_SYNC_COMPLETED_EVENT))
         setSyncing(false)
       })
+    return () => {
+      if (syncGeneration.current === generation) {
+        syncGeneration.current += 1
+        lastSyncedUserId.current = null
+      }
+    }
   }, [syncAttempt, userId])
 
   if (!supabase) return <>{children}</>
@@ -61,7 +93,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     )
   }
-  if (!session) return <LoginForm />
+  if (!session) return <LoginForm sessionError={sessionError} onRetrySession={() => {
+    setSession(undefined)
+    setSessionAttempt((attempt) => attempt + 1)
+  }} />
   return (
     <>
       {syncing && (
@@ -124,7 +159,7 @@ function syncErrorMessage(reason: unknown): string {
   return "同期に失敗しました"
 }
 
-function LoginForm() {
+function LoginForm({ sessionError, onRetrySession }: { sessionError: string | null; onRetrySession: () => void }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
@@ -176,7 +211,8 @@ function LoginForm() {
             required
           />
         </label>
-        {error && <p className="text-[13px] text-red-300">{error}</p>}
+        {(error || sessionError) && <p role="alert" className="text-[13px] text-red-300">{error || sessionError}</p>}
+        {sessionError && <Button variant="dark" type="button" onClick={onRetrySession}>ログイン状態を再確認</Button>}
         <Button variant="primary" type="submit" disabled={busy}>
           {busy ? "ログイン中…" : "ログイン"}
         </Button>

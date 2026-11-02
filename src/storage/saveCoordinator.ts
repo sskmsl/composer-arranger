@@ -40,9 +40,11 @@ export function createSaveCoordinator<T>(write: (value: T) => Promise<void>, key
       // 曲を切り替えて戻った編集も、lastOpenedを決める最新の保存として最後へ置く。
       pending.delete(id)
       pending.set(id, { value, revision: ++revision })
+      notify("saving")
       void start()
     },
     pendingValue(id: string): T | undefined { return pending.get(id)?.value },
+    pendingValues(): T[] { return [...pending.values()].map((item) => item.value) },
     hasPending(): boolean { return pending.size > 0 },
     async discard(id: string): Promise<T | undefined> {
       const retained = pending.get(id)

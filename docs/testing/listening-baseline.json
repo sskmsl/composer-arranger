@@ -1,0 +1,2653 @@
+{
+  "format": "arranger-listening-review-v1",
+  "sourceRevision": "c9a017fde0868358265c27eb0e8616db68863ac7",
+  "engineBaseline": "c9a017fde0868358265c27eb0e8616db68863ac7",
+  "cases": [
+    {
+      "key": "minor-44-seed-19",
+      "label": "余白のある4/4・短調",
+      "seed": 19,
+      "meter": "4/4",
+      "tempo": 76,
+      "bars": 64,
+      "fullMidiSha256": "a09eaf8f4ab0a4cc8a88a5a141f42c736ec8ea34a6cd0a87355cd949cd92c085",
+      "leadMidiSha256": "2a37b66fecaa3a741780d0afe73f630ecd1369a079a6dac3776f785a15cdba42",
+      "midiBytes": 21528,
+      "noteCount": 1400,
+      "leadNoteCount": 187,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 145,
+          "pitchLow": 54,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 143,
+          "pitchLow": 31,
+          "pitchHigh": 69
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 165,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 80,
+          "pitchHigh": 80
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 124,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 273,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 7,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 18,
+          "pitchLow": 52,
+          "pitchHigh": 65
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 24,
+          "pitchLow": 57,
+          "pitchHigh": 79
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 11,
+          "pitchLow": 57,
+          "pitchHigh": 64
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 9,
+          "pitchLow": 54,
+          "pitchHigh": 64
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 12,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 11,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 2,
+          "pitchLow": 76,
+          "pitchHigh": 83
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 2,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 52,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 66,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 3,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 74,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 76,
+          "pitchHigh": 76
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 8,
+          "pitchLow": 73,
+          "pitchHigh": 79
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 22,
+          "pitchLow": 56,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 10,
+          "pitchLow": 50,
+          "pitchHigh": 65
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 13,
+          "pitchLow": 61,
+          "pitchHigh": 62
+        },
+        {
+          "name": "STR_HighOctave",
+          "noteCount": 1,
+          "pitchLow": 88,
+          "pitchHigh": 88
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 136,
+          "pitchLow": 50,
+          "pitchHigh": 69
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 9,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 40,
+          "pitchLow": 40,
+          "pitchHigh": 62
+        }
+      ],
+      "sections": [
+        {
+          "name": "イントロ",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Aメロ",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Bメロ",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "サビ",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Aメロ2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "サビ2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "間奏",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "大サビ",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "アウトロ",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "minor-44-seed-41",
+      "label": "余白のある4/4・短調",
+      "seed": 41,
+      "meter": "4/4",
+      "tempo": 76,
+      "bars": 64,
+      "fullMidiSha256": "ffa5dcfaf7c9b4a56a92b899cd0c6545cf47083476ef30e8f6781930cace5800",
+      "leadMidiSha256": "910e0b0a277519e32039a5df59c5ab71d9094f741eadf1f5024f6c87167263a9",
+      "midiBytes": 21242,
+      "noteCount": 1377,
+      "leadNoteCount": 224,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 129,
+          "pitchLow": 54,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 138,
+          "pitchLow": 31,
+          "pitchHigh": 69
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 165,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 124,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 249,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 9,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 15,
+          "pitchLow": 53,
+          "pitchHigh": 65
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 57,
+          "pitchHigh": 64
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 10,
+          "pitchLow": 52,
+          "pitchHigh": 67
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 13,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 13,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 3,
+          "pitchLow": 76,
+          "pitchHigh": 83
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 2,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 54,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 66,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 3,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 70,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 76,
+          "pitchHigh": 76
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 9,
+          "pitchLow": 69,
+          "pitchHigh": 77
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 22,
+          "pitchLow": 55,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 1,
+          "pitchLow": 57,
+          "pitchHigh": 57
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 14,
+          "pitchLow": 61,
+          "pitchHigh": 64
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 79,
+          "pitchLow": 50,
+          "pitchHigh": 66
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 6,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 143,
+          "pitchLow": 40,
+          "pitchHigh": 71
+        }
+      ],
+      "sections": [
+        {
+          "name": "イントロ",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Aメロ",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Bメロ",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "サビ",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Aメロ2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "サビ2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "間奏",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "大サビ",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "アウトロ",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "major-44-seed-19",
+      "label": "速い4/4・長調",
+      "seed": 19,
+      "meter": "4/4",
+      "tempo": 118,
+      "bars": 64,
+      "fullMidiSha256": "c2653ce345d99883cc87393a8786ae8a8bda8c6e370e540674d996b7a01a8830",
+      "leadMidiSha256": "83b2507a12998f780ebc43edaa6e8ccb312d74bba93884f6d07c8e65d463d144",
+      "midiBytes": 20739,
+      "noteCount": 1330,
+      "leadNoteCount": 229,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 135,
+          "pitchLow": 55,
+          "pitchHigh": 74
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 166,
+          "pitchLow": 31,
+          "pitchHigh": 60
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 128,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 116,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 225,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 5,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 16,
+          "pitchLow": 52,
+          "pitchHigh": 62
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 15,
+          "pitchLow": 57,
+          "pitchHigh": 79
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 55,
+          "pitchHigh": 66
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 10,
+          "pitchLow": 60,
+          "pitchHigh": 71
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 11,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 10,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 2,
+          "pitchLow": 67,
+          "pitchHigh": 69
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 3,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 31,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 58,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 5,
+          "pitchLow": 49,
+          "pitchHigh": 52
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 77,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 9,
+          "pitchLow": 72,
+          "pitchHigh": 89
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 18,
+          "pitchLow": 55,
+          "pitchHigh": 62
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 6,
+          "pitchLow": 55,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_HighOctave",
+          "noteCount": 2,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 151,
+          "pitchLow": 50,
+          "pitchHigh": 67
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 3,
+          "pitchLow": 67,
+          "pitchHigh": 74
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 104,
+          "pitchLow": 40,
+          "pitchHigh": 64
+        }
+      ],
+      "sections": [
+        {
+          "name": "Intro",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Verse",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Pre-Chorus",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "Chorus",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Verse 2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Chorus 2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Bridge",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "Final Chorus",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "Outro",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "major-44-seed-41",
+      "label": "速い4/4・長調",
+      "seed": 41,
+      "meter": "4/4",
+      "tempo": 118,
+      "bars": 64,
+      "fullMidiSha256": "aeff11ada88ad896374e96e17b19bead1c5ccf90020c538d4d424d56288fd5d0",
+      "leadMidiSha256": "7833cc364f97c5bfc65d40bc136d3179f6d5b07f9f11103af3049cd01e45c461",
+      "midiBytes": 20360,
+      "noteCount": 1245,
+      "leadNoteCount": 255,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 118,
+          "pitchLow": 55,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 172,
+          "pitchLow": 31,
+          "pitchHigh": 60
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 122,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 116,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 250,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 6,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 13,
+          "pitchLow": 52,
+          "pitchHigh": 60
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 18,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 55,
+          "pitchHigh": 66
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 12,
+          "pitchLow": 60,
+          "pitchHigh": 73
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 13,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 12,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 3,
+          "pitchLow": 66,
+          "pitchHigh": 67
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 2,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 35,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 58,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 5,
+          "pitchLow": 49,
+          "pitchHigh": 52
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 81,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 69,
+          "pitchHigh": 69
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 14,
+          "pitchLow": 69,
+          "pitchHigh": 91
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 16,
+          "pitchLow": 55,
+          "pitchHigh": 77
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 4,
+          "pitchLow": 59,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 15,
+          "pitchLow": 61,
+          "pitchHigh": 66
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 89,
+          "pitchLow": 50,
+          "pitchHigh": 76
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 30,
+          "pitchLow": 40,
+          "pitchHigh": 57
+        }
+      ],
+      "sections": [
+        {
+          "name": "Intro",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Verse",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Pre-Chorus",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "Chorus",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Verse 2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Chorus 2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Bridge",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "Final Chorus",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "Outro",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "minor-34-seed-19",
+      "label": "3拍子・短調",
+      "seed": 19,
+      "meter": "3/4",
+      "tempo": 84,
+      "bars": 64,
+      "fullMidiSha256": "a0909cf882b0500997d7d18f68435da8e9461d0fc94e6bfc435fd2ce7952545e",
+      "leadMidiSha256": "6b81760335ab06375306e189cd0a84e1fb843f80030352c7e5141f1f29c39c3e",
+      "midiBytes": 20776,
+      "noteCount": 1323,
+      "leadNoteCount": 181,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 131,
+          "pitchLow": 54,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 155,
+          "pitchLow": 31,
+          "pitchHigh": 69
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 157,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 80,
+          "pitchHigh": 80
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 124,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 199,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 8,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 13,
+          "pitchLow": 52,
+          "pitchHigh": 59
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 15,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 57,
+          "pitchHigh": 64
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 12,
+          "pitchLow": 52,
+          "pitchHigh": 64
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 10,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 11,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 2,
+          "pitchLow": 73,
+          "pitchHigh": 74
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 2,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 56,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 66,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 3,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 84,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 76,
+          "pitchHigh": 76
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 14,
+          "pitchLow": 71,
+          "pitchHigh": 79
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 23,
+          "pitchLow": 55,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 6,
+          "pitchLow": 54,
+          "pitchHigh": 59
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 12,
+          "pitchLow": 61,
+          "pitchHigh": 62
+        },
+        {
+          "name": "STR_HighOctave",
+          "noteCount": 2,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 74,
+          "pitchLow": 50,
+          "pitchHigh": 67
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 9,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 106,
+          "pitchLow": 40,
+          "pitchHigh": 77
+        }
+      ],
+      "sections": [
+        {
+          "name": "イントロ",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Aメロ",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Bメロ",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "サビ",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Aメロ2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "サビ2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "間奏",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "大サビ",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "アウトロ",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "minor-34-seed-41",
+      "label": "3拍子・短調",
+      "seed": 41,
+      "meter": "3/4",
+      "tempo": 84,
+      "bars": 64,
+      "fullMidiSha256": "2f273eab49b0b6ad2667b9161e90ad5ccabde3fdd71ba5e5368b4c850e0b8671",
+      "leadMidiSha256": "f583e02187761b501dc613b9fccb286dc08caa37cff16e7f1be1136d9f5b5a66",
+      "midiBytes": 20982,
+      "noteCount": 1359,
+      "leadNoteCount": 143,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 151,
+          "pitchLow": 54,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 164,
+          "pitchLow": 31,
+          "pitchHigh": 69
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 157,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 124,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 225,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 6,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 15,
+          "pitchLow": 53,
+          "pitchHigh": 65
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 79
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 57,
+          "pitchHigh": 64
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 12,
+          "pitchLow": 52,
+          "pitchHigh": 67
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 13,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 14,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 1,
+          "pitchLow": 79,
+          "pitchHigh": 79
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 1,
+          "pitchLow": 86,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 61,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 66,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 3,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 92,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 69,
+          "pitchHigh": 69
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 17,
+          "pitchLow": 71,
+          "pitchHigh": 79
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 23,
+          "pitchLow": 55,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 2,
+          "pitchLow": 57,
+          "pitchHigh": 59
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_HighOctave",
+          "noteCount": 1,
+          "pitchLow": 91,
+          "pitchHigh": 91
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 127,
+          "pitchLow": 50,
+          "pitchHigh": 67
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 79
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 20,
+          "pitchLow": 45,
+          "pitchHigh": 61
+        }
+      ],
+      "sections": [
+        {
+          "name": "イントロ",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Aメロ",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Bメロ",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "サビ",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Aメロ2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "サビ2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "間奏",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "大サビ",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "アウトロ",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "major-68-seed-19",
+      "label": "6/8・長調",
+      "seed": 19,
+      "meter": "6/8",
+      "tempo": 90,
+      "bars": 64,
+      "fullMidiSha256": "bceabaff58f06ef13ca5e5569f287d927fc2bd6c9cf9c20d725b0a6314d75199",
+      "leadMidiSha256": "762b34b800cee869fc30c05b95813e95a8eb9e6d8f3dc2f08e070bf8bc653894",
+      "midiBytes": 19776,
+      "noteCount": 1229,
+      "leadNoteCount": 219,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 130,
+          "pitchLow": 54,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 146,
+          "pitchLow": 31,
+          "pitchHigh": 60
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 114,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 116,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 188,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 5,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 14,
+          "pitchLow": 52,
+          "pitchHigh": 62
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 55,
+          "pitchHigh": 66
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 10,
+          "pitchLow": 60,
+          "pitchHigh": 73
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 6,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 11,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 10,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 1,
+          "pitchLow": 69,
+          "pitchHigh": 69
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 2,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 29,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 58,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 5,
+          "pitchLow": 49,
+          "pitchHigh": 52
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 84,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 78,
+          "pitchHigh": 78
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 14,
+          "pitchLow": 60,
+          "pitchHigh": 74
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 19,
+          "pitchLow": 55,
+          "pitchHigh": 62
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 4,
+          "pitchLow": 59,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 12,
+          "pitchLow": 57,
+          "pitchHigh": 66
+        },
+        {
+          "name": "STR_HighOctave",
+          "noteCount": 1,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 100,
+          "pitchLow": 50,
+          "pitchHigh": 67
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 3,
+          "pitchLow": 67,
+          "pitchHigh": 74
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 112,
+          "pitchLow": 40,
+          "pitchHigh": 60
+        }
+      ],
+      "sections": [
+        {
+          "name": "Intro",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Verse",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Pre-Chorus",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "Chorus",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Verse 2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Chorus 2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Bridge",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "Final Chorus",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "Outro",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "major-68-seed-41",
+      "label": "6/8・長調",
+      "seed": 41,
+      "meter": "6/8",
+      "tempo": 90,
+      "bars": 64,
+      "fullMidiSha256": "4af10daa1d07247c5d688368700143547e6b914e7ca1586ba858269380476dc3",
+      "leadMidiSha256": "c824a135631a92bc67826d0dd9c87cfc8034c7ba3638daaa5651f6f12b7564ab",
+      "midiBytes": 19911,
+      "noteCount": 1276,
+      "leadNoteCount": 131,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 127,
+          "pitchLow": 53,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 151,
+          "pitchLow": 31,
+          "pitchHigh": 60
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 129,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 116,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 211,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 9,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 16,
+          "pitchLow": 52,
+          "pitchHigh": 62
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 42,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 9,
+          "pitchLow": 55,
+          "pitchHigh": 66
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 10,
+          "pitchLow": 59,
+          "pitchHigh": 69
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 4,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 14,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 14,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 2,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 4,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 2,
+          "pitchLow": 71,
+          "pitchHigh": 78
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 81,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 31,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 58,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Ride",
+          "noteCount": 8,
+          "pitchLow": 51,
+          "pitchHigh": 51
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 5,
+          "pitchLow": 49,
+          "pitchHigh": 52
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 2,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 91,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 10,
+          "pitchLow": 60,
+          "pitchHigh": 72
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 18,
+          "pitchLow": 57,
+          "pitchHigh": 62
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 6,
+          "pitchLow": 55,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 11,
+          "pitchLow": 61,
+          "pitchHigh": 66
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 96,
+          "pitchLow": 50,
+          "pitchHigh": 64
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 24,
+          "pitchLow": 64,
+          "pitchHigh": 74
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 51,
+          "pitchLow": 40,
+          "pitchHigh": 65
+        }
+      ],
+      "sections": [
+        {
+          "name": "Intro",
+          "startBar": 1,
+          "lengthBars": 4,
+          "role": "intro"
+        },
+        {
+          "name": "Verse",
+          "startBar": 5,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Pre-Chorus",
+          "startBar": 13,
+          "lengthBars": 8,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "Chorus",
+          "startBar": 21,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Verse 2",
+          "startBar": 29,
+          "lengthBars": 8,
+          "role": "verse"
+        },
+        {
+          "name": "Chorus 2",
+          "startBar": 37,
+          "lengthBars": 8,
+          "role": "chorus"
+        },
+        {
+          "name": "Bridge",
+          "startBar": 45,
+          "lengthBars": 8,
+          "role": "bridge"
+        },
+        {
+          "name": "Final Chorus",
+          "startBar": 53,
+          "lengthBars": 8,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "Outro",
+          "startBar": 61,
+          "lengthBars": 4,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "long-44-seed-19",
+      "label": "長い構成・4/4",
+      "seed": 19,
+      "meter": "4/4",
+      "tempo": 96,
+      "bars": 144,
+      "fullMidiSha256": "afbf7b5c877dd5ed7ce1519e9164cc39a75122e7c216dae5bca2ae9192636280",
+      "leadMidiSha256": "640bc485bcd4b5f804079cdf0af54506afcefbd9c9c3d77953054e84eacd1f87",
+      "midiBytes": 35205,
+      "noteCount": 2861,
+      "leadNoteCount": 555,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 294,
+          "pitchLow": 54,
+          "pitchHigh": 67
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 368,
+          "pitchLow": 31,
+          "pitchHigh": 70
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 294,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 210,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 473,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 45,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 181,
+          "pitchLow": 50,
+          "pitchHigh": 65
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 40,
+          "pitchLow": 53,
+          "pitchHigh": 66
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 21,
+          "pitchLow": 57,
+          "pitchHigh": 81
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 20,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 15,
+          "pitchLow": 57,
+          "pitchHigh": 67
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 15,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 15,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 3,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 5,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 4,
+          "pitchLow": 64,
+          "pitchHigh": 83
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 90,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 115,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 3,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 3,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 211,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Arp_High",
+          "noteCount": 1,
+          "pitchLow": 69,
+          "pitchHigh": 69
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 19,
+          "pitchLow": 71,
+          "pitchHigh": 77
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 47,
+          "pitchLow": 55,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 14,
+          "pitchLow": 54,
+          "pitchHigh": 64
+        },
+        {
+          "name": "STR_Spiccato",
+          "noteCount": 29,
+          "pitchLow": 61,
+          "pitchHigh": 67
+        },
+        {
+          "name": "STR_HighOctave",
+          "noteCount": 3,
+          "pitchLow": 76,
+          "pitchHigh": 95
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 156,
+          "pitchLow": 50,
+          "pitchHigh": 71
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 159,
+          "pitchLow": 40,
+          "pitchHigh": 77
+        }
+      ],
+      "sections": [
+        {
+          "name": "イントロ",
+          "startBar": 1,
+          "lengthBars": 16,
+          "role": "intro"
+        },
+        {
+          "name": "Aメロ",
+          "startBar": 17,
+          "lengthBars": 16,
+          "role": "verse"
+        },
+        {
+          "name": "Bメロ",
+          "startBar": 33,
+          "lengthBars": 16,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "サビ",
+          "startBar": 49,
+          "lengthBars": 16,
+          "role": "chorus"
+        },
+        {
+          "name": "Aメロ2",
+          "startBar": 65,
+          "lengthBars": 16,
+          "role": "verse"
+        },
+        {
+          "name": "サビ2",
+          "startBar": 81,
+          "lengthBars": 16,
+          "role": "chorus"
+        },
+        {
+          "name": "間奏",
+          "startBar": 97,
+          "lengthBars": 16,
+          "role": "bridge"
+        },
+        {
+          "name": "大サビ",
+          "startBar": 113,
+          "lengthBars": 16,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "アウトロ",
+          "startBar": 129,
+          "lengthBars": 16,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    },
+    {
+      "key": "long-44-seed-41",
+      "label": "長い構成・4/4",
+      "seed": 41,
+      "meter": "4/4",
+      "tempo": 96,
+      "bars": 144,
+      "fullMidiSha256": "00fb8b6e18f8bbb4c85fa95ffc05ea7c56a68ce02cec7d5ac34f34ca95b25789",
+      "leadMidiSha256": "ea030cdcebea18efbb2acb781be8ab33ca1a98434404c74b5536dd666c89c6e3",
+      "midiBytes": 31360,
+      "noteCount": 2548,
+      "leadNoteCount": 455,
+      "channels": [
+        0
+      ],
+      "tracks": [
+        {
+          "name": "SYN_DarkPad",
+          "noteCount": 270,
+          "pitchLow": 54,
+          "pitchHigh": 79
+        },
+        {
+          "name": "SYN_Bass",
+          "noteCount": 300,
+          "pitchLow": 31,
+          "pitchHigh": 69
+        },
+        {
+          "name": "DR_Kick",
+          "noteCount": 316,
+          "pitchLow": 36,
+          "pitchHigh": 36
+        },
+        {
+          "name": "SYN_HighGlass",
+          "noteCount": 1,
+          "pitchLow": 80,
+          "pitchHigh": 80
+        },
+        {
+          "name": "DR_Snare",
+          "noteCount": 249,
+          "pitchLow": 38,
+          "pitchHigh": 38
+        },
+        {
+          "name": "DR_ClosedHat",
+          "noteCount": 585,
+          "pitchLow": 42,
+          "pitchHigh": 42
+        },
+        {
+          "name": "DR_FieldDrum",
+          "noteCount": 11,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "STR_Cello",
+          "noteCount": 24,
+          "pitchLow": 54,
+          "pitchHigh": 60
+        },
+        {
+          "name": "SYN_Stabs",
+          "noteCount": 36,
+          "pitchLow": 57,
+          "pitchHigh": 81
+        },
+        {
+          "name": "STR_Viola",
+          "noteCount": 10,
+          "pitchLow": 56,
+          "pitchHigh": 69
+        },
+        {
+          "name": "SYN_Pulse",
+          "noteCount": 23,
+          "pitchLow": 50,
+          "pitchHigh": 67
+        },
+        {
+          "name": "DR_OpenHat",
+          "noteCount": 12,
+          "pitchLow": 46,
+          "pitchHigh": 46
+        },
+        {
+          "name": "DR_LowTom",
+          "noteCount": 12,
+          "pitchLow": 45,
+          "pitchHigh": 45
+        },
+        {
+          "name": "DR_HighTom",
+          "noteCount": 13,
+          "pitchLow": 50,
+          "pitchHigh": 50
+        },
+        {
+          "name": "DR_GranCassa",
+          "noteCount": 3,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Crash",
+          "noteCount": 5,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "STR_Violin1",
+          "noteCount": 7,
+          "pitchLow": 78,
+          "pitchHigh": 83
+        },
+        {
+          "name": "STR_Upper",
+          "noteCount": 3,
+          "pitchLow": 83,
+          "pitchHigh": 86
+        },
+        {
+          "name": "SYN_FinalLift",
+          "noteCount": 4,
+          "pitchLow": 83,
+          "pitchHigh": 85
+        },
+        {
+          "name": "DR_SubThump",
+          "noteCount": 101,
+          "pitchLow": 35,
+          "pitchHigh": 35
+        },
+        {
+          "name": "DR_Snare_Body",
+          "noteCount": 131,
+          "pitchLow": 40,
+          "pitchHigh": 40
+        },
+        {
+          "name": "DR_Cymbal_Swell",
+          "noteCount": 3,
+          "pitchLow": 49,
+          "pitchHigh": 49
+        },
+        {
+          "name": "DR_Impact",
+          "noteCount": 3,
+          "pitchLow": 41,
+          "pitchHigh": 41
+        },
+        {
+          "name": "SYN_SubBass",
+          "noteCount": 116,
+          "pitchLow": 24,
+          "pitchHigh": 35
+        },
+        {
+          "name": "SYN_Pad_Air",
+          "noteCount": 14,
+          "pitchLow": 69,
+          "pitchHigh": 76
+        },
+        {
+          "name": "SYN_Pad_Motion",
+          "noteCount": 28,
+          "pitchLow": 55,
+          "pitchHigh": 77
+        },
+        {
+          "name": "STR_Contrabass",
+          "noteCount": 13,
+          "pitchLow": 54,
+          "pitchHigh": 64
+        },
+        {
+          "name": "GTR_Arpeggio",
+          "noteCount": 138,
+          "pitchLow": 50,
+          "pitchHigh": 66
+        },
+        {
+          "name": "GTR_Strum",
+          "noteCount": 24,
+          "pitchLow": 57,
+          "pitchHigh": 76
+        },
+        {
+          "name": "GTR_Riff",
+          "noteCount": 93,
+          "pitchLow": 45,
+          "pitchHigh": 72
+        }
+      ],
+      "sections": [
+        {
+          "name": "イントロ",
+          "startBar": 1,
+          "lengthBars": 16,
+          "role": "intro"
+        },
+        {
+          "name": "Aメロ",
+          "startBar": 17,
+          "lengthBars": 16,
+          "role": "verse"
+        },
+        {
+          "name": "Bメロ",
+          "startBar": 33,
+          "lengthBars": 16,
+          "role": "pre-chorus"
+        },
+        {
+          "name": "サビ",
+          "startBar": 49,
+          "lengthBars": 16,
+          "role": "chorus"
+        },
+        {
+          "name": "Aメロ2",
+          "startBar": 65,
+          "lengthBars": 16,
+          "role": "verse"
+        },
+        {
+          "name": "サビ2",
+          "startBar": 81,
+          "lengthBars": 16,
+          "role": "chorus"
+        },
+        {
+          "name": "間奏",
+          "startBar": 97,
+          "lengthBars": 16,
+          "role": "bridge"
+        },
+        {
+          "name": "大サビ",
+          "startBar": 113,
+          "lengthBars": 16,
+          "role": "grand-chorus"
+        },
+        {
+          "name": "アウトロ",
+          "startBar": 129,
+          "lengthBars": 16,
+          "role": "outro"
+        }
+      ],
+      "qualityWarning": null
+    }
+  ]
+}

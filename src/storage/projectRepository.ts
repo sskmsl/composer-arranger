@@ -1,11 +1,15 @@
 import type { ComposerProject } from "@/core/project"
 import { duplicateProjectData, nextLastOpenedAfterDelete } from "@/core/projectBrowser"
-import { getDb, PROJECT_STORE, META_STORE } from "./db"
+import { getDb, PROJECT_STORE, META_STORE, CLOUD_OUTBOX_STORE } from "./db"
+import { cloudSaveKey, pendingCloudSave, pendingCloudDelete, listPendingCloudSaves, readPendingCloudSave, acknowledgeCloudSave } from "./cloudOutbox"
 import { allowStorageAccount, assertStorageAccount, storageAccount } from "./accountScope"
 import {
   deleteProjectRemote,
   mergeProjectCollections,
   scheduleProjectPush,
+  isCloudSyncConfigured,
+  retryCloudSaves,
+  scheduleCloudSync,
   shouldResetLocalForOwner,
   syncPullAndReconcile,
   type StoredComposerProject,
@@ -37,52 +41,59 @@ async function readPendingDeletions(
   }
 }
 
-async function writePendingDeletions(
-  ownerId: string,
-  pending: PendingCloudDeletion[],
-): Promise<void> {
-  const db = await getDb()
-  const key = pendingDeletionKey(ownerId)
-  if (pending.length === 0) await db.delete(META_STORE, key)
-  else await db.put(META_STORE, JSON.stringify(pending), key)
-}
-
-async function queueCloudDeletion(
-  ownerId: string,
-  projectId: string,
-): Promise<PendingCloudDeletion> {
-  const pending = await readPendingDeletions(ownerId)
-  const existing = pending.find((item) => item.projectId === projectId)
-  if (existing) return existing
-  const deletion = { projectId, deletedAt: new Date().toISOString() }
-  await writePendingDeletions(ownerId, [...pending, deletion])
-  return deletion
-}
-
 async function flushCloudDeletion(
   ownerId: string,
   deletion: PendingCloudDeletion,
 ): Promise<void> {
   await deleteProjectRemote(deletion.projectId, deletion.deletedAt, ownerId)
-  const pending = await readPendingDeletions(ownerId)
-  await writePendingDeletions(
-    ownerId,
-    pending.filter((item) => item.projectId !== deletion.projectId),
-  )
+  const queued = await readPendingCloudSave(ownerId, deletion.projectId)
+  if (queued?.kind === "delete" && queued.deletedAt === deletion.deletedAt) await acknowledgeCloudSave(queued)
+  const db = await getDb()
+  assertStorageAccount(ownerId)
+  const tx = db.transaction(META_STORE, "readwrite")
+  void tx.done.catch(() => undefined)
+  try {
+    const key = pendingDeletionKey(ownerId)
+    const raw = await tx.store.get(key)
+    assertStorageAccount(ownerId)
+    const pending = raw ? JSON.parse(raw) as PendingCloudDeletion[] : []
+    const remaining = pending.filter((item) => item.projectId !== deletion.projectId || item.deletedAt !== deletion.deletedAt)
+    if (remaining.length) await tx.store.put(JSON.stringify(remaining), key)
+    else await tx.store.delete(key)
+    await tx.done
+  } catch (error) {
+    try { tx.abort() } catch { /* already finished */ }
+    await tx.done.catch(() => undefined)
+    throw error
+  }
 }
 
 /** 17章「保存中のアプリ終了でも直前状態を復元できる」を満たすための自動保存 */
-export async function saveProject(project: ComposerProject): Promise<void> {
+async function commitProject(project: ComposerProject, updateLastOpened: boolean, restoring = false): Promise<void> {
   const account = storageAccount()
   const db = await getDb()
   assertStorageAccount(account)
   const record = { ...project, savedAt: new Date().toISOString() }
-  const transaction = db.transaction([PROJECT_STORE, META_STORE], "readwrite")
+  const queueOwner = typeof account === "string" && isCloudSyncConfigured() ? account : undefined
+  const transaction = db.transaction(queueOwner ? [PROJECT_STORE, META_STORE, CLOUD_OUTBOX_STORE] : [PROJECT_STORE, META_STORE], "readwrite")
   try {
     await Promise.all([
       (async () => {
         await transaction.objectStore(PROJECT_STORE).put(record)
-        await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
+        if (updateLastOpened) await transaction.objectStore(META_STORE).put(project.projectId, LAST_OPENED_KEY)
+        if (queueOwner) {
+          const key = cloudSaveKey(queueOwner, project.projectId)
+          const previous = await transaction.objectStore(CLOUD_OUTBOX_STORE).get(key)
+          const restoredAt = restoring ? record.savedAt : previous?.kind === "save" ? previous.restoredAt : undefined
+          await transaction.objectStore(CLOUD_OUTBOX_STORE).put(pendingCloudSave(queueOwner, record, restoredAt), key)
+        }
+        if (restoring && typeof account === "string") {
+          const key = pendingDeletionKey(account)
+          const raw = await transaction.objectStore(META_STORE).get(key)
+          const remaining = (raw ? JSON.parse(raw) as PendingCloudDeletion[] : []).filter(item => item.projectId !== project.projectId)
+          if (remaining.length) await transaction.objectStore(META_STORE).put(JSON.stringify(remaining), key)
+          else await transaction.objectStore(META_STORE).delete(key)
+        }
       })(),
       transaction.done,
     ])
@@ -94,6 +105,8 @@ export async function saveProject(project: ComposerProject): Promise<void> {
   assertStorageAccount(account)
   scheduleProjectPush(record)
 }
+
+export const saveProject = (project: ComposerProject): Promise<void> => commitProject(project, true)
 
 export async function loadProject(projectId: string): Promise<ComposerProject | undefined> {
   const db = await getDb()
@@ -114,17 +127,16 @@ export async function listProjects(): Promise<(ComposerProject & { savedAt: stri
 }
 
 /**
- * メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate/削除の復元用)。
+ * メタ情報(lastOpened)を変更せずに保存レコードだけを更新する(Rename/Duplicate用)。
  * 現在編集中のセッション(store.project/selectedSectionId/history等)には一切触れない。
  */
 export async function putProjectRecord(project: ComposerProject): Promise<void> {
-  const account = storageAccount()
-  const db = await getDb()
-  assertStorageAccount(account)
-  const record = { ...project, savedAt: new Date().toISOString() }
-  await db.put(PROJECT_STORE, record)
-  assertStorageAccount(account)
-  scheduleProjectPush(record)
+  await commitProject(project, false)
+}
+
+/** 削除の「元に戻す」だけを明示し、送信前の追編集にも復元の意図を保持する。 */
+export async function restoreProjectRecord(project: ComposerProject): Promise<void> {
+  await commitProject(project, false, true)
 }
 
 /**
@@ -138,17 +150,35 @@ export async function deleteProject(projectId: string): Promise<void> {
   const lastOpened = (await db.get(META_STORE, LAST_OPENED_KEY)) ?? null
   const allIds = (await db.getAllKeys(PROJECT_STORE)) as string[]
   assertStorageAccount(account)
-  await db.delete(PROJECT_STORE, projectId)
-  assertStorageAccount(account)
   const cloudOwnerId = await db.get(META_STORE, CLOUD_OWNER_KEY)
   assertStorageAccount(account)
-  if (cloudOwnerId) {
-    const deletion = await queueCloudDeletion(cloudOwnerId, projectId)
-    void flushCloudDeletion(cloudOwnerId, deletion).catch(() => undefined)
+  let deletion: PendingCloudDeletion | undefined
+  const transaction = db.transaction([PROJECT_STORE, META_STORE, CLOUD_OUTBOX_STORE], "readwrite")
+  try {
+    await Promise.all([
+      (async () => {
+        await transaction.objectStore(PROJECT_STORE).delete(projectId)
+        if (cloudOwnerId) {
+          const raw = await transaction.objectStore(META_STORE).get(pendingDeletionKey(cloudOwnerId))
+          const previousDeletions = raw ? JSON.parse(raw) as PendingCloudDeletion[] : []
+          deletion = { projectId, deletedAt: new Date().toISOString() }
+          if (isCloudSyncConfigured()) await transaction.objectStore(CLOUD_OUTBOX_STORE).put(pendingCloudDelete(cloudOwnerId, projectId, deletion.deletedAt), cloudSaveKey(cloudOwnerId, projectId))
+          else await transaction.objectStore(CLOUD_OUTBOX_STORE).delete(cloudSaveKey(cloudOwnerId, projectId))
+          await transaction.objectStore(META_STORE).put(JSON.stringify([...previousDeletions.filter((item) => item.projectId !== projectId), deletion]), pendingDeletionKey(cloudOwnerId))
+        }
+        const nextLast = nextLastOpenedAfterDelete(projectId, lastOpened, allIds)
+        if (nextLast) await transaction.objectStore(META_STORE).put(nextLast, LAST_OPENED_KEY)
+        else await transaction.objectStore(META_STORE).delete(LAST_OPENED_KEY)
+      })(),
+      transaction.done,
+    ])
+  } catch (error) {
+    try { transaction.abort() } catch { /* already finished */ }
+    await transaction.done.catch(() => undefined)
+    throw error
   }
-  const nextLast = nextLastOpenedAfterDelete(projectId, lastOpened, allIds)
-  if (nextLast) await db.put(META_STORE, nextLast, LAST_OPENED_KEY)
-  else await db.delete(META_STORE, LAST_OPENED_KEY)
+  assertStorageAccount(account)
+  if (cloudOwnerId && deletion && isCloudSyncConfigured()) scheduleCloudSync()
 }
 
 /** Issue #14: 保存済みプロジェクトを複製する(新しいprojectId・全データ保持)。複製したプロジェクトを返す */
@@ -243,6 +273,29 @@ export async function prepareLocalAccount(ownerId: string): Promise<void> {
   assertOwner()
   await db.put(META_STORE, ownerId, CLOUD_OWNER_KEY)
   assertOwner()
+  // ほかのアカウントへ切り替えた間にprojectsを隔離しても、元の未送信曲を復元できる。
+  const pending = await listPendingCloudSaves(ownerId)
+  const deletedIds = new Set((await readPendingDeletions(ownerId)).map((item) => item.projectId))
+  assertOwner()
+  const restore = db.transaction([PROJECT_STORE, META_STORE], "readwrite")
+  void restore.done.catch(() => undefined)
+  try {
+    for (const entry of pending) {
+      const local = await restore.objectStore(PROJECT_STORE).get(entry.project.projectId)
+      assertOwner()
+      if (!deletedIds.has(entry.project.projectId) && (!local || local.savedAt < entry.project.savedAt)) await restore.objectStore(PROJECT_STORE).put(entry.project)
+    }
+    const last = await restore.objectStore(META_STORE).get(LAST_OPENED_KEY)
+    assertOwner()
+    const latest = pending.filter((entry) => !deletedIds.has(entry.project.projectId)).at(-1)
+    if (!last && latest) await restore.objectStore(META_STORE).put(latest.project.projectId, LAST_OPENED_KEY)
+    await restore.done
+  } catch (error) {
+    try { restore.abort() } catch { /* already finished */ }
+    await restore.done.catch(() => undefined)
+    throw error
+  }
+  assertOwner()
   allowStorageAccount(ownerId)
 }
 
@@ -263,6 +316,8 @@ export async function syncProjectsFromCloud(ownerId: string): Promise<void> {
   const remainingDeletedIds = (await readPendingDeletions(ownerId)).map(
     (item) => item.projectId,
   )
+  assertOwner()
+  await retryCloudSaves()
   assertOwner()
   await syncPullAndReconcile({
     listLocal: () => { assertOwner(); return listProjects() },
